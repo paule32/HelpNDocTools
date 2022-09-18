@@ -18,10 +18,10 @@ procedure Write  (AString: String); begin WriteLn(AString);       end;
 {$ENDIF}
 
 {$IFDEF PRIVATE_BUILD}
-{$IFDEF LANG_ENGLISH} {$INCLUDE 'E:\Projekte\HelpNDoc\rcs_English.pas'} {$ENDIF}
-{$IFDEF LANG_GERMAN}  {$INCLUDE 'E:\Projekte\HelpNDoc\rcs_German.pas' } {$ENDIF}
-{$IFDEF LANG_FRENCH}  {$INCLUDE 'E:\Projekte\HelpNDoc\rcs_French.pas' } {$ENDIF}
-{$IFDEF LANG_SPANISH} {$INCLUDE 'E:\Projekte\HelpNDoc\rcs_Spanish.pas'} {$ENDIF}
+{$IFDEF LANG_ENGLISH} {$INCLUDE 'E:\Projekte\HelpNDoc\rcs_English.inc'} {$ENDIF}
+{$IFDEF LANG_GERMAN}  {$INCLUDE 'E:\Projekte\HelpNDoc\rcs_German.inc' } {$ENDIF}
+{$IFDEF LANG_FRENCH}  {$INCLUDE 'E:\Projekte\HelpNDoc\rcs_French.inc' } {$ENDIF}
+{$IFDEF LANG_SPANISH} {$INCLUDE 'E:\Projekte\HelpNDoc\rcs_Spanish.inc'} {$ENDIF}
 
 {$INCLUDE 'E:\Projekte\HelpNDoc\HndException.inc' }
 {$INCLUDE 'E:\Projekte\HelpNDoc\HndParser.inc'    }
