@@ -1,0 +1,80 @@
+% ------------------------------------------------------------------------
+% @file:    test.pdf
+%
+% @author:  Jens Kallup - <paule32.jk@gmail.com>
+% @license: (c) 2022 kallup non-profit software
+%           all rights reserved.
+%
+%           only for education, and/or test usage. NO WARRANTIES !!!
+%
+% @brief    shows, how to coding a PDF (Portable Document Format) file
+%           with help of a native text editor like nano or notepad++
+%           The result shall be a page with a blue box on the bottom of
+%           the PDF file.
+% ------------------------------------------------------------------------
+%PDF-1.7
+
+% ------------------------------------------------------------------------
+% object 1: paint a box on the bottom part of the page
+% ------------------------------------------------------------------------
+1 0 obj << >>
+stream
+0 0 1 RGB     % RGB - blue
+     2 w      % border: 2 pixels width
+ 10 10 m      % moveTo: x:10  pixels from left; y:10 pixels from bottom up
+600 10 l      % lineTo: x:600 pixels from left; y:10 pixels from bottom up
+600 50 l      % lineTo: x:600 pixels from left; y:50 pixels from bottom up
+ 10 50 l      % lineTo: x:10  pixels from left; y:50 pixels from bottum up
+s
+endstream
+endobj
+
+% ------------------------------------------------------------------------
+% object 2 (catalog) - object: 3 are the pages
+% ------------------------------------------------------------------------
+2 0 obj << /Pages 3 0 R >>
+
+% ------------------------------------------------------------------------
+% object 3 (pages) - 4. obj are the page childs with count of (1) page(s)
+% ------------------------------------------------------------------------
+3 0 obj
+<<
+    /Kids [4 0 R ]
+    /Count 1
+>>
+endobj
+
+% ------------------------------------------------------------------------
+% object 4 describe a page
+% ------------------------------------------------------------------------
+4 0 obj
+<< 
+    /Type /Page
+    /Parent 3 0 R
+    /MediaBox [0 0 612 792] 
+    /Contents 1 0 R
+>>
+endobj
+
+% ------------------------------------------------------------------------
+% cross-table: 0 item is fix, next 4 items (objects) are offsets
+% ------------------------------------------------------------------------
+xref
+0 4
+0000000000 65535 f
+0000000001 00000 n
+0000000002 00000 n
+0000000004 00000 n
+0000000006 00000 n
+
+% ------------------------------------------------------------------------
+% the size are 4 objects, (root) is object: 2
+% ------------------------------------------------------------------------
+trailer 
+<<
+    /Size 4 
+    /Root 2 0 R
+>>
+startxref
+344
+%%EOF
