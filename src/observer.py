@@ -216,6 +216,10 @@ class FileWatcherGUI(QWidget):
         self.preDelButton = QPushButton("Delete")
         self.preClrButton = QPushButton("Clear All")
         #
+        self.preAddButton.clicked.connect(self.button_clicked_preadd)
+        self.preDelButton.clicked.connect(self.button_clicked_preDel)
+        self.preClrButton.clicked.connect(self.button_clicked_preClr)
+        #
         self.middle_layout.addWidget(self.preAddButton)
         self.middle_layout.addWidget(self.preDelButton)
         self.middle_layout.addWidget(self.preClrButton)
@@ -259,6 +263,10 @@ class FileWatcherGUI(QWidget):
         self.postDelButton = QPushButton("Delete")
         self.postClrButton = QPushButton("Clear All")
         #
+        self.postAddButton.clicked.connect(self.button_clicked_postadd)
+        self.postDelButton.clicked.connect(self.button_clicked_postDel)
+        self.postClrButton.clicked.connect(self.button_clicked_postClr)
+        #
         self.right_layout.addWidget(self.postAddButton)
         self.right_layout.addWidget(self.postDelButton)
         self.right_layout.addWidget(self.postClrButton)
@@ -266,7 +274,7 @@ class FileWatcherGUI(QWidget):
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
-
+        
         # alles zusammen ...
         self.layout.addLayout(self.top_layout)
         
@@ -277,10 +285,36 @@ class FileWatcherGUI(QWidget):
         self.layout.addWidget(self.status_bar)
         
         self.setLayout(self.layout)
-        self.setWindowTitle('HelpNDoc File Watcher v0.0.1 - by paule32')
-
+        self.setWindowTitle('HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32')
+        
         self.interval = 0
         self.currentTime = 0
+
+    # pre-fixed
+    def button_clicked_preadd(self):
+        item = QListWidgetItem("Item")
+        self.preActionList.addItem(item)
+        return
+
+    def button_clicked_preDel(self):
+        return
+
+    def button_clicked_preClr(self):
+        self.preActionList.clear()
+        return
+
+    # post-fixed
+    def button_clicked_postadd(self):
+        item = QListWidgetItem("Item")
+        self.postActionList.addItem(item)
+        return
+
+    def button_clicked_postDel(self):
+        return
+
+    def button_clicked_postClr(self):
+        self.postActionList.clear()
+        return
 
     def startWatching(self):
         # Timer starten
