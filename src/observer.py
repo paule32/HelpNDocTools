@@ -9,6 +9,10 @@ import os
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore    import QTimer, QDir
 
+from PyQt5.QtWidgets import *  # Qt5 widgets
+from PyQt5.QtGui     import *  # Qt5 gui
+from PyQt5.QtCore    import *  # Qt5 core
+
 class FileWatcherGUI(QWidget):
     def __init__(self, parent=None):
         super().__init__()
@@ -32,7 +36,9 @@ class FileWatcherGUI(QWidget):
 
     def initUI(self):
         # Layout
-        self.setMaximumWidth(800)
+        self.setMaximumWidth (800)
+        self.setMaximumHeight(600)
+        
         self.layout = QVBoxLayout()
         
         # menu bar
@@ -66,6 +72,14 @@ class FileWatcherGUI(QWidget):
         self.tool_bar_button_exit = QToolButton()
         self.tool_bar_button_exit.setText("Clear")
         self.tool_bar_button_exit.setCheckable(True)
+        
+        self.tool_bar_action_new1 = QAction(QIcon("../img/floppy-disk.png"), "Flopp", self)
+        self.tool_bar_action_new2 = QAction(QIcon("../img/floppy-disk.png"), "Flopp", self)
+        self.tool_bar_action_new3 = QAction(QIcon("../img/floppy-disk.png"), "Flopp", self)
+        
+        self.tool_bar.addAction(self.tool_bar_action_new1)
+        self.tool_bar.addAction(self.tool_bar_action_new2)
+        self.tool_bar.addAction(self.tool_bar_action_new3)
         
         self.tool_bar.addWidget(self.tool_bar_button_exit)
         
@@ -142,26 +156,26 @@ class FileWatcherGUI(QWidget):
         self.path_layout.addWidget(self.path_lineButton)
         #
         self.left_layout.addLayout(self.path_layout)
-
+        
         # Start und Stop Buttons
         self.startButton = QPushButton('Start', self)
         self.startButton.clicked.connect(self.startWatching)
         self.left_layout.addWidget(self.startButton)
-
+        
         self.stopButton = QPushButton('Stop', self)
         self.stopButton.clicked.connect(self.stopWatching)
         self.left_layout.addWidget(self.stopButton)
-
+        
         # ComboBox für Zeitangaben
         self.timeComboBox = QComboBox(self)
         self.timeComboBox.addItems(["10", "15", "20", "25", "30", "60", "120"])
         self.timeComboBox.setMaximumWidth(49)
         self.left_layout.addWidget(self.timeComboBox)
-
+        
         # Label für den Countdown
         self.countdownLabel = QLabel('Select time:', self)
         self.left_layout.addWidget(self.countdownLabel)
-
+        
         # mitte Seite
         self.preActionList = QListWidget(self)
         self.preActionList_Label  = QLabel("Content:", self)
