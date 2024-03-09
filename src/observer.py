@@ -3,11 +3,17 @@
 # Author: (c) 2024 Jens Kallup - paule32
 # All rights reserved
 # ---------------------------------------------------------------------------
-import sys
-import os
+import os            # operating system stuff
+import sys           # system specifies
+import datetime      # date, and time routines
 
-import random
+import random        # randome numbers
 import string
+
+import sqlite3       # database: sqlite
+import configparser  # .ini files
+
+import traceback     # stack exception trace back
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore    import QTimer, QDir
@@ -15,6 +21,12 @@ from PyQt5.QtCore    import QTimer, QDir
 from PyQt5.QtWidgets import *  # Qt5 widgets
 from PyQt5.QtGui     import *  # Qt5 gui
 from PyQt5.QtCore    import *  # Qt5 core
+
+def get_current_time():
+    return datetime.datetime.now().strftime("%H_%M")
+
+def get_current_date():
+    return datetime.datetime.now().strftime("%Y_%m_%d")
 
 class FileWatcherGUI(QWidget):
     def __init__(self, parent=None):
@@ -367,7 +379,23 @@ class FileWatcherGUI(QWidget):
             # Hier könnten Sie Aktionen durchführen, wenn die Datei nicht existiert
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = FileWatcherGUI()
-    ex.show()
-    sys.exit(app.exec_())
+    global conn
+    global conn_cursor
+    
+    try:
+        app = QApplication(sys.argv)
+        
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        time_str = datetime.datetime.now().strftime("%H:%M:%S")
+        
+        conn = sqlite3.connect("data.db")
+        conn_cursor = conn.cursor()
+        conn.close()
+        
+        ex = FileWatcherGUI()
+        ex.show()
+    except Exception as ex:
+        print("Exception occur: " + f"{ex}")
+        sys.exit(1)
+    finally:
+        sys.exit(app.exec_())
