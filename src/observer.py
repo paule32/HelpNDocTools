@@ -86,10 +86,14 @@ class FileWatcherGUI(QWidget):
         self.left_layout   = QVBoxLayout()
         self.middle_layout = QVBoxLayout()
         self.right_layout  = QVBoxLayout()
-
-        # oberer Teil - links
-        self.file_label = QLabel('Directory:', self)
-        self.left_layout.addWidget(self.file_label)
+        
+        # ------------------
+        # left, top part ...
+        # ------------------
+        self.fold_text = QLabel('Directory:', self)
+        self.file_text = QLabel("File:", self)
+        #
+        self.left_layout.addWidget(self.fold_text)
         
         # pre
         self.pre_action_label = QLabel('Pre-Actions:', self)
@@ -98,9 +102,10 @@ class FileWatcherGUI(QWidget):
         # post
         self.post_action_label = QLabel('Post-Actions:', self)
         self.right_layout.addWidget(self.post_action_label);
-
         
-        # linke Seite oben
+        # ----------------------------
+        # left side directory view ...
+        # ----------------------------
         self.path = QDir.homePath()
         
         self.dir_model = QFileSystemModel()
@@ -120,6 +125,7 @@ class FileWatcherGUI(QWidget):
         self.file_list.setRootIndex(self.file_model.index(self.path))
         
         self.left_layout.addWidget(self.file_tree)
+        self.left_layout.addWidget(self.file_text)
         self.left_layout.addWidget(self.file_list)
         
         self.file_tree.clicked.connect(self.file_tree_clicked)
@@ -149,7 +155,7 @@ class FileWatcherGUI(QWidget):
         # ComboBox für Zeitangaben
         self.timeComboBox = QComboBox(self)
         self.timeComboBox.addItems(["10", "15", "20", "25", "30", "60", "120"])
-        self.timeComboBox.setMaximumWidth(42)
+        self.timeComboBox.setMaximumWidth(49)
         self.left_layout.addWidget(self.timeComboBox)
 
         # Label für den Countdown
@@ -158,12 +164,17 @@ class FileWatcherGUI(QWidget):
 
         # mitte Seite
         self.preActionList = QListWidget(self)
+        self.preActionList_Label  = QLabel("Content:", self)
+        self.preActionList_Editor = QPlainTextEdit()
+        #
         self.middle_layout.addWidget(self.preActionList)
+        self.middle_layout.addWidget(self.preActionList_Label)
+        self.middle_layout.addWidget(self.preActionList_Editor)
         
         #
         self.preActionComboBox = QComboBox(self)
         self.preActionComboBox.addItems(["Message", "Script", "URL", "FTP"])
-        self.timeComboBox.setMaximumWidth(42)
+        self.timeComboBox.setMaximumWidth(49)
         self.middle_layout.addWidget(self.preActionComboBox)
         
         self.preEditLineLabel = QLabel("Text / File:", self)
@@ -198,7 +209,12 @@ class FileWatcherGUI(QWidget):
         
         # rechte Seite
         self.postActionList = QListWidget(self)
+        self.postActionList_Label  = QLabel("Content:", self)
+        self.postActionList_Editor = QPlainTextEdit()
+        #
         self.right_layout.addWidget(self.postActionList)
+        self.right_layout.addWidget(self.postActionList_Label)
+        self.right_layout.addWidget(self.postActionList_Editor)
         
         self.postActionComboBox = QComboBox(self)
         self.postActionComboBox.addItems(["Message", "Script", "URL", "FTP"])
