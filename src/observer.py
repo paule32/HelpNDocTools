@@ -7,7 +7,7 @@ import sys
 import os
 
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore    import QTimer
+from PyQt5.QtCore    import QTimer, QDir
 
 class FileWatcherGUI(QWidget):
     def __init__(self, parent=None):
@@ -23,6 +23,11 @@ class FileWatcherGUI(QWidget):
         return
 
     def menu_edit_clicked_clearall(self):
+        return
+
+    def file_tree_clicked(self, index):
+        self.path = self.dir_model.fileInfo(index).absoluteFilePath()
+        self.file_list.setRootIndex(self.file_model.setRootPath(self.path))
         return
 
     def initUI(self):
@@ -72,6 +77,10 @@ class FileWatcherGUI(QWidget):
         self.status_bar = QStatusBar()
         self.status_bar.showMessage("Ready", 0)
         
+                
+        # first register card - action's ...
+        
+        
         # components
         self.top_layout    = QHBoxLayout()
         self.left_layout   = QVBoxLayout()
@@ -91,12 +100,30 @@ class FileWatcherGUI(QWidget):
         self.right_layout.addWidget(self.post_action_label);
 
         
-        # linke Seite
-        self.tree_folder = QTreeWidget()
-        self.tree_folder.setColumnCount(1)
-        self.tree_folder.setHeaderLabels(["C:"])
+        # linke Seite oben
+        self.path = QDir.homePath()
         
-        self.left_layout.addWidget(self.tree_folder)
+        self.dir_model = QFileSystemModel()
+        self.dir_model.setRootPath(self.path)
+        self.dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
+        
+        self.file_model = QFileSystemModel()
+        self.file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
+        
+        self.file_tree = QTreeView()
+        self.file_list = QListView()
+        
+        self.file_tree.setModel(self.dir_model)
+        self.file_list.setModel(self.file_model)
+        
+        self.file_tree.setRootIndex(self. dir_model.index(self.path))
+        self.file_list.setRootIndex(self.file_model.index(self.path))
+        
+        self.left_layout.addWidget(self.file_tree)
+        self.left_layout.addWidget(self.file_list)
+        
+        self.file_tree.clicked.connect(self.file_tree_clicked)
+        
         
         # Eingabezeile für den Pfad
         self.path_lineEdit = QLineEdit(self)
