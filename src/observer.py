@@ -6,6 +6,9 @@
 import sys
 import os
 
+import random
+import string
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore    import QTimer, QDir
 
@@ -290,13 +293,23 @@ class FileWatcherGUI(QWidget):
         self.interval = 0
         self.currentTime = 0
 
+    def generate_random_string(self, length):
+        characters = string.ascii_uppercase + string.digits
+        random_string = ''.join(random.sample(characters, length))
+        return random_string
+
     # pre-fixed
     def button_clicked_preadd(self):
-        item = QListWidgetItem("Item")
+        random_string = self.generate_random_string(random.randint(8,32))
+        item = QListWidgetItem(random_string)
         self.preActionList.addItem(item)
         return
 
     def button_clicked_preDel(self):
+        listItems = self.preActionList.selectedItems()
+        if not listItems: return        
+        for item in listItems:
+            self.preActionList.takeItem(self.preActionList.row(item))
         return
 
     def button_clicked_preClr(self):
@@ -305,11 +318,16 @@ class FileWatcherGUI(QWidget):
 
     # post-fixed
     def button_clicked_postadd(self):
-        item = QListWidgetItem("Item")
+        random_string = self.generate_random_string(random.randint(8,32))
+        item = QListWidgetItem(random_string)
         self.postActionList.addItem(item)
         return
 
     def button_clicked_postDel(self):
+        listItems = self.postActionList.selectedItems()
+        if not listItems: return        
+        for item in listItems:
+            self.postActionList.takeItem(self.postActionList.row(item))
         return
 
     def button_clicked_postClr(self):
