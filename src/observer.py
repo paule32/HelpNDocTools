@@ -49,6 +49,11 @@ class FileWatcherGUI(QWidget):
         self.tab1_file_list.setRootIndex(self.file_model.setRootPath(self.path))
         return
 
+    def file_list_clicked(self, index):
+        self.path_file = self.dir_model.fileInfo(index).absoluteFilePath()
+        print(f"path: {self.path}  | file: {self.path_file}")
+        return
+
     def initUI(self):
         # Layout
         self.setMaximumWidth (800)
@@ -165,6 +170,7 @@ class FileWatcherGUI(QWidget):
         self.tab1_left_layout.addWidget(self.tab1_file_list)
         
         self.tab1_file_tree.clicked.connect(self.file_tree_clicked)
+        self.tab1_file_list.clicked.connect(self.file_list_clicked)
         
         
         # Eingabezeile für den Pfad
