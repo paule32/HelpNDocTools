@@ -46,7 +46,7 @@ class FileWatcherGUI(QWidget):
 
     def file_tree_clicked(self, index):
         self.path = self.dir_model.fileInfo(index).absoluteFilePath()
-        self.file_list.setRootIndex(self.file_model.setRootPath(self.path))
+        self.tab1_file_list.setRootIndex(self.file_model.setRootPath(self.path))
         return
 
     def initUI(self):
@@ -108,29 +108,36 @@ class FileWatcherGUI(QWidget):
         
                 
         # first register card - action's ...
+        self.tabs = QTabWidget()
+        self.tab1 = QWidget()
+        self.tab2 = QWidget()
+        #self.tabs.resize(300,200)
         
+        # add tabs
+        self.tabs.addTab(self.tab1, "Actions")
+        self.tabs.addTab(self.tab2, "Tab 2")
         
-        # components
-        self.top_layout    = QHBoxLayout()
-        self.left_layout   = QVBoxLayout()
-        self.middle_layout = QVBoxLayout()
-        self.right_layout  = QVBoxLayout()
+        # create first tab
+        self.tab1_top_layout    = QHBoxLayout(self.tab1)
+        self.tab1_left_layout   = QVBoxLayout(self.tab1)
+        self.tab1_middle_layout = QVBoxLayout(self.tab1)
+        self.tab1_right_layout  = QVBoxLayout(self.tab1)
         
         # ------------------
         # left, top part ...
         # ------------------
-        self.fold_text = QLabel('Directory:', self)
-        self.file_text = QLabel("File:", self)
+        self.tab1_fold_text = QLabel('Directory:', self.tab1)
+        self.tab1_file_text = QLabel("File:", self.tab1)
         #
-        self.left_layout.addWidget(self.fold_text)
+        self.tab1_left_layout.addWidget(self.tab1_fold_text)
         
         # pre
-        self.pre_action_label = QLabel('Pre-Actions:', self)
-        self.middle_layout.addWidget(self.pre_action_label);
+        self.tab1_pre_action_label = QLabel('Pre-Actions:', self.tab1)
+        self.tab1_middle_layout.addWidget(self.tab1_pre_action_label);
         
         # post
-        self.post_action_label = QLabel('Post-Actions:', self)
-        self.right_layout.addWidget(self.post_action_label);
+        self.tab1_post_action_label = QLabel('Post-Actions:', self.tab1)
+        self.tab1_right_layout.addWidget(self.tab1_post_action_label);
         
         # ----------------------------
         # left side directory view ...
@@ -144,159 +151,161 @@ class FileWatcherGUI(QWidget):
         self.file_model = QFileSystemModel()
         self.file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
         
-        self.file_tree = QTreeView()
-        self.file_list = QListView()
+        self.tab1_file_tree = QTreeView()
+        self.tab1_file_list = QListView()
         
-        self.file_tree.setModel(self.dir_model)
-        self.file_list.setModel(self.file_model)
+        self.tab1_file_tree.setModel(self.dir_model)
+        self.tab1_file_list.setModel(self.file_model)
         
-        self.file_tree.setRootIndex(self. dir_model.index(self.path))
-        self.file_list.setRootIndex(self.file_model.index(self.path))
+        self.tab1_file_tree.setRootIndex(self. dir_model.index(self.path))
+        self.tab1_file_list.setRootIndex(self.file_model.index(self.path))
         
-        self.left_layout.addWidget(self.file_tree)
-        self.left_layout.addWidget(self.file_text)
-        self.left_layout.addWidget(self.file_list)
+        self.tab1_left_layout.addWidget(self.tab1_file_tree)
+        self.tab1_left_layout.addWidget(self.tab1_file_text)
+        self.tab1_left_layout.addWidget(self.tab1_file_list)
         
-        self.file_tree.clicked.connect(self.file_tree_clicked)
+        self.tab1_file_tree.clicked.connect(self.file_tree_clicked)
         
         
         # Eingabezeile für den Pfad
-        self.path_lineEdit = QLineEdit(self)
-        self.path_lineButton = QPushButton("...")
-        self.path_lineButton.setMaximumWidth(32)
+        self.tab1_path_lineEdit = QLineEdit(self.tab1)
+        self.tab1_path_lineButton = QPushButton("...")
+        self.tab1_path_lineButton.setMaximumWidth(32)
         
-        self.path_layout = QHBoxLayout()
+        self.tab1_path_layout = QHBoxLayout()
         
-        self.path_layout.addWidget(self.path_lineEdit)
-        self.path_layout.addWidget(self.path_lineButton)
+        self.tab1_path_layout.addWidget(self.tab1_path_lineEdit)
+        self.tab1_path_layout.addWidget(self.tab1_path_lineButton)
         #
-        self.left_layout.addLayout(self.path_layout)
+        self.tab1_left_layout.addLayout(self.tab1_path_layout)
         
         # Start und Stop Buttons
-        self.startButton = QPushButton('Start', self)
-        self.startButton.clicked.connect(self.startWatching)
-        self.left_layout.addWidget(self.startButton)
+        self.tab1_startButton = QPushButton('Start', self.tab1)
+        self.tab1_startButton.clicked.connect(self.startWatching)
+        self.tab1_left_layout.addWidget(self.tab1_startButton)
         
-        self.stopButton = QPushButton('Stop', self)
-        self.stopButton.clicked.connect(self.stopWatching)
-        self.left_layout.addWidget(self.stopButton)
+        self.tab1_stopButton = QPushButton('Stop', self.tab1)
+        self.tab1_stopButton.clicked.connect(self.stopWatching)
+        self.tab1_left_layout.addWidget(self.tab1_stopButton)
         
         # ComboBox für Zeitangaben
-        self.timeComboBox = QComboBox(self)
-        self.timeComboBox.addItems(["10", "15", "20", "25", "30", "60", "120"])
-        self.timeComboBox.setMaximumWidth(49)
-        self.left_layout.addWidget(self.timeComboBox)
+        self.tab1_timeComboBox = QComboBox(self.tab1)
+        self.tab1_timeComboBox.addItems(["10", "15", "20", "25", "30", "60", "120"])
+        self.tab1_timeComboBox.setMaximumWidth(49)
+        self.tab1_left_layout.addWidget(self.tab1_timeComboBox)
         
         # Label für den Countdown
-        self.countdownLabel = QLabel('Select time:', self)
-        self.left_layout.addWidget(self.countdownLabel)
+        self.tab1_countdownLabel = QLabel('Select time:', self.tab1)
+        self.tab1_left_layout.addWidget(self.tab1_countdownLabel)
         
         # mitte Seite
-        self.preActionList = QListWidget(self)
-        self.preActionList_Label  = QLabel("Content:", self)
-        self.preActionList_Editor = QPlainTextEdit()
+        self.tab1_preActionList = QListWidget(self.tab1)
+        self.tab1_preActionList_Label  = QLabel("Content:", self.tab1)
+        self.tab1_preActionList_Editor = QPlainTextEdit()
         #
-        self.middle_layout.addWidget(self.preActionList)
-        self.middle_layout.addWidget(self.preActionList_Label)
-        self.middle_layout.addWidget(self.preActionList_Editor)
+        self.tab1_middle_layout.addWidget(self.tab1_preActionList)
+        self.tab1_middle_layout.addWidget(self.tab1_preActionList_Label)
+        self.tab1_middle_layout.addWidget(self.tab1_preActionList_Editor)
         
         #
-        self.preActionComboBox = QComboBox(self)
-        self.preActionComboBox.addItems(["Message", "Script", "URL", "FTP"])
-        self.timeComboBox.setMaximumWidth(49)
-        self.middle_layout.addWidget(self.preActionComboBox)
+        self.tab1_preActionComboBox = QComboBox(self.tab1)
+        self.tab1_preActionComboBox.addItems(["Message", "Script", "URL", "FTP"])
+        self.tab1_timeComboBox.setMaximumWidth(49)
+        self.tab1_middle_layout.addWidget(self.tab1_preActionComboBox)
         
-        self.preEditLineLabel = QLabel("Text / File:", self)
-        self.middle_layout.addWidget(self.preEditLineLabel)
+        self.tab1_preEditLineLabel = QLabel("Text / File:", self.tab1)
+        self.tab1_middle_layout.addWidget(self.tab1_preEditLineLabel)
         #
-        self.pre_layout = QHBoxLayout()
+        self.tab1_pre_layout = QHBoxLayout()
         
-        self.preEditLineText = QLineEdit(self)
-        self.preEditLineTextButton = QPushButton("...")
-        self.preEditLineTextButton.setMaximumWidth(32)
+        self.tab1_preEditLineText = QLineEdit(self.tab1)
+        self.tab1_preEditLineTextButton = QPushButton("...")
+        self.tab1_preEditLineTextButton.setMaximumWidth(32)
         
-        self.preEditLineFile = QLineEdit(self)
-        self.preEditLineFileButton = QPushButton("...")
-        self.preEditLineFileButton.setMaximumWidth(32)
+        self.tab1_preEditLineFile = QLineEdit(self.tab1)
+        self.tab1_preEditLineFileButton = QPushButton("...")
+        self.tab1_preEditLineFileButton.setMaximumWidth(32)
         #
-        self.pre_layout.addWidget(self.preEditLineText)
-        self.pre_layout.addWidget(self.preEditLineTextButton)
+        self.tab1_pre_layout.addWidget(self.tab1_preEditLineText)
+        self.tab1_pre_layout.addWidget(self.tab1_preEditLineTextButton)
         
-        self.pre_layout.addWidget(self.preEditLineFile)
-        self.pre_layout.addWidget(self.preEditLineFileButton)
+        self.tab1_pre_layout.addWidget(self.tab1_preEditLineFile)
+        self.tab1_pre_layout.addWidget(self.tab1_preEditLineFileButton)
         
-        self.middle_layout.addLayout(self.pre_layout)
+        self.tab1_middle_layout.addLayout(self.tab1_pre_layout)
         
-        self.preAddButton = QPushButton("Add")
-        self.preDelButton = QPushButton("Delete")
-        self.preClrButton = QPushButton("Clear All")
+        self.tab1_preAddButton = QPushButton("Add")
+        self.tab1_preDelButton = QPushButton("Delete")
+        self.tab1_preClrButton = QPushButton("Clear All")
         #
-        self.preAddButton.clicked.connect(self.button_clicked_preadd)
-        self.preDelButton.clicked.connect(self.button_clicked_preDel)
-        self.preClrButton.clicked.connect(self.button_clicked_preClr)
+        self.tab1_preAddButton.clicked.connect(self.button_clicked_preadd)
+        self.tab1_preDelButton.clicked.connect(self.button_clicked_preDel)
+        self.tab1_preClrButton.clicked.connect(self.button_clicked_preClr)
         #
-        self.middle_layout.addWidget(self.preAddButton)
-        self.middle_layout.addWidget(self.preDelButton)
-        self.middle_layout.addWidget(self.preClrButton)
+        self.tab1_middle_layout.addWidget(self.tab1_preAddButton)
+        self.tab1_middle_layout.addWidget(self.tab1_preDelButton)
+        self.tab1_middle_layout.addWidget(self.tab1_preClrButton)
         
         
         # rechte Seite
-        self.postActionList = QListWidget(self)
-        self.postActionList_Label  = QLabel("Content:", self)
-        self.postActionList_Editor = QPlainTextEdit()
+        self.tab1_postActionList = QListWidget(self.tab1)
+        self.tab1_postActionList_Label  = QLabel("Content:", self.tab1)
+        self.tab1_postActionList_Editor = QPlainTextEdit()
         #
-        self.right_layout.addWidget(self.postActionList)
-        self.right_layout.addWidget(self.postActionList_Label)
-        self.right_layout.addWidget(self.postActionList_Editor)
+        self.tab1_right_layout.addWidget(self.tab1_postActionList)
+        self.tab1_right_layout.addWidget(self.tab1_postActionList_Label)
+        self.tab1_right_layout.addWidget(self.tab1_postActionList_Editor)
         
-        self.postActionComboBox = QComboBox(self)
-        self.postActionComboBox.addItems(["Message", "Script", "URL", "FTP"])
-        self.right_layout.addWidget(self.postActionComboBox)
+        self.tab1_postActionComboBox = QComboBox(self.tab1)
+        self.tab1_postActionComboBox.addItems(["Message", "Script", "URL", "FTP"])
+        self.tab1_right_layout.addWidget(self.tab1_postActionComboBox)
         
-        self.postEditLineLabel = QLabel("Text / File:", self)
-        self.right_layout.addWidget(self.postEditLineLabel)
+        self.tab1_postEditLineLabel = QLabel("Text / File:", self.tab1)
+        self.tab1_right_layout.addWidget(self.tab1_postEditLineLabel)
         #
-        self.post_layout = QHBoxLayout()
+        self.tab1_post_layout = QHBoxLayout()
         
-        self.postEditLineText = QLineEdit(self)
-        self.postEditLineTextButton = QPushButton("...")
-        self.postEditLineTextButton.setMaximumWidth(32)
+        self.tab1_postEditLineText = QLineEdit(self.tab1)
+        self.tab1_postEditLineTextButton = QPushButton("...")
+        self.tab1_postEditLineTextButton.setMaximumWidth(32)
         
-        self.postEditLineFile = QLineEdit(self)
-        self.postEditLineFileButton = QPushButton("...")
-        self.postEditLineFileButton.setMaximumWidth(32)
+        self.tab1_postEditLineFile = QLineEdit(self.tab1)
+        self.tab1_postEditLineFileButton = QPushButton("...")
+        self.tab1_postEditLineFileButton.setMaximumWidth(32)
         #
-        self.post_layout.addWidget(self.postEditLineText)
-        self.post_layout.addWidget(self.postEditLineTextButton)
+        self.tab1_post_layout.addWidget(self.tab1_postEditLineText)
+        self.tab1_post_layout.addWidget(self.tab1_postEditLineTextButton)
         #
-        self.post_layout.addWidget(self.postEditLineFile)
-        self.post_layout.addWidget(self.postEditLineFileButton)
+        self.tab1_post_layout.addWidget(self.tab1_postEditLineFile)
+        self.tab1_post_layout.addWidget(self.tab1_postEditLineFileButton)
         #
-        self.right_layout.addLayout(self.post_layout)
+        self.tab1_right_layout.addLayout(self.tab1_post_layout)
         
-        self.postAddButton = QPushButton("Add")
-        self.postDelButton = QPushButton("Delete")
-        self.postClrButton = QPushButton("Clear All")
+        self.tab1_postAddButton = QPushButton("Add")
+        self.tab1_postDelButton = QPushButton("Delete")
+        self.tab1_postClrButton = QPushButton("Clear All")
         #
-        self.postAddButton.clicked.connect(self.button_clicked_postadd)
-        self.postDelButton.clicked.connect(self.button_clicked_postDel)
-        self.postClrButton.clicked.connect(self.button_clicked_postClr)
+        self.tab1_postAddButton.clicked.connect(self.button_clicked_postadd)
+        self.tab1_postDelButton.clicked.connect(self.button_clicked_postDel)
+        self.tab1_postClrButton.clicked.connect(self.button_clicked_postClr)
         #
-        self.right_layout.addWidget(self.postAddButton)
-        self.right_layout.addWidget(self.postDelButton)
-        self.right_layout.addWidget(self.postClrButton)
+        self.tab1_right_layout.addWidget(self.tab1_postAddButton)
+        self.tab1_right_layout.addWidget(self.tab1_postDelButton)
+        self.tab1_right_layout.addWidget(self.tab1_postClrButton)
         
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
         
+        # ------------------
         # alles zusammen ...
-        self.layout.addLayout(self.top_layout)
+        # ------------------
+        self.tab1_top_layout.addLayout(self.tab1_left_layout)
+        self.tab1_top_layout.addLayout(self.tab1_middle_layout)
+        self.tab1_top_layout.addLayout(self.tab1_right_layout)
         
-        self.top_layout.addLayout(self.left_layout)
-        self.top_layout.addLayout(self.middle_layout)
-        self.top_layout.addLayout(self.right_layout)
         
+        self.layout.addWidget(self.tabs)
         self.layout.addWidget(self.status_bar)
         
         self.setLayout(self.layout)
@@ -314,41 +323,41 @@ class FileWatcherGUI(QWidget):
     def button_clicked_preadd(self):
         random_string = self.generate_random_string(random.randint(8,32))
         item = QListWidgetItem(random_string)
-        self.preActionList.addItem(item)
+        self.tab1_preActionList.addItem(item)
         return
 
     def button_clicked_preDel(self):
-        listItems = self.preActionList.selectedItems()
+        listItems = self.tab1_preActionList.selectedItems()
         if not listItems: return        
         for item in listItems:
-            self.preActionList.takeItem(self.preActionList.row(item))
+            self.tab1_preActionList.takeItem(self.tab1_preActionList.row(item))
         return
 
     def button_clicked_preClr(self):
-        self.preActionList.clear()
+        self.tab1_preActionList.clear()
         return
 
     # post-fixed
     def button_clicked_postadd(self):
         random_string = self.generate_random_string(random.randint(8,32))
         item = QListWidgetItem(random_string)
-        self.postActionList.addItem(item)
+        self.tab1_postActionList.addItem(item)
         return
 
     def button_clicked_postDel(self):
-        listItems = self.postActionList.selectedItems()
+        listItems = self.tab1_postActionList.selectedItems()
         if not listItems: return        
         for item in listItems:
-            self.postActionList.takeItem(self.postActionList.row(item))
+            self.tab1_postActionList.takeItem(self.tab1_postActionList.row(item))
         return
 
     def button_clicked_postClr(self):
-        self.postActionList.clear()
+        self.tab1_postActionList.clear()
         return
 
     def startWatching(self):
         # Timer starten
-        self.interval = int(self.timeComboBox.currentText())
+        self.interval = int(self.tab1_timeComboBox.currentText())
         self.currentTime = self.interval
         self.updateCountdownLabel()
         self.timer.start(1000)
@@ -356,7 +365,7 @@ class FileWatcherGUI(QWidget):
     def stopWatching(self):
         # Timer stoppen
         self.timer.stop()
-        self.countdownLabel.setText('Select time.')
+        self.tab1_countdownLabel.setText('Select time.')
 
     def updateCountdown(self):
         self.currentTime -= 1
@@ -367,16 +376,16 @@ class FileWatcherGUI(QWidget):
         self.updateCountdownLabel()
 
     def updateCountdownLabel(self):
-        self.countdownLabel.setText(f'Next check in: {self.currentTime} Seconds')
+        self.tab1_countdownLabel.setText(f'Next check in: {self.currentTime} Seconds')
 
     def checkFileExistence(self):
-        filePath = self.path_lineEdit.text()
+        filePath = self.tab1_path_lineEdit.text()
         if os.path.exists(filePath):
             print(f"File {filePath} exists.")
-            # Hier könnten Sie weitere Aktionen durchführen, wenn die Datei existiert
+            # weitere Aktionen durchführen, wenn die Datei existiert
         else:
             print(f"File {filePath} not found.")
-            # Hier könnten Sie Aktionen durchführen, wenn die Datei nicht existiert
+            # ktionen durchführen, wenn die Datei nicht existiert
 
 if __name__ == '__main__':
     global conn
