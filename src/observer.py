@@ -51,7 +51,7 @@ class FileWatcherGUI(QWidget):
 
     def file_list_clicked(self, index):
         self.path_file = self.dir_model.fileInfo(index).absoluteFilePath()
-        print(f"path: {self.path}  | file: {self.path_file}")
+        self.tab1_path_lineEdit.setText(f"{self.path_file}")
         return
 
     def initUI(self):
@@ -111,18 +111,84 @@ class FileWatcherGUI(QWidget):
         self.status_bar = QStatusBar()
         self.status_bar.showMessage("Ready", 0)
         
+        
+        # side toolbar
+        self.main_layout = QHBoxLayout()
+        self.main_widget = QWidget()
+        
+        self.side_layout = QVBoxLayout()
+        self.side_widget = QWidget()
+        
+        self.side_btn1 = QPushButton("1", self.side_widget)
+        self.side_btn2 = QPushButton("2", self.side_widget)
+        self.side_btn3 = QPushButton("3", self.side_widget)
+        
+        self.side_btn1.setStyleSheet("height:49px;")
+        self.side_btn2.setStyleSheet("height:49px;")
+        self.side_btn3.setStyleSheet("height:49px;")
+        
+        self.side_lbl0 = QLabel()
+        self.side_lbl0.setAlignment(Qt.AlignTop)
+        
+        self.side_layout.addWidget(self.side_btn1)
+        self.side_layout.addWidget(self.side_btn2)
+        self.side_layout.addWidget(self.side_btn3)
+        
+        self.side_layout.addWidget(self.side_lbl0)
+        
+        self.side_widget.setLayout(self.side_layout)
+        self.main_layout.addWidget(self.side_widget)
                 
         # first register card - action's ...
         self.tabs = QTabWidget()
+        self.tab0 = QWidget()
         self.tab1 = QWidget()
         self.tab2 = QWidget()
-        #self.tabs.resize(300,200)
         
         # add tabs
-        self.tabs.addTab(self.tab1, "Actions")
-        self.tabs.addTab(self.tab2, "Tab 2")
+        self.tabs.addTab(self.tab0, "Project")
+        self.tabs.addTab(self.tab1, "Pre-/Post Actions")
+        self.tabs.addTab(self.tab2, "Settings")
         
-        # create first tab
+        self.main_layout.addWidget(self.tabs)
+        
+        # create project tab
+        self.tab0_top_layout    = QHBoxLayout(self.tab0)
+        self.tab0_left_layout   = QVBoxLayout(self.tab0)
+        
+        self.tab0_fold_text = QLabel('Directory:', self.tab0)
+        self.tab0_file_text = QLabel("File:", self.tab0)
+        
+        self.tab0_left_layout.addWidget(self.tab0_fold_text)
+        self.pro_path = QDir.homePath()
+        
+        self.pro_dir_model = QFileSystemModel()
+        self.pro_dir_model.setRootPath(self.pro_path)
+        self.pro_dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
+        
+        self.pro_file_model = QFileSystemModel()
+        self.pro_file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
+        
+        self.tab0_file_tree = QTreeView()
+        self.tab0_file_list = QListView()
+        
+        self.tab0_file_tree.setModel(self.pro_dir_model)
+        self.tab0_file_list.setModel(self.pro_file_model)
+        
+        self.tab0_file_tree.setRootIndex(self. pro_dir_model.index(self.pro_path))
+        self.tab0_file_list.setRootIndex(self.pro_file_model.index(self.pro_path))
+        
+        self.tab0_left_layout.addWidget(self.tab0_file_tree)
+        self.tab0_left_layout.addWidget(self.tab0_file_text)
+        self.tab0_left_layout.addWidget(self.tab0_file_list)
+        
+        #self.tab0_file_tree.clicked.connect(self.file_tree_clicked)
+        #self.tab0_file_list.clicked.connect(self.file_list_clicked)
+        
+        
+        
+        
+        # create action tab
         self.tab1_top_layout    = QHBoxLayout(self.tab1)
         self.tab1_left_layout   = QVBoxLayout(self.tab1)
         self.tab1_middle_layout = QVBoxLayout(self.tab1)
@@ -306,12 +372,13 @@ class FileWatcherGUI(QWidget):
         # ------------------
         # alles zusammen ...
         # ------------------
+        self.tab0_top_layout.addLayout(self.tab0_left_layout)
+        
         self.tab1_top_layout.addLayout(self.tab1_left_layout)
         self.tab1_top_layout.addLayout(self.tab1_middle_layout)
         self.tab1_top_layout.addLayout(self.tab1_right_layout)
         
-        
-        self.layout.addWidget(self.tabs)
+        self.layout.addLayout(self.main_layout)
         self.layout.addWidget(self.status_bar)
         
         self.setLayout(self.layout)
