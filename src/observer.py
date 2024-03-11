@@ -66,12 +66,30 @@ class CustomModel(QAbstractItemModel):
 
 class ComboBoxDelegateStatus(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
+        self.index = index
         editor = QComboBox(parent)
         # Add items to the combobox
-        editor.addItem("Option 1")
-        editor.addItem("Option 2")
-        editor.addItem("Option 3")
+        editor.addItem(QIcon("../img/icon_yellow.png"), "Complete"  )
+        editor.addItem(QIcon("../img/icon_blue.png")  , "In Process")
+        editor.addItem(QIcon("../img/icon_red.png")   , "Revised"   )
+        
+        editor.activated.connect(self.on_current_index_changed)
         return editor
+    
+    def on_current_index_changed(self):
+        model = self.index.model()
+        model_index = model.index(self.index.row(), 2)  # Spalte 2
+        item = model.itemFromIndex(model_index)
+        text = item.text()
+        
+        if text == "Complete":
+            item.setIcon(QIcon("../img/icon_yellow.png"))
+        elif text == "In Process":
+            item.setIcon(QIcon("../img/icon_blue.png"))
+        elif text == "Revised":
+            item.setIcon(QIcon("../img/icon_red.png"))
+        
+        return
 
 class ComboBoxDelegateIcon(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
@@ -90,6 +108,17 @@ class ComboBoxDelegateBuild(QStyledItemDelegate):
         editor.addItem("Option 2")
         editor.addItem("Option 3")
         return editor
+
+class CustomItem(QStandardItem):
+    def __init__(self, text, icon):
+        super().__init__(text)
+        self.icon = icon
+    
+    def paint(self, painter, option, index):
+        super().paint(painter, option, index)
+        
+        icon_rect = option.rect.adjusted(4, 4, 20, -4)
+        painter.drawPixmap(icon_rect, self.icon.pixmap(16, 16))
 
 class FileWatcherGUI(QWidget):
     def __init__(self, parent=None):
@@ -142,8 +171,9 @@ class FileWatcherGUI(QWidget):
                 new_item = QStandardItem(item_name)
                 new_item.setIcon(QIcon(icon))
                 
+                global item2
                 item1 = QStandardItem(" ")
-                item2 = QStandardItem(" ")
+                item2 = QStandardItem(" "); item2.setIcon(QIcon(icon))
                 item3 = QStandardItem(" ")
                 item4 = QStandardItem(" ")
                 
