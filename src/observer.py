@@ -16,17 +16,80 @@ import configparser  # .ini files
 import traceback     # stack exception trace back
 
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore    import QTimer, QDir
+from PyQt5.QtCore import *
 
-from PyQt5.QtWidgets import *  # Qt5 widgets
-from PyQt5.QtGui     import *  # Qt5 gui
-from PyQt5.QtCore    import *  # Qt5 core
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 def get_current_time():
     return datetime.datetime.now().strftime("%H_%M")
 
 def get_current_date():
     return datetime.datetime.now().strftime("%Y_%m_%d")
+
+class CustomModel(QAbstractItemModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.root_item = None
+    
+    def index(self, row, column, parent):
+        if not parent.isValid():
+            parent_item = self.root_item
+        else:
+            parent_item = parent.internalPointer()
+        
+        if parent_item is None or row < 0 or column < 0 or row >= len(parent_item[1]):
+            return QModelIndex()
+        
+        return self.createIndex(row, column, parent_item[1][row])
+    
+    def parent(self, index):
+        # Hier wird der Elternindex des Elements zurückgegeben
+        pass
+    
+    def rowCount(self, parent=QModelIndex()):
+        if not parent.isValid():
+            return 1  # Anzahl der Hauptknoten
+        item = parent.internalPointer()
+        if item:
+            return len(item[1])  # Anzahl der Unterknoten
+        return 0
+    
+    def columnCount(self, parent=QModelIndex()):
+        # Hier wird die Anzahl der Spalten unter einem gegebenen Index zurückgegeben
+        return 1
+    
+    def data(self, index, role):
+        # Hier werden Daten für das gegebene Indexelement und Rolle zurückgegeben
+        pass
+
+class ComboBoxDelegateStatus(QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        editor = QComboBox(parent)
+        # Add items to the combobox
+        editor.addItem("Option 1")
+        editor.addItem("Option 2")
+        editor.addItem("Option 3")
+        return editor
+
+class ComboBoxDelegateIcon(QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        editor = QComboBox(parent)
+        # Add items to the combobox
+        editor.addItem("Option 1")
+        editor.addItem("Option 2")
+        editor.addItem("Option 3")
+        return editor
+
+class ComboBoxDelegateBuild(QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        editor = QComboBox(parent)
+        # Add items to the combobox
+        editor.addItem("Option 1")
+        editor.addItem("Option 2")
+        editor.addItem("Option 3")
+        return editor
 
 class FileWatcherGUI(QWidget):
     def __init__(self, parent=None):
@@ -40,20 +103,60 @@ class FileWatcherGUI(QWidget):
         "(c) 2024 by Jens Kallup - paule32\n" +
         "all rights reserved.")
         return
-
+    
     def menu_edit_clicked_clearall(self):
         return
-
-    def file_tree_clicked(self, index):
-        self.path = self.dir_model.fileInfo(index).absoluteFilePath()
-        self.tab1_file_list.setRootIndex(self.file_model.setRootPath(self.path))
+    
+    def tab0_file_tree_clicked(self, index):
+        self.tab0_path = self.tab0_dir_model.fileInfo(index).absoluteFilePath()
+        self.tab0_file_list.setRootIndex(self.tab0_file_model.setRootPath(self.tab0_path))
         return
-
-    def file_list_clicked(self, index):
-        self.path_file = self.dir_model.fileInfo(index).absoluteFilePath()
-        self.tab1_path_lineEdit.setText(f"{self.path_file}")
+    
+    def tab1_file_tree_clicked(self, index):
+        self.tab1_path = self.tab1_dir_model.fileInfo(index).absoluteFilePath()
+        self.tab1_file_list.setRootIndex(self.tab1_file_model.setRootPath(self.tab1_path))
         return
-
+    
+    def tab0_file_list_clicked(self, index):
+        self.tab0_path_file = self.tab0_dir_model.fileInfo(index).absoluteFilePath()
+        return
+    
+    def tab1_file_list_clicked(self, index):
+        self.tab1_path_file = self.tab1_dir_model.fileInfo(index).absoluteFilePath()
+        self.tab1_path_lineEdit.setText(f"{self.tab1_path_file}")
+        return
+    
+    def populate_tree_view(self, file_path, icon):
+        with open(file_path, 'r') as file:
+            roots = []
+            stack = [self.tab2_tree_model.invisibleRootItem()]
+            
+            for line in file:
+                line = line.rstrip('\n')
+                num_plus = 0
+                while line[num_plus] == '+':
+                    num_plus += 1
+                
+                item_name = line.strip('+').strip()
+                
+                new_item = QStandardItem(item_name)
+                new_item.setIcon(QIcon(icon))
+                
+                item1 = QStandardItem(" ")
+                item2 = QStandardItem(" ")
+                item3 = QStandardItem(" ")
+                item4 = QStandardItem(" ")
+                
+                while len(stack) > num_plus + 1:
+                    stack.pop()
+                
+                stack[-1].appendRow([new_item, item1, item2, item3, item4])
+                stack.append(new_item)
+    
+    def add_tree_item(self, parent_item, item_name):
+        new_item = QStandardItem(item_name)
+        parent_item.appendRow(new_item)
+    
     def initUI(self):
         # Layout
         self.setMaximumWidth (800)
@@ -153,6 +256,36 @@ class FileWatcherGUI(QWidget):
         self.main_layout.addWidget(self.tabs)
         
         # create project tab
+        self.tab2_top_layout    = QHBoxLayout(self.tab2)
+        self.tab2_left_layout   = QVBoxLayout(self.tab2)
+        
+        self.tab2_fold_text = QLabel('Directory:', self.tab2)
+        self.tab2_file_text = QLabel("File:", self.tab2)
+        
+        self.tab2_left_layout.addWidget(self.tab2_fold_text)
+        
+        self.tab2_file_path = 'topics.txt'
+        
+        self.tab2_tree_view = QTreeView()
+        self.tab2_tree_model = QStandardItemModel()
+        self.tab2_tree_model.setHorizontalHeaderLabels(["Topic name", "ID", "Status", "Help icon", "In Build"])
+        self.tab2_tree_view.setModel(self.tab2_tree_model)
+        
+        self.tab2_top_layout.addWidget(self.tab2_tree_view)
+        self.populate_tree_view(self.tab2_file_path, "../img/open-folder.png")
+        
+        self.delegateStatus = ComboBoxDelegateStatus (self.tab2_tree_view)
+        self.delegateIcon   = ComboBoxDelegateIcon   (self.tab2_tree_view)
+        self.delegateBuild  = ComboBoxDelegateBuild  (self.tab2_tree_view)
+        
+        self.tab2_tree_view.setItemDelegateForColumn(2, self.delegateStatus)
+        self.tab2_tree_view.setItemDelegateForColumn(3, self.delegateIcon)
+        self.tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
+        
+        #self.tab2_top_layout.
+        
+        
+        # create project tab
         self.tab0_top_layout    = QHBoxLayout(self.tab0)
         self.tab0_left_layout   = QVBoxLayout(self.tab0)
         
@@ -160,30 +293,30 @@ class FileWatcherGUI(QWidget):
         self.tab0_file_text = QLabel("File:", self.tab0)
         
         self.tab0_left_layout.addWidget(self.tab0_fold_text)
-        self.pro_path = QDir.homePath()
+        self.tab0_path = QDir.homePath()
         
-        self.pro_dir_model = QFileSystemModel()
-        self.pro_dir_model.setRootPath(self.pro_path)
-        self.pro_dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
+        self.tab0_dir_model = QFileSystemModel()
+        self.tab0_dir_model.setRootPath(self.tab0_path)
+        self.tab0_dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
         
-        self.pro_file_model = QFileSystemModel()
-        self.pro_file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
+        self.tab0_file_model = QFileSystemModel()
+        self.tab0_file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
         
         self.tab0_file_tree = QTreeView()
         self.tab0_file_list = QListView()
         
-        self.tab0_file_tree.setModel(self.pro_dir_model)
-        self.tab0_file_list.setModel(self.pro_file_model)
+        self.tab0_file_tree.setModel(self.tab0_dir_model)
+        self.tab0_file_list.setModel(self.tab0_file_model)
         
-        self.tab0_file_tree.setRootIndex(self. pro_dir_model.index(self.pro_path))
-        self.tab0_file_list.setRootIndex(self.pro_file_model.index(self.pro_path))
+        self.tab0_file_tree.setRootIndex(self.tab0_dir_model.index(self.tab0_path))
+        self.tab0_file_list.setRootIndex(self.tab0_file_model.index(self.tab0_path))
         
         self.tab0_left_layout.addWidget(self.tab0_file_tree)
         self.tab0_left_layout.addWidget(self.tab0_file_text)
         self.tab0_left_layout.addWidget(self.tab0_file_list)
         
-        #self.tab0_file_tree.clicked.connect(self.file_tree_clicked)
-        #self.tab0_file_list.clicked.connect(self.file_list_clicked)
+        self.tab0_file_tree.clicked.connect(self.tab0_file_tree_clicked)
+        self.tab0_file_list.clicked.connect(self.tab0_file_list_clicked)
         
         
         
@@ -213,30 +346,30 @@ class FileWatcherGUI(QWidget):
         # ----------------------------
         # left side directory view ...
         # ----------------------------
-        self.path = QDir.homePath()
+        self.tab1_path = QDir.homePath()
         
-        self.dir_model = QFileSystemModel()
-        self.dir_model.setRootPath(self.path)
-        self.dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
+        self.tab1_dir_model = QFileSystemModel()
+        self.tab1_dir_model.setRootPath(self.tab1_path)
+        self.tab1_dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
         
-        self.file_model = QFileSystemModel()
-        self.file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
+        self.tab1_file_model = QFileSystemModel()
+        self.tab1_file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
         
         self.tab1_file_tree = QTreeView()
         self.tab1_file_list = QListView()
         
-        self.tab1_file_tree.setModel(self.dir_model)
-        self.tab1_file_list.setModel(self.file_model)
+        self.tab1_file_tree.setModel(self.tab1_dir_model)
+        self.tab1_file_list.setModel(self.tab1_file_model)
         
-        self.tab1_file_tree.setRootIndex(self. dir_model.index(self.path))
-        self.tab1_file_list.setRootIndex(self.file_model.index(self.path))
+        self.tab1_file_tree.setRootIndex(self.tab1_dir_model.index(self.tab1_path))
+        self.tab1_file_list.setRootIndex(self.tab1_file_model.index(self.tab1_path))
         
         self.tab1_left_layout.addWidget(self.tab1_file_tree)
         self.tab1_left_layout.addWidget(self.tab1_file_text)
         self.tab1_left_layout.addWidget(self.tab1_file_list)
         
-        self.tab1_file_tree.clicked.connect(self.file_tree_clicked)
-        self.tab1_file_list.clicked.connect(self.file_list_clicked)
+        self.tab1_file_tree.clicked.connect(self.tab1_file_tree_clicked)
+        self.tab1_file_list.clicked.connect(self.tab1_file_list_clicked)
         
         
         # Eingabezeile für den Pfad
@@ -365,9 +498,6 @@ class FileWatcherGUI(QWidget):
         self.tab1_right_layout.addWidget(self.tab1_postDelButton)
         self.tab1_right_layout.addWidget(self.tab1_postClrButton)
         
-        # Timer
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.updateCountdown)
         
         # ------------------
         # alles zusammen ...
@@ -384,6 +514,10 @@ class FileWatcherGUI(QWidget):
         self.setLayout(self.layout)
         self.setWindowTitle('HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32')
         
+        # Timer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.updateCountdown)
+
         self.interval = 0
         self.currentTime = 0
 
@@ -405,41 +539,41 @@ class FileWatcherGUI(QWidget):
         for item in listItems:
             self.tab1_preActionList.takeItem(self.tab1_preActionList.row(item))
         return
-
+    
     def button_clicked_preClr(self):
         self.tab1_preActionList.clear()
         return
-
+    
     # post-fixed
     def button_clicked_postadd(self):
         random_string = self.generate_random_string(random.randint(8,32))
         item = QListWidgetItem(random_string)
         self.tab1_postActionList.addItem(item)
         return
-
+    
     def button_clicked_postDel(self):
         listItems = self.tab1_postActionList.selectedItems()
         if not listItems: return        
         for item in listItems:
             self.tab1_postActionList.takeItem(self.tab1_postActionList.row(item))
         return
-
+    
     def button_clicked_postClr(self):
         self.tab1_postActionList.clear()
         return
-
+    
     def startWatching(self):
         # Timer starten
         self.interval = int(self.tab1_timeComboBox.currentText())
         self.currentTime = self.interval
         self.updateCountdownLabel()
         self.timer.start(1000)
-
+    
     def stopWatching(self):
         # Timer stoppen
         self.timer.stop()
         self.tab1_countdownLabel.setText('Select time.')
-
+    
     def updateCountdown(self):
         self.currentTime -= 1
         if self.currentTime <= 0:
@@ -447,10 +581,10 @@ class FileWatcherGUI(QWidget):
             # Dateiüberwachung ausführen
             self.checkFileExistence()
         self.updateCountdownLabel()
-
+    
     def updateCountdownLabel(self):
         self.tab1_countdownLabel.setText(f'Next check in: {self.currentTime} Seconds')
-
+    
     def checkFileExistence(self):
         filePath = self.tab1_path_lineEdit.text()
         if os.path.exists(filePath):
