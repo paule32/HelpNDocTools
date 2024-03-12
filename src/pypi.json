@@ -11,23 +11,31 @@
   },
   {
    "optionDest": "onefile",
-   "value": false
+   "value": true
   },
   {
    "optionDest": "console",
-   "value": false
+   "value": true
   },
   {
    "optionDest": "clean_build",
-   "value": false
+   "value": true
+  },
+  {
+   "optionDest": "loglevel",
+   "value": "ERROR"
   },
   {
    "optionDest": "strip",
-   "value": false
+   "value": true
   },
   {
    "optionDest": "noupx",
    "value": false
+  },
+  {
+   "optionDest": "hide_console",
+   "value": "hide-early"
   },
   {
    "optionDest": "disable_windowed_traceback",
