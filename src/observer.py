@@ -22,6 +22,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
+global topic_counter
+
 def get_current_time():
     return datetime.datetime.now().strftime("%H_%M")
 
@@ -66,29 +68,40 @@ class CustomModel(QAbstractItemModel):
 
 class ComboBoxDelegateStatus(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
-        self.index = index
         editor = QComboBox(parent)
         # Add items to the combobox
-        editor.addItem(QIcon("../img/icon_yellow.png"), "Complete"  )
-        editor.addItem(QIcon("../img/icon_blue.png")  , "In Process")
-        editor.addItem(QIcon("../img/icon_red.png")   , "Revised"   )
+        editor.addItem(QIcon("../img/icon_white.png" ), "Complete"     )
+        editor.addItem(QIcon("../img/icon_blue.png"  ), "Needs Review" )
+        editor.addItem(QIcon("../img/icon_yellow.png"), "In Progress"  )
+        editor.addItem(QIcon("../img/icon_red.png"   ), "Out of Date"  )
         
-        editor.activated.connect(self.on_current_index_changed)
+        #editor.activated.connect(self.on_activated)
+        editor.currentTextChanged.connect(self.on_current_text_changed)
+        editor.currentIndexChanged.connect(self.on_current_index_changed)
         return editor
     
-    def on_current_index_changed(self):
-        model = self.index.model()
-        model_index = model.index(self.index.row(), 2)  # Spalte 2
-        item = model.itemFromIndex(model_index)
-        text = item.text()
-        
-        if text == "Complete":
-            item.setIcon(QIcon("../img/icon_yellow.png"))
-        elif text == "In Process":
-            item.setIcon(QIcon("../img/icon_blue.png"))
-        elif text == "Revised":
-            item.setIcon(QIcon("../img/icon_red.png"))
-        
+    # index is text/string
+    def on_current_index_changed(self, index):
+        if type(index) == str:
+            index = index.strip()
+            if index == "Complete":
+                return
+            elif index == "Needs Review":
+                return
+            elif index == "In Progress":
+                return
+            elif index == "Out of Date":
+                return
+        return
+    
+    # index is number
+    def on_current_text_changed(self, index):
+        self.on_current_index_changed(index)
+        return
+    
+    # index is number
+    def on_activated(self, index):
+        self.on_current_index_changed(index)
         return
 
 class ComboBoxDelegateIcon(QStyledItemDelegate):
@@ -100,13 +113,55 @@ class ComboBoxDelegateIcon(QStyledItemDelegate):
         editor.addItem("Option 3")
         return editor
 
+class CheckableComboBox(QComboBox):
+    def __init__(self, parent):
+        super(CheckableComboBox, self).__init__(parent)
+        self.view().pressed.connect(self.handleItemPressed)
+        self.setModel(QStandardItemModel(self))
+
+    def handleItemPressed(self, index):
+        item = self.model().itemFromIndex(index)
+        if item.checkState() == Qt.Checked:
+            item.setCheckState(Qt.Unchecked)
+        else:
+            item.setCheckState(Qt.Checked)
+
 class ComboBoxDelegateBuild(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
-        editor = QComboBox(parent)
-        # Add items to the combobox
-        editor.addItem("Option 1")
-        editor.addItem("Option 2")
-        editor.addItem("Option 3")
+        editor = CheckableComboBox(parent); i = 1
+        i = 1
+        editor.addItem(QIcon("../img/icon_yellow.png" ), "CHM " + str(i))
+        item1 = editor.model().item(i-1, 0); item1.setCheckState(Qt.Unchecked); i = i + 1
+        
+        editor.addItem(QIcon("../img/icon_yellow.png" ), "HTML " + str(i))
+        item2 = editor.model().item(i-1, 0); item2.setCheckState(Qt.Unchecked); i = i + 1
+        
+        editor.addItem(QIcon("../img/icon_yellow.png" ), "Word " + str(i))
+        item3 = editor.model().item(i-1, 0); item3.setCheckState(Qt.Unchecked); i = i + 1
+        
+        editor.addItem(QIcon("../img/icon_yellow.png" ), "PDF " + str(i))
+        item4 = editor.model().item(i-1, 0); item4.setCheckState(Qt.Unchecked); i = i + 1
+        
+        editor.addItem(QIcon("../img/icon_yellow.png" ), "EPub " + str(i))
+        item5 = editor.model().item(i-1, 0); item5.setCheckState(Qt.Unchecked); i = i + 1
+        
+        editor.addItem(QIcon("../img/icon_yellow.png" ), "Kindle " + str(i))
+        item6 = editor.model().item(i-1, 0); item6.setCheckState(Qt.Unchecked); i = i + 1
+        
+        editor.addItem(QIcon("../img/icon_yellow.png" ), "Qt Help " + str(i))
+        item7 = editor.model().item(i-1, 0); item7.setCheckState(Qt.Unchecked); i = i + 1
+        
+        editor.addItem(QIcon("../img/icon_yellow.png" ), "Markdown " + str(i))
+        item8 = editor.model().item(i-1, 0); item8.setCheckState(Qt.Unchecked); i = i + 1
+        
+        return editor
+
+class SpinEditDelegateID(QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        global topic_counter
+        editor = QSpinBox(parent)
+        editor.setValue(topic_counter)
+        topic_counter = topic_counter + 1
         return editor
 
 class CustomItem(QStandardItem):
@@ -120,9 +175,25 @@ class CustomItem(QStandardItem):
         icon_rect = option.rect.adjusted(4, 4, 20, -4)
         painter.drawPixmap(icon_rect, self.icon.pixmap(16, 16))
 
+class MyItemRecord:
+    def __init__(self, item_attr1, item_attr2):
+        self.record_array = []
+        
+        self.attr1 = item_attr1
+        self.attr2 = item_attr2
+        
+        self.add(self.attr1, self.attr2)
+        return
+    
+    def add(self, item_attr1, item_attr2):
+        self.record_array.insert(item_attr1, item_attr2)
+        return
+
 class FileWatcherGUI(QWidget):
     def __init__(self, parent=None):
         super().__init__()
+        
+        self.my_list = MyItemRecord(0, QStandardItem(""))
         self.initUI()
     
     def menu_help_clicked_about(self):
@@ -160,6 +231,8 @@ class FileWatcherGUI(QWidget):
             roots = []
             stack = [self.tab2_tree_model.invisibleRootItem()]
             
+            topic_counter = 1
+            
             for line in file:
                 line = line.rstrip('\n')
                 num_plus = 0
@@ -172,10 +245,14 @@ class FileWatcherGUI(QWidget):
                 new_item.setIcon(QIcon(icon))
                 
                 global item2
-                item1 = QStandardItem(" ")
-                item2 = QStandardItem(" "); item2.setIcon(QIcon(icon))
+                item1 = QStandardItem(str(topic_counter))
+                item2 = QStandardItem(" ") #item2.setIcon(QIcon(icon))
                 item3 = QStandardItem(" ")
                 item4 = QStandardItem(" ")
+                
+                self.my_list.add(topic_counter, item1)
+                
+                topic_counter = topic_counter + 1
                 
                 while len(stack) > num_plus + 1:
                     stack.pop()
@@ -277,11 +354,13 @@ class FileWatcherGUI(QWidget):
         self.tab0 = QWidget()
         self.tab1 = QWidget()
         self.tab2 = QWidget()
+        self.tab3 = QWidget()
         
         # add tabs
         self.tabs.addTab(self.tab0, "Project")
         self.tabs.addTab(self.tab1, "Pre-/Post Actions")
-        self.tabs.addTab(self.tab2, "Settings")
+        self.tabs.addTab(self.tab2, "Topics")
+        self.tabs.addTab(self.tab3, "Content")
         
         self.main_layout.addWidget(self.tabs)
         
@@ -289,28 +368,32 @@ class FileWatcherGUI(QWidget):
         self.tab2_top_layout    = QHBoxLayout(self.tab2)
         self.tab2_left_layout   = QVBoxLayout(self.tab2)
         
-        self.tab2_fold_text = QLabel('Directory:', self.tab2)
-        self.tab2_file_text = QLabel("File:", self.tab2)
+        #self.tab2_fold_text = QLabel('Directory:', self.tab2)
+        #self.tab2_file_text = QLabel("File:", self.tab2)
         
-        self.tab2_left_layout.addWidget(self.tab2_fold_text)
+        #self.tab2_left_layout.addWidget(self.tab2_fold_text)
         
         self.tab2_file_path = 'topics.txt'
         
-        self.tab2_tree_view = QTreeView()
+        global tab2_tree_view
+        tab2_tree_view = QTreeView()
+        tab2_tree_view.setStyleSheet("QHeaderView::section{background-color:lightblue;color:black;font-weight:bold;}")
         self.tab2_tree_model = QStandardItemModel()
         self.tab2_tree_model.setHorizontalHeaderLabels(["Topic name", "ID", "Status", "Help icon", "In Build"])
-        self.tab2_tree_view.setModel(self.tab2_tree_model)
+        tab2_tree_view.setModel(self.tab2_tree_model)
         
-        self.tab2_top_layout.addWidget(self.tab2_tree_view)
+        self.tab2_top_layout.addWidget(tab2_tree_view)
         self.populate_tree_view(self.tab2_file_path, "../img/open-folder.png")
         
-        self.delegateStatus = ComboBoxDelegateStatus (self.tab2_tree_view)
-        self.delegateIcon   = ComboBoxDelegateIcon   (self.tab2_tree_view)
-        self.delegateBuild  = ComboBoxDelegateBuild  (self.tab2_tree_view)
+        self.delegateID     = SpinEditDelegateID     (tab2_tree_view)
+        self.delegateStatus = ComboBoxDelegateStatus (tab2_tree_view)
+        self.delegateIcon   = ComboBoxDelegateIcon   (tab2_tree_view)
+        self.delegateBuild  = ComboBoxDelegateBuild  (tab2_tree_view)
         
-        self.tab2_tree_view.setItemDelegateForColumn(2, self.delegateStatus)
-        self.tab2_tree_view.setItemDelegateForColumn(3, self.delegateIcon)
-        self.tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
+        tab2_tree_view.setItemDelegateForColumn(1, self.delegateID)
+        tab2_tree_view.setItemDelegateForColumn(2, self.delegateStatus)
+        tab2_tree_view.setItemDelegateForColumn(3, self.delegateIcon)
+        tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
         
         #self.tab2_top_layout.
         
@@ -629,6 +712,8 @@ if __name__ == '__main__':
     global conn_cursor
     
     try:
+        topic_counter = 1
+        
         app = QApplication(sys.argv)
         
         date_str = datetime.datetime.now().strftime("%Y-%m-%d")
