@@ -15,27 +15,23 @@
   },
   {
    "optionDest": "console",
-   "value": true
+   "value": false
+  },
+  {
+   "optionDest": "icon_file",
+   "value": "E:/Projekte/HelpNDocTools/img/floppy-disk.ico"
   },
   {
    "optionDest": "clean_build",
-   "value": true
-  },
-  {
-   "optionDest": "loglevel",
-   "value": "ERROR"
+   "value": false
   },
   {
    "optionDest": "strip",
-   "value": true
+   "value": false
   },
   {
    "optionDest": "noupx",
    "value": false
-  },
-  {
-   "optionDest": "hide_console",
-   "value": "hide-early"
   },
   {
    "optionDest": "disable_windowed_traceback",
