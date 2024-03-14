@@ -15,15 +15,23 @@
   },
   {
    "optionDest": "console",
-   "value": false
+   "value": true
   },
   {
    "optionDest": "icon_file",
-   "value": "E:/Projekte/HelpNDocTools/img/floppy-disk.ico"
+   "value": "E:/Projekte/HelpNDocTools/src/img/floppy-disk.ico"
   },
   {
    "optionDest": "clean_build",
    "value": false
+  },
+  {
+   "optionDest": "splash",
+   "value": "E:/Projekte/HelpNDocTools/src/img/splash.png"
+  },
+  {
+   "optionDest": "debug",
+   "value": "all"
   },
   {
    "optionDest": "strip",
@@ -34,8 +42,16 @@
    "value": false
   },
   {
+   "optionDest": "hide_console",
+   "value": "minimize-late"
+  },
+  {
    "optionDest": "disable_windowed_traceback",
    "value": false
+  },
+  {
+   "optionDest": "version_file",
+   "value": "E:/Projekte/HelpNDocTools/src/version.info"
   },
   {
    "optionDest": "uac_admin",
@@ -52,6 +68,18 @@
   {
    "optionDest": "bootloader_ignore_signals",
    "value": false
+  },
+  {
+   "optionDest": "datas",
+   "value": "E:/Projekte/HelpNDocTools/src/LICENSE;."
+  },
+  {
+   "optionDest": "datas",
+   "value": "E:/Projekte/HelpNDocTools/src/locales;locales/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "E:/Projekte/HelpNDocTools/src/img;img/"
   }
  ],
  "nonPyinstallerOptions": {

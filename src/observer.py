@@ -6,10 +6,26 @@
 global EXIT_SUCCESS; EXIT_SUCCESS = 0
 global EXIT_FAILURE; EXIT_FAILURE = 1
 
+global basedir
+global tr
+
 try:
     import os            # operating system stuff
     import sys           # system specifies
+    import time          # thread count
     import datetime      # date, and time routines
+    import re            # regular expression handling
+    
+    import glob          # directory search
+    import subprocess    # start sub processes
+    import platform      # Windows ?
+    
+    import shutil        # shell utils
+    import pkgutil       # attached binary data utils
+    import json          # json lists
+    
+    import gettext       # localization
+    import locale        # internal system locale
     
     import random        # randome numbers
     import string
@@ -19,12 +35,24 @@ try:
     
     import traceback     # stack exception trace back
     
+    # ------------------------------------------------------------------------
+    # Qt5 gui framework
+    # ------------------------------------------------------------------------
     from PyQt5.QtWidgets import *
     from PyQt5.QtCore    import *
-    
-    from PyQt5.QtWidgets import *
     from PyQt5.QtGui     import *
-    from PyQt5.QtCore    import *
+    
+    # ------------------------------------------------------------------------
+    # global used application stuff ...
+    # ------------------------------------------------------------------------
+    __app__name        = "observer"
+    __app__config_ini  = "observer.ini"
+    
+    __app__framework   = "PyQt5.QtWidgets.QApplication"
+    __app__exec_name   = sys.executable
+    
+    __app__error_level = "0"
+    
     
     global topic_counter
     global css_model_header, css_tabs
@@ -58,6 +86,13 @@ try:
         + "(c) 2024 by paule32\n"
         + "all rights reserved.\n")
     
+    __error__os__error = (""
+        + "can not determine operating system.\n"
+        + "start aborted.")
+    
+    __error__locales_error = "" \
+        + "no locales file for this application."
+
     # ------------------------------------------------------------------------
     # global used locales constants ...
     # ------------------------------------------------------------------------
@@ -113,6 +148,61 @@ try:
     
     css_menu_item = (""
         + "background-color:navy;color:white;padding:0px;font-family:'Arial';font-size:11pt;")
+    
+    # ------------------------------------------------------------------------
+    # convert the os path seperator depend ond the os system ...
+    # ------------------------------------------------------------------------
+    def convertPath(text):
+        if os_type == os_type_windows:
+            result = text.replace("/", "\\")
+        elif os_type == os_type_linux:
+            result = text.replace("\\", "/")
+        else:
+            showApplicationError(__error__os__error)
+            sys.exit(EXIT_FAILURE)
+        return result
+    
+    # ------------------------------------------------------------------------
+    # get the locale, based on the system locale settings ...
+    # ------------------------------------------------------------------------
+    def handle_language(lang):
+        try:
+            system_lang, _ = locale.getdefaultlocale()
+            if system_lang.lower() == __locale__enu:
+                if lang.lower() == __locale__enu:
+                    tr = gettext.translation(
+                    __app__name,
+                    localedir=__locale__,
+                    languages=[__locale__enu])  # english
+                elif lang.lower() == __locale__deu:
+                    tr = gettext.translation(
+                    __app__name,
+                    localedir=__locale__,
+                    languages=[__locale__deu])  # german
+            elif system_lang.lower() == __locale__deu:
+                if lang.lower() == __locale__deu:
+                    tr = gettext.translation(
+                    __app__name,
+                    localedir=__locale__,
+                    languages=[__locale__deu])  # english
+                elif lang.lower() == __locale__enu:
+                    tr = gettext.translation(
+                    __app__name,
+                    localedir=__locale__,
+                    languages=[__locale__enu])  # german
+            else:
+                print("ennnn")
+                tr = gettext.translation(
+                __app__name,
+                localedir=__locale__,
+                languages=[__locale__enu])  # fallback - english
+            
+            tr.install()
+            return tr
+        except Exception as ex:
+            print(f"{ex}")
+            sys.exit(EXIT_FAILURE)
+            return None
     
     # ------------------------------------------------------------------------
     # check, if the gui application is initialized by an instance of app ...
@@ -918,12 +1008,75 @@ try:
                 # ktionen durchführen, wenn die Datei nicht existiert
     
     # ------------------------------------------------------------------------
+    # inform the user about the rules/license of this application script ...
+    # ------------------------------------------------------------------------
+    class licenseWindow(QDialog):
+        def __init__(self):
+            super().__init__()
+            
+            self.returnCode = 0
+            
+            self.file_content = ""
+            self.file_path = "LICENSE"
+            try:
+                with open(self.file_path, "r") as file:
+                    self.file_content = file.read()
+                
+            except FileNotFoundError:
+                print("error: license file not found.")
+                print("abort.")
+                sys.exit(EXIT_FAILURE)
+                
+            except Exception as ex:
+                print("error: exception:", ex)
+                sys.exit(EXIT_FAILURE)
+            
+            self.setWindowTitle("LICENSE - Please read, before you start.")
+            self.setMinimumWidth(820)
+            
+            font = QFont("Courier New", 10)
+            self.setFont(font)
+            
+            layout = QVBoxLayout()
+            
+            button1 = QPushButton("Accept")
+            button2 = QPushButton("Decline")
+            
+            button1.clicked.connect(self.button1_clicked)
+            button2.clicked.connect(self.button2_clicked)
+            
+            textfield = QTextEdit(self)
+            textfield.setReadOnly(True)
+            
+            layout.addWidget(textfield)
+            layout.addWidget(button1)
+            layout.addWidget(button2)
+            
+            self.setLayout(layout)
+            
+            # ---------------------------------------------------------
+            # get license to front, before the start shot ...
+            # ---------------------------------------------------------
+            textfield.setPlainText(self.file_content)
+        
+        def button1_clicked(self):
+            #self.returnCode = 0
+            self.close()
+        
+        def button2_clicked(self):
+            #self.returnCode = 1
+            #self.close()
+            sys.exit(EXIT_FAILURE)
+
+    # ------------------------------------------------------------------------
     # this is our "main" entry point, where the application will start, if you
     # type the name of the script into the console, or by mouse click at the
     # file explorer under a GUI system (Windows) ...
     # ------------------------------------------------------------------------
     if __name__ == '__main__':
         global has_error, result_error
+        global app
+        
         global conn
         global conn_cursor
         
@@ -932,8 +1085,75 @@ try:
         try:
             topic_counter = 1
             
-            global app
+            # ---------------------------------------------------------
+            # first, we check the operating system platform:
+            # 0 - unknown
+            # 1 - Windows
+            # 2 - Linux
+            # ---------------------------------------------------------
+            global os_type, os_type_windows, os_type_linux
+            
+            os_type_unknown = 0
+            os_type_windows = 1
+            os_type_linux   = 2
+            
+            os_type         = os_type_unknown
+            # ---------------------------------------------------------
+            if platform.system() == "Windows":
+                os_type = os_type_windows
+            elif platform.system() == "Linux":
+                os_type = os_type_linux
+            else:
+                os_type = os_type_unknown
+                if isPythonWindows():
+                    if not isApplicationInit():
+                        app = QApplication(sys.argv)
+                    showApplicationError(__error__os__error)
+                elif "python" in __app__exec_name:
+                    print(__error__os_error)
+                sys.exit(EXIT_FAILURE)
+            
+            # -----------------------------------------------------
+            # show a license window, when readed, and user give a
+            # okay, to accept it, then start the application ...
+            # -----------------------------------------------------
             app = QApplication(sys.argv)
+            
+            license_window = licenseWindow()
+            license_window.exec_()
+            
+            
+            # ---------------------------------------------------------
+            # when config.ini does not exists, then create a small one:
+            # ---------------------------------------------------------
+            if not os.path.exists(__app__config_ini):
+                with open(__app__config_ini, "w", encoding="utf-8") as output_file:
+                    content = (""
+                    + "[common]\n"
+                    + "language = en_us\n")
+                    output_file.write(content)
+                    output_file.close()
+                    ini_lang = "en_us" # default is english; en_us
+            else:
+                config = configparser.ConfigParser()
+                config.read(__app__config_ini)
+                ini_lang = config.get("common", "language")
+            
+            tr = handle_language(ini_lang)
+            if not tr == None:
+                tr  = tr.gettext
+            
+            # ---------------------------------------------------------
+            # combine the puzzle names, and folders ...
+            # ---------------------------------------------------------
+            po_file_name = ("./locales/"
+                + f"{ini_lang}"    + "/LC_MESSAGES/"
+                + f"{__app__name}" + ".po")
+            
+            print("po: " + po_file_name)
+            if not os.path.exists(convertPath(po_file_name)):
+                print(__error__locales_error)
+                sys.exit(EXIT_FAILURE)
             
             date_str = datetime.datetime.now().strftime("%Y-%m-%d")
             time_str = datetime.datetime.now().strftime("%H:%M:%S")
@@ -943,6 +1163,11 @@ try:
             conn.close()
             
             ex = FileWatcherGUI()
+            
+            # close tje splash screen ...
+            if getattr(sys, 'frozen', False):
+                pyi_splash.close()
+                
             ex.show()
             
             result_error = app.exec_()
