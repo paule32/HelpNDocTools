@@ -1566,10 +1566,10 @@ try:
             super().__init__()
             
             self.__css__widget_item = (""
-                + "QListView{font-family:'Arial';background-color:white;color:black;font-weight:700;font-size:11pt;"
+                + "QListView{font-family:'Arial';background-color:white;color:black;font-weight:bold;font-size:11pt;"
                 + "border:1px solid black;padding-left:2px;padding-top:2px;padding-bottom:2px;padding-right:2px;}"
                 + "QListView::item:selected{font-family:'Arial';background-color:blue;color:yellow;"
-                + "font-weight:700;border:none;outline:none;font-size:11pt;}"
+                + "font-weight:bold;border:none;outline:none;font-size:11pt;}"
                 + "QListView::icon{left:10px;}"
                 + "QListView::text{left:10px;}")
             
@@ -1875,7 +1875,23 @@ try:
             for i in range(1, 5):
                 s = "sv_1_" + str(i)
                 list_layout_1.addWidget(getattr(self, f"{s}"))
+            ########################
+            list_layout_2 = QHBoxLayout(tab_2)
+            list_widget_2 = QListWidget()
             
+            list_widget_2.setFocusPolicy(Qt.NoFocus)
+            list_widget_2.setStyleSheet(self.__css__widget_item)
+            list_widget_2.setMinimumHeight(300)
+            list_widget_2.setMaximumWidth(200)
+            self.list_widget_2_elements = ["Project", "Mode", "Output", "Diagrams" ]
+            #
+            #
+            for element in self.list_widget_2_elements:
+                list_item = customQListWidgetItem(element, list_widget_2)
+            
+            list_widget_2.setCurrentRow(0)
+            list_widget_2.itemClicked.connect(self.handle_item_click)
+            list_layout_2.addWidget(list_widget_2)
             
             
             self.tab3_top_layout.addWidget(self.tab_widget_1)
