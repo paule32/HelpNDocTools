@@ -152,6 +152,7 @@ try:
     css_button_style = (""
         + "font-family:'Arial';font-size:11pt;height:30px;")
     
+    
     # ------------------------------------------------------------------------
     # convert the os path seperator depend ond the os system ...
     # ------------------------------------------------------------------------
@@ -265,14 +266,12 @@ try:
         def __init__(self, name, parent):
             super().__init__()
             
-            font = QFont("Arial", 10)
-            
             self.name = name
             self.parent = parent
             
             element = QListWidgetItem(name, parent)
+            
             self.setSizeHint(element.sizeHint())
-            self.setFont(font)
             self.setData(0, self.name)
     
     # ------------------------------------------------------------------------
@@ -1566,7 +1565,21 @@ try:
         def __init__(self, parent=None):
             super().__init__()
             
-            self.setStyleSheet("font-family:'Arial';font-size:12pt;")
+            self.__css__widget_item = (""
+                + "QListView{font-family:'Arial';background-color:white;color:black;font-weight:700;font-size:11pt;"
+                + "border:1px solid black;padding-left:2px;padding-top:2px;padding-bottom:2px;padding-right:2px;}"
+                + "QListView::item:selected{font-family:'Arial';background-color:blue;color:yellow;"
+                + "font-weight:700;border:none;outline:none;font-size:11pt;}"
+                + "QListView::icon{left:10px;}"
+                + "QListView::text{left:10px;}")
+            
+            self.__button_style_css = tr("__button_style_css")
+            
+            self.font = QFont("Arial", 10)
+            self.setFont(self.font)
+            self.setContentsMargins(0,0,0,0)
+            self.setStyleSheet("padding:0px;margin:0px;")
+            #self.setStyleSheet("font-family:'Arial';font-size:12pt;")
             
             self.my_list = MyItemRecord(0, QStandardItem(""))
             self.initUI()
@@ -1811,30 +1824,61 @@ try:
             self.main_layout.addWidget(self.tabs)
             
             # create project tab
-            self.tab2_top_layout    = QHBoxLayout(self.tab2)
+            self.tab2_top_layout = QHBoxLayout(self.tab2)
+            self.tab3_top_layout = QHBoxLayout(self.tab3)
+            self.tab4_top_layout = QHBoxLayout(self.tab4)
             
             ################
+            ##self.tab1_layout = QHBoxLayout()
+            ##self.tab1_widget = QWidget()
+            
+            self.widget_font = QFont("Arial", 12)
+            self.widget_font.setBold(True)
+            
             self.tab_widget_1 = QTabWidget()
             
             tab_1 = QWidget()
             tab_2 = QWidget()
             tab_3 = QWidget()
             
+            tab_1.setFont(self.widget_font)
+            tab_2.setFont(self.widget_font)
+            tab_3.setFont(self.widget_font)
+            
             self.tab_widget_1.addTab(tab_1, "Wizard")
             self.tab_widget_1.addTab(tab_2, "Expert")
             self.tab_widget_1.addTab(tab_3, "Run")
             
-            font = QFont("Arial", 10)
-            font.setBold(True)
-            #
             list_layout_1 = QHBoxLayout(tab_1)
             list_widget_1 = QListWidget()
+            
+            list_widget_1.setFocusPolicy(Qt.NoFocus)
+            list_widget_1.setStyleSheet(self.__css__widget_item)
+            list_widget_1.setMinimumHeight(300)
+            list_widget_1.setMaximumWidth(200)
+            self.list_widget_1_elements = ["Project", "Mode", "Output", "Diagrams" ]
+            #
+            #
+            for element in self.list_widget_1_elements:
+                list_item = customQListWidgetItem(element, list_widget_1)
+            
+            list_widget_1.setCurrentRow(0)
+            list_widget_1.itemClicked.connect(self.handle_item_click)
+            list_layout_1.addWidget(list_widget_1)
+            
             
             self.sv_1_1 = customScrollView_1("Project")
             self.sv_1_2 = customScrollView_2("Mode");     self.sv_1_2.hide()
             self.sv_1_3 = customScrollView_3("Output");   self.sv_1_3.hide()
             self.sv_1_4 = customScrollView_4("Diagrams"); self.sv_1_4.hide()
             
+            for i in range(1, 5):
+                s = "sv_1_" + str(i)
+                list_layout_1.addWidget(getattr(self, f"{s}"))
+            
+            
+            
+            self.tab3_top_layout.addWidget(self.tab_widget_1)
             
             
             self.tab2_file_path = 'topics.txt'
@@ -2102,6 +2146,38 @@ try:
             
             self.interval = 0
             self.currentTime = 0
+        
+        # ------------------------------------------------------------------------
+        # class member to get the widget item from list_widget_1 or list_widget_2.
+        # The application script will stop, if an internal error occur ...
+        # ------------------------------------------------------------------------
+        def handle_item_click(self, item):
+            tab_index = self.tab_widget_1.currentIndex()
+            if tab_index == 1:
+                for i in range(0, len(self.list_widget_2_elements)):
+                    if item.data(0) == self.list_widget_2_elements[i]:
+                        print("t: " + str(i) + ": " + self.list_widget_2_elements[i])
+                        self.hideTabItems_2(i)
+                        s = "sv_2_" + str(i+1)
+                        w = getattr(self, f"{s}")
+                        w.show()
+                        break
+            elif tab_index == 0:
+                for i in range(0, len(self.list_widget_1_elements)):
+                    if item.data(0) == self.list_widget_1_elements[i]:
+                        self.hideTabItems_1(i)
+                        s = "sv_1_" + str(i+1)
+                        w = getattr(self, f"{s}")
+                        w.show()
+                        return
+        
+        def hideTabItems_1(self, it):
+            for i in range(0, len(self.list_widget_1_elements)):
+                s = "sv_1_" + str(i+1)
+                w = getattr(self, f"{s}")
+                w.hide()
+                if i == it:
+                    w.show()
         
         def generate_random_string(self, length):
             characters = string.ascii_uppercase + string.digits
