@@ -151,7 +151,24 @@ try:
         + "background-color:navy;color:white;padding:0px;font-family:'Arial';font-size:11pt;")
     
     css_button_style = (""
-        + "font-family:'Arial';font-size:11pt;height:30px;")
+        + "QPushButton{"
+        + "font-family:'Arial';"
+        + "font-weight:600;"
+        + "font-size:16px;"
+        + "color:yellow;"
+        + "background-color:navy;"
+        + "padding:10px 20px;"
+        + "border:solid #cc0000 2px;"
+        + "border-radius:50px;}"
+        + "QPushButton:hover{"
+        + "background-color:green;"
+        + "padding:10px 20px;"
+        + "color:white;}")
+    
+    css_combobox_style = (""
+        + "font-family:'Arial';font-size:12pt;height:30px;"
+        + "font-weight:600;background-color:yellow;"
+        )
     
     
     # ------------------------------------------------------------------------
@@ -315,22 +332,22 @@ try:
         def __init__(self, text, helpID, helpText):
             super().__init__(text)
             
-            self.helpID   = helpID
-            self.helpText = helpText
+            self.helpID     = helpID
+            self.helpText   = helpText
+            
+            self.helpAnchor = "pupu"
         
         def enterEvent(self, event):
             sv_help.setText(self.helpText)
         
         def mousePressEvent(self, event):
-            self.anchor = self.anchorAt(event.pos())
-            if self.anchor:
-                QApplication.setOverrideCursor(Qt.PointingHandCursor)
+            QApplication.setOverrideCursor(Qt.PointingHandCursor)
+            return
         
         def mouseReleaseEvent(self, event):
-            if self.anchor:
-                QDesktopServices.openUrl(QUrl(self.anchor))
-                QApplication.setOverrideCursor(Qt.ArrowCursor)
-                self.anchor = None
+            QDesktopServices.openUrl(QUrl(self.helpAnchor))
+            QApplication.setOverrideCursor(Qt.ArrowCursor)
+            return
     
     # ------------------------------------------------------------------------
     # create a scroll view for the mode tab on left side of application ...
@@ -548,6 +565,8 @@ try:
         
         def init_ui(self):
             content_widget = QWidget(self)
+            content_widget.setMaximumWidth(500)
+            
             layout = QVBoxLayout(content_widget)
             layout.setAlignment(Qt.AlignLeft)
             
@@ -558,31 +577,39 @@ try:
             w_layout_0.setAlignment(Qt.AlignLeft)
             widget_1_label_1 = self.addLabel("Provide some informations about the Project you are documenting", True)
             widget_1_label_1.setMinimumWidth(250)
-            widget_1_label_1.setMaximumWidth(500)
+            widget_1_label_1.setMaximumWidth(450)
             w_layout_0.addWidget(widget_1_label_1)
             layout.addLayout(w_layout_0)
             
-            items = [
-                "Project name:",
-                "Project author:",
-                "Project version or id:"
-            ]
+            h_layout_1 = QHBoxLayout()
+            h_widget_1 = QWidget()
+            #h_widget_1.setMinimumWidth(300)
             
-            for i in range(0, len(items)):
-                w_layout = QHBoxLayout()
-                w_layout.setAlignment(Qt.AlignLeft)
-                #
-                w_label  = self.addLabel(items[i], False, w_layout)
-                w_label.setMinimumWidth(160)
-                w_label.setFont(font)
-                #
-                w_edit = self.addLineEdit("",w_layout)
-                w_edit.setMinimumWidth(300)
-                w_edit.setFont(font)
-                #
-                w_layout.addWidget(w_label)
-                w_layout.addWidget(w_edit)
-                layout.addLayout(w_layout)
+            v_layout_1 = QVBoxLayout()
+            v_widget_1 = QWidget()
+            
+            l_label_1 = self.addLabel("Project name:"           , False, v_layout_1)
+            l_label_2 = self.addLabel("Project author:"         , False, v_layout_1)
+            l_label_3 = self.addLabel("Project version or id:  ", False, v_layout_1)
+            
+            l_label_1.setFont(font)
+            l_label_2.setFont(font)
+            l_label_3.setFont(font)
+            ##
+            v_layout_2 = QVBoxLayout()
+            v_widget_2 = QWidget()
+            
+            e_field_1 = self.addLineEdit("", v_layout_2)
+            e_field_2 = self.addLineEdit("", v_layout_2)
+            e_field_3 = self.addLineEdit("", v_layout_2)
+            
+            ##
+            h_layout_1.addLayout(v_layout_1)
+            h_layout_1.addLayout(v_layout_2)
+            
+            layout.addLayout(h_layout_1)
+            
+
             
             layout_4 = QHBoxLayout()
             layout_4.setAlignment(Qt.AlignLeft)
@@ -605,8 +632,8 @@ try:
             layout_5 = QHBoxLayout()
             layout_5.setAlignment(Qt.AlignLeft)
             frame_5 = self.addFrame(layout_5)
-            frame_5.setMinimumWidth(560)
-            frame_5.setMaximumWidth(560)
+            frame_5.setMinimumWidth(460)
+            frame_5.setMaximumWidth(460)
             layout_5.addWidget(frame_5)
             #
             layout.addLayout(layout_5)
@@ -615,13 +642,13 @@ try:
             layout_6 = QHBoxLayout()
             layout_6.setAlignment(Qt.AlignLeft)
             widget_6_label_1 = self.addLabel("Source dir:", False, layout_6)
-            widget_6_label_1.setMinimumWidth(160)
-            widget_6_label_1.setMaximumWidth(160)
+            widget_6_label_1.setMinimumWidth(100)
+            widget_6_label_1.setMaximumWidth(100)
             widget_6_label_1.setFont(font)
             #
             widget_6_edit_1  = self.addLineEdit("E:\\temp\\src", layout_6)
-            widget_6_edit_1.setMinimumWidth(300)
-            widget_6_edit_1.setMaximumWidth(300)
+            widget_6_edit_1.setMinimumWidth(280)
+            widget_6_edit_1.setMaximumWidth(280)
             widget_6_edit_1.setFont(font)
             #
             widget_6_pushb_1 = self.addPushButton("Select", layout_6)
@@ -630,24 +657,20 @@ try:
             widget_6_pushb_1.setMinimumWidth(84)
             widget_6_pushb_1.setMaximumWidth(84) ; font.setBold(True)
             widget_6_pushb_1.setFont(font)       ; font.setBold(False)
-            #
-            layout_6.addWidget(widget_6_label_1)
-            layout_6.addWidget(widget_6_edit_1)
-            layout_6.addWidget(widget_6_pushb_1)
-            #
+            ##
             layout.addLayout(layout_6)
             
             
             layout_7 = QHBoxLayout()
             layout_7.setAlignment(Qt.AlignLeft)
             widget_7_label_1 = self.addLabel("Destination dir:", False, layout_7)
-            widget_7_label_1.setMinimumWidth(160)
-            widget_7_label_1.setMaximumWidth(160)
+            widget_7_label_1.setMinimumWidth(100)
+            widget_7_label_1.setMaximumWidth(100)
             widget_7_label_1.setFont(font)
             #
             widget_7_edit_1  = self.addLineEdit("E:\\temp\\src\\html", layout_7)
-            widget_7_edit_1.setMinimumWidth(300)
-            widget_7_edit_1.setMaximumWidth(300)
+            widget_7_edit_1.setMinimumWidth(280)
+            widget_7_edit_1.setMaximumWidth(280)
             widget_7_edit_1.setFont(font)
             #
             widget_7_pushb_1 = self.addPushButton("Select", layout_7)
@@ -656,18 +679,15 @@ try:
             widget_7_pushb_1.setMinimumWidth(84)
             widget_7_pushb_1.setMaximumWidth(84) ; font.setBold(True)
             widget_7_pushb_1.setFont(font)       ; font.setBold(False)
-            #
-            layout_7.addWidget(widget_7_label_1)
-            layout_7.addWidget(widget_7_pushb_1)
-            #
+            ##
             layout.addLayout(layout_7)
             
             
             layout_61 = QHBoxLayout()
             layout_61.setAlignment(Qt.AlignLeft)
             frame_61 = self.addFrame(layout_61)
-            frame_61.setMinimumWidth(560)
-            frame_61.setMaximumWidth(560)
+            frame_61.setMinimumWidth(460)
+            frame_61.setMaximumWidth(460)
             layout_61.addWidget(frame_61)
             #
             layout.addLayout(layout_61)
@@ -680,6 +700,14 @@ try:
             widget_9_checkbutton_1.setFont(font)
             layout_9.addWidget(widget_9_checkbutton_1)
             layout.addLayout(layout_9)
+            
+            layout_10 = QVBoxLayout()
+            widget_10_button = QPushButton("Convert",self)
+            widget_10_button.setStyleSheet(css_button_style)
+            #
+            layout_10.addWidget(widget_10_button)
+            layout.addLayout(layout_10)
+            
             
             self.setWidgetResizable(False)
             self.setWidget(content_widget)
@@ -1713,7 +1741,8 @@ try:
             self.setMaximumWidth (936)
             self.setMinimumWidth (936)
             #
-            self.setMaximumHeight(700)
+            self.setMaximumHeight(730)
+            self.setMaximumHeight(730)
             
             self.setContentsMargins(0,0,0,0)
             self.setStyleSheet("padding:0px;margin:0px;")
@@ -1885,8 +1914,23 @@ try:
                 s = "sv_1_" + str(i)
                 list_layout_1.addWidget(getattr(self, f"{s}"))
             
+            # progress bar
+            self.lv_1 = QVBoxLayout()
             self.hw_1 = QWidget()
-            list_layout_a.addWidget(sv_help)
+            
+            hlp = customScrollView_help()
+            bar = QProgressBar()
+            bar.setTextVisible(False)
+            #
+            bar.setMinimum(1)
+            bar.setMaximum(100)
+            #
+            bar.setValue(18)
+            
+            self.lv_1.addWidget(hlp)
+            self.lv_1.addWidget(bar)
+            
+            list_layout_a.addLayout(self.lv_1)
             ########################
             list_layout_b = QVBoxLayout(tab_2)
             
@@ -2102,7 +2146,7 @@ try:
             #
             self.tab1_preActionComboBox = QComboBox(self.tab1)
             self.tab1_preActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
-            self.tab1_preActionComboBox.setStyleSheet(css_button_style)
+            self.tab1_preActionComboBox.setStyleSheet(css_combobox_style)
             self.tab1_timeComboBox.setMaximumWidth(49)
             self.tab1_middle_layout.addWidget(self.tab1_preActionComboBox)
             
@@ -2150,7 +2194,7 @@ try:
             
             self.tab1_postActionComboBox = QComboBox(self.tab1)
             self.tab1_postActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
-            self.tab1_postActionComboBox.setStyleSheet(css_button_style)
+            self.tab1_postActionComboBox.setStyleSheet(css_combobox_style)
             self.tab1_right_layout.addWidget(self.tab1_postActionComboBox)
             
             self.tab1_postEditLineLabel = QLabel("Text / File:", self.tab1)
