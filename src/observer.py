@@ -702,10 +702,12 @@ try:
             layout.addLayout(layout_9)
             
             layout_10 = QVBoxLayout()
-            widget_10_button = QPushButton("Convert",self)
-            widget_10_button.setStyleSheet(css_button_style)
+            widget_10_button_1 = QPushButton("Convert" ,self); widget_10_button_1.setStyleSheet(css_button_style)
+            widget_10_button_2 = QPushButton("HelpNDoc",self); widget_10_button_2.setStyleSheet(css_button_style)
             #
-            layout_10.addWidget(widget_10_button)
+            layout_10.addWidget(widget_10_button_1)
+            layout_10.addWidget(widget_10_button_2)
+            #
             layout.addLayout(layout_10)
             
             
