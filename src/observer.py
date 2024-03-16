@@ -8,6 +8,7 @@ global EXIT_FAILURE; EXIT_FAILURE = 1
 
 global basedir
 global tr
+global sv_help
 
 try:
     import os            # operating system stuff
@@ -1709,7 +1710,9 @@ try:
             
         def initUI(self):
             # Layout
-            self.setMaximumWidth (900)
+            self.setMaximumWidth (936)
+            self.setMinimumWidth (936)
+            #
             self.setMaximumHeight(700)
             
             self.setContentsMargins(0,0,0,0)
@@ -1747,13 +1750,13 @@ try:
             # help menu ...
             self.add_menu_item("About...", "F1", self.menu_help, self.menu_help_clicked_about)
             
-            
             self.layout.addWidget( self.menu_bar )
             self.menu_bar.show()
             
             # tool bar
             self.tool_bar = QToolBar()
-            self.tool_bar.setStyleSheet("background-color:gray;font-size:11pt;height:38px;")
+            self.tool_bar.setContentsMargins(0,0,0,0)
+            self.tool_bar.setStyleSheet("background-color:gray;font-size:11pt;height:38px;padding:0px;margin:0px;")
             
             self.tool_bar_button_exit = QToolButton()
             self.tool_bar_button_exit.setText("Clear")
@@ -1780,6 +1783,9 @@ try:
             # side toolbar
             self.main_layout = QHBoxLayout()
             self.main_widget = QWidget()
+            
+            self.main_widget.setContentsMargins(0,0,0,0)
+            self.main_widget.setStyleSheet("padding:0px;margin:0px;")
             
             self.side_layout = QVBoxLayout()
             self.side_widget = QWidget()
@@ -1849,8 +1855,12 @@ try:
             self.tab_widget_1.addTab(tab_2, "Expert")
             self.tab_widget_1.addTab(tab_3, "Run")
             
-            list_layout_1 = QHBoxLayout(tab_1)
+            list_layout_a = QVBoxLayout(tab_1)
+            
+            list_layout_1 = QHBoxLayout()
             list_widget_1 = QListWidget()
+            
+            list_layout_a.addLayout(list_layout_1)
             
             list_widget_1.setFocusPolicy(Qt.NoFocus)
             list_widget_1.setStyleSheet(self.__css__widget_item)
@@ -1866,7 +1876,6 @@ try:
             list_widget_1.itemClicked.connect(self.handle_item_click)
             list_layout_1.addWidget(list_widget_1)
             
-            
             self.sv_1_1 = customScrollView_1("Project")
             self.sv_1_2 = customScrollView_2("Mode");     self.sv_1_2.hide()
             self.sv_1_3 = customScrollView_3("Output");   self.sv_1_3.hide()
@@ -1875,15 +1884,26 @@ try:
             for i in range(1, 5):
                 s = "sv_1_" + str(i)
                 list_layout_1.addWidget(getattr(self, f"{s}"))
+            
+            self.hw_1 = QWidget()
+            list_layout_a.addWidget(sv_help)
             ########################
-            list_layout_2 = QHBoxLayout(tab_2)
+            list_layout_b = QVBoxLayout(tab_2)
+            
+            list_layout_2 = QHBoxLayout()
             list_widget_2 = QListWidget()
+            
+            list_layout_b.addLayout(list_layout_2)
             
             list_widget_2.setFocusPolicy(Qt.NoFocus)
             list_widget_2.setStyleSheet(self.__css__widget_item)
             list_widget_2.setMinimumHeight(300)
             list_widget_2.setMaximumWidth(200)
-            self.list_widget_2_elements = ["Project", "Mode", "Output", "Diagrams" ]
+            self.list_widget_2_elements = [                                     \
+                "Project", "Build", "Messages", "Input", "Source Browser",      \
+                "Index", "HTML", "LaTeX", "RTF", "Man", "XML", "DocBook",       \
+                "AutoGen", "SQLite3", "PerlMod", "Preprocessor", "External",    \
+                "Dot" ]
             #
             #
             for element in self.list_widget_2_elements:
@@ -1893,7 +1913,28 @@ try:
             list_widget_2.itemClicked.connect(self.handle_item_click)
             list_layout_2.addWidget(list_widget_2)
             
+            tab1_classes = [ \
+                customScrollView_5 , customScrollView_6 , customScrollView_7 , customScrollView_8 , \
+                customScrollView_9 , customScrollView_10, customScrollView_11, customScrollView_12, \
+                customScrollView_13, customScrollView_14, customScrollView_15, customScrollView_16, \
+                customScrollView_17, customScrollView_18, customScrollView_19, customScrollView_20, \
+                customScrollView_21, customScrollView_22  ]
             
+            tab1_class_objs = [ cls("name") for cls in tab1_classes ]
+            
+            for i in range(0, len(tab1_classes)):
+                s = "sv_2_" + str(i+1)
+                v1 = tab1_class_objs[i]
+                v1.setName(self.list_widget_2_elements[i])
+                setattr(self, s, v1)
+                list_layout_2.addWidget(getattr(self, f"{s}"))
+                v1.hide()
+            
+            self.sv_2_1.show()
+            self.hw_2 = QWidget()
+            
+            list_layout_b.addWidget(sv_help)
+            ########################
             self.tab3_top_layout.addWidget(self.tab_widget_1)
             
             
@@ -2195,6 +2236,14 @@ try:
                 if i == it:
                     w.show()
         
+        def hideTabItems_2(self, it):
+            for i in range(0, len(self.list_widget_2_elements)):
+                s = "sv_2_" + str(i+1)
+                w = getattr(self, f"{s}")
+                w.hide()
+                if i == it:
+                    w.show()
+
         def generate_random_string(self, length):
             characters = string.ascii_uppercase + string.digits
             random_string = ''.join(random.sample(characters, length))
@@ -2771,6 +2820,7 @@ try:
                     
                     file.close()
             
+            sv_help = customScrollView_help()
             
             date_str = datetime.datetime.now().strftime("%Y-%m-%d")
             time_str = datetime.datetime.now().strftime("%H:%M:%S")
