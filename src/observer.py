@@ -39,9 +39,10 @@ try:
     # ------------------------------------------------------------------------
     # Qt5 gui framework
     # ------------------------------------------------------------------------
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore    import *
-    from PyQt5.QtGui     import *
+    from PyQt5.QtWidgets          import *
+    from PyQt5.QtWebEngineWidgets import QWebEngineView
+    from PyQt5.QtCore             import *
+    from PyQt5.QtGui              import *
     
     # ------------------------------------------------------------------------
     # global used application stuff ...
@@ -1864,6 +1865,92 @@ try:
             self.tab2_top_layout = QHBoxLayout(self.tab2)
             self.tab3_top_layout = QHBoxLayout(self.tab3)
             self.tab4_top_layout = QHBoxLayout(self.tab4)
+            
+            
+            quill_editor = QWebEngineView()
+            quill_editor.setHtml('''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="/styles.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.0-rc.3/dist/quill.snow.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.0-rc.3/dist/quill.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+</head>
+<body>
+<div id="toolbar-container">
+  <span class="ql-formats">
+    <select class="ql-font"></select>
+    <select class="ql-size"></select>
+  </span>
+  <span class="ql-formats">
+    <button class="ql-bold"></button>
+    <button class="ql-italic"></button>
+    <button class="ql-underline"></button>
+    <button class="ql-strike"></button>
+  </span>
+  <span class="ql-formats">
+    <select class="ql-color"></select>
+    <select class="ql-background"></select>
+  </span>
+  <span class="ql-formats">
+    <button class="ql-script" value="sub"></button>
+    <button class="ql-script" value="super"></button>
+  </span>
+  <span class="ql-formats">
+    <button class="ql-header" value="1"></button>
+    <button class="ql-header" value="2"></button>
+    <button class="ql-blockquote"></button>
+    <button class="ql-code-block"></button>
+  </span>
+  <span class="ql-formats">
+    <button class="ql-list" value="ordered"></button>
+    <button class="ql-list" value="bullet"></button>
+    <button class="ql-indent" value="-1"></button>
+    <button class="ql-indent" value="+1"></button>
+  </span>
+  <span class="ql-formats">
+    <button class="ql-direction" value="rtl"></button>
+    <select class="ql-align"></select>
+  </span>
+  <span class="ql-formats">
+    <button class="ql-link"></button>
+    <button class="ql-image"></button>
+    <button class="ql-video"></button>
+    <button class="ql-formula"></button>
+  </span>
+  <span class="ql-formats">
+    <button class="ql-clean"></button>
+  </span>
+</div>
+<div id="editor">
+</div>
+
+<!-- Initialize Quill editor -->
+<script>
+  const quill = new Quill('#editor', {
+    modules: {
+      syntax: true,
+      toolbar: '#toolbar-container',
+    },
+    placeholder: 'Compose an epic...',
+    theme: 'snow',
+  });
+</script>
+</body>
+</html>
+''', baseUrl=QUrl.fromLocalFile('.'))
+            
+            self.tab4_top_layout.addWidget(quill_editor)
+            
             
             ################
             ##self.tab1_layout = QHBoxLayout()
