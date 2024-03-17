@@ -127,4 +127,4 @@ jobs:
         --add-data     $MY_WORK_DIR/src/LICENSE;.           \
         --add-data     $MY_WORK_DIR/src/locales;locales/    \
         --add-data     $MY_WORK_DIR/src/img;img/            \
-                       $MY_WORK_DIR/src/observer.py"
+                       $MY_WORK_DIR/src/observer.py
