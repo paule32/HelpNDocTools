@@ -30,13 +30,14 @@ jobs:
         python3 -m pip install PyQt5
         python3 -m pip install PyQt5-sip
         python3 -m pip install PyQtWebEngine
-    - name: Start Python in PowerShell
+    - name: Start Python in PowerShell ...
       shell: pwsh
       run: |
         $env:MY_WORK_DIR = "${{ github.workspace }}"
         python3 --version
-        python3 -c "print('Hello World !')"
-        Write-Output "Hallo Variable: $env:MY_WORK_DIR, ${{ github.workspace }}"
+        python3 -c "print('Create ByteCode ...')"
+        D:
+        cd $env:MY_WORK_DIR\\src
         python3 -m compileall observer.py
 
   Run-Linux:
