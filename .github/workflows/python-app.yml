@@ -18,17 +18,20 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
+    
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+        
     - name: Install dependencies
       shell: pwsh
       run: |
         $env:MY_WORK_DIR = "${{ github.workspace }}"
         D:
         cd $env:MY_WORK_DIR\\src
-        $pythonExe = Get-Command python -ErrorAction Ignore
+        $pythonExe  = Get-Command python -ErrorAction Ignore
+        $installExe = Get-Command pyinstaller -ErrorAction Ignore
         if ($pythonExe) {
           Write-Output "Python is installed."
           python3 --version
@@ -41,17 +44,24 @@ jobs:
           python3 -m pip install PyQt5-sip
           python3 -m pip install PyQtWebEngine
         }
+        if ($pyInstallerExe) {
+          Write-Output "pyInstaller is installed."
+          pyinstaller --version
+        } else {
+          pip install pyinstaller
+          pip install --upgrade pyinstaller
+        }
         Write-Output "Create ByteCode ..."
         python3 -m compileall observer.py
         Write-Output "Create Application ..."
         $pyInstallerArgs = "--noconfirm --onefile --console " +
-        "--icon         ""$env:MY_WORK_DIR\src\img\floppy-disk.ico"" " +
-        "--splash       ""$env:MY_WORK_DIR\src\img\splash.png""      " +
-        "--version-file ""$env:MY_WORK_DIR\src\version.info""        " +
-        "--add-data     ""$env:MY_WORK_DIR\src\LICENSE;.""           " +
-        "--add-data     ""$env:MY_WORK_DIR\src\locales;locales\""    " +
-        "--add-data     ""$env:MY_WORK_DIR\src\img;img\""            "
-        pyinstaller.exe $pyInstallerArgs $env:MY_WORK_DIR\src\observer.py
+        "--icon         $env:MY_WORK_DIR\\src\\img\\floppy-disk.ico " +
+        "--splash       $env:MY_WORK_DIR\\src\\img\\splash.png      " +
+        "--version-file $env:MY_WORK_DIR\\src\\version.info         " +
+        "--add-data     $env:MY_WORK_DIR\\src\\LICENSE;.            " +
+        "--add-data     $env:MY_WORK_DIR\\src\\locales;locales\\    " +
+        "--add-data     $env:MY_WORK_DIR\\src\\img;img\\            "
+        pyinstaller     $pyInstallerArgs $env:MY_WORK_DIR\\src\\observer.py
 
   Run-Linux:
     name: Build for Linux
