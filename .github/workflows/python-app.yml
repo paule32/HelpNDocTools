@@ -1,5 +1,14 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# ---------------------------------------------------------------------------
+# File:   python-app.yml
+# Author: (c) 2024 Jens Kallup - paule32
+# All rights reserved
+#
+# only for education, and non-profit usage !
+#
+# This workflow will install Python dependencies, run tests and lint with a
+# single version of Python
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# ---------------------------------------------------------------------------
 
 name: PythonObserver
 run-name: ${{ github.actor }} Python Observer RC-1
@@ -13,25 +22,32 @@ permissions:
   contents: read
 
 jobs:
+  # -----------------------------------------------
+  # optimized for Microsoft Windows 10, Python 3.10
+  # -----------------------------------------------
   Run-Windows:
     name: Build for Windows
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
-    
+    # ------------------------------
+    # pre-installed Python check ...
+    # ------------------------------
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
-        
-    - name: Install dependencies
+    # -----------------------------------
+    # we use PowerShell under Windows 10:
+    # -----------------------------------
+    - name: Check, and Install dependencies ...
       shell: pwsh
       run: |
         $env:MY_WORK_DIR = "${{ github.workspace }}"
         D:
         cd $env:MY_WORK_DIR\\src
-        $pythonExe  = Get-Command python -ErrorAction Ignore
-        $installExe = Get-Command pyinstaller -ErrorAction Ignore
+        $pythonExe    = Get-Command python      -ErrorAction Ignore
+        $pyInstallExe = Get-Command pyInstaller -ErrorAction Ignore
         if ($pythonExe) {
           Write-Output "Python is installed."
           python3 --version
@@ -44,7 +60,7 @@ jobs:
           python3 -m pip install PyQt5-sip
           python3 -m pip install PyQtWebEngine
         }
-        if ($pyInstallerExe) {
+        if ($pyInstallExe) {
           Write-Output "pyInstaller is installed."
           pyinstaller --version
         } else {
@@ -64,6 +80,9 @@ jobs:
         "               $env:MY_WORK_DIR\src\observer.py"
         $pyInstallerArgs
 
+  # -----------------------------------
+  # optimized for Linux - not tested !
+  # -----------------------------------
   Run-Linux:
     name: Build for Linux
     runs-on: ubuntu-latest
@@ -73,12 +92,41 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+    
+    # -----------------------------------
+    # we use BASH under Linux Ubuntu 22.0
+    # -----------------------------------
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        python3 -m pip install pysqlite3 
-        python3 -m pip install PyQt5
-        python3 -m pip install PyQt5-sip
-        python3 -m pip install PyQtWebEngine
+        $env:MY_WORK_DIR = "${{ github.workspace }}"
+        cd $env:MY_WORK_DIR/src
+        python3 --version
+        pyresult=$?
+        if [ $pyresult -eq 0 ]; then
+          echo "Python3 installed"
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          python3 -m pip install pysqlite3 
+          python3 -m pip install PyQt5
+          python3 -m pip install PyQt5-sip
+          python3 -m pip install PyQtWebEngine
+        
+          pip install pyinstaller
+          pip install --upgrade pyinstaller
+        else
+          echo "Python3 missing !"
+          exit 1
+        fi
+        echo "Create ByteCode ..."
+        python3 -m compileall observer.py
+        echo "Create Application ..."
+        $pyInstallerArgs = "pyInstaller --noconfirm --onefile --console      " +
+        "--icon         $env:MY_WORK_DIR/src/img/floppy-disk.ico " +
+        "--splash       $env:MY_WORK_DIR/src/img/splash.png      " +
+        "--version-file $env:MY_WORK_DIR/src/version.info        " +
+        "--add-data     $env:MY_WORK_DIR/src/LICENSE;.           " +
+        "--add-data     $env:MY_WORK_DIR/src/locales;locales/    " +
+        "--add-data     $env:MY_WORK_DIR/src/img;img/            " +
+        "               $env:MY_WORK_DIR/src/observer.py"
+        $pyInstallerArgs
         
