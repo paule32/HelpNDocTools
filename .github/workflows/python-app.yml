@@ -45,7 +45,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
-        pip install -r requirements.txt
         python3 -m pip install pysqlite3 
         python3 -m pip install PyQt5
         python3 -m pip install PyQt5-sip
