@@ -51,7 +51,7 @@ jobs:
         --add-data     ""$env:MY_WORK_DIR\src\LICENSE;."" `
         --add-data     ""$env:MY_WORK_DIR\src\locales;locales\"" `
         --add-data     ""$env:MY_WORK_DIR\src\img;img\""
-        pyinstaller.exe $pyInstallerArgs "$env:MY_WORK_DIR\src\observer.py"
+        pyinstaller.exe $pyInstallerArgs $env:MY_WORK_DIR\src\observer.py
 
   Run-Linux:
     name: Build for Linux
