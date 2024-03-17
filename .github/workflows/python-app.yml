@@ -31,12 +31,14 @@ jobs:
         python3 -m pip install PyQt5
         python3 -m pip install PyQt5-sip
         python3 -m pip install PyQtWebEngine
-        cd $MY_WORK_DIR
-        echo "---> $MY_WORK_DIR"
         python3 -m compileall observer.py
+    - name: Start Python in PowerShell
       shell: pwsh
       env:
         MY_WORK_DIR: "${{ github.workspace }}"
+      run:
+        python3 --version
+        python3 -c "print('Hello World !')"
 
   Run-Linux:
     name: Build for Linux
