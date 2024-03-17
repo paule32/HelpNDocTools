@@ -31,6 +31,7 @@ jobs:
         python3 -m pip install PyQt5
         python3 -m pip install PyQt5-sip
         python3 -m pip install PyQtWebEngine
+        echo "User Workspace: $GITHUB_WORKSPACE"
 
   Run-Linux:
     name: Build for Linux
