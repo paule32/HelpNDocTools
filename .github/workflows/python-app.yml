@@ -36,9 +36,10 @@ jobs:
       shell: pwsh
       env:
         MY_WORK_DIR: "${{ github.workspace }}"
-      run:
+      run: |
         python3 --version
         python3 -c "print('Hello World !')"
+        Write-Output "Hallo Variable: $MY_WORK_DIR, ${{ github.workspace }}"
 
   Run-Linux:
     name: Build for Linux
