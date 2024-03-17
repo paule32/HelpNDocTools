@@ -98,8 +98,8 @@ jobs:
     # -----------------------------------
     - name: Install dependencies
       run: |
-        $env:MY_WORK_DIR = "${{ github.workspace }}"
-        cd $env:MY_WORK_DIR/src
+        MY_WORK_DIR="${{ github.workspace }}"
+        cd $MY_WORK_DIR/src
         python3 --version
         pyresult=$?
         if [ $pyresult -eq 0 ]; then
@@ -121,12 +121,12 @@ jobs:
         python3 -m compileall observer.py
         echo "Create Application ..."
         $pyInstallerArgs = "pyInstaller --noconfirm --onefile --console      " +
-        "--icon         $env:MY_WORK_DIR/src/img/floppy-disk.ico " +
-        "--splash       $env:MY_WORK_DIR/src/img/splash.png      " +
-        "--version-file $env:MY_WORK_DIR/src/version.info        " +
-        "--add-data     $env:MY_WORK_DIR/src/LICENSE;.           " +
-        "--add-data     $env:MY_WORK_DIR/src/locales;locales/    " +
-        "--add-data     $env:MY_WORK_DIR/src/img;img/            " +
-        "               $env:MY_WORK_DIR/src/observer.py"
+        "--icon         $MY_WORK_DIR/src/img/floppy-disk.ico " +
+        "--splash       $MY_WORK_DIR/src/img/splash.png      " +
+        "--version-file $MY_WORK_DIR/src/version.info        " +
+        "--add-data     $MY_WORK_DIR/src/LICENSE;.           " +
+        "--add-data     $MY_WORK_DIR/src/locales;locales/    " +
+        "--add-data     $MY_WORK_DIR/src/img;img/            " +
+        "               $MY_WORK_DIR/src/observer.py"
         $pyInstallerArgs
         
