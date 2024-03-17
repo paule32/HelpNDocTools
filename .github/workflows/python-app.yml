@@ -39,6 +39,13 @@ jobs:
         D:
         cd $env:MY_WORK_DIR\\src
         python3 -m compileall observer.py
+        pyinstaller --noconfirm --onefile --console               \
+        --icon   "$env:MY_WORK_DIR\\src\\img\\floppy-disk.ico"    \
+        --splash "$env:MY_WORK_DIR\\src\\img\\splash.png"         \
+        --version-file "$env:MY_WORK_DIR\\src\\version.info"      \
+        --add-data     "$env:MY_WORK_DIR\\src\\LICENSE;."         \
+        --add-data     "$env:MY_WORK_DIR\\src\\locales;locales\\" \
+        --add-data     "$env:MY_WORK_DIR\\src\\img;img\\"         "$env:MY_WORK_DIR\\src\\observer.py"
 
   Run-Linux:
     name: Build for Linux
