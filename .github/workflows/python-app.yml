@@ -124,7 +124,4 @@ jobs:
         --icon     $MY_WORK_DIR/src/img/floppy-disk.ico \
         --splash   $MY_WORK_DIR/src/img/splash.png      \
         --version-file $MY_WORK_DIR/src/version.info    \
-        --add-data=$MY_WORK_DIR/src/LICENSE;.           \
-        --add-data=$MY_WORK_DIR/src/locales;locales/    \
-        --add-data=$MY_WORK_DIR/src/img;img/            \
         $MY_WORK_DIR/src/observer.py
