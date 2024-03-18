@@ -171,6 +171,77 @@ try:
         + "font-weight:600;background-color:yellow;"
         )
     
+    # ------------------------------------------------------------------------
+    # date / time
+    # ------------------------------------------------------------------------
+    class Weekday:
+        def __init__(self):
+            self.MONDAY    = 1
+            self.TUESDAY   = 2
+            self.WEDNESDAY = 3
+            self.THURSDAY  = 4
+            self.FRIDAY    = 5
+            self.SATURDAY  = 6
+            self.SUNDAY    = 7
+        
+        def today(cls):
+            print('today is %s' % cls(date.today().isoweekday()).name)
+    
+    # ------------------------------------------------------------------------
+    # interpreter
+    # ------------------------------------------------------------------------
+    class interpreter_Pascal:
+        class TOpCode:
+            def __init__(self):
+                self.ill = 0    # illegal
+                self.lit = 1    # literal
+                self.opr = 2
+                self.lod = 3    # load
+                self.sto = 4    # store
+                self.num = 5    # integer / number
+                self.jmp = 6    # jump
+                self.jpc = 7
+                self.wri = 8    # write
+                return
+        
+        class Instruction:
+            def __init__(self):
+                self.f = TOpCode()
+                self.l = 0
+                self.a = 0
+                return
+        
+        def __init__(self):
+            self.Instructions = []=Instruction()
+            self.stacksize = 1024
+            self.p = -1
+            self.b = 1
+            self.t = 0
+            self.s = [0, 0, 0]
+            return
+        
+        def Base(self, i):
+            b1 = self.b
+            while i > 0:
+                b1 = self.s[b1]
+                i  = i + 1
+            return b1
+        
+        def getInstruction(self, inst):
+            i = [ inst ]
+            return self.Instructions[ i ]
+        
+        def Emulate(self):
+            print("Interpreting Code:")
+            self.t = 0
+            self.b = 0
+            self.p = 0
+            self.s = [0, 0, 0]
+            while self.p == 0:
+                i = self.getInstruction(p)
+                p = p + 1
+            print("Done...")
+            return
     
     # ------------------------------------------------------------------------
     # convert the os path seperator depend ond the os system ...
