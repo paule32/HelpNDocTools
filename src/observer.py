@@ -234,14 +234,122 @@ try:
         def Emulate(self):
             print("Interpreting Code:")
             self.t = 0
-            self.b = 0
-            self.p = 0
+            self.b = 1
+            self.p = 1
             self.s = [0, 0, 0]
             while self.p == 0:
                 i = self.getInstruction(p)
                 p = p + 1
+                if i.f == i.lit:
+                    t = t + 1
+                    self.s[t] = i.a
+                elif i.f == i.lod:
+                    t = t + 1
+                    self.s[t] = self.s[self.Base(i.l) + i.a]
+                elif i.f == i.sto:
+                    self.s[self.Base(i.l) + i.a] = self.s[self.t]
+                    t = t - 1
+                elif i.f == i.cal:
+                    self.s[self.t + 1] = self.Base(i.l)
+                    self.s[self.t + 2] = self.b
+                    self.s[self.t + 3] = self.p
+                    self.b = self.t + 1
+                    self.p = i.a
+                elif i.f == i.num:
+                    self.t = self.t + i.a
+                elif i.f == i.jmp:
+                    self.p = i.a
+                elif i.f == i.jpc:
+                    if self.s[self.t] == 0:
+                        self.p = i.a
+                    self.t = self.t - 1
+                elif i.f == i.wri:
+                    print("wri: ", int(self.s[self.t]))
+                    self.t = self.t - 1
+                elif i.f == i.opr:
+                    if i.a == 0:
+                        self.t = self.b - 1
+                        self.p = self.s[self.t + 3]
+                        self.b = self.s[self.t + 2]
+                    if i.a == 1:
+                        self.s[self.t] = 0 - self.s[self.t]
+                    if i.a == 2:
+                        self.t = self.t - 1
+                        self.s[self.t] = self.s[self.t] +  self.s[self.t + 1]
+                    if i.a == 3:
+                        self.t = self.t - 1
+                        self.s[self.t] = self.s[self.t] -  self.s[self.t + 1]
+                    if i.a == 4:
+                        self.t = self.t - 1
+                        self.s[self.t] = self.s[self.t] *  self.s[self.t + 1]
+                    if i.a == 5:
+                        self.t = self.t - 1
+                        self.s[self.t] = self.s[self.t] // self.s[self.t + 1]
+                    if i.a == 8:
+                        self.t = self.t - 1
+                        if self.s[self.t] == self.s[self.t + 1]:
+                            self.s[self.t] = True
+                        else:
+                            self.s[self.t] = False
+                    if i.a == 9:
+                        self.t = self.t - 1
+                        if self.s[self.t] != self.s[self.t + 1]:
+                            self.s[self.t] = True
+                        else:
+                            self.s[self.t] = False
+                    if i.a == 10:
+                        self.t = self.t - 1
+                        if self.s[self.t] < self.s[self.t + 1]:
+                            self.s[self.t] = True
+                        else:
+                            self.s[self.t] = False
+                    if i.a == 11:
+                        self.t = self.t - 1
+                        if self.s[self.t] > self.s[self.t + 1]:
+                            self.s[self.t] = True
+                        else:
+                            self.s[self.t] = False
+                    if i.a == 12:
+                        self.t = self.t - 1
+                        if self.s[self.t] >= self.s[self.t + 1]:
+                            self.s[self.t] = True
+                        else:
+                            self.s[self.t] = False
+                    if i.a == 13:
+                        self.t = self.t - 1
+                        if self.s[self.t] <= self.s[self.t + 1]:
+                            self.s[self.t] = True
+                        else:
+                            self.s[self.t] = False
+                else:
+                    print("Unknown opcode")
+                    p = 0
             print("Done...")
             return
+        
+        def ShowInstructions(self):
+            self.OpCodeText = [
+                "lit", "opr",
+                "lod", "sto", "cal", "num",
+                "jmp", "jpc",
+                "wri"]
+            
+            self.file_name = "test.byte"
+            self.file_stat = os.stat(file_name)
+            self.file_size = self.file_stat.st_size
+            
+            self.data = ""
+            
+            with open(self_file_name, 'r') as file:
+                self.data = file.read()
+                file.close()
+            
+            print("Instructions:")
+            i = 0
+            while (i + 1) * 3 <= self.self.file_size:
+                inst = self.getInstruction(i)
+                print("%d: %s %d,%d", i, OpCodeText[inst], inst.l, inst.a)
+                i = i + 1
     
     # ------------------------------------------------------------------------
     # convert the os path seperator depend ond the os system ...
