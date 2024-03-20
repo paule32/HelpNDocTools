@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # File:   observer.py
-# Author: (c) 2024 Jens Kallup - paule32
+# Author: (c) 2024 Jens Kallup - paule32paule32
 # All rights reserved
 # ---------------------------------------------------------------------------
 global EXIT_SUCCESS; EXIT_SUCCESS = 0
@@ -9,6 +9,8 @@ global EXIT_FAILURE; EXIT_FAILURE = 1
 global basedir
 global tr
 global sv_help
+
+global paule32_debug
 
 try:
     import os            # operating system stuff
@@ -69,6 +71,8 @@ try:
     __authors__ = "paule32"
     
     __date__    = "2024-01-04"
+    
+    paule32_debug = True
     
     # ------------------------------------------------------------------------
     # when the user start the application script under Windows 7 and higher:
@@ -212,144 +216,186 @@ try:
                 return
         
         def __init__(self):
-            self.Instructions = []=Instruction()
+            self.Instructions = []
             self.stacksize = 1024
             self.p = -1
             self.b = 1
             self.t = 0
             self.s = [0, 0, 0]
+            
+            self.eof = False
+            
+            self.file_name = "test.byte"
+            self.file_stat = os.stat(self.file_name)
+            self.file_size = self.file_stat.st_size
+            
+            with open(self.file_name, 'r') as file:
+                for line in file:
+                    cols = line.strip().split(',')
+                    self.Instructions.append(cols)
+                file.close()
+            
+            # -------------------------------------------------
+            # convert the string values in the cols to integer
+            # -------------------------------------------------
+            for row in self.Instructions:
+                row[0] = row[0].split()
+                row[0][0:] = [int(value) for value in row[0][0:]] # string to int
+                #row[0][0] = self.OpCodeText[ row[0][0] ]
+                #print(">", row[0][0])
             return
         
-        def Base(self, i):
-            b1 = self.b
+        def Base(self, i, b, s):
+            b1 = b
+            if i == 0:
+                self.eof = True
+                return None
             while i > 0:
-                b1 = self.s[b1]
-                i  = i + 1
+                b1 = s[b1]
+                i  = i - 1
             return b1
-        
-        def getInstruction(self, inst):
-            i = [ inst ]
-            return self.Instructions[ i ]
         
         def Emulate(self):
             print("Interpreting Code:")
-            self.t = 0
-            self.b = 1
-            self.p = 1
-            self.s = [0, 0, 0]
-            while self.p == 0:
-                i = self.getInstruction(p)
+            #
+            OpCode_LIT = 1
+            OpCode_LOD = 2
+            OpCode_STO = 3
+            OpCode_CAL = 4
+            OpCode_INT = 5
+            OpCode_JMP = 6
+            OpCode_JPC = 7
+            OpCode_WRI = 8
+            OpCode_OPR = 9
+            #
+            OpCodeText = [
+                "lit", "lod", "sto", "cal",
+                "int", "jmp", "jpc",
+                "wri", "opr"]
+            #
+            t = 0
+            b = 1
+            p = 0
+            s = [0, 0, 0]
+            print("Start...")
+            while True:
+                if p >= len(self.Instructions):
+                    break
+                if self.eof == True:
+                    break
+                i = self.Instructions[p]
+                i = i[0]
                 p = p + 1
-                if i.f == i.lit:
+                z = i[0]
+                if z == OpCode_LIT:
+                    print(OpCodeText[z])
                     t = t + 1
-                    self.s[t] = i.a
-                elif i.f == i.lod:
+                    s[t] = i[2]
+                elif z == OpCode_LOD:
+                    print(OpCodeText[z])
                     t = t + 1
-                    self.s[t] = self.s[self.Base(i.l) + i.a]
-                elif i.f == i.sto:
-                    self.s[self.Base(i.l) + i.a] = self.s[self.t]
+                    r = self.Base(i[1], b, s)
+                    if not r == None:
+                        s[t] = s[r + i[2]]
+                    else:
+                        break
+                elif z == OpCode_STO:
+                    r = self.Base(i[1], b, s)
+                    if not r == None:
+                        s[r + i[2]] = s[t]
+                    else:
+                        break
                     t = t - 1
-                elif i.f == i.cal:
-                    self.s[self.t + 1] = self.Base(i.l)
-                    self.s[self.t + 2] = self.b
-                    self.s[self.t + 3] = self.p
-                    self.b = self.t + 1
-                    self.p = i.a
-                elif i.f == i.num:
-                    self.t = self.t + i.a
-                elif i.f == i.jmp:
-                    self.p = i.a
-                elif i.f == i.jpc:
-                    if self.s[self.t] == 0:
-                        self.p = i.a
-                    self.t = self.t - 1
-                elif i.f == i.wri:
-                    print("wri: ", int(self.s[self.t]))
-                    self.t = self.t - 1
-                elif i.f == i.opr:
-                    if i.a == 0:
-                        self.t = self.b - 1
-                        self.p = self.s[self.t + 3]
-                        self.b = self.s[self.t + 2]
-                    if i.a == 1:
-                        self.s[self.t] = 0 - self.s[self.t]
-                    if i.a == 2:
-                        self.t = self.t - 1
-                        self.s[self.t] = self.s[self.t] +  self.s[self.t + 1]
-                    if i.a == 3:
-                        self.t = self.t - 1
-                        self.s[self.t] = self.s[self.t] -  self.s[self.t + 1]
-                    if i.a == 4:
-                        self.t = self.t - 1
-                        self.s[self.t] = self.s[self.t] *  self.s[self.t + 1]
-                    if i.a == 5:
-                        self.t = self.t - 1
-                        self.s[self.t] = self.s[self.t] // self.s[self.t + 1]
-                    if i.a == 8:
-                        self.t = self.t - 1
-                        if self.s[self.t] == self.s[self.t + 1]:
-                            self.s[self.t] = True
+                elif z == OpCode_CAL:
+                    r = self.Base(i[1], b, s)
+                    if not r == None:
+                        s[t + 1] = r
+                        s[t + 2] = b
+                        s[t + 3] = p
+                        b = t + 1
+                        p = i[2]
+                    else:
+                        break
+                elif z == OpCode_INT:
+                    t = t + i[2]
+                elif z == OpCode_JMP:
+                    p = i[2]
+                elif z == OpCode_JPC:
+                    if s[t] == 0:
+                        p = i[2]
+                    t = t - 1
+                elif z == OpCode_WRI:
+                    print("wri: ", int(s[t]))
+                    t = t - 1
+                elif z == OpCode_OPR:
+                    z = i[2]
+                    if z == 0:
+                        t = b - 1
+                        p = s[t + 3]
+                        b = s[t + 2]
+                    if z == 1:
+                        s[t] = 0 - s[t]
+                    if z == 2:
+                        t = t - 1
+                        s[t] = s[t] + s[t + 1]
+                    if z == 3:
+                        t = t - 1
+                        s[t] = s[t] - s[t + 1]
+                    if z == 4:
+                        t = t - 1
+                        s[t] = s[t] * s[t + 1]
+                    if z == 5:
+                        t = t - 1
+                        s[t] = s[t] // s[t + 1]
+                    if z == 8:
+                        t = t - 1
+                        if s[t] == s[t + 1]:
+                            s[t] = True
                         else:
-                            self.s[self.t] = False
-                    if i.a == 9:
-                        self.t = self.t - 1
-                        if self.s[self.t] != self.s[self.t + 1]:
-                            self.s[self.t] = True
+                            s[t] = False
+                    if z == 9:
+                        t = t - 1
+                        if s[t] != s[t + 1]:
+                            s[t] = True
                         else:
-                            self.s[self.t] = False
-                    if i.a == 10:
-                        self.t = self.t - 1
-                        if self.s[self.t] < self.s[self.t + 1]:
-                            self.s[self.t] = True
+                            s[t] = False
+                    if z == 10:
+                        t = t - 1
+                        if s[t] < s[t + 1]:
+                            s[t] = True
                         else:
-                            self.s[self.t] = False
-                    if i.a == 11:
-                        self.t = self.t - 1
-                        if self.s[self.t] > self.s[self.t + 1]:
-                            self.s[self.t] = True
+                            s[t] = False
+                    if z == 11:
+                        t = t - 1
+                        if s[t] > s[t + 1]:
+                            s[t] = True
                         else:
-                            self.s[self.t] = False
-                    if i.a == 12:
+                            s[t] = False
+                    if z == 12:
                         self.t = self.t - 1
-                        if self.s[self.t] >= self.s[self.t + 1]:
-                            self.s[self.t] = True
+                        if s[t] >= s[t + 1]:
+                            s[t] = True
                         else:
-                            self.s[self.t] = False
-                    if i.a == 13:
-                        self.t = self.t - 1
-                        if self.s[self.t] <= self.s[self.t + 1]:
-                            self.s[self.t] = True
+                            s[t] = False
+                    if z == 13:
+                        t = t - 1
+                        if s[t] <= s[t + 1]:
+                            s[t] = True
                         else:
-                            self.s[self.t] = False
+                            s[t] = False
+                    else:
+                        print("Unknown Operand")
+                        break
                 else:
                     print("Unknown opcode")
-                    p = 0
+                    break
             print("Done...")
             return
         
         def ShowInstructions(self):
-            self.OpCodeText = [
-                "lit", "opr",
-                "lod", "sto", "cal", "num",
-                "jmp", "jpc",
-                "wri"]
-            
-            self.file_name = "test.byte"
-            self.file_stat = os.stat(file_name)
-            self.file_size = self.file_stat.st_size
-            
-            self.data = ""
-            
-            with open(self_file_name, 'r') as file:
-                self.data = file.read()
-                file.close()
-            
             print("Instructions:")
-            i = 0
-            while (i + 1) * 3 <= self.self.file_size:
-                inst = self.getInstruction(i)
-                print("%d: %s %d,%d", i, OpCodeText[inst], inst.l, inst.a)
-                i = i + 1
+            for row in self.Instructions:
+                print(row)
     
     # ------------------------------------------------------------------------
     # convert the os path seperator depend ond the os system ...
@@ -789,7 +835,7 @@ try:
             
             layout.addLayout(h_layout_1)
             
-
+            
             
             layout_4 = QHBoxLayout()
             layout_4.setAlignment(Qt.AlignLeft)
@@ -2707,6 +2753,12 @@ try:
         try:
             topic_counter = 1
             
+            pas = interpreter_Pascal()
+            pas.ShowInstructions()
+            pas.Emulate()
+            
+            #sys.exit(1)
+            
             # ---------------------------------------------------------
             # scoped global stuff ...
             # ---------------------------------------------------------
@@ -2724,6 +2776,33 @@ try:
             
             
             # ---------------------------------------------------------
+            # doxygen.exe directory path ...
+            # ---------------------------------------------------------
+            if not doxy_env in os.environ:
+                if paule32_debug == True:
+                    os.environ["DOXYGEN_PATH"] = "E:\\doxygen\\bin"
+                else:
+                    print(("error: " + f"{doxy_env}"
+                    + " is not set in your system settings."))
+                    sys.exit(EXIT_FAILURE)
+            else:
+                doxy_path = os.environ[doxy_env]
+            
+            # ---------------------------------------------------------
+            # Microsoft Help Workshop path ...
+            # ---------------------------------------------------------
+            if not doxy_hhc in os.environ:
+                if paule32_debug == True:
+                    os.environ["DOXYHHC_PATH"] = "E:\\doxygen\\hhc"
+                else:
+                    print((""
+                        + "error: " + f"{doxy_hhc}"
+                        + " is not set in your system settings."))
+                    sys.exit(EXIT_FAILURE)
+            else:
+                hhc__path = os.environ[doxy_hhc]
+            
+            # ---------------------------------------------------------
             # first, we check the operating system platform:
             # 0 - unknown
             # 1 - Windows
@@ -2735,21 +2814,7 @@ try:
             os_type_windows = 1
             os_type_linux   = 2
             
-            os_type         = os_type_unknown
-            # ---------------------------------------------------------
-            if platform.system() == "Windows":
-                os_type = os_type_windows
-            elif platform.system() == "Linux":
-                os_type = os_type_linux
-            else:
-                os_type = os_type_unknown
-                if isPythonWindows():
-                    if not isApplicationInit():
-                        app = QApplication(sys.argv)
-                    showApplicationError(__error__os__error)
-                elif "python" in __app__exec_name:
-                    print(__error__os_error)
-                sys.exit(EXIT_FAILURE)
+            os_type = os_type_windows
             
             # -----------------------------------------------------
             # show a license window, when readed, and user give a
