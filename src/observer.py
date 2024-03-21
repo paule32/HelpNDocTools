@@ -197,47 +197,39 @@ try:
     class interpreter_Pascal:
         class TSymbol:
             def __init(self):
-                self.sUnknown      = 0
-                self.sIdent        = 1
-                self.sInteger      = 2
-                self.sPlus         = 3
-                self.sMinus        = 4
-                self.sStar         = 5
-                self.sSlash        = 6
-                self.sEqual        = 7
-                self.sSmaller      = 9
-                self.sBigger       = 9
-                self.sBiggerEqual  = 10
-                self.sSmallerEqual = 11
-                self.sUnEqual      = 12
-                self.sOpenBracket  = 13
-                self.sCloseBracket = 14
-                self.sComma        = 15
-                self.sDot          = 16
-                self.sSemiColon    = 17
-                self.sBecomes      = 18
-                self.sVar          = 19
-                self.sConst        = 20
-                self.sProcedure    = 21
-                self.sBegin        = 22
-                self.sEnd          = 23
-                self.sIf           = 24
-                self.sThen         = 25
-                self.sElseIf       = 26
-                self.sElse         = 27
-                self.sWhile        = 28
-                self.sDo           = 29
-                self.sModule       = 30
-                self.sWrite        = 31 
-                self.sNone         = 32
-                
-                self.Symbols = [
-                    '', '', '', '+', '-', '*', '/', '=',
-                    '<', '>', '>=', '#',
-                    '(', ')', ',', '.', ';', ':=',
-                    'VAR', 'CONST', 'PROCEDURE', 'BEGIN', 'END', 'IF', 'THEN',
-                    'ELSEIF', 'ELSE', 'WHILE', 'DO', 'MODULE', 'WRITE', ''
-                ]
+                self.sUnknown      = [  0, ''           ]
+                self.sIdent        = [  1, ''           ]
+                self.sInteger      = [  2, ''           ]
+                self.sPlus         = [  3, '+'          ]
+                self.sMinus        = [  4, '-'          ]
+                self.sStar         = [  5, '*'          ]
+                self.sSlash        = [  6, '/'          ]
+                self.sEqual        = [  7, '='          ]
+                self.sSmaller      = [  8, '<'          ]
+                self.sBigger       = [  9, '>'          ]
+                self.sBiggerEqual  = [ 10, '>='         ]
+                self.sSmallerEqual = [ 11, '<='         ]
+                self.sUnEqual      = [ 12, '#'          ]
+                self.sOpenBracket  = [ 13, '('          ]
+                self.sCloseBracket = [ 14, ')'          ]
+                self.sComma        = [ 15, ','          ]
+                self.sDot          = [ 16, '.'          ]
+                self.sSemiColon    = [ 17, ';'          ]
+                self.sBecomes      = [ 18, ':='         ]
+                self.sVar          = [ 19, 'VAR'        ]
+                self.sConst        = [ 20, 'CONST'      ]
+                self.sProcedure    = [ 21, 'PROCEDURE'  ]
+                self.sBegin        = [ 22, 'BEGIN'      ]
+                self.sEnd          = [ 23, 'END'        ]
+                self.sIf           = [ 24, 'IF'         ]
+                self.sThen         = [ 25, 'THEN'       ]
+                self.sElseIf       = [ 26, 'ELSEIF'     ]
+                self.sElse         = [ 27, 'ELSE'       ]
+                self.sWhile        = [ 28, 'WHILE'      ]
+                self.sDo           = [ 29, 'DO'         ]
+                self.sModule       = [ 30, 'MODULE'     ]
+                self.sWrite        = [ 31, 'WRITE'      ]
+                self.sNone         = [ 32, ''           ]
                 return
         
         class TOpCode:
