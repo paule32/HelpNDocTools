@@ -195,6 +195,51 @@ try:
     # interpreter
     # ------------------------------------------------------------------------
     class interpreter_Pascal:
+        class TSymbol:
+            def __init(self):
+                self.sUnknown      = 0
+                self.sIdent        = 1
+                self.sInteger      = 2
+                self.sPlus         = 3
+                self.sMinus        = 4
+                self.sStar         = 5
+                self.sSlash        = 6
+                self.sEqual        = 7
+                self.sSmaller      = 9
+                self.sBigger       = 9
+                self.sBiggerEqual  = 10
+                self.sSmallerEqual = 11
+                self.sUnEqual      = 12
+                self.sOpenBracket  = 13
+                self.sCloseBracket = 14
+                self.sComma        = 15
+                self.sDot          = 16
+                self.sSemiColon    = 17
+                self.sBecomes      = 18
+                self.sVar          = 19
+                self.sConst        = 20
+                self.sProcedure    = 21
+                self.sBegin        = 22
+                self.sEnd          = 23
+                self.sIf           = 24
+                self.sThen         = 25
+                self.sElseIf       = 26
+                self.sElse         = 27
+                self.sWhile        = 28
+                self.sDo           = 29
+                self.sModule       = 30
+                self.sWrite        = 31 
+                self.sNone         = 32
+                
+                self.Symbols = [
+                    '', '', '', '+', '-', '*', '/', '=',
+                    '<', '>', '>=', '#',
+                    '(', ')', ',', '.', ';', ':=',
+                    'VAR', 'CONST', 'PROCEDURE', 'BEGIN', 'END', 'IF', 'THEN',
+                    'ELSEIF', 'ELSE', 'WHILE', 'DO', 'MODULE', 'WRITE', ''
+                ]
+                return
+        
         class TOpCode:
             def __init__(self):
                 self.ill = 0    # illegal
@@ -208,6 +253,33 @@ try:
                 self.wri = 8    # write
                 return
         
+        class IdentListClassKind:
+            def __init__(self):
+                level = 0
+                addr  = 0
+                size  = 0
+                value = 0
+                #
+                self.itConstant  = self.itConstant (value)
+                self.itVariable  = self.itVariable (level, addr, size)
+                self.itProcedure = self.itProcedure(level, addr, size)
+                return
+            
+            def itConstant(self, value):
+                return
+            
+            def itVariable(self, level, addr, size):
+                return
+            
+            def itProcedure(self, level, addr, size):
+                return
+        
+        class IdentListClass:
+            def __init__(self):
+                self.name = ""
+                self.kind = self.IdentListClassKind()
+                return
+        
         class Instruction:
             def __init__(self):
                 self.f = TOpCode()
@@ -216,8 +288,33 @@ try:
                 return
         
         def __init__(self):
+            #
+            self.IdentConstant  = 1
+            self.IdentVariable  = 2
+            self.IdentProcedure = 3
+            #
+            #self.identList  = TIdent()
+            #
+            self.OpCode_LIT = 1
+            self.OpCode_LOD = 2
+            self.OpCode_STO = 3
+            self.OpCode_CAL = 4
+            self.OpCode_INT = 5
+            self.OpCode_JMP = 6
+            self.OpCode_JPC = 7
+            self.OpCode_WRI = 8
+            self.OpCode_OPR = 9
+            #
+            self.OpCodeText = [
+                "lit", "lod", "sto", "cal",
+                "int", "jmp", "jpc",
+                "wri", "opr"]
+            #
             self.Instructions = []
             self.stacksize = 1024
+            
+            self.cx = 0
+            
             self.p = -1
             self.b = 1
             self.t = 0
@@ -257,22 +354,7 @@ try:
         
         def Emulate(self):
             print("Interpreting Code:")
-            #
-            OpCode_LIT = 1
-            OpCode_LOD = 2
-            OpCode_STO = 3
-            OpCode_CAL = 4
-            OpCode_INT = 5
-            OpCode_JMP = 6
-            OpCode_JPC = 7
-            OpCode_WRI = 8
-            OpCode_OPR = 9
-            #
-            OpCodeText = [
-                "lit", "lod", "sto", "cal",
-                "int", "jmp", "jpc",
-                "wri", "opr"]
-            #
+            self.ModuleCommand()
             t = 0
             b = 1
             p = 0
@@ -287,26 +369,26 @@ try:
                 i = i[0]
                 p = p + 1
                 z = i[0]
-                if z == OpCode_LIT:
-                    print(OpCodeText[z])
+                if z == self.OpCode_LIT:
+                    print(self.OpCodeText[z])
                     t = t + 1
                     s[t] = i[2]
-                elif z == OpCode_LOD:
-                    print(OpCodeText[z])
+                elif z == self.OpCode_LOD:
+                    print(self.OpCodeText[z])
                     t = t + 1
                     r = self.Base(i[1], b, s)
                     if not r == None:
                         s[t] = s[r + i[2]]
                     else:
                         break
-                elif z == OpCode_STO:
+                elif z == self.OpCode_STO:
                     r = self.Base(i[1], b, s)
                     if not r == None:
                         s[r + i[2]] = s[t]
                     else:
                         break
                     t = t - 1
-                elif z == OpCode_CAL:
+                elif z == self.OpCode_CAL:
                     r = self.Base(i[1], b, s)
                     if not r == None:
                         s[t + 1] = r
@@ -316,18 +398,18 @@ try:
                         p = i[2]
                     else:
                         break
-                elif z == OpCode_INT:
+                elif z == self.OpCode_INT:
                     t = t + i[2]
-                elif z == OpCode_JMP:
+                elif z == self.OpCode_JMP:
                     p = i[2]
-                elif z == OpCode_JPC:
+                elif z == self.OpCode_JPC:
                     if s[t] == 0:
                         p = i[2]
                     t = t - 1
-                elif z == OpCode_WRI:
+                elif z == self.OpCode_WRI:
                     print("wri: ", int(s[t]))
                     t = t - 1
-                elif z == OpCode_OPR:
+                elif z == self.OpCode_OPR:
                     z = i[2]
                     if z == 0:
                         t = b - 1
@@ -396,6 +478,55 @@ try:
             print("Instructions:")
             for row in self.Instructions:
                 print(row)
+            self.GenCode(3, 1, 5)
+        
+        def Expect(self, Expected):
+            if Symbol != Expected:
+                ErrorExpected([Expected], Symbol)
+            return
+        
+        def GenCode(self, f, l, a):
+            acode = [[f, l, a]]
+            self.Instructions.append(acode)
+            return
+        
+        def ModuleCommand(self):
+            def Position(self, ID, TablePosition):
+                print("1")
+                return
+            def StatementSequence(self, TablePosition, level):
+                print("2")
+                return
+                def Statement(self):
+                    print("21")
+                    return
+                    def Expression(self):
+                        print("212")
+                        return
+                        def Term(self):
+                            print("2121")
+                            return
+                            def Factor(self):
+                                print("21231")
+                                return
+                    def Condition(self):
+                        print("322")
+                        return
+            def Declarations(self, TablePosition, level):
+                print("3")
+                return
+                def Enter(self, typ):
+                    TablePosition = TablePosition + 1
+                    return
+                def ProcedureDecl(self):
+                    print("32")
+                    return
+                def ConstDecl(self):
+                    print("33")
+                    return
+                def VarDecl(self):
+                    print("34")
+                    return
     
     # ------------------------------------------------------------------------
     # convert the os path seperator depend ond the os system ...
