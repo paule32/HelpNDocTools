@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # File:   observer.py
-# Author: (c) 2024 Jens Kallup - paule32paule32
+# Author: (c) 2024 Jens Kallup - paule32
 # All rights reserved
 # ---------------------------------------------------------------------------
 global EXIT_SUCCESS; EXIT_SUCCESS = 0
@@ -10,7 +10,7 @@ global basedir
 global tr
 global sv_help
 
-global paule32_debug
+global debugMode
 
 try:
     import os            # operating system stuff
@@ -20,8 +20,12 @@ try:
     import re            # regular expression handling
     
     import glob          # directory search
+    import atexit        # clean up
     import subprocess    # start sub processes
     import platform      # Windows ?
+    
+    import gzip          # pack/de-pack data
+    import base64        # base64 encoded data
     
     import shutil        # shell utils
     import pkgutil       # attached binary data utils
@@ -72,7 +76,7 @@ try:
     
     __date__    = "2024-01-04"
     
-    paule32_debug = True
+    debugMode = True
     
     # ------------------------------------------------------------------------
     # when the user start the application script under Windows 7 and higher:
@@ -176,7 +180,29 @@ try:
         )
     
     # ------------------------------------------------------------------------
-    # date / time
+    # exception classes used as custom execption ...
+    # ------------------------------------------------------------------------
+    class ListInstructionError(Exception):
+        def __init__(self):
+            print((""
+            + "Exception: List instructions error.\n"
+            + "note: Did you miss a parameter ?\n"
+            + "note: Add more information."))
+            error_result = 1
+            return
+    class ListMustBeInstructionError(Exception):
+        def __init__(self):
+            print("Exception: List must be of class type: InstructionItem")
+            errir_result = 1
+            return
+    class ListIndexOutOfBoundsError(Exception):
+        def __init__(self):
+            print("Exception: List index out of bounds.")
+            error_result = 1
+            return
+    
+    # ------------------------------------------------------------------------
+    # date / time week days
     # ------------------------------------------------------------------------
     class Weekday:
         def __init__(self):
@@ -192,9 +218,12 @@ try:
             print('today is %s' % cls(date.today().isoweekday()).name)
     
     # ------------------------------------------------------------------------
-    # interpreter
+    # interpreter for a pascal subset language:
     # ------------------------------------------------------------------------
     class interpreter_Pascal:
+        # -----------------------------------------
+        # symbols for the tokenizer ...
+        # -----------------------------------------
         class TSymbol:
             def __init(self):
                 self.sUnknown      = [  0, ''           ]
@@ -232,80 +261,157 @@ try:
                 self.sNone         = [ 32, ''           ]
                 return
         
-        class TOpCode:
+        # -----------------------------------------
+        # define the set of available op-codes ...
+        # -----------------------------------------
+        class OpCode:
             def __init__(self):
-                self.ill = 0    # illegal
-                self.lit = 1    # literal
-                self.opr = 2
-                self.lod = 3    # load
-                self.sto = 4    # store
-                self.num = 5    # integer / number
-                self.jmp = 6    # jump
-                self.jpc = 7
-                self.wri = 8    # write
-                return
-        
-        class IdentListClassKind:
-            def __init__(self):
-                level = 0
-                addr  = 0
-                size  = 0
-                value = 0
                 #
-                self.itConstant  = self.itConstant (value)
-                self.itVariable  = self.itVariable (level, addr, size)
-                self.itProcedure = self.itProcedure(level, addr, size)
+                self.current = 0
+                #
+                self.OpCode_ILL = 0
+                self.OpCode_LIT = 1
+                self.OpCode_LOD = 2
+                self.OpCode_STO = 3
+                self.OpCode_CAL = 4
+                self.OpCode_NUM = 5
+                self.OpCode_JMP = 6
+                self.OpCode_JPC = 7
+                self.OpCode_WRI = 8
+                self.OpCode_OPR = 9
+                #
+                self.ill = [ self.OpCode_ILL, ""    ]  # illegal
+                self.lit = [ self.OpCode_LIT, "lit" ]  # literal
+                self.lod = [ self.OpCode_LOD, "lod" ]  # load
+                self.sto = [ self.OpCode_STO, "sto" ]  # store
+                self.cal = [ self.OpCode_CAL, "cal" ]  # call
+                self.num = [ self.OpCode_NUM, "num" ]  # integer / number
+                self.jmp = [ self.OpCode_JMP, "jmp" ]  # jump
+                self.jpc = [ self.OpCode_JPC, "jpc" ] 
+                self.wri = [ self.OpCode_WRI, "wri" ]  # write
+                self.opr = [ self.OpCode_OPR, "opr" ]
                 return
-            
-            def itConstant(self, value):
-                return
-            
-            def itVariable(self, level, addr, size):
-                return
-            
-            def itProcedure(self, level, addr, size):
+            # -----------------------------------------
+            # get the current op code ...
+            # -----------------------------------------
+            def getCurrent(self):
+                return self.current
+        
+        class IdentConstant:
+            def __init__(self):
+                self.value = 0
                 return
         
-        class IdentListClass:
+        class IdentVariable:
+            def __init__(self):
+                self.lebel = 0
+                self.addr  = 0
+                self.size  = 0
+                self.value = 0
+                return
+        
+        class IdentProcedure:
+            def __init__(self):
+                self.level = 0
+                self.addr  = 0
+                self.size  = 0
+                self.value = 0
+                return
+        
+        class IdentType:
+            def __init__(self):
+                self.itConstant  = self.IdentConstant ()
+                self.itVariable  = self.IdentVariable ()
+                self.itProcedure = self.IdentProcedure()
+                return
+            def IdentConstant(self):
+                return
+            def IdentVariable(self):
+                return
+            def IdentProcedure(self):
+                return
+        
+        class Ident:
             def __init__(self):
                 self.name = ""
-                self.kind = self.IdentListClassKind()
+                self.kind = interpreter_Pascal.IdentType()
                 return
         
-        class Instruction:
+        class IdentList:
             def __init__(self):
-                self.f = TOpCode()
-                self.l = 0
-                self.a = 0
+                self.items = interpreter_Pascal.Ident()
+                return
+            def __del__(self):
+                print("dtor: IdentList, clean-up...")
                 return
         
+        # -----------------------------------------
+        # represents a item of a "instruction" ...
+        # -----------------------------------------
+        class InstructionItem:
+            def __init__(self):
+                self.opcode = interpreter_Pascal.OpCode()
+                self.lhs = 0
+                self.rhs = 0  # a
+                return
+        
+        # -----------------------------------------
+        # hold the "instructions" ...
+        # -----------------------------------------
+        class InstructionsClass:
+            # -------------------------------------
+            # ctor - constructor
+            # -------------------------------------
+            def __init__(self):
+                if debugMode == True:
+                    print("ctor: InstructionsClass")
+                self.items = []
+                return
+            # -------------------------------------
+            # dtor - destructor
+            # -------------------------------------
+            def __del__(self):
+                if debugMode == True:
+                    print("dtor: InstructionsClass, clean-up...")
+                self.items.clear()
+                return
+            # -------------------------------------
+            # add instruction item to the item list
+            # -------------------------------------
+            def add(self, inst = None):
+                if inst == None:
+                    raise ListInstructionError
+                if not type(inst) == interpreter_Pascal.InstructionItem:
+                    raise ListMustBeInstructionError
+                print("==>", inst.opcode.current)
+                self.items.append(inst)
+                return
+            # -------------------------------------
+            # delete nth instruction from item list
+            # -------------------------------------
+            def delete(self, inst = -1):
+                if inst < 0:
+                    raise ListIndexOutOfBounds
+                if inst > -1:
+                    if inst != len(self.items):
+                        raise ListIndexOutOfBounds
+                    else:
+                        self.items,pop(inst)
+                return
+        
+        # -----------------------------------------
+        # constructor for: interpreter_Pascal
+        # -----------------------------------------
         def __init__(self):
             #
             self.IdentConstant  = 1
             self.IdentVariable  = 2
             self.IdentProcedure = 3
             #
-            #self.identList  = TIdent()
-            #
-            self.OpCode_LIT = 1
-            self.OpCode_LOD = 2
-            self.OpCode_STO = 3
-            self.OpCode_CAL = 4
-            self.OpCode_INT = 5
-            self.OpCode_JMP = 6
-            self.OpCode_JPC = 7
-            self.OpCode_WRI = 8
-            self.OpCode_OPR = 9
-            #
-            self.OpCodeText = [
-                "lit", "lod", "sto", "cal",
-                "int", "jmp", "jpc",
-                "wri", "opr"]
-            #
-            self.Instructions = []
-            self.stacksize = 1024
+            self.identList    = self.IdentList()
+            self.instructions = self.InstructionsClass()
             
-            self.cx = 0
+            self.stacksize = 1024
             
             self.p = -1
             self.b = 1
@@ -320,18 +426,23 @@ try:
             
             with open(self.file_name, 'r') as file:
                 for line in file:
-                    cols = line.strip().split(',')
-                    self.Instructions.append(cols)
+                    cols = line.strip().split(' ')
+                    inst = self.InstructionItem()
+                    inst.opcode.current = cols[0]
+                    inst.lhs = cols[1]
+                    inst.rhs = cols[2]
+                    print("--->")
+                    self.instructions.add(inst)
                 file.close()
             
             # -------------------------------------------------
             # convert the string values in the cols to integer
             # -------------------------------------------------
-            for row in self.Instructions:
+            for row in self.instructions.items:
                 row[0] = row[0].split()
                 row[0][0:] = [int(value) for value in row[0][0:]] # string to int
                 #row[0][0] = self.OpCodeText[ row[0][0] ]
-                #print(">", row[0][0])
+                print(">", row[0])
             return
         
         def Base(self, i, b, s):
@@ -353,11 +464,11 @@ try:
             s = [0, 0, 0]
             print("Start...")
             while True:
-                if p >= len(self.Instructions):
+                if p >= len(self.instructions.items):
                     break
                 if self.eof == True:
                     break
-                i = self.Instructions[p]
+                i = self.instructions.items[p]
                 i = i[0]
                 p = p + 1
                 z = i[0]
@@ -468,7 +579,7 @@ try:
         
         def ShowInstructions(self):
             print("Instructions:")
-            for row in self.Instructions:
+            for row in self.instructions.items:
                 print(row)
             self.GenCode(3, 1, 5)
         
@@ -478,11 +589,13 @@ try:
             return
         
         def GenCode(self, f, l, a):
-            acode = [[f, l, a]]
-            self.Instructions.append(acode)
+            acode = [f, l, a]
+            self.instructions.add(acode)
             return
         
         def ModuleCommand(self):
+            print("oo-oo")
+            return
             def Position(self, ID, TablePosition):
                 print("1")
                 return
@@ -1910,7 +2023,6 @@ try:
     
     class SpinEditDelegateID(QStyledItemDelegate):
         def createEditor(self, parent, option, index):
-            global topic_counter
             editor = QSpinBox(parent)
             editor.setValue(topic_counter)
             topic_counter = topic_counter + 1
@@ -2724,7 +2836,7 @@ try:
                 w.hide()
                 if i == it:
                     w.show()
-
+        
         def generate_random_string(self, length):
             characters = string.ascii_uppercase + string.digits
             random_string = ''.join(random.sample(characters, length))
@@ -2858,29 +2970,41 @@ try:
             #self.returnCode = 1
             #self.close()
             sys.exit(EXIT_FAILURE)
-
+    
+    # ------------------------------------------------------------------------
+    # atexit: callback when sys.exit() is handled, and come back to console...
+    # ------------------------------------------------------------------------
+    def ApplicationAtExit():
+        print("Thank's for using.")
+        return
+    
     # ------------------------------------------------------------------------
     # this is our "main" entry point, where the application will start, if you
     # type the name of the script into the console, or by mouse click at the
     # file explorer under a GUI system (Windows) ...
     # ------------------------------------------------------------------------
     if __name__ == '__main__':
-        global has_error, result_error
+        global error_fail, error_result
         global app
         
         global conn
         global conn_cursor
         
-        has_error    = False
-        result_error = 0
+        error_fail   = False
+        error_result = 0
         try:
             topic_counter = 1
             
+            atexit.register(ApplicationAtExit)
+            
+            # ---------------------------------------------------------
+            # init pascal interpreter ...
+            # ---------------------------------------------------------
             pas = interpreter_Pascal()
             pas.ShowInstructions()
             pas.Emulate()
             
-            #sys.exit(1)
+            sys.exit(1)
             
             # ---------------------------------------------------------
             # scoped global stuff ...
@@ -2902,7 +3026,7 @@ try:
             # doxygen.exe directory path ...
             # ---------------------------------------------------------
             if not doxy_env in os.environ:
-                if paule32_debug == True:
+                if debugMode == True:
                     os.environ["DOXYGEN_PATH"] = "E:\\doxygen\\bin"
                 else:
                     print(("error: " + f"{doxy_env}"
@@ -2915,7 +3039,7 @@ try:
             # Microsoft Help Workshop path ...
             # ---------------------------------------------------------
             if not doxy_hhc in os.environ:
-                if paule32_debug == True:
+                if debugMode == True:
                     os.environ["DOXYHHC_PATH"] = "E:\\doxygen\\hhc"
                 else:
                     print((""
@@ -3334,7 +3458,23 @@ try:
             
             ex.show()
             
-            result_error = app.exec_()
+            error_result = app.exec_()
+        
+        except ListInstructionError as ex:
+            ex.add_note("Did you miss a parameter ?")
+            ex.add_note("Add more information.")
+            print("List instructions error.")
+            error_result = 1
+        except ZeroDivisionError as ex:
+            ex.add_note("1/0 not allowed !")
+            print("Handling run-time error:", ex)
+            error_result = 1
+        except OSError as ex:
+            print("OS error:", ex)
+            error_result = 1
+        except ValueError as ex:
+            print("Could not convert data:", ex)
+            error_result = 1
         except Exception as ex:
             s = f"{ex.args}"
             parts = [part.strip() for part in s.split("'") if part.strip()]
@@ -3342,26 +3482,39 @@ try:
             parts.pop(-1)   # delete last  element
             
             err = "error: Exception occured: "
-            
-            if type(ex) == AttributeError:
+            if type(ex) == NameError:
+                err += "NameError\n"
+                err += "text: '" + parts[0]+"' not defined\n"
+            elif type(ex) == AttributeError:
                 err += "AttributeError\n"
                 err += "class: " + parts[0]+"\n"
                 err += "text : " + parts[2]+": "+parts[1]+"\n"
             else:
                 err += "type  : " + "default  \n"
             
-            print(err)
-            result_error = 1
-            has_error = True
+            error_ex = err
+            
+            error_result = 1
+            error_fail   = True
         finally:
             # ---------------------------------------------------------
             # when all is gone, stop the running script ...
             # ---------------------------------------------------------
+            if error_result > 0:
+                print(error_ex)
+                print("abort.")
+                sys,exit(error_result)
+            
             print("Done.")
-            sys.exit(result_error)
+            sys.exit(error_result)
 
+except OSError:
+    print("OS error:", err)
+except ValueError:
+    print("Could not convert data.")
 except ImportError as ex:
-    print("error: import module missing: " + f"{ex}")
+    print("error: import module missing: {ex=}, {type(ex)=}")
+finally:
     sys.exit(EXIT_FAILURE)
 
 # ----------------------------------------------------------------------------
