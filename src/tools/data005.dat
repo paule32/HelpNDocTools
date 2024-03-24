@@ -1,0 +1,13 @@
+QPushButton{
+font-family:'Arial';
+font-weight:600;
+font-size:16px;
+color:yellow;
+background-color:navy;
+padding:10px 20px;
+border:solid #cc0000 2px;
+border-radius:50px;}
+QPushButton:hover{
+background-color:green;
+padding:10px 20px;
+color:white;}

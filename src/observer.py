@@ -51,6 +51,18 @@ try:
     from PyQt5.QtGui              import *
     
     # ------------------------------------------------------------------------
+    # external created data (packed, and base64 encoded) ...
+    # ------------------------------------------------------------------------
+    #try:
+    module_path = "./tools"
+    sys.path.append(module_path)
+    from collection import *
+    #except Exception as err:
+    #    print(err)
+    #    syy.exit(1)
+    
+    
+    # ------------------------------------------------------------------------
     # global used application stuff ...
     # ------------------------------------------------------------------------
     __app__name        = "observer"
@@ -60,10 +72,11 @@ try:
     __app__exec_name   = sys.executable
     
     __app__error_level = "0"
+    __app__comment_hdr = ("# " + ("-" * 78) + "\n")
     
     
     global topic_counter
-    global css_model_header, css_tabs
+    global css_model_header, css_tabs, css__widget_item
     
     if getattr(sys, 'frozen', False):
         import pyi_splash
@@ -116,30 +129,7 @@ try:
     # style sheet definition's:
     # ------------------------------------------------------------------------
     css_model_header = "QHeaderView::section{background-color:lightblue;color:black;font-weight:bold;}"
-    css_tabs = (""
-        + "QTabWidget::pane{border-top:2px solid #C2C7CB;}"
-        + "QTabWidget::tab-bar{left:5px;}"
-        + "QTabBar::tab{"
-        + "font-family:'Arial';"
-        + "font-size:11pt;"
-        + "background:qlineargradient(x1:0,y1:0,x2:0,y2:1,"
-        + "stop:0 #E1E1E1,stop:0.4 #DDDDDD,"
-        + "stop:0.5 #D8D8D8,stop:1.0 #D3D3D3);"
-        + "border:2px solid #C4C4C3;"
-        + "border-bottom-color:#C2C7CB;"
-        + "border-top-left-radius:4px;"
-        + "border-top-right-radius:4px;"
-        + "min-width:35ex;"
-        + "padding:2px;}"
-        + "QTabBar::tab:selected,QTabBar::tab:hover{"
-        + "background:qlineargradient(x1:0,y1:0,x2:0,y2:1,"
-        + "stop:0 #fafafa,stop:0.4 #f4f4f4,"
-        + "stop:0.5 #e7e7e7,stop:1.0 #fafafa);}"
-        + "QTabBar::tab:selected{"
-        + "border-color:#9B9B9B;"
-        + "border-bottom-color:#C2C7CB;}"
-        + "QTabBar::tab:!selected{margin-top:2px;}")
-    
+        
     css_menu_item_style = (""
         + "QMenuBar{"
         + "background-color:navy;"
@@ -158,7 +148,7 @@ try:
     
     css_menu_item = (""
         + "background-color:navy;color:white;padding:0px;font-family:'Arial';font-size:11pt;")
-    
+            
     css_button_style = (""
         + "QPushButton{"
         + "font-family:'Arial';"
@@ -2057,14 +2047,6 @@ try:
         def __init__(self, parent=None):
             super().__init__()
             
-            self.__css__widget_item = (""
-                + "QListView{font-family:'Arial';background-color:white;color:black;font-weight:bold;font-size:11pt;"
-                + "border:1px solid black;padding-left:2px;padding-top:2px;padding-bottom:2px;padding-right:2px;}"
-                + "QListView::item:selected{font-family:'Arial';background-color:blue;color:yellow;"
-                + "font-weight:bold;border:none;outline:none;font-size:11pt;}"
-                + "QListView::icon{left:10px;}"
-                + "QListView::text{left:10px;}")
-            
             self.__button_style_css = tr("__button_style_css")
             
             self.font = QFont("Arial", 10)
@@ -2328,86 +2310,7 @@ try:
             
             
             quill_editor = QWebEngineView()
-            quill_editor.setHtml('''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="/styles.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/quill@2.0.0-rc.3/dist/quill.snow.css" rel="stylesheet" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.0-rc.3/dist/quill.js"></script>
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
-/>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
-</head>
-<body>
-<div id="toolbar-container">
-  <span class="ql-formats">
-    <select class="ql-font"></select>
-    <select class="ql-size"></select>
-  </span>
-  <span class="ql-formats">
-    <button class="ql-bold"></button>
-    <button class="ql-italic"></button>
-    <button class="ql-underline"></button>
-    <button class="ql-strike"></button>
-  </span>
-  <span class="ql-formats">
-    <select class="ql-color"></select>
-    <select class="ql-background"></select>
-  </span>
-  <span class="ql-formats">
-    <button class="ql-script" value="sub"></button>
-    <button class="ql-script" value="super"></button>
-  </span>
-  <span class="ql-formats">
-    <button class="ql-header" value="1"></button>
-    <button class="ql-header" value="2"></button>
-    <button class="ql-blockquote"></button>
-    <button class="ql-code-block"></button>
-  </span>
-  <span class="ql-formats">
-    <button class="ql-list" value="ordered"></button>
-    <button class="ql-list" value="bullet"></button>
-    <button class="ql-indent" value="-1"></button>
-    <button class="ql-indent" value="+1"></button>
-  </span>
-  <span class="ql-formats">
-    <button class="ql-direction" value="rtl"></button>
-    <select class="ql-align"></select>
-  </span>
-  <span class="ql-formats">
-    <button class="ql-link"></button>
-    <button class="ql-image"></button>
-    <button class="ql-video"></button>
-    <button class="ql-formula"></button>
-  </span>
-  <span class="ql-formats">
-    <button class="ql-clean"></button>
-  </span>
-</div>
-<div id="editor">
-</div>
-
-<!-- Initialize Quill editor -->
-<script>
-  const quill = new Quill('#editor', {
-    modules: {
-      syntax: true,
-      toolbar: '#toolbar-container',
-    },
-    placeholder: 'Compose an epic...',
-    theme: 'snow',
-  });
-</script>
-</body>
-</html>
-''', baseUrl=QUrl.fromLocalFile('.'))
+            quill_editor.setHtml(html_content, baseUrl = QUrl. fromLocalFile('.'))
             
             self.tab4_top_layout.addWidget(quill_editor)
             
@@ -2441,7 +2344,7 @@ try:
             list_layout_a.addLayout(list_layout_1)
             
             list_widget_1.setFocusPolicy(Qt.NoFocus)
-            list_widget_1.setStyleSheet(self.__css__widget_item)
+            list_widget_1.setStyleSheet(css__widget_item)
             list_widget_1.setMinimumHeight(300)
             list_widget_1.setMaximumWidth(200)
             self.list_widget_1_elements = ["Project", "Mode", "Output", "Diagrams" ]
@@ -2489,7 +2392,7 @@ try:
             list_layout_b.addLayout(list_layout_2)
             
             list_widget_2.setFocusPolicy(Qt.NoFocus)
-            list_widget_2.setStyleSheet(self.__css__widget_item)
+            list_widget_2.setStyleSheet(css__widget_item)
             list_widget_2.setMinimumHeight(300)
             list_widget_2.setMaximumWidth(200)
             self.list_widget_2_elements = [                                     \
@@ -3000,11 +2903,11 @@ try:
             # ---------------------------------------------------------
             # init pascal interpreter ...
             # ---------------------------------------------------------
-            pas = interpreter_Pascal()
-            pas.ShowInstructions()
-            pas.Emulate()
+            #pas = interpreter_Pascal()
+            #pas.ShowInstructions()
+            #pas.Emulate()
             
-            sys.exit(1)
+            #sys.exit(1)
             
             # ---------------------------------------------------------
             # scoped global stuff ...
@@ -3118,288 +3021,6 @@ try:
                 print("info: config: '" \
                 + f"{doxyfile}" + "' does not exists. I will fix this by create a default file.")
                 
-                file_content = [
-                    ["PROJECT_NAME", "Project name"],
-                    ["PROJECT_NUMBER", "1.0.0" ],
-                    ["PROJECT_LOGO", "" ],
-                    ["",""],
-                    ["DOXYFILE_ENCODING", "UTF-8"],
-                    ["INPUT_ECODING", "UTF-8"],
-                    ["INPUT_FILE_ENCODING", "UTF-8"],
-                    ["",""],
-                    ["ALLOW_UNICODE_NAMES", "YES"],
-                    ["",""],
-                    ["ENABLED_SECTIONS", "english"],
-                    ["OUTPUT_LANGUAGE", "English"],
-                    ["OUTPUT_DIRECTORY", "./dox/enu/dark"],
-                    ["",""],
-                    ["CHM_FILE", "project.chm"],
-                    ["HHC_LOCATION", ""],
-                    ["",""],
-                    ["GENERATE_HTML", "YES"],
-                    ["GENERATE_HTMLHELP", "YES"],
-                    ["GENERATE_TREEVIEW", "NO"],
-                    ["GENERATE_LATEX", "NO"],
-                    ["GENERATE_CHI", "NO"],
-                    ["",""],
-                    ["HTML_OUTPUT", "html"],
-                    ["HTML_COLORSTYLE", "DARK"],
-                    ["",""],
-                    ["BINARY_TOC", "NO"],
-                    ["TOC_EXPAND", "NO"],
-                    ["",""],
-                    ["DISABLE_INDEX", "NO"],
-                    ["FULL_SIDEBAR", "NO"],
-                    ["",""],
-                    ["INPUT", ""],
-                    ["",""],
-                    ["BRIEF_MEMBER_DESC", "YES"],
-                    ["REPEAT_BRIEF", "YES"],
-                    ["",""],
-                    ["FILE_PATTERNS", "*.c *.cc *.cxx *.cpp *.c++ *.h *.hh *.hxx *.hpp *.h++"],
-                    ["ALIASES", ""],
-                    ["",""],
-                    ["CREATE_SUBDIRS", "YES"],
-                    ["CREATE_SUBDIRS_LEVEL", "8"],
-                    ["",""],
-                    ["ALWAYS_DETAILED_SEC", "YES"],
-                    ["INLINE_INHERITED_MEMB", "YES"],
-                    ["",""],
-                    ["FULL_PATH_NAMES", "NO"],
-                    ["SHORT_NAMES", "NO"],
-                    ["",""],
-                    ["STRIP_FROM_PATH", "YES"],
-                    ["STRIP_FROM_INC_PATH", "YES"],
-                    ["",""],
-                    ["MULTILINE_CPP_IS_BRIEF", "NO"],
-                    ["INHERITED_DOCS", "YES"],
-                    ["SEPERATE_MEMBER_PAGES", "NO"],
-                    ["",""],
-                    ["TAB_SIZE", "8"],
-                    ["",""],
-                    ["OPTIMIZE_OUTPUT_FOR_C", "YES"],
-                    ["OPTIMIZE_OUTPUT_JAVA", "NO"],
-                    ["OPTIMIZE_FOR_FORTRAN", "NO"],
-                    ["",""],
-                    ["EXTERNAL_MAPPING", ""],
-                    ["",""],
-                    ["TOC_INCLUDE_HEADINGS", "5"],
-                    ["AUTOLINK_SUPPORT", "YES"],
-                    ["",""],
-                    ["BUILTIN_STL_SUPPORT", "NO"],
-                    ["CPP_CLI_SUPPORT", "YES"],
-                    ["",""],
-                    ["SIP_SUPPORT", "NO"],
-                    ["IDL_PROPERTY_SUPPORT", "YES"],
-                    ["",""],
-                    ["DISTRIBUTE_GROUP_DOC", "NO"],
-                    ["GROUP_NESTED_COMPOUNDS", "NO"],
-                    ["SUBGROUPING", "YES"],
-                    ["",""],
-                    ["INLINE_GROUPED_CLASSES", "NO"],
-                    ["INLINE_SIMPLE_STRUCTS", "NO"],
-                    ["",""],
-                    ["TYPEDEF_HIDES_STRUCT", "NO"],
-                    ["",""],
-                    ["LOOKUP_CACHE_SIZE", "0"],
-                    ["NUM_PROC_THREADS", "1"],
-                    ["CASE_SENSE_NAMES", "YES"],
-                    ["",""],
-                    ["EXTRACT_ALL", "YES"],
-                    ["EXTRACT_PRIVATE", "NO"],
-                    ["EXTRAVT_PRIV_VIRTUAL", "NO"],
-                    ["EXTRACT_PACKAGE", "NO"],
-                    ["EXTRACT_STATIC", "YES"],
-                    ["EXTRACT_LOCAL_CLASSES", "YES"],
-                    ["EXTRACT_LOCAL_METHODS", "YES"],
-                    ["EXTRACT_ANON_NSPACES", "YES"],
-                    ["",""],
-                    ["RESOLVE_UNUSED_PARAMS", "YES"],
-                    ["",""],
-                    ["HIDE_UNDOC_MEMBERS", "NO"],
-                    ["HIDE_UNDOC_CLASSES", "NO"],
-                    ["HIDE_UNDOC_RELATIONS", "NO"],
-                    ["",""],
-                    ["HIDE_FRIEND_COMPOUNDS", "NO"],
-                    ["HIDE_IN_BODY_DOCS", "NO"],
-                    ["HIDE_SCOPE_NAMES", "NO"],
-                    ["HIDE_COMPOUND_REFERENCE", "NO"],
-                    ["",""],
-                    ["INTERNAL_DOCS", "YES"],
-                    ["",""],
-                    ["SHOW_HEADERFILE", "NO"],
-                    ["SHOW_INCLUDE_FILES", "NO"],
-                    ["SHOW_GROUPED_MEMB_INC", "NO"],
-                    ["",""],
-                    ["FORCE_LOCAL_INCLUDES", "NO"],
-                    ["",""],
-                    ["INLINE_INFO", "NO"],
-                    ["",""],
-                    ["SORT_MEMBER_DOCS", "YES"],
-                    ["SORT_BRIEF_DOCS", "YES"],
-                    ["SORT_MEMBERS_CTORS_IST", "NO"],
-                    ["SORT_GROUP_NAMES", "NO"],
-                    ["SORT_BY_SCOPE_NAME", "YES"],
-                    ["",""],
-                    ["STRICT_PROTO_MATCHING", "NO"],
-                    ["",""],
-                    ["GENERATE_TODO_LIST", "YES"],
-                    ["GENERATE_TESTLIST", "YES"],
-                    ["GENERATE_BUGLIST", "YES"],
-                    ["GENERATE_DEPRECATEDLIST", "YES"],
-                    ["",""],
-                    ["MAX_INITIALIZER_LINES", "30"],
-                    ["",""],
-                    ["SHOW_FILES", "NO"],
-                    ["SHOW_USED_FILES", "NO"],
-                    ["SHOW_NAMESPACES", "YES"],
-                    ["",""],
-                    ["FILE_VERSION_FILTER", ""],
-                    ["CITE_BIB_FILES", ""],
-                    ["",""],
-                    ["RECURSIVE", "NO"],
-                    ["",""],
-                    ["EXCLUDE", ""],
-                    ["EXCLUDE_SYMLINKS", "NO"],
-                    ["EXCLUDE_PATTERNS", ""],
-                    ["EXCLUDE_SYMBOLS", ""],
-                    ["",""],
-                    ["EXAMPLE_PATH", "./src/doc"],
-                    ["EXAMPLE_PATTERNS", "*"],
-                    ["EXAMPLE_RECURSIVE", "NO"],
-                    ["",""],
-                    ["IMAGE_PATH", ""],
-                    ["INPUT_FILTER", ""],
-                    ["",""],
-                    ["FILTER_PATTERNS", ""],
-                    ["FILTER_SOURCE_FILES", "NO"],
-                    ["FILTER_SOURCE_PATTERNS", ""],
-                    ["",""],
-                    ["USE_MDFILE_AS_MAINPAGE", ""],
-                    ["",""],
-                    ["SOURCE_BROWSER", "NO"],
-                    ["INLINE_SOURCES", "NO"],
-                    ["",""],
-                    ["STRIP_CODE_COMMENTS", "YES"],
-                    ["",""],
-                    ["REFERENCES_RELATION", "YES"],
-                    ["REFERENCES_LINK_SOURCE", "NO"],
-                    ["",""],
-                    ["SOURCE_TOOLTIPS", "NO"],
-                    ["USE_HTAGS", "NO"],
-                    ["VERBATIM_HEADERS", "NO"],
-                    ["",""],
-                    ["ALPHABETICAL_INDEX", "YES"],
-                    ["",""],
-                    ["IGNORE_PREFIX", ""],
-                    ["",""],
-                    ["ENUM_VALUES_PER_LINE", "4"],
-                    ["",""],
-                    ["HTML_FILE_EXTENSION", ".html"],
-                    ["HTML_CODE_FOLDING", "NO"],
-                    ["HTML_COPY_CLIPBOARD", "NO"],
-                    ["",""],
-                    ["HTML_HEADER", ""],
-                    ["HTML_FOOTER", "./src/doc/empty.html"],
-                    ["HTML_STYLESHEET", ""],
-                    ["",""],
-                    ["HTML_EXTRA_STYLESHEET", "./doxyfile.css"],
-                    ["HTML_EXTRA_FILES", ""],
-                    ["",""],
-                    ["HTML_COLORSTYLE_HUE", "220"],
-                    ["HTML_COLORSTYLE_SAT", "100"],
-                    ["HTML_COLORSTYLE_GAMMA", "80"],
-                    ["",""],
-                    ["HTML_DYNAMIC_MENUS", "NO"],
-                    ["HTML_DYNAMIC_SECTIONS", "NO"],
-                    ["",""],
-                    ["HTML_INDEX_NUM_ENTRIES", "100"],
-                    ["",""],
-                    ["TREEVIEW_WIDTH", "210"],
-                    ["",""],
-                    ["EXT_LINKS_IN_WINDOW", "NO"],
-                    ["OBFUSCATE_EMAILS", "YES"],
-                    ["",""],
-                    ["HAVE_DOT", "NO"],
-                    ["DOT_PATH", ""],
-                    ["DIA_PATH", ""],
-                    ["",""],
-                    ["DOT_COMMON_ATTR", "\"fontname=FreeSans,fontsize=10\""],
-                    ["DOT_EDGE_ATTR", "\"labelfontname=FreeSans,labelfontsize=10\""],
-                    ["DOT_NODE_ATTR", "\"shabe=box,height=0.2,width=0.4\""],
-                    ["DOT_FONTPATH", ""],
-                    ["",""],
-                    ["USE_MATHJAX", "NO"],
-                    ["",""],
-                    ["MATHJAX_VERSION", "MathJax_2"],
-                    ["MATHJAX_FORMAT", "HTML-CSS"],
-                    ["MATHJAX_RELPATH", ""],
-                    ["MATHJAX_EXTENSIONS", ""],
-                    ["MATHJAX_CODEFILE", ""],
-                    ["",""],
-                    ["HTML_FORMULA_FORMAT", "png"],
-                    ["",""],
-                    ["FORMULA_FONTSIZE", "10"],
-                    ["FORMULA_MACROFILE", ""],
-                    ["",""],
-                    ["SEARCH_ENGINE", "NO"],
-                    ["SERVER_BASED_SEARCH", "NO"],
-                    ["",""],
-                    ["EXTERNAL_SEARCH", "NO"],
-                    ["EXTERNAL_SEARCH_ID", "NO"],
-                    ["",""],
-                    ["EXTERNAL_GROUPS", "YES"],
-                    ["EXTERNAL_PAGES", "YES"],
-                    ["",""],
-                    ["GENERATE_AUTOGEN_DEF", "NO"],
-                    ["",""],
-                    ["ENABLE_PREPROCESSING", "YES"],
-                    ["MACRO_EXPANSION", "YES"],
-                    ["EXPAND_ONLY_PREDEF", "NO"],
-                    ["",""],
-                    ["SEARCH_INCLUDES", "NO"],
-                    ["",""],
-                    ["INCLUDE_PATH", ""],
-                    ["INCLUDE_FILE_PATTERNS", ""],
-                    ["",""],
-                    ["PREDEFINED", ""],
-                    ["EXPAND_AS_DEFINED", ""],
-                    ["SKIP_FUNCTION_MACROS", "YES"],
-                    ["",""],
-                    ["TAGFILES", ""],
-                    ["GENERATE_TAGFILE", ""],
-                    ["ALLEXTERNALS", "NO"],
-                    ["",""],
-                    ["CLASS_GRAPH", "YES"],
-                    ["COLLABORATION_GRAPH", "YES"],
-                    ["GROUP_GRAPHS", "YES"],
-                    ["",""],
-                    ["UML_LOOK", "NO"],
-                    ["UML_LIMIT_NUM_FIELDS", "10"],
-                    ["",""],
-                    ["DOT_UML_DETAILS", "NO"],
-                    ["DOT_WRAP_THRESHOLD", "17"],
-                    ["DOT_CLEANUP", "YES"],
-                    ["",""],
-                    ["TEMPLATE_RELATIONS", "YES"],
-                    ["",""],
-                    ["INCLUDE_GRAPH", "YES"],
-                    ["INCLUDED_BY_GRAPH", "YES"],
-                    ["",""],
-                    ["CALL_GRAPH", "NO"],
-                    ["CALLER_GRAPH", "NO"],
-                    ["",""],
-                    ["GRAPHICAL_HIERARCHY", "YES"],
-                    ["DIRECTORY_GRAPH", "YES"],
-                    ["DIR_GRAPH_MAX_DEPTH", "5"],
-                    ["",""],
-                    ["DOT_IMAGE_FORMAT", "png"],
-                    ["",""],
-                    ["DOT_GRAPH_MAX_NODES", "50"],
-                    ["MAX_DOT_GRAPH_DEPTH", "1000"],
-                    ["",""],
-                    ["GENERATE_LEGEND", "YES"]
-                ]
                 file_content_warn = [
                     ["QUIET", "YES"],
                     ["WARNINGS", "YES"],
@@ -3414,13 +3035,13 @@ try:
                     ["WARN_LOGFILE", "warnings.log"]
                 ]
                 with open(doxyfile, 'w') as file:
-                    file.write("# " + ("-" * 76) + "\n")
+                    file.write(__app__comment_hdr)
                     file.write("# File: Doxyfile\n")
                     file.write("# Author: (c) 2024 Jens Kallup - paule32 non-profit software\n")
                     file.write("#"  + (" " *  9) + "all rights reserved.\n")
                     file.write("#\n")
                     file.write("# optimized for: # Doxyfile 1.10.1\n")
-                    file.write("# " + ("-" * 76) + "\n")
+                    file.write(__app__comment_hdr)
                     
                     for i in range(0, len(file_content)):
                         if len(file_content[i][0]) > 1:
@@ -3430,9 +3051,9 @@ try:
                         else:
                             file.write("\n")
                     
-                    file.write("# " + ("-" * 76)   + "\n")
+                    file.write(__app__comment_hdr)
                     file.write("# warning settings ...\n")
-                    file.write("# " + ("-" * 76)   + "\n")
+                    file.write(__app__comment_hdr)
                     
                     for i in range(0, len(file_content_warn)):
                         if len(file_content_warn[i][0]) > 1:

@@ -71,7 +71,25 @@ echo ]
 :: and for information hidding ...
 :: ---------------------------------------------------------------------------
 cd %BASEDIR%
-echo|set /p="create Byte-Code...           ["
+echo Create Byte-Code...
+cd tools
+python -m compileall tool001.py
+if errorlevel 1 (
+    echo fail tool001.pyc
+    goto error_bytecode)  else ( echo tool001.pyc created )
+python tool001.py
+if errorlevel 1 (
+    echo fail tool001 batch
+    goto error_bytecode ) else ( echo tool001.py exec ok )
+python -m compileall collection.py
+if errorlevel 1 (
+    echo fail collection.pyc
+    goto error_bytecode ) else ( echo collection.pyc created )
+python collection.py
+if errorlevel 1 (
+    echo fail collection batch
+    goto error_bytecode ) else ( echo collection.py exec ok )
+cd ..
 python -m compileall %BASEDIR%\filter.py >nul 2>&1
 if errorlevel 1 ( goto error_bytecode )
 echo  ok   ]
@@ -81,7 +99,8 @@ goto TheEnd
 :: after pyinstaller success the executable resides in ./dist folder.
 :: ---------------------------------------------------------------------------
 echo|set /p="create ExEcutable...          ["
-pyinstaller %BASEDIR%\filter.spec >nul 2>&1
+pyinstaller %BASEDIR%\observer.spec
+:: >nul 2>&1
 if errorlevel 1 (
     echo  fail ]
     goto error_executable

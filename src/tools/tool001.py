@@ -17,31 +17,23 @@ data_files = [
     # --------------------------------------------------------------
     # input file   , variable          , type (0 = list, 1 = string)
     # --------------------------------------------------------------
-    [ "data001.dat", "file_content_enc", 0 ],
-    [ "data002.dat", "html_content_enc", 1 ]
+    [ "data001.dat", "file_content_enc"     , 0 ],
+    [ "data002.dat", "html_content_enc"     , 1 ],
+    [ "data003.dat", "css_tabs_enc"         , 1 ],
+    [ "data004.dat", "css__widget_item_enc" , 1 ],
+    [ "data005.dat", "css__button_style_enc", 1 ]
 ]
 
 # ---------------------------------------------------------------------------
-# external python data (members):
+# some placeholders to save binary space ...
 # ---------------------------------------------------------------------------
-func_code = (""
-    + "\n"
-    + "import gzip\n"
-    + "import base64\n"
-    + "\n"
-    + "# " + ("-" * 78) + "\n"
-    + "# convert string to list ...\n"
-    + "# " + ("-" * 78) + "\n"
-    + "def StrToList(string):\n"
-    + (" "*4) + "li = list(string.split(\",\"))\n"
-    + (" "*4) + "return li\n\n"
-)
+tool_str = b"# " + (b"-" * 78) + b"\n"
 
 # ---------------------------------------------------------------------------
 # compress the reader data ...
 # ---------------------------------------------------------------------------
 def compress_data(dat_file, data):
-    packed_data = gzip.compress(data)
+    packed_data = gzip.compress(data,compresslevel=9)
     encode_data = base64.b64encode(packed_data).decode()
     
     foo   = encode_data
@@ -52,10 +44,10 @@ def compress_data(dat_file, data):
     new_file = old_file[:old_file.rfind('.')] + ".py"
     with open(new_file, "wb") as f:
         dat00 = (b""
-        + b"# " + (b"-" * 78) + b"\n"
+        + tool_str
         + b"# created on:"+ new_date + b"\n"
         + b"# (c) paule32\n"
-        + b"# " + (b"-" * 78) + b"\n"
+        + tool_str
         + b"global " + dat_file[1][:-4].encode() + b"\n"
         + dat_file[1][:-4].encode() + b" = (''\n")
         f.write(dat00)
@@ -72,17 +64,23 @@ def compress_data(dat_file, data):
 def create_collection(out_file):
     new_date = datetime.now().strftime("%Y-%m-%d").encode()
     with open(out_file, "wb") as f:
-        f.write(b"# " + (b"-" * 78) + b"\n")
-        f.write(b"# created on:"+ new_date + b"\n")
-        f.write(b"# (c) 2024 by paule32\n")
-        f.write(b"# all rights reserved.\n")
-        f.write(b"# " + (b"-" * 78) + b"\n")
+        dat00 = (tool_str
+        + b"# created on:"+ new_date + b"\n"
+        + b"# (c) 2024 by paule32\n"
+        + b"# all rights reserved.\n"
+        + tool_str)
+        dat01 = b""
         for datafile in data_files:
             old_file = datafile[0]
             new_file = old_file[:old_file.rfind('.')]
-            f.write(b"import " + new_file.encode() + b"\n")
-        f.write(b"#\n")
-        f.write(func_code.encode())
+            dat01 = (dat01
+            + b"import " + new_file.encode() + b"\n")
+        f.write(dat00+dat01+b"#\n")
+        dat01 = (b""
+            + b"import base64\n"
+            + b"import gzip\n#\n"
+            + b"import misc\n#\n")
+        f.write(dat01)
         for datafile in data_files:
             dat01 = (b""
                 + datafile[1].encode() + b" = base64.b64decode("
@@ -93,10 +91,11 @@ def create_collection(out_file):
                 + datafile[1][:-4].encode() + b" = ")
             if datafile[2] == 0:
                 dat01 = (dat01
-                + b"StrToList(" + datafile[1].encode()
+                + b"misc.StrToList(" + datafile[1].encode()
                 + b"_data)\n")
             else:
-                dat01 = dat01 + datafile[1].encode() + b"_data\n"
+                dat01 = (dat01 + datafile[1].encode()
+                + b"_data\n")
             f.write(dat01 + b"#\n")
         f.close()
     return

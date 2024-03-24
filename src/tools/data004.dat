@@ -1,0 +1,6 @@
+QListView{font-family:'Arial';background-color:white;color:black;font-weight:bold;font-size:11pt;
+border:1px solid black;padding-left:2px;padding-top:2px;padding-bottom:2px;padding-right:2px;}
+QListView::item:selected{font-family:'Arial';background-color:blue;color:yellow;
+font-weight:bold;border:none;outline:none;font-size:11pt;}
+QListView::icon{left:10px;}
+QListView::text{left:10px;}
