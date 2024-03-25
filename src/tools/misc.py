@@ -21,8 +21,13 @@ def StrToList(string):
         line = line.split(",")
         col1 = re.sub(r'^\"|\"$', '', line[0])
         col2 = re.sub(r'^PROJECT_.*\".*\"$|^\"', '', line[1])
-        #col2 = re.sub(r'^ \".*\"$|^\"', '', col2)
         col2 = col2.replace("@",",")
         list_item = [ col1, col2 ]
         liste.append(list_item)
     return liste
+
+# ------------------------------------------------------------------------------
+# print a string S repeatly NT times...
+# ------------------------------------------------------------------------------
+def StringRepeat(s,nt):
+    return (s*nt)

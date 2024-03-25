@@ -42,6 +42,8 @@ import locale        # internal system locale
 import random        # randome numbers
 import string
 
+import ctypes        # windows ip info
+
 import sqlite3       # database: sqlite
 import configparser  # .ini files
 
@@ -54,9 +56,18 @@ from PyQt5.QtWidgets          import *
 from PyQt5.QtWebEngineWidgets import *
 from PyQt5.QtCore             import *
 from PyQt5.QtGui              import *
-
+print("11111")
 # ------------------------------------------------------------------------
 # developers own modules ...
 # ------------------------------------------------------------------------
+sys.path.append("C:/Windows/System32")
+sys.path.append("./interpreter/pascal")
+sys.path.append("./tools")
+
 from exclasses import *     # exception: templates
 from exapp     import *     # exception: application block placeholder
+
+from collection import *     # exception: templates
+from exapp      import *     # exception: application block placeholder
+
+from pascal     import *

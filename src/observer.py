@@ -5,20 +5,17 @@
 # ---------------------------------------------------------------------------
 # try catch import exceptions ...
 # ---------------------------------------------------------------------------
+global EXIT_SUCCESS; EXIT_SUCCESS = 0
+global EXIT_FAILURE; EXIT_FAILURE = 1
+
+global error_result; error_result = 0
+
 try:
-    from appcollection import *
-    # -----------------------------------------------------------------------
-    # external created data (packed, and base64 encoded) ...
-    # -----------------------------------------------------------------------
-    sys.path.append("./interpreter/pascal")
-    sys.path.append("./tools")
-    
-    from collection import *    # list/data
-    from pascal     import *    # interpreter: pascal
-    
     # -----------------------------------------------------------------------
     # global used application stuff ...
     # -----------------------------------------------------------------------
+    from appcollection import *
+    
     __app__name        = "observer"
     __app__config_ini  = "observer.ini"
     
@@ -26,14 +23,14 @@ try:
     __app__exec_name   = sys.executable
     
     __app__error_level = "0"
-    __app__comment_hdr = ("# " + ("-" * 78) + "\n")
+    __app__comment_hdr = ("# " + misc.StringRepeat("-",78) + "\n")
     
     
     global topic_counter
     global css_model_header, css_tabs, css__widget_item, css_button_style
     
-    if getattr(sys, 'frozen', False):
-        import pyi_splash
+    #if getattr(sys, 'frozen', False):
+    #    import pyi_splash
     
     # ------------------------------------------------------------------------
     # branding water marks ...
@@ -83,25 +80,6 @@ try:
     # style sheet definition's:
     # ------------------------------------------------------------------------
     css_model_header = "QHeaderView::section{background-color:lightblue;color:black;font-weight:bold;}"
-        
-    css_menu_item_style = (""
-        + "QMenuBar{"
-        + "background-color:navy;"
-        + "padding:2px;margin:0px;"
-        + "color:yellow;"
-        + "font-size:11pt;"
-        + "font-weight:bold;}"
-        + "QMenuBar:item:selected{"
-        + "background-color:#3366CC;"
-        + "color:white;}")
-    
-    css_menu_label_style = (""
-        + "QLabel{background-color:navy;color:yellow;"
-        + "font-weight:bold;font-size:11pt;padding:4px;margin:0px;}"
-        + "QLabel:hover{background-color:green;color:yellow;}")
-    
-    css_menu_item = (""
-        + "background-color:navy;color:white;padding:0px;font-family:'Arial';font-size:11pt;")
     
     css_combobox_style = (""
         + "font-family:'Arial';font-size:12pt;height:30px;"
@@ -142,39 +120,37 @@ try:
     # ------------------------------------------------------------------------
     def handle_language(lang):
         try:
-            global tr
             system_lang, _ = locale.getdefaultlocale()
             if system_lang.lower() == __locale__enu:
                 if lang.lower() == __locale__enu:
-                    tr = gettext.translation(
+                    _ = gettext.translation(
                     __app__name,
                     localedir=__locale__,
                     languages=[__locale__enu])  # english
                 elif lang.lower() == __locale__deu:
-                    tr = gettext.translation(
+                    _ = gettext.translation(
                     __app__name,
                     localedir=__locale__,
                     languages=[__locale__deu])  # german
             elif system_lang.lower() == __locale__deu:
                 if lang.lower() == __locale__deu:
-                    tr = gettext.translation(
+                    _ = gettext.translation(
                     __app__name,
                     localedir=__locale__,
-                    languages=[__locale__deu])  # english
+                    languages=[__locale__deu])  # german
                 elif lang.lower() == __locale__enu:
-                    tr = gettext.translation(
+                    _ = gettext.translation(
                     __app__name,
                     localedir=__locale__,
-                    languages=[__locale__enu])  # german
+                    languages=[__locale__enu])  # english
             else:
-                print("ennnn")
-                tr = gettext.translation(
+                _ = gettext.translation(
                 __app__name,
                 localedir=__locale__,
                 languages=[__locale__enu])  # fallback - english
             
-            tr.install()
-            return tr
+            _.install()
+            return _
         except Exception as ex:
             print(f"{ex}")
             sys.exit(EXIT_FAILURE)
@@ -337,14 +313,7 @@ try:
                 self.font_a.setFamily(font_secondary)
                 self.font_a.setPointSize(11)
             
-            self.supported_langs = ("["
-            + "\"Afrikaans\",\"Arabic\",\"Armenian\",\"Brazilian\",\"Bulgarian\",\"Catalan\","
-            + "\"Chinese\",\"Chinese-Traditional\",\"Croatian\",\"Czech\",\"Danish\",\"Dutch\",\"English (United States)\","
-            + "\"Esperanto\",\"Farsi (Persian)\",\"Finnish\",\"French\",\"German\",\"Greek\",\"Hindi\",\"Hungarian\",\"Indonesian\","
-            + "\"Italian\", \"Japanese\",\"Japanese-en (Japanese with English messages)\",\"Korean\",\"Korean-en\","
-            + "\"(Korean with English messages)\",\"Latvian\",\"Lithuanian\",\"Macedonian\",\"Norwegian\","
-            + "\"Persian (Farsi)\",\"Polish\",\"Portuguese\",\"Romanian\",\"Russian\",\"Serbian\",\"Serbian-Cyrillic\",\"Slovak\","
-            + "\"Slovene\",\"Spanish\",\"Swedish\",\"Turkish\",\"Ukrainian\",\"Vietnamese\"]")
+            self.supported_langs = _("supported_langs")
             
             self.content_widget = QWidget(self)
             self.content_widget.setMinimumHeight(self.height()-150)
@@ -448,7 +417,7 @@ try:
                 # the help string for a doxygen tag ...
                 # -----------------------------------------
                 helpID   = hid + i + 1
-                helpText = gettext.gettext("h{helpID:04X}")
+                helpText = _("h" + f"{helpID:04X}")
                 
                 vw_1 = self.addHelpLabel(   \
                     elements[i][0], \
@@ -519,9 +488,7 @@ try:
         def __init__(self, name="uuuu"):
             super().__init__(name)
             
-            self.__button_style_css = gettext.gettext("__button_style_css")
             self.name = name
-            
             self.init_ui()
         
         def init_ui(self):
@@ -683,25 +650,20 @@ try:
         def init_ui(self):
             self.label_1.hide()
             
-            label_2 = self.addLabel("Select a desired extraction mode:", True)
+            label_2 = self.addLabel(_("opti00"), True)
             label_2.setMinimumHeight(30)
             label_2.setMinimumWidth(200)
             
-            self.addRadioButton("Documentet entries only")
-            self.addRadioButton("All entries")
-            self.addCheckBox("Include cross referenced source code in the output:")
+            self.addRadioButton(_("opti01"))
+            self.addRadioButton(_("opti02"))
+            self.addCheckBox   (_("opti03"))
             
             self.addFrame()
             
             self.addLabel("Select programming language to optimize the results for:", True)
             
-            self.addRadioButton("Optimize for C++ output")
-            self.addRadioButton("Optimize for C++ / CLI output")
-            self.addRadioButton("Optimize for Java or C-Sharp / C# output")
-            self.addRadioButton("Optimize for C or PHP output")
-            self.addRadioButton("Optimize for Fortran output")
-            self.addRadioButton("Optimize for VHCL output")
-            self.addRadioButton("Optimize for SLICE output")
+            for x in range(2,9):
+                self.addRadioButton(_("opti0" + str(x+1)))
     
     # ------------------------------------------------------------------------
     # create a scroll view for the output tab on left side of application ...
@@ -771,7 +733,7 @@ try:
             
     
     class customScrollView_5(myCustomScrollArea):
-        def __init__(self, name="aaa"):
+        def __init__(self, name):
             super().__init__(name)
             self.init_ui()
         def init_ui(self):
@@ -1549,23 +1511,17 @@ try:
             self.record_array.insert(item_attr1, item_attr2)
             return
     
-    class Worker(QObject):
-        htmlChanged = pyqtSignal(str)
-        def execute(self):
-            threading.Thread(target=self.task, daemon=True).start()
-        def task(self):
-            QThread.msleep(2 * 1000)
-            html = page1()
-            self.htmlChanged.emit(html)
-            threading.stop()
-    
     class FileWatcherGUI(QWidget):
-        def editor_page(self):
-            return html_content
         def __init__(self, parent=None):
             super().__init__()
             
-            self.__button_style_css = gettext.gettext("__button_style_css")
+            global css_menu_item
+            global css_menu_label_style
+            global css_menu_item_style
+            
+            css_menu_item_style  = _("css_menu_item_style")
+            css_menu_label_style = _("css_menu_label_style")
+            css_menu_item        = _("css_menu_item")
             
             self.font = QFont("Arial", 10)
             self.setFont(self.font)
@@ -1574,7 +1530,7 @@ try:
             #self.setStyleSheet("font-family:'Arial';font-size:12pt;")
             
             self.my_list = MyItemRecord(0, QStandardItem(""))
-            self.initUI()
+            self.init_ui()
         
         def menu_help_clicked_about(self):
             QMessageBox.information(self,
@@ -1699,7 +1655,7 @@ try:
             menu.addAction(self.menu_action)
             return
             
-        def initUI(self):
+        def init_ui(self):
             # Layout
             self.setMaximumWidth (936)
             self.setMinimumWidth (936)
@@ -1921,17 +1877,17 @@ try:
             list_layout_2.addWidget(list_widget_2)
             
             tab1_classes = [
-            "customScrollView_5('oo1')" , "customScrollView_6('oo6')" , "customScrollView_7('oo11')" , "customScrollView_8('oo115')" ,
-            "customScrollView_9('oo2')" , "customScrollView_10('oo7')", "customScrollView_11('oo12')", "customScrollView_12('oo18')",
-            "customScrollView_13('oo3')", "customScrollView_14('oo8')", "customScrollView_15('oo13')", "customScrollView_16('oo20')",
-            "customScrollView_17('oo4')", "customScrollView_18('oo9')", "customScrollView_19('oo14')", "customScrollView_20('oo19')",
-            "customScrollView_21('oo5')", "customScrollView_22('oo10')"  ]
+            "customScrollView_5" , "customScrollView_6" , "customScrollView_7" , "customScrollView_8" ,
+            "customScrollView_9" , "customScrollView_10", "customScrollView_11", "customScrollView_12",
+            "customScrollView_13", "customScrollView_14", "customScrollView_15", "customScrollView_16",
+            "customScrollView_17", "customScrollView_18", "customScrollView_19", "customScrollView_20",
+            "customScrollView_21", "customScrollView_22"  ]
             
             objs = []
             i    = 0
             for item in tab1_classes:
                 s = "sv_2_" + str(i+1)
-                v1 = eval(item)
+                v1 = eval(item+"('')")
                 v1.setName(self.list_widget_2_elements[i])
                 objs.append(v1)
                 setattr(self, s, v1)
@@ -2415,8 +2371,6 @@ try:
         
         topic_counter = 1
         
-        atexit.register(ApplicationAtExit)
-        
         # ---------------------------------------------------------
         # init pascal interpreter ...
         # ---------------------------------------------------------
@@ -2514,9 +2468,7 @@ try:
             config.read(__app__config_ini)
             ini_lang = config.get("common", "language")
         
-        tr = handle_language(ini_lang)
-        if not tr == None:
-            tr  = tr.gettext
+        _ = handle_language(ini_lang)
         
         # ---------------------------------------------------------
         # combine the puzzle names, and folders ...
@@ -2528,7 +2480,6 @@ try:
         if not os.path.exists(convertPath(po_file_name)):
             print(__error__locales_error)
             sys.exit(EXIT_FAILURE)
-        
         
         # ---------------------------------------------------------
         # when config file not exists, then spite a info message,
@@ -2581,6 +2532,7 @@ try:
                         file.write("\n")
                 
                 file.close()
+        
         global sv_help
         sv_help = customScrollView_help()
         
@@ -2593,12 +2545,13 @@ try:
         
         ex = FileWatcherGUI()
         ex.move(100, 100)
-        #sys.exit(2)
+        
         ex.show()
         
         error_result = app.exec_()
         return
     if __name__ == '__main__':
+        print("ooooooo")
         handleExceptionApplication(EntryPoint)
         print("End2")
         sys.exit(0)
@@ -2610,8 +2563,12 @@ except ValueError:
 except ImportError as ex:
     print("error: import module missing: " + ex + " = " + type(ex))
 finally:
-    print("abort.")
-    sys.exit(1)
+    if error_result > 0:
+        print("abort.")
+        sys.exit(EXIT_FAILURE)
+    else:
+        sys.exit(EXIT_SUCCESS)
+        
 # ----------------------------------------------------------------------------
 # E O F  -  End - Of - File
 # ----------------------------------------------------------------------------

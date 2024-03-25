@@ -10,9 +10,7 @@ def handleExceptionApplication(func):
     error_fail = False
     error_result = 0
     try:
-        print("11111111")
         func()
-        sys.exit(4)
     except ListInstructionError as ex:
         ex.add_note("Did you miss a parameter ?")
         ex.add_note("Add more information.")
@@ -54,7 +52,6 @@ def handleExceptionApplication(func):
         # when all is gone, stop the running script ...
         # ---------------------------------------------------------
         if error_result > 0:
-            print(error_ex)
             print("abort.")
             sys.exit(error_result)
         
