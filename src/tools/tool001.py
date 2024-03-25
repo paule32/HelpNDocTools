@@ -17,11 +17,11 @@ data_files = [
     # --------------------------------------------------------------
     # input file   , variable          , type (0 = list, 1 = string)
     # --------------------------------------------------------------
-    [ "data001.dat", "file_content_enc"     , 0 ],
-    [ "data002.dat", "html_content_enc"     , 1 ],
-    [ "data003.dat", "css_tabs_enc"         , 1 ],
-    [ "data004.dat", "css__widget_item_enc" , 1 ],
-    [ "data005.dat", "css__button_style_enc", 1 ]
+    [ "data001.dat", "file_content_enc"    , 0 ],
+    [ "data002.dat", "html_content_enc"    , 1 ],
+    [ "data003.dat", "css_tabs_enc"        , 1 ],
+    [ "data004.dat", "css__widget_item_enc", 1 ],
+    [ "data005.dat", "css_button_style_enc", 1 ]
 ]
 
 # ---------------------------------------------------------------------------

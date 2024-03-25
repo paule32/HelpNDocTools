@@ -3,68 +3,22 @@
 # Author: (c) 2024 Jens Kallup - paule32
 # All rights reserved
 # ---------------------------------------------------------------------------
-global EXIT_SUCCESS; EXIT_SUCCESS = 0
-global EXIT_FAILURE; EXIT_FAILURE = 1
-
-global basedir
-global tr
-global sv_help
-
-global debugMode
-
+# try catch import exceptions ...
+# ---------------------------------------------------------------------------
 try:
-    import os            # operating system stuff
-    import sys           # system specifies
-    import time          # thread count
-    import datetime      # date, and time routines
-    import re            # regular expression handling
-    
-    import glob          # directory search
-    import atexit        # clean up
-    import subprocess    # start sub processes
-    import platform      # Windows ?
-    
-    import gzip          # pack/de-pack data
-    import base64        # base64 encoded data
-    
-    import shutil        # shell utils
-    import pkgutil       # attached binary data utils
-    import json          # json lists
-    
-    import gettext       # localization
-    import locale        # internal system locale
-    
-    import random        # randome numbers
-    import string
-    
-    import sqlite3       # database: sqlite
-    import configparser  # .ini files
-    
-    import traceback     # stack exception trace back
-    
-    # ------------------------------------------------------------------------
-    # Qt5 gui framework
-    # ------------------------------------------------------------------------
-    from PyQt5.QtWidgets          import *
-    from PyQt5.QtWebEngineWidgets import QWebEngineView
-    from PyQt5.QtCore             import *
-    from PyQt5.QtGui              import *
-    
-    # ------------------------------------------------------------------------
+    from appcollection import *
+    # -----------------------------------------------------------------------
     # external created data (packed, and base64 encoded) ...
-    # ------------------------------------------------------------------------
-    #try:
-    module_path = "./tools"
-    sys.path.append(module_path)
-    from collection import *
-    #except Exception as err:
-    #    print(err)
-    #    syy.exit(1)
+    # -----------------------------------------------------------------------
+    sys.path.append("./interpreter/pascal")
+    sys.path.append("./tools")
     
+    from collection import *    # list/data
+    from pascal     import *    # interpreter: pascal
     
-    # ------------------------------------------------------------------------
+    # -----------------------------------------------------------------------
     # global used application stuff ...
-    # ------------------------------------------------------------------------
+    # -----------------------------------------------------------------------
     __app__name        = "observer"
     __app__config_ini  = "observer.ini"
     
@@ -76,7 +30,7 @@ try:
     
     
     global topic_counter
-    global css_model_header, css_tabs, css__widget_item
+    global css_model_header, css_tabs, css__widget_item, css_button_style
     
     if getattr(sys, 'frozen', False):
         import pyi_splash
@@ -148,49 +102,12 @@ try:
     
     css_menu_item = (""
         + "background-color:navy;color:white;padding:0px;font-family:'Arial';font-size:11pt;")
-            
-    css_button_style = (""
-        + "QPushButton{"
-        + "font-family:'Arial';"
-        + "font-weight:600;"
-        + "font-size:16px;"
-        + "color:yellow;"
-        + "background-color:navy;"
-        + "padding:10px 20px;"
-        + "border:solid #cc0000 2px;"
-        + "border-radius:50px;}"
-        + "QPushButton:hover{"
-        + "background-color:green;"
-        + "padding:10px 20px;"
-        + "color:white;}")
     
     css_combobox_style = (""
         + "font-family:'Arial';font-size:12pt;height:30px;"
         + "font-weight:600;background-color:yellow;"
         )
-    
-    # ------------------------------------------------------------------------
-    # exception classes used as custom execption ...
-    # ------------------------------------------------------------------------
-    class ListInstructionError(Exception):
-        def __init__(self):
-            print((""
-            + "Exception: List instructions error.\n"
-            + "note: Did you miss a parameter ?\n"
-            + "note: Add more information."))
-            error_result = 1
-            return
-    class ListMustBeInstructionError(Exception):
-        def __init__(self):
-            print("Exception: List must be of class type: InstructionItem")
-            errir_result = 1
-            return
-    class ListIndexOutOfBoundsError(Exception):
-        def __init__(self):
-            print("Exception: List index out of bounds.")
-            error_result = 1
-            return
-    
+        
     # ------------------------------------------------------------------------
     # date / time week days
     # ------------------------------------------------------------------------
@@ -206,422 +123,6 @@ try:
         
         def today(cls):
             print('today is %s' % cls(date.today().isoweekday()).name)
-    
-    # ------------------------------------------------------------------------
-    # interpreter for a pascal subset language:
-    # ------------------------------------------------------------------------
-    class interpreter_Pascal:
-        # -----------------------------------------
-        # symbols for the tokenizer ...
-        # -----------------------------------------
-        class TSymbol:
-            def __init(self):
-                self.sUnknown      = [  0, ''           ]
-                self.sIdent        = [  1, ''           ]
-                self.sInteger      = [  2, ''           ]
-                self.sPlus         = [  3, '+'          ]
-                self.sMinus        = [  4, '-'          ]
-                self.sStar         = [  5, '*'          ]
-                self.sSlash        = [  6, '/'          ]
-                self.sEqual        = [  7, '='          ]
-                self.sSmaller      = [  8, '<'          ]
-                self.sBigger       = [  9, '>'          ]
-                self.sBiggerEqual  = [ 10, '>='         ]
-                self.sSmallerEqual = [ 11, '<='         ]
-                self.sUnEqual      = [ 12, '#'          ]
-                self.sOpenBracket  = [ 13, '('          ]
-                self.sCloseBracket = [ 14, ')'          ]
-                self.sComma        = [ 15, ','          ]
-                self.sDot          = [ 16, '.'          ]
-                self.sSemiColon    = [ 17, ';'          ]
-                self.sBecomes      = [ 18, ':='         ]
-                self.sVar          = [ 19, 'VAR'        ]
-                self.sConst        = [ 20, 'CONST'      ]
-                self.sProcedure    = [ 21, 'PROCEDURE'  ]
-                self.sBegin        = [ 22, 'BEGIN'      ]
-                self.sEnd          = [ 23, 'END'        ]
-                self.sIf           = [ 24, 'IF'         ]
-                self.sThen         = [ 25, 'THEN'       ]
-                self.sElseIf       = [ 26, 'ELSEIF'     ]
-                self.sElse         = [ 27, 'ELSE'       ]
-                self.sWhile        = [ 28, 'WHILE'      ]
-                self.sDo           = [ 29, 'DO'         ]
-                self.sModule       = [ 30, 'MODULE'     ]
-                self.sWrite        = [ 31, 'WRITE'      ]
-                self.sNone         = [ 32, ''           ]
-                return
-        
-        # -----------------------------------------
-        # define the set of available op-codes ...
-        # -----------------------------------------
-        class OpCode:
-            def __init__(self):
-                #
-                self.current = 0
-                #
-                self.OpCode_ILL = 0
-                self.OpCode_LIT = 1
-                self.OpCode_LOD = 2
-                self.OpCode_STO = 3
-                self.OpCode_CAL = 4
-                self.OpCode_NUM = 5
-                self.OpCode_JMP = 6
-                self.OpCode_JPC = 7
-                self.OpCode_WRI = 8
-                self.OpCode_OPR = 9
-                #
-                self.ill = [ self.OpCode_ILL, ""    ]  # illegal
-                self.lit = [ self.OpCode_LIT, "lit" ]  # literal
-                self.lod = [ self.OpCode_LOD, "lod" ]  # load
-                self.sto = [ self.OpCode_STO, "sto" ]  # store
-                self.cal = [ self.OpCode_CAL, "cal" ]  # call
-                self.num = [ self.OpCode_NUM, "num" ]  # integer / number
-                self.jmp = [ self.OpCode_JMP, "jmp" ]  # jump
-                self.jpc = [ self.OpCode_JPC, "jpc" ] 
-                self.wri = [ self.OpCode_WRI, "wri" ]  # write
-                self.opr = [ self.OpCode_OPR, "opr" ]
-                return
-            # -----------------------------------------
-            # get the current op code ...
-            # -----------------------------------------
-            def getCurrent(self):
-                return self.current
-        
-        class IdentConstant:
-            def __init__(self):
-                self.value = 0
-                return
-        
-        class IdentVariable:
-            def __init__(self):
-                self.lebel = 0
-                self.addr  = 0
-                self.size  = 0
-                self.value = 0
-                return
-        
-        class IdentProcedure:
-            def __init__(self):
-                self.level = 0
-                self.addr  = 0
-                self.size  = 0
-                self.value = 0
-                return
-        
-        class IdentType:
-            def __init__(self):
-                self.itConstant  = self.IdentConstant ()
-                self.itVariable  = self.IdentVariable ()
-                self.itProcedure = self.IdentProcedure()
-                return
-            def IdentConstant(self):
-                return
-            def IdentVariable(self):
-                return
-            def IdentProcedure(self):
-                return
-        
-        class Ident:
-            def __init__(self):
-                self.name = ""
-                self.kind = interpreter_Pascal.IdentType()
-                return
-        
-        class IdentList:
-            def __init__(self):
-                self.items = interpreter_Pascal.Ident()
-                return
-            def __del__(self):
-                print("dtor: IdentList, clean-up...")
-                return
-        
-        # -----------------------------------------
-        # represents a item of a "instruction" ...
-        # -----------------------------------------
-        class InstructionItem:
-            def __init__(self):
-                self.opcode = interpreter_Pascal.OpCode()
-                self.lhs = 0
-                self.rhs = 0  # a
-                return
-        
-        # -----------------------------------------
-        # hold the "instructions" ...
-        # -----------------------------------------
-        class InstructionsClass:
-            # -------------------------------------
-            # ctor - constructor
-            # -------------------------------------
-            def __init__(self):
-                if debugMode == True:
-                    print("ctor: InstructionsClass")
-                self.items = []
-                return
-            # -------------------------------------
-            # dtor - destructor
-            # -------------------------------------
-            def __del__(self):
-                if debugMode == True:
-                    print("dtor: InstructionsClass, clean-up...")
-                self.items.clear()
-                return
-            # -------------------------------------
-            # add instruction item to the item list
-            # -------------------------------------
-            def add(self, inst = None):
-                if inst == None:
-                    raise ListInstructionError
-                if not type(inst) == interpreter_Pascal.InstructionItem:
-                    raise ListMustBeInstructionError
-                print("==>", inst.opcode.current)
-                self.items.append(inst)
-                return
-            # -------------------------------------
-            # delete nth instruction from item list
-            # -------------------------------------
-            def delete(self, inst = -1):
-                if inst < 0:
-                    raise ListIndexOutOfBounds
-                if inst > -1:
-                    if inst != len(self.items):
-                        raise ListIndexOutOfBounds
-                    else:
-                        self.items,pop(inst)
-                return
-        
-        # -----------------------------------------
-        # constructor for: interpreter_Pascal
-        # -----------------------------------------
-        def __init__(self):
-            #
-            self.IdentConstant  = 1
-            self.IdentVariable  = 2
-            self.IdentProcedure = 3
-            #
-            self.identList    = self.IdentList()
-            self.instructions = self.InstructionsClass()
-            
-            self.stacksize = 1024
-            
-            self.p = -1
-            self.b = 1
-            self.t = 0
-            self.s = [0, 0, 0]
-            
-            self.eof = False
-            
-            self.file_name = "test.byte"
-            self.file_stat = os.stat(self.file_name)
-            self.file_size = self.file_stat.st_size
-            
-            with open(self.file_name, 'r') as file:
-                for line in file:
-                    cols = line.strip().split(' ')
-                    inst = self.InstructionItem()
-                    inst.opcode.current = cols[0]
-                    inst.lhs = cols[1]
-                    inst.rhs = cols[2]
-                    print("--->")
-                    self.instructions.add(inst)
-                file.close()
-            
-            # -------------------------------------------------
-            # convert the string values in the cols to integer
-            # -------------------------------------------------
-            for row in self.instructions.items:
-                row[0] = row[0].split()
-                row[0][0:] = [int(value) for value in row[0][0:]] # string to int
-                #row[0][0] = self.OpCodeText[ row[0][0] ]
-                print(">", row[0])
-            return
-        
-        def Base(self, i, b, s):
-            b1 = b
-            if i == 0:
-                self.eof = True
-                return None
-            while i > 0:
-                b1 = s[b1]
-                i  = i - 1
-            return b1
-        
-        def Emulate(self):
-            print("Interpreting Code:")
-            self.ModuleCommand()
-            t = 0
-            b = 1
-            p = 0
-            s = [0, 0, 0]
-            print("Start...")
-            while True:
-                if p >= len(self.instructions.items):
-                    break
-                if self.eof == True:
-                    break
-                i = self.instructions.items[p]
-                i = i[0]
-                p = p + 1
-                z = i[0]
-                if z == self.OpCode_LIT:
-                    print(self.OpCodeText[z])
-                    t = t + 1
-                    s[t] = i[2]
-                elif z == self.OpCode_LOD:
-                    print(self.OpCodeText[z])
-                    t = t + 1
-                    r = self.Base(i[1], b, s)
-                    if not r == None:
-                        s[t] = s[r + i[2]]
-                    else:
-                        break
-                elif z == self.OpCode_STO:
-                    r = self.Base(i[1], b, s)
-                    if not r == None:
-                        s[r + i[2]] = s[t]
-                    else:
-                        break
-                    t = t - 1
-                elif z == self.OpCode_CAL:
-                    r = self.Base(i[1], b, s)
-                    if not r == None:
-                        s[t + 1] = r
-                        s[t + 2] = b
-                        s[t + 3] = p
-                        b = t + 1
-                        p = i[2]
-                    else:
-                        break
-                elif z == self.OpCode_INT:
-                    t = t + i[2]
-                elif z == self.OpCode_JMP:
-                    p = i[2]
-                elif z == self.OpCode_JPC:
-                    if s[t] == 0:
-                        p = i[2]
-                    t = t - 1
-                elif z == self.OpCode_WRI:
-                    print("wri: ", int(s[t]))
-                    t = t - 1
-                elif z == self.OpCode_OPR:
-                    z = i[2]
-                    if z == 0:
-                        t = b - 1
-                        p = s[t + 3]
-                        b = s[t + 2]
-                    if z == 1:
-                        s[t] = 0 - s[t]
-                    if z == 2:
-                        t = t - 1
-                        s[t] = s[t] + s[t + 1]
-                    if z == 3:
-                        t = t - 1
-                        s[t] = s[t] - s[t + 1]
-                    if z == 4:
-                        t = t - 1
-                        s[t] = s[t] * s[t + 1]
-                    if z == 5:
-                        t = t - 1
-                        s[t] = s[t] // s[t + 1]
-                    if z == 8:
-                        t = t - 1
-                        if s[t] == s[t + 1]:
-                            s[t] = True
-                        else:
-                            s[t] = False
-                    if z == 9:
-                        t = t - 1
-                        if s[t] != s[t + 1]:
-                            s[t] = True
-                        else:
-                            s[t] = False
-                    if z == 10:
-                        t = t - 1
-                        if s[t] < s[t + 1]:
-                            s[t] = True
-                        else:
-                            s[t] = False
-                    if z == 11:
-                        t = t - 1
-                        if s[t] > s[t + 1]:
-                            s[t] = True
-                        else:
-                            s[t] = False
-                    if z == 12:
-                        self.t = self.t - 1
-                        if s[t] >= s[t + 1]:
-                            s[t] = True
-                        else:
-                            s[t] = False
-                    if z == 13:
-                        t = t - 1
-                        if s[t] <= s[t + 1]:
-                            s[t] = True
-                        else:
-                            s[t] = False
-                    else:
-                        print("Unknown Operand")
-                        break
-                else:
-                    print("Unknown opcode")
-                    break
-            print("Done...")
-            return
-        
-        def ShowInstructions(self):
-            print("Instructions:")
-            for row in self.instructions.items:
-                print(row)
-            self.GenCode(3, 1, 5)
-        
-        def Expect(self, Expected):
-            if Symbol != Expected:
-                ErrorExpected([Expected], Symbol)
-            return
-        
-        def GenCode(self, f, l, a):
-            acode = [f, l, a]
-            self.instructions.add(acode)
-            return
-        
-        def ModuleCommand(self):
-            print("oo-oo")
-            return
-            def Position(self, ID, TablePosition):
-                print("1")
-                return
-            def StatementSequence(self, TablePosition, level):
-                print("2")
-                return
-                def Statement(self):
-                    print("21")
-                    return
-                    def Expression(self):
-                        print("212")
-                        return
-                        def Term(self):
-                            print("2121")
-                            return
-                            def Factor(self):
-                                print("21231")
-                                return
-                    def Condition(self):
-                        print("322")
-                        return
-            def Declarations(self, TablePosition, level):
-                print("3")
-                return
-                def Enter(self, typ):
-                    TablePosition = TablePosition + 1
-                    return
-                def ProcedureDecl(self):
-                    print("32")
-                    return
-                def ConstDecl(self):
-                    print("33")
-                    return
-                def VarDecl(self):
-                    print("34")
-                    return
     
     # ------------------------------------------------------------------------
     # convert the os path seperator depend ond the os system ...
@@ -641,6 +142,7 @@ try:
     # ------------------------------------------------------------------------
     def handle_language(lang):
         try:
+            global tr
             system_lang, _ = locale.getdefaultlocale()
             if system_lang.lower() == __locale__enu:
                 if lang.lower() == __locale__enu:
@@ -835,7 +337,14 @@ try:
                 self.font_a.setFamily(font_secondary)
                 self.font_a.setPointSize(11)
             
-            self.supported_langs= tr("supported_langs")
+            self.supported_langs = ("["
+            + "\"Afrikaans\",\"Arabic\",\"Armenian\",\"Brazilian\",\"Bulgarian\",\"Catalan\","
+            + "\"Chinese\",\"Chinese-Traditional\",\"Croatian\",\"Czech\",\"Danish\",\"Dutch\",\"English (United States)\","
+            + "\"Esperanto\",\"Farsi (Persian)\",\"Finnish\",\"French\",\"German\",\"Greek\",\"Hindi\",\"Hungarian\",\"Indonesian\","
+            + "\"Italian\", \"Japanese\",\"Japanese-en (Japanese with English messages)\",\"Korean\",\"Korean-en\","
+            + "\"(Korean with English messages)\",\"Latvian\",\"Lithuanian\",\"Macedonian\",\"Norwegian\","
+            + "\"Persian (Farsi)\",\"Polish\",\"Portuguese\",\"Romanian\",\"Russian\",\"Serbian\",\"Serbian-Cyrillic\",\"Slovak\","
+            + "\"Slovene\",\"Spanish\",\"Swedish\",\"Turkish\",\"Ukrainian\",\"Vietnamese\"]")
             
             self.content_widget = QWidget(self)
             self.content_widget.setMinimumHeight(self.height()-150)
@@ -939,7 +448,7 @@ try:
                 # the help string for a doxygen tag ...
                 # -----------------------------------------
                 helpID   = hid + i + 1
-                helpText = tr(f"h{helpID:04X}")
+                helpText = gettext.gettext("h{helpID:04X}")
                 
                 vw_1 = self.addHelpLabel(   \
                     elements[i][0], \
@@ -965,14 +474,14 @@ try:
                         vw_3.setMinimumHeight(96)
                         vw_3.setMaximumHeight(96)
                         lv_0.addWidget(vw_3)
-                        
+                
                 elif elements[i][1] == self.type_check_box:
                     vw_2 = QCheckBox()
                     vw_2.setMinimumHeight(21)
                     vw_2.setFont(self.font_a)
                     vw_2.setChecked(elements[i][4])
                     lh_0.addWidget(vw_2)
-                    
+                
                 elif elements[i][1] == self.type_combo_box:
                     vw_2 = QComboBox()
                     vw_2.setMinimumHeight(26)
@@ -1007,10 +516,10 @@ try:
     # create a scroll view for the project tab on left side of application ...
     # ------------------------------------------------------------------------
     class customScrollView_1(myCustomScrollArea):
-        def __init__(self, name):
+        def __init__(self, name="uuuu"):
             super().__init__(name)
             
-            self.__button_style_css = tr("__button_style_css")
+            self.__button_style_css = gettext.gettext("__button_style_css")
             self.name = name
             
             self.init_ui()
@@ -1112,7 +621,6 @@ try:
             ##
             layout.addLayout(layout_6)
             
-            
             layout_7 = QHBoxLayout()
             layout_7.setAlignment(Qt.AlignLeft)
             widget_7_label_1 = self.addLabel("Destination dir:", False, layout_7)
@@ -1161,7 +669,6 @@ try:
             layout_10.addWidget(widget_10_button_2)
             #
             layout.addLayout(layout_10)
-            
             
             self.setWidgetResizable(False)
             self.setWidget(content_widget)
@@ -1264,13 +771,12 @@ try:
             
     
     class customScrollView_5(myCustomScrollArea):
-        def __init__(self, name):
+        def __init__(self, name="aaa"):
             super().__init__(name)
             self.init_ui()
         def init_ui(self):
             self.label_1.hide()
             self.content_widget.setMinimumHeight(2000)
-            
             label_1_elements = [
                 # <text>,                  <type 1>,             <help>, <type 2>,  <list 1>
                 ["DOXYFILE_ENCODING",      self.type_edit,       100, 0],
@@ -2043,11 +1549,23 @@ try:
             self.record_array.insert(item_attr1, item_attr2)
             return
     
+    class Worker(QObject):
+        htmlChanged = pyqtSignal(str)
+        def execute(self):
+            threading.Thread(target=self.task, daemon=True).start()
+        def task(self):
+            QThread.msleep(2 * 1000)
+            html = page1()
+            self.htmlChanged.emit(html)
+            threading.stop()
+    
     class FileWatcherGUI(QWidget):
+        def editor_page(self):
+            return html_content
         def __init__(self, parent=None):
             super().__init__()
             
-            self.__button_style_css = tr("__button_style_css")
+            self.__button_style_css = gettext.gettext("__button_style_css")
             
             self.font = QFont("Arial", 10)
             self.setFont(self.font)
@@ -2308,13 +1826,6 @@ try:
             self.tab3_top_layout = QHBoxLayout(self.tab3)
             self.tab4_top_layout = QHBoxLayout(self.tab4)
             
-            
-            quill_editor = QWebEngineView()
-            quill_editor.setHtml(html_content, baseUrl = QUrl. fromLocalFile('.'))
-            
-            self.tab4_top_layout.addWidget(quill_editor)
-            
-            
             ################
             ##self.tab1_layout = QHBoxLayout()
             ##self.tab1_widget = QWidget()
@@ -2409,22 +1920,24 @@ try:
             list_widget_2.itemClicked.connect(self.handle_item_click)
             list_layout_2.addWidget(list_widget_2)
             
-            tab1_classes = [ \
-                customScrollView_5 , customScrollView_6 , customScrollView_7 , customScrollView_8 , \
-                customScrollView_9 , customScrollView_10, customScrollView_11, customScrollView_12, \
-                customScrollView_13, customScrollView_14, customScrollView_15, customScrollView_16, \
-                customScrollView_17, customScrollView_18, customScrollView_19, customScrollView_20, \
-                customScrollView_21, customScrollView_22  ]
+            tab1_classes = [
+            "customScrollView_5('oo1')" , "customScrollView_6('oo6')" , "customScrollView_7('oo11')" , "customScrollView_8('oo115')" ,
+            "customScrollView_9('oo2')" , "customScrollView_10('oo7')", "customScrollView_11('oo12')", "customScrollView_12('oo18')",
+            "customScrollView_13('oo3')", "customScrollView_14('oo8')", "customScrollView_15('oo13')", "customScrollView_16('oo20')",
+            "customScrollView_17('oo4')", "customScrollView_18('oo9')", "customScrollView_19('oo14')", "customScrollView_20('oo19')",
+            "customScrollView_21('oo5')", "customScrollView_22('oo10')"  ]
             
-            tab1_class_objs = [ cls("name") for cls in tab1_classes ]
-            
-            for i in range(0, len(tab1_classes)):
+            objs = []
+            i    = 0
+            for item in tab1_classes:
                 s = "sv_2_" + str(i+1)
-                v1 = tab1_class_objs[i]
+                v1 = eval(item)
                 v1.setName(self.list_widget_2_elements[i])
+                objs.append(v1)
                 setattr(self, s, v1)
-                list_layout_2.addWidget(getattr(self, f"{s}"))
+                list_layout_2.addWidget(v1)
                 v1.hide()
+                i += 1
             
             self.sv_2_1.show()
             self.hw_2 = QWidget()
@@ -2681,6 +2194,13 @@ try:
             # ------------------
             # alles zusammen ...
             # ------------------
+            self.webView1 = QWebEngineView(self.tab4)
+            self.profile1 = QWebEngineProfile("storage1", self.webView1)
+            self.page1    = QWebEnginePage(self.profile1, self.webView1)
+            self.webView1.setPage(self.page1)
+            self.webView1.setHtml(html_content, baseUrl = QUrl. fromLocalFile('.'))
+            
+            self.tab4_top_layout.addWidget(self.webView1);            
             self.tab0_top_layout.addLayout(self.tab0_left_layout)
             
             self.tab1_top_layout.addLayout(self.tab1_left_layout)
@@ -2882,262 +2402,216 @@ try:
         return
     
     # ------------------------------------------------------------------------
-    # this is our "main" entry point, where the application will start, if you
-    # type the name of the script into the console, or by mouse click at the
-    # file explorer under a GUI system (Windows) ...
+    # this is our "main" entry point, where the application will start.
     # ------------------------------------------------------------------------
-    if __name__ == '__main__':
-        global error_fail, error_result
-        global app
+    def EntryPoint():
+        atexit.register(ApplicationAtExit)
         
         global conn
         global conn_cursor
         
         error_fail   = False
         error_result = 0
-        try:
-            topic_counter = 1
-            
-            atexit.register(ApplicationAtExit)
-            
-            # ---------------------------------------------------------
-            # init pascal interpreter ...
-            # ---------------------------------------------------------
-            #pas = interpreter_Pascal()
-            #pas.ShowInstructions()
-            #pas.Emulate()
-            
-            #sys.exit(1)
-            
-            # ---------------------------------------------------------
-            # scoped global stuff ...
-            # ---------------------------------------------------------
-            global doxyfile, hhc__path
-            
-            pcount     = len(sys.argv) - 1
-            
-            doxy_env   = "DOXYGEN_PATH"  # doxygen.exe
-            doxy_hhc   = "DOXYHHC_PATH"  # hhc.exe
-            
-            doxy_path  = "./"
-            hhc__path  = ""
-            
-            doxyfile   = "Doxyfile"
-            
-            
-            # ---------------------------------------------------------
-            # doxygen.exe directory path ...
-            # ---------------------------------------------------------
-            if not doxy_env in os.environ:
-                if debugMode == True:
-                    os.environ["DOXYGEN_PATH"] = "E:\\doxygen\\bin"
-                else:
-                    print(("error: " + f"{doxy_env}"
-                    + " is not set in your system settings."))
-                    sys.exit(EXIT_FAILURE)
-            else:
-                doxy_path = os.environ[doxy_env]
-            
-            # ---------------------------------------------------------
-            # Microsoft Help Workshop path ...
-            # ---------------------------------------------------------
-            if not doxy_hhc in os.environ:
-                if debugMode == True:
-                    os.environ["DOXYHHC_PATH"] = "E:\\doxygen\\hhc"
-                else:
-                    print((""
-                        + "error: " + f"{doxy_hhc}"
-                        + " is not set in your system settings."))
-                    sys.exit(EXIT_FAILURE)
-            else:
-                hhc__path = os.environ[doxy_hhc]
-            
-            # ---------------------------------------------------------
-            # first, we check the operating system platform:
-            # 0 - unknown
-            # 1 - Windows
-            # 2 - Linux
-            # ---------------------------------------------------------
-            global os_type, os_type_windows, os_type_linux
-            
-            os_type_unknown = 0
-            os_type_windows = 1
-            os_type_linux   = 2
-            
-            os_type = os_type_windows
-            
-            # -----------------------------------------------------
-            # show a license window, when readed, and user give a
-            # okay, to accept it, then start the application ...
-            # -----------------------------------------------------
-            app = QApplication(sys.argv)
-            
-            license_window = licenseWindow()
-            
-            # close tje splash screen ...
-            if getattr(sys, 'frozen', False):
-                pyi_splash.close()
-                
-            license_window.exec_()
-            
-            
-            # ---------------------------------------------------------
-            # when config.ini does not exists, then create a small one:
-            # ---------------------------------------------------------
-            if not os.path.exists(__app__config_ini):
-                with open(__app__config_ini, "w", encoding="utf-8") as output_file:
-                    content = (""
-                    + "[common]\n"
-                    + "language = en_us\n")
-                    output_file.write(content)
-                    output_file.close()
-                    ini_lang = "en_us" # default is english; en_us
-            else:
-                config = configparser.ConfigParser()
-                config.read(__app__config_ini)
-                ini_lang = config.get("common", "language")
-            
-            tr = handle_language(ini_lang)
-            if not tr == None:
-                tr  = tr.gettext
-            
-            # ---------------------------------------------------------
-            # combine the puzzle names, and folders ...
-            # ---------------------------------------------------------
-            po_file_name = ("./locales/"
-                + f"{ini_lang}"    + "/LC_MESSAGES/"
-                + f"{__app__name}" + ".po")
-            
-            if not os.path.exists(convertPath(po_file_name)):
-                print(__error__locales_error)
-                sys.exit(EXIT_FAILURE)
-            
-            
-            # ---------------------------------------------------------
-            # when config file not exists, then spite a info message,
-            # and create a default template for doxygen 1.10.0
-            # ---------------------------------------------------------
-            if not os.path.exists(doxyfile):
-                print("info: config: '" \
-                + f"{doxyfile}" + "' does not exists. I will fix this by create a default file.")
-                
-                file_content_warn = [
-                    ["QUIET", "YES"],
-                    ["WARNINGS", "YES"],
-                    ["",""],
-                    ["WARN_IF_UNDOCUMENTED", "NO"],
-                    ["WARN_IF_UNDOC_ENUM_VAL", "NO"],
-                    ["WARN_IF_DOC_ERROR", "YES"],
-                    ["WARN_IF_INCOMPLETE_DOC", "YES"],
-                    ["WARN_AS_ERROR", "NO"],
-                    ["WARN_FORMAT", "\"$file:$line: $text\""],
-                    ["WARN_LINE_FORMAT", "\"at line $line of file $file\""],
-                    ["WARN_LOGFILE", "warnings.log"]
-                ]
-                with open(doxyfile, 'w') as file:
-                    file.write(__app__comment_hdr)
-                    file.write("# File: Doxyfile\n")
-                    file.write("# Author: (c) 2024 Jens Kallup - paule32 non-profit software\n")
-                    file.write("#"  + (" " *  9) + "all rights reserved.\n")
-                    file.write("#\n")
-                    file.write("# optimized for: # Doxyfile 1.10.1\n")
-                    file.write(__app__comment_hdr)
-                    
-                    for i in range(0, len(file_content)):
-                        if len(file_content[i][0]) > 1:
-                            file.write("{0:<32} = {1:s}\n".format( \
-                            file_content[i][0],\
-                            file_content[i][1]))
-                        else:
-                            file.write("\n")
-                    
-                    file.write(__app__comment_hdr)
-                    file.write("# warning settings ...\n")
-                    file.write(__app__comment_hdr)
-                    
-                    for i in range(0, len(file_content_warn)):
-                        if len(file_content_warn[i][0]) > 1:
-                            file.write("{0:<32} = {1:s}\n".format( \
-                            file_content_warn[i][0],\
-                            file_content_warn[i][1]))
-                        else:
-                            file.write("\n")
-                    
-                    file.close()
-            
-            sv_help = customScrollView_help()
-            
-            date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-            time_str = datetime.datetime.now().strftime("%H:%M:%S")
-            
-            conn = sqlite3.connect("data.db")
-            conn_cursor = conn.cursor()
-            conn.close()
-            
-            ex = FileWatcherGUI()
-            ex.move(100, 100)
-            
-            ex.show()
-            
-            error_result = app.exec_()
         
-        except ListInstructionError as ex:
-            ex.add_note("Did you miss a parameter ?")
-            ex.add_note("Add more information.")
-            print("List instructions error.")
-            error_result = 1
-        except ZeroDivisionError as ex:
-            ex.add_note("1/0 not allowed !")
-            print("Handling run-time error:", ex)
-            error_result = 1
-        except OSError as ex:
-            print("OS error:", ex)
-            error_result = 1
-        except ValueError as ex:
-            print("Could not convert data:", ex)
-            error_result = 1
-        except Exception as ex:
-            s = f"{ex.args}"
-            parts = [part.strip() for part in s.split("'") if part.strip()]
-            parts.pop( 0)   # delete first element
-            parts.pop(-1)   # delete last  element
-            
-            err = "error: Exception occured: "
-            if type(ex) == NameError:
-                err += "NameError\n"
-                err += "text: '" + parts[0]+"' not defined\n"
-            elif type(ex) == AttributeError:
-                err += "AttributeError\n"
-                err += "class: " + parts[0]+"\n"
-                err += "text : " + parts[2]+": "+parts[1]+"\n"
+        topic_counter = 1
+        
+        atexit.register(ApplicationAtExit)
+        
+        # ---------------------------------------------------------
+        # init pascal interpreter ...
+        # ---------------------------------------------------------
+        #pas = interpreter_Pascal()
+        #pas.ShowInstructions()
+        #pas.Emulate()
+        
+        #sys.exit(1)
+        
+        # ---------------------------------------------------------
+        # scoped global stuff ...
+        # ---------------------------------------------------------
+        global doxyfile, hhc__path
+        
+        pcount     = len(sys.argv) - 1
+        
+        doxy_env   = "DOXYGEN_PATH"  # doxygen.exe
+        doxy_hhc   = "DOXYHHC_PATH"  # hhc.exe
+        
+        doxy_path  = "./"
+        hhc__path  = ""
+        
+        doxyfile   = "Doxyfile"
+        
+        
+        # ---------------------------------------------------------
+        # doxygen.exe directory path ...
+        # ---------------------------------------------------------
+        if not doxy_env in os.environ:
+            if debugMode == True:
+                os.environ["DOXYGEN_PATH"] = "E:\\doxygen\\bin"
             else:
-                err += "type  : " + "default  \n"
+                print(("error: " + f"{doxy_env}"
+                + " is not set in your system settings."))
+                sys.exit(EXIT_FAILURE)
+        else:
+            doxy_path = os.environ[doxy_env]
+        
+        # ---------------------------------------------------------
+        # Microsoft Help Workshop path ...
+        # ---------------------------------------------------------
+        if not doxy_hhc in os.environ:
+            if debugMode == True:
+                os.environ["DOXYHHC_PATH"] = "E:\\doxygen\\hhc"
+            else:
+                print((""
+                    + "error: " + f"{doxy_hhc}"
+                    + " is not set in your system settings."))
+                sys.exit(EXIT_FAILURE)
+        else:
+            hhc__path = os.environ[doxy_hhc]
+        
+        # ---------------------------------------------------------
+        # first, we check the operating system platform:
+        # 0 - unknown
+        # 1 - Windows
+        # 2 - Linux
+        # ---------------------------------------------------------
+        global os_type, os_type_windows, os_type_linux
+        
+        os_type_unknown = 0
+        os_type_windows = 1
+        os_type_linux   = 2
+        
+        os_type = os_type_windows
+        
+        # -----------------------------------------------------
+        # show a license window, when readed, and user give a
+        # okay, to accept it, then start the application ...
+        # -----------------------------------------------------
+        app = QApplication(sys.argv)
+        
+        license_window = licenseWindow()
+        
+        # close tje splash screen ...
+        if getattr(sys, 'frozen', False):
+            pyi_splash.close()
             
-            error_ex = err
+        license_window.exec_()
+        
+        
+        # ---------------------------------------------------------
+        # when config.ini does not exists, then create a small one:
+        # ---------------------------------------------------------
+        if not os.path.exists(__app__config_ini):
+            with open(__app__config_ini, "w", encoding="utf-8") as output_file:
+                content = (""
+                + "[common]\n"
+                + "language = en_us\n")
+                output_file.write(content)
+                output_file.close()
+                ini_lang = "en_us" # default is english; en_us
+        else:
+            config = configparser.ConfigParser()
+            config.read(__app__config_ini)
+            ini_lang = config.get("common", "language")
+        
+        tr = handle_language(ini_lang)
+        if not tr == None:
+            tr  = tr.gettext
+        
+        # ---------------------------------------------------------
+        # combine the puzzle names, and folders ...
+        # ---------------------------------------------------------
+        po_file_name = ("./locales/"
+            + f"{ini_lang}"    + "/LC_MESSAGES/"
+            + f"{__app__name}" + ".po")
+        
+        if not os.path.exists(convertPath(po_file_name)):
+            print(__error__locales_error)
+            sys.exit(EXIT_FAILURE)
+        
+        
+        # ---------------------------------------------------------
+        # when config file not exists, then spite a info message,
+        # and create a default template for doxygen 1.10.0
+        # ---------------------------------------------------------
+        if not os.path.exists(doxyfile):
+            print("info: config: '" \
+            + f"{doxyfile}" + "' does not exists. I will fix this by create a default file.")
             
-            error_result = 1
-            error_fail   = True
-        finally:
-            # ---------------------------------------------------------
-            # when all is gone, stop the running script ...
-            # ---------------------------------------------------------
-            if error_result > 0:
-                print(error_ex)
-                print("abort.")
-                sys,exit(error_result)
-            
-            print("Done.")
-            sys.exit(error_result)
-
+            file_content_warn = [
+                ["QUIET", "YES"],
+                ["WARNINGS", "YES"],
+                ["",""],
+                ["WARN_IF_UNDOCUMENTED", "NO"],
+                ["WARN_IF_UNDOC_ENUM_VAL", "NO"],
+                ["WARN_IF_DOC_ERROR", "YES"],
+                ["WARN_IF_INCOMPLETE_DOC", "YES"],
+                ["WARN_AS_ERROR", "NO"],
+                ["WARN_FORMAT", "\"$file:$line: $text\""],
+                ["WARN_LINE_FORMAT", "\"at line $line of file $file\""],
+                ["WARN_LOGFILE", "warnings.log"]
+            ]
+            with open(doxyfile, 'w') as file:
+                file.write(__app__comment_hdr)
+                file.write("# File: Doxyfile\n")
+                file.write("# Author: (c) 2024 Jens Kallup - paule32 non-profit software\n")
+                file.write("#"  + (" " *  9) + "all rights reserved.\n")
+                file.write("#\n")
+                file.write("# optimized for: # Doxyfile 1.10.1\n")
+                file.write(__app__comment_hdr)
+                
+                for i in range(0, len(file_content)):
+                    if len(file_content[i][0]) > 1:
+                        file.write("{0:<32} = {1:s}\n".format( \
+                        file_content[i][0],\
+                        file_content[i][1]))
+                    else:
+                        file.write("\n")
+                
+                file.write(__app__comment_hdr)
+                file.write("# warning settings ...\n")
+                file.write(__app__comment_hdr)
+                
+                for i in range(0, len(file_content_warn)):
+                    if len(file_content_warn[i][0]) > 1:
+                        file.write("{0:<32} = {1:s}\n".format( \
+                        file_content_warn[i][0],\
+                        file_content_warn[i][1]))
+                    else:
+                        file.write("\n")
+                
+                file.close()
+        global sv_help
+        sv_help = customScrollView_help()
+        
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        time_str = datetime.datetime.now().strftime("%H:%M:%S")
+        
+        conn = sqlite3.connect("data.db")
+        conn_cursor = conn.cursor()
+        conn.close()
+        
+        ex = FileWatcherGUI()
+        ex.move(100, 100)
+        #sys.exit(2)
+        ex.show()
+        
+        error_result = app.exec_()
+        return
+    if __name__ == '__main__':
+        handleExceptionApplication(EntryPoint)
+        print("End2")
+        sys.exit(0)
+        
 except OSError:
     print("OS error:", err)
 except ValueError:
     print("Could not convert data.")
 except ImportError as ex:
-    print("error: import module missing: {ex=}, {type(ex)=}")
+    print("error: import module missing: " + ex + " = " + type(ex))
 finally:
-    sys.exit(EXIT_FAILURE)
-
+    print("abort.")
+    sys.exit(1)
 # ----------------------------------------------------------------------------
 # E O F  -  End - Of - File
 # ----------------------------------------------------------------------------
