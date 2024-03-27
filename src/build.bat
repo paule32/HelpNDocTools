@@ -93,6 +93,7 @@ cd ..
 python -m compileall %BASEDIR%\filter.py >nul 2>&1
 if errorlevel 1 ( goto error_bytecode )
 echo  ok   ]
+pyinstaller --onefile --paths=.\ --paths=.\tools --paths=.\interpreter\pascal observer.py
 goto TheEnd
 :: ---------------------------------------------------------------------------
 :: to create Windows executables, you have to install pyinstaller seperatly.

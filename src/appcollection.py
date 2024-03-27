@@ -18,56 +18,66 @@ global debugMode
 # ---------------------------------------------------------------------------
 # application imports ...
 # ---------------------------------------------------------------------------
-import os            # operating system stuff
-import sys           # system specifies
-import time          # thread count
-import datetime      # date, and time routines
-import re            # regular expression handling
-
-import glob          # directory search
-import atexit        # clean up
-import subprocess    # start sub processes
-import platform      # Windows ?
-
-import gzip          # pack/de-pack data
-import base64        # base64 encoded data
-
-import shutil        # shell utils
-import pkgutil       # attached binary data utils
-import json          # json lists
-
-import gettext       # localization
-import locale        # internal system locale
-
-import random        # randome numbers
-import string
-
-import ctypes        # windows ip info
-
-import sqlite3       # database: sqlite
-import configparser  # .ini files
-
-import traceback     # stack exception trace back
-
-# ------------------------------------------------------------------------
-# Qt5 gui framework
-# ------------------------------------------------------------------------
-from PyQt5.QtWidgets          import *
-from PyQt5.QtWebEngineWidgets import *
-from PyQt5.QtCore             import *
-from PyQt5.QtGui              import *
-print("11111")
-# ------------------------------------------------------------------------
-# developers own modules ...
-# ------------------------------------------------------------------------
-sys.path.append("C:/Windows/System32")
-sys.path.append("./interpreter/pascal")
-sys.path.append("./tools")
-
-from exclasses import *     # exception: templates
-from exapp     import *     # exception: application block placeholder
-
-from collection import *     # exception: templates
-from exapp      import *     # exception: application block placeholder
-
-from pascal     import *
+try:
+    import os            # operating system stuff
+    
+    if 'PYTHONHOME' in os.environ:
+        del os.environ['PYTHONHOME']
+    
+    import encodings
+    import sys           # system specifies
+    import time          # thread count
+    import datetime      # date, and time routines
+    import re            # regular expression handling
+    
+    import glob          # directory search
+    import atexit        # clean up
+    import subprocess    # start sub processes
+    import platform      # Windows ?
+    
+    import gzip          # pack/de-pack data
+    import base64        # base64 encoded data
+    print("111")
+    import shutil        # shell utils
+    print("111")
+    import pkgutil       # attached binary data utils
+    import json          # json lists
+    
+    import gettext       # localization
+    import locale        # internal system locale
+    
+    import random        # randome numbers
+    import string
+    
+    import ctypes        # windows ip info
+    
+    import sqlite3       # database: sqlite
+    import configparser  # .ini files
+    
+    import traceback     # stack exception trace back
+    
+    # ------------------------------------------------------------------------
+    # Qt5 gui framework
+    # ------------------------------------------------------------------------
+    from PyQt5.QtWidgets          import *
+    from PyQt5.QtWebEngineWidgets import *
+    from PyQt5.QtCore             import *
+    from PyQt5.QtGui              import *
+    
+    # ------------------------------------------------------------------------
+    # developers own modules ...
+    # ------------------------------------------------------------------------
+    sys.path.append("./interpreter/pascal")
+    sys.path.append("./tools")
+    
+    from exclasses import *     # exception: templates
+    from exapp     import *     # exception: application block placeholder
+    
+    from collection import *     # exception: templates
+    from exapp      import *     # exception: application block placeholder
+    
+    from pascal     import *
+    
+except Exception as err:
+    print(err)
+    sys.exit(1)

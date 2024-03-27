@@ -71,3 +71,7 @@ src/_decimal.pyd
 src/_ctypes.pyd
 src/_bz2.pyd
 src/data.db
+/src/_internal
+src/libpython3.10.dll
+src/observer.exe
+src/z.py
