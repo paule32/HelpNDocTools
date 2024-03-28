@@ -28,6 +28,10 @@ set PYTHONHOME=
 
 set PRJ=E:/Projekte/HelpNDocTools
 
+echo remove old data...
+rm -rf build
+rm -rf dist
+
 echo install packages...
 pip install regex
 

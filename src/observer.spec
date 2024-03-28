@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_submodules
 
-hiddenimports = ['shutil', 'types', '_ctypes', 'encodings', 'ctypes.util', 'collections', 'operator', 'reprlib', 'functools', 'enum', 'collections.abc', 'warnings', 'linecache', 're', 'sre_compile', 'sre_parse', 'sre_constants', 'copyreg']
+hiddenimports = ['shutil', 'types', '_ctypes', 'encodings', 'ctypes.util', 'collections', 'operator', 'reprlib', 'functools', 'enum', 'sip', 'collections.abc', 'warnings', 'linecache', 're', 'sre_compile', 'sre_parse', 'sre_constants', 'copyreg']
 hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/exapp.py')
 hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/exclasses.py')
 hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/appcollection.py')
