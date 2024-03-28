@@ -16,11 +16,27 @@ set APP=observer
 :: Python 3.1.0 - there should be a Tools directory which comes with the
 :: official installation files.
 :: ---------------------------------------------------------------------------
-set PY=%USERPROFILE%\AppData\Local\Programs\Python\Python310
+set PY=E:\Python310
 set PO=%PY%\Tools\i18n\msgfmt.py
-set EX=python -X nofaulthandler
+set PX=%PY%\python.exe
+set PATH=%PY%;%PATH%
 
 set BASEDIR=%cd%
+%PX% -V
+set PYTHONPATH=%PY%\Lib;%PY%\Lib\site-packages
+set PYTHONHOME=
+
+set PRJ=E:/Projekte/HelpNDocTools
+
+echo install packages...
+pip install regex
+
+pip install PyQt5
+pip install PyQtWebEngine
+
+pip install pyinstaller
+pip install --upgrade pyinstaller
+
 echo create directories...  [
 
 :: ---------------------------------------------------------------------------
@@ -90,10 +106,67 @@ if errorlevel 1 (
     echo fail collection batch
     goto error_bytecode ) else ( echo collection.py exec ok )
 cd ..
-python -m compileall %BASEDIR%\filter.py >nul 2>&1
+%PY%\python.exe -m compileall %BASEDIR%\observer.py
 if errorlevel 1 ( goto error_bytecode )
 echo  ok   ]
-pyinstaller --onefile --paths=.\ --paths=.\tools --paths=.\interpreter\pascal observer.py
+pyinstaller --noconfirm --console  ^
+    --icon="%PRJ%/src/img/floppy-disk.ico"  ^
+    --clean --noupx      ^
+    --log-level="WARN"   ^
+    --splash="%PRJ%/src/img/splash.png"     ^
+    --strip                                 ^
+    --hide-console="minimize-late"          ^
+    --version-file="%PRJ%/src/version.info" ^
+    ^
+    --paths="%PRJ%/src/interpreter/pascal"  ^
+    --paths="%PRJ%/src/interpreter"         ^
+    --paths="%PRJ%/src/tools"               ^
+    --paths="%PRJ%/src"                     ^
+    ^
+    --add-data="%PRJ%/src/locales;locales/" ^
+    --add-data="%PRJ%/src/img;img/"         ^
+    --add-data="%PRJ%/LICENSE;."            ^
+    --add-data="%PRJ%/README.md;."          ^
+    --add-data="%PRJ%/CONTRIBUTING.md;."    ^
+    --add-data="%PRJ%/CODE_OF_CONDUCT.md;." ^
+    --add-data="%PRJ%/src/topics.txt;."     ^
+    --add-data="%PRJ%/src/test.byte;."      ^
+    ^
+    --collect-submodules="%PRJ%/src/exapp.py"            ^
+    --collect-submodules="%PRJ%/src/exclasses.py"        ^
+    --collect-submodules="%PRJ%/src/appcollection.py"    ^
+    --collect-submodules="%PRJ%/src/__init__.py"         ^
+    --collect-submodules="%PRJ%/src/tools/collection.py" ^
+    --collect-submodules="%PRJ%/src/tools/data001.py"    ^
+    --collect-submodules="%PRJ%/src/tools/data002.py"    ^
+    --collect-submodules="%PRJ%/src/tools/data003.py"    ^
+    --collect-submodules="%PRJ%/src/tools/data004.py"    ^
+    --collect-submodules="%PRJ%/src/tools/data005.py"    ^
+    --collect-submodules="%PRJ%/src/tools/misc.py"       ^
+    --collect-submodules="%PRJ%/src/tools/__init__.py"   ^
+    --collect-submodules="%PRJ%/src/interpreter/pascal/pascal.py" ^
+    ^
+    --hidden-import="shutil"          ^
+    --hidden-import="types"           ^
+    --hidden-import="_ctypes"         ^
+    --hidden-import="encodings"       ^
+    --hidden-import="ctypes.util"     ^
+    --hidden-import="collections"     ^
+    --hidden-import="operator"        ^
+    --hidden-import="reprlib"         ^
+    --hidden-import="functools"       ^
+    --hidden-import="enum"            ^
+    --hidden-import="sip"             ^
+    --hidden-import="collections.abc" ^
+    --hidden-import="warnings"        ^
+    --hidden-import="linecache"       ^
+    --hidden-import="re"              ^
+    --hidden-import="sre_compile"     ^
+    --hidden-import="sre_parse"       ^
+    --hidden-import="sre_constants"   ^
+    --hidden-import="copyreg"         ^
+    ^
+    "%PRJ%/src/observer.py"
 goto TheEnd
 :: ---------------------------------------------------------------------------
 :: to create Windows executables, you have to install pyinstaller seperatly.

@@ -11,6 +11,18 @@ global EXIT_FAILURE; EXIT_FAILURE = 1
 global error_result; error_result = 0
 
 global debugMode
+
+import os            # operating system stuff
+import sys
+
+if 'PYTHONHOME' in os.environ:
+    del os.environ['PYTHONHOME']
+if 'PYTHONPATH' in os.environ:
+    del os.environ['PYTHONPATH']
+
+sys.path.append("./interpreter/pascal")
+sys.path.append("./tools")
+
 # -----------------------------------------------------------------------
 # global used application stuff ...
 # -----------------------------------------------------------------------
@@ -2445,12 +2457,13 @@ def EntryPoint():
     # -----------------------------------------------------
     app = QApplication(sys.argv)
     
-    license_window = licenseWindow(); print("kkkk")
-    
+    license_window = licenseWindow()
+    # -------------------------------
     # close tje splash screen ...
-    #if getattr(sys, 'frozen', False):
-    #    pyi_splash.close()
-    print("kkkk  oooo")
+    # -------------------------------
+    if getattr(sys, 'frozen', False):
+        pyi_splash.close()
+        
     license_window.exec_()
     
     

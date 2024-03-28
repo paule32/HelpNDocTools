@@ -20,15 +20,17 @@ global debugMode
 # ---------------------------------------------------------------------------
 try:
     import os            # operating system stuff
-    
     if 'PYTHONHOME' in os.environ:
         del os.environ['PYTHONHOME']
+    if 'PYTHONPATH' in os.environ:
+        del os.environ['PYTHONPATH']
     
-    import encodings
+    print("1111")
+    import re            # regular expression handling
+    
     import sys           # system specifies
     import time          # thread count
     import datetime      # date, and time routines
-    import re            # regular expression handling
     
     import glob          # directory search
     import atexit        # clean up
