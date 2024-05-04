@@ -25,7 +25,6 @@ try:
     if 'PYTHONPATH' in os.environ:
         del os.environ['PYTHONPATH']
     
-    print("1111")
     import re            # regular expression handling
     
     import sys           # system specifies
@@ -39,9 +38,8 @@ try:
     
     import gzip          # pack/de-pack data
     import base64        # base64 encoded data
-    print("111")
     import shutil        # shell utils
-    print("111")
+
     import pkgutil       # attached binary data utils
     import json          # json lists
     

@@ -76,3 +76,4 @@ src/libpython3.10.dll
 src/observer.exe
 src/z.py
 src/get-pip.py
+src/userenv.dll

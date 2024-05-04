@@ -9,37 +9,47 @@
 :: commercial use ist not allowed.
 :: ---------------------------------------------------------------------------
 @echo off
+:start
+:: ---------------------------------------------------------------------------
+:: set observer application stuff ...
+:: ---------------------------------------------------------------------------
 set APP=observer
-
 :: ---------------------------------------------------------------------------
 :: the USERPROFILE directory contains the standard default installation of
 :: Python 3.1.0 - there should be a Tools directory which comes with the
 :: official installation files.
 :: ---------------------------------------------------------------------------
-set PY=E:\Python310
+set PY=E:\Python312
 set PO=%PY%\Tools\i18n\msgfmt.py
 set PX=%PY%\python.exe
-set PATH=%PY%;%PATH%
-
+::set PATH=%PY%;%PATH%
+:: ---------------------------------------------------------------------------
+:: First, check if python is installed. If not, try to install it, else try to
+:: create the application.
+:: ---------------------------------------------------------------------------
+::if exists E:\Python310\python.exe goto buildApp
+::if not exists %PY%\python.exe goto pythonSetup
+:buildApp
 set BASEDIR=%cd%
 %PX% -V
-set PYTHONPATH=%PY%\Lib;%PY%\Lib\site-packages
-set PYTHONHOME=
 
+::set PYTHONPATH=
+::%PY%\Lib;%PY%\Lib\site-packagesss
+::set PYTHONHOME=
 set PRJ=E:/Projekte/HelpNDocTools
 
 echo remove old data...
 rm -rf build
 rm -rf dist
 
-echo install packages...
-pip install regex
+::echo install packages...
+::pip install regex
 
-pip install PyQt5
-pip install PyQtWebEngine
+::pip install PyQt5
+::pip install PyQtWebEngine
 
-pip install pyinstaller
-pip install --upgrade pyinstaller
+::pip install pyinstaller
+::pip install --upgrade pyinstaller
 
 echo create directories...  [
 
@@ -66,20 +76,13 @@ for %%A in (en_us, de_de) do (
                 mkdir locales\%%A\LC_MESSAGES >nul 2>&1
                 cd %BASEDIR%\locales\%%A\LC_MESSAGES
                 echo|set /p="locales compiled => "
-                %EX% "%PO%" -o %APP%.mo %APP%.po
+                msgfmt -o ^
+                %BASEDIR%\locales\%%A\LC_MESSAGES\observer.mo ^
+                %BASEDIR%\locales\%%A\LC_MESSAGES\observer.po
                 if errorlevel 0 (
                     echo|set /p="[ ok   ], "
                 )   else (
                     echo|set /p="[ fail ], "
-                )
-                echo|set /p="lexicon compiled => "
-                %EX% "%PO%" -o ^
-                %BASEDIR%\locales\%%A\LC_MESSAGES\lexica.mo ^
-                %BASEDIR%\locales\%%A\LC_MESSAGES\lexica.po >nul 2>&1
-                if errorlevel 0 (
-                    echo [ ok   ]
-                )   else (
-                    echo [ fail ],
                 )
             )
         )
@@ -121,6 +124,10 @@ pyinstaller --noconfirm --console  ^
     --strip                                 ^
     --hide-console="minimize-late"          ^
     --version-file="%PRJ%/src/version.info" ^
+    ^
+    --paths=./                              ^
+    --paths="C:/Windows/System32"           ^
+    --paths="C:/Windows/SysWOW64"           ^
     ^
     --paths="%PRJ%/src/interpreter/pascal"  ^
     --paths="%PRJ%/src/interpreter"         ^
@@ -184,7 +191,7 @@ if errorlevel 1 (
     goto error_executable
 )   else (
     echo  ok   ]
-    goto skc
+    goto TheEnd
     echo|set /p="create Certificate...       ["
     :: -----------------------------------------------------------------------
     :: finally, try to sign the executable with a certificate, that we will
@@ -198,8 +205,13 @@ if errorlevel 1 (
         echo  fail ]
     )
 )
-:skc
-
+goto TheEnd
+:: ---------------------------------------------------------------------------
+:: todo: python setup !
+:: ---------------------------------------------------------------------------
+:pythonSetup
+echo python 3.10 is not installed, yet
+goto TheEnd
 :: ---------------------------------------------------------------------------
 :: no errors was detected - normal exit.
 :: ---------------------------------------------------------------------------

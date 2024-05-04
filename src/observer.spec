@@ -19,7 +19,7 @@ hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/interpreter/p
 
 a = Analysis(
     ['E:/Projekte/HelpNDocTools/src/observer.py'],
-    pathex=['E:/Projekte/HelpNDocTools/src/interpreter/pascal', 'E:/Projekte/HelpNDocTools/src/interpreter', 'E:/Projekte/HelpNDocTools/src/tools', 'E:/Projekte/HelpNDocTools/src'],
+    pathex=['./', 'C:/Windows/System32', 'C:/Windows/SysWOW64', 'E:/Projekte/HelpNDocTools/src/interpreter/pascal', 'E:/Projekte/HelpNDocTools/src/interpreter', 'E:/Projekte/HelpNDocTools/src/tools', 'E:/Projekte/HelpNDocTools/src'],
     binaries=[],
     datas=[('E:/Projekte/HelpNDocTools/src/locales', 'locales/'), ('E:/Projekte/HelpNDocTools/src/img', 'img/'), ('E:/Projekte/HelpNDocTools/LICENSE', '.'), ('E:/Projekte/HelpNDocTools/README.md', '.'), ('E:/Projekte/HelpNDocTools/CONTRIBUTING.md', '.'), ('E:/Projekte/HelpNDocTools/CODE_OF_CONDUCT.md', '.'), ('E:/Projekte/HelpNDocTools/src/topics.txt', '.'), ('E:/Projekte/HelpNDocTools/src/test.byte', '.')],
     hiddenimports=hiddenimports,
@@ -28,6 +28,7 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
+    optimize=0,
 )
 pyz = PYZ(a.pure)
 splash = Splash(
