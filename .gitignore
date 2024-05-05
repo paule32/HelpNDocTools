@@ -77,3 +77,6 @@ src/observer.exe
 src/z.py
 src/get-pip.py
 src/userenv.dll
+src/interpreter/pascal/__pycache__/pascal.cpython-312.pyc
+src/img/doxygen.jpg
+src/ui_untitled.py

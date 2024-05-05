@@ -47,6 +47,7 @@ def handleExceptionApplication(func):
         
         error_result = 1
         error_fail   = True
+        print(ex)
     finally:
         # ---------------------------------------------------------
         # when all is gone, stop the running script ...

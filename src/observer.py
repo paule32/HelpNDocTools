@@ -29,7 +29,13 @@ sys.path.append("./tools")
 from appcollection import *
 
 __app__name        = "observer"
-__app__config_ini  = ".\\_internal\\observer.ini"
+__app__internal__  = "./_internal"
+__app__config_ini  = __app__internal__ + "/observer.ini"
+__app__doxygen__   = __app__internal__ + "/img/doxygen.png"
+__app__hlpndoc__   = __app__internal__ + "/img/helpndoc.png"
+__app__ccpplus__   = __app__internal__ + "/img/cpp.png"
+__app__javadoc__   = __app__internal__ + "/img/java.png"
+__app__freepas__   = __app__internal__ + "/img/fpc.png"
 
 __app__framework   = "PyQt5.QtWidgets.QApplication"
 __app__exec_name   = sys.executable
@@ -132,7 +138,7 @@ def convertPath(text):
 # ------------------------------------------------------------------------
 def handle_language(lang):
     try:
-        system_lang, _ = locale.getdefaultlocale()
+        system_lang, _ = locale.getlocale()
         if system_lang.lower() == __locale__enu:
             if lang.lower() == __locale__enu:
                 _ = gettext.translation(
@@ -1523,6 +1529,168 @@ class MyItemRecord:
         self.record_array.insert(item_attr1, item_attr2)
         return
 
+class doxygenImageTracker(QWidget):
+    def __init__(self, parent=None):
+        super(doxygenImageTracker, self).__init__(parent)
+        
+        self.img_origin_doxygen_image = QPixmap(__app__doxygen__)
+        self.img_origin_doxygen_label = QLabel(self)
+        self.img_origin_doxygen_label.setObjectName("doxygen-image")
+        self.img_origin_doxygen_label.move(30,10)
+        self.img_origin_doxygen_label.setMinimumHeight(70)
+        self.img_origin_doxygen_label.setMinimumWidth(218)
+        self.img_origin_doxygen_label.setPixmap(self.img_origin_doxygen_image)
+        self.img_origin_doxygen_label.setStyleSheet("""
+        QLabel {
+            border: 7px solid blue;
+            border-radius: 10px;
+        }
+        QLabel:hover {
+            border: 7px solid lime;
+            border-radius: 10px;
+        }
+        """)
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            print("doxygen")
+    
+    def enterEvent(self, event):
+        self.img_origin_doxygen_label.setCursor(QCursor(Qt.PointingHandCursor))
+    
+    def leaveEvent(self, event):
+        self.img_origin_doxygen_label.setCursor(QCursor(Qt.ArrowCursor))
+
+class helpNDocImageTracker(QWidget):
+    def __init__(self, parent=None):
+        super(helpNDocImageTracker, self).__init__(parent)
+        
+        self.img_origin_hlpndoc_image = QPixmap(__app__hlpndoc__)
+        self.img_origin_hlpndoc_label = QLabel(self)
+        self.img_origin_hlpndoc_label.setObjectName("hlpndoc-image")
+        self.img_origin_hlpndoc_label.move(32,24)
+        self.img_origin_hlpndoc_label.setMinimumHeight(60)
+        self.img_origin_hlpndoc_label.setMinimumWidth(200)
+        self.img_origin_hlpndoc_label.setPixmap(self.img_origin_hlpndoc_image)
+        self.img_origin_hlpndoc_label.setStyleSheet("""
+        QLabel {
+            border: 7px solid blue;
+            border-radius: 10px;
+        }
+        QLabel:hover {
+            border: 7px solid lime;
+        }
+        """)
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            print("helpNDoc")
+    
+    def enterEvent(self, event):
+        self.img_origin_hlpndoc_label.setCursor(QCursor(Qt.PointingHandCursor))
+    
+    def leaveEvent(self, event):
+        self.img_origin_hlpndoc_label.setCursor(QCursor(Qt.ArrowCursor))
+
+class ccpplusImageTracker(QWidget):
+    def __init__(self, parent=None):
+        super(ccpplusImageTracker, self).__init__(parent)
+        
+        #self.setMinimumHeight(120)
+        #self.setMinimumWidth(120)
+        self.img_origin_ccpplus_image = QPixmap(__app__ccpplus__)
+        self.img_origin_ccpplus_label = QLabel(self)
+        self.img_origin_ccpplus_label.setObjectName("ccpplus-image")
+        self.img_origin_ccpplus_label.move(15,0)
+        self.img_origin_ccpplus_label.setMinimumHeight(107)
+        self.img_origin_ccpplus_label.setMinimumWidth(104)
+        self.img_origin_ccpplus_label.setPixmap(self.img_origin_ccpplus_image)
+        self.img_origin_ccpplus_label.setStyleSheet("""
+        QLabel {
+            border: 7px solid blue;
+            border-radius: 10px;
+        }
+        QLabel:hover {
+            border: 7px solid lime;
+            border-radius: 10px;
+        }
+        """)
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            print("ccpplus")
+    
+    def enterEvent(self, event):
+        self.img_origin_ccpplus_label.setCursor(QCursor(Qt.PointingHandCursor))
+    
+    def leaveEvent(self, event):
+        self.img_origin_ccpplus_label.setCursor(QCursor(Qt.ArrowCursor))
+
+class javadocImageTracker(QWidget):
+    def __init__(self, parent=None):
+        super(javadocImageTracker, self).__init__(parent)
+        
+        self.img_origin_javadoc_image = QPixmap(__app__javadoc__)
+        self.img_origin_javadoc_label = QLabel(self)
+        self.img_origin_javadoc_label.setObjectName("javadoc-image")
+        self.img_origin_javadoc_label.move(14,0)
+        self.img_origin_javadoc_label.setMinimumHeight(107)
+        self.img_origin_javadoc_label.setMinimumWidth(104)
+        self.img_origin_javadoc_label.setPixmap(self.img_origin_javadoc_image)
+        self.img_origin_javadoc_label.setStyleSheet("""
+        QLabel {
+            border: 7px solid blue;
+            border-radius: 10px;
+        }
+        QLabel:hover {
+            border: 7px solid lime;
+            border-radius: 10px;
+        }
+        """)
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            print("javadoc")
+    
+    def enterEvent(self, event):
+        self.img_origin_javadoc_label.setCursor(QCursor(Qt.PointingHandCursor))
+    
+    def leaveEvent(self, event):
+        self.img_origin_javadoc_label.setCursor(QCursor(Qt.ArrowCursor))
+
+class freepasImageTracker(QWidget):
+    def __init__(self, parent=None):
+        super(freepasImageTracker, self).__init__(parent)
+        
+        self.img_origin_freepas_image = QPixmap(__app__freepas__)
+        self.img_origin_freepas_label = QLabel(self)
+        self.img_origin_freepas_label.setObjectName("freepas-image")
+        self.img_origin_freepas_label.move(30,10)
+        self.img_origin_freepas_label.setMinimumHeight(70)
+        self.img_origin_freepas_label.setMinimumWidth(218)
+        self.img_origin_freepas_label.setPixmap(self.img_origin_freepas_image)
+        self.img_origin_freepas_label.setStyleSheet("""
+        QLabel {
+            border: 7px solid blue;
+            border-radius: 10px;
+        }
+        QLabel:hover {
+            border: 7px solid lime;
+            border-radius: 10px;
+        }
+        """)
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            print("freepas")
+    
+    def enterEvent(self, event):
+        self.img_origin_freepas_label.setCursor(QCursor(Qt.PointingHandCursor))
+    
+    def leaveEvent(self, event):
+        self.img_origin_freepas_label.setCursor(QCursor(Qt.ArrowCursor))
+
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -1604,10 +1772,10 @@ class FileWatcherGUI(QDialog):
                 
                 while len(stack) > num_plus + 1:
                     stack.pop()
-                print("33333")
+                
                 stack[-1].appendRow([new_item, item1, item2, item3, item4])
                 stack.append(new_item)
-                print("55555")
+                
     
     def add_tree_item(self, parent_item, item_name):
         new_item = QStandardItem(item_name)
@@ -1669,8 +1837,10 @@ class FileWatcherGUI(QDialog):
         return
         
     def init_ui(self):
+        # mouse tracking
+        self.setMouseTracking(True)
         # Layout
-        self.setMaximumWidth (936)
+        self.setMaximumWidth (1024)
         self.setMinimumWidth (936)
         #
         self.setMaximumHeight(730)
@@ -1907,7 +2077,7 @@ class FileWatcherGUI(QDialog):
             list_layout_2.addWidget(v1)
             v1.hide()
             i += 1
-        print("1111111")
+        
         self.sv_2_1.show()
         self.hw_2 = QWidget()
         
@@ -1924,7 +2094,7 @@ class FileWatcherGUI(QDialog):
         self.tab2_tree_model = QStandardItemModel()
         self.tab2_tree_model.setHorizontalHeaderLabels(["Topic name", "ID", "Status", "Help icon", "In Build"])
         tab2_tree_view.setModel(self.tab2_tree_model)
-        print("2222222")
+        
         self.tab2_top_layout.addWidget(tab2_tree_view)
         self.populate_tree_view(self.tab2_file_path, ".\\_internal\\img\\open-folder.png")
         
@@ -1945,10 +2115,161 @@ class FileWatcherGUI(QDialog):
         self.tab0_top_layout    = QHBoxLayout(self.tab0)
         self.tab0_left_layout   = QVBoxLayout()
         
-        self.tab0_fold_text = QLabel('Directory:', self.tab0)
+        #
+        self.tab0_topV_vlayout = QVBoxLayout()
+        #
+        self.tab0_topA_hlayout = QHBoxLayout()
+        self.tab0_topB_hlayout = QHBoxLayout()
+        self.tab0_topC_hlayout = QHBoxLayout()
+        self.tab0_topD_hlayout = QHBoxLayout()
+        #
+        self.tab0_topA_hlayout = QHBoxLayout()
+        self.tab0_topA_vlayout = QVBoxLayout()
+        #
+        self.tab0_topB_hlayout = QHBoxLayout()
+        self.tab0_topB_vlayout = QVBoxLayout()
+        #
+        self.tab0_top0_vlayout = QVBoxLayout()
+        #
+        self.tab0_top1_vlayout = QVBoxLayout()
+        self.tab0_top2_vlayout = QVBoxLayout()
+        #
+        self.tab0_top1_hlayout = QHBoxLayout()
+        self.tab0_top2_hlayout = QHBoxLayout()
+        #
+        #
+        self.tab0_top1_vlayout.setAlignment(Qt.AlignTop)
+        self.tab0_top2_vlayout.setAlignment(Qt.AlignTop)
+        #
+        self.tab0_topA_vlayout.setAlignment(Qt.AlignTop)
+        self.tab0_topB_vlayout.setAlignment(Qt.AlignTop)
+        #
+        #
+        font = QFont("Arial", 10)
+        font.setPointSize(10)
+        #
+        self.tab0_fold_text1 = QLabel("Directory:")
+        self.tab0_fold_text1.setMaximumWidth(84)
+        self.tab0_fold_text1.setFont(font)
+        self.tab0_fold_edit1 = QLineEdit()
+        self.tab0_fold_edit1.setFont(font)
+        self.tab0_fold_edit1.setMinimumHeight(26)
+        self.tab0_fold_edit1.setMaximumWidth(250)
+        self.tab0_fold_push1 = QPushButton("...")
+        self.tab0_fold_push1.setFont(font)
+        self.tab0_fold_push1.setMinimumHeight(36)
+        self.tab0_fold_push1.setMinimumWidth(36)
+        self.tab0_fold_push1.setMaximumWidth(36)
+        self.tab0_fold_scroll1 = QScrollArea()
+        self.tab0_fold_scroll1.setMaximumWidth(300)
+        self.tab0_fold_push11 = QPushButton("Create")
+        self.tab0_fold_push11.setMinimumWidth(84)
+        self.tab0_fold_push11.setMinimumHeight(42)
+        self.tab0_fold_push11.setFont(font)
+        self.tab0_fold_push12 = QPushButton("Open")
+        self.tab0_fold_push12.setMinimumWidth(84)
+        self.tab0_fold_push12.setMinimumHeight(42)
+        self.tab0_fold_push12.setFont(font)
+        #
+        self.tab0_fold_text2 = QLabel("Project-Name:")
+        self.tab0_fold_text2.setMaximumWidth(84)
+        self.tab0_fold_text2.setFont(font)
+        self.tab0_fold_edit2 = QLineEdit()
+        self.tab0_fold_edit2.setFont(font)
+        self.tab0_fold_edit2.setMinimumHeight(26)
+        self.tab0_fold_edit2.setMaximumWidth(250)
+        self.tab0_fold_push2 = QPushButton("...")
+        self.tab0_fold_push2.setFont(font)
+        self.tab0_fold_push2.setMinimumHeight(36)
+        self.tab0_fold_push2.setMinimumWidth(36)
+        self.tab0_fold_push2.setMaximumWidth(36)
+        self.tab0_fold_scroll2 = QScrollArea()
+        self.tab0_fold_scroll2.setMaximumWidth(300)
+        self.tab0_fold_push21 = QPushButton("Create")
+        self.tab0_fold_push21.setFont(font)
+        self.tab0_fold_push21.setMinimumWidth(84)
+        self.tab0_fold_push21.setMinimumHeight(42)
+        self.tab0_fold_push22 = QPushButton("Open")
+        self.tab0_fold_push22.setFont(font)
+        self.tab0_fold_push22.setMinimumWidth(84)
+        self.tab0_fold_push22.setMinimumHeight(42)
+        #
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_text1)
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_edit1)
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_push1)
+        #
+        #
+        self.tab0_top2_hlayout.addWidget(self.tab0_fold_text2)
+        self.tab0_top2_hlayout.addWidget(self.tab0_fold_edit2)
+        self.tab0_top2_hlayout.addWidget(self.tab0_fold_push2)
+        #
+        #
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push11)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push12)
+        self.tab0_topA_hlayout.addWidget(self.tab0_fold_scroll1)
+        #
+        self.tab0_topC_hlayout.addLayout(self.tab0_topA_vlayout)
+        self.tab0_topC_hlayout.addLayout(self.tab0_topA_hlayout)
+        #
+        self.tab0_topB_vlayout.addWidget(self.tab0_fold_push21)
+        self.tab0_topB_vlayout.addWidget(self.tab0_fold_push22)
+        self.tab0_topB_hlayout.addWidget(self.tab0_fold_scroll2)
+        #
+        self.tab0_topD_hlayout.addLayout(self.tab0_topB_vlayout)
+        self.tab0_topD_hlayout.addLayout(self.tab0_topB_hlayout)
+        #
+        self.tab0_top0_vlayout.addLayout(self.tab0_topC_hlayout)
+        self.tab0_top0_vlayout.addLayout(self.tab0_topD_hlayout)
+        #
+        self.tab0_topV_vlayout.addLayout(self.tab0_top1_hlayout)
+        self.tab0_topV_vlayout.addLayout(self.tab0_top0_vlayout)
+        self.tab0_topV_vlayout.addLayout(self.tab0_top2_hlayout)
+        self.tab0_topV_vlayout.addLayout(self.tab0_top0_vlayout)
+        #
+        #
+        self.tab0_fold_scroll1_contentWidget = QWidget()
+        self.tab0_fold_scroll1_contentWidget.setGeometry(QRect(10,10,297,235))
+        self.tab0_fold_scroll1_contentWidget.setStyleSheet("background-color:gray;")
+        #
+        self.tab0_fold_scroll2_contentWidget = QWidget()
+        self.tab0_fold_scroll2_contentWidget.setGeometry(QRect(10,10,297,235))
+        self.tab0_fold_scroll2_contentWidget.setStyleSheet("background-color:gray;")
+        #
+        self.tab0_fold_scroll1.setWidget(self.tab0_fold_scroll1_contentWidget)
+        self.tab0_fold_scroll2.setWidget(self.tab0_fold_scroll2_contentWidget)
+        #
+        #
+        self.img_scroll1_layout = QVBoxLayout(self.tab0_fold_scroll1)
+        self.img_scroll1_layout.addWidget(self.tab0_fold_scroll1)
+        #
+        self.img_doxygen = doxygenImageTracker ()
+        self.img_hlpndoc = helpNDocImageTracker()
+        #
+        #
+        self.img_scroll1_layout.addWidget(self.img_doxygen)
+        self.img_scroll1_layout.addWidget(self.img_hlpndoc)
+        #
+        self.img_scroll2_layout = QGridLayout(self.tab0_fold_scroll2)
+        #
+        #self.img_scroll2_layout.addWidget(self.tab0_fold_scroll2)
+        #
+        self.img_ccpplus = ccpplusImageTracker()
+        self.img_javadoc = javadocImageTracker()
+        self.img_freepas = freepasImageTracker()
+        #
+        #
+        self.img_scroll2_layout.addWidget(self.img_ccpplus, 0, 0)
+        self.img_scroll2_layout.addWidget(self.img_javadoc, 0, 1)
+        self.img_scroll2_layout.addWidget(self.img_freepas, 2, 0, 1, 2)
+        #
+        #
+        self.tab0_top_layout.addLayout(self.tab0_topV_vlayout)
+        
+        
+        
         self.tab0_file_text = QLabel("File:", self.tab0)
         
-        self.tab0_left_layout.addWidget(self.tab0_fold_text)
+        self.tab0_left_layout.addWidget(self.tab0_file_text)
         self.tab0_path = QDir.homePath()
         
         self.tab0_dir_model = QFileSystemModel()
@@ -2159,7 +2480,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_right_layout.addWidget(self.tab1_postDelButton)
         self.tab1_right_layout.addWidget(self.tab1_postClrButton)
         
-        print("0000112121212")
+        
         # ------------------
         # alles zusammen ...
         # ------------------
@@ -2168,7 +2489,7 @@ class FileWatcherGUI(QDialog):
         self.page1    = QWebEnginePage(self.profile1, self.webView1)
         self.webView1.setPage(self.page1)
         self.webView1.setHtml(html_content, baseUrl = QUrl. fromLocalFile('.'))
-        print("5566778889888")
+        
         self.tab4_top_layout.addWidget(self.webView1);            
         self.tab0_top_layout.addLayout(self.tab0_left_layout)
         
@@ -2181,14 +2502,14 @@ class FileWatcherGUI(QDialog):
         
         self.setLayout(self.layout)
         self.setWindowTitle('HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32')
-        print("mmmmmmm")
+        
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
-        print("tttttttt")
+        
         self.interval = 0
         self.currentTime = 0
-        print("+++++++++")
+        
     
     # ------------------------------------------------------------------------
     # class member to get the widget item from list_widget_1 or list_widget_2.
@@ -2563,9 +2884,9 @@ def EntryPoint():
     
     appwin = FileWatcherGUI()
     appwin.move(100, 100)
-    print("vvvvvvv")
+    
     appwin.exec_()
-    print("xxxxxxssssss")
+    
     #error_result = app.exec_()
     return
 
