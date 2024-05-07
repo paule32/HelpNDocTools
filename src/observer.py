@@ -21,6 +21,7 @@ if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
 
 sys.path.append("./interpreter/pascal")
+sys.path.append("./interpreter/dbase")
 sys.path.append("./tools")
 
 # -----------------------------------------------------------------------
@@ -300,6 +301,72 @@ class myCustomLabel(QLabel):
 # ------------------------------------------------------------------------
 # create a scroll view for the mode tab on left side of application ...
 # ------------------------------------------------------------------------
+class iconComboBox(QComboBox):
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.fillRect(event.rect(), Qt.white)
+        
+        for i in range(self.count()):
+            item_rect = self.view().visualRect(
+            self.model().index(i, 0))
+            
+            icon = self.itemIcon(i)
+            text = self.itemText(i)
+            
+            if not item_rect.isNull():
+                if not icon.isNull():
+                    icon_size = icon.actualSize(
+                        QSize(
+                            item_rect.height(),
+                            item_rect.height()))
+                    icon_rect = QRect(
+                        item_rect.left() + 4,
+                        item_rect.top(), 56,
+                        item_rect.height())
+                    icon.paint(painter,
+                        icon_rect,
+                        Qt.AlignCenter,
+                        QIcon.Normal,
+                        QIcon.Off)
+                if not icon.isNull():
+                    right_icon_rect = QRect(
+                        item_rect.right() - item_rect.height(),
+                        item_rect.top(),
+                        icon_size.width(),
+                        icon_size.height())
+                    icon.paint(painter,
+                        right_icon_rect,
+                        Qt.AlignCenter,
+                        QIcon.Normal,
+                        QIcon.Off)
+        
+        arrow_icon = self.style().standardIcon(self.style().SP_ArrowDown)
+        arrow_rect = QRect(
+            self.width() - 20,  0, 20,
+            self.height())
+        arrow_icon.paint(painter,
+            arrow_rect,
+            Qt.AlignCenter,
+            QIcon.Normal,
+            QIcon.Off)
+        
+        boxrect = event.rect()
+        boxrect.setWidth(boxrect.width() - 22)
+        
+        painter.setPen(Qt.black)
+        painter.fillRect(boxrect, Qt.white)
+        painter.drawRect(boxrect)
+        
+        selected_text = self.currentText()
+        if selected_text:
+            selected_text_rect = QRect(14, 0,
+                self.width() - 24,
+                self.height())
+            painter.drawText(
+                selected_text_rect, Qt.AlignLeft | Qt.AlignVCenter,
+                selected_text)
+
 class myCustomScrollArea(QScrollArea):
     def __init__(self, name):
         super().__init__()
@@ -470,7 +537,7 @@ class myCustomScrollArea(QScrollArea):
                 lh_0.addWidget(vw_2)
             
             elif elements[i][1] == self.type_combo_box:
-                vw_2 = QComboBox()
+                vw_2 = iconComboBox(self)
                 vw_2.setMinimumHeight(26)
                 vw_2.setFont(self.font)
                 vw_2.font().setPointSize(14)
@@ -480,11 +547,19 @@ class myCustomScrollArea(QScrollArea):
                     data = json.loads(self.supported_langs)
                     elements[i][4] = data
                     for j in range(0, len(data)):
-                        img = ".\\_internal\\img\\flag_"  \
+                        img = "./_internal/img/flag_"  \
                         + elements[i][4][j] \
-                        + ".png".lower()
-                        vw_2.insertItem(0, elements[i][4][j])
-                        vw_2.setItemIcon(0, QIcon(os.path.join(basedir,"img",img)))
+                        + ".png"
+                        img = img.lower()
+                        
+                        vw_2.addItem(QIcon(img), elements[i][4][j-1])
+                        #vw_2.setStyleSheet("""
+                        #QComboBox QAbstractItemView {
+                        #    selection-background-color: lightGray;
+                        #    selection-color: black;
+                        #    color: black;
+                        #}
+                        #""")
                 
                 elif elements[i][3] == 2:
                     for j in range(0, len(elements[i][4])):
@@ -2634,7 +2709,7 @@ class licenseWindow(QDialog):
         self.returnCode = 0
         
         self.file_content = ""
-        self.file_path = ".\\_internal\\LICENSE"
+        self.file_path = "./_internal/LICENSE"
         try:
             with open(self.file_path, "r") as file:
                 self.file_content = file.read()
@@ -2695,7 +2770,7 @@ def ApplicationAtExit():
 # ------------------------------------------------------------------------
 # this is our "main" entry point, where the application will start.
 # ------------------------------------------------------------------------
-def EntryPoint():
+def EntryPoint(arg1=""):
     atexit.register(ApplicationAtExit)
     
     global conn
@@ -2725,10 +2800,10 @@ def EntryPoint():
     doxy_env   = "DOXYGEN_PATH"  # doxygen.exe
     doxy_hhc   = "DOXYHHC_PATH"  # hhc.exe
     
-    doxy_path  = ".\\_internal\\"
+    doxy_path  = "./_internal/"
     hhc__path  = ""
     
-    doxyfile   = ".\\_internal\\Doxyfile"
+    doxyfile   = "./_internal/Doxyfile"
     
     
     # ---------------------------------------------------------
@@ -2890,9 +2965,45 @@ def EntryPoint():
     #error_result = app.exec_()
     return
 
+def parserPoint(script_name):
+    prg = interpreter_dBase(script_name)
+    prg.parse()
+    prg.run()
+
 if __name__ == '__main__':
+    
+    # The Python 2.7+ or 3.3+ is required.
+    major = sys.version_info[0]
+    minor = sys.version_info[1]
+    if (major == 2 and minor < 7) or (major == 3 and minor < 0):
+        print("Python 2.7+ or Python 3.0+ are required for the script")
+        sys.exit(1)
+    
+    # Determine the path to the script and its name.
+    script = os.path.abspath(sys.argv[0])
+    script_path, script_name = os.path.split(script)
+    script_path = os.path.abspath(script_path)
+    
+    if len(sys.argv) <= 1:
+        print("no arguments given.")
+        sys.exit(1)
+    else:
+        if len(sys.argv[1]) <= 1:
+            print("file name must be longer than 1.")
+            sys.exit(1)
+        else:
+            if not os.path.exists(sys.argv[1]):
+                print("given argument does not exists as file.")
+                sys.exit(1)
+            if not os.path.isfile(sys.argv[1]):
+                print("given argument is not a file.")
+                sys.exit(1)
+            print("parse... ")
+            handleExceptionApplication(parserPoint,sys.argv[1])
+            print("done.")
+            sys.exit(0)
+    
     handleExceptionApplication(EntryPoint)
-    print("End2")
     sys.exit(0)
         
 # ----------------------------------------------------------------------------

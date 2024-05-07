@@ -12,6 +12,7 @@ global sv_help
 
 global error_fail, error_result
 global app
+global byte_code
 
 global debugMode
 
@@ -56,6 +57,10 @@ try:
     
     import traceback     # stack exception trace back
     
+    import textwrap
+    import marshal       # bytecode exec
+    import inspect       # stack
+    
     # ------------------------------------------------------------------------
     # Qt5 gui framework
     # ------------------------------------------------------------------------
@@ -68,15 +73,18 @@ try:
     # developers own modules ...
     # ------------------------------------------------------------------------
     sys.path.append("./interpreter/pascal")
+    sys.path.append("./interpreter/dbase")
     sys.path.append("./tools")
     
-    from exclasses import *     # exception: templates
-    from exapp     import *     # exception: application block placeholder
+    from exclasses  import *     # exception: templates
+    from exapp      import *     # exception: application block placeholder
     
     from collection import *     # exception: templates
     from exapp      import *     # exception: application block placeholder
     
-    from pascal     import *
+    from colorama   import init, Fore, Back, Style  # ANSI escape
+    from pascal     import *     # pascal interpreter
+    from dbase      import *     # dbase ...
     
 except Exception as err:
     print(err)

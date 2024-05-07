@@ -5,12 +5,12 @@
 # ---------------------------------------------------------------------------
 from appcollection import *
 
-def handleExceptionApplication(func):
+def handleExceptionApplication(func,arg1=""):
     global error_fail, error_result
     error_fail = False
     error_result = 0
     try:
-        func()
+        func(arg1)
     except ListInstructionError as ex:
         ex.add_note("Did you miss a parameter ?")
         ex.add_note("Add more information.")
@@ -57,4 +57,3 @@ def handleExceptionApplication(func):
             sys.exit(error_result)
         
         print("Done.")
-        sys.exit(0)
