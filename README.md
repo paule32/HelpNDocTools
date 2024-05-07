@@ -6,7 +6,7 @@ To download the Windows 10 64-Bit Professional based Application, you can visit:
 Here are some out dated screen shoot on running the application:
 
 Preview Front-Window 1:
-![Preview](src/img/screen00Y.png)
+![Preview](src/img/screen00A.png)
 
 Preview Front-Window 2:
 ![Preview](src/img/screen000.png)
