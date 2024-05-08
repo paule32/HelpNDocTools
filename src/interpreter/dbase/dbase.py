@@ -65,6 +65,26 @@ class interpreter_dBase():
         c = self.line[self.pos]
         return c
     
+    def handle_c_comment(self):
+        try:
+            while True:
+                c = self.getChar()
+                if c == "\n":
+                    self.lineno += 1
+                    self.pos = 0
+                    self.line = self.file.readline()
+                    self.linelen = len(self.line)
+                    c = self.line[self.pos]
+                elif c == "*" and self.getChar() == "/":
+                    c = self.getChar()
+                    break
+            c = self.getIdent()
+            if c.isspace():
+                print("spacer")
+            return c
+        except:
+            self.__unexpectedEndOfLine()
+    
     def check_comment(self):
         while True:
             c = self.getChar()
@@ -76,48 +96,12 @@ class interpreter_dBase():
                     self.__unexpectedEndOfLine()
                 c = self.line[self.pos]
                 if c == "*":
-                    #print("C commentl")
-                    try:
-                        while True:
-                            c = self.getChar()
-                            if c == "\n":
-                                #print("ne")
-                                self.lineno += 1
-                                self.pos = 0
-                                self.line = self.file.readline()
-                                self.linelen = len(self.line)
-                                c = self.line[self.pos]
-                            elif c == "*" and self.getChar() == "/":
-                                #print("222222")
-                                #self.pos += 1
-                                c = self.getChar()
-                                break
-                        #print(">--" + c + "--")
-                        #c = self.skip_white_spaces()
-                        c = self.getIdent()
-                        #print("--" + c + "--")
-                        if c.isspace():
-                            print("spacer")
-                            #print("--" + c + "--")
-                        return c
-                    except:
-                        self.__unexpectedEndOfLine()
+                    print("C commentl")
+                    c = self.handle_c_comment()
                 elif c == "/":
-                    #print("C++ comment 222")
-                    while True:
-                        c = self.getChar()
-                        if c == "":
-                            break
-                        elif c == "\n":
-                            break
-                    #print("111111")
-                    c = self.skip_white_spaces()
-                    if not c.isspace():
-                        self.pos -= 1
-                        c = self.line[self.pos]
-                        #print(">>>" + c + "<<<")
-                        #print(self.tokenstr)
-                        return c
+                    print("C++ comment 222")
+                    c = self.handle_oneline_comment()
+                    return c
                 else:
                     print("2222")
                     self.pos -= 1
@@ -131,13 +115,7 @@ class interpreter_dBase():
 
     def getIdent(self):
         while True:
-            self.pos += 1
-            if self.pos >= self.linelen:
-                self.lineno += 1
-                self.pos = 0
-                self.line = self.file.readline()
-                self.linelen = len(self.line)
-            c = self.line[self.pos]
+            c = self.getChar()
             if c.isspace():
                 return self.tokenstr
             elif c.isalnum():
@@ -158,8 +136,36 @@ class interpreter_dBase():
                 self.pos -= 1
                 c = self.check_comment()
                 return c
+    
+    def handle_oneline_comment(self):
+        while True:
+            c = self.getChar()
+            if c == "\n":
+                self.lineno += 1
+                self.pos += 1
+                if self.lineno >= self.total_lines:
+                    break
+                if self.pos >= self.linelen:
+                    self.line = self.file.readline()
+                    self.linelen = len(self.line)
+                    self.pos = 0
+                    break
+                else:
+                    c = self.line[self.pos]
+                    self.lineno += 1
+                    break
+        return c
+    
     def handle_commands(self):
-        print("zz:" + self.tokenstr + ":uu")
+        #print("zz:" + self.tokenstr + ":uu")
+        if self.tokenstr == "&":
+            c = self.getChar()
+            if c == "&":
+                print("dBase Comment 3 ----> &&")
+                c = self.handle_oneline_comment()
+            else:
+                self.pos -= 1
+                c = "&"
         if self.tokenstr == "set":
             self.tokenstr = ""
             self.getIdent()
@@ -241,47 +247,17 @@ class interpreter_dBase():
                     elif c == "/":
                         c = self.getChar()
                         if c == "*":
-                            while True:
-                                c = self.getChar()
-                                if c == "\n":
-                                    #print("ne")
-                                    self.lineno += 1
-                                    self.pos = 0
-                                    self.line = self.file.readline()
-                                    self.linelen = len(self.line)
-                                    c = self.line[self.pos]
-                                elif c == "*" and self.getChar() == "/":
-                                    #print("1111")
-                                    self.pos += 1
-                                    c = self.getChar()
-                                    break
-                            #c = self.check_comment()
-                            #print("zz:" + c + ":zz")
+                            c = self.handle_c_comment()
                         elif c == "/":
-                            #print("C++ comment 111")
-                            while True:
-                                c = self.getChar()
-                                if c == "\n":
-                                    self.lineno += 1
-                                    self.pos += 1
-                                    if self.lineno >= self.total_lines:
-                                        break
-                                    if self.pos >= self.linelen:
-                                        self.line = self.file.readline()
-                                        self.linelen = len(self.line)
-                                        self.pos = 0
-                                        break
-                                    else:
-                                        c = self.line[self.pos]
-                                        self.lineno += 1
-                                        break
+                            print("C++ comment 111")
+                            c = self.handle_oneline_comment()
                             if self.lineno >= self.total_lines:
                                 break
                             c = self.check_comment()
+                            
                             self.tokenstr = c
                             c = self.getIdent()
-                            #print(">>---> " + self.tokenstr)
-                            #self.tokenstr += c
+                            
                             self.previd = self.tokenstr
                             self.handle_commands()
                             self.status = 0
@@ -291,6 +267,24 @@ class interpreter_dBase():
                             #print("zz: " + c + " :usssu") # atzi
                             
                             self.status = 0
+                    elif c == "*":
+                        c = self.getChar()
+                        if c == "*":
+                            print("dBase Comment 1 ----> **")
+                            c = self.handle_oneline_comment()
+                            if self.lineno >= self.total_lines:
+                                break
+                        else:
+                            print("todo")
+                    elif c == "&":
+                        c = self.getChar()
+                        if c == "&":
+                            print("dBase Comment 2 ----> &&")
+                            c = self.handle_oneline_comment()
+                            if self.lineno >= self.total_lines:
+                                break
+                        else:
+                            print("todo")
                     elif c == "#":
                         #print("preproc")
                         self.tokenstr = c
@@ -303,7 +297,7 @@ class interpreter_dBase():
                         self.status = 333
                     
                     if self.pos >= self.linelen:
-                        print("1111111111")
+                        #print("1111111111")
                         break
                     self.pos += 1
                 

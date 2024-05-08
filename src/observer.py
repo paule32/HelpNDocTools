@@ -2965,8 +2965,13 @@ def EntryPoint(arg1=""):
     #error_result = app.exec_()
     return
 
-def parserPoint(script_name):
+def parserDBasePoint(script_name):
     prg = interpreter_dBase(script_name)
+    prg.parse()
+    prg.run()
+
+def parserPascalPoint(script_name):
+    prg = interpreter_Pascal(script_name)
     prg.parse()
     prg.run()
 
@@ -2984,24 +2989,46 @@ if __name__ == '__main__':
     script_path, script_name = os.path.split(script)
     script_path = os.path.abspath(script_path)
     
-    if len(sys.argv) <= 1:
+    __app__parameter = (""
+    + "Usage: python observer.py --dbase  file.prg\n"
+    + "       python observer.py --pascal file.pas\n")
+    
+    __app__tmp1 = "given argument does not exists as file."
+    __app__tmp2 = "given argument is not a file."
+    __app__tmp3 = "parse..."
+    
+    if len(sys.argv) <= 2:
         print("no arguments given.")
+        print(__app__parameter)
         sys.exit(1)
     else:
-        if len(sys.argv[1]) <= 1:
-            print("file name must be longer than 1.")
+        if len(sys.argv[1]) < 7:
+            print("no parameter given.")
             sys.exit(1)
-        else:
-            if not os.path.exists(sys.argv[1]):
-                print("given argument does not exists as file.")
+        if sys.argv[1] == "--dbase":
+            if not os.path.exists(sys.argv[2]):
+                print(__app__tmp1)
                 sys.exit(1)
-            if not os.path.isfile(sys.argv[1]):
-                print("given argument is not a file.")
+            if not os.path.isfile(sys.argv[2]):
+                print(__app__tmp2)
                 sys.exit(1)
-            print("parse... ")
-            handleExceptionApplication(parserPoint,sys.argv[1])
-            print("done.")
+            print(__app__tmp3)
+            handleExceptionApplication(parserDBasePoint,sys.argv[2])
             sys.exit(0)
+        elif sys.argv[1] == "--pascal":
+            if not os.path.exists(sys.argv[2]):
+                print(__app__tmp1)
+                sys.exit(1)
+            if not os.path.isfile(sys.argv[2]):
+                print(__app__tmp2)
+                sys.exit(1)
+            print(__app__tmp3)
+            handleExceptionApplication(parserPascalPoint,sys.argv[2])
+            sys.exit(0)
+        else:
+            print("parameter unknown.")
+            print(__app__parameter)
+            sys.exit(1)
     
     handleExceptionApplication(EntryPoint)
     sys.exit(0)
