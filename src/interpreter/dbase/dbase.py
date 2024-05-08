@@ -1,4 +1,4 @@
-## ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # File:   dbase.py
 # Author: (c) 2024 Jens Kallup - paule32
 # All rights reserved
@@ -38,6 +38,7 @@ class interpreter_dBase():
         
         self.tokenlineno = 0
         self.tokenid   = None
+        self.total_lines = 0
         
         self.tokenstr  = ""
         self.previd    = ""
@@ -54,8 +55,140 @@ class interpreter_dBase():
         bytecode = marshal.loads(self.byte_code)
         exec(bytecode)
     
+    def getChar(self):
+        self.pos += 1
+        if self.pos >= self.linelen:
+            self.lineno += 1
+            self.pos = 0
+            self.line = self.file.readline()
+            self.linelen = len(self.line)
+        c = self.line[self.pos]
+        return c
+    
+    def check_comment(self):
+        while True:
+            c = self.getChar()
+            if c.isspace():
+                pass
+            elif c == "/":
+                self.pos += 1
+                if self.pos >= self.linelen:
+                    self.__unexpectedEndOfLine()
+                c = self.line[self.pos]
+                if c == "*":
+                    #print("C commentl")
+                    try:
+                        while True:
+                            c = self.getChar()
+                            if c == "\n":
+                                #print("ne")
+                                self.lineno += 1
+                                self.pos = 0
+                                self.line = self.file.readline()
+                                self.linelen = len(self.line)
+                                c = self.line[self.pos]
+                            elif c == "*" and self.getChar() == "/":
+                                #print("222222")
+                                #self.pos += 1
+                                c = self.getChar()
+                                break
+                        #print(">--" + c + "--")
+                        #c = self.skip_white_spaces()
+                        c = self.getIdent()
+                        #print("--" + c + "--")
+                        if c.isspace():
+                            print("spacer")
+                            #print("--" + c + "--")
+                        return c
+                    except:
+                        self.__unexpectedEndOfLine()
+                elif c == "/":
+                    #print("C++ comment 222")
+                    while True:
+                        c = self.getChar()
+                        if c == "":
+                            break
+                        elif c == "\n":
+                            break
+                    #print("111111")
+                    c = self.skip_white_spaces()
+                    if not c.isspace():
+                        self.pos -= 1
+                        c = self.line[self.pos]
+                        #print(">>>" + c + "<<<")
+                        #print(self.tokenstr)
+                        return c
+                else:
+                    print("2222")
+                    self.pos -= 1
+                    c = self.line[self.pos]
+                    return c
+            else:
+                return c
+    
+    def ungetChar(self, num):
+        self.pos -= num;
+
+    def getIdent(self):
+        while True:
+            self.pos += 1
+            if self.pos >= self.linelen:
+                self.lineno += 1
+                self.pos = 0
+                self.line = self.file.readline()
+                self.linelen = len(self.line)
+            c = self.line[self.pos]
+            if c.isspace():
+                return self.tokenstr
+            elif c.isalnum():
+                self.tokenstr += c
+            else:
+                self.pos -= 1
+                return self.tokenstr
+    
+    def skip_white_spaces(self):
+        while True:
+            c = self.getChar()
+            if c == "/":
+                self.pos -= 1
+                self.tokenstr = ""
+                c = self.check_comment()
+                return c
+            elif not c.isspace():
+                self.pos -= 1
+                c = self.check_comment()
+                return c
+    def handle_commands(self):
+        print("zz:" + self.tokenstr + ":uu")
+        if self.tokenstr == "set":
+            self.tokenstr = ""
+            self.getIdent()
+            print("zz:" + self.tokenstr + ":uu")
+            if self.tokenstr == "color":
+                self.tokenstr = ""
+                self.getIdent()
+                print("zz:" + self.tokenstr + ":uu")
+                if self.tokenstr == "to":
+                    self.tokenstr = ""
+                    self.getIdent()
+                    print("p1:" + self.tokenstr + ":uu")
+                    c = self.skip_white_spaces()
+                    if c == "/":
+                        self.ungetChar(1)
+                        self.tokenstr = ""
+                        c = self.check_comment()
+                        print("===> " + c)
+                    else:
+                        c = self.check_comment()
+                        #print("--> " + c + "<-- <y<")
+                        #self.__unexpectedChar("c")
+    
     def parse(self):
-        with open(self.script_name, 'r', encoding="utf-8") as file:
+        with open(self.script_name, 'r', encoding="utf-8") as self.file:
+            self.total_lines = len(self.file.readlines())
+            print("-----> " + str(self.total_lines))
+        self.file.close()
+        with open(self.script_name, 'r', encoding="utf-8") as self.file:
             while self.status != 1111:
                 # ------------------------------------
                 # get the next character.
@@ -65,14 +198,13 @@ class interpreter_dBase():
                     c = self.line[self.pos]
                 else:
                     self.lineno += 1
-                    self.line = file.readline()
+                    self.line = self.file.readline()
                     self.linelen = len(self.line)
                     self.pos = 0
                     if self.line == "":  # eof
                         self.status = 1111
                     else:
                         c = self.line[self.pos]
-                
                 if self.status == 0:
                     if self.tokenid:
                         if self.tokenid == "unknown":
@@ -80,86 +212,10 @@ class interpreter_dBase():
                                 self.tokenid = "num"
                             elif self.rexid.match(self.tokenstr):
                                 self.tokenid = "id"
-                                if self.tokenstr == "w" and self.previd == "to":
-                                    print("spa")
-                                    while True:
-                                        self.pos += 1
-                                        if self.pos == self.linelen:
-                                            break
-                                        c = self.line[self.pos]
-                                        if c.isspace():
-                                            pass
-                                        elif c == "/":
-                                            self.pos += 1
-                                            if self.pos > self.linelen-1:
-                                                self.__unexpectedEndOfLine()
-                                            c = self.line[self.pos]
-                                            if c == "*":
-                                                print("C comment")
-                                                try:
-                                                    while True:
-                                                        self.pos += 1
-                                                        if self.pos >= self.linelen:
-                                                            self.lineno += 1
-                                                            self.pos = 1
-                                                            self.line = file.readline()
-                                                            self.linelen = len(self.line)
-                                                        c = self.line[self.pos]
-                                                        if c == "*":
-                                                            self.pos += 1
-                                                            if self.pos >= self.linelen:
-                                                                self.lineno += 1
-                                                                self.pos = 1
-                                                                self.line = file.readline()
-                                                                self.linelen = len(self.line)
-                                                            c = self.line[self.pos]
-                                                            if c == "/":
-                                                                break
-                                                    #break
-                                                except:
-                                                    self.__unexpectedEndOfLine()
-                                            elif c == " ":
-                                                print("tabser")
-                                            elif c.isalpha():
-                                                self.tokenstr += c
-                                                print("--> " + self.tokenstr)
-                                            else:
-                                                self.pos -= 1
-                                            print("slassher")
-                                            self.tokenstr = ""
-                                            while True:
-                                                self.pos += 1
-                                                if self.pos > self.linelen-1:
-                                                    self.__unexpectedEndOfLine()
-                                                c = self.line[self.pos]
-                                                #print("---> " +c )
-                                                if c.isalpha():
-                                                    self.tokenstr += c
-                                                elif c == " " or c == "\t":
-                                                    pass
-                                                elif c == "\n":
-                                                    if len(self.tokenstr) < 1:
-                                                        self.__unexpectedEndOfLine()
-                                                    break
-                                                else:
-                                                    self.__unexpectedChar(c)
-                                            print(self.tokenstr)
-                                            break;
-                                    
-                                    self.status = 0
-                                
-                                elif self.tokenstr == "to" and self.previd == "color":
-                                    self.tokenstr = c
-                                    self.previd = "to"
-                                    self.status = 20
-                                elif self.tokenstr == "color" and self.previd == "set":
+                                if self.tokenstr == "set":
+                                    self.handle_commands()
                                     #self.pos += 1
-                                    self.tokenstr = c
-                                    self.previd = "color"
-                                    self.status = 0
-                                elif self.tokenstr == "set":
-                                    #self.pos += 1
-                                    self.tokenstr = c
+                                    #self.tokenstr = c
                                     self.previd = "set"
                                     self.status = 0
                                 elif self.tokenstr == "clear":
@@ -173,37 +229,93 @@ class interpreter_dBase():
                                     self.previd = ""
                                     self.status = 0
                                 else:
-                                    self.__unexpectedToken()
+                                    print("------> " + self.tokenstr)
+                                    if self.tokenstr == "atzi":
+                                        self.tokenstr = ""
+                                        self.status = 0
+                                    else:
+                                        self.__unexpectedToken()
                     
                     if c.isspace():
                         pass
                     elif c == "/":
-                        self.tokenid = "unknown"
-                        self.tokenstr = c
-                        self.tokenlineno = self.lineno
-                        self.status = 1
+                        c = self.getChar()
+                        if c == "*":
+                            while True:
+                                c = self.getChar()
+                                if c == "\n":
+                                    #print("ne")
+                                    self.lineno += 1
+                                    self.pos = 0
+                                    self.line = self.file.readline()
+                                    self.linelen = len(self.line)
+                                    c = self.line[self.pos]
+                                elif c == "*" and self.getChar() == "/":
+                                    #print("1111")
+                                    self.pos += 1
+                                    c = self.getChar()
+                                    break
+                            #c = self.check_comment()
+                            #print("zz:" + c + ":zz")
+                        elif c == "/":
+                            #print("C++ comment 111")
+                            while True:
+                                c = self.getChar()
+                                if c == "\n":
+                                    self.lineno += 1
+                                    self.pos += 1
+                                    if self.lineno >= self.total_lines:
+                                        break
+                                    if self.pos >= self.linelen:
+                                        self.line = self.file.readline()
+                                        self.linelen = len(self.line)
+                                        self.pos = 0
+                                        break
+                                    else:
+                                        c = self.line[self.pos]
+                                        self.lineno += 1
+                                        break
+                            if self.lineno >= self.total_lines:
+                                break
+                            c = self.check_comment()
+                            self.tokenstr = c
+                            c = self.getIdent()
+                            #print(">>---> " + self.tokenstr)
+                            #self.tokenstr += c
+                            self.previd = self.tokenstr
+                            self.handle_commands()
+                            self.status = 0
+                        else:
+                            self.tokenstr = c
+                            c = self.getIdent()
+                            #print("zz: " + c + " :usssu") # atzi
+                            
+                            self.status = 0
                     elif c == "#":
-                        print("preproc")
+                        #print("preproc")
                         self.tokenstr = c
                         self.tokenlineno = self.lineno
-                        self.status = 5
+                        self.status = 0
                     else:
                         self.tokenid = "unknown"
                         self.tokenstr = c
                         self.tokenlineno = self.lineno
                         self.status = 333
                     
+                    if self.pos >= self.linelen:
+                        print("1111111111")
+                        break
                     self.pos += 1
                 
                 elif self.status == 1:
                     if c == "/":
-                        print("C++ comment")
+                        print("C++ comment 333")
                         self.tokenid = "comment"
                         self.tokenstr += c
                         self.pos += 1
-                        self.status = 2
+                        self.status = 0
                     elif c == "*":
-                        print("C comment")
+                        #print("C comment")
                         self.tokenid = "comment"
                         self.tokenstr += c
                         self.pos += 1
@@ -291,7 +403,7 @@ class interpreter_dBase():
                 self.tokenstr = ""
                 self.tokenlineno = 0
             
-        file.close()
+        self.file.close()
     
     def __unexpectedToken(self):
         calledFrom = inspect.stack()[1][3]

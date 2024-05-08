@@ -9,6 +9,12 @@
     
         // /* /*
         
-        set color to w    /*       oip */    ddd
+        set color to w 
+        /*       oip */
+  /*  xxxxx
+  
+  */ /atzi      
 clear all
 #
+  // cccccc
+  
