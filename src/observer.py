@@ -15,11 +15,17 @@ global debugMode
 import os            # operating system stuff
 import sys
 
+# ---------------------------------------------------------------------------
+# under the windows console, python paths can make problems ...
+# ---------------------------------------------------------------------------
 if 'PYTHONHOME' in os.environ:
     del os.environ['PYTHONHOME']
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
 
+# ---------------------------------------------------------------------------
+# extent the search paths for supported interpreters and tools ...
+# ---------------------------------------------------------------------------
 sys.path.append("./interpreter/pascal")
 sys.path.append("./interpreter/dbase")
 sys.path.append("./tools")
@@ -29,21 +35,22 @@ sys.path.append("./tools")
 # -----------------------------------------------------------------------
 from appcollection import *
 
-__app__name        = "observer"
-__app__internal__  = "./_internal"
-__app__config_ini  = __app__internal__ + "/observer.ini"
-__app__doxygen__   = __app__internal__ + "/img/doxygen.png"
-__app__hlpndoc__   = __app__internal__ + "/img/helpndoc.png"
-__app__ccpplus__   = __app__internal__ + "/img/cpp.png"
-__app__javadoc__   = __app__internal__ + "/img/java.png"
-__app__freepas__   = __app__internal__ + "/img/fpc.png"
+__app__name         = "observer"
+__app__internal__   = "./_internal"
+__app__config_ini   = __app__internal__ + "/observer.ini"
+__app__doxygen__    = __app__internal__ + "/img/doxygen.png"
+__app__hlpndoc__    = __app__internal__ + "/img/helpndoc.png"
+__app__ccpplus__    = __app__internal__ + "/img/cpp.png"
+__app__javadoc__    = __app__internal__ + "/img/java.png"
+__app__freepas__    = __app__internal__ + "/img/fpc.png"
 
-__app__framework   = "PyQt5.QtWidgets.QApplication"
-__app__exec_name   = sys.executable
+__app__framework    = "PyQt5.QtWidgets.QApplication"
+__app__exec_name    = sys.executable
 
-__app__error_level = "0"
-__app__comment_hdr = ("# " + misc.StringRepeat("-",78) + "\n")
+__app__error_level  = "0"
+__app__comment_hdr  = ("# " + misc.StringRepeat("-",78) + "\n")
 
+__app__scriptname__ = ""
 
 global topic_counter
 global css_model_header, css_tabs, css__widget_item, css_button_style
@@ -254,7 +261,30 @@ class myLineEdit(QLineEdit):
         self.setText(self.name)
         self.cssColor = "QLineEdit{background-color:white;}QLineEdit:hover{background-color:yellow;}"
         self.setStyleSheet(self.cssColor)
-    
+
+class myDBaseTextEditor(QTextEdit):
+    def __init__(self, name=None):
+        super().__init__()
+        font = QFont("Courier New", 10)
+        self.setFont(font)
+        self.setMaximumHeight(545)
+        self.setMinimumHeight(545)
+        self.setLineWrapMode(QTextEdit.NoWrap)
+        try:
+            if not name == None:
+                self.script_name = __app__scriptname__
+                with open(self.script_name, "r") as file:
+                    text = file.read()
+                    self.setText(text)
+                    file.close()
+        except:
+            print("file not found.")
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_F2:
+            print("\a")
+        else:
+            super().keyPressEvent(event)
+
 # ------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------
@@ -2033,12 +2063,33 @@ class FileWatcherGUI(QDialog):
         self.tabs.addTab(self.tab3, "DoxyGen")
         self.tabs.addTab(self.tab4, "Content")
         
+        self.tab_widget_tabs = QTabWidget(self.tab4)
+        self.tab_widget_tabs.setMinimumWidth(830)
+        self.tab_widget_tabs.setMinimumHeight(650)
+        self.tab_dbase  = QWidget()
+        self.tab_pascal = QWidget()
+        self.tab_html   = QWidget()
+        self.tab_widget_tabs.addTab(self.tab_dbase , "dBase" )
+        self.tab_widget_tabs.addTab(self.tab_pascal, "Pascal")
+        self.tab_widget_tabs.addTab(self.tab_html  , "HTML"  )
+        
+        
+        self.tab_dbase_layout = QVBoxLayout(self.tab_dbase)
+        self.tab_dbase_layout.setAlignment(Qt.AlignTop)
+        self.tab_dbase_editor = myDBaseTextEditor(self)
+        self.tab_dbase_layout.addWidget(self.tab_dbase_editor)
+        
         self.main_layout.addWidget(self.tabs)
+        
+        self.tab_html.setMinimumWidth(500)
+        self.tab_html.setMaximumHeight(500)
         
         # create project tab
         self.tab2_top_layout = QHBoxLayout(self.tab2)
         self.tab3_top_layout = QHBoxLayout(self.tab3)
-        self.tab4_top_layout = QHBoxLayout(self.tab4)
+        self.tab4_top_layout = QHBoxLayout(self.tab_widget_tabs)
+        self.tab5_top_layout = QHBoxLayout(self.tab_html)
+        
         
         ################
         ##self.tab1_layout = QHBoxLayout()
@@ -2559,13 +2610,13 @@ class FileWatcherGUI(QDialog):
         # ------------------
         # alles zusammen ...
         # ------------------
-        self.webView1 = QWebEngineView(self.tab4)
+        self.webView1 = QWebEngineView(self.tab_html)
         self.profile1 = QWebEngineProfile("storage1", self.webView1)
         self.page1    = QWebEnginePage(self.profile1, self.webView1)
         self.webView1.setPage(self.page1)
         self.webView1.setHtml(html_content, baseUrl = QUrl. fromLocalFile('.'))
         
-        self.tab4_top_layout.addWidget(self.webView1);            
+        self.tab5_top_layout.addWidget(self.webView1);            
         self.tab0_top_layout.addLayout(self.tab0_left_layout)
         
         self.tab1_top_layout.addLayout(self.tab1_left_layout)
@@ -2770,7 +2821,7 @@ def ApplicationAtExit():
 # ------------------------------------------------------------------------
 # this is our "main" entry point, where the application will start.
 # ------------------------------------------------------------------------
-def EntryPoint(arg1=""):
+def EntryPoint(arg1=None):
     atexit.register(ApplicationAtExit)
     
     global conn
@@ -2780,6 +2831,9 @@ def EntryPoint(arg1=""):
     error_result = 0
     
     topic_counter = 1
+    
+    if not arg1 == None:
+        __app__scriptname__ = arg1
     
     # ---------------------------------------------------------
     # init pascal interpreter ...
@@ -2965,16 +3019,31 @@ def EntryPoint(arg1=""):
     #error_result = app.exec_()
     return
 
+# ---------------------------------------------------------------------------
+# parse dBase script ...
+# ---------------------------------------------------------------------------
 def parserDBasePoint(script_name):
-    prg = interpreter_dBase(script_name)
-    prg.parse()
-    prg.run()
+    try:
+        prg = interpreter_dBase(script_name)
+        prg.parse()
+        prg.run()
+    except ENoParserError as noerror:
+        print("end of data")
 
+# ---------------------------------------------------------------------------
+# parse Pascal script ...
+# ---------------------------------------------------------------------------
 def parserPascalPoint(script_name):
-    prg = interpreter_Pascal(script_name)
-    prg.parse()
-    prg.run()
+    try:
+        prg = interpreter_Pascal(script_name)
+        prg.parse()
+        prg.run()
+    except ENoParserError as noerror:
+        print("end of data")
 
+# ---------------------------------------------------------------------------
+# the mother of all: the __main__ start point ...
+# ---------------------------------------------------------------------------
 if __name__ == '__main__':
     
     # The Python 2.7+ or 3.3+ is required.
@@ -2991,21 +3060,26 @@ if __name__ == '__main__':
     
     __app__parameter = (""
     + "Usage: python observer.py --dbase  file.prg\n"
-    + "       python observer.py --pascal file.pas\n")
+    + "       python observer.py --pascal file.pas\n"
+    + "       python observer.py --gui\n")
     
     __app__tmp1 = "given argument does not exists as file."
     __app__tmp2 = "given argument is not a file."
     __app__tmp3 = "parse..."
     
-    if len(sys.argv) <= 2:
+    if len(sys.argv) <= 1:
         print("no arguments given.")
         print(__app__parameter)
         sys.exit(1)
     else:
-        if len(sys.argv[1]) < 7:
+        if len(sys.argv[1]) < 5:
             print("no parameter given.")
             sys.exit(1)
-        if sys.argv[1] == "--dbase":
+        if sys.argv[1] == "--gui":
+            __app__scriptname__ = sys.argv[2]
+            handleExceptionApplication(EntryPoint,sys.argv[2])
+            sys.exit(0)
+        elif sys.argv[1] == "--dbase":
             if not os.path.exists(sys.argv[2]):
                 print(__app__tmp1)
                 sys.exit(1)
@@ -3023,15 +3097,13 @@ if __name__ == '__main__':
                 print(__app__tmp2)
                 sys.exit(1)
             print(__app__tmp3)
+            __app__scriptname__ = argv[2]
             handleExceptionApplication(parserPascalPoint,sys.argv[2])
             sys.exit(0)
         else:
             print("parameter unknown.")
             print(__app__parameter)
             sys.exit(1)
-    
-    handleExceptionApplication(EntryPoint)
-    sys.exit(0)
         
 # ----------------------------------------------------------------------------
 # E O F  -  End - Of - File

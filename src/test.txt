@@ -18,7 +18,15 @@
   
   */ /atzi      
 clear all
-#
+#ifdef macro
   // cccccc
-  &&  
-  
+  &&
+  #if 123 == 15612
+    #ifdef xxxxx
+// xxxx
+      #ifdef suround
+      #endif
+    #endif
+  #endif
+#endif
+#endif

@@ -43,10 +43,19 @@ class interpreter_dBase():
         self.tokenstr  = ""
         self.previd    = ""
         
+        self.token_macro_counter = 0
+        
         self.byte_code = ""
         self.text_code = "#con.cls();\n"
     
     def run(self):
+        if self.token_macro_counter > 0:
+            print("\aerror: unbound macro start.")
+            sys.exit(1)
+        if self.token_macro_counter < 0:
+            print("\aerror: unbound macro end.")
+            sys.exit(1)
+        
         bytecode_text = compile(
             self.text_code,
             "<string>",
@@ -59,6 +68,9 @@ class interpreter_dBase():
         self.pos += 1
         if self.pos >= self.linelen:
             self.lineno += 1
+            if self.lineno >= self.total_lines:
+                print("EOF: " + self.script_name)
+                raise ENoParserError("EOF: " + self.script_name)
             self.pos = 0
             self.line = self.file.readline()
             self.linelen = len(self.line)
@@ -78,7 +90,7 @@ class interpreter_dBase():
                 elif c == "*" and self.getChar() == "/":
                     c = self.getChar()
                     break
-            c = self.getIdent()
+            self.getIdent()
             if c.isspace():
                 print("spacer")
             return c
@@ -101,7 +113,16 @@ class interpreter_dBase():
                 elif c == "/":
                     print("C++ comment 222")
                     c = self.handle_oneline_comment()
-                    return c
+                    print("-->>>> " + c)
+                    if c == "#":
+                        c = self.handle_macro_command()
+                        print("----" + c)
+                        return c
+                    if c.isalpha():
+                        self.tokenstr += c
+                        #self.getIdent()
+                    #print("-xcxs--> " + self.tokenstr)
+                    #return c
                 else:
                     print("2222")
                     self.pos -= 1
@@ -119,6 +140,17 @@ class interpreter_dBase():
             if c.isspace():
                 return self.tokenstr
             elif c.isalnum():
+                self.tokenstr += c
+            else:
+                self.pos -= 1
+                return self.tokenstr
+    
+    def getNumber(self):
+        while True:
+            c = self.getChar()
+            if c.isspace():
+                return self.tokenstr
+            elif c.isdigit():
                 self.tokenstr += c
             else:
                 self.pos -= 1
@@ -150,11 +182,235 @@ class interpreter_dBase():
                     self.linelen = len(self.line)
                     self.pos = 0
                     break
+                break
+        if c == "\n":
+            print("nwwww")
+            c = self.skip_white_spaces()
+            if c.isalpha():
+                self.tokenstr = c
+                self.getIdent()
+                print("ccc=> " + self.tokenstr)
+        if c.isalpha():
+            return c
+        elif c == "&":
+            c = self.getChar()
+            if c == "&":
+                c = self.handle_oneline_comment()
+                print("oooi--> " + c)
+            else:
+                print("todo")
+        elif c == "#":
+            print("sharp")
+            return c
+        elif c == "\n":
+            c = self.skip_white_spaces()
+            if c == "&":
+                c = self.getChar()
+                if c == "&":
+                    c = self.handle_oneline_comment()
+                    return c
                 else:
-                    c = self.line[self.pos]
-                    self.lineno += 1
-                    break
+                    print("todo")
+            elif c == "/":
+                c = self.getChar()
+                if c == "*":
+                    self.handle_c_comment()
+                elif c == "/":
+                    c = self.handle_oneline_comment()
+                    return c
+            else:
+                self.ungetChar(1)
+        else:
+            self.__unexpectedChar(c)
         return c
+    
+    def handle_macro_command(self):
+        c = self.skip_white_spaces()
+        print("----->>> " + c)
+        if c == "/":
+            c = self.getChar()
+            if c == "*":
+                self.handle_c_comment()
+            elif c == "/":
+                self.handle_oneline_comment()
+            else:
+                self.ungetChar(1)
+                return
+        elif c.isalpha():
+            self.tokenstr = c
+            self.getIdent()
+            print("---> " + self.tokenstr)
+            if self.tokenstr == "ifdef":
+                self.token_macro_counter += 1
+                c = self.skip_white_spaces()
+                if c.isalpha():
+                    self.tokenstr = c
+                    self.getIdent()
+                    print("o--> " + self.tokenstr)
+                    c = self.skip_white_spaces()
+                    if c == "\n":
+                        c = self.skip_white_spaces()
+                        if c == "#":
+                            print("sharp")
+                            c = self.handle_macro_command()
+                    elif c == "#":
+                        c = self.skip_white_spaces()
+                        return c
+                    elif c.isalpha():
+                        self.tokenstr = c
+                        self.getIdent()
+                        print("a--> " + self.tokenstr);
+                        if self.tokenstr == "endif":
+                            self.token_macro_counter -= 1
+                        else:
+                            self.token_macro_counter += 1
+                        c = self.skip_white_spaces()
+                        return c
+                    elif c.isdigit():
+                        self.getIdent()
+                        print("b--> " + self.tokenstr);
+                    elif c == "\n":
+                        self.tokenlineno = self.lineno
+                        self.__unexpectedEndOfLine()
+                elif c == "\n":
+                    self.tokenlineno = self.lineno
+                    self.__unexpectedEndOfLine()
+                else:
+                    self.__unexpectedChar(c)
+                return
+            elif self.tokenstr == "if":
+                self.token_macro_counter += 1
+                c = self.skip_white_spaces()
+                if c == "\n":
+                    c = self.skip_white_spaces()
+                if c.isdigit():
+                    self.tokenstr = c
+                    self.getNumber()
+                    print("digi: " + self.tokenstr)
+                    c = self.skip_white_spaces()
+                    self.tokenstr = ""
+                    if c == "\n":
+                        c = self.skip_white_spaces()
+                    if c == "=":
+                        c = self.getChar()
+                        if c == "=":
+                            c = self.skip_white_spaces()
+                            if c == "\n":
+                                self.__unexpectedEndOfLine()
+                            print("---->>>> " + c)
+                            if c.isdigit():
+                                self.tokenstr = c
+                                self.getNumber()
+                                print(">digi: " + self.tokenstr)
+                                c = self.skip_white_spaces()
+                                print("c-->o> " + c)
+                                if c == "#":
+                                    c = self.handle_macro_command()
+                                if c == "\n":
+                                    c = self.skip_white_spaces()
+                                #return
+                            else:
+                                self.__unexpectedChar(c)
+                        elif c == "<":
+                            c = self.skip_white_spaces()
+                            if c == "\n":
+                                self.__unexpectedEndOfLine()
+                            c = self.skip_white_spaces()
+                            if c.isdigit():
+                                self.getNumber()
+                                print("digi: " + self.tokenstr)
+                            else:
+                                self.__unexpectedChar(c)
+                        else:
+                            self.__unexpectedChar(c)
+                    elif c == ">":
+                        c = self.getChar()
+                        if c == "=":
+                            c = self.skip_white_spaces()
+                            if c == "\n":
+                                self.__unexpectedEndOfLine()
+                            c = self.skip_white_spaces()
+                            if c.isdigit():
+                                self.getNumber()
+                                print("digi: " + self.tokenstr)
+                            else:
+                                self.__unexpectedChar(c)
+                        else:
+                            self.__unexpectedChar(c)
+                    elif c == "!":
+                        c = self.getChar()
+                        if c == "=":
+                            c = self.skip_white_spaces()
+                            if c == "\n":
+                                self.__unexpectedEndOfLine()
+                            c = self.skip_white_spaces()
+                            if c.isdigit():
+                                self.getNumber()
+                                print("digi: " + self.tokenstr)
+                            else:
+                                self.__unexpectedChar(c)
+                        else:
+                            self.__unexpectedChar(c)
+                    elif c == "<":
+                        c = self.getChar()
+                        if c == ">":
+                            c = self.skip_white_spaces()
+                            if c == "\n":
+                                self.__unexpectedEndOfLine()
+                            c == self.skip_white_spaces()
+                            if c.isdigit():
+                                self.getNumber()
+                                print("digi: " + self.tokenstr)
+                            else:
+                                self.__unexpectedChar(c)
+                        elif c == "=":
+                            c = self.skip_white_spaces()
+                            if c == "\n":
+                                self.__unexpectedEndOfLine()
+                            c = self.skip_white_spaces()
+                            if c.isdigit():
+                                self.getNumber()
+                                print("digi: " + self.tokenstr)
+                            else:
+                                self.__unexpectedChar(c)
+                        else:
+                            self,__unexpectedChar(c)
+                    print("==> " + c)
+                    if c == "#":
+                        c = self.handle_macro_command()
+                        c = self.skip_white_spaces()
+                        print("OO=> " + c)
+                        if c.isalpha():
+                            self.tokenstr = c
+                            self.getIdent()
+                            if self.tokenstr == "endif":
+                                print("oiouo")
+                                self.token_macro_counter -= 1
+                            else:
+                                print("zuzu")
+                                return
+                        else:
+                            print("todo")
+                            return c
+                    print("tuz")
+                print("muz")
+            elif self.tokenstr == "endif":
+                print("ENDIF")
+                self.token_macro_counter -= 1
+                c = self.skip_white_spaces()
+                if c == "#":
+                    print("aaa> " + c)
+                    c = self.handle_macro_command()
+                    return c
+        elif c.isdigit():
+            self.tokenstr = c
+            c = self.getNumber()
+            print("num--> " + self.tokenstr);
+        elif c == "\n":
+            self.tokenlineno = self.lineno
+            self.__unexpectedEndOfLine()
+        else:
+            self.__unexpectedChar(c)
     
     def handle_commands(self):
         #print("zz:" + self.tokenstr + ":uu")
@@ -163,6 +419,10 @@ class interpreter_dBase():
             if c == "&":
                 print("dBase Comment 3 ----> &&")
                 c = self.handle_oneline_comment()
+                if c == "\n":
+                    c = self.skip_white_spaces()
+                    if c == "#":
+                        self.handle_macro_command()
             else:
                 self.pos -= 1
                 c = "&"
@@ -256,14 +516,14 @@ class interpreter_dBase():
                             c = self.check_comment()
                             
                             self.tokenstr = c
-                            c = self.getIdent()
+                            self.getIdent()
                             
                             self.previd = self.tokenstr
                             self.handle_commands()
                             self.status = 0
                         else:
                             self.tokenstr = c
-                            c = self.getIdent()
+                            self.getIdent()
                             #print("zz: " + c + " :usssu") # atzi
                             
                             self.status = 0
@@ -286,10 +546,8 @@ class interpreter_dBase():
                         else:
                             print("todo")
                     elif c == "#":
-                        #print("preproc")
-                        self.tokenstr = c
-                        self.tokenlineno = self.lineno
-                        self.status = 0
+                        print("preproc")
+                        self.handle_macro_command()
                     else:
                         self.tokenid = "unknown"
                         self.tokenstr = c

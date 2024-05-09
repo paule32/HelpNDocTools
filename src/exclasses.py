@@ -18,10 +18,20 @@ class ListInstructionError(Exception):
 class ListMustBeInstructionError(Exception):
     def __init__(self):
         print("Exception: List must be of class type: InstructionItem")
-        errir_result = 1
+        error_result = 1
         return
 class ListIndexOutOfBoundsError(Exception):
     def __init__(self):
         print("Exception: List index out of bounds.")
         error_result = 1
         return
+
+class ENoParserError(Exception):
+    def __init__(self, message=None):
+        if message == None:
+            self.message = "this exception marks no error, but end of data."
+        else:
+            self.message = message
+    def __str__(self):
+        error_result = 0
+        return str(self.message)
