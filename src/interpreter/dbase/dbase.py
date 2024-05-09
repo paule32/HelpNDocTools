@@ -15,6 +15,28 @@ class consoleApp():
         sys.stdout.write("\033[H\033[2J")
         sys.stdout.flush()
 
+class dbase_function:
+    def __init__(self, name):
+        self.what = "func"
+        self.name = name
+        self.result = "tztz"
+
+class dbase_val_variable:
+    def __init__(self, value=0):
+        self.what  = "val"
+        self.value = value
+
+class dbase_str_variable:
+    def __init__(self, value=""):
+        self.what  = "str"
+        self.value = value
+
+class dbase_symbol:
+    def __init__(self, name, link=None):
+        self.what = "symbol"
+        self.name = name
+        self.link = link
+
 class interpreter_dBase():
     def __init__(self, fname):
         self.script_name = fname;
@@ -23,6 +45,39 @@ class interpreter_dBase():
             ":"    : "colon",
             "|"    : "pipe" ,
         }
+        
+        test_proc = dbase_function("test")
+        #
+        test_var1 = dbase_val_variable(1234)
+        test_var2 = dbase_str_variable("fuzzy")
+        #
+        test_sym1 = dbase_symbol("foo", test_var1)
+        test_sym2 = dbase_symbol("bar", test_var2)
+        test_sym3 = dbase_symbol("baz", test_proc)
+        
+        self.AST = [
+            test_sym1,
+            test_sym2,
+            test_sym3
+        ]
+        for obj in self.AST:
+            if isinstance(obj, dbase_symbol):
+                print("dbase:")
+                print("\tObject: " + obj.name)
+                #print("--> " + str(obj.what))
+            if isinstance(obj.link, dbase_function):
+                #print("gfun")
+                print("\t\tfunc type  : " + obj.link.what)
+                print("\t\tfunc name  : " + obj.link.name)
+                print("\t\tfunc result: " + obj.link.result)
+            elif isinstance(obj.link, dbase_val_variable):
+                print("\t\tfunc type  : " + obj.link.what)
+                print("\t\tfunc value : " + str(obj.link.value))
+            elif isinstance(obj.link, dbase_str_variable):
+                print("\t\tfunc name  : " + obj.link.what)
+                print("\t\tfunc value : " + obj.link.value)
+        
+        sys.exit(20)
         
         global con
         con = consoleApp()
