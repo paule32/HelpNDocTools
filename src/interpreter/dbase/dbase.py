@@ -37,16 +37,16 @@ class dbase_symbol:
         self.name = name
         self.link = link
 
-class interpreter_dBase():
-    def __init__(self, fname):
-        self.script_name = fname;
-        self.tokendic = {
-            "class": "class",
-            ":"    : "colon",
-            "|"    : "pipe" ,
-        }
-        
+class dbase_loop:
+    def __init__(self, start, end):
+        self.what  = "loop"
+        self.start = start
+        self.end   = end
+
+class dbase_test_array_struct:
+    def __init__(self):
         test_proc = dbase_function("test")
+        test_loop = dbase_loop(1,5)
         #
         test_var1 = dbase_val_variable(1234)
         test_var2 = dbase_str_variable("fuzzy")
@@ -54,11 +54,14 @@ class interpreter_dBase():
         test_sym1 = dbase_symbol("foo", test_var1)
         test_sym2 = dbase_symbol("bar", test_var2)
         test_sym3 = dbase_symbol("baz", test_proc)
+        #
+        test_symA = dbase_symbol("L", test_loop)
         
         self.AST = [
             test_sym1,
             test_sym2,
-            test_sym3
+            test_sym3,
+            test_symA
         ]
         for obj in self.AST:
             if isinstance(obj, dbase_symbol):
@@ -74,10 +77,23 @@ class interpreter_dBase():
                 print("\t\tfunc type  : " + obj.link.what)
                 print("\t\tfunc value : " + str(obj.link.value))
             elif isinstance(obj.link, dbase_str_variable):
-                print("\t\tfunc name  : " + obj.link.what)
+                print("\t\tfunc type  : " + obj.link.what)
                 print("\t\tfunc value : " + obj.link.value)
+            elif isinstance(obj.link, dbase_loop):
+                print("\t\tfunc type  : " + obj.link.what)
+                print("\t\tfunc start : " + str(obj.link.start))
+                print("\t\tfunc end   : " + str(obj.link.end))
         
         sys.exit(20)
+
+class interpreter_dBase():
+    def __init__(self, fname):
+        self.script_name = fname;
+        self.tokendic = {
+            "class": "class",
+            ":"    : "colon",
+            "|"    : "pipe" ,
+        }
         
         global con
         con = consoleApp()
