@@ -3022,24 +3022,28 @@ def EntryPoint(arg1=None):
 # ---------------------------------------------------------------------------
 # parse dBase script ...
 # ---------------------------------------------------------------------------
-def parserDBasePoint(script_name):
-    try:
-        prg = interpreter_dBase(script_name)
-        prg.parse()
-        prg.run()
-    except ENoParserError as noerror:
-        print("end of data")
+class parserDBasePoint:
+    def __init__(self, script_name):
+        self.prg = interpreter_dBase(script_name)
+        try:
+            self.prg.parse()
+            self.prg.run()
+        except ENoParserError as noerror:
+            self.prg.finalize()
+            print("\nend of data")
 
 # ---------------------------------------------------------------------------
 # parse Pascal script ...
 # ---------------------------------------------------------------------------
-def parserPascalPoint(script_name):
-    try:
-        prg = interpreter_Pascal(script_name)
-        prg.parse()
-        prg.run()
-    except ENoParserError as noerror:
-        print("end of data")
+class parserPascalPoint:
+    def __init__(self, script_name):
+        self.prg = interpreter_Pascal(script_name)
+        try:
+            self.prg.parse()
+            self.prg.run()
+        except ENoParserError as noerror:
+            self.finalize()
+            print("\nend of data")
 
 # ---------------------------------------------------------------------------
 # the mother of all: the __main__ start point ...

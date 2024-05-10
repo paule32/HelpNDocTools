@@ -43,6 +43,21 @@ class dbase_loop:
         self.start = start
         self.end   = end
 
+class dbase_command_set:
+    def __init__(self):
+        self.what = "keyword"
+        self.link = None
+class dbase_command_color:
+    def __init__(self):
+        self.what = "keyword"
+        self.prev = None
+        self.link = None
+class dbase_command_to:
+    def __init__(self):
+        self.what = "keyword"
+        self.prev = None
+        self.link = None
+
 class dbase_test_array_struct:
     def __init__(self):
         test_proc = dbase_function("test")
@@ -108,25 +123,42 @@ class interpreter_dBase():
         self.linelen   = 0
         
         self.tokenlineno = 0
-        self.tokenid   = None
+        self.tokenid     = None
         self.total_lines = 0
         
         self.tokenstr  = ""
         self.previd    = ""
         
         self.token_macro_counter = 0
+        self.token_comment_flag  = 0
+        
+        self.dbaseAST  = []
         
         self.byte_code = ""
         self.text_code = "#con.cls();\n"
+        
+        try:
+            self.log = logging.getLogger(__name__)
+            logging.basicConfig(
+                format="%(asctime)s: %(levelname)s: %(message)s",
+                filename="observer.log",
+                encoding="utf-8",
+                filemode="w",
+                level=logging.DEBUG)
+        except:
+            print("log file could not be open.")
+        
+        self.log.debug("init ok: session start...")
+    
+    def finalize(self):
+        self.log.debug("macro   : " + str(self.token_macro_counter))
+        self.log.debug("comment : " + str(self.token_comment_flag))
+        if self.token_macro_counter < 0:
+            self.log.debug("\aerror: unbound macro.")
+            sys.exit(1)
     
     def run(self):
-        if self.token_macro_counter > 0:
-            print("\aerror: unbound macro start.")
-            sys.exit(1)
-        if self.token_macro_counter < 0:
-            print("\aerror: unbound macro end.")
-            sys.exit(1)
-        
+        self.finalize()
         bytecode_text = compile(
             self.text_code,
             "<string>",
@@ -140,7 +172,8 @@ class interpreter_dBase():
         if self.pos >= self.linelen:
             self.lineno += 1
             if self.lineno >= self.total_lines:
-                print("EOF: " + self.script_name)
+                self.log.debug("EOF: " + self.script_name)
+                self.check_finalize()
                 raise ENoParserError("EOF: " + self.script_name)
             self.pos = 0
             self.line = self.file.readline()
@@ -150,6 +183,7 @@ class interpreter_dBase():
     
     def handle_c_comment(self):
         try:
+            flag = False
             while True:
                 c = self.getChar()
                 if c == "\n":
@@ -158,12 +192,28 @@ class interpreter_dBase():
                     self.line = self.file.readline()
                     self.linelen = len(self.line)
                     c = self.line[self.pos]
-                elif c == "*" and self.getChar() == "/":
+                elif c == "*":
                     c = self.getChar()
-                    break
-            self.getIdent()
-            if c.isspace():
-                print("spacer")
+                    if c == "/":
+                        self.token_comment_flag -= 1
+                        c = self.skip_white_spaces()
+                        if c == " ":
+                            continue
+                        elif c == "\n":
+                            continue
+                        elif c == "/":
+                            flag = True
+                            break
+                        elif c.isalpha():
+                            self.tokenstr = c
+                            break
+                        elif c.isdigit():
+                            break
+                        else:
+                            self.__unexpectedChar(c)
+            if c.isalpha():
+                self.getIdent()
+                self.log.debug("====> " + self.tokenstr)
             return c
         except:
             self.__unexpectedEndOfLine()
@@ -179,23 +229,25 @@ class interpreter_dBase():
                     self.__unexpectedEndOfLine()
                 c = self.line[self.pos]
                 if c == "*":
-                    print("C commentl")
+                    self.log.debug("C commentl")
+                    self.token_comment_flag += 1
                     c = self.handle_c_comment()
                 elif c == "/":
-                    print("C++ comment 222")
+                    self.log.debug("C++ comment 222")
                     c = self.handle_oneline_comment()
-                    print("-->>>> " + c)
+                    self.log.debug("-->>>> " + c)
                     if c == "#":
                         c = self.handle_macro_command()
-                        print("----" + c)
+                        self.log.debug("----" + c)
                         return c
                     if c.isalpha():
-                        self.tokenstr += c
+                        self.tokenstr = c
                         #self.getIdent()
-                    #print("-xcxs--> " + self.tokenstr)
+                        self.log.debug("-xcxs--> " + self.tokenstr)
+                        self.tokenstr = ""
                     #return c
                 else:
-                    print("2222")
+                    self.log.debug("2222")
                     self.pos -= 1
                     c = self.line[self.pos]
                     return c
@@ -204,7 +256,7 @@ class interpreter_dBase():
     
     def ungetChar(self, num):
         self.pos -= num;
-
+    
     def getIdent(self):
         while True:
             c = self.getChar()
@@ -255,23 +307,29 @@ class interpreter_dBase():
                     break
                 break
         if c == "\n":
-            print("nwwww")
+            self.log.debug("nwwww")
             c = self.skip_white_spaces()
             if c.isalpha():
                 self.tokenstr = c
                 self.getIdent()
-                print("ccc=> " + self.tokenstr)
+                self.log.debug("ccc=> " + self.tokenstr)
         if c.isalpha():
             return c
         elif c == "&":
             c = self.getChar()
             if c == "&":
                 c = self.handle_oneline_comment()
-                print("oooi--> " + c)
+                self.log.debug("oooi--> " + c)
+                if c.isalpha():
+                    self.tokenstr = ""
+                    self.getIdent()
+                    self.log.debug("aaa>>> " + self.tokenstr)
+                    if self.total_lines >= self.lineno:
+                        raise ENoParserError("EOF")
             else:
-                print("todo")
+                self.log.debug("todo")
         elif c == "#":
-            print("sharp")
+            self.log.debug("sharp")
             return c
         elif c == "\n":
             c = self.skip_white_spaces()
@@ -281,10 +339,11 @@ class interpreter_dBase():
                     c = self.handle_oneline_comment()
                     return c
                 else:
-                    print("todo")
+                    self.log.debug("todo")
             elif c == "/":
                 c = self.getChar()
                 if c == "*":
+                    self.token_comment_flag += 1
                     self.handle_c_comment()
                 elif c == "/":
                     c = self.handle_oneline_comment()
@@ -297,10 +356,11 @@ class interpreter_dBase():
     
     def handle_macro_command(self):
         c = self.skip_white_spaces()
-        print("----->>> " + c)
+        self.log.debug("----->>> " + c)
         if c == "/":
             c = self.getChar()
             if c == "*":
+                self.token_comment_flag += 1
                 self.handle_c_comment()
             elif c == "/":
                 self.handle_oneline_comment()
@@ -310,19 +370,19 @@ class interpreter_dBase():
         elif c.isalpha():
             self.tokenstr = c
             self.getIdent()
-            print("---> " + self.tokenstr)
+            self.log.debug("---> " + self.tokenstr)
             if self.tokenstr == "ifdef":
                 self.token_macro_counter += 1
                 c = self.skip_white_spaces()
                 if c.isalpha():
                     self.tokenstr = c
                     self.getIdent()
-                    print("o--> " + self.tokenstr)
+                    self.log.debug("o--> " + self.tokenstr)
                     c = self.skip_white_spaces()
                     if c == "\n":
                         c = self.skip_white_spaces()
                         if c == "#":
-                            print("sharp")
+                            self.log.debug("sharp")
                             c = self.handle_macro_command()
                     elif c == "#":
                         c = self.skip_white_spaces()
@@ -330,16 +390,16 @@ class interpreter_dBase():
                     elif c.isalpha():
                         self.tokenstr = c
                         self.getIdent()
-                        print("a--> " + self.tokenstr);
+                        self.log.debug("a--> " + self.tokenstr);
                         if self.tokenstr == "endif":
                             self.token_macro_counter -= 1
-                        else:
-                            self.token_macro_counter += 1
+                        #else:
+                        #    #self.token_macro_counter += 1
                         c = self.skip_white_spaces()
                         return c
                     elif c.isdigit():
                         self.getIdent()
-                        print("b--> " + self.tokenstr);
+                        self.log.debug("b--> " + self.tokenstr);
                     elif c == "\n":
                         self.tokenlineno = self.lineno
                         self.__unexpectedEndOfLine()
@@ -357,7 +417,7 @@ class interpreter_dBase():
                 if c.isdigit():
                     self.tokenstr = c
                     self.getNumber()
-                    print("digi: " + self.tokenstr)
+                    self.log.debug("digi: " + self.tokenstr)
                     c = self.skip_white_spaces()
                     self.tokenstr = ""
                     if c == "\n":
@@ -368,13 +428,13 @@ class interpreter_dBase():
                             c = self.skip_white_spaces()
                             if c == "\n":
                                 self.__unexpectedEndOfLine()
-                            print("---->>>> " + c)
+                            self.log.debug("---->>>> " + c)
                             if c.isdigit():
                                 self.tokenstr = c
                                 self.getNumber()
-                                print(">digi: " + self.tokenstr)
+                                self.log.debug(">digi: " + self.tokenstr)
                                 c = self.skip_white_spaces()
-                                print("c-->o> " + c)
+                                self.log.debug("c-->o> " + c)
                                 if c == "#":
                                     c = self.handle_macro_command()
                                 if c == "\n":
@@ -389,7 +449,7 @@ class interpreter_dBase():
                             c = self.skip_white_spaces()
                             if c.isdigit():
                                 self.getNumber()
-                                print("digi: " + self.tokenstr)
+                                self.log.debug("digi: " + self.tokenstr)
                             else:
                                 self.__unexpectedChar(c)
                         else:
@@ -403,7 +463,7 @@ class interpreter_dBase():
                             c = self.skip_white_spaces()
                             if c.isdigit():
                                 self.getNumber()
-                                print("digi: " + self.tokenstr)
+                                self.log.debug("digi: " + self.tokenstr)
                             else:
                                 self.__unexpectedChar(c)
                         else:
@@ -417,7 +477,7 @@ class interpreter_dBase():
                             c = self.skip_white_spaces()
                             if c.isdigit():
                                 self.getNumber()
-                                print("digi: " + self.tokenstr)
+                                self.log.debug("digi: " + self.tokenstr)
                             else:
                                 self.__unexpectedChar(c)
                         else:
@@ -431,7 +491,7 @@ class interpreter_dBase():
                             c == self.skip_white_spaces()
                             if c.isdigit():
                                 self.getNumber()
-                                print("digi: " + self.tokenstr)
+                                self.log.debug("digi: " + self.tokenstr)
                             else:
                                 self.__unexpectedChar(c)
                         elif c == "=":
@@ -441,54 +501,82 @@ class interpreter_dBase():
                             c = self.skip_white_spaces()
                             if c.isdigit():
                                 self.getNumber()
-                                print("digi: " + self.tokenstr)
+                                self.log.debug("digi: " + self.tokenstr)
                             else:
                                 self.__unexpectedChar(c)
                         else:
                             self,__unexpectedChar(c)
-                    print("==> " + c)
+                    self.log.debug("==> " + c)
                     if c == "#":
                         c = self.handle_macro_command()
                         c = self.skip_white_spaces()
-                        print("OO=> " + c)
+                        self.log.debug("OO=> " + c)
                         if c.isalpha():
                             self.tokenstr = c
                             self.getIdent()
                             if self.tokenstr == "endif":
-                                print("oiouo")
+                                self.log.debug("oiouo")
                                 self.token_macro_counter -= 1
                             else:
-                                print("zuzu")
+                                self.log.debug("zuzu")
                                 return
                         else:
-                            print("todo")
+                            self.log.debug("todo")
                             return c
-                    print("tuz")
-                print("muz")
+                    self.log.debug("tuz")
+                self.log.debug("muz")
             elif self.tokenstr == "endif":
-                print("ENDIF")
+                self.log.debug("ENDIF 11")
                 self.token_macro_counter -= 1
+                self.log.debug("ccc> " + str(self.token_macro_counter))
                 c = self.skip_white_spaces()
                 if c == "#":
-                    print("aaa> " + c)
+                    self.log.debug("aaa> " + c)
+                    self.log.debug("ccc> " + str(self.token_macro_counter))
                     c = self.handle_macro_command()
                     return c
         elif c.isdigit():
             self.tokenstr = c
             c = self.getNumber()
-            print("num--> " + self.tokenstr);
+            self.log.debug("num--> " + self.tokenstr);
         elif c == "\n":
             self.tokenlineno = self.lineno
             self.__unexpectedEndOfLine()
         else:
             self.__unexpectedChar(c)
     
+    def handle_command_set(self):
+        self.getIdent()
+        self.log.debug("zz:" + self.tokenstr + ":uu")
+        if self.tokenstr == "color":
+            self.tokenstr = ""
+            self.getIdent()
+            self.log.debug("zz:" + self.tokenstr + ":uu")
+            if self.tokenstr == "to":
+                self.tokenstr = ""
+                self.getIdent()
+                self.log.debug("p1:" + self.tokenstr + ":uu")
+                c = self.skip_white_spaces()
+                if c == "/":
+                    self.ungetChar(1)
+                    self.tokenstr = ""
+                    c = self.check_comment()
+                    self.log.debug("===> " + c)
+                else:
+                    c = self.check_comment()
+                    #self.log.debug("--> " + c + "<-- <y<")
+                    #self.__unexpectedChar("c")
+            else:
+                self.__unexpectedToken()
+        else:
+            self.__unexpectedToken()
+
     def handle_commands(self):
-        #print("zz:" + self.tokenstr + ":uu")
+        #self.log.debug("zz:" + self.tokenstr + ":uu")
         if self.tokenstr == "&":
             c = self.getChar()
             if c == "&":
-                print("dBase Comment 3 ----> &&")
+                self.log.debug("dBase Comment 3 ----> &&")
                 c = self.handle_oneline_comment()
                 if c == "\n":
                     c = self.skip_white_spaces()
@@ -497,33 +585,14 @@ class interpreter_dBase():
             else:
                 self.pos -= 1
                 c = "&"
-        if self.tokenstr == "set":
+        elif self.tokenstr == "set":
             self.tokenstr = ""
-            self.getIdent()
-            print("zz:" + self.tokenstr + ":uu")
-            if self.tokenstr == "color":
-                self.tokenstr = ""
-                self.getIdent()
-                print("zz:" + self.tokenstr + ":uu")
-                if self.tokenstr == "to":
-                    self.tokenstr = ""
-                    self.getIdent()
-                    print("p1:" + self.tokenstr + ":uu")
-                    c = self.skip_white_spaces()
-                    if c == "/":
-                        self.ungetChar(1)
-                        self.tokenstr = ""
-                        c = self.check_comment()
-                        print("===> " + c)
-                    else:
-                        c = self.check_comment()
-                        #print("--> " + c + "<-- <y<")
-                        #self.__unexpectedChar("c")
+            self.handle_command_set()
     
     def parse(self):
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
             self.total_lines = len(self.file.readlines())
-            print("-----> " + str(self.total_lines))
+            self.log.debug("-----> " + str(self.total_lines))
         self.file.close()
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
             while self.status != 1111:
@@ -544,43 +613,40 @@ class interpreter_dBase():
                         c = self.line[self.pos]
                 if self.status == 0:
                     if self.tokenid:
-                        if self.tokenid == "unknown":
-                            if self.tokenstr.isdigit():
-                                self.tokenid = "num"
-                            elif self.rexid.match(self.tokenstr):
-                                self.tokenid = "id"
-                                if self.tokenstr == "set":
-                                    self.handle_commands()
-                                    #self.pos += 1
-                                    #self.tokenstr = c
-                                    self.previd = "set"
-                                    self.status = 0
-                                elif self.tokenstr == "clear":
-                                    print("Token: " + self.tokenstr)
-                                    self.previd  = "clear"
-                                    self.tokenid = self.previd
-                                    self.tokenlineno = self.lineno
-                                    self.status = 0
-                                elif (self.tokenstr == "all") and (self.previd == "clear"):
-                                    #self.text_code += "con.cls();"
-                                    self.previd = ""
+                        if self.tokenstr.isdigit():
+                            self.tokenid = "num"
+                        elif self.rexid.match(self.tokenstr):
+                            self.tokenid = "id"
+                            if self.tokenstr == "set":
+                                self.handle_commands()
+                            elif self.tokenstr == "clear":
+                                self.log.debug("Token: " + self.tokenstr)
+                                self.previd  = "clear"
+                                self.tokenid = self.previd
+                                self.tokenlineno = self.lineno
+                                self.status = 0
+                            elif (self.tokenstr == "all") and (self.previd == "clear"):
+                                #self.text_code += "con.cls();"
+                                self.previd = ""
+                                self.status = 0
+                            else:
+                                self.log.debug("------> " + self.tokenstr)
+                                if self.tokenstr == "atzi":
+                                    self.tokenstr = ""
                                     self.status = 0
                                 else:
-                                    print("------> " + self.tokenstr)
-                                    if self.tokenstr == "atzi":
-                                        self.tokenstr = ""
-                                        self.status = 0
-                                    else:
-                                        self.__unexpectedToken()
+                                    self.__unexpectedToken()
+                                self.__unexpectedToken()
                     
                     if c.isspace():
                         pass
                     elif c == "/":
                         c = self.getChar()
                         if c == "*":
+                            self.token_comment_flag += 1
                             c = self.handle_c_comment()
                         elif c == "/":
-                            print("C++ comment 111")
+                            self.log.debug("C++ comment 111")
                             c = self.handle_oneline_comment()
                             if self.lineno >= self.total_lines:
                                 break
@@ -595,50 +661,50 @@ class interpreter_dBase():
                         else:
                             self.tokenstr = c
                             self.getIdent()
-                            #print("zz: " + c + " :usssu") # atzi
+                            #self.log.debug("zz: " + c + " :usssu") # atzi
                             
                             self.status = 0
                     elif c == "*":
                         c = self.getChar()
                         if c == "*":
-                            print("dBase Comment 1 ----> **")
+                            self.log.debug("dBase Comment 1 ----> **")
                             c = self.handle_oneline_comment()
                             if self.lineno >= self.total_lines:
                                 break
                         else:
-                            print("todo")
+                            self.log.debug("todo")
                     elif c == "&":
                         c = self.getChar()
                         if c == "&":
-                            print("dBase Comment 2 ----> &&")
+                            self.log.debug("dBase Comment 2 ----> &&")
                             c = self.handle_oneline_comment()
                             if self.lineno >= self.total_lines:
                                 break
                         else:
-                            print("todo")
+                            self.log.debug("todo")
                     elif c == "#":
-                        print("preproc")
+                        self.log.debug("preproc")
                         self.handle_macro_command()
                     else:
-                        self.tokenid = "unknown"
                         self.tokenstr = c
                         self.tokenlineno = self.lineno
                         self.status = 333
                     
                     if self.pos >= self.linelen:
-                        #print("1111111111")
+                        #self.log.debug("1111111111")
                         break
                     self.pos += 1
                 
                 elif self.status == 1:
                     if c == "/":
-                        print("C++ comment 333")
+                        self.log.debug("C++ comment 333")
                         self.tokenid = "comment"
                         self.tokenstr += c
                         self.pos += 1
                         self.status = 0
                     elif c == "*":
-                        #print("C comment")
+                        #self.log.debug("C comment")
+                        self.token_comment_flag += 1
                         self.tokenid = "comment"
                         self.tokenstr += c
                         self.pos += 1

@@ -56,6 +56,7 @@ try:
     import configparser  # .ini files
     
     import traceback     # stack exception trace back
+    import logging       # for debug
     
     import textwrap
     import marshal       # bytecode exec
