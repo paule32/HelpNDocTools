@@ -3024,12 +3024,12 @@ def EntryPoint(arg1=None):
 # ---------------------------------------------------------------------------
 class parserDBasePoint:
     def __init__(self, script_name):
-        self.prg = interpreter_dBase(script_name)
+        prg = dBaseDSL(script_name)
         try:
-            self.prg.parse()
-            self.prg.run()
+            prg.parse(self)
+            prg.run(self)
         except ENoParserError as noerror:
-            self.prg.finalize()
+            prg.finalize()
             print("\nend of data")
 
 # ---------------------------------------------------------------------------
@@ -3067,8 +3067,6 @@ if __name__ == '__main__':
     + "       python observer.py --pascal file.pas\n"
     + "       python observer.py --gui\n")
     
-    __app__tmp1 = "given argument does not exists as file."
-    __app__tmp2 = "given argument is not a file."
     __app__tmp3 = "parse..."
     
     if len(sys.argv) <= 1:
@@ -3084,22 +3082,13 @@ if __name__ == '__main__':
             handleExceptionApplication(EntryPoint,sys.argv[2])
             sys.exit(0)
         elif sys.argv[1] == "--dbase":
-            if not os.path.exists(sys.argv[2]):
-                print(__app__tmp1)
-                sys.exit(1)
-            if not os.path.isfile(sys.argv[2]):
-                print(__app__tmp2)
-                sys.exit(1)
             print(__app__tmp3)
-            handleExceptionApplication(parserDBasePoint,sys.argv[2])
-            sys.exit(0)
+            try:
+                handleExceptionApplication(parserDBasePoint,sys.argv[2])
+                sys.exit(0)
+            except Exception as ex:
+                sys.exit(1)
         elif sys.argv[1] == "--pascal":
-            if not os.path.exists(sys.argv[2]):
-                print(__app__tmp1)
-                sys.exit(1)
-            if not os.path.isfile(sys.argv[2]):
-                print(__app__tmp2)
-                sys.exit(1)
             print(__app__tmp3)
             __app__scriptname__ = argv[2]
             handleExceptionApplication(parserPascalPoint,sys.argv[2])

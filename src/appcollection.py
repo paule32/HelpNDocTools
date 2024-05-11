@@ -32,35 +32,43 @@ try:
     import time          # thread count
     import datetime      # date, and time routines
     
-    import glob          # directory search
-    import atexit        # clean up
-    import subprocess    # start sub processes
-    import platform      # Windows ?
+    # ------------------------------------------------------------------------
+    # developers own module paths...
+    # ------------------------------------------------------------------------
+    sys.path.append("./interpreter/pascal")
+    sys.path.append("./interpreter/dbase")
+    sys.path.append("./interpreter")
+    sys.path.append("./tools")
     
-    import gzip          # pack/de-pack data
-    import base64        # base64 encoded data
-    import shutil        # shell utils
+    import glob           # directory search
+    import atexit         # clean up
+    import subprocess     # start sub processes
+    import platform       # Windows ?
+    
+    import gzip           # pack/de-pack data
+    import base64         # base64 encoded data
+    import shutil         # shell utils
 
-    import pkgutil       # attached binary data utils
-    import json          # json lists
+    import pkgutil        # attached binary data utils
+    import json           # json lists
     
-    import gettext       # localization
-    import locale        # internal system locale
+    import gettext        # localization
+    import locale         # internal system locale
     
-    import random        # randome numbers
+    import random         # randome numbers
     import string
     
-    import ctypes        # windows ip info
+    import ctypes         # windows ip info
     
-    import sqlite3       # database: sqlite
-    import configparser  # .ini files
+    import sqlite3        # database: sqlite
+    import configparser   # .ini files
     
-    import traceback     # stack exception trace back
-    import logging       # for debug
+    import traceback      # stack exception trace back
+    import logging        # for debug
     
     import textwrap
-    import marshal       # bytecode exec
-    import inspect       # stack
+    import marshal        # bytecode exec
+    import inspect        # stack
     
     # ------------------------------------------------------------------------
     # Qt5 gui framework
@@ -73,15 +81,16 @@ try:
     # ------------------------------------------------------------------------
     # developers own modules ...
     # ------------------------------------------------------------------------
-    sys.path.append("./interpreter/pascal")
-    sys.path.append("./interpreter/dbase")
-    sys.path.append("./tools")
-    
     from exclasses  import *     # exception: templates
     from exapp      import *     # exception: application block placeholder
     
     from collection import *     # exception: templates
     from exapp      import *     # exception: application block placeholder
+    
+    from EParserException import *     # exception handling for use with parser
+    from RunTimeLibrary   import *     # rtl functions for parser
+    
+    from ParserDSL        import *
     
     from colorama   import init, Fore, Back, Style  # ANSI escape
     from pascal     import *     # pascal interpreter

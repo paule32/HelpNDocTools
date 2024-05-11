@@ -82,3 +82,7 @@ src/img/doxygen.jpg
 src/ui_untitled.py
 src/interpreter/dbase/__pycache__/dbase.cpython-312.pyc
 src/observer.log
+src/interpreter/__pycache__/RunTimeLibrary.cpython-312.pyc
+src/interpreter/__pycache__/ParserDSL.cpython-312.pyc
+src/interpreter/__pycache__/parser.cpython-312.pyc
+src/interpreter/__pycache__/EParserException.cpython-312.pyc
