@@ -30,9 +30,10 @@ class EParserError(Exception):
             self.code    = error_code
         
         self.error   = [
-            [     0, "no error"              ],
-            [  1000, "rtl not initialized."  ],
-            [ 10000, "file does not exists." ],
+            [     0, "no error"               ],
+            [  1000, "rtl not initialized."   ],
+            [  1100, "no known comment type." ],
+            [ 10000, "file does not exists."  ],
         ]
         
         error_result = 0

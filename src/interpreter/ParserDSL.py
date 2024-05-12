@@ -24,15 +24,16 @@ class ParserDSL:
     #        is the constructor ...
     # -----------------------------------------------------------------------
     def __init__(self):
-        self.files = []
-        self.data  = []
+        self.files  = []
+        self.data   = []
         
-        self.name  = ""
+        self.name   = ""
         
-        self.info  = None
-        self.stat  = None
+        self.info   = None
+        self.stat   = None
         
-        self.rtl   = None
+        self.rtl    = None
+        self.parser = None
         
         self.initialized = False
     
@@ -40,9 +41,10 @@ class ParserDSL:
     # \brief this is the constructor of class "ParserDSL" ...
     # -----------------------------------------------------------------------
     def __new__(self, script_name, lang="dbase"):
-        self.lang  = lang
-        self.rtl   = RunTimeLibrary()
-        self.files = [
+        self.lang   = lang
+        self.rtl    = RunTimeLibrary()
+        self.parser = self.grammar(lang.lower())
+        self.files  = [
             [ "root.src", "dbase", "** comment" ]
         ]
         self.initialized = True
@@ -78,7 +80,158 @@ class ParserDSL:
             self.files.append(data)
             print(self.files)
         return True
+    
+    # -----------------------------------------------------------------------
+    # \brief This is the parser grammar class which would build the AST.
+    # -----------------------------------------------------------------------
+    class grammar:
+        # -------------------------------------------------------------------
+        # \brief class is used to mark a AST scope using comment type  ...
+        # -------------------------------------------------------------------
+        class comment:
+            def __init__(self):
+                self.data = []
+                self.name = ""
+            
+            # ---------------------------------------------------------------
+            # \brief  add a comment type to the existing comment scope ...
+            #
+            # \param  name  - the name for the parser DSL
+            # \param  kind  - a list with supported comment styles.
+            #                 the format is: [ <start>, <end> ]; if None set
+            #                 for <end>, then it is a one liner comment.
+            # \return True  - if the kind list is append successfully to the
+            #                 available data list.
+            #         False - when other event was occured.
+            # ---------------------------------------------------------------
+            def add(self, name, kind):
+                self.name = name
+                self.data.append(kind)
+                return True
+            
+            # ---------------------------------------------------------------
+            # \brief set a new comment type to the existing comment scope ...
+            #
+            # \param name - the DSL parser language
+            # \param kind - the comment styles that are available for <name>
+            # ---------------------------------------------------------------
+            def set(self, name, kind):
+                self.name = name
+                self.data = kind
+                return True
+            
+            # ---------------------------------------------------------------
+            # \brief  set the parser name for which the comments are ...
+            #
+            # \param  name - a string for parser name
+            # \return True - boolean if successfully; else False
+            # ---------------------------------------------------------------
+            def set(self, name):
+                self.name = name
+                return True
+            
+            # ---------------------------------------------------------------
+            # \brief  get the comment data list for the given comment scope.
+            #
+            # \param  nothing
+            # \return data - the self.data list
+            # ---------------------------------------------------------------
+            def get(self):
+                return self.data
+            
+            # ---------------------------------------------------------------
+            # \brief  returns the name which comments stands for DSL name
+            #
+            # \param  nothing
+            # \return string - the parser name
+            # ---------------------------------------------------------------
+            def getName(self):
+                return self.name
         
+        def __init__(self, which):
+            self.AST  = []
+            self.name = which
+        
+        # -------------------------------------------------------------------
+        # \brief add comment types to the AST of a DSL parser.
+        #        currently the following types are available:
+        #
+        #        dBase:
+        #        ** one liner comment
+        #        && one liner
+        #        // one liner comment
+        #        /* block */ dbase multi line comment block
+        #
+        #        C/C++:
+        #        // C(C++ comment one liner
+        #        /* block */ C++ multi line comment block
+        #
+        #        Bash, misc:
+        #        # comment one liner
+        #
+        #        Assembly, LISP:
+        #        ; one line comment
+        # -------------------------------------------------------------------
+        def addComment(self, which=""):
+            if which == "":
+                comment = [[None,None]]
+                comment_object = self.comment("unknown")
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            which = which.lower()
+            if which == "dbase":
+                comment = [
+                    [ "**", None ],
+                    [ "&&", None ],
+                    [ "//", None ],
+                    [ "/*", "*/" ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            elif which == "c":
+                comment = [
+                    ["/*", "*/" ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            elif which == "c++" or which == "cc" or which == "cpp":
+                comment = [
+                    ["/*", "*/" ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            elif which == "pascal":
+                comment = [
+                    ["(*", "*)" ],
+                    ["{" , "}"  ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            elif which == "asm" or which == "lisp":
+                comment = [
+                    [";", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            elif which == "bash":
+                comment = [
+                    ["#", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            else:
+                #"no known comment type"
+                raise EParserError(1100)
+    
     # -----------------------------------------------------------------------
     # \brief A class that act as record, to hold the informations about a
     #        decent parser...
