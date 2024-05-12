@@ -33,6 +33,7 @@ class EParserError(Exception):
             [     0, "no error"               ],
             [  1000, "rtl not initialized."   ],
             [  1100, "no known comment type." ],
+            [  1101, "empty comment."         ],
             [ 10000, "file does not exists."  ],
         ]
         

@@ -774,6 +774,9 @@ class dBaseDSL:
     def __new__(self, script_name):
         self.script = script_name
         self.parser = ParserDSL(self.script, "dbase")
+        
+        parser_comment = self.parser.comment(self.parser)
+        #self.parser.add("sttr")
         return self
     
     def parse(self):
