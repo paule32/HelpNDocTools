@@ -776,7 +776,7 @@ class dBaseDSL:
         self.parser = ParserDSL(self.script, "dbase")
         
         parser_comment = self.parser.comment(self.parser)
-        #self.parser.add("sttr")
+        self.parser.add (self.parser, parser_comment)
         return self
     
     def parse(self):

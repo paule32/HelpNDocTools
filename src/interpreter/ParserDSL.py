@@ -46,6 +46,7 @@ class ParserDSL:
         self.name   = lang.lower()
         self.paeser = self
         self.rtl    = RunTimeLibrary()
+        self.AST    = []
         self.files  = [
             [ "root.src", "dbase", "** comment" ]
         ]
@@ -84,12 +85,115 @@ class ParserDSL:
         return True
     
     # -------------------------------------------------------------------
+    # \brief add comment types to the AST of a DSL parser.
+    #        currently the following types are available:
+    #
+    #        dBase:
+    #        ** one liner comment
+    #        && one liner
+    #        // one liner comment
+    #        /* block */ dbase multi line comment block
+    #
+    #        C/C++:
+    #        // C(C++ comment one liner
+    #        /* block */ C++ multi line comment block
+    #
+    #        Bash, misc:
+    #        # comment one liner
+    #
+    #        Assembly, LISP:
+    #        ; one line comment
+    # -------------------------------------------------------------------
+    def add(self, object_type):
+        if type(object_type) == ParserDSL.comment:
+            which = ParserDSL.name.lower()
+            
+            # --------------------------
+            # no syntax comments
+            # --------------------------
+            if which == "":
+                comment = [[None,None]]
+                comment_object = self.comment("unknown")
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # dBase 7 syntax comments
+            # --------------------------
+            if which == "dbase":
+                comment = [
+                    [ "**", None ],
+                    [ "&&", None ],
+                    [ "//", None ],
+                    [ "/*", "*/" ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern C syntax comments
+            # --------------------------
+            elif which == "c":
+                comment = [
+                    ["/*", "*/" ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern C++ syntax comments
+            # --------------------------
+            elif self.rtl.StringCompare(which, ["c++","cc","cpp"]):
+                comment = [
+                    ["/*", "*/" ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern Pascal comments
+            # --------------------------
+            elif which == "pascal":
+                comment = [
+                    ["(*", "*)" ],
+                    ["{" , "}"  ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # old ASM, and LISP comments
+            # --------------------------
+            elif self.rtl.StringCompare(which, ["asm","lisp"]):
+                comment = [
+                    [";", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # *nix tool style comments
+            # --------------------------
+            elif which == "bash":
+                comment = [
+                    ["#", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            else:
+                #"no known comment type"
+                raise EParserError(1100)
+    
+    # -------------------------------------------------------------------
     # \brief class is used to mark a AST scope using comment type  ...
     # -------------------------------------------------------------------
     class comment:
         def __init__(self, argument=None):
             self.data   = []
-            self.name   = ""
+            self.name   = "s"
             self.parent = ParserDSL
             
             # --------------------------
@@ -109,7 +213,7 @@ class ParserDSL:
                     + " comments overwrite.")
                     self.parent.name = argument.name
                 else:
-                    print("info: current scope not touched, because "
+                    print("info: current scope not touched, because"
                     + " comments already initialized with: "
                     + argument.name
                     + ".")
@@ -191,106 +295,6 @@ class ParserDSL:
         # ---------------------------------------------------------------
         def getName(self):
             return self.name
-        
-    # -------------------------------------------------------------------
-    # \brief add comment types to the AST of a DSL parser.
-    #        currently the following types are available:
-    #
-    #        dBase:
-    #        ** one liner comment
-    #        && one liner
-    #        // one liner comment
-    #        /* block */ dbase multi line comment block
-    #
-    #        C/C++:
-    #        // C(C++ comment one liner
-    #        /* block */ C++ multi line comment block
-    #
-    #        Bash, misc:
-    #        # comment one liner
-    #
-    #        Assembly, LISP:
-    #        ; one line comment
-    # -------------------------------------------------------------------
-    def add(object_type):
-        print("---> " + object_type)
-        return
-        if which == "":
-            comment = [[None,None]]
-            comment_object = self.comment("unknown")
-            comment_object.set(comment)
-            self.AST.append(comment_object)
-        which = which.lower()
-        # --------------------------
-        # dBase 7 syntax comments
-        # --------------------------
-        if which == "dbase":
-            comment = [
-                [ "**", None ],
-                [ "&&", None ],
-                [ "//", None ],
-                [ "/*", "*/" ],
-            ]
-            comment_object = self.comment(which)
-            comment_object.set(comment)
-            self.AST.append(comment_object)
-        # --------------------------
-        # modern C syntax comments
-        # --------------------------
-        elif which == "c":
-            comment = [
-                ["/*", "*/" ],
-                ["//", None ],
-            ]
-            comment_object = self.comment(which)
-            comment_object.set(comment)
-            self.AST.append(comment_object)
-        # --------------------------
-        # modern C++ syntax comments
-        # --------------------------
-        elif which == "c++" or which == "cc" or which == "cpp":
-            comment = [
-                ["/*", "*/" ],
-                ["//", None ],
-            ]
-            comment_object = self.comment(which)
-            comment_object.set(comment)
-            self.AST.append(comment_object)
-        # --------------------------
-        # modern Pascal comments
-        # --------------------------
-        elif which == "pascal":
-            comment = [
-                ["(*", "*)" ],
-                ["{" , "}"  ],
-                ["//", None ],
-            ]
-            comment_object = self.comment(which)
-            comment_object.set(comment)
-            self.AST.append(comment_object)
-        # --------------------------
-        # old ASM, and LISP comments
-        # --------------------------
-        elif which == "asm" or which == "lisp":
-            comment = [
-                [";", None ],
-            ]
-            comment_object = self.comment(which)
-            comment_object.set(comment)
-            self.AST.append(comment_object)
-        # --------------------------
-        # *nix tool style comments
-        # --------------------------
-        elif which == "bash":
-            comment = [
-                ["#", None ],
-            ]
-            comment_object = self.comment(which)
-            comment_object.set(comment)
-            self.AST.append(comment_object)
-        else:
-            #"no known comment type"
-            raise EParserError(1100)
     
     # -----------------------------------------------------------------------
     # \brief A class that act as record, to hold the informations about a

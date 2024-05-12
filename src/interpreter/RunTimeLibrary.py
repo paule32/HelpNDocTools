@@ -88,6 +88,22 @@ class RunTimeLibrary:
         return data
     
     # -----------------------------------------------------------------------
+    # \brief  StringCompare compare the string "str" with the occurences of
+    #         strings in the list. The string_list can contain multiple
+    #         strings separated by a comma.
+    #
+    # \param  str  - the string to be check
+    # \param  list - the list of strings which can contain "str"
+    # \return True - if check is okay, True is the return value, else False
+    # -----------------------------------------------------------------------
+    def StringCompare(self, string, string_list):
+        result = False
+        if string in string_list:
+            return True
+        else:
+            return False
+    
+    # -----------------------------------------------------------------------
     # \brief raise an exception, if the runtime libaray is not initialized...
     # -----------------------------------------------------------------------
     def check_initialized(self):
