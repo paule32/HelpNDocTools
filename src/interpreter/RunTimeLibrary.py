@@ -61,8 +61,8 @@ class RunTimeLibrary:
     # \return False - when the checks fails
     #         True  - when the file checks success
     # -----------------------------------------------------------------------
-    def FileExists(self, name):
-        self.rtl.check_initialized(self)
+    def FileExists(name):
+        RunTimeLibrary.check_initialized()
         if not os.path.exists(name):
             return False
         elif os.path.isdir(name):
@@ -77,9 +77,9 @@ class RunTimeLibrary:
     # \param  name - the file name that content should read
     # \return encoding text string content that was read from file.
     # -----------------------------------------------------------------------
-    def ReadFile(self, name):
-        self.rtl.check_initialized(self)
-        if not self.rtl.FileExists(self, name):
+    def ReadFile(name):
+        RunTimeLibrary.check_initialized()
+        if not RunTimeLibrary.FileExists(name):
             raise EParserError(10000)
         with open(name, "r", encoding="utf-8") as file:
             file.seek(0)
@@ -96,7 +96,7 @@ class RunTimeLibrary:
     # \param  list - the list of strings which can contain "str"
     # \return True - if check is okay, True is the return value, else False
     # -----------------------------------------------------------------------
-    def StringCompare(self, string, string_list):
+    def StringCompare(string, string_list):
         result = False
         if string in string_list:
             return True
@@ -106,6 +106,6 @@ class RunTimeLibrary:
     # -----------------------------------------------------------------------
     # \brief raise an exception, if the runtime libaray is not initialized...
     # -----------------------------------------------------------------------
-    def check_initialized(self):
-        if not self.initialized:
+    def check_initialized():
+        if not RunTimeLibrary.initialized:
             raise EParserError(1000)

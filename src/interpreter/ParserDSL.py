@@ -42,16 +42,15 @@ class ParserDSL:
     # -----------------------------------------------------------------------
     # \brief this is the constructor of class "ParserDSL" ...
     # -----------------------------------------------------------------------
-    def __new__(self, script_name, lang="dbase"):
+    def __new__(self, lang="dbase"):
         self.name   = lang.lower()
-        self.paeser = self
+        self.parser = self
         self.rtl    = RunTimeLibrary()
         self.AST    = []
         self.files  = [
             [ "root.src", "dbase", "** comment" ]
         ]
         self.initialized = True
-        self.addFile(self, script_name)
         return self
     
     def __enter__(self):
@@ -69,19 +68,19 @@ class ParserDSL:
     #
     # \param name - the file name of the script.
     # -----------------------------------------------------------------------
-    def addFile(self, name):
-        if not self.rtl.FileExists(self, name):
+    def addFile(name):
+        if not ParserDSL.rtl.FileExists(name):
             raise EParserError(10000)
         else:
             data = []
-            code = self.rtl.ReadFile(self, name)
+            code = ParserDSL.rtl.ReadFile(name)
             
             data.append(name)
-            data.append(self.name)
+            data.append(name)
             data.append(code)
             
-            self.files.append(data)
-            print(self.files)
+            ParserDSL.files.append(data)
+            print(ParserDSL.files)
         return True
     
     # -------------------------------------------------------------------
@@ -104,8 +103,9 @@ class ParserDSL:
     #        Assembly, LISP:
     #        ; one line comment
     # -------------------------------------------------------------------
-    def add(self, object_type):
+    def add(object_type):
         if type(object_type) == ParserDSL.comment:
+            self  = ParserDSL()
             which = ParserDSL.name.lower()
             
             # --------------------------
