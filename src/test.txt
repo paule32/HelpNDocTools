@@ -1,32 +1,24 @@
-** uiuiuiui
-  && xxxxxxx
-  
-    /*
-    
-    ffff
-    */
+** This is a one line dBase comment
+&& This is a one line dBase comment, too
+// This is a one line C++ comment, that is valid in dBase, too
 
-  ///clear all
+/* This is the begin of a common C block comment
+ * it can contain
+   multiple
+ * lines in source codes
+ */
+ 
+    && xxxxxxx
 
-  // sfdfdf
-    
-        // /* /*
-        
-        set color to w 
-        /*       oip */
-  /*  xxxxx
-  
-  */ / atzi      
-clear all
-#ifdef macro
-  // cccccc
-  &&
-  #if 123 == 15612
-    #ifdef xxxxx
-// xxxx
-      #ifdef suround
-      //dd
-      #endif
-    #endif
-  #endif
-#endif
+/*
+  the following command:  clear all
+  will not execute, because it stands in a C comment block.
+
+      */   /* dsfsdf */  clear /* comments can nearly 
+      
+      dfdfdf  stand overall places.
+      The two commands "clear screen" between the comments will
+      be execute, because they stand outside of a comment scope.
+      
+        */
+        screen clear screen

@@ -21,6 +21,7 @@ global debugMode
 # ---------------------------------------------------------------------------
 try:
     import os            # operating system stuff
+    
     if 'PYTHONHOME' in os.environ:
         del os.environ['PYTHONHOME']
     if 'PYTHONPATH' in os.environ:
@@ -86,6 +87,8 @@ try:
     
     from collection import *     # exception: templates
     from exapp      import *     # exception: application block placeholder
+    
+    from VisualComponentLibrary import *
     
     from EParserException import *     # exception handling for use with parser
     from RunTimeLibrary   import *     # rtl functions for parser

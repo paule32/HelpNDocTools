@@ -128,9 +128,18 @@ class dbase_test_array_struct:
         sys.exit(20)
 
 # ---------------------------------------------------------------------------
-# class for interpreting dBase related stuff ...
+# \brief  class for interpreting dBase related stuff ...
+#         the constructor need a string based script name that shall be read
+#         and execute from memory.
+#
+# \param  filename - a named string for the script name
+# \return objref - ctor's return the created object referenz from an memory
+#         internal address that is managed by the operating system logic.
+#
+# \author paule32
+# \since  1.0.0
 # ---------------------------------------------------------------------------
-class interpreter_dBase():
+class interpreter_dBase:
     def __init__(self, fname):
         self.script_name = fname;
         
@@ -142,16 +151,21 @@ class interpreter_dBase():
         # Regular expression for recognizing identifiers.
         self.rexid = re.compile(r'^[a-zA-Z]\w*$')
         
-        self.lineno      = 1
-        self.pos         = 0
+        self.line_row    = 1
+        self.line_col    = 1
+        
+        self.pos         = -1
         
         self.token_id    = ""
         self.token_prev  = ""
+        self.token_str   = ""
         
         self.parse_data  = []
         
         self.token_macro_counter = 0
         self.token_comment_flag  = 0
+        
+        self.in_comment = 0
         
         self.AST = []
         
@@ -179,7 +193,7 @@ class interpreter_dBase():
         self.source = self.parse_data[0]
     
     # -----------------------------------------------------------------------
-    # finalize checks and cleaning stuff ...
+    # \brief finalize checks and cleaning stuff ...
     # -----------------------------------------------------------------------
     def finalize(self):
         self.log.debug("macro   : " + str(self.token_macro_counter))
@@ -189,7 +203,19 @@ class interpreter_dBase():
             sys.exit(1)
     
     # -----------------------------------------------------------------------
-    # open a script file, and append the readed lines to the parse_data obj.
+    # \brief open a script file, and append the readed lines to the source
+    #        object of this class. step one read the lines (maybe not need
+    #        in future releases. step two read the content of the given file
+    #        as one dimensional list which is used to parse the memory stream
+    #        quicker than reading from storage disks.
+    #        this function have a little payload, yes - but the time of read-
+    #        ing the source data informations into the memory is quantitative
+    #        better as doing read/write operations by the operation system.
+    #
+    # \param  filename - a string that identify the file/script that should
+    #                    be loaded and parsed.
+    # \author paule32
+    # \since  1.0.0
     # -----------------------------------------------------------------------
     def parse_open(self, file_name):
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
@@ -215,400 +241,148 @@ class interpreter_dBase():
         exec(bytecode)
     
     # -----------------------------------------------------------------------
-    # get one char from the input stream/source line ...
+    # \brief  get one char from the input stream/source line.
+    #         the internal position cursor self.pos for the self.source will
+    #         be incdrement by 1 character. for statistics, the line column
+    #         position wull be updated.
+    #         if the sel.pos cursor is greater as self.source codem then the
+    #         end of data is marked, and python raise a silent "no errpr"
+    #         exception to stop the processing of data (to prevent data/buffer
+    #         overflow.
+    #
+    # \param  nothing
+    # \return char - The "non" whitespace character that was found between
+    #                existing comment types.
+    # \author paule32
+    # \since  1.0.0
     # -----------------------------------------------------------------------
     def getChar(self):
+        self.line_col += 1
         self.pos += 1
-        if self.lineno <= self.total_lines:
-            if self.pos >= len(self.line):
-                raise ENoParserError("end of file reached.")
+
+        if self.pos >= len(self.source):
+            if self.in_comment > 0:
+                raise EParserErrorEOF("\aunterminated string reached EOF.")
             else:
-                c = self.line[self.pos]
-                return c
+                raise ENoParserError("\aend of file reached.")
         else:
-            c = self.line[self.pos]
+            c = self.source[self.pos]
             return c
     
-    # -----------------------------------------------------------------------
-    # parse a C like comment block over multiple lines: /* ... */
-    # -----------------------------------------------------------------------
-    def handle_c_comment(self):
-        while True:
-            c = self.getChar()
-            if c == "\n":
-                self.lineno += 1
-                self.pos = 0
-                self.line = self.file.readline()
-                self.linelen = len(self.line)
-                c = self.line[self.pos]
-            elif c == "*":
-                c = self.getChar()
-                if c == "/":
-                    self.token_comment_flag -= 1
-                    c = self.skip_white_spaces()
-                    return c
-    
-    def check_comment(self):
-        while True:
-            c = self.getChar()
-            if c.isspace():
-                pass
-            elif c == "/":
-                self.pos += 1
-                if self.pos >= self.linelen:
-                    self.__unexpectedEndOfLine()
-                c = self.line[self.pos]
-                if c == "*":
-                    self.log.debug("C commentl")
-                    self.token_comment_flag += 1
-                    c = self.handle_c_comment()
-                elif c == "/":
-                    self.log.debug("C++ comment 222")
-                    c = self.handle_oneline_comment()
-                    self.log.debug("-->>>> " + c)
-                    if c == "#":
-                        c = self.handle_macro_command()
-                        self.log.debug("----" + c)
-                        return c
-                    if c.isalpha():
-                        self.tokenstr = c
-                        #self.getIdent()
-                        self.log.debug("-xcxs--> " + self.tokenstr)
-                        self.tokenstr = ""
-                    #return c
-                else:
-                    self.log.debug("2222")
-                    self.pos -= 1
-                    c = self.line[self.pos]
-                    return c
-            else:
-                return c
-    
     def ungetChar(self, num):
+        self.line_col -= num;
         self.pos -= num;
+        c = self.source[self.pos]
+        return c
     
     def getIdent(self):
         while True:
             c = self.getChar()
             if c.isspace():
-                return self.tokenstr
+                return self.token_str
             elif c.isalnum():
-                self.tokenstr += c
+                self.token_str += c
             else:
                 self.pos -= 1
-                return self.tokenstr
+                return self.token_str
     
     def getNumber(self):
         while True:
             c = self.getChar()
             if c.isspace():
-                return self.tokenstr
+                return self.token_str
             elif c.isdigit():
-                self.tokenstr += c
+                self.token_str += c
             else:
                 self.pos -= 1
-                return self.tokenstr
+                return self.token_str
     
+    # -----------------------------------------------------------------------
+    # \brief skip all whitespaces. whitespaces are empty lines, lines with
+    #        one or more spaces (0x20): " ", \t, "\n".
+    # -----------------------------------------------------------------------
     def skip_white_spaces(self):
         while True:
             c = self.getChar()
-            if not c.isspace():
-                print("======> " + c)
+            if c == "\t" or c == " ":
+                self.line_col += 1
+                continue
+            elif c == "\n" or c == "\r":
+                self.line_col  = 1
+                self.line_row += 1
+                continue
+            elif c == '/':
+                c = self.getChar()
+                if c == '*':
+                    self.in_comment += 1
+                    while True:
+                        c = self.getChar()
+                        if c == "\n":
+                            self.line_col  = 1
+                            self.line_row += 1
+                            continue
+                        if c == '*':
+                            c = self.getChar()
+                            if c == '/':
+                                self.in_comment -= 1
+                                break
+                    return self.skip_white_spaces()
+                elif c == '/':
+                    self.handle_oneline_comment()
+                    continue
+                else:
+                    self.ungetChar(1)
+                    c = "/"
+                    return c
+            elif c == '&':
+                c = self.getChar()
+                if c == '&':
+                    self.handle_oneline_comment()
+                    continue
+                else:
+                    self.__unexpectedChar('&')
+            elif c == '*':
+                c = self.getChar()
+                if c == '*':
+                    self.handle_oneline_comment()
+                    continue
+                else:
+                    self.__unexpectedChar('*')
+            else:
                 return c
     
-    def handle_lang_commands(self):
-        self.log.debug("ccc=> " + self.tokenstr)
-        if self.tokenstr == "set":
-            cmd = dbase_command(self, "set")
-            self.token_command = cmd.add()
-            self.tokenstr = ""
-            self.handle_command_set()
-    
     # -----------------------------------------------------------------------
-    # parse a one line comment: // for c++, ** and && for dBase ...
+    # \brief parse a one line comment: // for c++, ** and && for dBase ...
     # -----------------------------------------------------------------------
     def handle_oneline_comment(self):
         while True:
             c = self.getChar()
             if c == "\n":
-                self.lineno += 1
-                self.pos = 0
+                self.line_row += 1
+                self.line_col  = 1
                 break
     
-    def handle_macro_command(self):
-        c = self.skip_white_spaces()
-        self.log.debug("----->>> " + c)
-        if c == "/":
-            c = self.getChar()
-            if c == "*":
-                self.token_comment_flag += 1
-                self.handle_c_comment()
-            elif c == "/":
-                self.handle_oneline_comment()
-            else:
-                self.ungetChar(1)
-                return
-        elif c.isalpha():
-            self.tokenstr = c
-            self.getIdent()
-            self.log.debug("---> " + self.tokenstr)
-            if self.tokenstr == "ifdef":
-                self.token_macro_counter += 1
-                c = self.skip_white_spaces()
-                if c.isalpha():
-                    self.tokenstr = c
-                    self.getIdent()
-                    self.log.debug("o--> " + self.tokenstr)
-                    c = self.skip_white_spaces()
-                    if c == "\n":
-                        c = self.skip_white_spaces()
-                        if c == "#":
-                            self.log.debug("sharp")
-                            c = self.handle_macro_command()
-                    elif c == "#":
-                        c = self.skip_white_spaces()
-                        return c
-                    elif c.isalpha():
-                        self.tokenstr = c
-                        self.getIdent()
-                        self.log.debug("a--> " + self.tokenstr);
-                        if self.tokenstr == "endif":
-                            self.token_macro_counter -= 1
-                        #else:
-                        #    #self.token_macro_counter += 1
-                        c = self.skip_white_spaces()
-                        return c
-                    elif c.isdigit():
-                        self.getIdent()
-                        self.log.debug("b--> " + self.tokenstr);
-                    elif c == "\n":
-                        self.tokenlineno = self.lineno
-                        self.__unexpectedEndOfLine()
-                elif c == "\n":
-                    self.tokenlineno = self.lineno
-                    self.__unexpectedEndOfLine()
-                else:
-                    self.__unexpectedChar(c)
-                return
-            elif self.tokenstr == "if":
-                self.token_macro_counter += 1
-                c = self.skip_white_spaces()
-                if c == "\n":
-                    c = self.skip_white_spaces()
-                if c.isdigit():
-                    self.tokenstr = c
-                    self.getNumber()
-                    self.log.debug("digi: " + self.tokenstr)
-                    c = self.skip_white_spaces()
-                    self.tokenstr = ""
-                    if c == "\n":
-                        c = self.skip_white_spaces()
-                    if c == "=":
-                        c = self.getChar()
-                        if c == "=":
-                            c = self.skip_white_spaces()
-                            if c == "\n":
-                                self.__unexpectedEndOfLine()
-                            self.log.debug("---->>>> " + c)
-                            if c.isdigit():
-                                self.tokenstr = c
-                                self.getNumber()
-                                self.log.debug(">digi: " + self.tokenstr)
-                                c = self.skip_white_spaces()
-                                self.log.debug("c-->o> " + c)
-                                if c == "#":
-                                    c = self.handle_macro_command()
-                                if c == "\n":
-                                    c = self.skip_white_spaces()
-                                #return
-                            else:
-                                self.__unexpectedChar(c)
-                        elif c == "<":
-                            c = self.skip_white_spaces()
-                            if c == "\n":
-                                self.__unexpectedEndOfLine()
-                            c = self.skip_white_spaces()
-                            if c.isdigit():
-                                self.getNumber()
-                                self.log.debug("digi: " + self.tokenstr)
-                            else:
-                                self.__unexpectedChar(c)
-                        else:
-                            self.__unexpectedChar(c)
-                    elif c == ">":
-                        c = self.getChar()
-                        if c == "=":
-                            c = self.skip_white_spaces()
-                            if c == "\n":
-                                self.__unexpectedEndOfLine()
-                            c = self.skip_white_spaces()
-                            if c.isdigit():
-                                self.getNumber()
-                                self.log.debug("digi: " + self.tokenstr)
-                            else:
-                                self.__unexpectedChar(c)
-                        else:
-                            self.__unexpectedChar(c)
-                    elif c == "!":
-                        c = self.getChar()
-                        if c == "=":
-                            c = self.skip_white_spaces()
-                            if c == "\n":
-                                self.__unexpectedEndOfLine()
-                            c = self.skip_white_spaces()
-                            if c.isdigit():
-                                self.getNumber()
-                                self.log.debug("digi: " + self.tokenstr)
-                            else:
-                                self.__unexpectedChar(c)
-                        else:
-                            self.__unexpectedChar(c)
-                    elif c == "<":
-                        c = self.getChar()
-                        if c == ">":
-                            c = self.skip_white_spaces()
-                            if c == "\n":
-                                self.__unexpectedEndOfLine()
-                            c == self.skip_white_spaces()
-                            if c.isdigit():
-                                self.getNumber()
-                                self.log.debug("digi: " + self.tokenstr)
-                            else:
-                                self.__unexpectedChar(c)
-                        elif c == "=":
-                            c = self.skip_white_spaces()
-                            if c == "\n":
-                                self.__unexpectedEndOfLine()
-                            c = self.skip_white_spaces()
-                            if c.isdigit():
-                                self.getNumber()
-                                self.log.debug("digi: " + self.tokenstr)
-                            else:
-                                self.__unexpectedChar(c)
-                        else:
-                            self,__unexpectedChar(c)
-                    self.log.debug("==> " + c)
-                    if c == "#":
-                        c = self.handle_macro_command()
-                        c = self.skip_white_spaces()
-                        self.log.debug("OO=> " + c)
-                        if c.isalpha():
-                            self.tokenstr = c
-                            self.getIdent()
-                            if self.tokenstr == "endif":
-                                self.log.debug("oiouo")
-                                self.token_macro_counter -= 1
-                            else:
-                                self.log.debug("zuzu")
-                                return
-                        else:
-                            self.log.debug("todo")
-                            return c
-                    self.log.debug("tuz")
-                self.log.debug("muz")
-            elif self.tokenstr == "endif":
-                self.log.debug("ENDIF 11")
-                self.token_macro_counter -= 1
-                self.log.debug("ccc> " + str(self.token_macro_counter))
-                c = self.skip_white_spaces()
-                if c == "#":
-                    self.log.debug("aaa> " + c)
-                    self.log.debug("ccc> " + str(self.token_macro_counter))
-                    c = self.handle_macro_command()
-                    return c
-        elif c.isdigit():
-            self.tokenstr = c
-            c = self.getNumber()
-            self.log.debug("num--> " + self.tokenstr);
-        elif c == "\n":
-            self.tokenlineno = self.lineno
-            self.__unexpectedEndOfLine()
-        else:
-            self.__unexpectedChar(c)
-    
-    def handle_command_set(self):
-        self.getIdent()
-        self.log.debug("zz:" + self.tokenstr + ":uu")
-        if self.tokenstr == "color":
-            print("color")
-            self.log.debug("===> " + self.tokenstr)
-            cmd = dbase_command(self, "color", self.token_command)
-            self.token_command = cmd.add()
-            self.tokenstr = ""
-            self.getIdent()
-            print("----> " + self.tokenstr)
-            self.log.debug("zz:" + self.tokenstr + ":uu")
-            if self.tokenstr == "to":
-                cmd = dbase_command(self, "to", self.token_command)
-                self.token_command = cmd.add()
-                self.tokenstr = ""
-                c = self.skip_white_spaces()
-                if c.isalpha():
-                    print("ooo> " + c)
-                    c = self.getChar()
-                    print("ooo> " + c)
-                    if c.isspace():
-                        c = self.skip_white_spaces()
-                        print("ooo> " + c)
-                    self.getIdent()
-                    print("===> " + self.tokenstr)
-                
-                self.tokenstr = ""
+    # -----------------------------------------------------------------------
+    # \brief a function, that check tokens from a given token list of
+    #        occurences.
+    # -----------------------------------------------------------------------
+    def expect_list(self, tokens=[]):
+        result = False
+        for word in tokens:
+            c = self.skip_white_spaces()
+            if c.isalpha():
+                self.token_str = c
                 self.getIdent()
-                self.log.debug("p1:" + self.tokenstr + ":uu")
-                cmd = dbase_command(self, self.tokenstr, self.token_command)
-                self.token_command = cmd.add()
-                c = self.skip_white_spaces()
-                print("==> " + c)
-                if c == "/":
-                    c = self.getChar()
-                    if c.isspace():
-                        c = self.skip_white_spaces()
-                        print("==> " + c)
-                        return c
-                    elif c == "*":
-                        c = self.handle_c_comment()
-                        return c
-                    elif c == "/":
-                        print("c++ commenter")
-                        c = self.handle_oneline_comment()
-                        return c
-                    elif c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
-                        self.log.debug("===> " + c)
-                        self.log.debug("===> " + self.token_str)
-                    else:
-                        self.__unexpectedChar(c)
+                if self.token_str == word:
+                    result = True
+                    continue
                 else:
-                    self.__unexpectedChar("oooo")
-            else:
-                self.__unexpectedToken()
-        else:
-            self.__unexpectedToken()
-
-    def handle_commands(self):
-        #self.log.debug("zz:" + self.tokenstr + ":uu")
-        if self.tokenstr == "&":
-            c = self.getChar()
-            if c == "&":
-                self.log.debug("dBase Comment 3 ----> &&")
-                c = self.handle_oneline_comment()
-                if c == "\n":
-                    c = self.skip_white_spaces()
-                    if c == "#":
-                        self.handle_macro_command()
-            else:
-                self.pos -= 1
-                c = "&"
-        elif self.tokenstr == "set":
-            print("setter")
-            self.token_command = dbase_command(self, "set", None)
-            self.token_command.prev = self.token_command
-            
-            self.tokenstr = ""
-            self.handle_command_set()
-    
+                    result = False
+                    break
+        if result == False:
+            raise EParserErrorUnknowID(self.token_str, self.line_row)
+        return result
+                
     def parse(self):
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
             self.file.seek(0)
@@ -621,163 +395,82 @@ class interpreter_dBase():
         if len(self.source) < 1:
             print("no data available.")
             return
+        
         # ------------------------------------
         # get the next character.
         # read next line first, if neccassary
         # ------------------------------------
+        token_clear    = ["clear","screen"]
+        token_setcolor = ["set", "color", "to" ]
+        break_flag     = 0
         while True:
-            c = self.getChar()
-            if c.isspace():
+            if self.pos >= len(self.source):
+                print("ene")
+                break_flag = 0
+                break
+            if self.expect_list(token_clear):
+                print("clear screennn")
                 continue
-            elif c.isdigit():
-                self.tokenid = "num"
-            elif c.isalpha():
-                print("alpja")
-                self.tokenid = "id"
-                if self.tokenstr == "set":
-                    print("SETTER")
-                    self.handle_commands()
-                elif self.tokenstr == "clear":
-                    self.log.debug("Token: " + self.tokenstr)
-                    self.previd  = "clear"
-                    self.tokenid = self.previd
-                    self.tokenlineno = self.lineno
-                    self.status = 0
-                elif (self.tokenstr == "all") and (self.previd == "clear"):
-                    #self.text_code += "con.cls();"
-                    self.previd = ""
-                    self.status = 0
-                else:
-                    self.log.debug("------> " + self.tokenstr)
-                    if self.tokenstr == "atzi":
-                        self.tokenstr = ""
-                        self.status = 0
-                    else:
-                        self.__unexpectedToken()
-                    self.__unexpectedToken()
-                
-                if c.isspace():
-                    pass
-                elif c == "/":
-                    c = self.getChar()
-                    if c == "*":
-                        self.token_comment_flag += 1
-                        c = self.handle_c_comment()
-                    elif c == "/":
-                        self.log.debug("C++ comment 111")
-                        c = self.handle_oneline_comment()
-                        print("oooooo>>>> " + c)
-                        self.tokenstr = c
-                        self.getIdent()
-                        
-                        self.previd = self.tokenstr
-                        self.handle_commands()
-                        self.status = 0
-                    else:
-                        self.tokenstr = c
-                        self.getIdent()
-                        #self.log.debug("zz: " + c + " :usssu") # atzi
-                        
-                        self.status = 0
-                elif c == "*":
-                    c = self.getChar()
-                    if c == "*":
-                        self.log.debug("dBase Comment 1 ----> **")
-                        c = self.handle_oneline_comment()
-                        if self.lineno >= self.total_lines:
-                            break
-                    else:
-                        self.log.debug("todo")
-                elif c == "&":
-                    c = self.getChar()
-                    if c == "&":
-                        self.log.debug("dBase Comment 2 ----> &&")
-                        c = self.handle_oneline_comment()
-                        if self.lineno >= self.total_lines:
-                            break
-                    else:
-                        self.log.debug("todo")
-                elif c == "#":
-                    self.log.debug("preproc")
-                    self.handle_macro_command()
-                else:
-                    self.tokenstr = c
-                    self.tokenlineno = self.lineno
-                    self.status = 333
-                
-                if self.pos >= self.linelen:
-                    #self.log.debug("1111111111")
-                    break
-                self.pos += 1
-            
-            elif c == "/":
-                c = self.getChar()
-                if c == "/":
-                    self.log.debug("C++ comment 333")
-                    self.handle_oneline_comment()
-                    continue
-                elif c == "*":
-                    self.log.debug("C comment 3421")
-                    self.handle_c_comment()
-                elif c.isspace():
-                    continue
-            elif c == "&":
-                c = self.getChar()
-                if c == "&":
-                    self.log.debug("dBASE comment 11")
-                    self.handle_oneline_comment()
-                    continue
-                else:
-                    self.__unexpectedChar(c)
-            elif c == "*":
-                c = self.getChar()
-                if c == "*":
-                    print("dddddd")
-                    self.log.debug("dBASE comment 22")
-                    self.handle_oneline_comment()
-                    continue
-                    print("ddBB>> " + c)
-                else:
-                    self.__unexpectedChar(c)
+            if self.expect_list(token_setcolor):
+                print("color setter")
+                continue
+            print("---> " + self.token_str)
+        if break_flag == 0:
+            print("end of data")
     
     def __unexpectedToken(self):
         calledFrom = inspect.stack()[1][3]
         msg = "\a\nunexpected token: '%s' on line: '%d' in: '%s'.\n"
-        msg = msg % (self.token_id, self.lineno, self.script_name)
-        if self.status != -1:
-            msg += "status = %d in %s()\n" % (self.status, calledFrom)
+        msg = msg % (
+            self.token_str,
+            self.line_row,
+            self.script_name)
         print(msg)
         sys.exit(1)
     
     def __unexpectedChar(self, chr):
         calledFrom = inspect.stack()[1][3]
         msg = "\a\nunexpected character: '%c' on line: '%d' in: '%s'.\n"
-        msg = msg % (chr, self.lineno, self.script_name)
-        if self.status != -1:
-            msg += "status = %d in %s()\n" % (self.status, calledFrom)
+        msg = msg % (chr,
+            self.line_row,
+            self.script_name)
         print(msg)
         sys.exit(1)
     
     def __unexpectedEndOfLine(self):
         calledFrom = inspect.stack()[1][3]
         msg = "\a\nunexpected end of line: line: '%d' in: '%s'.\n"
-        msg = msg % (self.lineno, self.script_name)
-        if self.status != -1:
-            msg += "status = %d in %s()\n" % (self.status, calledFrom)
+        msg = msg % (
+            self.line_row,
+            self.script_name)
         print(msg)
         sys.exit(1)
-
+# ---------------------------------------------------------------------------
+# \brief  provide dBase DSL (domain source language)- dBL (data base language
+#         class for handling and programming database applications.
+#
+# \param  filename - a string based file/script that shall be handled.
+# \return objref - ctor's return the created object referenz from an memory
+#         internal address that is managed by the operating system logic.
+#
+# \author paule32
+# \since  1.0.0
+# ---------------------------------------------------------------------------
 class dBaseDSL:
     def __init__(self):
         self.script = None
     
     def __new__(self, script_name):
+        #menubar = TMenuBar(self)
+        parser  = interpreter_dBase('test.txt')
+        parser.parse()
+        sys.exit(1)
         self.script = script_name
         
         parser = ParserDSL("dbase")
         parser.addFile(self.script)
         
-        parser_comment = parser.comment(parser)
+        parser_comment = parser.comment("dbase")
         parser.add(parser_comment)
         
         self.parser = parser
