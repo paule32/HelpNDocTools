@@ -11,7 +11,7 @@
     && xxxxxxx
 
 /*
-  the following command:  clear all
+  the following command:  clean all
   will not execute, because it stands in a C comment block.
 
       */   /* dsfsdf */  clear /* comments can nearly 
@@ -21,4 +21,8 @@
       be execute, because they stand outside of a comment scope.
       
         */
-        screen clear screen
+        screen
+        clear 
+    
+    @ 1, 2
+

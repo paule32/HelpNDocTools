@@ -170,7 +170,8 @@ class interpreter_dBase:
         self.AST = []
         
         self.byte_code = ""
-        self.text_code = "#con.cls();\n"
+        self.text_code = ""
+        #self.text_code = "#con.cls();\n"
         
         # -------------------------------------------------------------------
         # for debuging, we use python logging library ...
@@ -232,6 +233,9 @@ class interpreter_dBase:
     
     def run(self):
         self.finalize()
+        print("----------------------")
+        print(self.text_code)
+        input("press enter to start...")
         bytecode_text = compile(
             self.text_code,
             "<string>",
@@ -289,9 +293,7 @@ class interpreter_dBase:
     def getNumber(self):
         while True:
             c = self.getChar()
-            if c.isspace():
-                return self.token_str
-            elif c.isdigit():
+            if c.isdigit():
                 self.token_str += c
             else:
                 self.pos -= 1
@@ -362,34 +364,32 @@ class interpreter_dBase:
                 self.line_col  = 1
                 break
     
-    # -----------------------------------------------------------------------
-    # \brief a function, that check tokens from a given token list of
-    #        occurences.
-    # -----------------------------------------------------------------------
-    def expect_list(self, tokens=[]):
-        result = False
-        for word in tokens:
+    def handle_say(self):
+        c = self.skip_white_spaces()
+        print("==> " + c)
+        if c.isdigit():
+            self.token_str = c
+            self.getNumber()
+            print("col: " + self.token_str)
             c = self.skip_white_spaces()
-            if c.isalpha():
-                self.token_str = c
-                self.getIdent()
-                if self.token_str == word:
-                    result = True
-                    continue
+            if c == ',':
+                c = self.skip_white_spaces()
+                if c.isdigit():
+                    self.token_str = c
+                    self.getNumber()
+                    print("row: " + self.token_str)
                 else:
-                    result = False
-                    break
-        if result == False:
-            raise EParserErrorUnknowID(self.token_str, self.line_row)
-        return result
-                
+                    raise Exception("xxxxx")
+            else:
+                raise Exception("sayy22")
+    
     def parse(self):
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
             self.file.seek(0)
             self.total_lines = len(self.file.readlines())
             self.file.seek(0)
             self.source = self.file.read()
-            self.log.debug("-----> " + str(self.total_lines))
+            self.log.debug("lines: " + str(self.total_lines))
             self.file.close()
         
         if len(self.source) < 1:
@@ -397,26 +397,33 @@ class interpreter_dBase:
             return
         
         # ------------------------------------
-        # get the next character.
-        # read next line first, if neccassary
         # ------------------------------------
-        token_clear    = ["clear","screen"]
-        token_setcolor = ["set", "color", "to" ]
-        break_flag     = 0
         while True:
-            if self.pos >= len(self.source):
-                print("ene")
-                break_flag = 0
-                break
-            if self.expect_list(token_clear):
-                print("clear screennn")
-                continue
-            if self.expect_list(token_setcolor):
-                print("color setter")
-                continue
-            print("---> " + self.token_str)
-        if break_flag == 0:
-            print("end of data")
+            c = self.skip_white_spaces()
+            if c == '@':
+                self.handle_say()
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                if self.token_str == "clear":
+                    print("clear")
+                    c = self.skip_white_spaces()
+                    if c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str == "screen":
+                            print("scre")
+                            self.text_code += "#con.cls()\n";
+                        elif self.token_str == "memory":
+                            print("mem")
+                        else:
+                            print("--> " + self.token_str)
+                            self.ungetChar(len(self.token_str))
+                    else:
+                        self.ungetChar(1)
+                        continue
+                if self.token_str == "show":
+                    print("--> " + self.token_str)
     
     def __unexpectedToken(self):
         calledFrom = inspect.stack()[1][3]
@@ -461,19 +468,11 @@ class dBaseDSL:
         self.script = None
     
     def __new__(self, script_name):
-        #menubar = TMenuBar(self)
-        parser  = interpreter_dBase('test.txt')
-        parser.parse()
-        sys.exit(1)
-        self.script = script_name
-        
-        parser = ParserDSL("dbase")
-        parser.addFile(self.script)
-        
-        parser_comment = parser.comment("dbase")
-        parser.add(parser_comment)
-        
-        self.parser = parser
+        try:
+            parser  = interpreter_dBase(script_name)
+            parser.parse()
+        except Exception as e:
+            parser.run()
         return self
     
     def parse(self):
