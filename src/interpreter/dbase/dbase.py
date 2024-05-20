@@ -5,16 +5,6 @@
 # ---------------------------------------------------------------------------
 from appcollection import *
 
-class consoleApp():
-    def __init__(self):
-        init(autoreset = True)
-        sys.stdout.write(Fore.RESET + Back.RESET + Style.RESET_ALL)
-        return
-    
-    def cls(self):
-        sys.stdout.write("\033[H\033[2J")
-        sys.stdout.flush()
-
 class dbase_function:
     def __init__(self, src, name):
         self.what   = "func"
@@ -171,7 +161,21 @@ class interpreter_dBase:
         
         self.byte_code = ""
         self.text_code = ""
-        #self.text_code = "#con.cls();\n"
+        self.text_code = """
+import os
+import sys           # system specifies
+import time          # thread count
+import datetime      # date, and time routines
+
+import builtins
+print = builtins.print
+
+from dbaseConsole import *
+
+if __name__ == '__main__':
+    global con
+    con = consoleApp()
+"""
         
         # -------------------------------------------------------------------
         # for debuging, we use python logging library ...
@@ -199,6 +203,8 @@ class interpreter_dBase:
     def finalize(self):
         self.log.debug("macro   : " + str(self.token_macro_counter))
         self.log.debug("comment : " + str(self.token_comment_flag))
+        if self.command_ok == False:
+            raise EParserErrorEOF("command not finished.")
         if self.token_macro_counter < 0:
             self.log.debug("\aerror: unbound macro.")
             sys.exit(1)
@@ -236,13 +242,49 @@ class interpreter_dBase:
         print("----------------------")
         print(self.text_code)
         input("press enter to start...")
+        
+        self.text_code += "print('Hello World !')\n"
+        
         bytecode_text = compile(
             self.text_code,
             "<string>",
             "exec")
         self.byte_code = marshal.dumps(bytecode_text)
-        bytecode = marshal.loads(self.byte_code)
-        exec(bytecode)
+        
+        # ---------------------
+        # save binary code ...
+        # ---------------------
+        cachedir = "__cache__"
+        if not os.path.exists(cachedir):
+            os.makedirs(cachedir)
+        filename = os.path.basename(self.script_name)
+        filename = os.path.splitext(filename)[0]
+        filename = cachedir+"/"+filename+".bin"
+        print("filename: " + filename)
+        try:
+            with open(filename,"wb") as bytefile:
+                bytefile.write(self.byte_code)
+                bytefile.close()
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+        
+        # ---------------------
+        # load binary code ...
+        # ---------------------
+        try:
+            with open(filename,"rb") as bytefile:
+                bytecode = bytefile.read()
+                bytefile.close()
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+        
+        # ---------------------
+        # execute binary code:
+        # ---------------------
+        #bytecode = marshal.loads(self.byte_code)
+        #exec(bytecode)
     
     # -----------------------------------------------------------------------
     # \brief  get one char from the input stream/source line.
@@ -364,24 +406,123 @@ class interpreter_dBase:
                 self.line_col  = 1
                 break
     
+    def handle_commands(self):
+        if self.token_str.lower() == "date":
+            c = self.skip_white_spaces()
+            if c == '(':
+                c = self.skip_white_spaces()
+                if c == ')':
+                    print("dater")
+                    self.text_code   += ("    con.gotoxy(" +
+                    self.xpos + ","   +
+                    self.ypos + ")\n" +  "    con.print_date()\n")
+                    
+                    self.command_ok = True
+                else:
+                    self.__unexpectedChar(c)
+            else:
+                self.__unexpectedChar(c)
+        elif self.token_str.lower() == "str":
+            c = self.skip_white_spaces()
+            if c == '(':
+                c = self.skip_white_spaces()
+                if c == ')':
+                    print("strrr")
+                    self.command_ok = True
+                else:
+                    self.__unexpectedChar(c)
+            else:
+                self.__unexpectedChar(c)
+        else:
+            self.__unexpectedToken()
+    
+    def handle_string(self):
+        while True:
+            c = self.getChar()
+            if c == '"':
+                break
+            elif c == '\\':
+                c = self.getChar()
+                if c == "\n" or c == "\r":
+                    self.__unexpectedEndOfLine()
+                elif c == " ":
+                    self.__unexpectedEscapeSign()
+                elif c == '\\':
+                    self.token_str += "\\"
+                elif c == 't':
+                    self.token_str += "    "
+                elif c == 'n':
+                    self.token_str += "\n"
+                elif c == 'r':
+                    self.token_str += "\r"
+                elif c == 'a':
+                    self.token_str += "\a"
+                else:
+                    self.token_str += c
+                continue
+            else:
+                self.token_str += c
+                continue
+        c = self.skip_white_spaces()
+        if c == '+':
+            c = self.skip_white_spaces()
+            if c == '"':
+                self.handle_string()
+                print("---> " + self.token_str)
+                return
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                self.handle_commands()
+                print("---> " + self.token_str)
+                return
+            else:
+                self.__unexpectedChar(c)
+        if c == '@':
+            self.ungetChar(1)
+            return
+        else:
+            self.__unexpectedChar(c)
+    
     def handle_say(self):
+        self.command_ok = False
         c = self.skip_white_spaces()
         print("==> " + c)
         if c.isdigit():
             self.token_str = c
-            self.getNumber()
-            print("col: " + self.token_str)
+            self.getNumber()                        # row
+            self.ypos = self.token_str
             c = self.skip_white_spaces()
             if c == ',':
                 c = self.skip_white_spaces()
                 if c.isdigit():
                     self.token_str = c
-                    self.getNumber()
-                    print("row: " + self.token_str)
+                    self.getNumber()                # col
+                    self.xpos = self.token_str
+                    c = self.skip_white_spaces()
+                    if c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str.lower() == "say":
+                            self.prev = "say"
+                            c = self.skip_white_spaces()
+                            if c.isalpha():
+                                self.token_str = c
+                                self.getIdent()
+                                self.handle_commands()
+                            elif c == '"':
+                                print("ssss")
+                                self.token_str = ""
+                                self.handle_string()
+                                print("eeeee")
+                        else:
+                            raise Exception("say expected.")
+                    else:
+                        raise Exception("say expected.")
                 else:
-                    raise Exception("xxxxx")
+                    raise Exception("number expected.")
             else:
-                raise Exception("sayy22")
+                raise Exception("comma expected.")
     
     def parse(self):
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
@@ -413,7 +554,7 @@ class interpreter_dBase:
                         self.getIdent()
                         if self.token_str == "screen":
                             print("scre")
-                            self.text_code += "#con.cls()\n";
+                            self.text_code += "    con.cls()\n";
                         elif self.token_str == "memory":
                             print("mem")
                         else:
@@ -426,32 +567,28 @@ class interpreter_dBase:
                     print("--> " + self.token_str)
     
     def __unexpectedToken(self):
-        calledFrom = inspect.stack()[1][3]
-        msg = "\a\nunexpected token: '%s' on line: '%d' in: '%s'.\n"
-        msg = msg % (
-            self.token_str,
-            self.line_row,
-            self.script_name)
-        print(msg)
-        sys.exit(1)
+        __msg = "unexpected token: '" + self.token_str + "'"
+        __unexpectedError(__msg)
     
     def __unexpectedChar(self, chr):
-        calledFrom = inspect.stack()[1][3]
-        msg = "\a\nunexpected character: '%c' on line: '%d' in: '%s'.\n"
-        msg = msg % (chr,
-            self.line_row,
-            self.script_name)
-        print(msg)
-        sys.exit(1)
+        __msg = "unexpected character: '" + chr + "'"
+        __unexpectedError(__msg)
     
     def __unexpectedEndOfLine(self):
+        __unexpectedError("unexpected end of line")
+    
+    def __unexpectedEscapeSign(self):
+        __unexpectedError("nunexpected escape sign")
+    
+    def __unexpectedError(self, message):
         calledFrom = inspect.stack()[1][3]
-        msg = "\a\nunexpected end of line: line: '%d' in: '%s'.\n"
+        msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
         msg = msg % (
             self.line_row,
             self.script_name)
         print(msg)
         sys.exit(1)
+    
 # ---------------------------------------------------------------------------
 # \brief  provide dBase DSL (domain source language)- dBL (data base language
 #         class for handling and programming database applications.
@@ -468,8 +605,8 @@ class dBaseDSL:
         self.script = None
     
     def __new__(self, script_name):
+        parser = interpreter_dBase(script_name)
         try:
-            parser  = interpreter_dBase(script_name)
             parser.parse()
         except Exception as e:
             parser.run()

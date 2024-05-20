@@ -90,6 +90,7 @@ try:
     
     from VisualComponentLibrary import *
     
+    from dbaseConsole     import *
     from EParserException import *     # exception handling for use with parser
     from RunTimeLibrary   import *     # rtl functions for parser
     

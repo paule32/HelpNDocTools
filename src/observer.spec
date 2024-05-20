@@ -14,14 +14,20 @@ hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/tools/data004
 hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/tools/data005.py')
 hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/tools/misc.py')
 hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/tools/__init__.py')
+hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/interpreter/EParserException.py')
+hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/interpreter/ParserDSL.py')
+hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/interpreter/RunTimeLibrary.py')
+hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/interpreter/VisualComponentLibrary.py')
+hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/interpreter/dbase/dbaseConsole.py')
+hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/interpreter/dbase/dbase.py')
 hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/interpreter/pascal/pascal.py')
 
 
 a = Analysis(
     ['E:/Projekte/HelpNDocTools/src/observer.py'],
-    pathex=['./', 'C:/Windows/System32', 'C:/Windows/SysWOW64', 'E:/Projekte/HelpNDocTools/src/interpreter/pascal', 'E:/Projekte/HelpNDocTools/src/interpreter', 'E:/Projekte/HelpNDocTools/src/tools', 'E:/Projekte/HelpNDocTools/src'],
+    pathex=['./', 'C:/Windows/System32', 'C:/Windows/SysWOW64', 'E:/Projekte/HelpNDocTools/src/interpreter/pascal', 'E:/Projekte/HelpNDocTools/src/interpreter/dbase', 'E:/Projekte/HelpNDocTools/src/interpreter', 'E:/Projekte/HelpNDocTools/src/tools', 'E:/Projekte/HelpNDocTools/src'],
     binaries=[],
-    datas=[('E:/Projekte/HelpNDocTools/src/locales', 'locales/'), ('E:/Projekte/HelpNDocTools/src/img', 'img/'), ('E:/Projekte/HelpNDocTools/LICENSE', '.'), ('E:/Projekte/HelpNDocTools/README.md', '.'), ('E:/Projekte/HelpNDocTools/CONTRIBUTING.md', '.'), ('E:/Projekte/HelpNDocTools/CODE_OF_CONDUCT.md', '.'), ('E:/Projekte/HelpNDocTools/src/topics.txt', '.'), ('E:/Projekte/HelpNDocTools/src/test.byte', '.')],
+    datas=[('E:/Projekte/HelpNDocTools/src/locales', 'locales/'), ('E:/Projekte/HelpNDocTools/src/img', 'img/'), ('E:/Projekte/HelpNDocTools/LICENSE', '.'), ('E:/Projekte/HelpNDocTools/README.md', '.'), ('E:/Projekte/HelpNDocTools/CONTRIBUTING.md', '.'), ('E:/Projekte/HelpNDocTools/CODE_OF_CONDUCT.md', '.'), ('E:/Projekte/HelpNDocTools/src/topics.txt', '.'), ('E:/Projekte/HelpNDocTools/src/test.byte', '.'), ('E:/Projekte/HelpNDocTools/src/test.txt', '.')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

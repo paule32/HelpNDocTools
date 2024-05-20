@@ -24,5 +24,7 @@
         screen
         clear 
     
-    @ 1, 2
+    @ 1,  4 say date()
+    @ 1, 54 say "My Company INTERNATIONAL, Inc." + "  \"\\mumu"
+    @ 3,  1 say date()
 

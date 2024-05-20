@@ -130,6 +130,7 @@ pyinstaller --noconfirm --console  ^
     --paths="C:/Windows/SysWOW64"           ^
     ^
     --paths="%PRJ%/src/interpreter/pascal"  ^
+    --paths="%PRJ%/src/interpreter/dbase"   ^
     --paths="%PRJ%/src/interpreter"         ^
     --paths="%PRJ%/src/tools"               ^
     --paths="%PRJ%/src"                     ^
@@ -142,6 +143,7 @@ pyinstaller --noconfirm --console  ^
     --add-data="%PRJ%/CODE_OF_CONDUCT.md;." ^
     --add-data="%PRJ%/src/topics.txt;."     ^
     --add-data="%PRJ%/src/test.byte;."      ^
+    --add-data="%PRJ%/src/test.txt;."       ^
     ^
     --collect-submodules="%PRJ%/src/exapp.py"            ^
     --collect-submodules="%PRJ%/src/exclasses.py"        ^
@@ -155,6 +157,12 @@ pyinstaller --noconfirm --console  ^
     --collect-submodules="%PRJ%/src/tools/data005.py"    ^
     --collect-submodules="%PRJ%/src/tools/misc.py"       ^
     --collect-submodules="%PRJ%/src/tools/__init__.py"   ^
+    --collect-submodules="%PRJ%/src/interpreter/EParserException.py" ^
+    --collect-submodules="%PRJ%/src/interpreter/ParserDSL.py" ^
+    --collect-submodules="%PRJ%/src/interpreter/RunTimeLibrary.py" ^
+    --collect-submodules="%PRJ%/src/interpreter/VisualComponentLibrary.py" ^
+    --collect-submodules="%PRJ%/src/interpreter/dbase/dbaseConsole.py" ^
+    --collect-submodules="%PRJ%/src/interpreter/dbase/dbase.py"   ^
     --collect-submodules="%PRJ%/src/interpreter/pascal/pascal.py" ^
     ^
     --hidden-import="shutil"          ^

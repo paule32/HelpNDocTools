@@ -34,15 +34,24 @@ sys.path.append("./tools")
 # global used application stuff ...
 # -----------------------------------------------------------------------
 from appcollection import *
+img = "/img/"
 
 __app__name         = "observer"
 __app__internal__   = "./_internal"
 __app__config_ini   = __app__internal__ + "/observer.ini"
-__app__doxygen__    = __app__internal__ + "/img/doxygen.png"
-__app__hlpndoc__    = __app__internal__ + "/img/helpndoc.png"
-__app__ccpplus__    = __app__internal__ + "/img/cpp.png"
-__app__javadoc__    = __app__internal__ + "/img/java.png"
-__app__freepas__    = __app__internal__ + "/img/fpc.png"
+__app__img__int__   = __app__internal__ + img
+
+__app__doxygen__    = __app__img__int__ + "doxygen"
+__app__hlpndoc__    = __app__img__int__ + "helpndoc"
+__app__helpdev__    = __app__img__int__ + "help"
+__app__pythonc__    = __app__img__int__ + "python"
+__app__lispmod__    = __app__img__int__ + "lisp"
+__app__ccpplus__    = __app__img__int__ + "cpp"
+__app__cpp1dev__    = __app__img__int__ + "c"
+__app__dbasedb__    = __app__img__int__ + "dbase"
+__app__javadev__    = __app__img__int__ + "java"
+__app__javadoc__    = __app__img__int__ + "javadoc"
+__app__freepas__    = __app__img__int__ + "freepas"
 
 __app__framework    = "PyQt5.QtWidgets.QApplication"
 __app__exec_name    = sys.executable
@@ -96,7 +105,7 @@ __error__locales_error = "" \
 # ------------------------------------------------------------------------
 # global used locales constants ...
 # ------------------------------------------------------------------------
-__locale__    = ".\\_internal\\locales"
+__locale__    = __app__internal__ + "/locales"
 __locale__enu = "en_us"
 __locale__deu = "de_de"
 
@@ -258,6 +267,8 @@ class myLineEdit(QLineEdit):
         self.init_ui()
     
     def init_ui(self):
+        self.setMinimumHeight(26)
+        self.setMaximumWidth(250)
         self.setText(self.name)
         self.cssColor = "QLineEdit{background-color:white;}QLineEdit:hover{background-color:yellow;}"
         self.setStyleSheet(self.cssColor)
@@ -306,6 +317,124 @@ class myTextEdit(QTextEdit):
             QDesktopServices.openUrl(QUrl(self.anchor))
             QApplication.setOverrideCursor(Qt.ArrowCursor)
             self.anchor = None
+
+# ------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------
+class OverlayWidget(QWidget):
+    def __init__(self, parent, text, xpos, ypos):
+        super().__init__(parent, Qt.Tool | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.ToolTip)
+        
+        self.setGeometry(xpos+180, ypos+180, 250, 120)
+        self.setStyleSheet("""
+        background-color: rgba(255, 255, 255, 200);
+        color:black;
+        """)
+        
+        self.caption = text
+        
+        font = QFont("Arial")
+        font.setPointSize(11)
+        font.setBold(True)
+        
+        self.vlayout = QVBoxLayout  ()
+        self.label1  = QLabel(self.caption)
+        self.label1.setMinimumHeight(100)
+        self.label1.setAlignment(Qt.AlignBottom)
+        self.label1.setFont(font)
+        
+        self.vlayout.addWidget(self.label1)
+        self.setLayout(self.vlayout)
+
+class myIconLabel(QLabel):
+    def __init__(self, text, parent, xpos, ypos):
+        super().__init__(parent)
+        
+        self.overlay = OverlayWidget(self, text, xpos,ypos)
+        self.caption = text;
+    
+    def show_overlay(self):
+        self.overlay.show()
+    
+    def hide_overlay(self):
+        self.overlay.hide()
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            print(self.caption)
+    
+    def enterEvent(self, event):
+        self.show_overlay()
+    
+    def leaveEvent(self, event):
+        self.hide_overlay()
+
+class myIconButton(QWidget):
+    def __init__(self, text, parent, xpos, ypos, mode):
+        super(myIconButton, self).__init__(parent)
+        parent.setMinimumHeight(770)
+        parent.setMinimumWidth(90)
+        
+        self.img_origin_label = myIconLabel(text, parent, xpos, ypos)
+        self.img_origin_label.move(xpos, ypos)
+        
+        self.img_origin_label.setObjectName("s-image")
+        
+        self.caption = text
+        
+        fg = "1.png"
+        bg = "2.png"
+        
+        self.img_origin_label.setMinimumWidth (79)
+        self.img_origin_label.setMinimumHeight(79)
+        #
+        self.img_origin_label.setMaximumWidth (79)
+        self.img_origin_label.setMaximumHeight(79)
+        
+        if mode == 0:
+            self.image_fg = __app__helpdev__ + fg
+            self.image_bg = __app__helpdev__ + bg
+        elif mode == 1:
+            self.image_fg = __app__dbasedb__ + fg
+            self.image_bg = __app__dbasedb__ + bg
+        elif mode == 2:
+            self.image_fg = __app__freepas__ + fg
+            self.image_bg = __app__freepas__ + bg
+        elif mode == 3:
+            self.image_fg = __app__cpp1dev__ + fg
+            self.image_bg = __app__cpp1dev__ + bg
+        elif mode == 4:
+            self.image_fg = __app__javadev__ + fg
+            self.image_bg = __app__javadev__ + bg
+        elif mode == 5:
+            self.image_fg = __app__pythonc__ + fg
+            self.image_bg = __app__pythonc__ + bg
+        elif mode == 6:
+            self.image_fg = __app__lispmod__ + fg
+            self.image_bg = __app__lispmod__ + bg
+        
+        self.img_origin_label.setStyleSheet("""
+        QLabel {
+            border:5px solid lightgray;
+            background-image:url('""" + self.image_fg + """');
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius:5px;
+            width:72px;
+            height:72px;
+        }
+        QLabel:hover {
+            border:5px solid gray;
+            background-image:url('""" + self.image_bg + """');
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius:5px;
+            width:72px;
+            height:72px;
+        }
+        """)
 
 class myCustomLabel(QLabel):
     def __init__(self, text, helpID, helpText):
@@ -442,7 +571,7 @@ class myCustomScrollArea(QScrollArea):
         self.layout.addWidget(self.label_1)
         self.content_widget.setLayout(self.layout)
         
-        self.setWidgetResizable(False)
+        #self.setWidgetResizable(False)
         self.setWidget(self.content_widget)
     
     def setName(self, name):
@@ -577,7 +706,7 @@ class myCustomScrollArea(QScrollArea):
                     data = json.loads(self.supported_langs)
                     elements[i][4] = data
                     for j in range(0, len(data)):
-                        img = "./_internal/img/flag_"  \
+                        img = __app__img__int__ + "flag_"  \
                         + elements[i][4][j] \
                         + ".png"
                         img = img.lower()
@@ -676,7 +805,10 @@ class customScrollView_1(myCustomScrollArea):
         widget_4_pushb_1.setFont(font)        ; font.setBold(False)
         #
         widget_4_licon_1 = self.addLabel("", False, layout_4)
-        widget_4_licon_1.setPixmap(QIcon(os.path.join(basedir,".\\_internal\\img","floppy-disk.png")).pixmap(42,42))
+        widget_4_licon_1.setPixmap(QIcon(
+            os.path.join(basedir,__app__img__int__,
+            "floppy-disk.png"))
+            .pixmap(42,42))
         #
         layout.addLayout(layout_4)
         
@@ -760,7 +892,7 @@ class customScrollView_1(myCustomScrollArea):
         #
         layout.addLayout(layout_10)
         
-        self.setWidgetResizable(False)
+        #self.setWidgetResizable(False)
         self.setWidget(content_widget)
     
     def btn_clicked_3(self):
@@ -1516,10 +1648,10 @@ class ComboBoxDelegateStatus(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QComboBox(parent)
         # Add items to the combobox
-        editor.addItem(QIcon(".\\_internal\\img\\icon_white.png" ), "Complete"     )
-        editor.addItem(QIcon(".\\_internal\\img\\icon_blue.png"  ), "Needs Review" )
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png"), "In Progress"  )
-        editor.addItem(QIcon(".\\_internal\\img\\icon_red.png"   ), "Out of Date"  )
+        editor.addItem(QIcon(__app__img__int__ + "icon_white.png" ), "Complete"     )
+        editor.addItem(QIcon(__app__img__int__ + "icon_blue.png"  ), "Needs Review" )
+        editor.addItem(QIcon(__app__img__int__ + "icon_yellow.png"), "In Progress"  )
+        editor.addItem(QIcon(__app__img__int__ + "icon_red.png"   ), "Out of Date"  )
         
         #editor.activated.connect(self.on_activated)
         editor.currentTextChanged.connect(self.on_current_text_changed)
@@ -1576,28 +1708,30 @@ class ComboBoxDelegateBuild(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = CheckableComboBox(parent); i = 1
         i = 1
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png" ), "CHM " + str(i))
+        ico_yellow = "icon_yellow.png"
+        
+        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "CHM " + str(i))
         item1 = editor.model().item(i-1, 0); item1.setCheckState(Qt.Unchecked); i = i + 1
         
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png" ), "HTML " + str(i))
+        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "HTML " + str(i))
         item2 = editor.model().item(i-1, 0); item2.setCheckState(Qt.Unchecked); i = i + 1
         
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png" ), "Word " + str(i))
+        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "Word " + str(i))
         item3 = editor.model().item(i-1, 0); item3.setCheckState(Qt.Unchecked); i = i + 1
         
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png" ), "PDF " + str(i))
+        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "PDF " + str(i))
         item4 = editor.model().item(i-1, 0); item4.setCheckState(Qt.Unchecked); i = i + 1
         
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png" ), "EPub " + str(i))
+        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "EPub " + str(i))
         item5 = editor.model().item(i-1, 0); item5.setCheckState(Qt.Unchecked); i = i + 1
         
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png" ), "Kindle " + str(i))
+        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "Kindle " + str(i))
         item6 = editor.model().item(i-1, 0); item6.setCheckState(Qt.Unchecked); i = i + 1
         
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png" ), "Qt Help " + str(i))
+        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "Qt Help " + str(i))
         item7 = editor.model().item(i-1, 0); item7.setCheckState(Qt.Unchecked); i = i + 1
         
-        editor.addItem(QIcon(".\\_internal\\img\\icon_yellow.png" ), "Markdown " + str(i))
+        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "Markdown " + str(i))
         item8 = editor.model().item(i-1, 0); item8.setCheckState(Qt.Unchecked); i = i + 1
         
         return editor
@@ -1638,21 +1772,25 @@ class doxygenImageTracker(QWidget):
     def __init__(self, parent=None):
         super(doxygenImageTracker, self).__init__(parent)
         
-        self.img_origin_doxygen_image = QPixmap(__app__doxygen__)
         self.img_origin_doxygen_label = QLabel(self)
         self.img_origin_doxygen_label.setObjectName("doxygen-image")
         self.img_origin_doxygen_label.move(30,10)
         self.img_origin_doxygen_label.setMinimumHeight(70)
-        self.img_origin_doxygen_label.setMinimumWidth(218)
-        self.img_origin_doxygen_label.setPixmap(self.img_origin_doxygen_image)
+        self.img_origin_doxygen_label.setMinimumWidth(238)
         self.img_origin_doxygen_label.setStyleSheet("""
         QLabel {
-            border: 7px solid blue;
-            border-radius: 10px;
+            background-image: url('""" + __app__doxygen__ + """1.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid lightgray;
+            border-radius: 5px;
         }
         QLabel:hover {
-            border: 7px solid lime;
-            border-radius: 10px;
+            background-image: url('""" + __app__doxygen__ + """2.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid gray;
+            border-radius: 5px;
         }
         """)
     
@@ -1670,20 +1808,24 @@ class helpNDocImageTracker(QWidget):
     def __init__(self, parent=None):
         super(helpNDocImageTracker, self).__init__(parent)
         
-        self.img_origin_hlpndoc_image = QPixmap(__app__hlpndoc__)
         self.img_origin_hlpndoc_label = QLabel(self)
         self.img_origin_hlpndoc_label.setObjectName("hlpndoc-image")
         self.img_origin_hlpndoc_label.move(32,24)
-        self.img_origin_hlpndoc_label.setMinimumHeight(60)
-        self.img_origin_hlpndoc_label.setMinimumWidth(200)
-        self.img_origin_hlpndoc_label.setPixmap(self.img_origin_hlpndoc_image)
+        self.img_origin_hlpndoc_label.setMinimumHeight(70)
+        self.img_origin_hlpndoc_label.setMinimumWidth(230)
         self.img_origin_hlpndoc_label.setStyleSheet("""
         QLabel {
-            border: 7px solid blue;
+            background-image: url('""" + __app__hlpndoc__ + "1.png" + """');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid lightgray;
             border-radius: 10px;
         }
         QLabel:hover {
-            border: 7px solid lime;
+            background-image: url('""" + __app__hlpndoc__ + "2.png" + """');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid gray;
         }
         """)
     
@@ -1703,21 +1845,24 @@ class ccpplusImageTracker(QWidget):
         
         #self.setMinimumHeight(120)
         #self.setMinimumWidth(120)
-        self.img_origin_ccpplus_image = QPixmap(__app__ccpplus__)
         self.img_origin_ccpplus_label = QLabel(self)
         self.img_origin_ccpplus_label.setObjectName("ccpplus-image")
         self.img_origin_ccpplus_label.move(15,0)
         self.img_origin_ccpplus_label.setMinimumHeight(107)
         self.img_origin_ccpplus_label.setMinimumWidth(104)
-        self.img_origin_ccpplus_label.setPixmap(self.img_origin_ccpplus_image)
         self.img_origin_ccpplus_label.setStyleSheet("""
         QLabel {
-            border: 7px solid blue;
+            background-image: url('""" + __app__cpp1dev__ + "1.png" + """');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid lightgray;
             border-radius: 10px;
         }
         QLabel:hover {
-            border: 7px solid lime;
-            border-radius: 10px;
+            background-image: url('""" + __app__cpp1dev__ + "2.png" + """');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid gray;
         }
         """)
     
@@ -1735,21 +1880,25 @@ class javadocImageTracker(QWidget):
     def __init__(self, parent=None):
         super(javadocImageTracker, self).__init__(parent)
         
-        self.img_origin_javadoc_image = QPixmap(__app__javadoc__)
         self.img_origin_javadoc_label = QLabel(self)
         self.img_origin_javadoc_label.setObjectName("javadoc-image")
         self.img_origin_javadoc_label.move(14,0)
         self.img_origin_javadoc_label.setMinimumHeight(107)
         self.img_origin_javadoc_label.setMinimumWidth(104)
-        self.img_origin_javadoc_label.setPixmap(self.img_origin_javadoc_image)
         self.img_origin_javadoc_label.setStyleSheet("""
         QLabel {
-            border: 7px solid blue;
-            border-radius: 10px;
+            background-image: url('""" + __app__javadoc__ + """1.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid lightgray;
+            border-radius: 5px;
         }
         QLabel:hover {
-            border: 7px solid lime;
-            border-radius: 10px;
+            background-image: url('""" + __app__javadoc__ + """2.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid gray;
+            border-radius: 5px;
         }
         """)
     
@@ -1767,21 +1916,25 @@ class freepasImageTracker(QWidget):
     def __init__(self, parent=None):
         super(freepasImageTracker, self).__init__(parent)
         
-        self.img_origin_freepas_image = QPixmap(__app__freepas__)
         self.img_origin_freepas_label = QLabel(self)
         self.img_origin_freepas_label.setObjectName("freepas-image")
         self.img_origin_freepas_label.move(30,10)
         self.img_origin_freepas_label.setMinimumHeight(70)
         self.img_origin_freepas_label.setMinimumWidth(218)
-        self.img_origin_freepas_label.setPixmap(self.img_origin_freepas_image)
         self.img_origin_freepas_label.setStyleSheet("""
         QLabel {
-            border: 7px solid blue;
-            border-radius: 10px;
+            background-image: url('""" + __app__freepas__ + """1.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid lightgray;
+            border-radius: 5px;
         }
         QLabel:hover {
-            border: 7px solid lime;
-            border-radius: 10px;
+            background-image: url('""" + __app__freepas__ + """2.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 5px solid gray;
+            border-radius: 5px;
         }
         """)
     
@@ -1795,6 +1948,40 @@ class freepasImageTracker(QWidget):
     def leaveEvent(self, event):
         self.img_origin_freepas_label.setCursor(QCursor(Qt.ArrowCursor))
 
+class MyPushButton(QLabel):
+    def __init__(self, parent, mode):
+        super().__init__("")
+        self.setMaximumWidth(110)
+        self.setMinimumWidth(110)
+        self.setMinimumHeight(42)
+        
+        if mode == 1:
+            self.btn_img_fg = __app__img__int__ + "create1.png"
+            self.btn_img_bg = __app__img__int__ + "create2.png"
+        elif mode == 2:
+            self.btn_img_fg = __app__img__int__ + "open1.png"
+            self.btn_img_bg = __app__img__int__ + "open2.png"
+        
+        self.setStyleSheet("""
+        MyPushButton {
+            border-image: url('""" + self.btn_img_fg + """') 0 0 0 0 stretch stretch;
+            background:yellow;
+            border-radius: 5px solid gray;
+        }
+        MyPushButton:hover {
+            border-image: url('""" + self.btn_img_bg + """') 0 0 0 0 stretch stretch;
+            background:yellow;
+            border-radius: 5px solid gray;
+        }
+        """)
+
+class MyEllipseButton(QPushButton):
+    def __init__(self, font):
+        super().__init__("...")
+        self.setFont(font)
+        self.setMinimumHeight(36)
+        self.setMinimumWidth (36)
+        self.setMaximumWidth (36)
 
 class FileWatcherGUI(QDialog):
     def __init__(self):
@@ -1945,11 +2132,11 @@ class FileWatcherGUI(QDialog):
         # mouse tracking
         self.setMouseTracking(True)
         # Layout
-        self.setMaximumWidth (1024)
-        self.setMinimumWidth (936)
+        #self.setMaximumWidth (1024)
+        #self.setMinimumWidth (936)
         #
-        self.setMaximumHeight(730)
-        self.setMaximumHeight(730)
+        #self.setMaximumHeight(730)
+        #self.setMaximumHeight(730)
         
         self.setContentsMargins(0,0,0,0)
         self.setStyleSheet("padding:0px;margin:0px;")
@@ -1998,9 +2185,9 @@ class FileWatcherGUI(QDialog):
         self.tool_bar_button_exit.setText("Clear")
         self.tool_bar_button_exit.setCheckable(True)
         
-        self.tool_bar_action_new1 = QAction(QIcon(".\\_internal\\img\\floppy-disk.png"), "Flopp", self)
-        self.tool_bar_action_new2 = QAction(QIcon(".\\_internal\\img\\floppy-disk.png"), "Flopp", self)
-        self.tool_bar_action_new3 = QAction(QIcon(".\\_internal\\img/\\loppy-disk.png"), "Flopp", self)
+        self.tool_bar_action_new1 = QAction(QIcon(__app__img__int__ + "floppy-disk.png"), "Flopp", self)
+        self.tool_bar_action_new2 = QAction(QIcon(__app__img__int__ + "floppy-disk.png"), "Flopp", self)
+        self.tool_bar_action_new3 = QAction(QIcon(__app__img__int__ + "floppy-disk.png"), "Flopp", self)
         
         self.tool_bar.addAction(self.tool_bar_action_new1)
         self.tool_bar.addAction(self.tool_bar_action_new2)
@@ -2026,13 +2213,21 @@ class FileWatcherGUI(QDialog):
         self.side_layout = QVBoxLayout()
         self.side_widget = QWidget()
         
-        self.side_btn1 = QPushButton("1", self.side_widget)
-        self.side_btn2 = QPushButton("2", self.side_widget)
-        self.side_btn3 = QPushButton("3", self.side_widget)
+        self.side_btn1 = myIconButton("Help Authoring for/with:\no doxygen\no HelpNDoc" , self.side_widget, 5,   5, 0)
+        self.side_btn2 = myIconButton("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !", self.side_widget, 5, 100, 1)
+        self.side_btn3 = myIconButton("Pascal old school programming\no Delphi\no FPC" , self.side_widget, 5, 180, 2)
+        self.side_btn4 = myIconButton("C / C++ embeded programming\nor cross platform"   , self.side_widget, 5, 270, 3)
+        self.side_btn5 = myIconButton("Java modern cross programming\nfor any device" , self.side_widget, 5, 350, 4)
+        self.side_btn6 = myIconButton("Python modern GUI programming\nlets rock AI\nand TensorFlow" , self.side_widget, 5, 430, 5)
+        self.side_btn6 = myIconButton("LISP traditional programming\nultimate old school"  , self.side_widget, 5, 510, 6)
         
-        self.side_btn1.setStyleSheet("height:56px;width:56px;")
-        self.side_btn2.setStyleSheet("height:56px;width:56px;")
-        self.side_btn3.setStyleSheet("height:56px;width:56px;")
+        css_style = "height:56px;width:56px;"
+        self.side_btn1.setStyleSheet(css_style)
+        self.side_btn2.setStyleSheet(css_style)
+        self.side_btn3.setStyleSheet(css_style)
+        self.side_btn4.setStyleSheet(css_style)
+        self.side_btn5.setStyleSheet(css_style)
+        self.side_btn5.setStyleSheet(css_style)
         
         self.side_lbl0 = QLabel()
         self.side_lbl0.setAlignment(Qt.AlignTop)
@@ -2212,7 +2407,7 @@ class FileWatcherGUI(QDialog):
         self.tab3_top_layout.addWidget(self.tab_widget_1)
         
         
-        self.tab2_file_path = '.\\_internal\\topics.txt'
+        self.tab2_file_path = __app__internal__ + "/topics.txt"
         
         global tab2_tree_view
         tab2_tree_view = QTreeView()
@@ -2222,7 +2417,7 @@ class FileWatcherGUI(QDialog):
         tab2_tree_view.setModel(self.tab2_tree_model)
         
         self.tab2_top_layout.addWidget(tab2_tree_view)
-        self.populate_tree_view(self.tab2_file_path, ".\\_internal\\img\\open-folder.png")
+        self.populate_tree_view(self.tab2_file_path, __app__img__int__ + "open-folder.png")
         
         self.delegateID     = SpinEditDelegateID     (tab2_tree_view)
         self.delegateStatus = ComboBoxDelegateStatus (tab2_tree_view)
@@ -2274,51 +2469,28 @@ class FileWatcherGUI(QDialog):
         font = QFont("Arial", 10)
         font.setPointSize(10)
         #
-        self.tab0_fold_text1 = QLabel("Directory:")
+        self.tab0_fold_text1   = QLabel("Directory:")
         self.tab0_fold_text1.setMaximumWidth(84)
         self.tab0_fold_text1.setFont(font)
-        self.tab0_fold_edit1 = QLineEdit()
-        self.tab0_fold_edit1.setFont(font)
-        self.tab0_fold_edit1.setMinimumHeight(26)
-        self.tab0_fold_edit1.setMaximumWidth(250)
-        self.tab0_fold_push1 = QPushButton("...")
-        self.tab0_fold_push1.setFont(font)
-        self.tab0_fold_push1.setMinimumHeight(36)
-        self.tab0_fold_push1.setMinimumWidth(36)
-        self.tab0_fold_push1.setMaximumWidth(36)
+        self.tab0_fold_edit1   = myLineEdit()
+        self.tab0_fold_push1   = MyEllipseButton(font)
+        
         self.tab0_fold_scroll1 = QScrollArea()
         self.tab0_fold_scroll1.setMaximumWidth(300)
-        self.tab0_fold_push11 = QPushButton("Create")
-        self.tab0_fold_push11.setMinimumWidth(84)
-        self.tab0_fold_push11.setMinimumHeight(42)
-        self.tab0_fold_push11.setFont(font)
-        self.tab0_fold_push12 = QPushButton("Open")
-        self.tab0_fold_push12.setMinimumWidth(84)
-        self.tab0_fold_push12.setMinimumHeight(42)
-        self.tab0_fold_push12.setFont(font)
+        self.tab0_fold_push11  = MyPushButton("Create", 1)
+        self.tab0_fold_push12  = MyPushButton("Open"  , 2)
         #
-        self.tab0_fold_text2 = QLabel("Project-Name:")
+        self.tab0_fold_text2   = QLabel("Project-Name:")
         self.tab0_fold_text2.setMaximumWidth(84)
         self.tab0_fold_text2.setFont(font)
-        self.tab0_fold_edit2 = QLineEdit()
-        self.tab0_fold_edit2.setFont(font)
-        self.tab0_fold_edit2.setMinimumHeight(26)
-        self.tab0_fold_edit2.setMaximumWidth(250)
-        self.tab0_fold_push2 = QPushButton("...")
-        self.tab0_fold_push2.setFont(font)
-        self.tab0_fold_push2.setMinimumHeight(36)
-        self.tab0_fold_push2.setMinimumWidth(36)
-        self.tab0_fold_push2.setMaximumWidth(36)
+        self.tab0_fold_edit2   = myLineEdit()
+        self.tab0_fold_push2   = MyEllipseButton(font)
+
         self.tab0_fold_scroll2 = QScrollArea()
         self.tab0_fold_scroll2.setMaximumWidth(300)
-        self.tab0_fold_push21 = QPushButton("Create")
-        self.tab0_fold_push21.setFont(font)
-        self.tab0_fold_push21.setMinimumWidth(84)
-        self.tab0_fold_push21.setMinimumHeight(42)
-        self.tab0_fold_push22 = QPushButton("Open")
-        self.tab0_fold_push22.setFont(font)
-        self.tab0_fold_push22.setMinimumWidth(84)
-        self.tab0_fold_push22.setMinimumHeight(42)
+        self.tab0_fold_push21  = MyPushButton("Create", 1)
+        self.tab0_fold_push22  = MyPushButton("Open"  , 2)
+        
         #
         self.tab0_top1_hlayout.addWidget(self.tab0_fold_text1)
         self.tab0_top1_hlayout.addWidget(self.tab0_fold_edit1)
@@ -2354,12 +2526,14 @@ class FileWatcherGUI(QDialog):
         #
         #
         self.tab0_fold_scroll1_contentWidget = QWidget()
-        self.tab0_fold_scroll1_contentWidget.setGeometry(QRect(10,10,297,235))
-        self.tab0_fold_scroll1_contentWidget.setStyleSheet("background-color:gray;")
+        #self.tab0_fold_scroll1_contentWidget.setGeometry(QRect(10,10,297,235))
+        #self.tab0_fold_scroll1_contentWidget.setStyleSheet("background-color:gray;")
+        #
+        #
         #
         self.tab0_fold_scroll2_contentWidget = QWidget()
-        self.tab0_fold_scroll2_contentWidget.setGeometry(QRect(10,10,297,235))
-        self.tab0_fold_scroll2_contentWidget.setStyleSheet("background-color:gray;")
+        #self.tab0_fold_scroll2_contentWidget.setGeometry(QRect(10,10,297,235))
+        #self.tab0_fold_scroll2_contentWidget.setStyleSheet("background-color:gray;")
         #
         self.tab0_fold_scroll1.setWidget(self.tab0_fold_scroll1_contentWidget)
         self.tab0_fold_scroll2.setWidget(self.tab0_fold_scroll2_contentWidget)
@@ -2390,7 +2564,6 @@ class FileWatcherGUI(QDialog):
         #
         #
         self.tab0_top_layout.addLayout(self.tab0_topV_vlayout)
-        
         
         
         self.tab0_file_text = QLabel("File:", self.tab0)
@@ -2628,7 +2801,7 @@ class FileWatcherGUI(QDialog):
         
         self.setLayout(self.layout)
         self.setWindowTitle('HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32')
-        
+        self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
@@ -2760,7 +2933,7 @@ class licenseWindow(QDialog):
         self.returnCode = 0
         
         self.file_content = ""
-        self.file_path = "./_internal/LICENSE"
+        self.file_path = __app__internal__ + "/LICENSE"
         try:
             with open(self.file_path, "r") as file:
                 self.file_content = file.read()
@@ -2834,6 +3007,10 @@ def EntryPoint(arg1=None):
     
     if not arg1 == None:
         __app__scriptname__ = arg1
+        if not os.path.exists(__app__scriptname__):
+            print("script does not exists !")
+            error_result = 1
+            sys.exit(1)
     
     # ---------------------------------------------------------
     # init pascal interpreter ...
@@ -2854,10 +3031,10 @@ def EntryPoint(arg1=None):
     doxy_env   = "DOXYGEN_PATH"  # doxygen.exe
     doxy_hhc   = "DOXYHHC_PATH"  # hhc.exe
     
-    doxy_path  = "./_internal/"
+    doxy_path  = __app__internal__
     hhc__path  = ""
     
-    doxyfile   = "./_internal/Doxyfile"
+    doxyfile   = __app__internal__ + "/Doxyfile"
     
     
     # ---------------------------------------------------------
@@ -2938,8 +3115,8 @@ def EntryPoint(arg1=None):
     # ---------------------------------------------------------
     # combine the puzzle names, and folders ...
     # ---------------------------------------------------------
-    po_file_name = (".\\_internal\\locales\\"
-        + f"{ini_lang}"    + "\\LC_MESSAGES\\"
+    po_file_name = (__app__internal__ + "/locales/"
+        + f"{ini_lang}"    + "/LC_MESSAGES/"
         + f"{__app__name}" + ".po")
     
     if not os.path.exists(convertPath(po_file_name)):
@@ -3004,7 +3181,7 @@ def EntryPoint(arg1=None):
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     time_str = datetime.datetime.now().strftime("%H:%M:%S")
     
-    conn = sqlite3.connect(".\\_internal\\data.db")
+    conn = sqlite3.connect(__app__internal__ + "/data.db")
     conn_cursor = conn.cursor()
     conn.close()
     
@@ -3018,6 +3195,27 @@ def EntryPoint(arg1=None):
     
     #error_result = app.exec_()
     return
+
+# ---------------------------------------------------------------------------
+# parse binary data:
+# --------------------------------------------------------------------------
+class parserBinary:
+    def __init__(self, script_name):
+        try:
+            # ---------------------
+            # load binary code ...
+            # ---------------------
+            with open(script_name,"rb") as self.bytefile:
+                self.bytecode = self.bytefile.read()
+                self.bytefile.close()
+            # ---------------------
+            # execute binary code:
+            # ---------------------
+            self.byte_code = marshal.loads(self.bytecode)
+            exec(self.byte_code)
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
 
 # ---------------------------------------------------------------------------
 # parse dBase script ...
@@ -3063,24 +3261,28 @@ if __name__ == '__main__':
     script_path = os.path.abspath(script_path)
     
     __app__parameter = (""
-    + "Usage: python observer.py --dbase  file.prg\n"
-    + "       python observer.py --pascal file.pas\n"
-    + "       python observer.py --gui\n")
+    + "Usage: observer --dbase  file.prg\n"
+    + "       observer --pascal file.pas\n"
+    + "       observer --exec   file.bin\n"
+    + "       observer --gui\n")
     
     __app__tmp3 = "parse..."
     
-    if len(sys.argv) <= 1:
+    if len(sys.argv) < 2:
         print("no arguments given.")
         print(__app__parameter)
         sys.exit(1)
-    else:
-        if len(sys.argv[1]) < 5:
-            print("no parameter given.")
-            sys.exit(1)
+    
+    if len(sys.argv) >= 1:
         if sys.argv[1] == "--gui":
+            if len(sys.argv) == 2:
+                sys.argv.append("test.txt")
             __app__scriptname__ = sys.argv[2]
-            handleExceptionApplication(EntryPoint,sys.argv[2])
+            handleExceptionApplication(EntryPoint,__app__scriptname__)
             sys.exit(0)
+        elif sys.argv[1] == "--exec":
+            __app__scriptname__ = sys.argv[2]
+            handleExceptionApplication(parserBinary,sys.argv[2])
         elif sys.argv[1] == "--dbase":
             print(__app__tmp3)
             try:
