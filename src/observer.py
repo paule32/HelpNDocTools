@@ -9,7 +9,7 @@ global EXIT_SUCCESS; EXIT_SUCCESS = 0
 global EXIT_FAILURE; EXIT_FAILURE = 1
 
 global error_result; error_result = 0
-
+global topic_counter; topic_counter = 1
 global debugMode
 
 import os            # operating system stuff
@@ -61,7 +61,6 @@ __app__comment_hdr  = ("# " + misc.StringRepeat("-",78) + "\n")
 
 __app__scriptname__ = ""
 
-global topic_counter
 global css_model_header, css_tabs, css__widget_item, css_button_style
 
 if getattr(sys, 'frozen', False):
@@ -322,12 +321,17 @@ class myTextEdit(QTextEdit):
 #
 # ------------------------------------------------------------------------
 class OverlayWidget(QWidget):
-    def __init__(self, parent, text, xpos, ypos):
+    def __init__(self, parent, text):
         super().__init__(parent, Qt.Tool | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.ToolTip)
         
-        self.setGeometry(xpos+180, ypos+180, 250, 120)
+        self.xpos = 100
+        self.ypos = 100
+        
+        self.setGeometry(
+        self.xpos,
+        self.ypos, 250, 120)
         self.setStyleSheet("""
         background-color: rgba(255, 255, 255, 200);
         color:black;
@@ -349,13 +353,18 @@ class OverlayWidget(QWidget):
         self.setLayout(self.vlayout)
 
 class myIconLabel(QLabel):
-    def __init__(self, text, parent, xpos, ypos):
+    def __init__(self, parent, text, mode):
         super().__init__(parent)
         
-        self.overlay = OverlayWidget(self, text, xpos,ypos)
-        self.caption = text;
+        self.overlay = OverlayWidget(self, text)
+        self.caption = text
+        self.mode    = mode
+        self.parent  = parent
     
     def show_overlay(self):
+        self.overlay.move(
+            QCursor().pos().x()+50,
+            QCursor().pos().y())
         self.overlay.show()
     
     def hide_overlay(self):
@@ -363,35 +372,88 @@ class myIconLabel(QLabel):
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            print(self.caption)
+            #print(self.caption)
+            if self.mode == 0:
+                self.i0_clicked()
+            if self.mode == 1:
+                self.i1_clicked()
+            if self.mode == 2:
+                self.i2_clicked()
+            if self.mode == 3:
+                self.i3_clicked()
+            if self.mode == 4:
+                self.i4_clicked()
+            if self.mode == 5:
+                self.i5_clicked()
+            if self.mode == 6:
+                self.i6_clicked()
     
     def enterEvent(self, event):
         self.show_overlay()
     
     def leaveEvent(self, event):
         self.hide_overlay()
+    
+    def hide_tabs(self):
+        self.parent.parent.help_tabs.hide()
+        self.parent.parent.dbase_tabs.hide()
+        self.parent.parent.pascal_tabs.hide()
+        self.parent.parent.isoc_tabs.hide()
+        self.parent.parent.java_tabs.hide()
+        self.parent.parent.python_tabs.hide()
+        self.parent.parent.lisp_tabs.hide()
+    
+    def i0_clicked(self):
+        self.hide_tabs()
+        self.parent.parent.help_tabs.show()
+        return
+    def i1_clicked(self):
+        self.hide_tabs()
+        self.parent.parent.dbase_tabs.show()
+        return
+    def i2_clicked(self):
+        self.hide_tabs()
+        self.parent.parent.pascal_tabs.show()
+        return
+    def i3_clicked(self):
+        self.hide_tabs()
+        self.parent.parent.isoc_tabs.show()
+        return
+    def i4_clicked(self):
+        self.hide_tabs()
+        self.parent.parent.java_tabs.show()
+        return
+    def i5_clicked(self):
+        self.hide_tabs()
+        self.parent.parent.python_tabs.show()
+        return
+    def i6_clicked(self):
+        self.hide_tabs()
+        self.parent.parent.lisp_tabs.show()
+        return
 
 class myIconButton(QWidget):
-    def __init__(self, text, parent, xpos, ypos, mode):
-        super(myIconButton, self).__init__(parent)
-        parent.setMinimumHeight(770)
-        parent.setMinimumWidth(90)
+    def __init__(self, parent, mode, text):
+        super(myIconButton, self).__init__(parent.side_widget)
         
-        self.img_origin_label = myIconLabel(text, parent, xpos, ypos)
-        self.img_origin_label.move(xpos, ypos)
+        parent.setMinimumWidth(100)
+        parent.side_layout.addWidget(self, Qt.AlignTop)
         
-        self.img_origin_label.setObjectName("s-image")
+        self.label = myIconLabel(self, text, mode)
+        self.label.setAlignment(Qt.AlignTop)
+        self.label.setObjectName("s-image")
         
         self.caption = text
+        self.parent  = parent
         
         fg = "1.png"
         bg = "2.png"
         
-        self.img_origin_label.setMinimumWidth (79)
-        self.img_origin_label.setMinimumHeight(79)
+        self.label.setMinimumWidth (79)
+        self.label.setMinimumHeight(79)
         #
-        self.img_origin_label.setMaximumWidth (79)
-        self.img_origin_label.setMaximumHeight(79)
+        self.label.setMaximumWidth (79)
+        self.label.setMaximumHeight(79)
         
         if mode == 0:
             self.image_fg = __app__helpdev__ + fg
@@ -415,7 +477,7 @@ class myIconButton(QWidget):
             self.image_fg = __app__lispmod__ + fg
             self.image_bg = __app__lispmod__ + bg
         
-        self.img_origin_label.setStyleSheet("""
+        self.label.setStyleSheet("""
         QLabel {
             border:5px solid lightgray;
             background-image:url('""" + self.image_fg + """');
@@ -1739,8 +1801,9 @@ class ComboBoxDelegateBuild(QStyledItemDelegate):
 class SpinEditDelegateID(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QSpinBox(parent)
-        editor.setValue(topic_counter)
-        topic_counter = topic_counter + 1
+        self.topic_counter = topic_counter
+        editor.setValue(self.topic_counter)
+        self.topic_counter = self.topic_counter + 1
         return editor
 
 class CustomItem(QStandardItem):
@@ -1953,7 +2016,7 @@ class MyPushButton(QLabel):
         super().__init__("")
         self.setMaximumWidth(110)
         self.setMinimumWidth(110)
-        self.setMinimumHeight(42)
+        self.setMinimumHeight(34)
         
         if mode == 1:
             self.btn_img_fg = __app__img__int__ + "create1.png"
@@ -1961,6 +2024,12 @@ class MyPushButton(QLabel):
         elif mode == 2:
             self.btn_img_fg = __app__img__int__ + "open1.png"
             self.btn_img_bg = __app__img__int__ + "open2.png"
+        elif mode == 3:
+            self.btn_img_fg = __app__img__int__ + "repro1.png"
+            self.btn_img_bg = __app__img__int__ + "repro2.png"
+        elif mode == 4:
+            self.btn_img_fg = __app__img__int__ + "build1.png"
+            self.btn_img_bg = __app__img__int__ + "build2.png"
         
         self.setStyleSheet("""
         MyPushButton {
@@ -2039,7 +2108,7 @@ class FileWatcherGUI(QDialog):
             roots = []
             stack = [self.tab2_tree_model.invisibleRootItem()]
             
-            topic_counter = 1
+            self.topic_counter = 1
             
             for line in file:
                 line = line.rstrip('\n')
@@ -2053,14 +2122,14 @@ class FileWatcherGUI(QDialog):
                 new_item.setIcon(QIcon(icon))
                 
                 global item2
-                item1 = QStandardItem(str(topic_counter))
+                item1 = QStandardItem(str(self.topic_counter))
                 item2 = QStandardItem(" ") #item2.setIcon(QIcon(icon))
                 item3 = QStandardItem(" ")
                 item4 = QStandardItem(" ")
                 
-                self.my_list.add(topic_counter, item1)
+                self.my_list.add(self.topic_counter, item1)
                 
-                topic_counter = topic_counter + 1
+                self.topic_counter = self.topic_counter + 1
                 
                 while len(stack) > num_plus + 1:
                     stack.pop()
@@ -2201,6 +2270,7 @@ class FileWatcherGUI(QDialog):
         # status bar
         self.status_bar = QStatusBar()
         self.status_bar.showMessage("Ready", 0)
+        self.status_bar.setStyleSheet("background-color:gray;")
         
         
         # side toolbar
@@ -2212,51 +2282,100 @@ class FileWatcherGUI(QDialog):
         
         self.side_layout = QVBoxLayout()
         self.side_widget = QWidget()
+        self.side_widget.setMinimumWidth(100)
+        self.side_widget.setMaximumHeight(800)
         
-        self.side_btn1 = myIconButton("Help Authoring for/with:\no doxygen\no HelpNDoc" , self.side_widget, 5,   5, 0)
-        self.side_btn2 = myIconButton("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !", self.side_widget, 5, 100, 1)
-        self.side_btn3 = myIconButton("Pascal old school programming\no Delphi\no FPC" , self.side_widget, 5, 180, 2)
-        self.side_btn4 = myIconButton("C / C++ embeded programming\nor cross platform"   , self.side_widget, 5, 270, 3)
-        self.side_btn5 = myIconButton("Java modern cross programming\nfor any device" , self.side_widget, 5, 350, 4)
-        self.side_btn6 = myIconButton("Python modern GUI programming\nlets rock AI\nand TensorFlow" , self.side_widget, 5, 430, 5)
-        self.side_btn6 = myIconButton("LISP traditional programming\nultimate old school"  , self.side_widget, 5, 510, 6)
+        self.side_btn1 = myIconButton(self, 0, "Help Authoring for/with:\no doxygen\no HelpNDoc")
+        self.side_btn2 = myIconButton(self, 1, "dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !")
+        self.side_btn3 = myIconButton(self, 2, "Pascal old school programming\no Delphi\no FPC")
+        self.side_btn4 = myIconButton(self, 3, "C / C++ embeded programming\nor cross platform")
+        self.side_btn5 = myIconButton(self, 4, "Java modern cross programming\nfor any device")
+        self.side_btn6 = myIconButton(self, 5, "Python modern GUI programming\nlets rock AI\nand TensorFlow")
+        self.side_btn7 = myIconButton(self, 6, "LISP traditional programming\nultimate old school")
         
-        css_style = "height:56px;width:56px;"
-        self.side_btn1.setStyleSheet(css_style)
-        self.side_btn2.setStyleSheet(css_style)
-        self.side_btn3.setStyleSheet(css_style)
-        self.side_btn4.setStyleSheet(css_style)
-        self.side_btn5.setStyleSheet(css_style)
-        self.side_btn5.setStyleSheet(css_style)
-        
-        self.side_lbl0 = QLabel()
-        self.side_lbl0.setAlignment(Qt.AlignTop)
-        
-        self.side_layout.addWidget(self.side_btn1)
-        self.side_layout.addWidget(self.side_btn2)
-        self.side_layout.addWidget(self.side_btn3)
-        
-        self.side_layout.addWidget(self.side_lbl0)
         
         self.side_widget.setLayout(self.side_layout)
         self.main_layout.addWidget(self.side_widget)
         
-        # first register card - action's ...
-        self.tabs = QTabWidget()
-        self.tabs.setStyleSheet(css_tabs)
         
-        self.tab0 = QWidget()
-        self.tab1 = QWidget()
-        self.tab2 = QWidget()
-        self.tab3 = QWidget()
-        self.tab4 = QWidget()
+        # dbase
+        self.dbase_tabs = QTabWidget()
+        self.dbase_tabs.setStyleSheet(css_tabs)
+        
+        self.dbase_tabs_widget = QWidget()
+        self.dbase_tabs.addTab(self.dbase_tabs_widget, "dBASE Project")
+        self.dbase_tabs.hide()
+        
+        self.main_layout.addWidget(self.dbase_tabs)
+        
+        # pascal
+        self.pascal_tabs = QTabWidget()
+        self.pascal_tabs.setStyleSheet(css_tabs)
+        
+        self.pascal_tabs_widget = QWidget()
+        self.pascal_tabs.addTab(self.pascal_tabs_widget, "Pascal Project")
+        self.pascal_tabs.hide()
+        
+        self.main_layout.addWidget(self.pascal_tabs)
+        
+        # isoc
+        self.isoc_tabs = QTabWidget()
+        self.isoc_tabs.setStyleSheet(css_tabs)
+        
+        self.isoc_tabs_widget = QWidget()
+        self.isoc_tabs.addTab(self.isoc_tabs_widget, "ISO C Project")
+        self.isoc_tabs.hide()
+        
+        self.main_layout.addWidget(self.isoc_tabs)
+        
+        # java
+        self.java_tabs = QTabWidget()
+        self.java_tabs.setStyleSheet(css_tabs)
+        
+        self.java_tabs_widget = QWidget()
+        self.java_tabs.addTab(self.java_tabs_widget, "Java Project")
+        self.java_tabs.hide()
+        
+        self.main_layout.addWidget(self.java_tabs)
+        
+        # python
+        self.python_tabs = QTabWidget()
+        self.python_tabs.setStyleSheet(css_tabs)
+        
+        self.python_tabs_widget = QWidget()
+        self.python_tabs.addTab(self.python_tabs_widget, "Python Project")
+        self.python_tabs.hide()
+        
+        self.main_layout.addWidget(self.python_tabs)
+        
+        # lisp
+        self.lisp_tabs = QTabWidget()
+        self.lisp_tabs.setStyleSheet(css_tabs)
+        
+        self.lisp_tabs_widget = QWidget()
+        self.lisp_tabs.addTab(self.lisp_tabs_widget, "LISP Project")
+        self.lisp_tabs.hide()
+        
+        self.main_layout.addWidget(self.lisp_tabs)
+        
+        
+        # first register card - action's ...
+        self.help_tabs = QTabWidget()
+        self.help_tabs.setStyleSheet(css_tabs)
+        
+        # help
+        self.tab0_0 = QWidget()
+        self.tab1_0 = QWidget()
+        self.tab2   = QWidget()
+        self.tab3   = QWidget()
+        self.tab4   = QWidget()
         
         # add tabs
-        self.tabs.addTab(self.tab0, "Project")
-        self.tabs.addTab(self.tab1, "Pre-/Post Actions")
-        self.tabs.addTab(self.tab2, "Topics")
-        self.tabs.addTab(self.tab3, "DoxyGen")
-        self.tabs.addTab(self.tab4, "Content")
+        self.help_tabs.addTab(self.tab0_0, "Help Project")
+        self.help_tabs.addTab(self.tab1_0, "Pre-/Post Actions")
+        self.help_tabs.addTab(self.tab2, "Topics")
+        self.help_tabs.addTab(self.tab3, "DoxyGen")
+        self.help_tabs.addTab(self.tab4, "Content")
         
         self.tab_widget_tabs = QTabWidget(self.tab4)
         self.tab_widget_tabs.setMinimumWidth(830)
@@ -2274,7 +2393,8 @@ class FileWatcherGUI(QDialog):
         self.tab_dbase_editor = myDBaseTextEditor(self)
         self.tab_dbase_layout.addWidget(self.tab_dbase_editor)
         
-        self.main_layout.addWidget(self.tabs)
+        #
+        self.main_layout.addWidget(self.help_tabs)
         
         self.tab_html.setMinimumWidth(500)
         self.tab_html.setMaximumHeight(500)
@@ -2285,6 +2405,98 @@ class FileWatcherGUI(QDialog):
         self.tab4_top_layout = QHBoxLayout(self.tab_widget_tabs)
         self.tab5_top_layout = QHBoxLayout(self.tab_html)
         
+        ####
+        # devices
+        font = QFont("Arial",14)
+        font.setBold(True)
+        
+        self.devices_tabs = QTabWidget()
+        self.devices_tabs.setStyleSheet(css_tabs)
+        self.devices_tabs.setMinimumWidth(240)
+        self.devices_tabs.setMaximumWidth(240)
+        self.devices_tabs_widget = QWidget()
+        #
+        self.devices_tabs.addTab(self.devices_tabs_widget, "-- Devices --")
+        #
+        self.devices_tabs_layout = QVBoxLayout()
+        
+        self.devices_tabs_label1 = QPushButton(self.devices_tabs_widget)
+        self.devices_tabs_label1.setText("  Printers:  ")
+        self.devices_tabs_label1.setFont(font)
+        #
+        self.devices_list_widget1 = QListWidget(self.devices_tabs_widget)
+        self.devices_list_widget1.move(0,34)
+        self.devices_list_widget1.setIconSize(QSize(40,40))
+        self.devices_list_widget1.setFont(font)
+        #
+        items = [
+            {"text": "Printer p:1", "icon": __app__img__int__ + "printer.png" },
+            {"text": "Printer p:2", "icon": __app__img__int__ + "printer.png" },
+            {"text": "Printer p:3", "icon": __app__img__int__ + "printer.png" }
+        ]
+        for item in items:
+            devices_list_item = QListWidgetItem(item["text"])
+            devices_list_item.setIcon(QIcon(item["icon"]))
+            self.devices_list_widget1.addItem(devices_list_item)
+        #
+        
+        
+        self.devices_tabs_label2 = QPushButton(self.devices_tabs_widget)
+        self.devices_tabs_label2.setText("  Storages:  ")
+        self.devices_tabs_label2.setFont(font)
+        self.devices_tabs_label2.move(0, 230)
+        #
+        self.devices_list_widget2 = QListWidget(self.devices_tabs_widget)
+        self.devices_list_widget2.move(0,264)
+        self.devices_list_widget2.setIconSize(QSize(40,40))
+        self.devices_list_widget2.setFont(font)
+        #
+        items = [
+            {"text": "Storage  s:1", "icon": __app__img__int__ + "storage.png" },
+            {"text": "Database d:2", "icon": __app__img__int__ + "database.png" },
+            {"text": "Database d:3", "icon": __app__img__int__ + "database.png" }
+        ]
+        for item in items:
+            devices_list_item = QListWidgetItem(item["text"])
+            devices_list_item.setIcon(QIcon(item["icon"]))
+            self.devices_list_widget2.addItem(devices_list_item)
+        #
+        
+        
+        self.devices_tabs_label3 = QPushButton(self.devices_tabs_widget)
+        self.devices_tabs_label3.setText("  Team Server:  ")
+        self.devices_tabs_label3.setFont(font)
+        self.devices_tabs_label3.move(0, 460)
+        #
+        self.devices_list_widget3 = QListWidget(self.devices_tabs_widget)
+        self.devices_list_widget3.setIconSize(QSize(40,40))
+        self.devices_list_widget3.setFont(font)
+        self.devices_list_widget3.move(0,500)
+        #
+        items = [
+            {"text": "Meeting m:1", "icon": __app__img__int__ + "meeting.png" },
+            {"text": "Session c:2", "icon": __app__img__int__ + "session.png" }
+        ]
+        for item in items:
+            devices_list_item = QListWidgetItem(item["text"])
+            devices_list_item.setIcon(QIcon(item["icon"]))
+            self.devices_list_widget3.addItem(devices_list_item)
+        #
+        
+        self.devices_tabs_layout.addWidget(self.devices_tabs_label1)
+        self.devices_tabs_layout.addWidget(self.devices_tabs_label2)
+        self.devices_tabs_layout.addWidget(self.devices_tabs_label3)
+        
+        self.devices_tabs_layout.addWidget(self.devices_list_widget1)
+        self.devices_tabs_layout.addWidget(self.devices_list_widget2)
+        self.devices_tabs_layout.addWidget(self.devices_list_widget3)
+        
+        #
+        self.devices_tabs.show()
+        
+        
+        ####
+        self.main_layout.addWidget(self.devices_tabs)
         
         ################
         ##self.tab1_layout = QHBoxLayout()
@@ -2433,7 +2645,7 @@ class FileWatcherGUI(QDialog):
         
         
         # create project tab
-        self.tab0_top_layout    = QHBoxLayout(self.tab0)
+        self.tab0_top_layout    = QHBoxLayout(self.tab0_0)
         self.tab0_left_layout   = QVBoxLayout()
         
         #
@@ -2479,6 +2691,8 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_scroll1.setMaximumWidth(300)
         self.tab0_fold_push11  = MyPushButton("Create", 1)
         self.tab0_fold_push12  = MyPushButton("Open"  , 2)
+        self.tab0_fold_push13  = MyPushButton("Repro" , 3)
+        self.tab0_fold_push14  = MyPushButton("Build" , 4)
         #
         self.tab0_fold_text2   = QLabel("Project-Name:")
         self.tab0_fold_text2.setMaximumWidth(84)
@@ -2490,6 +2704,8 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_scroll2.setMaximumWidth(300)
         self.tab0_fold_push21  = MyPushButton("Create", 1)
         self.tab0_fold_push22  = MyPushButton("Open"  , 2)
+        self.tab0_fold_push23  = MyPushButton("Repro" , 3)
+        self.tab0_fold_push24  = MyPushButton("Build" , 4)
         
         #
         self.tab0_top1_hlayout.addWidget(self.tab0_fold_text1)
@@ -2504,6 +2720,8 @@ class FileWatcherGUI(QDialog):
         #
         self.tab0_topA_vlayout.addWidget(self.tab0_fold_push11)
         self.tab0_topA_vlayout.addWidget(self.tab0_fold_push12)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push13)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push14)
         self.tab0_topA_hlayout.addWidget(self.tab0_fold_scroll1)
         #
         self.tab0_topC_hlayout.addLayout(self.tab0_topA_vlayout)
@@ -2511,6 +2729,8 @@ class FileWatcherGUI(QDialog):
         #
         self.tab0_topB_vlayout.addWidget(self.tab0_fold_push21)
         self.tab0_topB_vlayout.addWidget(self.tab0_fold_push22)
+        self.tab0_topB_vlayout.addWidget(self.tab0_fold_push23)
+        self.tab0_topB_vlayout.addWidget(self.tab0_fold_push24)
         self.tab0_topB_hlayout.addWidget(self.tab0_fold_scroll2)
         #
         self.tab0_topD_hlayout.addLayout(self.tab0_topB_vlayout)
@@ -2566,7 +2786,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_top_layout.addLayout(self.tab0_topV_vlayout)
         
         
-        self.tab0_file_text = QLabel("File:", self.tab0)
+        self.tab0_file_text = QLabel("File:", self.tab0_0)
         
         self.tab0_left_layout.addWidget(self.tab0_file_text)
         self.tab0_path = QDir.homePath()
@@ -2599,7 +2819,7 @@ class FileWatcherGUI(QDialog):
         
         
         # create action tab
-        self.tab1_top_layout    = QHBoxLayout(self.tab1)
+        self.tab1_top_layout    = QHBoxLayout(self.tab1_0)
         self.tab1_left_layout   = QVBoxLayout()
         self.tab1_middle_layout = QVBoxLayout()
         self.tab1_right_layout  = QVBoxLayout()
@@ -2607,17 +2827,17 @@ class FileWatcherGUI(QDialog):
         # ------------------
         # left, top part ...
         # ------------------
-        self.tab1_fold_text = QLabel('Directory:', self.tab1)
-        self.tab1_file_text = QLabel("File:", self.tab1)
+        self.tab1_fold_text = QLabel('Directory:', self.tab1_0)
+        self.tab1_file_text = QLabel("File:", self.tab1_0)
         #
         self.tab1_left_layout.addWidget(self.tab1_fold_text)
         
         # pre
-        self.tab1_pre_action_label = QLabel('Pre-Actions:', self.tab1)
+        self.tab1_pre_action_label = QLabel('Pre-Actions:', self.tab1_0)
         self.tab1_middle_layout.addWidget(self.tab1_pre_action_label);
         
         # post
-        self.tab1_post_action_label = QLabel('Post-Actions:', self.tab1)
+        self.tab1_post_action_label = QLabel('Post-Actions:', self.tab1_0)
         self.tab1_right_layout.addWidget(self.tab1_post_action_label);
         
         # ----------------------------
@@ -2652,7 +2872,7 @@ class FileWatcherGUI(QDialog):
         
         
         # Eingabezeile für den Pfad
-        self.tab1_path_lineEdit = QLineEdit(self.tab1)
+        self.tab1_path_lineEdit = QLineEdit(self.tab1_0)
         self.tab1_path_lineEdit.setStyleSheet(css_button_style)
         self.tab1_path_lineButton = QPushButton("...")
         self.tab1_path_lineButton.setMinimumWidth(28)
@@ -2667,30 +2887,30 @@ class FileWatcherGUI(QDialog):
         self.tab1_left_layout.addLayout(self.tab1_path_layout)
         
         # Start und Stop Buttons
-        self.tab1_startButton = QPushButton("Start", self.tab1)
+        self.tab1_startButton = QPushButton("Start", self.tab1_0)
         self.tab1_startButton.setStyleSheet(css_button_style)
         self.tab1_startButton.clicked.connect(self.startWatching)
         self.tab1_left_layout.addWidget(self.tab1_startButton)
         
-        self.tab1_stopButton = QPushButton('Stop', self.tab1)
+        self.tab1_stopButton = QPushButton('Stop', self.tab1_0)
         self.tab1_stopButton.setStyleSheet(css_button_style)
         self.tab1_stopButton.clicked.connect(self.stopWatching)
         self.tab1_left_layout.addWidget(self.tab1_stopButton)
         
         # ComboBox für Zeitangaben
-        self.tab1_timeComboBox = QComboBox(self.tab1)
+        self.tab1_timeComboBox = QComboBox(self.tab1_0)
         self.tab1_timeComboBox.addItems(["10", "15", "20", "25", "30", "60", "120"])
         self.tab1_timeComboBox.setStyleSheet(css_button_style)
         self.tab1_timeComboBox.setMaximumWidth(49)
         self.tab1_left_layout.addWidget(self.tab1_timeComboBox)
         
         # Label für den Countdown
-        self.tab1_countdownLabel = QLabel('Select time:', self.tab1)
+        self.tab1_countdownLabel = QLabel('Select time:', self.tab1_0)
         self.tab1_left_layout.addWidget(self.tab1_countdownLabel)
         
         # mitte Seite
-        self.tab1_preActionList = QListWidget(self.tab1)
-        self.tab1_preActionList_Label  = QLabel("Content:", self.tab1)
+        self.tab1_preActionList = QListWidget(self.tab1_0)
+        self.tab1_preActionList_Label  = QLabel("Content:", self.tab1_0)
         self.tab1_preActionList_Editor = QPlainTextEdit()
         #
         self.tab1_middle_layout.addWidget(self.tab1_preActionList)
@@ -2698,18 +2918,18 @@ class FileWatcherGUI(QDialog):
         self.tab1_middle_layout.addWidget(self.tab1_preActionList_Editor)
         
         #
-        self.tab1_preActionComboBox = QComboBox(self.tab1)
+        self.tab1_preActionComboBox = QComboBox(self.tab1_0)
         self.tab1_preActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
         self.tab1_preActionComboBox.setStyleSheet(css_combobox_style)
         self.tab1_timeComboBox.setMaximumWidth(49)
         self.tab1_middle_layout.addWidget(self.tab1_preActionComboBox)
         
-        self.tab1_preEditLineLabel = QLabel("Text / File:", self.tab1)
+        self.tab1_preEditLineLabel = QLabel("Text / File:", self.tab1_0)
         self.tab1_middle_layout.addWidget(self.tab1_preEditLineLabel)
         #
         self.tab1_pre_layout = QHBoxLayout()
         
-        self.tab1_preEditLineText = QLineEdit(self.tab1)
+        self.tab1_preEditLineText = QLineEdit(self.tab1_0)
         self.tab1_preEditLineText.setStyleSheet(css_button_style)
      
         self.tab1_path_lineButton.setMaximumHeight(28)
@@ -2738,25 +2958,25 @@ class FileWatcherGUI(QDialog):
         
         
         # rechte Seite
-        self.tab1_postActionList = QListWidget(self.tab1)
-        self.tab1_postActionList_Label  = QLabel("Content:", self.tab1)
+        self.tab1_postActionList = QListWidget(self.tab1_0)
+        self.tab1_postActionList_Label  = QLabel("Content:", self.tab1_0)
         self.tab1_postActionList_Editor = QPlainTextEdit()
         #
         self.tab1_right_layout.addWidget(self.tab1_postActionList)
         self.tab1_right_layout.addWidget(self.tab1_postActionList_Label)
         self.tab1_right_layout.addWidget(self.tab1_postActionList_Editor)
         
-        self.tab1_postActionComboBox = QComboBox(self.tab1)
+        self.tab1_postActionComboBox = QComboBox(self.tab1_0)
         self.tab1_postActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
         self.tab1_postActionComboBox.setStyleSheet(css_combobox_style)
         self.tab1_right_layout.addWidget(self.tab1_postActionComboBox)
         
-        self.tab1_postEditLineLabel = QLabel("Text / File:", self.tab1)
+        self.tab1_postEditLineLabel = QLabel("Text / File:", self.tab1_0)
         self.tab1_right_layout.addWidget(self.tab1_postEditLineLabel)
         #
         self.tab1_post_layout = QHBoxLayout()
         
-        self.tab1_postEditLineText = QLineEdit(self.tab1)
+        self.tab1_postEditLineText = QLineEdit(self.tab1_0)
         self.tab1_postEditLineText.setStyleSheet(css_button_style)
         #
         self.tab1_post_layout.addWidget(self.tab1_postEditLineText)
@@ -3000,8 +3220,8 @@ def EntryPoint(arg1=None):
     global conn
     global conn_cursor
     
-    error_fail   = False
-    error_result = 0
+    error_fail    = False
+    error_result  = 0
     
     topic_counter = 1
     
