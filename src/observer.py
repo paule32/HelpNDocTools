@@ -730,9 +730,9 @@ class myCustomScrollArea(QScrollArea):
             tokennum = _("A" + f"{helpID:04X}")
             
             vw_1 = self.addHelpLabel(   \
-                tokennum,    \
-                hid + i + 1, \
-                helpText,    \
+                tokennum,  \
+                helpID,    \
+                helpText,  \
                 lh_0)
             vw_1.setMinimumHeight(14)
             vw_1.setMinimumWidth(200)
@@ -1153,54 +1153,54 @@ class customScrollView_6(myCustomScrollArea):
         ## 0xA0200
         label_1_elements = [
             [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, True  ],
-            [0xA0201, self.type_check_box, 0, True  ],
-            [0xA0201, self.type_check_box, 0, True  ],
-            [0xA0201, self.type_check_box, 0, True  ],
-            [0xA0201, self.type_check_box, 0, True  ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0202, self.type_check_box, 0, False ],
+            [0xA0203, self.type_check_box, 0, False ],
+            [0xA0204, self.type_check_box, 0, False ],
+            [0xA0205, self.type_check_box, 0, True  ],
+            [0xA0206, self.type_check_box, 0, True  ],
+            [0xA0207, self.type_check_box, 0, True  ],
+            [0xA0208, self.type_check_box, 0, True  ],
+            [0xA0209, self.type_check_box, 0, True  ],
+            [0xA020A, self.type_check_box, 0, False ],
+            [0xA020B, self.type_check_box, 0, False ],
+            [0xA020C, self.type_check_box, 0, False ],
+            [0xA020D, self.type_check_box, 0, False ],
+            [0xA020E, self.type_check_box, 0, True  ],
             
-            [0xA0201, self.type_combo_box, 2, ["SYSTEM", "NO", "YES"] ],
+            [0xA020F, self.type_combo_box, 2, ["SYSTEM", "NO", "YES"] ],
             
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0210, self.type_check_box, 0, False ],
+            [0xA0211, self.type_check_box, 0, False ],
             
-            [0xA0201, self.type_check_box, 0, True  ],
-            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0212, self.type_check_box, 0, True  ],
+            [0xA0213, self.type_check_box, 0, True  ],
             
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0214, self.type_check_box, 0, False ],
+            [0xA0215, self.type_check_box, 0, False ],
+            [0xA0216, self.type_check_box, 0, False ],
+            [0xA0217, self.type_check_box, 0, False ],
+            [0xA0218, self.type_check_box, 0, False ],
+            [0xA0219, self.type_check_box, 0, False ],
             
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
+            [0xA021A, self.type_check_box, 0, False ],
+            [0xA021B, self.type_check_box, 0, False ],
+            [0xA021C, self.type_check_box, 0, False ],
             
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0201, self.type_check_box, 0, False ],
+            [0xA021D, self.type_check_box, 0, False ],
+            [0xA021E, self.type_check_box, 0, False ],
+            [0xA021F, self.type_check_box, 0, False ],
+            [0xA0220, self.type_check_box, 0, False ],
             
-            [0xA0201, self.type_edit,      3 ],
-            [0xA0201, self.type_spin,      0 ],
+            [0xA0221, self.type_edit,      3 ],
+            [0xA0222, self.type_spin,      0 ],
             
-            [0xA0201, self.type_check_box, 0, True  ],
-            [0xA0201, self.type_check_box, 0, True  ],
-            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0223, self.type_check_box, 0, True  ],
+            [0xA0224, self.type_check_box, 0, True  ],
+            [0xA0225, self.type_check_box, 0, True  ],
             
-            [0xA0201, self.type_edit,      1 ],
-            [0xA0201, self.type_edit,      1 ],
-            [0xA0201, self.type_edit,      3 ]
+            [0xA0226, self.type_edit,      1 ],
+            [0xA0227, self.type_edit,      1 ],
+            [0xA0228, self.type_edit,      3 ]
         ]
         self.addElements(label_1_elements, 0x200)
 
@@ -1465,7 +1465,7 @@ class customScrollView_14(myCustomScrollArea):
             [0xA1004, self.type_edit,      0 ],
             [0xA1005, self.type_check_box, 0, False ],
         ]
-        self.addElements(label_1_elements, 0x0A00)
+        self.addElements(label_1_elements, 0x1000)
 
 class customScrollView_15(myCustomScrollArea):
     def __init__(self, name):
@@ -1482,7 +1482,7 @@ class customScrollView_15(myCustomScrollArea):
             [0xA1103, self.type_check_box, 0, False ],
             [0xA1104, self.type_check_box, 0, False ]
         ]
-        self.addElements(label_1_elements, 0x0B00)
+        self.addElements(label_1_elements, 0x1100)
 
 class customScrollView_16(myCustomScrollArea):
     def __init__(self, name):
@@ -1497,7 +1497,7 @@ class customScrollView_16(myCustomScrollArea):
             [0xA1201, self.type_check_box, 0, False ],
             [0xA1202, self.type_edit,      1 ],
         ]
-        self.addElements(label_1_elements, 0x0C00)
+        self.addElements(label_1_elements, 0x1200)
 
 class customScrollView_17(myCustomScrollArea):
     def __init__(self, name):
@@ -1511,7 +1511,7 @@ class customScrollView_17(myCustomScrollArea):
         label_1_elements = [
             [0xA1301,  self.type_check_box, 0, False ]
         ]
-        self.addElements(label_1_elements, 0x0D00)
+        self.addElements(label_1_elements, 0x1300)
 
 class customScrollView_18(myCustomScrollArea):
     def __init__(self, name):
@@ -1527,7 +1527,7 @@ class customScrollView_18(myCustomScrollArea):
             [0xA1402, self.type_edit,      1 ],
             [0xA1403, self.type_check_box, 0, True  ],
         ]
-        self.addElements(label_1_elements, 0x0E00)
+        self.addElements(label_1_elements, 0x1400)
 
 class customScrollView_19(myCustomScrollArea):
     def __init__(self, name):
@@ -1544,7 +1544,7 @@ class customScrollView_19(myCustomScrollArea):
             [0xA1503, self.type_check_box, 0, False ],
             [0xA1504, self.type_edit,      1 ]
         ]
-        self.addElements(label_1_elements, 0x0F00)
+        self.addElements(label_1_elements, 0x1500)
 
 class customScrollView_20(myCustomScrollArea):
     def __init__(self, name):
@@ -1566,7 +1566,7 @@ class customScrollView_20(myCustomScrollArea):
             [0xA1608, self.type_edit,      3 ],
             [0xA1609, self.type_check_box, 0, True  ]
         ]
-        self.addElements(label_1_elements, 0x1000)
+        self.addElements(label_1_elements, 0x1600)
 
 class customScrollView_21(myCustomScrollArea):
     def __init__(self, name):
@@ -1584,7 +1584,7 @@ class customScrollView_21(myCustomScrollArea):
             [0xA1704, self.type_check_box, 0, True  ],
             [0xA1705, self.type_check_box, 0, True  ]
         ]
-        self.addElements(label_1_elements, 0x1100)
+        self.addElements(label_1_elements, 0x1700)
 
 class customScrollView_22(myCustomScrollArea):
     def __init__(self, name):
@@ -1592,7 +1592,7 @@ class customScrollView_22(myCustomScrollArea):
         self.init_ui()
     def init_ui(self):
         self.label_1.hide()
-        self.content_widget.setMinimumHeight(1600)
+        self.content_widget.setMinimumHeight(1800)
         
         ## 0xA1800
         label_1_elements = [
@@ -1645,7 +1645,7 @@ class customScrollView_22(myCustomScrollArea):
             [0xA1825, self.type_edit     , 1 ],
             [0xA1826, self.type_edit     , 3 ]
         ]
-        self.addElements(label_1_elements, 0x1200)
+        self.addElements(label_1_elements, 0x1800)
 
 class customScrollView_help(QTextEdit):
     def __init__(self):
