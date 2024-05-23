@@ -36,9 +36,13 @@ try:
     # ------------------------------------------------------------------------
     # developers own module paths...
     # ------------------------------------------------------------------------
-    sys.path.append("./interpreter/pascal")
-    sys.path.append("./interpreter/dbase")
-    sys.path.append("./interpreter")
+    __app__inter__ = "./interpreter/"
+    #
+    sys.path.append(__app__inter__ + "doxygen")
+    sys.path.append(__app__inter__ + "pascal")
+    sys.path.append(__app__inter__ + "dbase")
+    sys.path.append(__app__inter__ )
+    #
     sys.path.append("./tools")
     
     import glob           # directory search
@@ -65,7 +69,6 @@ try:
     import configparser   # .ini files
     
     import traceback      # stack exception trace back
-    import logging        # for debug
     
     import textwrap
     import marshal        # bytecode exec
@@ -78,6 +81,8 @@ try:
     from PyQt5.QtWebEngineWidgets import *
     from PyQt5.QtCore             import *
     from PyQt5.QtGui              import *
+    
+    from logging    import *
     
     # ------------------------------------------------------------------------
     # developers own modules ...
@@ -99,6 +104,7 @@ try:
     from colorama   import init, Fore, Back, Style  # ANSI escape
     from pascal     import *     # pascal interpreter
     from dbase      import *     # dbase ...
+    from doxygen    import *     # doxygen script
     
 except Exception as err:
     print(err)

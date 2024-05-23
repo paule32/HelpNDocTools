@@ -118,7 +118,7 @@ if errorlevel 1 ( goto error_bytecode )
 echo  ok   ]
 pyinstaller --noconfirm --console  ^
     --icon="%PRJ%/src/img/floppy-disk.ico"  ^
-    --clean --noupx      ^
+    --clean       ^
     --log-level="WARN"   ^
     --splash="%PRJ%/src/img/splash.png"     ^
     --strip                                 ^
@@ -129,6 +129,7 @@ pyinstaller --noconfirm --console  ^
     --paths="C:/Windows/System32"           ^
     --paths="C:/Windows/SysWOW64"           ^
     ^
+    --paths="%PRJ%/src/interpreter/doxygen" ^
     --paths="%PRJ%/src/interpreter/pascal"  ^
     --paths="%PRJ%/src/interpreter/dbase"   ^
     --paths="%PRJ%/src/interpreter"         ^
@@ -158,10 +159,11 @@ pyinstaller --noconfirm --console  ^
     --collect-submodules="%PRJ%/src/tools/misc.py"       ^
     --collect-submodules="%PRJ%/src/tools/__init__.py"   ^
     --collect-submodules="%PRJ%/src/interpreter/EParserException.py" ^
-    --collect-submodules="%PRJ%/src/interpreter/ParserDSL.py" ^
-    --collect-submodules="%PRJ%/src/interpreter/RunTimeLibrary.py" ^
+    --collect-submodules="%PRJ%/src/interpreter/ParserDSL.py"        ^
+    --collect-submodules="%PRJ%/src/interpreter/RunTimeLibrary.py"   ^
     --collect-submodules="%PRJ%/src/interpreter/VisualComponentLibrary.py" ^
-    --collect-submodules="%PRJ%/src/interpreter/dbase/dbaseConsole.py" ^
+    --collect-submodules="%PRJ%/src/interpreter/doxygen/doxygen.py"        ^
+    --collect-submodules="%PRJ%/src/interpreter/dbase/dbaseConsole.py"     ^
     --collect-submodules="%PRJ%/src/interpreter/dbase/dbase.py"   ^
     --collect-submodules="%PRJ%/src/interpreter/pascal/pascal.py" ^
     ^

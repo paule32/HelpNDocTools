@@ -26,8 +26,11 @@ if 'PYTHONPATH' in os.environ:
 # ---------------------------------------------------------------------------
 # extent the search paths for supported interpreters and tools ...
 # ---------------------------------------------------------------------------
-sys.path.append("./interpreter/pascal")
-sys.path.append("./interpreter/dbase")
+__app__inter__ = "./interpreter/"
+#
+sys.path.append(__app__inter__ + "pascal")
+sys.path.append(__app__inter__ + "dbase")
+sys.path.append(__app__inter__ + "doxygen")
 sys.path.append("./tools")
 
 # -----------------------------------------------------------------------
@@ -724,11 +727,12 @@ class myCustomScrollArea(QScrollArea):
             # -----------------------------------------
             helpID   = hid + i + 1
             helpText = _("h" + f"{helpID:04X}")
+            tokennum = _("A" + f"{helpID:04X}")
             
             vw_1 = self.addHelpLabel(   \
-                elements[i][0], \
-                helpID,         \
-                helpText,       \
+                tokennum,    \
+                hid + i + 1, \
+                helpText,    \
                 lh_0)
             vw_1.setMinimumHeight(14)
             vw_1.setMinimumWidth(200)
@@ -736,10 +740,10 @@ class myCustomScrollArea(QScrollArea):
             if elements[i][1] == self.type_edit:
                 self.addLineEdit("",lh_0)
                                     
-                if elements[i][3] == 1:
+                if elements[i][2] == 1:
                     self.addPushButton("+",lh_0)
                     
-                elif elements[i][3] == 3:
+                elif elements[i][2] == 3:
                     self.addPushButton("+",lh_0)
                     self.addPushButton("-",lh_0)
                     self.addPushButton("R",lh_0)
@@ -754,7 +758,7 @@ class myCustomScrollArea(QScrollArea):
                 vw_2 = QCheckBox()
                 vw_2.setMinimumHeight(21)
                 vw_2.setFont(self.font_a)
-                vw_2.setChecked(elements[i][4])
+                vw_2.setChecked(elements[i][3])
                 lh_0.addWidget(vw_2)
             
             elif elements[i][1] == self.type_combo_box:
@@ -764,16 +768,16 @@ class myCustomScrollArea(QScrollArea):
                 vw_2.font().setPointSize(14)
                 lh_0.addWidget(vw_2)
                 
-                if elements[i][3] == 4:
+                if elements[i][2] == 4:
                     data = json.loads(self.supported_langs)
-                    elements[i][4] = data
+                    elements[i][3] = data
                     for j in range(0, len(data)):
                         img = __app__img__int__ + "flag_"  \
-                        + elements[i][4][j] \
+                        + elements[i][3][j] \
                         + ".png"
                         img = img.lower()
                         
-                        vw_2.addItem(QIcon(img), elements[i][4][j-1])
+                        vw_2.addItem(QIcon(img), elements[i][3][j-1])
                         #vw_2.setStyleSheet("""
                         #QComboBox QAbstractItemView {
                         #    selection-background-color: lightGray;
@@ -782,9 +786,9 @@ class myCustomScrollArea(QScrollArea):
                         #}
                         #""")
                 
-                elif elements[i][3] == 2:
-                    for j in range(0, len(elements[i][4])):
-                        vw_2.addItem(elements[i][4][j])
+                elif elements[i][2] == 2:
+                    for j in range(0, len(elements[i][3])):
+                        vw_2.addItem(elements[i][3][j])
             
             elif elements[i][1] == self.type_spin:
                 vw_2 = QSpinBox()
@@ -1047,7 +1051,6 @@ class customScrollView_4(myCustomScrollArea):
         self.addCheckBox("Included by dependcy graphs")
         self.addCheckBox("Call graphs")
         self.addCheckBox("Called-by graphs")
-        
 
 class customScrollView_5(myCustomScrollArea):
     def __init__(self, name):
@@ -1056,79 +1059,80 @@ class customScrollView_5(myCustomScrollArea):
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(2000)
+        
+        ## 0xA0100
         label_1_elements = [
             # <text>,                  <type 1>,             <help>, <type 2>,  <list 1>
-            ["DOXYFILE_ENCODING",      self.type_edit,       100, 0],
+            [0xA0101, self.type_edit,       0],
             
-            ["PROJECT_NAME",           self.type_edit,       101, 0, "My Project"],
-            ["PROJECT_NUMBER",         self.type_edit,       102, 0],
-            ["PROJECT_BRIEF",          self.type_edit,       103, 0],
-            ["PROJECT_LOGO",           self.type_edit,       104, 1],
-            ["PROJECT_ICON",           self.type_edit,       105, 1],
+            [0xA0102, self.type_edit,       0, "My Project"],
+            [0xA0103, self.type_edit,       0],
+            [0xA0104, self.type_edit,       0],
+            [0xA0105, self.type_edit,       1],
+            [0xA0106, self.type_edit,       1],
             
-            ["OUTPUT_DIRECTORY",       self.type_edit,       106, 1],
-            ["CREATE_SUBDIRS",         self.type_check_box,  107, 0, True],
-            ["CREATE_SUBDIRS_LEVEL",   self.type_spin,       108, 0],
+            [0xA0107, self.type_edit,       1],
+            [0xA0108, self.type_check_box,  0, True],
+            [0xA0109, self.type_spin,       0],
             
-            ["ALLOW_UNICODE_NAMES",    self.type_check_box,  109, 0, False],
-            ["OUTPUT_LANGUAGE",        self.type_combo_box,  110, 4, [] ],
+            [0xA010A, self.type_check_box,  0, False],
+            [0xA010B, self.type_combo_box,  4, [] ],
             
-            ["BRIEF_MEMBER_DESC",      self.type_check_box,  111, 0, True],
-            ["REPEAT_BRIEF",           self.type_check_box,  112, 0, True],
-            ["ABBREVIATE_BRIEF",       self.type_edit,       113, 3],
-            ["ALWAYS_DETAILED_SEC",    self.type_check_box,  114, 0, True],
-            ["INLINE_INHERITED_MEMB",  self.type_check_box,  115, 0, True],
+            [0xA010C, self.type_check_box,   0, True],
+            [0xA010D, self.type_check_box,   0, True],
+            [0xA010E, self.type_edit,       3],
+            [0xA010F, self.type_check_box,   0, True],
+            [0xA0110, self.type_check_box,   0, True],
             
-            ["FULL_PATH_NAMES",        self.type_check_box,  116, 0, True],
-            ["STRIP_FROM_PATH",        self.type_edit,       117, 3],
-            ["STRIP_FROM_INC_PATH",    self.type_edit,       118, 3],
+            [0xA0111, self.type_check_box,   0, True],
+            [0xA0112, self.type_edit,        3],
+            [0xA0113, self.type_edit,        3],
             
-            ["SHORT_NAMES",            self.type_check_box,  119, 0, False],
+            [0xA0114, self.type_check_box,   0, False],
             
-            ["JAVADOC_AUTOBRIEF",      self.type_check_box,  120, 0, True ],
-            ["JAVADOC_BANNER",         self.type_check_box,  121, 0, False],
+            [0xA0115, self.type_check_box,   0, True ],
+            [0xA0116, self.type_check_box,   0, False],
             
-            ["QT_AUTOBRIEF",           self.type_check_box,  122, 0, False],
+            [0xA0117, self.type_check_box,   0, False],
             
-            ["MULTILINE_CPP_IS_BRIEF", self.type_check_box,  123, 0, False],
-            ["PYTHON_DOCSTRING",       self.type_check_box,  124, 0, True ],
-            ["INHERITED_DOCS",         self.type_check_box,  125, 0, True ],
-            ["SEPERATE_MEMBER_PAGES",  self.type_check_box,  126, 0, False],
+            [0xA0118, self.type_check_box,   0, False],
+            [0xA0119, self.type_check_box,   0, True ],
+            [0xA011A, self.type_check_box,   0, True ],
+            [0xA011B, self.type_check_box,   0, False],
             
-            ["TAB_SIZE",               self.type_spin,       127, 0],
-            ["ALIASES",                self.type_edit,       128, 3],
+            [0xA011C, self.type_spin,        0],
+            [0xA011D, self.type_edit,        3],
             
-            ["OPTIMIZE_OUTPUT_FOR_C",  self.type_check_box,  129, 0, True ],
-            ["OPTIMIZE_OUTPUT_JAVA",   self.type_check_box,  130, 0, False],
-            ["OPTIMIZE_FOR_FORTRAN",   self.type_check_box,  131, 0, False],
-            ["OPTIMIZE_OUTPUT_VHCL",   self.type_check_box,  132, 0, False],
-            ["OPTIMIZE_OUTPUT_SLICE",  self.type_check_box,  133, 0, False],
+            [0xA011E, self.type_check_box,   0, True ],
+            [0xA011F, self.type_check_box,   0, False],
+            [0xA0120, self.type_check_box,   0, False],
+            [0xA0121, self.type_check_box,   0, False],
+            [0xA0122, self.type_check_box,   0, False],
             
-            ["EXTERNAL_MAPPING",       self.type_edit,       134, 3],
+            [0xA0123, self.type_edit,        3],
             
-            ["MARKDOWN_SUPPORT",       self.type_check_box,  135, 0, True ],
-            ["MARKDOWN_ID_STYLE",      self.type_combo_box,  136, 2, ["DOXYGEN", "CIT"]],
+            [0xA0124, self.type_check_box,   0, True ],
+            [0xA0125, self.type_spin,        0],
+            [0xA0126, self.type_combo_box,   2, ["DOXYGEN", "CIT"]],
+            [0xA0127, self.type_check_box,   0, True ],
             
-            ["TOC_INCLUDE_HEADINGS",   self.type_spin,       137, 0],
-            ["AUTOLINK_SUPPORT",       self.type_check_box,  138, 0, True ],
+            [0xA0128, self.type_check_box,   0, True ],
+            [0xA0129, self.type_check_box,   0, True ],
+            [0xA012A, self.type_check_box,   0, False],
+            [0xA012B, self.type_check_box,   0, True ],
             
-            ["BUILTIN_STL_SUPPORT",    self.type_check_box,  139, 0, True ],
-            ["CPP_CLI_SUPPORT",        self.type_check_box,  140, 0, True ],
-            ["SIP_SUPPORT",            self.type_check_box,  141, 0, False],
-            ["IDL_PROPERTY_SUPPORT",   self.type_check_box,  142, 0, True ],
+            [0xA012C, self.type_check_box,   0, False],
+            [0xA012D, self.type_check_box,   0, False],
+            [0xA012E, self.type_check_box,   0, True ],
             
-            ["DESTRIBUTE_GROUP_DOC",   self.type_check_box,  143, 0, False],
-            ["GROUP_NESTED_COMPOUNDS", self.type_check_box,  144, 0, False],
-            ["SUBGROUPING",            self.type_check_box,  145, 0, True ],
+            [0xA012F, self.type_check_box,   0, False],
+            [0xA0130, self.type_check_box,   0, False],
+            [0xA0131, self.type_check_box,   0, False],
             
-            ["INLINE_GROUPED_CLASSES", self.type_check_box,  146, 0, False],
-            ["INLINE_SIMPLE_STRUCTS",  self.type_check_box,  147, 0, False],
-            ["TYPEDEF_HIDES_STRUCT",   self.type_check_box,  148, 0, False],
+            [0xA0132, self.type_spin,        0],
+            [0xA0133, self.type_spin,        0],
             
-            ["LOOKUP_CACHE_SIZE",      self.type_spin,       149, 0],
-            ["NUM_PROC_THREADS",       self.type_spin,       150, 0],
-            
-            ["TIMESTAMP",              self.type_combo_box,  151, 2, ["NO","YES"]]
+            [0xA0134, self.type_combo_box,   2, ["NO","YES"]]
         ]
         self.addElements(label_1_elements, 0x100)
     
@@ -1146,56 +1150,57 @@ class customScrollView_6(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1400)
         
+        ## 0xA0200
         label_1_elements = [
-            ["EXTRACT_ALL",              self.type_check_box, 0x200, 0, False ],
-            ["EXTRACT_PRIVATE",          self.type_check_box, 0x201, 0, False ],
-            ["EXTRACT_PRIV_VIRTUAL",     self.type_check_box, 0x202, 0, False ],
-            ["EXTRACT_PACKAGE",          self.type_check_box, 0x203, 0, False ],
-            ["EXTRACT_STATIC",           self.type_check_box, 0x204, 0, True  ],
-            ["EXTRACT_LOCAL_CLASSES",    self.type_check_box, 0x205, 0, True  ],
-            ["EXTRACT_LOCAL_METHODS",    self.type_check_box, 0x206, 0, True  ],
-            ["EXTRACT_ANON_NSPACES",     self.type_check_box, 0x207, 0, True  ],
-            ["RECURSIVE_UNNAMED_PARAMS", self.type_check_box, 0x208, 0, True  ],
-            ["HIDE_UNDOC_MEMBERS",       self.type_check_box, 0x209, 0, False ],
-            ["HIDE_UNDOC_CLASSES",       self.type_check_box, 0x20A, 0, False ],
-            ["HIDE_FRIEND_COMPOUNDS",    self.type_check_box, 0x20B, 0, False ],
-            ["HIDE_IN_BODY_DOCS",        self.type_check_box, 0x20C, 0, False ],
-            ["INTERNAL_DOCS",            self.type_check_box, 0x20D, 0, True  ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, True  ],
             
-            ["CASE_SENSE_NAMES",         self.type_combo_box, 0x20E, 2, ["SYSTEM", "NO", "YES"] ],
+            [0xA0201, self.type_combo_box, 2, ["SYSTEM", "NO", "YES"] ],
             
-            ["HIDE_SCOPE_NAMES",         self.type_check_box, 0x20E, 0, False ],
-            ["HIDE_COMPOUND_REFERENCE",  self.type_check_box, 0x20F, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
             
-            ["SHOW_HEADERFILE",          self.type_check_box, 0x210, 0, True  ],
-            ["SHOW_INCLUDE_FILES",       self.type_check_box, 0x210, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
             
-            ["SHOW_GROUPED_MEMB_INC",    self.type_check_box, 0x210, 0, False ],
-            ["FORCE_LOCAL_INCLUDES",     self.type_check_box, 0x210, 0, False ],
-            ["INLINE_INFO",              self.type_check_box, 0x210, 0, False ],
-            ["SORT_MEMBER_DOCS",         self.type_check_box, 0x210, 0, False ],
-            ["SORT_BRIEF_DOCS",          self.type_check_box, 0x210, 0, False ],
-            ["SORT_MEMBERS_CTORS_1ST",   self.type_check_box, 0x210, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
             
-            ["SORT_GROUP_NAMES",         self.type_check_box, 0x210, 0, False ],
-            ["SORT_BY_SCOPE_NAME",       self.type_check_box, 0x210, 0, False ],
-            ["STRICT_PROTO_MATCHING",    self.type_check_box, 0x210, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
             
-            ["GENERATE_TODOLIST",        self.type_check_box, 0x210, 0, False ],
-            ["GENERATE_TESTLIST",        self.type_check_box, 0x210, 0, False ],
-            ["GENERATE_BUGLIST",         self.type_check_box, 0x210, 0, False ],
-            ["GENERATE_DEPRECATEDLIST",  self.type_check_box, 0x210, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
+            [0xA0201, self.type_check_box, 0, False ],
             
-            ["ENABLED_SECTIONS",         self.type_edit,      0x210, 3 ],
-            ["MAX_INITIALIZER_LINES",    self.type_spin,      0x210, 0 ],
+            [0xA0201, self.type_edit,      3 ],
+            [0xA0201, self.type_spin,      0 ],
             
-            ["SHOW_USED_FILES",          self.type_check_box, 0x210, 0, True  ],
-            ["SHOW_FILES",               self.type_check_box, 0x210, 0, True  ],
-            ["SHOW_NAMESPACES",          self.type_check_box, 0x210, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
+            [0xA0201, self.type_check_box, 0, True  ],
             
-            ["FILE_VERSION_FILTER",      self.type_edit,      0x210, 1 ],
-            ["LAYOUT_FILE",              self.type_edit,      0x210, 1 ],
-            ["CITE_BIB_FILES",           self.type_edit,      0x210, 3 ]
+            [0xA0201, self.type_edit,      1 ],
+            [0xA0201, self.type_edit,      1 ],
+            [0xA0201, self.type_edit,      3 ]
         ]
         self.addElements(label_1_elements, 0x200)
 
@@ -1207,22 +1212,23 @@ class customScrollView_7(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA0300
         label_1_elements = [
-            ["QUIET",                    self.type_check_box, 0x300, 0, True  ],
-            ["WARNINGS",                 self.type_check_box, 0x200, 0, True  ],
+            [0xA0301, self.type_check_box, 0, True  ],
+            [0xA0302, self.type_check_box, 0, True  ],
             
-            ["WARN_IF_UNDOCUMENTED",     self.type_check_box, 0x200, 0, False ],
-            ["WARN_IF_DOC_ERROR",        self.type_check_box, 0x200, 0, True  ],
-            ["WARN_IF_INCOMPLETE_DOC",   self.type_check_box, 0x200, 0, True  ],
+            [0xA0303, self.type_check_box, 0, False ],
+            [0xA0304, self.type_check_box, 0, True  ],
+            [0xA0305, self.type_check_box, 0, True  ],
             
-            ["WARN_NO_PARAMDOC",         self.type_check_box, 0x200, 0, False ],
-            ["WARN_IF_UNDOC_ENUM_VAL",   self.type_check_box, 0x200, 0, False ],
+            [0xA0306, self.type_check_box, 0, False ],
+            [0xA0307, self.type_check_box, 0, False ],
             
-            ["WARN_AS_ERROR",            self.type_spin,      0x200, 0 ],
+            [0xA0308, self.type_spin,      0 ],
             
-            ["WARN_FORMAT",              self.type_edit,      0x200, 0 ],
-            ["WARN_LINE_FORMAT",         self.type_edit,      0x200, 0 ],
-            ["WARN_LOGFILE",             self.type_edit,      0x200, 1 ]
+            [0xA0309, self.type_edit,      0 ],
+            [0xA030A, self.type_edit,      0 ],
+            [0xA030B, self.type_edit,      1 ]
         ]
         self.addElements(label_1_elements, 0x0300)
 
@@ -1234,26 +1240,27 @@ class customScrollView_8(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1700)
         
+        ## 0xA0400
         label_1_elements = [
-            ["INPUT",                  self.type_edit,      0x400, 3],
-            ["INPUT_ENCODING",         self.type_edit,      0x400, 0],
-            ["INPUT_FILE_ENCODING",    self.type_edit,      0x400, 1],
-            ["FILE_PATTERNS",          self.type_edit,      0x400, 3],
-            ["RECURSIVE",              self.type_check_box, 0x400, 0, True  ],
-            ["EXCLUDE",                self.type_edit,      0x400, 3],
-            ["EXCLUDE_SYMLINKS",       self.type_check_box, 0x400, 0, False ],
-            ["EXCLUDE_PATTERNS",       self.type_edit,      0x400, 3],
-            ["EXCLUDE_SYMBOLS",        self.type_edit,      0x400, 3],
-            ["EXAMPLE_PATH",           self.type_edit,      0x400, 3],
-            ["EXAMPLE_PATTERNS",       self.type_edit,      0x400, 3],
-            ["EXAMPLE_RECURSIVE",      self.type_edit,      0x400, 0, False ],
-            ["IMAGE_PATH",             self.type_edit,      0x400, 3],
-            ["INPUT_FILTER",           self.type_edit,      0x400, 1],
-            ["FILTER_PATTERNS",        self.type_edit,      0x400, 3],
-            ["FILTER_SOURCE_FILES",    self.type_check_box, 0x400, 0, False ],
-            ["FILTER_SOURCE_PATTERNS", self.type_edit,      0x400, 3],
-            ["USE_MDFILE_AS_MAINPAGE", self.type_edit,      0x400, 0],
-            ["FORTRAN_COMMENT_AFTER",  self.type_spin,      0x400, 0]
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_edit,      0],
+            [0xA0401, self.type_edit,      1],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_check_box, 0, True  ],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_check_box, 0, False ],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_edit,      0, False ],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_edit,      1],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_check_box, 0, False ],
+            [0xA0401, self.type_edit,      3],
+            [0xA0401, self.type_edit,      0],
+            [0xA0401, self.type_spin,      0]
         ]
         self.addElements(label_1_elements, 0x0400)
 
@@ -1265,23 +1272,24 @@ class customScrollView_9(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(560)
         
+        ## 0xA0500
         label_1_elements = [
-            ["SOURCE_BROWSER",          self.type_check_box, 0x500, 0, True  ],
-            ["INLINE_SOURCES",          self.type_check_box, 0x200, 0, False ],
-            ["STRIP_CODE_COMMENTS",     self.type_check_box, 0x200, 0, False ],
+            [0xA0501, self.type_check_box, 0, True  ],
+            [0xA0502, self.type_check_box, 0, False ],
+            [0xA0503, self.type_check_box, 0, False ],
             
-            ["REFERENCED_BY_RELATION",  self.type_check_box, 0x200, 0, True  ],
-            ["REFERENCES_RELATION",     self.type_check_box, 0x200, 0, True  ],
-            ["REFERENCES_LINK_SOURCE",  self.type_check_box, 0x200, 0, True  ],
+            [0xA0504, self.type_check_box, 0, True  ],
+            [0xA0505, self.type_check_box, 0, True  ],
+            [0xA0506, self.type_check_box, 0, True  ],
             
-            ["SOURCE_TOOLTIPS",         self.type_check_box, 0x200, 0, True  ],
-            ["USE_HTAGS",               self.type_check_box, 0x200, 0, False ],
-            ["VERBATIM_HEADERS",        self.type_check_box, 0x200, 0, True  ],
+            [0xA0507, self.type_check_box, 0, True  ],
+            [0xA0508, self.type_check_box, 0, False ],
+            [0xA0509, self.type_check_box, 0, True  ],
             
-            ["CLANG_ASSISTED_PARSING",  self.type_check_box, 0x200, 0, False ],
-            ["CLANG_ADD_INC_PATHS",     self.type_check_box, 0x200, 0, False ],
-            ["CLANG_OPTIONS",           self.type_edit     , 0x200, 3 ],
-            ["CLANG_DATABASE_PATH",     self.type_edit     , 0x200, 1 ]
+            [0xA050A, self.type_check_box, 0, False ],
+            [0xA050B, self.type_check_box, 0, False ],
+            [0xA050C, self.type_edit     , 3 ],
+            [0xA050D, self.type_edit     , 1 ]
         ]
         self.addElements(label_1_elements, 0x0500)
 
@@ -1293,9 +1301,10 @@ class customScrollView_10(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA0600
         label_1_elements = [
-            ["ALPHABETICAL_INDEX", self.type_check_box, 0x600, 0, True ],
-            ["IGNORE_PREFIX",      self.type_edit,      0x601, 3 ]
+            [0xA0601, self.type_check_box, 0, True ],
+            [0xA0602, self.type_edit,      3 ]
         ]
         self.addElements(label_1_elements, 0x0600)
 
@@ -1307,86 +1316,87 @@ class customScrollView_11(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(2380)
         
+        ## 0xA0700
         label_1_elements = [
-            ["GENERATE_HTML",          self.type_check_box, 0x200, 0, True  ],
-            ["HTML_OUTPUT",            self.type_edit,      0x200, 1 ],
-            ["HTML_FILE_EXTENSION",    self.type_edit,      0x200, 0 ],
+            [0xA0701, self.type_check_box, 0, True  ],
+            [0xA0702, self.type_edit,      1 ],
+            [0xA0703, self.type_edit,      0 ],
             
-            ["HTML_HEADER",            self.type_edit,      0x200, 1 ],
-            ["HTML_FOOTER",            self.type_edit,      0x200, 1 ],
+            [0xA0704, self.type_edit,      1 ],
+            [0xA0705, self.type_edit,      1 ],
             
-            ["HTML_STYLESHEET",        self.type_edit,      0x200, 1 ],
-            ["HTML_EXTRA_STYLESHEET",  self.type_edit,      0x200, 3 ],
-            ["HTML_EXTRA_FILES",       self.type_edit,      0x200, 3 ],
+            [0xA0706, self.type_edit,      1 ],
+            [0xA0707, self.type_edit,      3 ],
+            [0xA0708, self.type_edit,      3 ],
             
-            ["HTML_COLORSTYLE",        self.type_combo_box, 0x200, 2, [ "LIGHT", "DARK", "AUTO_LIGHT", "AUTO_DARK", "TOOGLE" ] ],
-            ["HTML_COLORSTYLE_HUE",    self.type_spin,      0x200, 0 ],
-            ["HTML_COLORSTYLE_SAT",    self.type_spin,      0x200, 0 ],
-            ["HTML_COLORSTYLE_GAMMA",  self.type_spin,      0x200, 0 ],
-            ["HTML_DYNAMIC_MENUS",     self.type_check_box, 0x200, 0, True  ],
-            ["HTML_DYNAMIC_SECTIONS",  self.type_check_box, 0x200, 0, False ],
+            [0xA0709, self.type_combo_box, 2, [ "LIGHT", "DARK", "AUTO_LIGHT", "AUTO_DARK", "TOOGLE" ] ],
+            [0xA070A, self.type_spin,      0 ],
+            [0xA070B, self.type_spin,      0 ],
+            [0xA070C, self.type_spin,      0 ],
+            [0xA070D, self.type_check_box, 0, True  ],
+            [0xA070E, self.type_check_box, 0, False ],
             
-            ["HTML_CODE_FOLDING",      self.type_check_box, 0x200, 0, True  ],
-            ["HTML_COPY_CLIPBOARD",    self.type_check_box, 0x200, 0, True  ],
-            ["HTML_PROJECT_COOKIE",    self.type_edit,      0x200, 0 ],
-            ["HTML_INDEX_NUM_ENTRIES", self.type_spin,      0x200, 0 ],
+            [0xA070F, self.type_check_box, 0, True  ],
+            [0xA0710, self.type_check_box, 0, True  ],
+            [0xA0711, self.type_edit,      0 ],
+            [0xA0712, self.type_spin,      0 ],
             
-            ["GENERATE_DOCSET",        self.type_check_box, 0x200, 0, False ],
-            ["DOCSET_FEEDNAME",        self.type_edit,      0x200, 0 ],
-            ["DOCSET_FEEDURL",         self.type_edit,      0x200, 0 ],
-            ["DOCSET_BUNDLE_ID",       self.type_edit,      0x200, 0 ],
-            ["DOCSET_PUBLISHER_ID",    self.type_edit,      0x200, 0 ],
-            ["DOCSET_PUBLISHER_NAME",  self.type_edit,      0x200, 0 ],
+            [0xA0713, self.type_check_box, 0, False ],
+            [0xA0714, self.type_edit,      0 ],
+            [0xA0715, self.type_edit,      0 ],
+            [0xA0716, self.type_edit,      0 ],
+            [0xA0717, self.type_edit,      0 ],
+            [0xA0718, self.type_edit,      0 ],
             
-            ["GENERATE_HTMLHELP",      self.type_check_box, 0x200, 0, True  ],
-            ["CHM_FILE",               self.type_edit,      0x200, 1 ],
-            ["HHC_LOCATION",           self.type_edit,      0x200, 1 ],
-            ["GENERATE_CHI",           self.type_check_box, 0x200, 0, False ],
-            ["CHM_INDEX_ENCODING",     self.type_edit,      0x200, 0 ],
-            ["BINARY_TOC",             self.type_check_box, 0x200, 0, False ],
-            ["TOC_EXPAND",             self.type_check_box, 0x200, 0, False ],
-            ["SITEMAP_URL",            self.type_edit,      0x200, 0 ],
+            [0xA0719, self.type_check_box, 0, True  ],
+            [0xA071A, self.type_edit,      1 ],
+            [0xA071B, self.type_edit,      1 ],
+            [0xA071C, self.type_check_box, 0, False ],
+            [0xA071D, self.type_edit,      0 ],
+            [0xA071E, self.type_check_box, 0, False ],
+            [0xA071F, self.type_check_box, 0, False ],
+            [0xA0720, self.type_edit,      0 ],
             
-            ["GENERATE_QHP",           self.type_check_box, 0x200, 0, False ],
-            ["QCH_FILE",               self.type_edit,      0x200, 1 ],
-            ["QHP_VIRTUAL_FOLDER",     self.type_edit,      0x200, 0 ],
-            ["QHP_CUST_FILTER_NAME",   self.type_edit,      0x200, 0 ],
-            ["QHP_CUST_FILTER_ATTRS",  self.type_edit,      0x200, 0 ],
-            ["QHP_SECT_FILTER_ATTRS",  self.type_edit,      0x200, 0 ],
-            ["QHG_LOCATION",           self.type_edit,      0x200, 1 ],
+            [0xA0721, self.type_check_box, 0, False ],
+            [0xA0722, self.type_edit,      1 ],
+            [0xA0723, self.type_edit,      0 ],
+            [0xA0724, self.type_edit,      0 ],
+            [0xA0725, self.type_edit,      0 ],
+            [0xA0726, self.type_edit,      0 ],
+            [0xA0727, self.type_edit,      1 ],
             
-            ["GENERATE_ECLIPSEHELP",   self.type_check_box, 0x200, 0, False ],
-            ["ECLIPSE_DOC_ID",         self.type_edit,      0x200, 0 ],
-            ["DISABLE_INDEX",          self.type_check_box, 0x200, 0, False ],
+            [0xA0728, self.type_check_box, 0, False ],
+            [0xA0729, self.type_edit,      0 ],
+            [0xA072A, self.type_check_box, 0, False ],
             
-            ["GENERATE_TREEVIEW",      self.type_check_box, 0x200, 0, True  ],
-            ["FULL_SIDEBAR",           self.type_check_box, 0x200, 0, False ],
+            [0xA072B, self.type_check_box, 0, True  ],
+            [0xA072C, self.type_check_box, 0, False ],
             
-            ["ENUM_VALUES_PER_LINE",   self.type_spin,      0x200, 0 ],
-            ["TREEVIEW_WIDTH",         self.type_spin,      0x200, 0 ],
+            [0xA072D, self.type_spin,      0 ],
+            [0xA072E, self.type_spin,      0 ],
             
-            ["EXT_LINKS_IN_WINDOW",    self.type_check_box, 0x200, 0, False ],
-            ["OBFUSCATE_EMAILS",       self.type_check_box, 0x200, 0, True  ],
+            [0xA072F, self.type_check_box, 0, False ],
+            [0xA0730, self.type_check_box, 0, True  ],
             
-            ["HTML_FORMULA_FORMAT",    self.type_combo_box, 0x200, 2, [ "png", "svg" ] ],
-            ["FORMULA_FONTSIZE",       self.type_spin,      0x200, 0 ],
-            ["FORMULA_MACROFILE",      self.type_edit,      0x200, 1 ],
+            [0xA0731, self.type_combo_box, 2, [ "png", "svg" ] ],
+            [0xA0732, self.type_spin,      0 ],
+            [0xA0733, self.type_edit,      1 ],
             
-            ["USE_MATHJAX",            self.type_check_box, 0x200, 0, False ],
-            ["MATHJAX_VERSION",        self.type_combo_box, 0x200, 2, [ "MathJax_2", "MathJax_3" ] ],
-            ["MATHJAX_FORMAT",         self.type_combo_box, 0x200, 2, [ "HTML + CSS", "NativeXML", "chtml", "SVG" ] ],
+            [0xA0734, self.type_check_box, 0, False ],
+            [0xA0735, self.type_combo_box, 2, [ "MathJax_2", "MathJax_3" ] ],
+            [0xA0736, self.type_combo_box, 2, [ "HTML + CSS", "NativeXML", "chtml", "SVG" ] ],
             
-            ["MATHJAX_RELPATH",        self.type_edit,      0x200, 1 ],
-            ["MATHJAX_EXTENSIONS",     self.type_edit,      0x200, 3 ],
-            ["MATHJAX_CODEFILE",       self.type_edit,      0x200, 0 ],
+            [0xA0737, self.type_edit,      1 ],
+            [0xA0738, self.type_edit,      3 ],
+            [0xA0739, self.type_edit,      0 ],
             
-            ["SEARCHENGINE",           self.type_check_box, 0x200, 0, False ],
-            ["SERVER_BASED_SEARCH",    self.type_check_box, 0x200, 0, False ],
-            ["EXTERNAL_SEARCH",        self.type_check_box, 0x200, 0, False ],
-            ["SEARCHENGINE_URL",       self.type_edit,      0x200, 0 ],
-            ["SEARCHDATA_FILE",        self.type_edit,      0x200, 1 ],
-            ["EXTERNAL_SEARCH_ID",     self.type_edit,      0x200, 0 ],
-            ["EXTRA_SEARCH_MAPPINGS",  self.type_edit,      0x200, 3 ]
+            [0xA073A, self.type_check_box, 0, False ],
+            [0xA073B, self.type_check_box, 0, False ],
+            [0xA073C, self.type_check_box, 0, False ],
+            [0xA073D, self.type_edit,      0 ],
+            [0xA073E, self.type_edit,      1 ],
+            [0xA073F, self.type_edit,      0 ],
+            [0xA0740, self.type_edit,      3 ]
         ]
         self.addElements(label_1_elements, 0x0700)
 
@@ -1398,24 +1408,25 @@ class customScrollView_12(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1000)
         
+        ## 0xA0800
         label_1_elements = [
-            ["GENERATE_LATEX",          self.type_check_box, 0x200, 0, False ],
-            ["LATEX_OUTPUT",            self.type_edit,      0x200, 1 ],
-            ["LATEX_CMD_NAMET",         self.type_edit,      0x200, 1 ],
-            ["LATEX_MAKEINDEX_CMDT",    self.type_edit,      0x200, 0 ],
-            ["COMPACT_LATEX",           self.type_check_box, 0x200, 0, False ],
-            ["PAPER_TYPE",              self.type_combo_box, 0x200, 2, [ "a4", "letter", "executive" ] ],
-            ["EXTRA_PACKAGES",          self.type_edit,      0x200, 3 ],
-            ["LATEX_HEADER",            self.type_edit,      0x200, 1 ],
-            ["LATEX_FOOTER",            self.type_edit,      0x200, 1 ],
-            ["LATEX_EXTRA_STYLESHEET",  self.type_edit,      0x200, 3 ],
-            ["LATEX_EXTRA_FILES",       self.type_edit,      0x200, 3 ],
-            ["PDF_HYPERLINKS",          self.type_check_box, 0x200, 0, True  ],
-            ["USE_PDFLATEX",            self.type_check_box, 0x200, 0, True  ],
-            ["LATEX_BATCHMODE",         self.type_combo_box, 0x200, 2, [ "NO", "YWS", "BATCH", "NON-STOP", "SCROLL", "ERROR_STOP" ] ],
-            ["LATEX_HIDE_INDICES",      self.type_check_box, 0x200, 0, False ],
-            ["LATEX_BIB_STYLE",         self.type_edit,      0x200, 0 ],
-            ["LATEX_EMOJI_DIRECTORY",   self.type_edit,      0x200, 1 ]
+            [0xA0801, self.type_check_box, 0, False ],
+            [0xA0802, self.type_edit,      1 ],
+            [0xA0803, self.type_edit,      1 ],
+            [0xA0804, self.type_edit,      0 ],
+            [0xA0805, self.type_check_box, 0, False ],
+            [0xA0806, self.type_combo_box, 2, [ "a4", "letter", "executive" ] ],
+            [0xA0807, self.type_edit,      3 ],
+            [0xA0808, self.type_edit,      1 ],
+            [0xA0809, self.type_edit,      1 ],
+            [0xA080A, self.type_edit,      3 ],
+            [0xA080B, self.type_edit,      3 ],
+            [0xA080C, self.type_check_box, 0, True  ],
+            [0xA080D, self.type_check_box, 0, True  ],
+            [0xA080E, self.type_combo_box, 2, [ "NO", "YWS", "BATCH", "NON-STOP", "SCROLL", "ERROR_STOP" ] ],
+            [0xA080F, self.type_check_box, 0, False ],
+            [0xA0810, self.type_edit,      0 ],
+            [0xA0811, self.type_edit,      1 ]
         ]
         self.addElements(label_1_elements, 0x0800)
 
@@ -1427,13 +1438,14 @@ class customScrollView_13(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA0900
         label_1_elements = [
-            ["GENERATE_RTF",         self.type_check_box, 0x200, 0, False ],
-            ["RTF_OUTPUT",           self.type_edit,      0x200, 1 ],
-            ["COMPACT_RTF",          self.type_check_box, 0x200, 0, False ],
-            ["RTF_HYPERLINKS",       self.type_check_box, 0x200, 0, False ],
-            ["RTF_STYLESHEET_FILE",  self.type_edit,      0x200, 1 ],
-            ["RTF_EXTENSIONS_FILE",  self.type_edit,      0x200, 1 ]
+            [0xA0901, self.type_check_box, 0, False ],
+            [0xA0902, self.type_edit,      1 ],
+            [0xA0903, self.type_check_box, 0, False ],
+            [0xA0904, self.type_check_box, 0, False ],
+            [0xA0905, self.type_edit,      1 ],
+            [0xA0906, self.type_edit,      1 ]
         ]
         self.addElements(label_1_elements, 0x0900)
 
@@ -1445,12 +1457,13 @@ class customScrollView_14(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA1000
         label_1_elements = [
-            ["GENERATE_MAN",   self.type_check_box, 0x200, 0, False ],
-            ["MAN_OUTPUT",     self.type_edit,      0x200, 1 ],
-            ["MAN_EXTENSION",  self.type_edit,      0x200, 0 ],
-            ["MAN_SUBDIR",     self.type_edit,      0x200, 0 ],
-            ["MAN_LINKS",      self.type_check_box, 0x200, 0, False ],
+            [0xA1001, self.type_check_box, 0, False ],
+            [0xA1002, self.type_edit,      1 ],
+            [0xA1003, self.type_edit,      0 ],
+            [0xA1004, self.type_edit,      0 ],
+            [0xA1005, self.type_check_box, 0, False ],
         ]
         self.addElements(label_1_elements, 0x0A00)
 
@@ -1462,11 +1475,12 @@ class customScrollView_15(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA1100
         label_1_elements = [
-            ["GENERATE_XML",            self.type_check_box, 0x200, 0, False ],
-            ["XML_OUTPUT",              self.type_edit,      0x200, 1 ],
-            ["XML_PROGRAMLISTING",      self.type_check_box, 0x200, 0, False ],
-            ["XML_NS_MEMB_FILE_SCOPE",  self.type_check_box, 0x200, 0, False ]
+            [0xA1101, self.type_check_box, 0, False ],
+            [0xA1102, self.type_edit,      1 ],
+            [0xA1103, self.type_check_box, 0, False ],
+            [0xA1104, self.type_check_box, 0, False ]
         ]
         self.addElements(label_1_elements, 0x0B00)
 
@@ -1478,9 +1492,10 @@ class customScrollView_16(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1400)
         
+        ## 0xA1200
         label_1_elements = [
-            ["GENERATE_DOCBOOK",  self.type_check_box, 0x200, 0, False ],
-            ["DOCBOOK_OUTPUT",    self.type_edit,      0x200, 1 ],
+            [0xA1201, self.type_check_box, 0, False ],
+            [0xA1202, self.type_edit,      1 ],
         ]
         self.addElements(label_1_elements, 0x0C00)
 
@@ -1492,8 +1507,9 @@ class customScrollView_17(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA1300
         label_1_elements = [
-            ["GENERATE_AUTOGEN_DEF",  self.type_check_box, 0x200, 0, False ]
+            [0xA1301,  self.type_check_box, 0, False ]
         ]
         self.addElements(label_1_elements, 0x0D00)
 
@@ -1505,10 +1521,11 @@ class customScrollView_18(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA1400
         label_1_elements = [
-            ["GENERATE_SQLITE3",     self.type_check_box, 0x200, 0, False ],
-            ["SQLITE3_OUTPUT",       self.type_edit,      0x200, 1 ],
-            ["SQLITE3_RECREATE_DB",  self.type_check_box, 0x200, 0, True  ],
+            [0xA1401, self.type_check_box, 0, False ],
+            [0xA1402, self.type_edit,      1 ],
+            [0xA1403, self.type_check_box, 0, True  ],
         ]
         self.addElements(label_1_elements, 0x0E00)
 
@@ -1520,11 +1537,12 @@ class customScrollView_19(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA1500
         label_1_elements = [
-            ["GENERATE_PERLMOD",        self.type_check_box, 0x200, 0, False ],
-            ["PERLMOD_LATEX",           self.type_check_box, 0x200, 0, False ],
-            ["PERLMOD_PRETTY",          self.type_check_box, 0x200, 0, False ],
-            ["PERLMOD_MAKEVAR_PREFIX",  self.type_edit,      0x200, 1 ]
+            [0xA1501, self.type_check_box, 0, False ],
+            [0xA1502, self.type_check_box, 0, False ],
+            [0xA1503, self.type_check_box, 0, False ],
+            [0xA1504, self.type_edit,      1 ]
         ]
         self.addElements(label_1_elements, 0x0F00)
 
@@ -1536,16 +1554,17 @@ class customScrollView_20(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(800)
         
+        ## 0xA1600
         label_1_elements = [
-            ["ENABLE_PREPROCESSING",   self.type_check_box, 0x200, 0, True  ],
-            ["MACRO_EXPANSION",        self.type_check_box, 0x200, 0, True  ],
-            ["EXPAND_ONLY_PREDEF",     self.type_check_box, 0x200, 0, False ],
-            ["SEARCH_INCLUDES",        self.type_check_box, 0x200, 0, False ],
-            ["INCLUDE_PATH",           self.type_edit,      0x200, 3 ],
-            ["INCLUDE_FILE_PATTERNS",  self.type_edit,      0x200, 3 ],
-            ["PREDEFINED",             self.type_edit,      0x200, 3 ],
-            ["EXPAND_AS_DEFINED",      self.type_edit,      0x200, 3 ],
-            ["SKIP_FUNCTION_MACROS",   self.type_check_box, 0x200, 0, True  ]
+            [0xA1601, self.type_check_box, 0, True  ],
+            [0xA1602, self.type_check_box, 0, True  ],
+            [0xA1603, self.type_check_box, 0, False ],
+            [0xA1604, self.type_check_box, 0, False ],
+            [0xA1605, self.type_edit,      3 ],
+            [0xA1606, self.type_edit,      3 ],
+            [0xA1607, self.type_edit,      3 ],
+            [0xA1608, self.type_edit,      3 ],
+            [0xA1609, self.type_check_box, 0, True  ]
         ]
         self.addElements(label_1_elements, 0x1000)
 
@@ -1557,12 +1576,13 @@ class customScrollView_21(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
+        ## 0xA1700
         label_1_elements = [
-            ["TAGFILES",          self.type_edit, 0x200, 3 ],
-            ["GENERATE_TAGFILE",  self.type_edit, 0x200, 1 ],
-            ["ALLEXTERNALS",      self.type_check_box, 0x200, 0, False ],
-            ["EXTERNAL_GROUPS",   self.type_check_box, 0x200, 0, True  ],
-            ["EXTERNAL_PAGES",    self.type_check_box, 0x200, 0, True  ]
+            [0xA1701, self.type_edit,  3 ],
+            [0xA1702, self.type_edit,  1 ],
+            [0xA1703, self.type_check_box, 0, False ],
+            [0xA1704, self.type_check_box, 0, True  ],
+            [0xA1705, self.type_check_box, 0, True  ]
         ]
         self.addElements(label_1_elements, 0x1100)
 
@@ -1574,83 +1594,58 @@ class customScrollView_22(myCustomScrollArea):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1600)
         
+        ## 0xA1800
         label_1_elements = [
-            ["HIDE_UNDOC_RELATIONS",   self.type_check_box, 0x200, 0, False ],
-            ["HAVE_DOT",               self.type_check_box, 0x200, 0, False ],
-            ["DOT_NUM_THREADS",        self.type_spin     , 0x200, 0 ],
+            [0xA1801, self.type_check_box, 0, False ],
+            [0xA1802, self.type_check_box, 0, False ],
+            [0xA1803, self.type_spin     , 0 ],
             
-            ["DOT_COMMON_ATTR",        self.type_edit, 0x200, 0 ],
-            ["DOT_EDGE_ATTR",          self.type_edit, 0x200, 0 ],
-            ["DOT_NODE_ATTR",          self.type_edit, 0x200, 0 ],
-            ["DOT_FONTPATH",           self.type_edit, 0x200, 1 ],
+            [0xA1804, self.type_edit, 0 ],
+            [0xA1805, self.type_edit, 0 ],
+            [0xA1806, self.type_edit, 0 ],
+            [0xA1807, self.type_edit, 1 ],
             
-            ["CLASS_GRAPH",            self.type_combo_box, 0x200, 2, [ "YES", "NO" ] ],
-            ["COLLABORATION_GRAPH",    self.type_check_box, 0x200, 0, True  ],
-            ["GROUP_GRAPHS",           self.type_check_box, 0x200, 0, True  ],
-            ["UML_LOOK",               self.type_check_box, 0x200, 0, False ],
-            ["UML_LIMIT_NUM_FIELDS",   self.type_spin     , 0x200, 0 ],
-            ["DOT_UML_DETAILS",        self.type_combo_box, 0x200, 2, [ "NO", "YES" ] ],
-            ["DOT_WRAP_THRESHOLD",     self.type_spin     , 0x200, 0 ],
+            [0xA1808, self.type_combo_box, 2, [ "YES", "NO" ] ],
+            [0xA1809, self.type_check_box, 0, True  ],
+            [0xA180A, self.type_check_box, 0, True  ],
+            [0xA180B, self.type_check_box, 0, False ],
+            [0xA180C, self.type_spin     , 0 ],
+            [0xA180D, self.type_combo_box, 2, [ "NO", "YES" ] ],
+            [0xA180E, self.type_spin     , 0 ],
             
-            ["TEMPLATE_RELATIONS",     self.type_check_box, 0x200, 0, False ],
-            ["INCLUDE_GRAPH",          self.type_check_box, 0x200, 0, False ],
-            ["INCLUDED_BY_GRAPH",      self.type_check_box, 0x200, 0, False ],
-            ["CALL_GRAPH",             self.type_check_box, 0x200, 0, False ],
-            ["CALLER_GRAPH",           self.type_check_box, 0x200, 0, False ],
-            ["IGRAPHICAL_HIERARCHY",   self.type_check_box, 0x200, 0, False ],
-            ["DIRECTORY_GRAPH",        self.type_check_box, 0x200, 0, False ],
+            [0xA180F, self.type_check_box, 0, False ],
+            [0xA1810, self.type_check_box, 0, False ],
+            [0xA1811, self.type_check_box, 0, False ],
+            [0xA1812, self.type_check_box, 0, False ],
+            [0xA1813, self.type_check_box, 0, False ],
+            [0xA1814, self.type_check_box, 0, False ],
+            [0xA1815, self.type_check_box, 0, False ],
             
-            ["DIR_GRAPH_MAX_DEPTH",    self.type_spin     , 0x200, 0 ],
-            ["DOT_IMAGE_FORMAT",       self.type_combo_box, 0x200, 2, [ "png", "svg" ] ],
+            [0xA1816, self.type_spin     , 0 ],
+            [0xA1817, self.type_combo_box, 2, [ "png", "svg" ] ],
             
-            ["INTERACTIVE_SVG",        self.type_check_box, 0x200, 0, False ],
+            [0xA1818, self.type_check_box, 0, False ],
             
-            ["DOT_PATH",               self.type_edit     , 0x200, 1 ],
-            ["DOTFILE_DIRS",           self.type_edit     , 0x200, 3 ],
+            [0xA1819, self.type_edit     , 1 ],
+            [0xA181A, self.type_edit     , 3 ],
             
-            ["DIA_PATH",               self.type_edit     , 0x200, 1 ],
-            ["DIAFILE_DIRS",           self.type_edit     , 0x200, 3 ],
+            [0xA181B, self.type_edit     , 1 ],
+            [0xA181C, self.type_edit     , 3 ],
             
-            ["PLANTUML_JAR_PATH",      self.type_edit     , 0x200, 1 ],
-            ["PLANTUML_CFG_FILE",      self.type_edit     , 0x200, 1 ],
-            ["PLANTUML_INCLUDE_PATH",  self.type_edit     , 0x200, 3 ],
+            [0xA181D, self.type_edit     , 1 ],
+            [0xA181E, self.type_edit     , 1 ],
+            [0xA181F, self.type_edit     , 3 ],
             
-            ["DOT_GRAPH_MAX_NODES",    self.type_spin     , 0x200, 0 ],
-            ["MAX_DOT_GRAPH_DEPTH",    self.type_spin     , 0x200, 0 ],
+            [0xA1820, self.type_spin     , 0 ],
+            [0xA1821, self.type_spin     , 0 ],
             
-            ["DOT_MULTI_TARGETS",      self.type_check_box, 0x200, 0, False ],
-            ["GENERATE_LEGEND",        self.type_check_box, 0x200, 0, False ],
-            ["DOT_CLEANUP",            self.type_check_box, 0x200, 0, True  ],
-            ["MSCGEN_TOOL",            self.type_edit     , 0x200, 1 ],
-            ["MSCFILE_DIRS",           self.type_edit     , 0x200, 3 ]
+            [0xA1822, self.type_check_box, 0, False ],
+            [0xA1823, self.type_check_box, 0, False ],
+            [0xA1824, self.type_check_box, 0, True  ],
+            [0xA1825, self.type_edit     , 1 ],
+            [0xA1826, self.type_edit     , 3 ]
         ]
         self.addElements(label_1_elements, 0x1200)
-
-class customScrollView_23(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
-        self.init_ui()
-    def init_ui(self):
-        self.label_1.hide()
-        self.content_widget.setMinimumHeight(1400)
-        
-        label_1_elements = [
-            ["EXTRACT_ALL",              self.type_check_box, 0x200, 0, False ],
-        ]
-        self.addElements(label_1_elements, 0x1300)
-
-class customScrollView_24(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
-        self.init_ui()
-    def init_ui(self):
-        self.label_1.hide()
-        self.content_widget.setMinimumHeight(1400)
-        
-        label_1_elements = [
-            ["EXTRACT_ALL",              self.type_check_box, 0x200, 0, False ],
-        ]
-        self.addElements(label_1_elements, 0x1400)
 
 class customScrollView_help(QTextEdit):
     def __init__(self):
@@ -1662,13 +1657,6 @@ class customScrollView_help(QTextEdit):
         self.setFont(font)
         self.setMinimumHeight(100)
         self.setMaximumHeight(100)
-
-class MyCustomClass():
-    def __init__(self, name, number):
-        super().__init__()
-        
-        if number == 1:
-            customScrollView_5()
 
 class CustomModel(QAbstractItemModel):
     def __init__(self, parent=None):
@@ -3451,6 +3439,19 @@ class parserDBasePoint:
             print("\nend of data")
 
 # ---------------------------------------------------------------------------
+# parse Doxyfile script ...
+# ---------------------------------------------------------------------------
+class parserDoxyGen:
+    def __init__(self, script_name):
+        prg = doxygenDSL(script_name)
+        try:
+            prg.parse(self)
+            prg.run(self)
+        except ENoParserError as noerror:
+            prg.finalize()
+            print("\nend of data")
+
+# ---------------------------------------------------------------------------
 # parse Pascal script ...
 # ---------------------------------------------------------------------------
 class parserPascalPoint:
@@ -3480,11 +3481,15 @@ if __name__ == '__main__':
     script_path, script_name = os.path.split(script)
     script_path = os.path.abspath(script_path)
     
+    __app__observers = "observer --"
+    __app__file__    = "file."
+    __app__space__   = "       "
     __app__parameter = (""
-    + "Usage: observer --dbase  file.prg\n"
-    + "       observer --pascal file.pas\n"
-    + "       observer --exec   file.bin\n"
-    + "       observer --gui\n")
+    + "Usage: "      + __app__observers + "dbase   " + __app__file__ + "prg\n"
+    + __app__space__ + __app__observers + "pascal  " + __app__file__ + "pas\n"
+    + __app__space__ + __app__observers + "doxygen " + __app__file__ + "dox\n"
+    + __app__space__ + __app__observers + "exec    " + __app__file__ + "bin\n"
+    + __app__space__ + __app__observers + "gui\n")
     
     __app__tmp3 = "parse..."
     
@@ -3500,6 +3505,12 @@ if __name__ == '__main__':
             __app__scriptname__ = sys.argv[2]
             handleExceptionApplication(EntryPoint,__app__scriptname__)
             sys.exit(0)
+        elif sys.argv[1] == "--doxygen":
+            if len(sys.argv) == 2:
+                sys.argv.append("Doxyfile")
+            __app__scriptname__ = sys.argv[2]
+            handleExceptionApplication(parserDoxyGen,sys.argv[2])
+            sys.exit(0)
         elif sys.argv[1] == "--exec":
             __app__scriptname__ = sys.argv[2]
             handleExceptionApplication(parserBinary,sys.argv[2])
@@ -3512,7 +3523,7 @@ if __name__ == '__main__':
                 sys.exit(1)
         elif sys.argv[1] == "--pascal":
             print(__app__tmp3)
-            __app__scriptname__ = argv[2]
+            __app__scriptname__ = sys.argv[2]
             handleExceptionApplication(parserPascalPoint,sys.argv[2])
             sys.exit(0)
         else:

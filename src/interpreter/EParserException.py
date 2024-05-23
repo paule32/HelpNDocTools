@@ -13,6 +13,29 @@
 # ---------------------------------------------------------------------------
 from appcollection import *
 
+def __unexpectedToken(self):
+    __msg = "unexpected token: '" + self.token_str + "'"
+    __unexpectedError(__msg)
+
+def __unexpectedChar(self, chr):
+    __msg = "unexpected character: '" + chr + "'"
+    __unexpectedError(__msg)
+
+def __unexpectedEndOfLine(self):
+    __unexpectedError("unexpected end of line")
+
+def __unexpectedEscapeSign(self):
+    __unexpectedError("nunexpected escape sign")
+
+def __unexpectedError(self, message):
+    calledFrom = inspect.stack()[1][3]
+    msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
+    msg = msg % (
+        self.line_row,
+        self.script_name)
+    print(msg)
+    sys.exit(1)
+
 # ---------------------------------------------------------------------------
 # \brief A small exception derivated sub class for parser errors ...
 # ---------------------------------------------------------------------------

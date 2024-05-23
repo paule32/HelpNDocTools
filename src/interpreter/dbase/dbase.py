@@ -131,15 +131,10 @@ class dbase_test_array_struct:
 # ---------------------------------------------------------------------------
 class interpreter_dBase:
     def __init__(self, fname):
-        self.script_name = fname;
-        
-        self.line = ""
+        self.script_name = fname
         
         global con
         con = consoleApp()
-        
-        # Regular expression for recognizing identifiers.
-        self.rexid = re.compile(r'^[a-zA-Z]\w*$')
         
         self.line_row    = 1
         self.line_col    = 1

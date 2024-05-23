@@ -88,3 +88,4 @@ src/interpreter/__pycache__/parser.cpython-312.pyc
 src/interpreter/__pycache__/EParserException.cpython-312.pyc
 src/interpreter/__pycache__/VisualComponentLibrary.cpython-312.pyc
 src/interpreter/dbase/__pycache__/dbaseConsole.cpython-312.pyc
+src/interpreter/doxygen/__pycache__/doxygen.cpython-312.pyc
