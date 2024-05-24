@@ -4,6 +4,56 @@
 # All rights reserved
 # ---------------------------------------------------------------------------
 from appcollection import *
+from observer import *
+
+__app__name         = "observer"
+__app__internal__   = "./_internal"
+__app__config_ini   = __app__internal__ + "/observer.ini"
+
+# ------------------------------------------------------------------------
+# global used locales constants ...
+# ------------------------------------------------------------------------
+__locale__    = __app__internal__ + "/locales"
+__locale__enu = "en_us"
+__locale__deu = "de_de"
+
+def handle_language(lang):
+    try:
+        system_lang, _ = locale.getlocale()
+        if system_lang.lower() == __locale__enu:
+            if lang.lower() == __locale__enu:
+                _ = gettext.translation(
+                __app__name,
+                localedir=__locale__,
+                languages=[__locale__enu])  # english
+            elif lang.lower() == __locale__deu:
+                _ = gettext.translation(
+                __app__name,
+                localedir=__locale__,
+                languages=[__locale__deu])  # german
+        elif system_lang.lower() == __locale__deu:
+            if lang.lower() == __locale__deu:
+                _ = gettext.translation(
+                __app__name,
+                localedir=__locale__,
+                languages=[__locale__deu])  # german
+            elif lang.lower() == __locale__enu:
+                _ = gettext.translation(
+                __app__name,
+                localedir=__locale__,
+                languages=[__locale__enu])  # english
+        else:
+            _ = gettext.translation(
+            __app__name,
+            localedir=__locale__,
+            languages=[__locale__enu])  # fallback - english
+        
+        _.install()
+        return _
+    except Exception as ex:
+        print(f"{ex}")
+        sys.exit(EXIT_FAILURE)
+        return None
 
 # ---------------------------------------------------------------------------
 # \brief  class for interpreting DoxyGen related stuff ...
@@ -20,6 +70,7 @@ from appcollection import *
 class interpreter_DoxyGen:
     def __init__(self, filename):
         self.script_name = filename
+        self.__app__config_ini = __app__internal__ + "/observer.ini"
         
         self.line_row    = 1
         self.line_col    = 1
@@ -34,6 +85,24 @@ class interpreter_DoxyGen:
         
         self.parse_open(self.script_name)
         self.source = self.parse_data[0]
+        
+        # ---------------------------------------------------------
+        # when config.ini does not exists, then create a small one:
+        # ---------------------------------------------------------
+        if not os.path.exists(self.__app__config_ini):
+            with open(self.__app__config_ini, "w", encoding="utf-8") as output_file:
+                content = (""
+                + "[common]\n"
+                + "language = en_us\n")
+                output_file.write(content)
+                output_file.close()
+                ini_lang = "en_us" # default is english; en_us
+        else:
+            config = configparser.ConfigParser()
+            config.read(self.__app__config_ini)
+            ini_lang = config.get("common", "language")
+        
+        _ = handle_language(ini_lang)
     
     def parse_open(self, file_name):
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
@@ -65,10 +134,7 @@ class interpreter_DoxyGen:
         self.pos += 1
         
         if self.pos >= len(self.source):
-            if self.in_comment > 0:
-                raise EParserErrorEOF("\aunterminated string reached EOF.")
-            else:
-                raise ENoParserError("\aend of file reached.")
+            raise ENoParserError("")
         else:
             c = self.source[self.pos]
             return c
@@ -84,7 +150,9 @@ class interpreter_DoxyGen:
             c = self.getChar()
             if c.isspace():
                 return self.token_str
-            elif c.isalnum():
+            elif c.isspace():
+                return self.token_str
+            elif c.isalnum() or c == '_':
                 self.token_str += c
             else:
                 self.pos -= 1
@@ -148,28 +216,46 @@ class interpreter_DoxyGen:
         
         while True:
             c = self.skip_white_spaces()
-            if c.isalpha():
-                self.token_str = c
-                self.getIdent()
-                if not self.check_token():
-                    break
+            self.token_str = c
+            self.getIdent()
+            if self.check_token():
+                print("OK")
     
     def check_token(self):
-        return
+        res = json.loads(getLangIDText("doxytoken"))
+        result = False
+        if self.token_str in res:
+            result = True
+            c = self.skip_white_spaces()
+            if c == '=':
+                self.token_prop = self.token_str
+                self.token_str = ""
+                c = self.skip_white_spaces()
+                if c.isalnum():
+                    self.token_str = c
+                    self.getIdent()
+                    return result
+                else:
+                    self.__unexpectedChar(c)
+            else:
+                self.__unexpectedChar(c)
+        else:
+            raise EInvalidParserError(self.token_str, self.line_row)
+            return False
     
     def __unexpectedToken(self):
         __msg = "unexpected token: '" + self.token_str + "'"
-        __unexpectedError(__msg)
+        self__unexpectedError(__msg)
     
     def __unexpectedChar(self, chr):
         __msg = "unexpected character: '" + chr + "'"
-        __unexpectedError(__msg)
+        self.__unexpectedError(__msg)
     
     def __unexpectedEndOfLine(self):
-        __unexpectedError("unexpected end of line")
+        self.__unexpectedError("unexpected end of line")
     
     def __unexpectedEscapeSign(self):
-        __unexpectedError("nunexpected escape sign")
+        self.__unexpectedError("nunexpected escape sign")
     
     def __unexpectedError(self, message):
         calledFrom = inspect.stack()[1][3]
@@ -186,11 +272,8 @@ class doxygenDSL:
     
     def __new__(self, script_name):
         parser = interpreter_DoxyGen(script_name)
-        try:
-            parser.parse()
-        except Exception as e:
-            #parser.run()
-            pass
+        parser.parse()
+        
         return self
     
     def parse(self):

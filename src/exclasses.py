@@ -52,4 +52,12 @@ class EParserErrorUnknowID(Exception):
         print("Line     : " + str(lineno))
         error_result = 1
         return
-        
+
+class EInvalidParserError(Exception):
+    def __init__(self, message, lineno):
+        self.message  = "Exception: invalid id: '" + message + "'\n"
+        self.message += "line: " + str(lineno)
+    
+    def __str__(self):
+        error_result = 1
+        return str(self.message)

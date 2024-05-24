@@ -10,6 +10,7 @@ global EXIT_FAILURE; EXIT_FAILURE = 1
 
 global error_result; error_result = 0
 global topic_counter; topic_counter = 1
+
 global debugMode
 
 import os            # operating system stuff
@@ -155,6 +156,9 @@ def convertPath(text):
 # ------------------------------------------------------------------------
 # get the locale, based on the system locale settings ...
 # ------------------------------------------------------------------------
+def getLangIDText(text):
+    return _(text)
+
 def handle_language(lang):
     try:
         system_lang, _ = locale.getlocale()
