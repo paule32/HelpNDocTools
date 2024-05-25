@@ -91,3 +91,5 @@ src/interpreter/dbase/__pycache__/dbaseConsole.cpython-312.pyc
 src/interpreter/doxygen/__pycache__/doxygen.cpython-312.pyc
 src/loc2.txt
 src/loc.txt
+src/build/test.pro
+src/build/1.pro

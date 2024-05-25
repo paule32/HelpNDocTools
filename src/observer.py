@@ -16,6 +16,9 @@ global debugMode
 import os            # operating system stuff
 import sys
 
+if getattr(sys, 'frozen', False):
+    import pyi_splash
+
 # ---------------------------------------------------------------------------
 # under the windows console, python paths can make problems ...
 # ---------------------------------------------------------------------------
@@ -66,9 +69,6 @@ __app__comment_hdr  = ("# " + misc.StringRepeat("-",78) + "\n")
 __app__scriptname__ = ""
 
 global css_model_header, css_tabs, css__widget_item, css_button_style
-
-if getattr(sys, 'frozen', False):
-    import pyi_splash
 
 # ------------------------------------------------------------------------
 # branding water marks ...
@@ -2044,6 +2044,53 @@ class MyEllipseButton(QPushButton):
         self.setMinimumWidth (36)
         self.setMaximumWidth (36)
 
+class myExitDialog(QDialog):
+    def __init__(self, title, parent=None):
+        super(myExitDialog, self).__init__(parent)
+        
+        self.setWindowTitle(title)
+        
+        font = QFont("Arial", 10)
+        font.setBold(True)
+        self.setFont(font)
+        
+        self.hlayout    = QHBoxLayout()
+        
+        self.vlayout    = QVBoxLayout()
+        self.helpButton = QPushButton(_("&Help"))
+        self.prevButton = QPushButton(_("&Cancel"))
+        self.exitButton = QPushButton(_("&Exit"))
+        
+        self.helpButton.setDefault(True)
+        self.prevButton.setDefault(True)
+        self.exitButton.setDefault(True)
+        
+        self.helpButton.clicked.connect(self.help_click)
+        self.prevButton.clicked.connect(self.prev_click)
+        self.exitButton.clicked.connect(self.exit_click)
+        
+        self.vlayout.addWidget(self.helpButton)
+        self.vlayout.addWidget(self.prevButton)
+        self.vlayout.addWidget(self.exitButton)
+        
+        self.hexitText = QLabel(_("Would you realy exit the Application"))
+        
+        self.hlayout.addLayout(self.vlayout)
+        self.hlayout.addWidget(self.hexitText)
+        
+        self.setLayout(self.hlayout)
+    
+    def help_click(self):
+        print("help button")
+        self.close()
+        return
+    def prev_click(self):
+        print("reje")
+        self.close()
+        return
+    def exit_click(self):
+        sys.exit(0)
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -2064,6 +2111,16 @@ class FileWatcherGUI(QDialog):
         
         self.my_list = MyItemRecord(0, QStandardItem(""))
         self.init_ui()
+    
+    # --------------------
+    # dialog exit ? ...
+    # --------------------
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            exitBox = myExitDialog(_("Exit Dialog"))
+            exitBox.exec_()
+        else:
+            super().keyPressEvent(event)
     
     def menu_help_clicked_about(self):
         QMessageBox.information(self,
@@ -2088,6 +2145,7 @@ class FileWatcherGUI(QDialog):
     
     def tab0_file_list_clicked(self, index):
         self.tab0_path_file = self.tab0_dir_model.fileInfo(index).absoluteFilePath()
+        print("---> " + self.tab0_path_file)
         return
     
     def tab1_file_list_clicked(self, index):
@@ -2288,7 +2346,6 @@ class FileWatcherGUI(QDialog):
         
         self.side_widget.setLayout(self.side_layout)
         self.main_layout.addWidget(self.side_widget)
-        
         
         # dbase
         self.dbase_tabs = QTabWidget()
@@ -2670,14 +2727,27 @@ class FileWatcherGUI(QDialog):
         self.tab0_topB_vlayout.setAlignment(Qt.AlignTop)
         #
         #
-        font = QFont("Arial", 10)
-        font.setPointSize(10)
+        font = QFont("Arial", 11)
+        font.setPointSize(11)
         #
-        self.tab0_fold_text1   = QLabel("Directory:")
+        self.tab0_fold_text1 = QLabel("Directory:")
         self.tab0_fold_text1.setMaximumWidth(84)
         self.tab0_fold_text1.setFont(font)
-        self.tab0_fold_edit1   = myLineEdit()
-        self.tab0_fold_push1   = MyEllipseButton(font)
+        
+        self.tab0_fold_edit1 = myLineEdit()
+        self.tab0_fold_edit1.returnPressed.connect(self.tab0_fold_edit1_return)
+        
+        self.tab0_fold_push1 = MyEllipseButton(font)
+        self.tab0_fold_userd = QDir.homePath()
+        
+        if (self.tab0_fold_userd[1:1] == ":") or (":" in self.tab0_fold_userd):
+            self.tab0_fold_userd = ("/" +
+            self.tab0_fold_userd[0:1]   +
+            self.tab0_fold_userd[2:])
+        
+        self.tab0_fold_push1.clicked.connect(self.tab0_fold_push1_clicked)
+        self.tab0_fold_edit1.setFont(font)
+        self.tab0_fold_edit1.setText(self.tab0_fold_userd)
         
         self.tab0_fold_scroll1 = QScrollArea()
         self.tab0_fold_scroll1.setMaximumWidth(300)
@@ -2785,10 +2855,13 @@ class FileWatcherGUI(QDialog):
         
         self.tab0_dir_model = QFileSystemModel()
         self.tab0_dir_model.setRootPath(self.tab0_path)
-        self.tab0_dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
+        self.tab0_dir_model.setFilter(QDir.NoDotAndDotDot | QDir.Dirs)
         
         self.tab0_file_model = QFileSystemModel()
+        self.tab0_file_model.setNameFilters(['*.pro'])
+        self.tab0_file_model.setNameFilterDisables(False)
         self.tab0_file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
+        
         
         self.tab0_file_tree = QTreeView()
         self.tab0_file_list = QListView()
@@ -3061,6 +3134,54 @@ class FileWatcherGUI(QDialog):
             w.hide()
             if i == it:
                 w.show()
+    
+    # project tab: top push
+    def tab0_fold_push1_clicked(self):
+        oldtext = self.tab0_fold_userd
+        openDir = str(QFileDialog.getExistingDirectory(self,
+        "Select Directory"))
+        if len(openDir.strip()) < 1:
+            self.tab0_fold_edit1.setText(self.tab0_fold_userd)
+            self.tab0_fold_edit1_return()
+        else:
+            self.tab0_fold_userd = openDir
+            self.tab0_fold_edit1_return()
+    
+    def tab0_fold_edit1_return(self):
+        oldtext = self.tab0_fold_userd.strip()
+        
+        self.tab0_fold_userd = self.tab0_fold_userd \
+        .replace(":" ,"/") \
+        .replace("\\","/") \
+        .replace("//","/")
+        
+        if not self.tab0_fold_userd.startswith("/"):
+            self.tab0_fold_userd = "/" + self.tab0_fold_userd
+        
+        is_windows = any(platform.win32_ver())
+        if is_windows:
+            windowsdir = self.tab0_fold_userd[1:2] + ":" + self.tab0_fold_userd[2:]
+            windowsdir = windowsdir.replace("/", "\\")
+        else:
+            windowsdir = self.tab0_fold_userd
+        
+        if os.path.exists(windowsdir) and os.path.isdir(windowsdir):
+            self.tab0_dir_model .setRootPath(windowsdir)
+            self.tab0_file_model.setRootPath(windowsdir)
+            #
+            self.tab0_file_tree.setRootIndex(self.tab0_dir_model.index(windowsdir))
+            #self.tab0_file_list.setRootIndex(self.tab0_file_model_proxy.index(windowsdir))
+            #
+            self.tab0_fold_edit1.setText(self.tab0_fold_userd)
+        else:
+            self.tab0_fold_userd = oldtext
+            self.tab0_dir_model .setRootPath(oldtext)
+            self.tab0_file_model.setRootPath(oldtext)
+            #
+            self.tab0_file_tree.setRootIndex(self.tab0_dir_model.index(oldtext))
+            self.tab0_file_list.setRootIndex(self.tab0_file_model_proxy.mapFromSource(self.tab0_file_model.index(oldtext)))
+            #
+            self.tab0_fold_edit1.setText(self.tab0_fold_userd)
     
     def generate_random_string(self, length):
         characters = string.ascii_uppercase + string.digits
