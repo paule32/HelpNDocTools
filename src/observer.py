@@ -2351,6 +2351,44 @@ class myExitDialog(QDialog):
     def exit_click(self):
         sys.exit(0)
 
+class myGridViewerOverlay(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+    
+    def paintEvent(self, event):
+        pen = QPen()
+        
+        painter = QPainter(self)
+        painter.setPen(pen)
+        
+        points      = []
+        gridSize    = 10
+        
+        x      = y  = -9
+        
+        width  = self.width()
+        height = self.height()
+        
+        while y <= height:
+            y += gridSize
+            while x <= width:
+                x += gridSize
+                points.append(QPoint(x,y))
+            x = 0
+            points.append(QPoint(x,y))
+        painter.drawPoints(points)
+
+class myGridViewer(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.layout = QVBoxLayout()
+        self.container = QScrollArea()
+        self.contentWidget = myGridViewerOverlay()
+        self.layout.addWidget(self.contentWidget)
+        
+        self.setLayout(self.layout)
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -2701,7 +2739,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_designs_palette.setLayout(self.dbase_palette_layout)
         ####
         
-        self.dbase_designs_viewer  = QWidget()
+        self.dbase_designs_viewer  = myGridViewer()
         self.dbase_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.dbase_designs_layout.addWidget(self.dbase_designs_palette)
@@ -2791,7 +2829,7 @@ class FileWatcherGUI(QDialog):
         self.pascal_designs_palette.setLayout(self.pascal_palette_layout)
         ####
         
-        self.pascal_designs_viewer  = QWidget()
+        self.pascal_designs_viewer  = myGridViewer()
         self.pascal_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.pascal_designs_layout.addWidget(self.pascal_designs_palette)
@@ -2881,7 +2919,7 @@ class FileWatcherGUI(QDialog):
         self.isoc_designs_palette.setLayout(self.isoc_palette_layout)
         ####
         
-        self.isoc_designs_viewer  = QWidget()
+        self.isoc_designs_viewer  = myGridViewer()
         self.isoc_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.isoc_designs_layout.addWidget(self.isoc_designs_palette)
@@ -2971,7 +3009,7 @@ class FileWatcherGUI(QDialog):
         self.java_designs_palette.setLayout(self.java_palette_layout)
         ####
         
-        self.java_designs_viewer  = QWidget()
+        self.java_designs_viewer  = myGridViewer()
         self.java_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.java_designs_layout.addWidget(self.java_designs_palette)
@@ -3061,7 +3099,7 @@ class FileWatcherGUI(QDialog):
         self.python_designs_palette.setLayout(self.python_palette_layout)
         ####
         
-        self.python_designs_viewer  = QWidget()
+        self.python_designs_viewer  = myGridViewer()
         self.python_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.python_designs_layout.addWidget(self.python_designs_palette)
@@ -3152,7 +3190,7 @@ class FileWatcherGUI(QDialog):
         self.lisp_designs_palette.setLayout(self.lisp_palette_layout)
         ####
         
-        self.lisp_designs_viewer  = QWidget()
+        self.lisp_designs_viewer  = myGridViewer()
         self.lisp_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.lisp_designs_layout.addWidget(self.lisp_designs_palette)
