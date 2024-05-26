@@ -2351,6 +2351,29 @@ class myExitDialog(QDialog):
     def exit_click(self):
         sys.exit(0)
 
+class myMoveButton(QPushButton):
+    def __init__(self, text, parent=None):
+        super(myMoveButton, self).__init__(text, parent)
+        
+        self.parent = parent
+        self.parent.setAcceptDrops(True)
+        
+    def mouseMoveEvent(self, event):
+        drag = QDrag(self)
+        mime = QMimeData()
+        drag.setMimeData(mime)
+        drag.exec_(Qt.MoveAction)
+    
+    def dragEnterEvent(self, event):
+        event.accept()
+        print("enter")
+    
+    def dropEvent(self, event):
+        pos = event.pos()
+        widget = event.source()
+        event.accept()
+        print("drop")
+
 class myGridViewerOverlay(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -2364,7 +2387,7 @@ class myGridViewerOverlay(QWidget):
         points      = []
         gridSize    = 10
         
-        x      = y  = -9
+        x      = y  = -10
         
         width  = self.width()
         height = self.height()
@@ -2382,12 +2405,25 @@ class myGridViewer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        self.layout = QVBoxLayout()
+        dbase_btn1_dragging = False
+        
+        self.layout    = QVBoxLayout()
         self.container = QScrollArea()
-        self.contentWidget = myGridViewerOverlay()
+        self.contentWidget = myGridViewerOverlay(self)
         self.layout.addWidget(self.contentWidget)
         
         self.setLayout(self.layout)
+        
+    def dragEnterEvent(self, event):
+        event.accept()
+        
+    def dropEvent(self, event):
+        pos = event.pos()
+        widget = event.source()
+        widget.move(pos.x(), pos.y())
+        
+        event.accept()
+
 
 class FileWatcherGUI(QDialog):
     def __init__(self):
@@ -2748,6 +2784,15 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_designs_widget.setLayout(self.dbase_designs_layout)
         ####
         self.main_layout.addWidget(self.dbase_tabs)
+        #################
+        self.dbase_btn1 = myMoveButton("move me A", self.dbase_designs_viewer)
+        self.dbase_btn2 = myMoveButton("move me B", self.dbase_designs_viewer)
+        self.dbase_btn3 = myMoveButton("move me C", self.dbase_designs_viewer)
+        #
+        self.dbase_btn1.move(20,20)
+        self.dbase_btn2.move(40,40)
+        self.dbase_btn3.move(60,60)
+        
         
         # pascal
         self.pascal_tabs = QTabWidget()
@@ -2838,6 +2883,14 @@ class FileWatcherGUI(QDialog):
         self.pascal_tabs_designs_widget.setLayout(self.pascal_designs_layout)
         ####
         self.main_layout.addWidget(self.pascal_tabs)
+        #################
+        self.pascal_btn1 = myMoveButton("move me D", self.pascal_designs_viewer)
+        self.pascal_btn2 = myMoveButton("move me E", self.pascal_designs_viewer)
+        self.pascal_btn3 = myMoveButton("move me F", self.pascal_designs_viewer)
+        #
+        self.pascal_btn1.move(120,20)
+        self.pascal_btn2.move(140,40)
+        self.pascal_btn3.move(160,60)
         
         # isoc
         self.isoc_tabs = QTabWidget()
