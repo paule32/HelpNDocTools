@@ -2356,7 +2356,11 @@ class myMoveButton(QPushButton):
         super(myMoveButton, self).__init__(text, parent)
         
         self.parent = parent
-        self.parent.setAcceptDrops(True)
+        
+        self.setMinimumWidth (84)
+        self.setMinimumHeight(21)
+        
+        #self.parent.setAcceptDrops(True)
         
     def mouseMoveEvent(self, event):
         drag = QDrag(self)
@@ -2377,7 +2381,17 @@ class myMoveButton(QPushButton):
 class myGridViewerOverlay(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAcceptDrops(True)
     
+    def dragEnterEvent(self, event):
+        event.accept()
+        
+    def dropEvent(self, event):
+        pos = event.pos()
+        widget = event.source()
+        widget.move(pos.x(), pos.y())
+        
+        event.accept()
     def paintEvent(self, event):
         pen = QPen()
         
@@ -2405,25 +2419,85 @@ class myGridViewer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        dbase_btn1_dragging = False
+        self.parent = parent
+        positions   = [(i, j) for i in range(3) for j in range(3)]
         
-        self.layout    = QVBoxLayout()
-        self.container = QScrollArea()
-        self.contentWidget = myGridViewerOverlay(self)
-        self.layout.addWidget(self.contentWidget)
+        self.layout       = QGridLayout()
+        self.layout_prop  = QGridLayout()
+        self.container    = QScrollArea()
         
+        font = QFont("Time New Roman", 12)
+        font.setBold(True)
+        
+        self.property_page  = QTabWidget()
+        self.property_page.setMaximumWidth(200)
+        self.property_page.setStyleSheet(_("tab_widget_2"))
+        #
+        self.property_tabs1 = QWidget()
+        self.property_tabs2 = QWidget()
+        #
+        self.property_tabs1.setMaximumWidth(44)
+        self.property_tabs2.setMaximumWidth(44)
+        #
+        self.property_tabs1.setStyleSheet("background-color:white;")
+        self.property_tabs2.setStyleSheet("background-color:white;")
+        #
+        self.property_page.addTab(self.property_tabs1,"Property")
+        self.property_page.addTab(self.property_tabs2,"Event")
+        
+        self.property_top    = QLabel("A")
+        self.property_bottom = QLabel("B")
+        #
+        self.set_style(self.property_top)
+        self.set_style(self.property_bottom)
+        ####
+        
+        self.scroll_up    = QLabel("A"); self.scroll_up   .setFont(font)
+        self.scroll_down  = QLabel("B"); self.scroll_down .setFont(font)
+        self.scroll_left  = QLabel("C"); self.scroll_left .setFont(font)
+        self.scroll_right = QLabel("D"); self.scroll_right.setFont(font)
+        
+        self.set_style(self.scroll_right)
+        self.set_style(self.scroll_up)
+        self.set_style(self.scroll_down)
+        self.set_style(self.scroll_left)
+        
+        self.scroll_up   .setMaximumHeight(16)
+        self.scroll_down .setMaximumHeight(16)
+        #
+        self.scroll_right.setMaximumWidth (16)
+        self.scroll_left .setMaximumWidth (16)
+        #
+        self.content = myGridViewerOverlay(self.parent)
+        #
+        self.layout.addWidget(self.property_top   , 0,0)
+        self.layout.addWidget(self.property_bottom, 2,0)
+        #
+        self.layout.addWidget(self.scroll_up    , 0,2)
+        self.layout.addWidget(self.scroll_left  , 1,1)
+        self.layout.addWidget(self.property_page, 1,0)
+        self.layout.addWidget(self.content      , 1,2)
+        self.layout.addWidget(self.scroll_right , 1,3)
+        self.layout.addWidget(self.scroll_down  , 2,2)
+        #
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        #
+        chr3 = "{0}".format(u'\u25c4')  # /\
+        chr4 = "{0}".format(u'\u25ba')  # \/
+        #
+        self.scroll_right.setText(chr2)
+        self.scroll_left .setText(chr1)
+        self.scroll_up   .setText(chr3)
+        self.scroll_down .setText(chr4)
+        #
+        self.scroll_down .setAlignment(Qt.AlignCenter)
+        self.scroll_up   .setAlignment(Qt.AlignCenter)
+        #
         self.setLayout(self.layout)
         
-    def dragEnterEvent(self, event):
-        event.accept()
-        
-    def dropEvent(self, event):
-        pos = event.pos()
-        widget = event.source()
-        widget.move(pos.x(), pos.y())
-        
-        event.accept()
-
+    def set_style(self, obj):
+        obj.setStyleSheet("background-color:lightgray;")
 
 class FileWatcherGUI(QDialog):
     def __init__(self):
@@ -2775,8 +2849,8 @@ class FileWatcherGUI(QDialog):
         self.dbase_designs_palette.setLayout(self.dbase_palette_layout)
         ####
         
-        self.dbase_designs_viewer  = myGridViewer()
-        self.dbase_designs_viewer.setStyleSheet("background-color:cyan;")
+        self.dbase_designs_viewer  = myGridViewer(self)
+        self.dbase_designs_viewer.setStyleSheet("background-color:white;")
         
         self.dbase_designs_layout.addWidget(self.dbase_designs_palette)
         self.dbase_designs_layout.addWidget(self.dbase_designs_viewer)
@@ -2785,13 +2859,22 @@ class FileWatcherGUI(QDialog):
         ####
         self.main_layout.addWidget(self.dbase_tabs)
         #################
-        self.dbase_btn1 = myMoveButton("move me A", self.dbase_designs_viewer)
-        self.dbase_btn2 = myMoveButton("move me B", self.dbase_designs_viewer)
-        self.dbase_btn3 = myMoveButton("move me C", self.dbase_designs_viewer)
+        font = QFont("Arial", 12)
+        self.dbase_btn1 = myMoveButton(" move me A ", self.dbase_designs_viewer.content)
+        self.dbase_btn2 = myMoveButton(" move me B ", self.dbase_designs_viewer.content)
+        self.dbase_btn3 = myMoveButton(" move me C ", self.dbase_designs_viewer.content)
         #
         self.dbase_btn1.move(20,20)
         self.dbase_btn2.move(40,40)
         self.dbase_btn3.move(60,60)
+        #
+        self.dbase_btn1.setFont(font)
+        self.dbase_btn2.setFont(font)
+        self.dbase_btn3.setFont(font)
+        #
+        self.dbase_btn1.setStyleSheet("background-color:red;color:yellow;")
+        self.dbase_btn2.setStyleSheet("background-color:yellow;color:black;")
+        self.dbase_btn3.setStyleSheet("background-color:blue;color:white;")
         
         
         # pascal
@@ -2874,7 +2957,7 @@ class FileWatcherGUI(QDialog):
         self.pascal_designs_palette.setLayout(self.pascal_palette_layout)
         ####
         
-        self.pascal_designs_viewer  = myGridViewer()
+        self.pascal_designs_viewer  = myGridViewer(self)
         self.pascal_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.pascal_designs_layout.addWidget(self.pascal_designs_palette)
@@ -2972,7 +3055,7 @@ class FileWatcherGUI(QDialog):
         self.isoc_designs_palette.setLayout(self.isoc_palette_layout)
         ####
         
-        self.isoc_designs_viewer  = myGridViewer()
+        self.isoc_designs_viewer  = myGridViewer(self)
         self.isoc_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.isoc_designs_layout.addWidget(self.isoc_designs_palette)
@@ -3062,7 +3145,7 @@ class FileWatcherGUI(QDialog):
         self.java_designs_palette.setLayout(self.java_palette_layout)
         ####
         
-        self.java_designs_viewer  = myGridViewer()
+        self.java_designs_viewer  = myGridViewer(self)
         self.java_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.java_designs_layout.addWidget(self.java_designs_palette)
@@ -3152,7 +3235,7 @@ class FileWatcherGUI(QDialog):
         self.python_designs_palette.setLayout(self.python_palette_layout)
         ####
         
-        self.python_designs_viewer  = myGridViewer()
+        self.python_designs_viewer  = myGridViewer(self)
         self.python_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.python_designs_layout.addWidget(self.python_designs_palette)
@@ -3243,7 +3326,7 @@ class FileWatcherGUI(QDialog):
         self.lisp_designs_palette.setLayout(self.lisp_palette_layout)
         ####
         
-        self.lisp_designs_viewer  = myGridViewer()
+        self.lisp_designs_viewer  = myGridViewer(self)
         self.lisp_designs_viewer.setStyleSheet("background-color:cyan;")
         
         self.lisp_designs_layout.addWidget(self.lisp_designs_palette)
@@ -3364,6 +3447,7 @@ class FileWatcherGUI(QDialog):
         self.devices_tabs_label3.move(0, 460)
         #
         self.devices_list_widget3 = QListWidget(self.devices_tabs_widget)
+        self.devices_list_widget3.setMaximumHeight(100)
         self.devices_list_widget3.setIconSize(QSize(40,40))
         self.devices_list_widget3.setFont(font)
         self.devices_list_widget3.move(0,500)
