@@ -8,6 +8,9 @@ Here are some out dated screen shoot on running the application:
 Preview Front-Window A2:
 ![Preview](src/img/screen010.png)
 
+Preview Design-Window A3:
+![Preview](src/img/screen011.png)
+
 Preview Front-Window 1:
 ![Preview](src/img/screen00A.png)
 
