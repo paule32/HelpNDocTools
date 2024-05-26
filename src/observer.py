@@ -2638,7 +2638,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_designs_layout.setContentsMargins(2,2,2,2)
         self.dbase_designs_palette = QWidget()
         self.dbase_designs_palette.setStyleSheet("background-color:gray;")
-        self.dbase_designs_palette.setMaximumHeight(60)
+        self.dbase_designs_palette.setMaximumHeight(80)
         #
         self.dbase_palette_layout  = QHBoxLayout()
         self.dbase_palette_layout.setContentsMargins(2,2,2,2)
@@ -2684,6 +2684,14 @@ class FileWatcherGUI(QDialog):
         self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_clients , "Indy Client")
         self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_servers , "Indy Server")
         
+        #######
+        self.dbase_tabs_widget_standard_listwidget = QListWidget(self.dbase_palette_widget_mid_tabs_widget_standard)
+        self.dbase_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
+        self.dbase_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
+        #
+        self.dbase_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        
         self.dbase_palette_widget_mid_layout.addWidget(self.dbase_palette_widget_mid_tabs)
         #
         self.dbase_palette_layout.addWidget(self.dbase_palette_widget_lhs)
@@ -2691,6 +2699,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_palette_layout.addWidget(self.dbase_palette_widget_rhs)
         #
         self.dbase_designs_palette.setLayout(self.dbase_palette_layout)
+        ####
         
         self.dbase_designs_viewer  = QWidget()
         self.dbase_designs_viewer.setStyleSheet("background-color:cyan;")
@@ -2699,7 +2708,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_designs_layout.addWidget(self.dbase_designs_viewer)
         #
         self.dbase_tabs_designs_widget.setLayout(self.dbase_designs_layout)
-        
+        ####
         self.main_layout.addWidget(self.dbase_tabs)
         
         # pascal
@@ -2715,7 +2724,81 @@ class FileWatcherGUI(QDialog):
         self.pascal_tabs.addTab(self.pascal_tabs_editors_widget, "Pascal Editor")
         self.pascal_tabs.addTab(self.pascal_tabs_designs_widget, "Pascal Designer")
         
+        self.pascal_designs_layout  = QVBoxLayout()
+        self.pascal_designs_layout.setContentsMargins(2,2,2,2)
+        self.pascal_designs_palette = QWidget()
+        self.pascal_designs_palette.setStyleSheet("background-color:gray;")
+        self.pascal_designs_palette.setMaximumHeight(80)
+        #
+        self.pascal_palette_layout  = QHBoxLayout()
+        self.pascal_palette_layout.setContentsMargins(2,2,2,2)
+        self.pascal_palette_widget_lhs  = QLabel ()
+        self.pascal_palette_widget_mid  = QWidget()
+        self.pascal_palette_widget_rhs  = QLabel ()
+        #
+        self.pascal_palette_widget_lhs.setMaximumWidth(20)
+        self.pascal_palette_widget_rhs.setMaximumWidth(20)
         
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.pascal_palette_widget_lhs.setFont(font)
+        self.pascal_palette_widget_rhs.setFont(font)
+        #
+        self.pascal_palette_widget_lhs.setText(chr1)
+        self.pascal_palette_widget_rhs.setText(chr2)
+        #
+        self.pascal_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
+        self.pascal_palette_widget_mid.setStyleSheet("background-color:white;")
+        self.pascal_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        #
+        #
+        self.pascal_palette_widget_mid_layout = QHBoxLayout()
+        self.pascal_palette_widget_mid_tabs   = QTabWidget()
+        self.pascal_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        self.pascal_palette_widget_mid_tabs_widget_standard = QWidget()
+        self.pascal_palette_widget_mid_tabs_widget_system   = QWidget()
+        self.pascal_palette_widget_mid_tabs_widget_datactrl = QWidget()
+        self.pascal_palette_widget_mid_tabs_widget_dialogs  = QWidget()
+        self.pascal_palette_widget_mid_tabs_widget_clients  = QWidget()
+        self.pascal_palette_widget_mid_tabs_widget_servers  = QWidget()
+        #
+        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_standard, "Standard")
+        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_system  , "System")
+        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
+        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
+        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_clients , "Indy Client")
+        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_servers , "Indy Server")
+        
+        #######
+        self.pascal_tabs_widget_standard_listwidget = QListWidget(self.pascal_palette_widget_mid_tabs_widget_standard)
+        self.pascal_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
+        self.pascal_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
+        #
+        self.pascal_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.pascal_tabs_widget_standard_listwidget)
+        self.pascal_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        
+        self.pascal_palette_widget_mid_layout.addWidget(self.pascal_palette_widget_mid_tabs)
+        #
+        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_lhs)
+        self.pascal_palette_layout.addLayout(self.pascal_palette_widget_mid_layout)
+        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_rhs)
+        #
+        self.pascal_designs_palette.setLayout(self.pascal_palette_layout)
+        ####
+        
+        self.pascal_designs_viewer  = QWidget()
+        self.pascal_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.pascal_designs_layout.addWidget(self.pascal_designs_palette)
+        self.pascal_designs_layout.addWidget(self.pascal_designs_viewer)
+        #
+        self.pascal_tabs_designs_widget.setLayout(self.pascal_designs_layout)
+        ####
         self.main_layout.addWidget(self.pascal_tabs)
         
         # isoc
@@ -2726,12 +2809,86 @@ class FileWatcherGUI(QDialog):
         self.isoc_tabs_project_widget = QWidget()
         self.isoc_tabs_editors_widget = QWidget()
         self.isoc_tabs_designs_widget = QWidget()
-        
+        #
         self.isoc_tabs.addTab(self.isoc_tabs_project_widget, "ISO C Project")
         self.isoc_tabs.addTab(self.isoc_tabs_editors_widget, "ISO C Editor")
         self.isoc_tabs.addTab(self.isoc_tabs_designs_widget, "ISO C Designer")
         
+        self.isoc_designs_layout  = QVBoxLayout()
+        self.isoc_designs_layout.setContentsMargins(2,2,2,2)
+        self.isoc_designs_palette = QWidget()
+        self.isoc_designs_palette.setStyleSheet("background-color:gray;")
+        self.isoc_designs_palette.setMaximumHeight(80)
+        #
+        self.isoc_palette_layout  = QHBoxLayout()
+        self.isoc_palette_layout.setContentsMargins(2,2,2,2)
+        self.isoc_palette_widget_lhs  = QLabel ()
+        self.isoc_palette_widget_mid  = QWidget()
+        self.isoc_palette_widget_rhs  = QLabel ()
+        #
+        self.isoc_palette_widget_lhs.setMaximumWidth(20)
+        self.isoc_palette_widget_rhs.setMaximumWidth(20)
         
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.isoc_palette_widget_lhs.setFont(font)
+        self.isoc_palette_widget_rhs.setFont(font)
+        #
+        self.isoc_palette_widget_lhs.setText(chr1)
+        self.isoc_palette_widget_rhs.setText(chr2)
+        #
+        self.isoc_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
+        self.isoc_palette_widget_mid.setStyleSheet("background-color:white;")
+        self.isoc_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        #
+        #
+        self.isoc_palette_widget_mid_layout = QHBoxLayout()
+        self.isoc_palette_widget_mid_tabs   = QTabWidget()
+        self.isoc_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        self.isoc_palette_widget_mid_tabs_widget_standard = QWidget()
+        self.isoc_palette_widget_mid_tabs_widget_system   = QWidget()
+        self.isoc_palette_widget_mid_tabs_widget_datactrl = QWidget()
+        self.isoc_palette_widget_mid_tabs_widget_dialogs  = QWidget()
+        self.isoc_palette_widget_mid_tabs_widget_clients  = QWidget()
+        self.isoc_palette_widget_mid_tabs_widget_servers  = QWidget()
+        #
+        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_standard, "Standard")
+        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_system  , "System")
+        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
+        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
+        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_clients , "Indy Client")
+        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_servers , "Indy Server")
+        
+        #######
+        self.isoc_tabs_widget_standard_listwidget = QListWidget(self.isoc_palette_widget_mid_tabs_widget_standard)
+        self.isoc_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
+        self.isoc_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
+        #
+        self.isoc_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.isoc_tabs_widget_standard_listwidget)
+        self.isoc_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        
+        self.isoc_palette_widget_mid_layout.addWidget(self.isoc_palette_widget_mid_tabs)
+        #
+        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_lhs)
+        self.isoc_palette_layout.addLayout(self.isoc_palette_widget_mid_layout)
+        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_rhs)
+        #
+        self.isoc_designs_palette.setLayout(self.isoc_palette_layout)
+        ####
+        
+        self.isoc_designs_viewer  = QWidget()
+        self.isoc_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.isoc_designs_layout.addWidget(self.isoc_designs_palette)
+        self.isoc_designs_layout.addWidget(self.isoc_designs_viewer)
+        #
+        self.isoc_tabs_designs_widget.setLayout(self.isoc_designs_layout)
+        ####
         self.main_layout.addWidget(self.isoc_tabs)
         
         # java
@@ -2742,12 +2899,86 @@ class FileWatcherGUI(QDialog):
         self.java_tabs_project_widget = QWidget()
         self.java_tabs_editors_widget = QWidget()
         self.java_tabs_designs_widget = QWidget()
-        
+        #
         self.java_tabs.addTab(self.java_tabs_project_widget, "Java Project")
         self.java_tabs.addTab(self.java_tabs_editors_widget, "Java Editor")
         self.java_tabs.addTab(self.java_tabs_designs_widget, "Java Designer")
         
+        self.java_designs_layout  = QVBoxLayout()
+        self.java_designs_layout.setContentsMargins(2,2,2,2)
+        self.java_designs_palette = QWidget()
+        self.java_designs_palette.setStyleSheet("background-color:gray;")
+        self.java_designs_palette.setMaximumHeight(80)
+        #
+        self.java_palette_layout  = QHBoxLayout()
+        self.java_palette_layout.setContentsMargins(2,2,2,2)
+        self.java_palette_widget_lhs  = QLabel ()
+        self.java_palette_widget_mid  = QWidget()
+        self.java_palette_widget_rhs  = QLabel ()
+        #
+        self.java_palette_widget_lhs.setMaximumWidth(20)
+        self.java_palette_widget_rhs.setMaximumWidth(20)
         
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.java_palette_widget_lhs.setFont(font)
+        self.java_palette_widget_rhs.setFont(font)
+        #
+        self.java_palette_widget_lhs.setText(chr1)
+        self.java_palette_widget_rhs.setText(chr2)
+        #
+        self.java_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
+        self.java_palette_widget_mid.setStyleSheet("background-color:white;")
+        self.java_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        #
+        #
+        self.java_palette_widget_mid_layout = QHBoxLayout()
+        self.java_palette_widget_mid_tabs   = QTabWidget()
+        self.java_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        self.java_palette_widget_mid_tabs_widget_standard = QWidget()
+        self.java_palette_widget_mid_tabs_widget_system   = QWidget()
+        self.java_palette_widget_mid_tabs_widget_datactrl = QWidget()
+        self.java_palette_widget_mid_tabs_widget_dialogs  = QWidget()
+        self.java_palette_widget_mid_tabs_widget_clients  = QWidget()
+        self.java_palette_widget_mid_tabs_widget_servers  = QWidget()
+        #
+        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_standard, "Standard")
+        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_system  , "System")
+        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
+        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
+        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_clients , "Indy Client")
+        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_servers , "Indy Server")
+        
+        #######
+        self.java_tabs_widget_standard_listwidget = QListWidget(self.java_palette_widget_mid_tabs_widget_standard)
+        self.java_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
+        self.java_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
+        #
+        self.java_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.java_tabs_widget_standard_listwidget)
+        self.java_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        
+        self.java_palette_widget_mid_layout.addWidget(self.java_palette_widget_mid_tabs)
+        #
+        self.java_palette_layout.addWidget(self.java_palette_widget_lhs)
+        self.java_palette_layout.addLayout(self.java_palette_widget_mid_layout)
+        self.java_palette_layout.addWidget(self.java_palette_widget_rhs)
+        #
+        self.java_designs_palette.setLayout(self.java_palette_layout)
+        ####
+        
+        self.java_designs_viewer  = QWidget()
+        self.java_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.java_designs_layout.addWidget(self.java_designs_palette)
+        self.java_designs_layout.addWidget(self.java_designs_viewer)
+        #
+        self.java_tabs_designs_widget.setLayout(self.java_designs_layout)
+        ####
         self.main_layout.addWidget(self.java_tabs)
         
         # python
@@ -2758,13 +2989,88 @@ class FileWatcherGUI(QDialog):
         self.python_tabs_project_widget = QWidget()
         self.python_tabs_editors_widget = QWidget()
         self.python_tabs_designs_widget = QWidget()
-        
+        #
         self.python_tabs.addTab(self.python_tabs_project_widget, "Python Project")
         self.python_tabs.addTab(self.python_tabs_editors_widget, "Python Editor")
         self.python_tabs.addTab(self.python_tabs_designs_widget, "Python Designer")
         
+        self.python_designs_layout  = QVBoxLayout()
+        self.python_designs_layout.setContentsMargins(2,2,2,2)
+        self.python_designs_palette = QWidget()
+        self.python_designs_palette.setStyleSheet("background-color:gray;")
+        self.python_designs_palette.setMaximumHeight(80)
+        #
+        self.python_palette_layout  = QHBoxLayout()
+        self.python_palette_layout.setContentsMargins(2,2,2,2)
+        self.python_palette_widget_lhs  = QLabel ()
+        self.python_palette_widget_mid  = QWidget()
+        self.python_palette_widget_rhs  = QLabel ()
+        #
+        self.python_palette_widget_lhs.setMaximumWidth(20)
+        self.python_palette_widget_rhs.setMaximumWidth(20)
         
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.python_palette_widget_lhs.setFont(font)
+        self.python_palette_widget_rhs.setFont(font)
+        #
+        self.python_palette_widget_lhs.setText(chr1)
+        self.python_palette_widget_rhs.setText(chr2)
+        #
+        self.python_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
+        self.python_palette_widget_mid.setStyleSheet("background-color:white;")
+        self.python_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        #
+        #
+        self.python_palette_widget_mid_layout = QHBoxLayout()
+        self.python_palette_widget_mid_tabs   = QTabWidget()
+        self.python_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        self.python_palette_widget_mid_tabs_widget_standard = QWidget()
+        self.python_palette_widget_mid_tabs_widget_system   = QWidget()
+        self.python_palette_widget_mid_tabs_widget_datactrl = QWidget()
+        self.python_palette_widget_mid_tabs_widget_dialogs  = QWidget()
+        self.python_palette_widget_mid_tabs_widget_clients  = QWidget()
+        self.python_palette_widget_mid_tabs_widget_servers  = QWidget()
+        #
+        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_standard, "Standard")
+        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_system  , "System")
+        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
+        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
+        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_clients , "Indy Client")
+        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_servers , "Indy Server")
+        
+        #######
+        self.python_tabs_widget_standard_listwidget = QListWidget(self.python_palette_widget_mid_tabs_widget_standard)
+        self.python_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
+        self.python_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
+        #
+        self.python_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.python_tabs_widget_standard_listwidget)
+        self.python_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        
+        self.python_palette_widget_mid_layout.addWidget(self.python_palette_widget_mid_tabs)
+        #
+        self.python_palette_layout.addWidget(self.python_palette_widget_lhs)
+        self.python_palette_layout.addLayout(self.python_palette_widget_mid_layout)
+        self.python_palette_layout.addWidget(self.python_palette_widget_rhs)
+        #
+        self.python_designs_palette.setLayout(self.python_palette_layout)
+        ####
+        
+        self.python_designs_viewer  = QWidget()
+        self.python_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.python_designs_layout.addWidget(self.python_designs_palette)
+        self.python_designs_layout.addWidget(self.python_designs_viewer)
+        #
+        self.python_tabs_designs_widget.setLayout(self.python_designs_layout)
+        ####
         self.main_layout.addWidget(self.python_tabs)
+        
         
         # lisp
         self.lisp_tabs = QTabWidget()
@@ -2774,12 +3080,86 @@ class FileWatcherGUI(QDialog):
         self.lisp_tabs_project_widget = QWidget()
         self.lisp_tabs_editors_widget = QWidget()
         self.lisp_tabs_designs_widget = QWidget()
-        
+        #
         self.lisp_tabs.addTab(self.lisp_tabs_project_widget, "LISP Project")
         self.lisp_tabs.addTab(self.lisp_tabs_editors_widget, "LISP Editor")
         self.lisp_tabs.addTab(self.lisp_tabs_designs_widget, "LISP Designer")
         
+        self.lisp_designs_layout  = QVBoxLayout()
+        self.lisp_designs_layout.setContentsMargins(2,2,2,2)
+        self.lisp_designs_palette = QWidget()
+        self.lisp_designs_palette.setStyleSheet("background-color:gray;")
+        self.lisp_designs_palette.setMaximumHeight(80)
+        #
+        self.lisp_palette_layout  = QHBoxLayout()
+        self.lisp_palette_layout.setContentsMargins(2,2,2,2)
+        self.lisp_palette_widget_lhs  = QLabel ()
+        self.lisp_palette_widget_mid  = QWidget()
+        self.lisp_palette_widget_rhs  = QLabel ()
+        #
+        self.lisp_palette_widget_lhs.setMaximumWidth(20)
+        self.lisp_palette_widget_rhs.setMaximumWidth(20)
         
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.lisp_palette_widget_lhs.setFont(font)
+        self.lisp_palette_widget_rhs.setFont(font)
+        #
+        self.lisp_palette_widget_lhs.setText(chr1)
+        self.lisp_palette_widget_rhs.setText(chr2)
+        #
+        self.lisp_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
+        self.lisp_palette_widget_mid.setStyleSheet("background-color:white;")
+        self.lisp_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        #
+        #
+        self.lisp_palette_widget_mid_layout = QHBoxLayout()
+        self.lisp_palette_widget_mid_tabs   = QTabWidget()
+        self.lisp_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        self.lisp_palette_widget_mid_tabs_widget_standard = QWidget()
+        self.lisp_palette_widget_mid_tabs_widget_system   = QWidget()
+        self.lisp_palette_widget_mid_tabs_widget_datactrl = QWidget()
+        self.lisp_palette_widget_mid_tabs_widget_dialogs  = QWidget()
+        self.lisp_palette_widget_mid_tabs_widget_clients  = QWidget()
+        self.lisp_palette_widget_mid_tabs_widget_servers  = QWidget()
+        #
+        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_standard, "Standard")
+        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_system  , "System")
+        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
+        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
+        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_clients , "Indy Client")
+        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_servers , "Indy Server")
+        
+        #######
+        self.lisp_tabs_widget_standard_listwidget = QListWidget(self.lisp_palette_widget_mid_tabs_widget_standard)
+        self.lisp_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
+        self.lisp_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
+        #
+        self.lisp_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.lisp_tabs_widget_standard_listwidget)
+        self.lisp_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        
+        self.lisp_palette_widget_mid_layout.addWidget(self.lisp_palette_widget_mid_tabs)
+        #
+        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_lhs)
+        self.lisp_palette_layout.addLayout(self.lisp_palette_widget_mid_layout)
+        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_rhs)
+        #
+        self.lisp_designs_palette.setLayout(self.lisp_palette_layout)
+        ####
+        
+        self.lisp_designs_viewer  = QWidget()
+        self.lisp_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.lisp_designs_layout.addWidget(self.lisp_designs_palette)
+        self.lisp_designs_layout.addWidget(self.lisp_designs_viewer)
+        #
+        self.lisp_tabs_designs_widget.setLayout(self.lisp_designs_layout)
+        ####
         self.main_layout.addWidget(self.lisp_tabs)
         
         

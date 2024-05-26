@@ -89,7 +89,7 @@ for %%A in (en_us, de_de) do (
     )
 )
 echo ]
-goto TheEnd
+::goto TheEnd
 :: ---------------------------------------------------------------------------
 :: Python can produce byte-code, and executable files to speed up the loading
 :: and for information hidding ...
