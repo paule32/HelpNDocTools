@@ -413,31 +413,76 @@ class myIconLabel(QLabel):
     def i0_clicked(self):
         self.hide_tabs()
         self.parent.parent.help_tabs.show()
+        
+        self.set_null_state()
+        side_btn1.state = 2
+        side_btn1.set_style()
         return
     def i1_clicked(self):
         self.hide_tabs()
         self.parent.parent.dbase_tabs.show()
+        
+        self.set_null_state()
+        side_btn2.state = 2
+        side_btn2.set_style()
         return
     def i2_clicked(self):
         self.hide_tabs()
         self.parent.parent.pascal_tabs.show()
+        
+        self.set_null_state()
+        side_btn3.state = 2
+        side_btn3.set_style()
         return
     def i3_clicked(self):
         self.hide_tabs()
         self.parent.parent.isoc_tabs.show()
+        
+        self.set_null_state()
+        side_btn4.state = 2
+        side_btn4.set_style()
         return
     def i4_clicked(self):
         self.hide_tabs()
         self.parent.parent.java_tabs.show()
+        
+        self.set_null_state()
+        side_btn5.state = 2
+        side_btn5.set_style()
         return
     def i5_clicked(self):
         self.hide_tabs()
         self.parent.parent.python_tabs.show()
+        
+        self.set_null_state()
+        side_btn6.state = 2
+        side_btn6.set_style()
         return
     def i6_clicked(self):
         self.hide_tabs()
         self.parent.parent.lisp_tabs.show()
+        
+        self.set_null_state()
+        side_btn7.state = 2
+        side_btn7.set_style()
         return
+    
+    def set_null_state(self):
+        side_btn1.state = 0
+        side_btn2.state = 0
+        side_btn3.state = 0
+        side_btn4.state = 0
+        side_btn5.state = 0
+        side_btn6.state = 0
+        side_btn7.state = 0
+        #
+        side_btn1.set_style()
+        side_btn2.set_style()
+        side_btn3.set_style()
+        side_btn4.set_style()
+        side_btn5.set_style()
+        side_btn6.set_style()
+        side_btn7.set_style()
 
 class myIconButton(QWidget):
     def __init__(self, parent, mode, text):
@@ -451,7 +496,13 @@ class myIconButton(QWidget):
         self.label.setObjectName("s-image")
         
         self.caption = text
+        self.mode    = mode
         self.parent  = parent
+        self.state   = 0
+        
+        self.bordercolor = "lightgray"
+        self.parent      = parent
+        self.state       = 0
         
         fg = "1.png"
         bg = "2.png"
@@ -461,6 +512,9 @@ class myIconButton(QWidget):
         #
         self.label.setMaximumWidth (79)
         self.label.setMaximumHeight(79)
+        
+        self.image_fg = __app__helpdev__ + fg
+        self.image_bg = __app__helpdev__ + bg
         
         if mode == 0:
             self.image_fg = __app__helpdev__ + fg
@@ -483,27 +537,52 @@ class myIconButton(QWidget):
         elif mode == 6:
             self.image_fg = __app__lispmod__ + fg
             self.image_bg = __app__lispmod__ + bg
+        self.set_style()
+    
+    def set_style(self):
+        if self.state == 2:
+            self.bordercolor = "lime"
+        else:
+            self.bordercolor = "lightgray"
         
-        self.label.setStyleSheet("""
+        style = """
         QLabel {
-            border:5px solid lightgray;
-            background-image:url('""" + self.image_fg + """');
-            background-repeat: no-repeat;
+            background-image: url('""" + self.image_fg + """');
             background-position: center;
-            border-radius:5px;
+            background-repeat: no-repeat;
+            border: 5px solid """ + self.bordercolor + """;
+            border-radius: 5px;
             width:72px;
             height:72px;
         }
         QLabel:hover {
-            border:5px solid gray;
-            background-image:url('""" + self.image_bg + """');
-            background-repeat: no-repeat;
+            background-image: url('""" + self.image_bg + """');
             background-position: center;
-            border-radius:5px;
+            background-repeat: no-repeat;
+            border-radius: 5px;
             width:72px;
             height:72px;
-        }
-        """)
+            border: 5px solid """ + self.bordercolor + """;}"""
+        
+        self.label.setStyleSheet(style)
+    
+    def enterEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "gray";
+            self.set_style()
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+    
+    def leaveEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "lightgray";
+            self.set_style()
+        self.setCursor(QCursor(Qt.ArrowCursor))
 
 class myCustomLabel(QLabel):
     def __init__(self, text, helpID, helpText):
@@ -1832,31 +1911,63 @@ class doxygenImageTracker(QWidget):
         self.img_origin_doxygen_label.move(30,10)
         self.img_origin_doxygen_label.setMinimumHeight(70)
         self.img_origin_doxygen_label.setMinimumWidth(238)
-        self.img_origin_doxygen_label.setStyleSheet("""
+        
+        self.bordercolor = "lightgray"
+        self.parent      = parent
+        self.state       = 0
+        self.set_style()
+    
+    def set_style(self):
+        style = """
         QLabel {
             background-image: url('""" + __app__doxygen__ + """1.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid lightgray;
+            border: 5px solid """ + self.bordercolor + """;
             border-radius: 5px;
         }
         QLabel:hover {
             background-image: url('""" + __app__doxygen__ + """2.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid gray;
             border-radius: 5px;
-        }
-        """)
+            border: 5px solid """ + self.bordercolor + """;}"""
+        
+        self.img_origin_doxygen_label.setStyleSheet(style)
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
+            if img_hlpndoc.state == 2:
+                img_hlpndoc.bordercolor = "lightgray"
+                img_hlpndoc.state = 0
+                img_hlpndoc.set_style()
+            
+            if self.state == 0:
+                self.state = 2
+                self.bordercolor = "lime";
+                self.set_style()
+            else:
+                self.state = 0
+                self.bordercolor = "lightgray";
+                self.set_style()
             print("doxygen")
     
     def enterEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "gray";
+            self.set_style()
         self.img_origin_doxygen_label.setCursor(QCursor(Qt.PointingHandCursor))
     
     def leaveEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "lightgray";
+            self.set_style()
         self.img_origin_doxygen_label.setCursor(QCursor(Qt.ArrowCursor))
 
 class helpNDocImageTracker(QWidget):
@@ -1868,30 +1979,62 @@ class helpNDocImageTracker(QWidget):
         self.img_origin_hlpndoc_label.move(32,24)
         self.img_origin_hlpndoc_label.setMinimumHeight(70)
         self.img_origin_hlpndoc_label.setMinimumWidth(230)
-        self.img_origin_hlpndoc_label.setStyleSheet("""
+        
+        self.bordercolor = "lightgray"
+        self.parent      = parent
+        self.state       = 0
+        self.set_style()
+    
+    def set_style(self):
+        style = """
         QLabel {
-            background-image: url('""" + __app__hlpndoc__ + "1.png" + """');
+            background-image: url('""" + __app__hlpndoc__ + """1.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid lightgray;
+            border: 5px solid """ + self.bordercolor + """;
             border-radius: 10px;
         }
         QLabel:hover {
-            background-image: url('""" + __app__hlpndoc__ + "2.png" + """');
+            background-image: url('""" + __app__hlpndoc__ + """2.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid gray;
-        }
-        """)
+            border: 5px solid """ + self.bordercolor + """;}"""
+        
+        self.img_origin_hlpndoc_label.setStyleSheet(style)
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
+            if img_doxygen.state == 2:
+                img_doxygen.bordercolor = "lightgray"
+                img_doxygen.state = 0
+                img_doxygen.set_style()
+            
+            if self.state == 0:
+                self.state = 2
+                self.bordercolor = "lime";
+                self.set_style()
+            else:
+                self.state = 0
+                self.bordercolor = "lightgray";
+                self.set_style()
             print("helpNDoc")
     
     def enterEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "gray";
+            self.set_style()
         self.img_origin_hlpndoc_label.setCursor(QCursor(Qt.PointingHandCursor))
     
     def leaveEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "lightgray";
+            self.set_style()
         self.img_origin_hlpndoc_label.setCursor(QCursor(Qt.ArrowCursor))
 
 class ccpplusImageTracker(QWidget):
@@ -1905,30 +2048,69 @@ class ccpplusImageTracker(QWidget):
         self.img_origin_ccpplus_label.move(15,0)
         self.img_origin_ccpplus_label.setMinimumHeight(107)
         self.img_origin_ccpplus_label.setMinimumWidth(104)
-        self.img_origin_ccpplus_label.setStyleSheet("""
+        
+        self.bordercolor = "lightgray"
+        self.parent      = parent
+        self.state       = 0
+        self.set_style()
+    
+    def set_style(self):
+        style = """
         QLabel {
-            background-image: url('""" + __app__cpp1dev__ + "1.png" + """');
+            background-image: url('""" + __app__cpp1dev__ + """1.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid lightgray;
-            border-radius: 10px;
+            border-radius: 5px;
+            border: 5px solid """ + self.bordercolor + """;
+            border-radius: 5px;
         }
         QLabel:hover {
-            background-image: url('""" + __app__cpp1dev__ + "2.png" + """');
+            background-image: url('""" + __app__cpp1dev__ + """2.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid gray;
-        }
-        """)
+            border-radius: 5px;
+            border: 5px solid """ + self.bordercolor + """;}"""
+        
+        self.img_origin_ccpplus_label.setStyleSheet(style)
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            print("ccpplus")
+            if img_javadoc.state == 2:
+                img_javadoc.bordercolor = "lightgray"
+                img_javadoc.set_style()
+                img_javadoc.state = 0
+            #
+            if img_freepas.state == 2:
+                img_freepas.bordercolor = "lightgray"
+                img_freepas.set_style()
+                img_freepas.state = 0
+            
+            if self.state == 0:
+                self.state = 2
+                self.bordercolor = "lime";
+                self.set_style()
+            else:
+                self.state = 0
+                self.bordercolor = "lightgray";
+                self.set_style()
+            print("javadoc")
     
     def enterEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "gray";
+            self.set_style()
         self.img_origin_ccpplus_label.setCursor(QCursor(Qt.PointingHandCursor))
     
     def leaveEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "lightgray";
+            self.set_style()
         self.img_origin_ccpplus_label.setCursor(QCursor(Qt.ArrowCursor))
 
 class javadocImageTracker(QWidget):
@@ -1940,67 +2122,145 @@ class javadocImageTracker(QWidget):
         self.img_origin_javadoc_label.move(14,0)
         self.img_origin_javadoc_label.setMinimumHeight(107)
         self.img_origin_javadoc_label.setMinimumWidth(104)
-        self.img_origin_javadoc_label.setStyleSheet("""
+        
+        self.bordercolor = "lightgray";
+        self.parent      = parent
+        self.state       = 0
+        
+        self.set_style()
+        
+    def set_style(self):
+        style = """
         QLabel {
             background-image: url('""" + __app__javadoc__ + """1.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid lightgray;
+            border-radius: 5px;
+            border: 5px solid """ + self.bordercolor + """;
             border-radius: 5px;
         }
         QLabel:hover {
             background-image: url('""" + __app__javadoc__ + """2.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid gray;
             border-radius: 5px;
-        }
-        """)
+            border: 5px solid """ + self.bordercolor + """}"""
+        
+        self.img_origin_javadoc_label.setStyleSheet(style)
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
+            if img_ccpplus.state == 2:
+                img_ccpplus.bordercolor = "lightgray"
+                img_ccpplus.set_style()
+                img_ccpplus.state = 0
+            #
+            if img_freepas.state == 2:
+                img_freepas.bordercolor = "lightgray"
+                img_freepas.set_style()
+                img_freepas.state = 0
+            
+            if self.state == 0:
+                self.state = 2
+                self.bordercolor = "lime";
+                self.set_style()
+            else:
+                self.state = 0
+                self.bordercolor = "lightgray";
+                self.set_style()
             print("javadoc")
     
     def enterEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "gray";
+            self.set_style()
         self.img_origin_javadoc_label.setCursor(QCursor(Qt.PointingHandCursor))
     
     def leaveEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "lightgray";
+            self.set_style()
         self.img_origin_javadoc_label.setCursor(QCursor(Qt.ArrowCursor))
 
 class freepasImageTracker(QWidget):
     def __init__(self, parent=None):
         super(freepasImageTracker, self).__init__(parent)
         
+        self.bordercolor = "lightgray"
+        self.parent      = parent
+        self.state       = 0
+        
         self.img_origin_freepas_label = QLabel(self)
         self.img_origin_freepas_label.setObjectName("freepas-image")
         self.img_origin_freepas_label.move(30,10)
         self.img_origin_freepas_label.setMinimumHeight(70)
         self.img_origin_freepas_label.setMinimumWidth(218)
-        self.img_origin_freepas_label.setStyleSheet("""
+        
+        self.set_style()
+        
+    def set_style(self):
+        style = """
         QLabel {
             background-image: url('""" + __app__freepas__ + """1.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid lightgray;
+            border-radius: 5px;
+            border: 5px solid """ + self.bordercolor + """;
             border-radius: 5px;
         }
         QLabel:hover {
             background-image: url('""" + __app__freepas__ + """2.png');
             background-position: center;
             background-repeat: no-repeat;
-            border: 5px solid gray;
             border-radius: 5px;
-        }
-        """)
+            border: 5px solid """ + self.bordercolor + """}"""
+        
+        self.img_origin_freepas_label.setStyleSheet(style)
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
+            if img_javadoc.state == 2:
+                img_javadoc.bordercolor = "lightgray"
+                img_javadoc.set_style()
+                img_javadoc.state = 0
+            #
+            if img_ccpplus.state == 2:
+                img_ccpplus.bordercolor = "lightgray"
+                img_ccpplus.set_style()
+                img_ccpplus.state = 0
+                
+            if self.state == 0:
+                self.state = 2
+                self.bordercolor = "lime";
+                self.set_style()
+            else:
+                self.state = 0
+                self.bordercolor = "lightgray";
+                self.set_style()
             print("freepas")
     
     def enterEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "gray";
+            self.set_style()
         self.img_origin_freepas_label.setCursor(QCursor(Qt.PointingHandCursor))
     
     def leaveEvent(self, event):
+        if self.state == 2:
+            self.bordercolor = "lime";
+            self.set_style()
+        else:
+            self.bordercolor = "lightgray";
+            self.set_style()
         self.img_origin_freepas_label.setCursor(QCursor(Qt.ArrowCursor))
 
 class MyPushButton(QLabel):
@@ -2252,7 +2512,7 @@ class FileWatcherGUI(QDialog):
         self.setMouseTracking(True)
         # Layout
         #self.setMaximumWidth (1024)
-        #self.setMinimumWidth (936)
+        #self.setMinimumWidth (1924)
         #
         #self.setMaximumHeight(730)
         #self.setMaximumHeight(730)
@@ -2335,13 +2595,25 @@ class FileWatcherGUI(QDialog):
         self.side_widget.setMinimumWidth(100)
         self.side_widget.setMaximumHeight(800)
         
-        self.side_btn1 = myIconButton(self, 0, "Help Authoring for/with:\no doxygen\no HelpNDoc")
-        self.side_btn2 = myIconButton(self, 1, "dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !")
-        self.side_btn3 = myIconButton(self, 2, "Pascal old school programming\no Delphi\no FPC")
-        self.side_btn4 = myIconButton(self, 3, "C / C++ embeded programming\nor cross platform")
-        self.side_btn5 = myIconButton(self, 4, "Java modern cross programming\nfor any device")
-        self.side_btn6 = myIconButton(self, 5, "Python modern GUI programming\nlets rock AI\nand TensorFlow")
-        self.side_btn7 = myIconButton(self, 6, "LISP traditional programming\nultimate old school")
+        global side_btn1
+        global side_btn2
+        global side_btn3
+        global side_btn4
+        global side_btn5
+        global side_btn6
+        global side_btn7
+        #
+        side_btn1 = myIconButton(self, 0, "Help Authoring for/with:\no doxygen\no HelpNDoc")
+        side_btn2 = myIconButton(self, 1, "dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !")
+        side_btn3 = myIconButton(self, 2, "Pascal old school programming\no Delphi\no FPC")
+        side_btn4 = myIconButton(self, 3, "C / C++ embeded programming\nor cross platform")
+        side_btn5 = myIconButton(self, 4, "Java modern cross programming\nfor any device")
+        side_btn6 = myIconButton(self, 5, "Python modern GUI programming\nlets rock AI\nand TensorFlow")
+        side_btn7 = myIconButton(self, 6, "LISP traditional programming\nultimate old school")
+        #
+        side_btn1.bordercolor = "lime"
+        side_btn1.state       = 2
+        side_btn1.set_style()
         
         
         self.side_widget.setLayout(self.side_layout)
@@ -2350,60 +2622,163 @@ class FileWatcherGUI(QDialog):
         # dbase
         self.dbase_tabs = QTabWidget()
         self.dbase_tabs.setStyleSheet(css_tabs)
-        
-        self.dbase_tabs_widget = QWidget()
-        self.dbase_tabs.addTab(self.dbase_tabs_widget, "dBASE Project")
         self.dbase_tabs.hide()
+        
+        self.dbase_tabs_project_widget = QWidget()
+        self.dbase_tabs_editors_widget = QWidget()
+        self.dbase_tabs_designs_widget = QWidget()
+        #
+        self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
+        self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
+        self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
+        
+        
+        ####
+        self.dbase_designs_layout  = QVBoxLayout()
+        self.dbase_designs_layout.setContentsMargins(2,2,2,2)
+        self.dbase_designs_palette = QWidget()
+        self.dbase_designs_palette.setStyleSheet("background-color:gray;")
+        self.dbase_designs_palette.setMaximumHeight(60)
+        #
+        self.dbase_palette_layout  = QHBoxLayout()
+        self.dbase_palette_layout.setContentsMargins(2,2,2,2)
+        self.dbase_palette_widget_lhs  = QLabel ()
+        self.dbase_palette_widget_mid  = QWidget()
+        self.dbase_palette_widget_rhs  = QLabel ()
+        #
+        self.dbase_palette_widget_lhs.setMaximumWidth(20)
+        self.dbase_palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.dbase_palette_widget_lhs.setFont(font)
+        self.dbase_palette_widget_rhs.setFont(font)
+        #
+        self.dbase_palette_widget_lhs.setText(chr1)
+        self.dbase_palette_widget_rhs.setText(chr2)
+        #
+        self.dbase_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
+        self.dbase_palette_widget_mid.setStyleSheet("background-color:white;")
+        self.dbase_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        #
+        #
+        self.dbase_palette_widget_mid_layout = QHBoxLayout()
+        self.dbase_palette_widget_mid_tabs   = QTabWidget()
+        self.dbase_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        self.dbase_palette_widget_mid_tabs_widget_standard = QWidget()
+        self.dbase_palette_widget_mid_tabs_widget_system   = QWidget()
+        self.dbase_palette_widget_mid_tabs_widget_datactrl = QWidget()
+        self.dbase_palette_widget_mid_tabs_widget_dialogs  = QWidget()
+        self.dbase_palette_widget_mid_tabs_widget_clients  = QWidget()
+        self.dbase_palette_widget_mid_tabs_widget_servers  = QWidget()
+        #
+        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_standard, "Standard")
+        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_system  , "System")
+        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
+        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
+        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_clients , "Indy Client")
+        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_servers , "Indy Server")
+        
+        self.dbase_palette_widget_mid_layout.addWidget(self.dbase_palette_widget_mid_tabs)
+        #
+        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_lhs)
+        self.dbase_palette_layout.addLayout(self.dbase_palette_widget_mid_layout)
+        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_rhs)
+        #
+        self.dbase_designs_palette.setLayout(self.dbase_palette_layout)
+        
+        self.dbase_designs_viewer  = QWidget()
+        self.dbase_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.dbase_designs_layout.addWidget(self.dbase_designs_palette)
+        self.dbase_designs_layout.addWidget(self.dbase_designs_viewer)
+        #
+        self.dbase_tabs_designs_widget.setLayout(self.dbase_designs_layout)
         
         self.main_layout.addWidget(self.dbase_tabs)
         
         # pascal
         self.pascal_tabs = QTabWidget()
         self.pascal_tabs.setStyleSheet(css_tabs)
-        
-        self.pascal_tabs_widget = QWidget()
-        self.pascal_tabs.addTab(self.pascal_tabs_widget, "Pascal Project")
         self.pascal_tabs.hide()
+        
+        self.pascal_tabs_project_widget = QWidget()
+        self.pascal_tabs_editors_widget = QWidget()
+        self.pascal_tabs_designs_widget = QWidget()
+        #
+        self.pascal_tabs.addTab(self.pascal_tabs_project_widget, "Pascal Project")
+        self.pascal_tabs.addTab(self.pascal_tabs_editors_widget, "Pascal Editor")
+        self.pascal_tabs.addTab(self.pascal_tabs_designs_widget, "Pascal Designer")
+        
         
         self.main_layout.addWidget(self.pascal_tabs)
         
         # isoc
         self.isoc_tabs = QTabWidget()
         self.isoc_tabs.setStyleSheet(css_tabs)
-        
-        self.isoc_tabs_widget = QWidget()
-        self.isoc_tabs.addTab(self.isoc_tabs_widget, "ISO C Project")
         self.isoc_tabs.hide()
+        
+        self.isoc_tabs_project_widget = QWidget()
+        self.isoc_tabs_editors_widget = QWidget()
+        self.isoc_tabs_designs_widget = QWidget()
+        
+        self.isoc_tabs.addTab(self.isoc_tabs_project_widget, "ISO C Project")
+        self.isoc_tabs.addTab(self.isoc_tabs_editors_widget, "ISO C Editor")
+        self.isoc_tabs.addTab(self.isoc_tabs_designs_widget, "ISO C Designer")
+        
         
         self.main_layout.addWidget(self.isoc_tabs)
         
         # java
         self.java_tabs = QTabWidget()
         self.java_tabs.setStyleSheet(css_tabs)
-        
-        self.java_tabs_widget = QWidget()
-        self.java_tabs.addTab(self.java_tabs_widget, "Java Project")
         self.java_tabs.hide()
+        
+        self.java_tabs_project_widget = QWidget()
+        self.java_tabs_editors_widget = QWidget()
+        self.java_tabs_designs_widget = QWidget()
+        
+        self.java_tabs.addTab(self.java_tabs_project_widget, "Java Project")
+        self.java_tabs.addTab(self.java_tabs_editors_widget, "Java Editor")
+        self.java_tabs.addTab(self.java_tabs_designs_widget, "Java Designer")
+        
         
         self.main_layout.addWidget(self.java_tabs)
         
         # python
         self.python_tabs = QTabWidget()
         self.python_tabs.setStyleSheet(css_tabs)
-        
-        self.python_tabs_widget = QWidget()
-        self.python_tabs.addTab(self.python_tabs_widget, "Python Project")
         self.python_tabs.hide()
+        
+        self.python_tabs_project_widget = QWidget()
+        self.python_tabs_editors_widget = QWidget()
+        self.python_tabs_designs_widget = QWidget()
+        
+        self.python_tabs.addTab(self.python_tabs_project_widget, "Python Project")
+        self.python_tabs.addTab(self.python_tabs_editors_widget, "Python Editor")
+        self.python_tabs.addTab(self.python_tabs_designs_widget, "Python Designer")
+        
         
         self.main_layout.addWidget(self.python_tabs)
         
         # lisp
         self.lisp_tabs = QTabWidget()
         self.lisp_tabs.setStyleSheet(css_tabs)
-        
-        self.lisp_tabs_widget = QWidget()
-        self.lisp_tabs.addTab(self.lisp_tabs_widget, "LISP Project")
         self.lisp_tabs.hide()
+        
+        self.lisp_tabs_project_widget = QWidget()
+        self.lisp_tabs_editors_widget = QWidget()
+        self.lisp_tabs_designs_widget = QWidget()
+        
+        self.lisp_tabs.addTab(self.lisp_tabs_project_widget, "LISP Project")
+        self.lisp_tabs.addTab(self.lisp_tabs_editors_widget, "LISP Editor")
+        self.lisp_tabs.addTab(self.lisp_tabs_designs_widget, "LISP Designer")
+        
         
         self.main_layout.addWidget(self.lisp_tabs)
         
@@ -2750,6 +3125,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_edit1.setText(self.tab0_fold_userd)
         
         self.tab0_fold_scroll1 = QScrollArea()
+        self.tab0_fold_scroll1.setMinimumWidth(300)
         self.tab0_fold_scroll1.setMaximumWidth(300)
         self.tab0_fold_push11  = MyPushButton("Create", 1)
         self.tab0_fold_push12  = MyPushButton("Open"  , 2)
@@ -2824,25 +3200,32 @@ class FileWatcherGUI(QDialog):
         self.img_scroll1_layout = QVBoxLayout(self.tab0_fold_scroll1)
         self.img_scroll1_layout.addWidget(self.tab0_fold_scroll1)
         #
-        self.img_doxygen = doxygenImageTracker ()
-        self.img_hlpndoc = helpNDocImageTracker()
+        global img_doxygen
+        global img_hlpndoc
+        #
+        img_doxygen = doxygenImageTracker ()
+        img_hlpndoc = helpNDocImageTracker()
         #
         #
-        self.img_scroll1_layout.addWidget(self.img_doxygen)
-        self.img_scroll1_layout.addWidget(self.img_hlpndoc)
+        self.img_scroll1_layout.addWidget(img_doxygen)
+        self.img_scroll1_layout.addWidget(img_hlpndoc)
         #
         self.img_scroll2_layout = QGridLayout(self.tab0_fold_scroll2)
         #
         #self.img_scroll2_layout.addWidget(self.tab0_fold_scroll2)
         #
-        self.img_ccpplus = ccpplusImageTracker()
-        self.img_javadoc = javadocImageTracker()
-        self.img_freepas = freepasImageTracker()
+        global img_ccpplus
+        global img_javadoc
+        global img_freepas
+        #
+        img_ccpplus = ccpplusImageTracker()
+        img_javadoc = javadocImageTracker()
+        img_freepas = freepasImageTracker()
         #
         #
-        self.img_scroll2_layout.addWidget(self.img_ccpplus, 0, 0)
-        self.img_scroll2_layout.addWidget(self.img_javadoc, 0, 1)
-        self.img_scroll2_layout.addWidget(self.img_freepas, 2, 0, 1, 2)
+        self.img_scroll2_layout.addWidget(img_ccpplus, 0, 0)
+        self.img_scroll2_layout.addWidget(img_javadoc, 0, 1)
+        self.img_scroll2_layout.addWidget(img_freepas, 2, 0, 1, 2)
         #
         #
         self.tab0_top_layout.addLayout(self.tab0_topV_vlayout)
@@ -2874,13 +3257,41 @@ class FileWatcherGUI(QDialog):
         self.tab0_file_tree.setRootIndex(self.tab0_dir_model.index(self.tab0_path))
         self.tab0_file_list.setRootIndex(self.tab0_file_model.index(self.tab0_path))
         
+        self.tab0_help_list   = QListWidget()
+        self.tab0_help_list.setMinimumWidth(260)
+        self.tab0_help_list_font1 = QFont("Arial", 12)
+        self.tab0_help_list_font1.setBold(True)
+        self.tab0_help_list_item1 = QListWidgetItem(_("Empty Project"),self.tab0_help_list)
+        self.tab0_help_list_item1.setIcon(QIcon(__app__img__int__ + "emptyproject.png"))
+        self.tab0_help_list_item1.setFont(self.tab0_help_list_font1)
+        self.tab0_help_list.setIconSize(QSize(40,40))
+        #
+        self.tab0_help_list_item2 = QListWidgetItem(_("Recipe"),self.tab0_help_list)
+        self.tab0_help_list_item2.setIcon(QIcon(__app__img__int__ + "recipe.png"))
+        self.tab0_help_list_item2.setFont(self.tab0_help_list_font1)
+        #
+        self.tab0_help_list_item3 = QListWidgetItem(_("API Project"),self.tab0_help_list)
+        self.tab0_help_list_item3.setIcon(QIcon(__app__img__int__ + "api.png"))
+        self.tab0_help_list_item3.setFont(self.tab0_help_list_font1)
+        #
+        self.tab0_help_list_item4 = QListWidgetItem(_("Software Documentation"),self.tab0_help_list)
+        self.tab0_help_list_item4.setIcon(QIcon(__app__img__int__ + "software.png"))
+        self.tab0_help_list_item4.setFont(self.tab0_help_list_font1)
+        
+        self.tab0_help_layout = QHBoxLayout()
+        self.tab0_help_layout.addWidget(self.tab0_file_list)
+        self.tab0_help_layout.addWidget(self.tab0_help_list)
+        
         self.tab0_left_layout.addWidget(self.tab0_file_tree)
         self.tab0_left_layout.addWidget(self.tab0_file_text)
-        self.tab0_left_layout.addWidget(self.tab0_file_list)
+        self.tab0_left_layout.addLayout(self.tab0_help_layout)
         
         self.tab0_file_tree.clicked.connect(self.tab0_file_tree_clicked)
         self.tab0_file_list.clicked.connect(self.tab0_file_list_clicked)
         
+        
+        #####
+        # help templates
         
         
         # create action tab
