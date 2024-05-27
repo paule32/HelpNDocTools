@@ -2422,28 +2422,117 @@ class myGridViewer(QWidget):
         self.parent = parent
         positions   = [(i, j) for i in range(3) for j in range(3)]
         
-        self.layout       = QGridLayout()
-        self.layout_prop  = QGridLayout()
-        self.container    = QScrollArea()
+        self.layout           = QGridLayout()
+        self.property_layout  = QVBoxLayout()
+        
+        self.layout         .setContentsMargins(0,0,0,0)
+        self.property_layout.setContentsMargins(0,0,0,0)
         
         font = QFont("Time New Roman", 12)
         font.setBold(True)
         
         self.property_page  = QTabWidget()
-        self.property_page.setMaximumWidth(200)
+        self.property_page.setContentsMargins(0,0,0,0)
+        self.property_page.setMinimumWidth(224)
+        self.property_page.setMaximumWidth(224)
         self.property_page.setStyleSheet(_("tab_widget_2"))
         #
         self.property_tabs1 = QWidget()
         self.property_tabs2 = QWidget()
         #
-        self.property_tabs1.setMaximumWidth(44)
-        self.property_tabs2.setMaximumWidth(44)
+        self.property_tabs1.setContentsMargins(2,1,1,2)
+        self.property_tabs2.setContentsMargins(2,1,1,2)
         #
-        self.property_tabs1.setStyleSheet("background-color:white;")
-        self.property_tabs2.setStyleSheet("background-color:white;")
+        self.property_tabs1.setMinimumWidth(224)
+        self.property_tabs2.setMaximumWidth(224)
         #
-        self.property_page.addTab(self.property_tabs1,"Property")
-        self.property_page.addTab(self.property_tabs2,"Event")
+        self.property_tabs1.setStyleSheet("background-color:lightgray;")
+        self.property_tabs2.setStyleSheet("background-color:lightgray;")
+        #
+        
+        self.property_page.addTab(self.property_tabs1,"Properties")
+        self.property_page.addTab(self.property_tabs2,"Events")
+        
+        self.container_layout = QHBoxLayout()
+        self.lhs_layout       = QVBoxLayout()
+        self.rhs_layout       = QVBoxLayout()
+        
+        self.container_layout.setContentsMargins(0,0,0,0)
+        self.lhs_layout.setContentsMargins(0,0,0,0)
+        self.rhs_layout.setContentsMargins(0,0,0,0)
+        
+        self.rhs_scrollbar    = QScrollBar(Qt.Vertical)
+        self.rhs_scrollbar.setMinimumWidth(16)
+        self.rhs_scrollbar.setStyleSheet(_("scroll_vertical"))
+        
+        self.property_widget_back1 = QWidget()
+        self.property_widget_back1.setContentsMargins(0,0,0,0)
+        self.property_widget_back1.setMinimumWidth(190)
+        self.property_widget_back1.setMaximumWidth(190)
+        self.property_widget_back1.setMinimumHeight(self.property_tabs1.height()-100)
+        self.property_widget_back1.setStyleSheet("background-color:lightgray;")
+        #
+        
+        
+        
+        #self.property_widget_back2 = QWidget()
+        #self.property_widget_back2.setMinimumWidth(190)
+        #self.property_widget_back2.setMaximumWidth(190)
+        #self.property_widget_back2.setMinimumHeight(171)
+        #self.property_widget_back2.setMaximumHeight(171)
+        #self.property_widget_back2.setStyleSheet("background-color:yellow;")
+        
+        #self.property_widget_back3 = QWidget()
+        #self.property_widget_back3.setMinimumWidth(190)
+        #self.property_widget_back3.setMaximumWidth(190)
+        #self.property_widget_back3.setMinimumHeight(171)
+        #self.property_widget_back3.setMaximumHeight(171)
+        #self.property_widget_back3.setStyleSheet("background-color:blue;")
+        #
+        
+        self.lhs_layout.addWidget(self.property_widget_back1)
+        #self.lhs_layout.addWidget(self.property_widget_back2)
+        #self.lhs_layout.addWidget(self.property_widget_back3)
+        
+        self.rhs_layout.addWidget(self.rhs_scrollbar)
+        
+        self.container_layout.addLayout(self.lhs_layout)
+        self.container_layout.addLayout(self.rhs_layout)
+        #
+        self.property_tabs1.setLayout(self.container_layout)
+        
+        
+        self.prop_layout = QVBoxLayout()
+        self.prop_layout.setContentsMargins(0,0,0,0)
+        
+        font = QFont("Arial",12)
+        font.setBold(True)
+        
+        self.prop_pos    = QLabel("Position", self.property_widget_back1)
+        self.prop_pos.setContentsMargins(2,2,2,2)
+        self.prop_pos.setStyleSheet("background-color:gray;color:white")
+        self.prop_pos.setMinimumHeight(16)
+        self.prop_pos.setFont(font)
+        
+        self.prop_layout.addWidget(self.prop_pos)
+        self.prop_layout.addStretch()
+        self.property_widget_back1.setLayout(self.prop_layout)
+        
+        self.prop_pos_width   = QLabel("Width" , self.property_widget_back1)
+        self.prop_pos_height  = QLabel("Height", self.property_widget_back1)
+        self.prop_pos_top     = QLabel("Top"   , self.property_widget_back1)
+        self.prop_pos_left    = QLabel("Left"  , self.property_widget_back1)
+        #
+        self.prop_pos_width .move(0,24)
+        self.prop_pos_height.move(0,24+24)
+        self.prop_pos_top   .move(0,24+24+24)
+        self.prop_pos_left  .move(0,24+24+24+24)
+        
+        self.prop_pos_width .setStyleSheet("border: 1px solid black;color:black;font-weight:bold;")
+        self.prop_pos_height.setStyleSheet("border: 1px solid black;color:black;font-weight:bold;")
+        self.prop_pos_top   .setStyleSheet("border: 1px solid black;color:black;font-weight:bold;")
+        self.prop_pos_left  .setStyleSheet("border: 1px solid black;color:black;font-weight:bold;")
+        
         
         self.property_top    = QLabel("A")
         self.property_bottom = QLabel("B")
