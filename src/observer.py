@@ -2508,30 +2508,79 @@ class myGridViewer(QWidget):
         font = QFont("Arial",12)
         font.setBold(True)
         
-        self.prop_pos    = QLabel("Position", self.property_widget_back1)
+        self.prop_pos = QLabel("Position", self.property_widget_back1)
         self.prop_pos.setContentsMargins(2,2,2,2)
         self.prop_pos.setStyleSheet("background-color:gray;color:white")
         self.prop_pos.setMinimumHeight(16)
+        self.prop_pos.resize(self.property_widget_back1.width(),22)
         self.prop_pos.setFont(font)
         
         self.prop_layout.addWidget(self.prop_pos)
         self.prop_layout.addStretch()
-        self.property_widget_back1.setLayout(self.prop_layout)
+        #self.property_widget_back1.setLayout(self.prop_layout)
         
         self.prop_pos_width   = QLabel("Width" , self.property_widget_back1)
         self.prop_pos_height  = QLabel("Height", self.property_widget_back1)
         self.prop_pos_top     = QLabel("Top"   , self.property_widget_back1)
         self.prop_pos_left    = QLabel("Left"  , self.property_widget_back1)
         #
-        self.prop_pos_width .move(0,24)
-        self.prop_pos_height.move(0,24+24)
-        self.prop_pos_top   .move(0,24+24+24)
-        self.prop_pos_left  .move(0,24+24+24+24)
+        self.prop_pos_width .move(0,21)
+        self.prop_pos_height.move(0,21+21)
+        self.prop_pos_top   .move(0,21+21+21)
+        self.prop_pos_left  .move(0,21+21+21+21)
+        #
+        #
+        hpos = self.property_widget_back1.width() // 2
+        self.prop_pos_width .resize(hpos+4,21)
+        self.prop_pos_height.resize(hpos+4,21)
+        self.prop_pos_top   .resize(hpos+4,21)
+        self.prop_pos_left  .resize(hpos+4,21)
+        #
+        #
+        self.prop_pos_ws = QSpinBox(self.property_widget_back1)
+        self.prop_pos_hs = QSpinBox(self.property_widget_back1)
+        self.prop_pos_ts = QSpinBox(self.property_widget_back1)
+        self.prop_pos_ls = QSpinBox(self.property_widget_back1)
+        #
+        self.prop_pos_ws.move(101,21         ); self.prop_pos_ws.resize(90,21)
+        self.prop_pos_hs.move(101,21+21      ); self.prop_pos_hs.resize(90,21)
+        self.prop_pos_ts.move(101,21+21+21   ); self.prop_pos_ts.resize(90,21)
+        self.prop_pos_ls.move(101,21+21+21+21); self.prop_pos_ls.resize(90,21)
+        #
+        css_spin = """
+        QSpinBox {
+        background-color: white;
+        }
+        QSpinBox:hover {
+        background-color: yellow;
+        }"""
+        self.prop_pos_ws.setStyleSheet(css_spin)
+        self.prop_pos_hs.setStyleSheet(css_spin)
+        self.prop_pos_ts.setStyleSheet(css_spin)
+        self.prop_pos_ls.setStyleSheet(css_spin)
         
         self.prop_pos_width .setStyleSheet("border: 1px solid black;color:black;font-weight:bold;")
         self.prop_pos_height.setStyleSheet("border: 1px solid black;color:black;font-weight:bold;")
         self.prop_pos_top   .setStyleSheet("border: 1px solid black;color:black;font-weight:bold;")
         self.prop_pos_left  .setStyleSheet("border: 1px solid black;color:black;font-weight:bold;")
+        
+        
+        self.prop_font = QLabel("Font", self.property_widget_back1)
+        self.prop_font.setContentsMargins(2,2,2,2)
+        self.prop_font.setStyleSheet("background-color:gray;color:white")
+        self.prop_font.setMinimumHeight(16)
+        self.prop_font.setFont(font)
+        self.prop_font.move(0,105)
+        self.prop_font.resize(hpos*2,21)
+        
+        self.prop_layout.addWidget(self.prop_font)
+        self.prop_layout.addStretch()
+        #self.property_widget_back1.setLayout(self.prop_layout)
+        
+        
+        #self.prop_spacer = QWidget()
+        #self.prop_spacer.setMinimumHeight(270)
+        #self.prop_layout.addWidget(self.prop_spacer)
         
         
         self.property_top    = QLabel("A")
