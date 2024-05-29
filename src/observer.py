@@ -2415,6 +2415,95 @@ class myGridViewerOverlay(QWidget):
             points.append(QPoint(x,y))
         painter.drawPoints(points)
 
+class addPropertyCat(QLabel):
+    def __init__(self, parent, text):
+        super().__init__(text, parent)
+        
+        font = QFont("Arial",12)
+        font.setBold(True)
+        
+        self.setContentsMargins(2,0,0,2)
+        self.setStyleSheet("background-color:gray;color:white")
+        self.setMinimumHeight(16)
+        self.resize(parent.scroll_widget.width(),22)
+        self.setFont(font)
+        
+        parent.vbox_layout.addWidget(self)
+        
+class addProperty(QLabel):
+    def __init__(self, parent, kind, text):
+        super().__init__(text, parent)
+        
+        font1 = QFont("Arial", 10)
+        font1.setBold(True)
+        font2 = QFont("Arial", 10)
+        font2.setBold(False)
+        
+        self.hlayout = QHBoxLayout()
+        self.lhs     = self
+        
+        if kind == 1:
+            css_rhs = """
+            QSpinBox{background-color:white;}
+            QSpinBox:hover{background-color:yellow;}
+            """
+        elif kind == 2:
+            css_rhs = """
+            QLineEdit{background-color:white;}
+            QLineEdit:hover{background-color:yellow;}
+            """
+        elif kind == 3:
+            css_rhs = """
+            QCheckBox{background-color:white;}
+            QCheckBox:hover{background-color:yellow;}
+            """
+        elif kind == 4:
+            css_rhs = """
+            QComboBox{background-color:white;}
+            QComboBox:hover{background-color:yellow;}
+            """
+        
+        self.ftext_spacer = ' ' * 9
+        self.ttext_spacer = ' ' * 15
+        
+        if kind == 1:
+            self.rhs = QSpinBox()
+            self.rhs.setMaximumWidth((self.width()+100)//2)
+        elif kind == 2:
+            self.rhs = QLineEdit()
+            self.rhs.setMaximumWidth((self.width()+100)//2)
+        elif kind == 3:
+            self.rhs = QCheckBox()
+            self.rhs.setText("FALSE" + self.ftext_spacer)
+            self.rhs.setMaximumWidth((self.width()+100)//2)
+            self.rhs.stateChanged.connect(self.checkbox_changed)
+        elif kind == 4:
+            self.rhs = QComboBox()
+            self.rhs.setMaximumWidth((self.width()+100)//2)
+            self.rhs.addItem("black")
+            self.rhs.addItem("white")
+            self.rhs.addItem("red")
+            self.rhs.addItem("green")
+            self.rhs.addItem("yellow")
+            self.rhs.addItem("blue")
+        
+        self.rhs.setStyleSheet(css_rhs)
+        self.rhs.setFont(font2)
+        
+        self.hlayout.addWidget(self.lhs)
+        self.hlayout.addWidget(self.rhs)
+        
+        self.setStyleSheet("margin:0px;border: 1px solid black;")
+        self.setFont(font1)
+        
+        parent.vbox_layout.addLayout(self.hlayout)
+    
+    def checkbox_changed(self, int):
+        if self.rhs.isChecked():
+            self.rhs.setText("TRUE"  + self.ttext_spacer)
+        else:
+            self.rhs.setText("FALSE" + self.ftext_spacer)
+
 class myGridViewer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -2440,8 +2529,8 @@ class myGridViewer(QWidget):
         self.property_tabs1 = QWidget()
         self.property_tabs2 = QWidget()
         #
-        self.property_tabs1.setContentsMargins(2,1,1,2)
-        self.property_tabs2.setContentsMargins(2,1,1,2)
+        self.property_tabs1.setContentsMargins(0,0,0,0)
+        self.property_tabs2.setContentsMargins(1,1,1,1)
         #
         self.property_tabs1.setMinimumWidth(224)
         self.property_tabs2.setMaximumWidth(224)
@@ -2453,274 +2542,48 @@ class myGridViewer(QWidget):
         self.property_page.addTab(self.property_tabs1,"Properties")
         self.property_page.addTab(self.property_tabs2,"Events")
         
-        self.container_layout = QHBoxLayout()
-        self.lhs_layout       = QVBoxLayout()
-        self.rhs_layout       = QVBoxLayout()
+        self.scroll_widget = QWidget()
+        self.scroll_widget.setContentsMargins(0,0,0,0)
         
-        self.container_layout.setContentsMargins(0,0,0,0)
-        self.lhs_layout.setContentsMargins(0,0,0,0)
-        self.rhs_layout.setContentsMargins(0,0,0,0)
+        self.vbox_layout   = QVBoxLayout()
+        self.vbox_layout.setContentsMargins(0,0,0,0)
         
-        self.rhs_scrollbar    = QScrollBar(Qt.Vertical)
-        self.rhs_scrollbar.setMinimumWidth(16)
-        self.rhs_scrollbar.setStyleSheet(_("scroll_vertical"))
+        ### hier
+        self.pos_cat1 = addPropertyCat(self,"Position")
+        self.pos_cat1_prop_width  = addProperty(self, 1,"Width")
+        self.pos_cat1_prop_height = addProperty(self, 1,"Height")
+        self.pos_cat1_prop_top    = addProperty(self, 1,"Top")
+        self.pos_cat1_prop_left   = addProperty(self, 1,"Left")
         
-        self.property_widget_back1 = QWidget()
-        self.property_widget_back1.setContentsMargins(0,0,0,0)
-        self.property_widget_back1.setMinimumWidth(190)
-        self.property_widget_back1.setMaximumWidth(190)
-        self.property_widget_back1.setMinimumHeight(self.property_tabs1.height()-100)
-        self.property_widget_back1.setStyleSheet("background-color:lightgray;")
+        self.pos_cat2 = addPropertyCat(self,"Font")
+        self.pos_cat2_font_name      = addProperty(self,2,"Name")
+        self.pos_cat2_font_size      = addProperty(self,1,"Size")
+        self.pos_cat2_font_color_fg  = addProperty(self,4,"Foreground")
+        self.pos_cat2_font_color_bg  = addProperty(self,4,"Background")
+        self.pos_cat2_font_bold      = addProperty(self,3,"Bold")
+        self.pos_cat2_font_italic    = addProperty(self,3,"Italic")
+        self.pos_cat2_font_underline = addProperty(self,3,"Underline")
+        self.pos_cat2_font_strike    = addProperty(self,3,"Strike")
+        
+        self.pos_cat3 = addPropertyCat(self,"Text")
+        self.pos_cat3_object_name = addProperty(self,2,"Caption")
+        self.pos_cat3_object_id   = addProperty(self,2,"Name")
+        
+        self.pos_cat4 = addPropertyCat(self,"Appearence")
+        ### da
         #
+        self.scroll_widget.setLayout(self.vbox_layout)
         
+        self.scroll = QScrollArea()
+        self.scroll.setContentsMargins(0,0,0,0)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setWidget(self.scroll_widget)
         
-        
-        #self.property_widget_back2 = QWidget()
-        #self.property_widget_back2.setMinimumWidth(190)
-        #self.property_widget_back2.setMaximumWidth(190)
-        #self.property_widget_back2.setMinimumHeight(171)
-        #self.property_widget_back2.setMaximumHeight(171)
-        #self.property_widget_back2.setStyleSheet("background-color:yellow;")
-        
-        #self.property_widget_back3 = QWidget()
-        #self.property_widget_back3.setMinimumWidth(190)
-        #self.property_widget_back3.setMaximumWidth(190)
-        #self.property_widget_back3.setMinimumHeight(171)
-        #self.property_widget_back3.setMaximumHeight(171)
-        #self.property_widget_back3.setStyleSheet("background-color:blue;")
-        #
-        
-        self.lhs_layout.addWidget(self.property_widget_back1)
-        #self.lhs_layout.addWidget(self.property_widget_back2)
-        #self.lhs_layout.addWidget(self.property_widget_back3)
-        
-        self.rhs_layout.addWidget(self.rhs_scrollbar)
-        
-        self.container_layout.addLayout(self.lhs_layout)
-        self.container_layout.addLayout(self.rhs_layout)
-        #
-        self.property_tabs1.setLayout(self.container_layout)
-        
-        
-        self.prop_layout = QVBoxLayout()
-        self.prop_layout.setContentsMargins(0,0,0,0)
-        
-        font = QFont("Arial",12)
-        font.setBold(True)
-        
-        self.prop_pos = QLabel("Position", self.property_widget_back1)
-        self.prop_pos.setContentsMargins(2,2,2,2)
-        self.prop_pos.setStyleSheet("background-color:gray;color:white")
-        self.prop_pos.setMinimumHeight(16)
-        self.prop_pos.resize(self.property_widget_back1.width(),22)
-        self.prop_pos.setFont(font)
-        
-        self.prop_layout.addWidget(self.prop_pos)
-        self.prop_layout.addStretch()
-        #self.property_widget_back1.setLayout(self.prop_layout)
-        
-        self.prop_pos_width   = QLabel("Width" , self.property_widget_back1)
-        self.prop_pos_height  = QLabel("Height", self.property_widget_back1)
-        self.prop_pos_top     = QLabel("Top"   , self.property_widget_back1)
-        self.prop_pos_left    = QLabel("Left"  , self.property_widget_back1)
-        #
-        self.prop_pos_width .move(0,21)
-        self.prop_pos_height.move(0,21+21)
-        self.prop_pos_top   .move(0,21+21+21)
-        self.prop_pos_left  .move(0,21+21+21+21)
-        #
-        #
-        hpos = self.property_widget_back1.width() // 2
-        self.prop_pos_width .resize(hpos+4,21)
-        self.prop_pos_height.resize(hpos+4,21)
-        self.prop_pos_top   .resize(hpos+4,21)
-        self.prop_pos_left  .resize(hpos+4,21)
-        #
-        #
-        self.prop_pos_ws = QSpinBox(self.property_widget_back1)
-        self.prop_pos_hs = QSpinBox(self.property_widget_back1)
-        self.prop_pos_ts = QSpinBox(self.property_widget_back1)
-        self.prop_pos_ls = QSpinBox(self.property_widget_back1)
-        #
-        self.prop_pos_ws.move(101,21         ); self.prop_pos_ws.resize(90,21)
-        self.prop_pos_hs.move(101,21+21      ); self.prop_pos_hs.resize(90,21)
-        self.prop_pos_ts.move(101,21+21+21   ); self.prop_pos_ts.resize(90,21)
-        self.prop_pos_ls.move(101,21+21+21+21); self.prop_pos_ls.resize(90,21)
-        #
-        #
-        #
-        col_nc = "background-color: white;" # normal color
-        col_hc = "background-color:yellow;" # hover  color
-        #
-        css_spin = "QSpinBox {" + col_nc + "} QSpinBox:hover{" + col_hc + "}"
-        css_edit = "QLineEdit{" + col_nc + "}QLineEdit:hover{" + col_hc + "}"
-        css_comb = "QComboBox{" + col_nc + "}QComboBox:hover{" + col_hc + "}"
-        css_chek = "QCheckBox{border:1px solid black;" + col_nc + "}QCheckBox:hover{" + col_hc + "}"
-        #
-        self.prop_pos_ws.setStyleSheet(css_spin)
-        self.prop_pos_hs.setStyleSheet(css_spin)
-        self.prop_pos_ts.setStyleSheet(css_spin)
-        self.prop_pos_ls.setStyleSheet(css_spin)
-        
-        css_label = "border:1px solid black;color:black;font-weight:bold;"
-        self.prop_pos_width .setStyleSheet(css_label)
-        self.prop_pos_height.setStyleSheet(css_label)
-        self.prop_pos_top   .setStyleSheet(css_label)
-        self.prop_pos_left  .setStyleSheet(css_label)
-        
-        
-        self.prop_font = QLabel("Font", self.property_widget_back1)
-        self.prop_font.setContentsMargins(2,2,2,2)
-        self.prop_font.setStyleSheet("background-color:gray;color:white")
-        self.prop_font.setMinimumHeight(20)
-        self.prop_font.setMaximumHeight(20)
-        self.prop_font.setFont(font)
-        self.prop_font.move(0,105)
-        self.prop_font.resize(self.property_widget_back1.width(),22)
-        
-        self.prop_layout.addWidget(self.prop_font)
-        self.prop_layout.addStretch()
-        
-        
-        self.prop_font_name      = QLabel("Name"     , self.property_widget_back1)
-        self.prop_font_size      = QLabel("Size"     , self.property_widget_back1)
-        self.prop_font_color_fg  = QLabel("Color FG" , self.property_widget_back1)
-        self.prop_font_color_bg  = QLabel("Color BG" , self.property_widget_back1)
-        self.prop_font_bold      = QLabel("Bold"     , self.property_widget_back1)
-        self.prop_font_italic    = QLabel("Italic"   , self.property_widget_back1)
-        self.prop_font_underline = QLabel("Underline", self.property_widget_back1)
-        self.prop_font_strike    = QLabel("Strike"   , self.property_widget_back1)
-        #
-        self.prop_font_name     .move(0,125)
-        self.prop_font_size     .move(0,125+21)
-        self.prop_font_color_fg .move(0,125+21+21)
-        self.prop_font_color_bg .move(0,125+21+21+21)
-        self.prop_font_bold     .move(0,125+21+21+21+21)
-        self.prop_font_italic   .move(0,125+21+21+21+21+21)
-        self.prop_font_underline.move(0,125+21+21+21+21+21+21)
-        self.prop_font_strike   .move(0,125+21+21+21+21+21+21+21)
-        
-        self.prop_font_name     .resize(hpos+4,21)
-        self.prop_font_size     .resize(hpos+4,21)
-        self.prop_font_color_fg .resize(hpos+4,21)
-        self.prop_font_color_bg .resize(hpos+4,21)
-        self.prop_font_bold     .resize(hpos+4,21)
-        self.prop_font_italic   .resize(hpos+4,21)
-        self.prop_font_underline.resize(hpos+4,21)
-        self.prop_font_strike   .resize(hpos+4,21)
-        #
-        self.prop_font_name     .setStyleSheet(css_label)
-        self.prop_font_size     .setStyleSheet(css_label)
-        self.prop_font_color_fg .setStyleSheet(css_label)
-        self.prop_font_color_bg .setStyleSheet(css_label)
-        self.prop_font_bold     .setStyleSheet(css_label)
-        self.prop_font_italic   .setStyleSheet(css_label)
-        self.prop_font_underline.setStyleSheet(css_label)
-        self.prop_font_strike   .setStyleSheet(css_label)
-        
-        font = QFont("Arial",9)
-        font.setBold(False)
-        
-        self.ftext_spacer = ' ' * 9
-        self.ttext_spacer = ' ' * 15
-        
-        self.prop_font_name_edit = QLineEdit(self.property_widget_back1)
-        self.prop_font_size_spin = QSpinBox (self.property_widget_back1)
-        #
-        self.prop_font_colf_edit = QComboBox(self.property_widget_back1)
-        self.prop_font_colb_edit = QComboBox(self.property_widget_back1)
-        
-        self.prop_font_colf_edit.setFont(font)
-        self.prop_font_colb_edit.setFont(font)
-        
-        self.prop_font_colf_edit.addItem("black")
-        self.prop_font_colf_edit.addItem("white")
-        self.prop_font_colf_edit.addItem("red")
-        self.prop_font_colf_edit.addItem("green")
-        self.prop_font_colf_edit.addItem("yellow")
-        self.prop_font_colf_edit.addItem("blue")
-        
-        self.prop_font_colb_edit.addItem("black")
-        self.prop_font_colb_edit.addItem("white")
-        self.prop_font_colb_edit.addItem("red")
-        self.prop_font_colb_edit.addItem("green")
-        self.prop_font_colb_edit.addItem("yellow")
-        self.prop_font_colb_edit.addItem("blue")
-        #
-        self.prop_font_fb_checkb = QCheckBox(" FALSE" + self.ftext_spacer, self.property_widget_back1)
-        self.prop_font_fi_checkb = QCheckBox(" FALSE" + self.ftext_spacer, self.property_widget_back1)
-        self.prop_font_fu_checkb = QCheckBox(" FALSE" + self.ftext_spacer, self.property_widget_back1)
-        self.prop_font_fs_checkb = QCheckBox(" FALSE" + self.ftext_spacer, self.property_widget_back1)
-        #
-        self.prop_font_fb_checkb.stateChanged.connect(self.state_fb_changed)
-        self.prop_font_fi_checkb.stateChanged.connect(self.state_fi_changed)
-        self.prop_font_fu_checkb.stateChanged.connect(self.state_fu_changed)
-        self.prop_font_fs_checkb.stateChanged.connect(self.state_fs_changed)
-        #
-        self.prop_font_name_edit.move(101,125)
-        self.prop_font_size_spin.move(101,125+21)
-        self.prop_font_colf_edit.move(101,125+21+21)
-        self.prop_font_colb_edit.move(101,125+21+21+21)
-        self.prop_font_fb_checkb.move(101,125+21+21+21+21)
-        self.prop_font_fi_checkb.move(101,125+21+21+21+21+21)
-        self.prop_font_fu_checkb.move(101,125+21+21+21+21+21+21)
-        self.prop_font_fs_checkb.move(101,125+21+21+21+21+21+21+21)
-        
-        self.prop_font_name_edit.resize(90,21)
-        self.prop_font_size_spin.resize(90,21)
-        self.prop_font_colf_edit.resize(90,21)
-        self.prop_font_colb_edit.resize(90,21)
-        self.prop_font_fb_checkb.resize(90,21)
-        self.prop_font_fi_checkb.resize(90,21)
-        self.prop_font_fu_checkb.resize(90,21)
-        self.prop_font_fs_checkb.resize(90,21)
-        #
-        self.prop_font_name_edit.setStyleSheet(css_edit)
-        self.prop_font_size_spin.setStyleSheet(css_spin)
-        self.prop_font_colf_edit.setStyleSheet(css_comb)
-        self.prop_font_colb_edit.setStyleSheet(css_comb)
-        self.prop_font_fb_checkb.setStyleSheet(css_chek)
-        self.prop_font_fi_checkb.setStyleSheet(css_chek)
-        self.prop_font_fu_checkb.setStyleSheet(css_chek)
-        self.prop_font_fs_checkb.setStyleSheet(css_chek)
-        
-        #self.prop_text_caption  .resize(hpos+4,21)
-        
-        ###
-        self.prop_text = QLabel("Text", self.property_widget_back1)
-        self.prop_text.setContentsMargins(2,2,2,2)
-        self.prop_text.setStyleSheet("background-color:gray;color:white")
-        self.prop_text.setMinimumHeight(20)
-        self.prop_text.setMaximumHeight(20)
-        self.prop_text.setFont(font)
-        self.prop_text.move(0,293)
-        self.prop_text.resize(self.property_widget_back1.width(),22)
-        
-        self.prop_layout.addWidget(self.prop_text)
-        
-        self.prop_text_caption   = QLabel("Caption"  , self.property_widget_back1)
-        self.prop_text_object_id = QLabel("Object-ID", self.property_widget_back1)
-        
-        self.prop_text_caption  .move(0,313)
-        self.prop_text_object_id.move(0,313+21)
-        
-        self.prop_text_caption  .resize(hpos+4,21)
-        self.prop_text_object_id.resize(hpos+4,21)
-        
-        self.prop_text_caption  .setStyleSheet(css_label)
-        self.prop_text_object_id.setStyleSheet(css_label)
-        
-        self.prop_text_caption_edit   = QLineEdit(self.property_widget_back1)
-        self.prop_text_object_id_edit = QLineEdit(self.property_widget_back1)
-        #
-        self.prop_text_caption_edit  .move(101,316   ); self.prop_text_caption  .resize(90,21)
-        self.prop_text_object_id_edit.move(101,316+21); self.prop_text_object_id.resize(90,21)
-        
-        self.prop_text_caption_edit  .setStyleSheet(css_edit)
-        self.prop_text_object_id_edit.setStyleSheet(css_edit)
-        #
-        self.prop_text_caption  .resize(hpos+4,21)
-        self.prop_text_object_id.resize(hpos+4,21)
+        self.vl = QVBoxLayout()
+        self.vl.setContentsMargins(0,0,0,0)
+        self.vl.addWidget(self.scroll)
+        self.property_tabs1.setLayout(self.vl)
         
         
         self.property_top    = QLabel("A")
@@ -2774,27 +2637,6 @@ class myGridViewer(QWidget):
         #
         self.setLayout(self.layout)
     
-    def state_fb_changed(self, int):
-        if self.prop_font_fb_checkb.isChecked():
-            self.prop_font_fb_checkb.setText("TRUE"  + self.ttext_spacer)
-        else:
-            self.prop_font_fb_checkb.setText("FALSE" + self.ftext_spacer)
-    def state_fi_changed(self, int):
-        if self.prop_font_fi_checkb.isChecked():
-            self.prop_font_fi_checkb.setText("TRUE"  + self.ttext_spacer)
-        else:
-            self.prop_font_fb_checkb.setText("FALSE" + self.ftext_spacer)
-    def state_fu_changed(self, int):
-        if self.prop_font_fu_checkb.isChecked():
-            self.prop_font_fu_checkb.setText("TRUE"  + self.ttext_spacer)
-        else:
-            self.prop_font_fu_checkb.setText("FALSE" + self.ftext_spacer)
-    def state_fs_changed(self, int):
-        if self.prop_font_fb_checkb.isChecked():
-            self.prop_font_fs_checkb.setText("TRUE"  + self.ttext_spacer)
-        else:
-            self.prop_font_fs_checkb.setText("FALSE" + self.ftext_spacer)
-        
     def set_style(self, obj):
         obj.setStyleSheet("background-color:lightgray;")
 

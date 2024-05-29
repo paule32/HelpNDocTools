@@ -444,7 +444,7 @@ msgstr ""
     "border-top-right-radius:4px;"
     "min-width:84px;"
     "max-width:84px;"
-    "padding:2px;}"
+    "padding:1px;}"
     "QTabBar::tab:selected,QTabBar::tab:hover{"
     "background:qlineargradient(x1:0,y1:0,x2:0,y2:1,"
     "stop:0 #fafafa,stop:0.4 #f4f4f4,"
@@ -452,7 +452,7 @@ msgstr ""
     "QTabBar::tab:selected{"
     "border-color:#9B9B9B;"
     "border-bottom-color:#C2C7CB;}"
-    "QTabBar::tab:!selected{margin-top:2px;}"
+    "QTabBar::tab:!selected{margin-top:1px;}"
 
 # ---------------------------------------------------------------------------
 # supported languages by doxygen 1.10.0 ...
