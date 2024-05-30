@@ -2415,6 +2415,45 @@ class myGridViewerOverlay(QWidget):
             points.append(QPoint(x,y))
         painter.drawPoints(points)
 
+class addEventField(QLabel):
+    def __init__(self, parent, text):
+        super().__init__(text, parent)
+        
+        font1 = QFont("Arial", 10); font1.setBold(True)
+        font2 = QFont("Arial", 10); font2.setBold(False)
+        
+        self.hlayout = QHBoxLayout()
+        self.lhs     = self
+        
+        self.setMinimumWidth(112)
+        self.setMaximumWidth(112)
+        #
+        self.setStyleSheet("margin:0px;border: 1px solid black;")
+        self.setFont(font1)
+        
+        self.btn = QPushButton("E")
+        self.btn.setMinimumWidth (15)
+        self.btn.setMaximumWidth (15)
+        #
+        self.btn.setMaximumHeight(15)
+        self.btn.setMaximumHeight(15)
+        
+        css_rhs = """
+        QLineEdit{background-color:white;}
+        QLineEdit:hover{background-color:yellow;}
+        """
+        
+        self.rhs = QLineEdit()
+        self.rhs.setMaximumWidth((self.width()+92)//2)
+        self.rhs.setStyleSheet(css_rhs)
+        self.rhs.setFont(font2)
+        
+        self.hlayout.addWidget(self.lhs)
+        self.hlayout.addWidget(self.rhs)
+        self.hlayout.addWidget(self.btn)
+        
+        parent.evt_vbox_layout.addLayout(self.hlayout)
+
 class addPropertyCat(QLabel):
     def __init__(self, parent, text):
         super().__init__(text, parent)
@@ -2425,10 +2464,10 @@ class addPropertyCat(QLabel):
         self.setContentsMargins(2,0,0,2)
         self.setStyleSheet("background-color:gray;color:white")
         self.setMinimumHeight(16)
-        self.resize(parent.scroll_widget.width(),22)
+        self.resize(parent.pos_scroll_widget.width(),22)
         self.setFont(font)
         
-        parent.vbox_layout.addWidget(self)
+        parent.pos_vbox_layout.addWidget(self)
         
 class addProperty(QLabel):
     def __init__(self, parent, kind, text):
@@ -2472,6 +2511,7 @@ class addProperty(QLabel):
         elif kind == 2:
             self.rhs = QLineEdit()
             self.rhs.setMaximumWidth((self.width()+100)//2)
+            self.btn = QPushButton("E")
         elif kind == 3:
             self.rhs = QCheckBox()
             self.rhs.setText("FALSE" + self.ftext_spacer)
@@ -2493,10 +2533,16 @@ class addProperty(QLabel):
         self.hlayout.addWidget(self.lhs)
         self.hlayout.addWidget(self.rhs)
         
+        if kind == 2:
+            self.hlayout.addWidget(self.btn)
+        
+        self.setMinimumWidth(102)
+        self.setMaximumWidth(102)
+        #
         self.setStyleSheet("margin:0px;border: 1px solid black;")
         self.setFont(font1)
         
-        parent.vbox_layout.addLayout(self.hlayout)
+        parent.pos_vbox_layout.addLayout(self.hlayout)
     
     def checkbox_changed(self, int):
         if self.rhs.isChecked():
@@ -2517,23 +2563,61 @@ class myGridViewer(QWidget):
         self.layout         .setContentsMargins(0,0,0,0)
         self.property_layout.setContentsMargins(0,0,0,0)
         
-        font = QFont("Time New Roman", 12)
-        font.setBold(True)
+        font1 = QFont("Arial", 10); font1.setBold(False)
+        font2 = QFont("Arial", 10); font2.setBold(True)
+        
+        self.object_inspector = QTreeWidget()
+        self.object_inspector.setIconSize(QSize(20,20))
+        self.object_inspector.setFont(font1)
+        self.object_inspector.setStyleSheet(""
+        + "QHeaderView::section{"
+        + "background-color:rgb(0,190,255);"
+        + "color:black;font-weight:bold}")
+        
+        headerLabel = ["Name", "Count"]
+        self.object_inspector.setColumnCount(len(headerLabel))
+        self.object_inspector.setHeaderLabels(headerLabel)
+        #
+        self.object_item_procedures = QTreeWidgetItem()
+        self.object_item_procedures.setText(0,"Procedure's")
+        self.object_item_procedures.setText(1,"100")
+        #
+        self.object_item_functions = QTreeWidgetItem()
+        self.object_item_functions.setText(0,"Function's")
+        self.object_item_functions.setText(1,"200")
+        
+        self.object_item_functions_test1 = QTreeWidgetItem(self.object_item_functions)
+        self.object_item_functions_test2 = QTreeWidgetItem(self.object_item_functions)
+        
+        self.object_item_functions_test1.setText(0,"TEST_A")
+        self.object_item_functions_test2.setText(0,"TEST_B")
+        #
+        self.object_item_variables = QTreeWidgetItem()
+        self.object_item_variables.setText(0,"Variable's")
+        self.object_item_variables.setText(1,"300")
+        #
+        self.object_inspector.addTopLevelItem(self.object_item_procedures)
+        self.object_inspector.addTopLevelItem(self.object_item_functions)
+        self.object_inspector.addTopLevelItem(self.object_item_variables)
+        
         
         self.property_page  = QTabWidget()
         self.property_page.setContentsMargins(0,0,0,0)
-        self.property_page.setMinimumWidth(224)
-        self.property_page.setMaximumWidth(224)
+        self.property_page.setMinimumWidth(244)
+        self.property_page.setMaximumWidth(244)
         self.property_page.setStyleSheet(_("tab_widget_2"))
         #
         self.property_tabs1 = QWidget()
         self.property_tabs2 = QWidget()
         #
         self.property_tabs1.setContentsMargins(0,0,0,0)
-        self.property_tabs2.setContentsMargins(1,1,1,1)
+        self.property_tabs2.setContentsMargins(0,0,0,0)
         #
-        self.property_tabs1.setMinimumWidth(224)
-        self.property_tabs2.setMaximumWidth(224)
+        self.property_tabs1.setMinimumWidth(244)
+        self.property_tabs1.setMaximumWidth(244)
+        #
+        self.property_tabs2.setMinimumWidth(244)
+        self.property_tabs2.setMaximumWidth(244)
         #
         self.property_tabs1.setStyleSheet("background-color:lightgray;")
         self.property_tabs2.setStyleSheet("background-color:lightgray;")
@@ -2542,11 +2626,14 @@ class myGridViewer(QWidget):
         self.property_page.addTab(self.property_tabs1,"Properties")
         self.property_page.addTab(self.property_tabs2,"Events")
         
-        self.scroll_widget = QWidget()
-        self.scroll_widget.setContentsMargins(0,0,0,0)
-        
-        self.vbox_layout   = QVBoxLayout()
-        self.vbox_layout.setContentsMargins(0,0,0,0)
+        self.pos_scroll_widget = QWidget()
+        self.pos_scroll_widget.setContentsMargins(0,0,0,0)
+        #
+        self.evt_scroll_widget = QWidget()
+        self.evt_scroll_widget.setContentsMargins(0,0,0,0)
+                
+        self.pos_vbox_layout = QVBoxLayout(); self.pos_vbox_layout.setContentsMargins(0,0,0,0)
+        self.evt_vbox_layout = QVBoxLayout(); self.evt_vbox_layout.setContentsMargins(0,0,0,0)
         
         ### hier
         self.pos_cat1 = addPropertyCat(self,"Position")
@@ -2570,33 +2657,72 @@ class myGridViewer(QWidget):
         self.pos_cat3_object_id   = addProperty(self,2,"Name")
         
         self.pos_cat4 = addPropertyCat(self,"Appearence")
+        self.pos_cat4_background_color = addProperty(self,4,"BackColor")
+        self.pos_cat4_border_color     = addProperty(self,4,"Border Color")
+        self.pos_cat4_border_size      = addProperty(self,1,"Border Size")
+        self.pos_cat4_border_radius    = addProperty(self,1,"Border Radius")
+        self.pos_cat4_border_type      = addProperty(self,4,"Border Type")
+        
+        self.pos_cat5 = addPropertyCat(self,"Application")
+        self.pos_cat4_app_name     = addProperty(self,2,"Name")
+        self.pos_cat4_app_helpfile = addProperty(self,2,"Helpfile")
+        self.pos_cat5_aüü_helpstr  = addProperty(self,2,"Help URL")
+        self.pos_cat5_app_helpid   = addProperty(self,2,"Help ID")
+        ####
+        
+        self.evt_on_enter       = addEventField(self,"OnGotFocus")
+        self.evt_on_leave       = addEventField(self,"OnLeftFocus")
+        self.evt_on_key_down    = addEventField(self,"OnKeyDown")
+        self.evt_on_key_press   = addEventField(self,"OnKeyPress")
+        self.evt_on_key_up      = addEventField(self,"OnKeyUp")
+        self.evt_on_mouse_down  = addEventField(self,"OnMouseDown")
+        self.evt_on_mouse_press = addEventField(self,"OnMousePress")
+        self.evt_on_mouse_up    = addEventField(self,"OnMouseUp")
+        
+        self.evt_on_form_create = addEventField(self,"OnFormCreate")
+        self.evt_on_form_close  = addEventField(self,"OnFormClose")
+        self.evt_on_form_show   = addEventField(self,"OnFormShow")
         ### da
         #
-        self.scroll_widget.setLayout(self.vbox_layout)
+        self.pos_scroll_widget.setLayout(self.pos_vbox_layout)
+        self.evt_scroll_widget.setLayout(self.evt_vbox_layout)
         
         self.scroll = QScrollArea()
         self.scroll.setContentsMargins(0,0,0,0)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.scroll.setWidgetResizable(True)
-        self.scroll.setWidget(self.scroll_widget)
+        self.scroll.setWidget(self.pos_scroll_widget)
+        #
+        self.scroll2 = QScrollArea()
+        self.scroll2.setContentsMargins(0,0,0,0)
+        self.scroll2.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll2.setMinimumWidth(244)
+        self.scroll2.setMaximumWidth(244)
+        self.scroll2.setWidgetResizable(True)
+        self.scroll2.setWidget(self.evt_scroll_widget)
         
         self.vl = QVBoxLayout()
         self.vl.setContentsMargins(0,0,0,0)
         self.vl.addWidget(self.scroll)
         self.property_tabs1.setLayout(self.vl)
+        #
+        self.vl2 = QVBoxLayout()
+        self.vl2.setContentsMargins(0,0,0,0)
+        self.vl2.addWidget(self.scroll2)
+        self.property_tabs2.setLayout(self.vl2)
         
         
-        self.property_top    = QLabel("A")
+        self.property_top    = QLabel("Object Inspector")
         self.property_bottom = QLabel("B")
         #
         self.set_style(self.property_top)
         self.set_style(self.property_bottom)
         ####
         
-        self.scroll_up    = QLabel("A"); self.scroll_up   .setFont(font)
-        self.scroll_down  = QLabel("B"); self.scroll_down .setFont(font)
-        self.scroll_left  = QLabel("C"); self.scroll_left .setFont(font)
-        self.scroll_right = QLabel("D"); self.scroll_right.setFont(font)
+        self.scroll_up    = QLabel("A"); self.scroll_up   .setFont(font1)
+        self.scroll_down  = QLabel("B"); self.scroll_down .setFont(font1)
+        self.scroll_left  = QLabel("C"); self.scroll_left .setFont(font1)
+        self.scroll_right = QLabel("D"); self.scroll_right.setFont(font1)
         
         self.set_style(self.scroll_right)
         self.set_style(self.scroll_up)
@@ -2614,9 +2740,19 @@ class myGridViewer(QWidget):
         self.layout.addWidget(self.property_top   , 0,0)
         self.layout.addWidget(self.property_bottom, 2,0)
         #
+        
+        self.property_object = QGridLayout()
+        self.property_object.setContentsMargins(0,0,0,0)
+        self.property_object.addWidget(self.object_inspector,0,0)
+        self.property_object.addWidget(self.property_page   ,1,0)
+        #
+        self.object_widget = QWidget()
+        self.object_widget.setMaximumWidth(245)
+        self.object_widget.setLayout(self.property_object)
+        
         self.layout.addWidget(self.scroll_up    , 0,2)
         self.layout.addWidget(self.scroll_left  , 1,1)
-        self.layout.addWidget(self.property_page, 1,0)
+        self.layout.addWidget(self.object_widget, 1,0)
         self.layout.addWidget(self.content      , 1,2)
         self.layout.addWidget(self.scroll_right , 1,3)
         self.layout.addWidget(self.scroll_down  , 2,2)
@@ -2801,7 +2937,7 @@ class FileWatcherGUI(QDialog):
         self.setMouseTracking(True)
         # Layout
         #self.setMaximumWidth (1024)
-        #self.setMinimumWidth (1924)
+        self.setMinimumWidth (1200)
         #
         #self.setMaximumHeight(730)
         #self.setMaximumHeight(730)
@@ -2927,7 +3063,8 @@ class FileWatcherGUI(QDialog):
         self.dbase_designs_layout.setContentsMargins(2,2,2,2)
         self.dbase_designs_palette = QWidget()
         self.dbase_designs_palette.setStyleSheet("background-color:gray;")
-        self.dbase_designs_palette.setMaximumHeight(80)
+        self.dbase_designs_palette.setMinimumHeight(85)
+        self.dbase_designs_palette.setMaximumHeight(85)
         #
         self.dbase_palette_layout  = QHBoxLayout()
         self.dbase_palette_layout.setContentsMargins(2,2,2,2)
@@ -3529,24 +3666,32 @@ class FileWatcherGUI(QDialog):
         font = QFont("Arial",14)
         font.setBold(True)
         
-        self.devices_tabs = QTabWidget()
-        self.devices_tabs.setStyleSheet(css_tabs)
-        self.devices_tabs.setMinimumWidth(240)
-        self.devices_tabs.setMaximumWidth(240)
-        self.devices_tabs_widget = QWidget()
-        #
-        self.devices_tabs.addTab(self.devices_tabs_widget, "-- Devices --")
-        #
-        self.devices_tabs_layout = QVBoxLayout()
+        ####
+        self.devices_scroll = QScrollArea()
+        self.devices_widget = QWidget()
+        self.devices_layout = QVBoxLayout()
         
-        self.devices_tabs_label1 = QPushButton(self.devices_tabs_widget)
-        self.devices_tabs_label1.setText("  Printers:  ")
-        self.devices_tabs_label1.setFont(font)
         #
-        self.devices_list_widget1 = QListWidget(self.devices_tabs_widget)
-        self.devices_list_widget1.move(0,34)
-        self.devices_list_widget1.setIconSize(QSize(40,40))
-        self.devices_list_widget1.setFont(font)
+        self.devices_scroll.setMinimumWidth(240)
+        self.devices_scroll.setMaximumWidth(240)
+        #
+        self.devices_widget.setMinimumWidth(240)
+        self.devices_widget.setMaximumWidth(240)
+        #
+        self.devices_widget.setContentsMargins(1,0,0,1)
+        self.devices_layout.setContentsMargins(1,0,0,1)
+        
+        self.devices_label_printers = QPushButton("  Printers:  ")
+        self.devices_label_printers.setMinimumWidth(240)
+        self.devices_label_printers.setMaximumWidth(240)
+        self.devices_label_printers.setFont(font)
+        self.devices_layout.addWidget(self.devices_label_printers)
+        #
+        self.devices_list_printers = QListWidget()
+        self.devices_list_printers.setIconSize(QSize(40,40))
+        self.devices_list_printers.setFont(font)
+        self.devices_layout.addWidget(self.devices_list_printers)
+        
         #
         items = [
             {"text": "Printer p:1", "icon": __app__img__int__ + "printer.png" },
@@ -3556,19 +3701,20 @@ class FileWatcherGUI(QDialog):
         for item in items:
             devices_list_item = QListWidgetItem(item["text"])
             devices_list_item.setIcon(QIcon(item["icon"]))
-            self.devices_list_widget1.addItem(devices_list_item)
+            self.devices_list_printers.addItem(devices_list_item)
         #
         
         
-        self.devices_tabs_label2 = QPushButton(self.devices_tabs_widget)
-        self.devices_tabs_label2.setText("  Storages:  ")
-        self.devices_tabs_label2.setFont(font)
-        self.devices_tabs_label2.move(0, 230)
+        self.devices_tabs_storages = QPushButton()
+        self.devices_tabs_storages.setText("  Storages:  ")
+        self.devices_tabs_storages.setFont(font)
+        self.devices_layout.addWidget(self.devices_tabs_storages)
         #
-        self.devices_list_widget2 = QListWidget(self.devices_tabs_widget)
-        self.devices_list_widget2.move(0,264)
-        self.devices_list_widget2.setIconSize(QSize(40,40))
-        self.devices_list_widget2.setFont(font)
+        self.devices_list_storages = QListWidget()
+        self.devices_list_storages.move(0,264)
+        self.devices_list_storages.setIconSize(QSize(40,40))
+        self.devices_list_storages.setFont(font)
+        self.devices_layout.addWidget(self.devices_list_storages)
         #
         items = [
             {"text": "Storage  s:1", "icon": __app__img__int__ + "storage.png" },
@@ -3578,20 +3724,20 @@ class FileWatcherGUI(QDialog):
         for item in items:
             devices_list_item = QListWidgetItem(item["text"])
             devices_list_item.setIcon(QIcon(item["icon"]))
-            self.devices_list_widget2.addItem(devices_list_item)
+            self.devices_list_storages.addItem(devices_list_item)
         #
         
         
-        self.devices_tabs_label3 = QPushButton(self.devices_tabs_widget)
+        self.devices_tabs_label3 = QPushButton()
         self.devices_tabs_label3.setText("  Team Server:  ")
         self.devices_tabs_label3.setFont(font)
-        self.devices_tabs_label3.move(0, 460)
+        self.devices_layout.addWidget(self.devices_tabs_label3)
         #
-        self.devices_list_widget3 = QListWidget(self.devices_tabs_widget)
+        self.devices_list_widget3 = QListWidget()
         self.devices_list_widget3.setMaximumHeight(100)
         self.devices_list_widget3.setIconSize(QSize(40,40))
         self.devices_list_widget3.setFont(font)
-        self.devices_list_widget3.move(0,500)
+        self.devices_layout.addWidget(self.devices_list_widget3)
         #
         items = [
             {"text": "Meeting m:1", "icon": __app__img__int__ + "meeting.png" },
@@ -3603,20 +3749,20 @@ class FileWatcherGUI(QDialog):
             self.devices_list_widget3.addItem(devices_list_item)
         #
         
-        self.devices_tabs_layout.addWidget(self.devices_tabs_label1)
-        self.devices_tabs_layout.addWidget(self.devices_tabs_label2)
-        self.devices_tabs_layout.addWidget(self.devices_tabs_label3)
+        self.devices_widget.setLayout(self.devices_layout)
         
-        self.devices_tabs_layout.addWidget(self.devices_list_widget1)
-        self.devices_tabs_layout.addWidget(self.devices_list_widget2)
-        self.devices_tabs_layout.addWidget(self.devices_list_widget3)
-        
+        self.devices_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.devices_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.devices_scroll.setWidgetResizable(True)
+        self.devices_scroll.setLayout(self.devices_layout)
         #
-        self.devices_tabs.show()
-        
+        #
+        self.dl = QVBoxLayout()
+        self.dl.setContentsMargins(1,0,0,1)
+        self.dl.addWidget(self.devices_scroll)
         
         ####
-        self.main_layout.addWidget(self.devices_tabs)
+        self.main_layout.addLayout(self.dl)
         
         ################
         ##self.tab1_layout = QHBoxLayout()

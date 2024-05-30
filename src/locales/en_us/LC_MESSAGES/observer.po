@@ -454,6 +454,41 @@ msgstr ""
     "border-bottom-color:#C2C7CB;}"
     "QTabBar::tab:!selected{margin-top:1px;}"
 
+msgid "obj_insp"
+msgstr ""
+    "QHeaderView::section{"
+    "background-color:rgb(0,190,255);"
+    "color:black;font-weight:bold}"
+
+msgid "css_model_header"
+msgstr ""
+    "QHeaderView::section{background-color:lightblue;color:black;font-weight:bold;}"
+
+msgid "css_combobox_style"
+msgstr ""
+    "font-family:'Arial';font-size:12pt;height:30px;"
+    "font-weight:600;background-color:yellow;"
+
+msgid "linedit_css"
+msgstr ""
+    "QLineEdit{background-color:white;}"
+    "QLineEdit:hover{background-color:yellow;}"
+
+msgid "spinbox_css"
+msgstr ""
+    "QSpinBox{background-color:white;}"
+    "QSpinBox:hover{background-color:yellow;}"
+
+msgid "checkbox_css"
+msgstr ""
+    "QCheckBox{background-color:white;}"
+    "QCheckBox:hover{background-color:yellow;}"
+
+msgid "combobox_css"
+msgstr ""
+    "QComboBox{background-color:white;}"
+    "QComboBox:hover{background-color:yellow;}"
+
 # ---------------------------------------------------------------------------
 # supported languages by doxygen 1.10.0 ...
 # ---------------------------------------------------------------------------
