@@ -2712,7 +2712,7 @@ class myGridViewer(QWidget):
         self.property_tabs2.setLayout(self.vl2)
         
         
-        self.property_top    = QLabel("Object Inspector")
+        self.property_top    = QLabel("Object Inspector:")
         self.property_bottom = QLabel("B")
         #
         self.set_style(self.property_top)
@@ -3114,9 +3114,31 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_widget_standard_listwidget = QListWidget(self.dbase_palette_widget_mid_tabs_widget_standard)
         self.dbase_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
         self.dbase_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
+        self.dbase_tabs_widget_standard_listwidget.setMinimumWidth(500)
+        #self.dbase_tabs_widget_standard_listwidget.setStyleSheet("background-color:yellow;")
         #
+        self.dbase_tabs_widget_standard_listwidget_btn0 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn0.setIcon(QIcon(__app__img__int__ + "tmouse_150.bmp"))
         self.dbase_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        self.dbase_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "tmainmenu_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btn2 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn2.setIcon(QIcon(__app__img__int__ + "tpopupmenu_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btn3 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn3.setIcon(QIcon(__app__img__int__ + "tlabel_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btn4 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn4.setIcon(QIcon(__app__img__int__ + "tbutton_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btn5 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn5.setIcon(QIcon(__app__img__int__ + "tedit_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btn6 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn6.setIcon(QIcon(__app__img__int__ + "tmemo_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btn7 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn7.setIcon(QIcon(__app__img__int__ + "tlistbox_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btn8 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn8.setIcon(QIcon(__app__img__int__ + "ttreeview_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btn9 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btn9.setIcon(QIcon(__app__img__int__ + "tcombobox_150.bmp"))
+        self.dbase_tabs_widget_standard_listwidget_btnA = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
+        self.dbase_tabs_widget_standard_listwidget_btnA.setIcon(QIcon(__app__img__int__ + "tradiobutton_150.bmp"))
         
         self.dbase_palette_widget_mid_layout.addWidget(self.dbase_palette_widget_mid_tabs)
         #
