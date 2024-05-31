@@ -3052,11 +3052,43 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_project_widget = QWidget()
         self.dbase_tabs_editors_widget = QWidget()
         self.dbase_tabs_designs_widget = QWidget()
+        self.dbase_tabs_builder_widget = QWidget()
         #
         self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
         self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
         self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
+        self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, "dBASE SQL Builder")
+        ####
+        self.dbase_builder_layout = QVBoxLayout()
+        self.dbase_builder_layout.setContentsMargins(2,2,2,2)
         
+        self.dbase_builder_widget_view = QWidget()
+        self.dbase_builder_widget_join = QTableWidget()
+        self.dbase_builder_widget_join.setStyleSheet(""
+        + "QHeaderView::section{"
+        + "background-color:rgb(0,190,255);"
+        + "color:black;font-weight:bold}")
+        
+        self.dbase_builder_widget_join.horizontalHeader().setStretchLastSection(True) 
+        self.dbase_builder_widget_join.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) 
+        
+        self.dbase_builder_widget_join.setRowCount(4)
+        self.dbase_builder_widget_join.setColumnCount(4)
+        
+        self.dbase_builder_widget_join.setMinimumHeight(180)
+        self.dbase_builder_widget_join.setMaximumHeight(180)
+        
+        
+        self.dbase_builder_widget_join.setHorizontalHeaderLabels(["Table 1","Table2","TableA","TableB"])
+        self.dbase_builder_widget_join.setVerticalHeaderLabels([" ID  "," ROW1  "," NAME  "," TEXT  "])
+        
+        header = self.dbase_builder_widget_join.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        
+        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_view)
+        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_join)
+        
+        self.dbase_tabs_builder_widget.setLayout(self.dbase_builder_layout)
         
         ####
         self.dbase_designs_layout  = QVBoxLayout()
