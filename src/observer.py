@@ -2776,6 +2776,66 @@ class myGridViewer(QWidget):
     def set_style(self, obj):
         obj.setStyleSheet("background-color:lightgray;")
 
+class MySQLDialog(QFrame):
+    def __init__(self, text):
+        super().__init__()
+        
+        font = QFont("Arial", 10)
+        font.setBold(True)
+        
+        self.setFrameShape(QFrame.StyledPanel)
+        self.setContentsMargins(1,1,1,1)
+        self.setMouseTracking(True)
+        self.dragging = False
+        
+        self.setMaximumHeight(200)
+        self.setMaximumWidth (100)
+        
+        self.titlebar = QWidget(self)
+        self.titlebar.move(0,0)
+        self.titlebar.resize(200,21)
+        self.titlebar.setMaximumHeight(21)
+        self.titlebar.setStyleSheet("border:1px solid black;background-color:yellow;")
+        
+        self.title = QLabel(text, self.titlebar)
+        self.title.setStyleSheet("border:0px solid yellow;")
+        self.title.setFont(font)
+        self.title.move(3,3)
+        
+        self.textw = QWidget()
+        self.setStyleSheet("background-color:white;")
+        
+        self.hlayout = QVBoxLayout()
+        self.check_box_1 = QCheckBox("FiELD A")
+        self.check_box_2 = QCheckBox("FiELD B")
+        #
+        self.hlayout.addWidget(self.check_box_1)
+        self.hlayout.addWidget(self.check_box_2)
+        
+        
+        layout = QVBoxLayout()
+        layout.setContentsMargins(1,1,1,1)
+        layout.addWidget(self.titlebar)
+        layout.addLayout(self.hlayout)
+        layout.addWidget(self.textw)
+        
+        
+        self.setLayout(layout)
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.dragging = True
+            self.drag_start_position = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if self.dragging:
+            delta = QPoint(event.globalPos() - self.mapToGlobal(self.drag_start_position))
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.dragging = False
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -3062,7 +3122,20 @@ class FileWatcherGUI(QDialog):
         self.dbase_builder_layout = QVBoxLayout()
         self.dbase_builder_layout.setContentsMargins(2,2,2,2)
         
-        self.dbase_builder_widget_view = QWidget()
+        self.dbase_builder_widget_table = QWidget()
+        self.dbase_builder_widget_table.setStyleSheet("background-color:gray;")
+        self.dbase_builder_widget_table.setMaximumHeight(56)
+        
+        self.dbase_builder_widget_view = myGridViewerOverlay(self.dbase_tabs_builder_widget)
+        self.dbase_builder_widget_view.setLayout(QVBoxLayout())
+        
+        
+        self.dbase_builder_window_1 = MySQLDialog("Table A")
+        self.dbase_builder_window_2 = MySQLDialog("Table B")
+        #
+        self.dbase_builder_widget_view.layout().addWidget(self.dbase_builder_window_1)
+        self.dbase_builder_widget_view.layout().addWidget(self.dbase_builder_window_2)
+        
         self.dbase_builder_widget_join = QTableWidget()
         self.dbase_builder_widget_join.setStyleSheet(""
         + "QHeaderView::section{"
@@ -3085,6 +3158,7 @@ class FileWatcherGUI(QDialog):
         header = self.dbase_builder_widget_join.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         
+        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_table)
         self.dbase_builder_layout.addWidget(self.dbase_builder_widget_view)
         self.dbase_builder_layout.addWidget(self.dbase_builder_widget_join)
         
