@@ -276,7 +276,7 @@ class myLineEdit(QLineEdit):
         self.setMinimumHeight(26)
         self.setMaximumWidth(250)
         self.setText(self.name)
-        self.cssColor = "QLineEdit{background-color:white;}QLineEdit:hover{background-color:yellow;}"
+        self.cssColor = _("edit_css")
         self.setStyleSheet(self.cssColor)
 
 class myDBaseTextEditor(QTextEdit):
@@ -309,7 +309,7 @@ class myTextEdit(QTextEdit):
     def __init__(self, name=""):
         super().__init__()
         self.name = name
-        self.cssColor = "QTextEdit{background-color:#bdbfbf;}QTextEdit:hover{background-color:yellow;}"
+        self.cssColor = _("text_css")
         self.setStyleSheet(self.cssColor)
         self.setText(self.name)
     
@@ -545,24 +545,10 @@ class myIconButton(QWidget):
         else:
             self.bordercolor = "lightgray"
         
-        style = """
-        QLabel {
-            background-image: url('""" + self.image_fg + """');
-            background-position: center;
-            background-repeat: no-repeat;
-            border: 5px solid """ + self.bordercolor + """;
-            border-radius: 5px;
-            width:72px;
-            height:72px;
-        }
-        QLabel:hover {
-            background-image: url('""" + self.image_bg + """');
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: 5px;
-            width:72px;
-            height:72px;
-            border: 5px solid """ + self.bordercolor + """;}"""
+        style = _("labelico_css")        \
+        .replace("{fg}", self.image_fg)  \
+        .replace("{bg}", self.image_bg)  \
+        .replace("{bc}", self.bordercolor)
         
         self.label.setStyleSheet(style)
     
@@ -1843,30 +1829,12 @@ class ComboBoxDelegateBuild(QStyledItemDelegate):
         i = 1
         ico_yellow = "icon_yellow.png"
         
-        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "CHM " + str(i))
-        item1 = editor.model().item(i-1, 0); item1.setCheckState(Qt.Unchecked); i = i + 1
-        
-        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "HTML " + str(i))
-        item2 = editor.model().item(i-1, 0); item2.setCheckState(Qt.Unchecked); i = i + 1
-        
-        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "Word " + str(i))
-        item3 = editor.model().item(i-1, 0); item3.setCheckState(Qt.Unchecked); i = i + 1
-        
-        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "PDF " + str(i))
-        item4 = editor.model().item(i-1, 0); item4.setCheckState(Qt.Unchecked); i = i + 1
-        
-        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "EPub " + str(i))
-        item5 = editor.model().item(i-1, 0); item5.setCheckState(Qt.Unchecked); i = i + 1
-        
-        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "Kindle " + str(i))
-        item6 = editor.model().item(i-1, 0); item6.setCheckState(Qt.Unchecked); i = i + 1
-        
-        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "Qt Help " + str(i))
-        item7 = editor.model().item(i-1, 0); item7.setCheckState(Qt.Unchecked); i = i + 1
-        
-        editor.addItem(QIcon(__app__img__int__ + ico_yellow ), "Markdown " + str(i))
-        item8 = editor.model().item(i-1, 0); item8.setCheckState(Qt.Unchecked); i = i + 1
-        
+        liste = ["CHM", "HTML", "Word", "PDF", "EPub", "Kindle", "Qt Help", "MarkDown"]
+        for item in liste:
+            editor.addItem(QIcon(__app__img__int__ + ico_yellow ), item + " " + str(i))
+            it1 = editor.model().item(i-1, 0)
+            it1.setCheckState(Qt.Unchecked)
+            i = i + 1
         return editor
 
 class SpinEditDelegateID(QStyledItemDelegate):
@@ -2438,10 +2406,7 @@ class addEventField(QLabel):
         self.btn.setMaximumHeight(15)
         self.btn.setMaximumHeight(15)
         
-        css_rhs = """
-        QLineEdit{background-color:white;}
-        QLineEdit:hover{background-color:yellow;}
-        """
+        css_rhs = _("edit_css")
         
         self.rhs = QLineEdit()
         self.rhs.setMaximumWidth((self.width()+92)//2)
@@ -2468,7 +2433,15 @@ class addPropertyCat(QLabel):
         self.setFont(font)
         
         parent.pos_vbox_layout.addWidget(self)
-        
+
+class closeLabelX(QLabel):
+    def __init__(self, text, parent):
+        super().__init__(text, parent.close_btn)
+        self.parent = parent
+    
+    def mousePressEvent(self, event):
+        self.parent.close()
+
 class addProperty(QLabel):
     def __init__(self, parent, kind, text):
         super().__init__(text, parent)
@@ -2482,25 +2455,16 @@ class addProperty(QLabel):
         self.lhs     = self
         
         if kind == 1:
-            css_rhs = """
-            QSpinBox{background-color:white;}
-            QSpinBox:hover{background-color:yellow;}
-            """
+            css_rhs = _("spin_css")
+        
         elif kind == 2:
-            css_rhs = """
-            QLineEdit{background-color:white;}
-            QLineEdit:hover{background-color:yellow;}
-            """
+            css_rhs = _("edit_css")
+        
         elif kind == 3:
-            css_rhs = """
-            QCheckBox{background-color:white;}
-            QCheckBox:hover{background-color:yellow;}
-            """
+            css_rhs = _("check_css")
+        
         elif kind == 4:
-            css_rhs = """
-            QComboBox{background-color:white;}
-            QComboBox:hover{background-color:yellow;}
-            """
+            css_rhs = _("combo_css")
         
         self.ftext_spacer = ' ' * 9
         self.ttext_spacer = ' ' * 15
@@ -2802,6 +2766,15 @@ class MySQLDialog(QFrame):
         self.title.setFont(font)
         self.title.move(3,3)
         
+        self.close_btn = QWidget(self.titlebar)
+        self.close_btn.setStyleSheet("background-color:red;")
+        self.close_btn.move(74,2)
+        self.close_btn.resize(20,20)
+        
+        self.close_btn_lbl = closeLabelX(" X ", self)
+        self.close_btn_lbl.setStyleSheet("color: white;font-weight:bold;")
+        
+        
         self.textw = QWidget()
         self.setStyleSheet("background-color:white;")
         
@@ -2835,6 +2808,43 @@ class MySQLDialog(QFrame):
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = False
+
+class addDesignerTabs():
+    def __init__(self, tab):
+        self.tab = tab
+        liste = [
+            ["Standard", [
+                "tmouse","tmainmenu","tpopupmenu","tlabel","tbutton","tedit","tmemo",
+                "tlistbox","ttreeview","tcombobox","tradiobutton"
+                ],
+            ],
+            ["System", [
+                ],
+            ],
+            ["Data Controls", [
+                ],
+            ],
+            ["Dialogs", [
+                ],
+            ],
+            ["Indy Client", [
+                ],
+            ],
+            ["Indy Server", [
+                ],
+            ],
+        ]
+        for tabitem in liste:
+            tab_widget = QWidget()
+            self.tab.addTab(tab_widget,tabitem[0])
+            self._listwidget = QListWidget(tab_widget)
+            self._listwidget.setViewMode(QListView.IconMode)
+            self._listwidget.setResizeMode(QListView.Adjust)
+            self._listwidget.setMinimumWidth(500)
+            if len(tabitem[1]) > 0:
+                for item in tabitem[1]:
+                    list_item = QListWidgetItem("", self._listwidget)
+                    list_item.setIcon(QIcon(__app__img__int__ + item + "_150.bmp"))
 
 class FileWatcherGUI(QDialog):
     def __init__(self):
@@ -3202,49 +3212,8 @@ class FileWatcherGUI(QDialog):
         self.dbase_palette_widget_mid_tabs   = QTabWidget()
         self.dbase_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
         
-        self.dbase_palette_widget_mid_tabs_widget_standard = QWidget()
-        self.dbase_palette_widget_mid_tabs_widget_system   = QWidget()
-        self.dbase_palette_widget_mid_tabs_widget_datactrl = QWidget()
-        self.dbase_palette_widget_mid_tabs_widget_dialogs  = QWidget()
-        self.dbase_palette_widget_mid_tabs_widget_clients  = QWidget()
-        self.dbase_palette_widget_mid_tabs_widget_servers  = QWidget()
-        #
-        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_standard, "Standard")
-        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_system  , "System")
-        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
-        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
-        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_clients , "Indy Client")
-        self.dbase_palette_widget_mid_tabs.addTab(self.dbase_palette_widget_mid_tabs_widget_servers , "Indy Server")
-        
         #######
-        self.dbase_tabs_widget_standard_listwidget = QListWidget(self.dbase_palette_widget_mid_tabs_widget_standard)
-        self.dbase_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
-        self.dbase_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
-        self.dbase_tabs_widget_standard_listwidget.setMinimumWidth(500)
-        #self.dbase_tabs_widget_standard_listwidget.setStyleSheet("background-color:yellow;")
-        #
-        self.dbase_tabs_widget_standard_listwidget_btn0 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn0.setIcon(QIcon(__app__img__int__ + "tmouse_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "tmainmenu_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn2 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn2.setIcon(QIcon(__app__img__int__ + "tpopupmenu_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn3 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn3.setIcon(QIcon(__app__img__int__ + "tlabel_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn4 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn4.setIcon(QIcon(__app__img__int__ + "tbutton_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn5 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn5.setIcon(QIcon(__app__img__int__ + "tedit_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn6 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn6.setIcon(QIcon(__app__img__int__ + "tmemo_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn7 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn7.setIcon(QIcon(__app__img__int__ + "tlistbox_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn8 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn8.setIcon(QIcon(__app__img__int__ + "ttreeview_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btn9 = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btn9.setIcon(QIcon(__app__img__int__ + "tcombobox_150.bmp"))
-        self.dbase_tabs_widget_standard_listwidget_btnA = QListWidgetItem("", self.dbase_tabs_widget_standard_listwidget)
-        self.dbase_tabs_widget_standard_listwidget_btnA.setIcon(QIcon(__app__img__int__ + "tradiobutton_150.bmp"))
+        addDesignerTabs(self.dbase_palette_widget_mid_tabs)
         
         self.dbase_palette_widget_mid_layout.addWidget(self.dbase_palette_widget_mid_tabs)
         #
@@ -3332,27 +3301,8 @@ class FileWatcherGUI(QDialog):
         self.pascal_palette_widget_mid_tabs   = QTabWidget()
         self.pascal_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
         
-        self.pascal_palette_widget_mid_tabs_widget_standard = QWidget()
-        self.pascal_palette_widget_mid_tabs_widget_system   = QWidget()
-        self.pascal_palette_widget_mid_tabs_widget_datactrl = QWidget()
-        self.pascal_palette_widget_mid_tabs_widget_dialogs  = QWidget()
-        self.pascal_palette_widget_mid_tabs_widget_clients  = QWidget()
-        self.pascal_palette_widget_mid_tabs_widget_servers  = QWidget()
-        #
-        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_standard, "Standard")
-        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_system  , "System")
-        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
-        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
-        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_clients , "Indy Client")
-        self.pascal_palette_widget_mid_tabs.addTab(self.pascal_palette_widget_mid_tabs_widget_servers , "Indy Server")
-        
         #######
-        self.pascal_tabs_widget_standard_listwidget = QListWidget(self.pascal_palette_widget_mid_tabs_widget_standard)
-        self.pascal_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
-        self.pascal_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
-        #
-        self.pascal_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.pascal_tabs_widget_standard_listwidget)
-        self.pascal_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        addDesignerTabs(self.pascal_palette_widget_mid_tabs)
         
         self.pascal_palette_widget_mid_layout.addWidget(self.pascal_palette_widget_mid_tabs)
         #
@@ -3430,27 +3380,9 @@ class FileWatcherGUI(QDialog):
         self.isoc_palette_widget_mid_tabs   = QTabWidget()
         self.isoc_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
         
-        self.isoc_palette_widget_mid_tabs_widget_standard = QWidget()
-        self.isoc_palette_widget_mid_tabs_widget_system   = QWidget()
-        self.isoc_palette_widget_mid_tabs_widget_datactrl = QWidget()
-        self.isoc_palette_widget_mid_tabs_widget_dialogs  = QWidget()
-        self.isoc_palette_widget_mid_tabs_widget_clients  = QWidget()
-        self.isoc_palette_widget_mid_tabs_widget_servers  = QWidget()
-        #
-        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_standard, "Standard")
-        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_system  , "System")
-        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
-        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
-        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_clients , "Indy Client")
-        self.isoc_palette_widget_mid_tabs.addTab(self.isoc_palette_widget_mid_tabs_widget_servers , "Indy Server")
-        
         #######
-        self.isoc_tabs_widget_standard_listwidget = QListWidget(self.isoc_palette_widget_mid_tabs_widget_standard)
-        self.isoc_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
-        self.isoc_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
-        #
-        self.isoc_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.isoc_tabs_widget_standard_listwidget)
-        self.isoc_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        addDesignerTabs(self.isoc_palette_widget_mid_tabs)
+        
         
         self.isoc_palette_widget_mid_layout.addWidget(self.isoc_palette_widget_mid_tabs)
         #
@@ -3520,27 +3452,9 @@ class FileWatcherGUI(QDialog):
         self.java_palette_widget_mid_tabs   = QTabWidget()
         self.java_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
         
-        self.java_palette_widget_mid_tabs_widget_standard = QWidget()
-        self.java_palette_widget_mid_tabs_widget_system   = QWidget()
-        self.java_palette_widget_mid_tabs_widget_datactrl = QWidget()
-        self.java_palette_widget_mid_tabs_widget_dialogs  = QWidget()
-        self.java_palette_widget_mid_tabs_widget_clients  = QWidget()
-        self.java_palette_widget_mid_tabs_widget_servers  = QWidget()
-        #
-        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_standard, "Standard")
-        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_system  , "System")
-        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
-        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
-        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_clients , "Indy Client")
-        self.java_palette_widget_mid_tabs.addTab(self.java_palette_widget_mid_tabs_widget_servers , "Indy Server")
-        
         #######
-        self.java_tabs_widget_standard_listwidget = QListWidget(self.java_palette_widget_mid_tabs_widget_standard)
-        self.java_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
-        self.java_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
-        #
-        self.java_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.java_tabs_widget_standard_listwidget)
-        self.java_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        addDesignerTabs(self.java_palette_widget_mid_tabs)
+        
         
         self.java_palette_widget_mid_layout.addWidget(self.java_palette_widget_mid_tabs)
         #
@@ -3610,27 +3524,8 @@ class FileWatcherGUI(QDialog):
         self.python_palette_widget_mid_tabs   = QTabWidget()
         self.python_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
         
-        self.python_palette_widget_mid_tabs_widget_standard = QWidget()
-        self.python_palette_widget_mid_tabs_widget_system   = QWidget()
-        self.python_palette_widget_mid_tabs_widget_datactrl = QWidget()
-        self.python_palette_widget_mid_tabs_widget_dialogs  = QWidget()
-        self.python_palette_widget_mid_tabs_widget_clients  = QWidget()
-        self.python_palette_widget_mid_tabs_widget_servers  = QWidget()
-        #
-        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_standard, "Standard")
-        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_system  , "System")
-        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
-        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
-        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_clients , "Indy Client")
-        self.python_palette_widget_mid_tabs.addTab(self.python_palette_widget_mid_tabs_widget_servers , "Indy Server")
-        
         #######
-        self.python_tabs_widget_standard_listwidget = QListWidget(self.python_palette_widget_mid_tabs_widget_standard)
-        self.python_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
-        self.python_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
-        #
-        self.python_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.python_tabs_widget_standard_listwidget)
-        self.python_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        addDesignerTabs(self.python_palette_widget_mid_tabs)
         
         self.python_palette_widget_mid_layout.addWidget(self.python_palette_widget_mid_tabs)
         #
@@ -3701,27 +3596,8 @@ class FileWatcherGUI(QDialog):
         self.lisp_palette_widget_mid_tabs   = QTabWidget()
         self.lisp_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
         
-        self.lisp_palette_widget_mid_tabs_widget_standard = QWidget()
-        self.lisp_palette_widget_mid_tabs_widget_system   = QWidget()
-        self.lisp_palette_widget_mid_tabs_widget_datactrl = QWidget()
-        self.lisp_palette_widget_mid_tabs_widget_dialogs  = QWidget()
-        self.lisp_palette_widget_mid_tabs_widget_clients  = QWidget()
-        self.lisp_palette_widget_mid_tabs_widget_servers  = QWidget()
-        #
-        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_standard, "Standard")
-        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_system  , "System")
-        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_datactrl, "Data Controls")
-        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_dialogs , "Dialogs")
-        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_clients , "Indy Client")
-        self.lisp_palette_widget_mid_tabs.addTab(self.lisp_palette_widget_mid_tabs_widget_servers , "Indy Server")
-        
         #######
-        self.lisp_tabs_widget_standard_listwidget = QListWidget(self.lisp_palette_widget_mid_tabs_widget_standard)
-        self.lisp_tabs_widget_standard_listwidget.setViewMode(QListView.IconMode)
-        self.lisp_tabs_widget_standard_listwidget.setResizeMode(QListView.Adjust)
-        #
-        self.lisp_tabs_widget_standard_listwidget_btn1 = QListWidgetItem("", self.lisp_tabs_widget_standard_listwidget)
-        self.lisp_tabs_widget_standard_listwidget_btn1.setIcon(QIcon(__app__img__int__ + "floppy-disk.png"))
+        addDesignerTabs(self.lisp_palette_widget_mid_tabs)
         
         self.lisp_palette_widget_mid_layout.addWidget(self.lisp_palette_widget_mid_tabs)
         #
@@ -3986,12 +3862,12 @@ class FileWatcherGUI(QDialog):
         list_widget_2.itemClicked.connect(self.handle_item_click)
         list_layout_2.addWidget(list_widget_2)
         
-        tab1_classes = [
-        "customScrollView_5" , "customScrollView_6" , "customScrollView_7" , "customScrollView_8" ,
-        "customScrollView_9" , "customScrollView_10", "customScrollView_11", "customScrollView_12",
-        "customScrollView_13", "customScrollView_14", "customScrollView_15", "customScrollView_16",
-        "customScrollView_17", "customScrollView_18", "customScrollView_19", "customScrollView_20",
-        "customScrollView_21", "customScrollView_22"  ]
+        tab1_classes = []
+        i = 5
+        while i < 23:
+            s = "customScrollView_" + str(i)
+            i = i + 1
+            tab1_classes.append(s)
         
         objs = []
         i    = 0
