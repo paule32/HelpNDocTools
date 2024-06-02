@@ -2490,13 +2490,32 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
         self.boldFormat.setFontWeight(QFont.Bold)
         
         # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
-        self.keywords = ["TODO", "FIXME"]
+        self.keywords = [
+            ".AND.", ".OR.", ".NOR.", ".XOR.",
+            "BREAK",
+            "CASE",
+            "CLASS",
+            "DO",
+            "IF",
+            "ELSE",
+            "ENDCASE",
+            "ENDCLASS",
+            "ENDFOR",
+            "ENDIF",
+            "ENDWHILE",
+            "ENDWITH",
+            "FOR",
+            "RETURN",
+            "TO",
+            "WHILE", 
+            "WITH"
+        ]
         
         # Definiere die Muster für mehrzeilige Kommentare
         self.multiLineCommentFormat = QTextCharFormat()
         self.multiLineCommentFormat.setForeground(dark_green)
         self.commentStartExpression = QRegExp(r"/\*")
-        self.commentEndExpression = QRegExp(r"\*/")
+        self.commentEndExpression   = QRegExp(r"\*/")
     
     def highlightBlock(self, text):
         # Mehrzeilige Kommentare markieren
@@ -2542,7 +2561,7 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
                     self.setFormat(start, length, self.boldFormat)
 
 class EditorTextEdit(QPlainTextEdit):
-    def __init__(self):
+    def __init__(self, file_name):
         super().__init__()
         self.lineNumberArea = LineNumberArea(self)
         self.bookmarks = set()
@@ -2557,7 +2576,13 @@ class EditorTextEdit(QPlainTextEdit):
         
         # Schriftgröße und Schriftart setzen
         self.setFont(QFont("Consolas", 12))
-
+        
+        with open(file_name, 'r') as file:
+            text = file.read()
+            file.close()
+        
+        self.setPlainText(text)
+    
     def lineNumberAreaWidth(self):
         digits = 1
         max_num = max(1, self.blockCount())
@@ -3258,8 +3283,37 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_editors_layout = QVBoxLayout()
         self.dbase_tabs_editors_layout.setContentsMargins(2,2,2,2)
         
-        self.dbase_tabs_editor = EditorTextEdit()
-        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_editor)
+        self.dbase_tabs_editor_menu = QWidget()
+        self.dbase_tabs_editor_menu.setStyleSheet("background-color:gray;")
+        self.dbase_tabs_editor_menu.setMinimumHeight(64)
+        #
+        ####
+        self.dbase_file_layout1 = QVBoxLayout()
+        self.dbase_file_layout1.setContentsMargins(1,0,0,1)
+        self.dbase_file_widget1 = QWidget()
+        ####
+        self.dbase_tabs_editor1 = EditorTextEdit("Example1.prg")
+        self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
+        self.dbase_file_widget1.setLayout(self.dbase_file_layout1)
+        #
+        ####
+        self.dbase_file_layout2 = QVBoxLayout()
+        self.dbase_file_layout2.setContentsMargins(1,0,0,1)
+        self.dbase_file_widget2 = QWidget()
+        ####
+        self.dbase_tabs_editor2 = EditorTextEdit("Example2.prg")
+        self.dbase_file_layout2.addWidget(self.dbase_tabs_editor2)
+        self.dbase_file_widget2.setLayout(self.dbase_file_layout2)
+        #
+        self.dbase_tabs_files  = QTabWidget()
+        self.dbase_tabs_files.setStyleSheet(css_tabs)
+        self.dbase_tabs_files.addTab(self.dbase_file_widget1, "Example1.prg")
+        self.dbase_tabs_files.addTab(self.dbase_file_widget2, "Example2.prg")
+        
+        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_editor_menu)
+        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_files)
+        
+        
         self.dbase_tabs_editors_widget.setLayout(self.dbase_tabs_editors_layout)
         ####
         self.dbase_builder_layout = QVBoxLayout()
