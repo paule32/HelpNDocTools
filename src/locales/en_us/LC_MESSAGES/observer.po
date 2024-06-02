@@ -513,6 +513,22 @@ msgstr ""
     "height:72px;"
     "border: 5px solid {bc};}"
 
+msgid "doxtrack_css"
+msgstr ""
+    "QLabel{"
+    "background-image: url('{1i}');"
+    "background-position: center;"
+    "background-repeat: no-repeat;"
+    "border: 5px solid {1b};"
+    "border-radius: 5px;"
+    "}"
+    "QLabel:hover {"
+    "background-image: url('{2i}');"
+    "background-position: center;"
+    "background-repeat: no-repeat;"
+    "border-radius: 5px;"
+    "border: 5px solid {2b};}"
+
 # ---------------------------------------------------------------------------
 # supported languages by doxygen 1.10.0 ...
 # ---------------------------------------------------------------------------

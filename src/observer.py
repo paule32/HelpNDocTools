@@ -1886,20 +1886,11 @@ class doxygenImageTracker(QWidget):
         self.set_style()
     
     def set_style(self):
-        style = """
-        QLabel {
-            background-image: url('""" + __app__doxygen__ + """1.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border: 5px solid """ + self.bordercolor + """;
-            border-radius: 5px;
-        }
-        QLabel:hover {
-            background-image: url('""" + __app__doxygen__ + """2.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: 5px;
-            border: 5px solid """ + self.bordercolor + """;}"""
+        style = _("doxtrack_css") \
+        .replace("{1i}",__app__doxygen__ + "1.png") \
+        .replace("{1b}",self.bordercolor ) \
+        .replace("{2i}",__app__doxygen__ + "2.png") \
+        .replace("{2b}",self.bordercolor )
         
         self.img_origin_doxygen_label.setStyleSheet(style)
     
@@ -1954,19 +1945,11 @@ class helpNDocImageTracker(QWidget):
         self.set_style()
     
     def set_style(self):
-        style = """
-        QLabel {
-            background-image: url('""" + __app__hlpndoc__ + """1.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border: 5px solid """ + self.bordercolor + """;
-            border-radius: 10px;
-        }
-        QLabel:hover {
-            background-image: url('""" + __app__hlpndoc__ + """2.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border: 5px solid """ + self.bordercolor + """;}"""
+        style = _("doxtrack_css") \
+        .replace("{1i}",__app__hlpndoc__ + "1.png") \
+        .replace("{1b}",self.bordercolor ) \
+        .replace("{2i}",__app__hlpndoc__ + "2.png") \
+        .replace("{2b}",self.bordercolor )
         
         self.img_origin_hlpndoc_label.setStyleSheet(style)
     
@@ -2023,21 +2006,11 @@ class ccpplusImageTracker(QWidget):
         self.set_style()
     
     def set_style(self):
-        style = """
-        QLabel {
-            background-image: url('""" + __app__cpp1dev__ + """1.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: 5px;
-            border: 5px solid """ + self.bordercolor + """;
-            border-radius: 5px;
-        }
-        QLabel:hover {
-            background-image: url('""" + __app__cpp1dev__ + """2.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: 5px;
-            border: 5px solid """ + self.bordercolor + """;}"""
+        style = _("doxtrack_css") \
+        .replace("{1i}",__app__cpp1dev__ + "1.png") \
+        .replace("{1b}",self.bordercolor ) \
+        .replace("{2i}",__app__cpp1dev__ + "2.png") \
+        .replace("{2b}",self.bordercolor )
         
         self.img_origin_ccpplus_label.setStyleSheet(style)
     
@@ -2098,21 +2071,11 @@ class javadocImageTracker(QWidget):
         self.set_style()
         
     def set_style(self):
-        style = """
-        QLabel {
-            background-image: url('""" + __app__javadoc__ + """1.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: 5px;
-            border: 5px solid """ + self.bordercolor + """;
-            border-radius: 5px;
-        }
-        QLabel:hover {
-            background-image: url('""" + __app__javadoc__ + """2.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: 5px;
-            border: 5px solid """ + self.bordercolor + """}"""
+        style = _("doxtrack_css") \
+        .replace("{1i}",__app__javadoc__ + "1.png") \
+        .replace("{1b}",self.bordercolor ) \
+        .replace("{2i}",__app__javadoc__ + "2.png") \
+        .replace("{2b}",self.bordercolor )
         
         self.img_origin_javadoc_label.setStyleSheet(style)
     
@@ -2173,21 +2136,11 @@ class freepasImageTracker(QWidget):
         self.set_style()
         
     def set_style(self):
-        style = """
-        QLabel {
-            background-image: url('""" + __app__freepas__ + """1.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: 5px;
-            border: 5px solid """ + self.bordercolor + """;
-            border-radius: 5px;
-        }
-        QLabel:hover {
-            background-image: url('""" + __app__freepas__ + """2.png');
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: 5px;
-            border: 5px solid """ + self.bordercolor + """}"""
+        style = _("doxtrack_css") \
+        .replace("{1i}",__app__freepas__ + "1.png") \
+        .replace("{1b}",self.bordercolor ) \
+        .replace("{2i}",__app__freepas__ + "2.png") \
+        .replace("{2b}",self.bordercolor )
         
         self.img_origin_freepas_label.setStyleSheet(style)
     
