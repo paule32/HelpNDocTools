@@ -60,6 +60,8 @@ __app__javadev__    = __app__img__int__ + "java"
 __app__javadoc__    = __app__img__int__ + "javadoc"
 __app__freepas__    = __app__img__int__ + "freepas"
 
+__app__img_ext__    = ".png"
+
 __app__framework    = "PyQt5.QtWidgets.QApplication"
 __app__exec_name    = sys.executable
 
@@ -117,12 +119,8 @@ basedir = os.path.dirname(__file__)
 # ------------------------------------------------------------------------
 # style sheet definition's:
 # ------------------------------------------------------------------------
-css_model_header = "QHeaderView::section{background-color:lightblue;color:black;font-weight:bold;}"
-
-css_combobox_style = (""
-    + "font-family:'Arial';font-size:12pt;height:30px;"
-    + "font-weight:600;background-color:yellow;"
-    )
+css_model_header   = "model_hadr"
+css_combobox_style = "combo_actn"
     
 # ------------------------------------------------------------------------
 # date / time week days
@@ -339,10 +337,7 @@ class OverlayWidget(QWidget):
         self.setGeometry(
         self.xpos,
         self.ypos, 250, 120)
-        self.setStyleSheet("""
-        background-color: rgba(255, 255, 255, 200);
-        color:black;
-        """)
+        self.setStyleSheet(_("overlaycss"))
         
         self.caption = text
         
@@ -381,19 +376,19 @@ class myIconLabel(QLabel):
         if event.button() == Qt.LeftButton:
             #print(self.caption)
             if self.mode == 0:
-                self.i0_clicked()
+                self.btn_clicked(side_btn1,self.parent.parent.help_tabs)
             if self.mode == 1:
-                self.i1_clicked()
+                self.btn_clicked(side_btn2,self.parent.parent.dbase_tabs)
             if self.mode == 2:
-                self.i2_clicked()
+                self.btn_clicked(side_btn3,self.parent.parent.pascal_tabs)
             if self.mode == 3:
-                self.i3_clicked()
+                self.btn_clicked(side_btn4,self.parent.parent.isoc_tabs)
             if self.mode == 4:
-                self.i4_clicked()
+                self.btn_clicked(side_btn5,self.parent.parent.java_tabs)
             if self.mode == 5:
-                self.i5_clicked()
+                self.btn_clicked(side_btn6,self.parent.parent.python_tabs)
             if self.mode == 6:
-                self.i6_clicked()
+                self.btn_clicked(side_btn7,self.parent.parent.lisp_tabs)
     
     def enterEvent(self, event):
         self.show_overlay()
@@ -410,61 +405,14 @@ class myIconLabel(QLabel):
         self.parent.parent.python_tabs.hide()
         self.parent.parent.lisp_tabs.hide()
     
-    def i0_clicked(self):
+    def btn_clicked(self,btn,tabs):
         self.hide_tabs()
-        self.parent.parent.help_tabs.show()
+        tabs.show()
         
         self.set_null_state()
-        side_btn1.state = 2
-        side_btn1.set_style()
-        return
-    def i1_clicked(self):
-        self.hide_tabs()
-        self.parent.parent.dbase_tabs.show()
-        
-        self.set_null_state()
-        side_btn2.state = 2
-        side_btn2.set_style()
-        return
-    def i2_clicked(self):
-        self.hide_tabs()
-        self.parent.parent.pascal_tabs.show()
-        
-        self.set_null_state()
-        side_btn3.state = 2
-        side_btn3.set_style()
-        return
-    def i3_clicked(self):
-        self.hide_tabs()
-        self.parent.parent.isoc_tabs.show()
-        
-        self.set_null_state()
-        side_btn4.state = 2
-        side_btn4.set_style()
-        return
-    def i4_clicked(self):
-        self.hide_tabs()
-        self.parent.parent.java_tabs.show()
-        
-        self.set_null_state()
-        side_btn5.state = 2
-        side_btn5.set_style()
-        return
-    def i5_clicked(self):
-        self.hide_tabs()
-        self.parent.parent.python_tabs.show()
-        
-        self.set_null_state()
-        side_btn6.state = 2
-        side_btn6.set_style()
-        return
-    def i6_clicked(self):
-        self.hide_tabs()
-        self.parent.parent.lisp_tabs.show()
-        
-        self.set_null_state()
-        side_btn7.state = 2
-        side_btn7.set_style()
+        btn.state = 2
+        btn.set_style()
+    
         return
     
     def set_null_state(self):
@@ -504,8 +452,8 @@ class myIconButton(QWidget):
         self.parent      = parent
         self.state       = 0
         
-        fg = "1.png"
-        bg = "2.png"
+        fg = str(1) + __app__img_ext__
+        bg = str(2) + __app__img_ext__
         
         self.label.setMinimumWidth (79)
         self.label.setMinimumHeight(79)
@@ -843,7 +791,7 @@ class myCustomScrollArea(QScrollArea):
                     for j in range(0, len(data)):
                         img = __app__img__int__ + "flag_"  \
                         + elements[i][3][j] \
-                        + ".png"
+                        + __app__img_ext__
                         img = img.lower()
                         
                         vw_2.addItem(QIcon(img), elements[i][3][j-1])
@@ -942,7 +890,7 @@ class customScrollView_1(myCustomScrollArea):
         widget_4_licon_1 = self.addLabel("", False, layout_4)
         widget_4_licon_1.setPixmap(QIcon(
             os.path.join(basedir,__app__img__int__,
-            "floppy-disk.png"))
+            "floppy-disk" + __app__img_ext__))
             .pixmap(42,42))
         #
         layout.addLayout(layout_4)
@@ -1767,10 +1715,10 @@ class ComboBoxDelegateStatus(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QComboBox(parent)
         # Add items to the combobox
-        editor.addItem(QIcon(__app__img__int__ + "icon_white.png" ), "Complete"     )
-        editor.addItem(QIcon(__app__img__int__ + "icon_blue.png"  ), "Needs Review" )
-        editor.addItem(QIcon(__app__img__int__ + "icon_yellow.png"), "In Progress"  )
-        editor.addItem(QIcon(__app__img__int__ + "icon_red.png"   ), "Out of Date"  )
+        editor.addItem(QIcon(__app__img__int__ + "icon_white"  + __app__img_ext__), "Complete"     )
+        editor.addItem(QIcon(__app__img__int__ + "icon_blue"   + __app__img_ext__), "Needs Review" )
+        editor.addItem(QIcon(__app__img__int__ + "icon_yellow" + __app__img_ext__), "In Progress"  )
+        editor.addItem(QIcon(__app__img__int__ + "icon_red"    + __app__img_ext__), "Out of Date"  )
         
         #editor.activated.connect(self.on_activated)
         editor.currentTextChanged.connect(self.on_current_text_changed)
@@ -1827,7 +1775,7 @@ class ComboBoxDelegateBuild(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = CheckableComboBox(parent); i = 1
         i = 1
-        ico_yellow = "icon_yellow.png"
+        ico_yellow = "icon_yellow" + __app__img_ext__
         
         liste = ["CHM", "HTML", "Word", "PDF", "EPub", "Kindle", "Qt Help", "MarkDown"]
         for item in liste:
@@ -1887,9 +1835,9 @@ class doxygenImageTracker(QWidget):
     
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__doxygen__ + "1.png") \
+        .replace("{1i}",__app__doxygen__ + str(1) + __app__img_ext__) \
         .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__doxygen__ + "2.png") \
+        .replace("{2i}",__app__doxygen__ + str(2) + __app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
         self.img_origin_doxygen_label.setStyleSheet(style)
@@ -1946,10 +1894,8 @@ class helpNDocImageTracker(QWidget):
     
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__hlpndoc__ + "1.png") \
-        .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__hlpndoc__ + "2.png") \
-        .replace("{2b}",self.bordercolor )
+        .replace("{1i}",__app__hlpndoc__ + str(1) + __app__img_ext__).replace("{1b}",self.bordercolor ) \
+        .replace("{2i}",__app__hlpndoc__ + str(2) + __app__img_ext__).replace("{2b}",self.bordercolor )
         
         self.img_origin_hlpndoc_label.setStyleSheet(style)
     
@@ -2007,10 +1953,8 @@ class ccpplusImageTracker(QWidget):
     
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__cpp1dev__ + "1.png") \
-        .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__cpp1dev__ + "2.png") \
-        .replace("{2b}",self.bordercolor )
+        .replace("{1i}",__app__cpp1dev__ + str(1) + __app__img_ext__).replace("{1b}",self.bordercolor ) \
+        .replace("{2i}",__app__cpp1dev__ + str(2) + __app__img_ext__).replace("{2b}",self.bordercolor )
         
         self.img_origin_ccpplus_label.setStyleSheet(style)
     
@@ -2072,9 +2016,9 @@ class javadocImageTracker(QWidget):
         
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__javadoc__ + "1.png") \
+        .replace("{1i}",__app__javadoc__ + str(1) + __app__img_ext__) \
         .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__javadoc__ + "2.png") \
+        .replace("{2i}",__app__javadoc__ + str(2) + __app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
         self.img_origin_javadoc_label.setStyleSheet(style)
@@ -2137,9 +2081,9 @@ class freepasImageTracker(QWidget):
         
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__freepas__ + "1.png") \
+        .replace("{1i}",__app__freepas__ + str(1) + __app__img_ext__) \
         .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__freepas__ + "2.png") \
+        .replace("{2i}",__app__freepas__ + str(2) + __app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
         self.img_origin_freepas_label.setStyleSheet(style)
@@ -2192,17 +2136,17 @@ class MyPushButton(QLabel):
         self.setMinimumHeight(34)
         
         if mode == 1:
-            self.btn_img_fg = __app__img__int__ + "create1.png"
-            self.btn_img_bg = __app__img__int__ + "create2.png"
+            self.btn_img_fg = __app__img__int__ + "create1" + __app__img_ext__
+            self.btn_img_bg = __app__img__int__ + "create2" + __app__img_ext__
         elif mode == 2:
-            self.btn_img_fg = __app__img__int__ + "open1.png"
-            self.btn_img_bg = __app__img__int__ + "open2.png"
+            self.btn_img_fg = __app__img__int__ + "open1"   + __app__img_ext__
+            self.btn_img_bg = __app__img__int__ + "open2"   + __app__img_ext__
         elif mode == 3:
-            self.btn_img_fg = __app__img__int__ + "repro1.png"
-            self.btn_img_bg = __app__img__int__ + "repro2.png"
+            self.btn_img_fg = __app__img__int__ + "repro1"  + __app__img_ext__
+            self.btn_img_bg = __app__img__int__ + "repro2"  + __app__img_ext__
         elif mode == 4:
-            self.btn_img_fg = __app__img__int__ + "build1.png"
-            self.btn_img_bg = __app__img__int__ + "build2.png"
+            self.btn_img_fg = __app__img__int__ + "build1"  + __app__img_ext__
+            self.btn_img_bg = __app__img__int__ + "build2"  + __app__img_ext__
         
         style = _("push_css") \
         .replace("{fg}",self.btn_img_fg) \
@@ -3210,9 +3154,9 @@ class FileWatcherGUI(QDialog):
         self.tool_bar_button_exit.setText("Clear")
         self.tool_bar_button_exit.setCheckable(True)
         
-        self.tool_bar_action_new1 = QAction(QIcon(__app__img__int__ + "floppy-disk.png"), "Flopp", self)
-        self.tool_bar_action_new2 = QAction(QIcon(__app__img__int__ + "floppy-disk.png"), "Flopp", self)
-        self.tool_bar_action_new3 = QAction(QIcon(__app__img__int__ + "floppy-disk.png"), "Flopp", self)
+        self.tool_bar_action_new1 = QAction(QIcon(__app__img__int__ + "floppy-disk" + __app__img_ext__), "Flopp", self)
+        self.tool_bar_action_new2 = QAction(QIcon(__app__img__int__ + "floppy-disk" + __app__img_ext__), "Flopp", self)
+        self.tool_bar_action_new3 = QAction(QIcon(__app__img__int__ + "floppy-disk" + __app__img_ext__), "Flopp", self)
         
         self.tool_bar.addAction(self.tool_bar_action_new1)
         self.tool_bar.addAction(self.tool_bar_action_new2)
@@ -3274,11 +3218,15 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_editors_widget = QWidget()
         self.dbase_tabs_designs_widget = QWidget()
         self.dbase_tabs_builder_widget = QWidget()
+        self.dbase_tabs_datatab_widget = QWidget()
+        self.dbase_tabs_reports_widget = QWidget()
         #
         self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
         self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
         self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
         self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, "dBASE SQL Builder")
+        self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, "dBASE Data Tables")
+        self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, "dBASE Reports")
         ####
         self.dbase_tabs_editors_layout = QVBoxLayout()
         self.dbase_tabs_editors_layout.setContentsMargins(2,2,2,2)
@@ -3288,6 +3236,22 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_editor_menu.setMinimumHeight(64)
         #
         ####
+        self.dbase_tabs_data_tables_layout = QVBoxLayout()
+        self.dbase_tabs_data_tables_layout.setContentsMargins(2,2,2,2)
+        
+        self.dbase_tabs_data_tables_menu = QWidget()
+        self.dbase_tabs_data_tables_menu.setStyleSheet("background-color:gray;")
+        self.dbase_tabs_data_tables_menu.setMinimumHeight(64)
+        #
+        ####
+        self.dbase_tabs_reports_layout = QVBoxLayout()
+        self.dbase_tabs_reports_layout.setContentsMargins(2,2,2,2)
+        
+        self.dbase_tabs_reports_menu = QWidget()
+        self.dbase_tabs_reports_menu.setStyleSheet("background-color:gray;")
+        self.dbase_tabs_reports_menu.setMinimumHeight(64)
+        #
+        
         self.dbase_file_layout1 = QVBoxLayout()
         self.dbase_file_layout1.setContentsMargins(1,0,0,1)
         self.dbase_file_widget1 = QWidget()
@@ -3320,7 +3284,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_builder_layout.setContentsMargins(2,2,2,2)
         
         self.dbase_builder_widget_table = QWidget()
-        self.dbase_builder_widget_table.setStyleSheet("background-color:gray;")
+        self.dbase_builder_widget_table.setStyleSheet(_("bggy"))
         self.dbase_builder_widget_table.setMaximumHeight(56)
         
         self.dbase_builder_widget_view = myGridViewerOverlay(self.dbase_tabs_builder_widget)
@@ -3334,10 +3298,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_builder_widget_view.layout().addWidget(self.dbase_builder_window_2)
         
         self.dbase_builder_widget_join = QTableWidget()
-        self.dbase_builder_widget_join.setStyleSheet(""
-        + "QHeaderView::section{"
-        + "background-color:rgb(0,190,255);"
-        + "color:black;font-weight:bold}")
+        self.dbase_builder_widget_join.setStyleSheet(_("join_build"))
         
         self.dbase_builder_widget_join.horizontalHeader().setStretchLastSection(True) 
         self.dbase_builder_widget_join.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) 
@@ -3365,7 +3326,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_designs_layout  = QVBoxLayout()
         self.dbase_designs_layout.setContentsMargins(2,2,2,2)
         self.dbase_designs_palette = QWidget()
-        self.dbase_designs_palette.setStyleSheet("background-color:gray;")
+        self.dbase_designs_palette.setStyleSheet(_("bggy"))
         self.dbase_designs_palette.setMinimumHeight(85)
         self.dbase_designs_palette.setMaximumHeight(85)
         #
@@ -3390,9 +3351,9 @@ class FileWatcherGUI(QDialog):
         self.dbase_palette_widget_lhs.setText(chr1)
         self.dbase_palette_widget_rhs.setText(chr2)
         #
-        self.dbase_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
-        self.dbase_palette_widget_mid.setStyleSheet("background-color:white;")
-        self.dbase_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        self.dbase_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.dbase_palette_widget_mid.setStyleSheet(_("bggy"))
+        self.dbase_palette_widget_rhs.setStyleSheet(_("bglg"))
         #
         #
         self.dbase_palette_widget_mid_layout = QHBoxLayout()
@@ -3412,7 +3373,7 @@ class FileWatcherGUI(QDialog):
         ####
         
         self.dbase_designs_viewer  = myGridViewer(self)
-        self.dbase_designs_viewer.setStyleSheet("background-color:white;")
+        self.dbase_designs_viewer.setStyleSheet(_("bgwh"))
         
         self.dbase_designs_layout.addWidget(self.dbase_designs_palette)
         self.dbase_designs_layout.addWidget(self.dbase_designs_viewer)
@@ -3455,7 +3416,7 @@ class FileWatcherGUI(QDialog):
         self.pascal_designs_layout  = QVBoxLayout()
         self.pascal_designs_layout.setContentsMargins(2,2,2,2)
         self.pascal_designs_palette = QWidget()
-        self.pascal_designs_palette.setStyleSheet("background-color:gray;")
+        self.pascal_designs_palette.setStyleSheet(_("bggy"))
         self.pascal_designs_palette.setMaximumHeight(80)
         #
         self.pascal_palette_layout  = QHBoxLayout()
@@ -3479,9 +3440,9 @@ class FileWatcherGUI(QDialog):
         self.pascal_palette_widget_lhs.setText(chr1)
         self.pascal_palette_widget_rhs.setText(chr2)
         #
-        self.pascal_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
-        self.pascal_palette_widget_mid.setStyleSheet("background-color:white;")
-        self.pascal_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        self.pascal_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.pascal_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.pascal_palette_widget_rhs.setStyleSheet(_("bglg"))
         #
         #
         self.pascal_palette_widget_mid_layout = QHBoxLayout()
@@ -3534,7 +3495,7 @@ class FileWatcherGUI(QDialog):
         self.isoc_designs_layout  = QVBoxLayout()
         self.isoc_designs_layout.setContentsMargins(2,2,2,2)
         self.isoc_designs_palette = QWidget()
-        self.isoc_designs_palette.setStyleSheet("background-color:gray;")
+        self.isoc_designs_palette.setStyleSheet(_("bggy"))
         self.isoc_designs_palette.setMaximumHeight(80)
         #
         self.isoc_palette_layout  = QHBoxLayout()
@@ -3558,9 +3519,9 @@ class FileWatcherGUI(QDialog):
         self.isoc_palette_widget_lhs.setText(chr1)
         self.isoc_palette_widget_rhs.setText(chr2)
         #
-        self.isoc_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
-        self.isoc_palette_widget_mid.setStyleSheet("background-color:white;")
-        self.isoc_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        self.isoc_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.isoc_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.isoc_palette_widget_rhs.setStyleSheet(_("bglg"))
         #
         #
         self.isoc_palette_widget_mid_layout = QHBoxLayout()
@@ -3606,7 +3567,7 @@ class FileWatcherGUI(QDialog):
         self.java_designs_layout  = QVBoxLayout()
         self.java_designs_layout.setContentsMargins(2,2,2,2)
         self.java_designs_palette = QWidget()
-        self.java_designs_palette.setStyleSheet("background-color:gray;")
+        self.java_designs_palette.setStyleSheet(_("bggy"))
         self.java_designs_palette.setMaximumHeight(80)
         #
         self.java_palette_layout  = QHBoxLayout()
@@ -3630,9 +3591,9 @@ class FileWatcherGUI(QDialog):
         self.java_palette_widget_lhs.setText(chr1)
         self.java_palette_widget_rhs.setText(chr2)
         #
-        self.java_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
-        self.java_palette_widget_mid.setStyleSheet("background-color:white;")
-        self.java_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        self.java_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.java_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.java_palette_widget_rhs.setStyleSheet(_("bglg"))
         #
         #
         self.java_palette_widget_mid_layout = QHBoxLayout()
@@ -3678,7 +3639,7 @@ class FileWatcherGUI(QDialog):
         self.python_designs_layout  = QVBoxLayout()
         self.python_designs_layout.setContentsMargins(2,2,2,2)
         self.python_designs_palette = QWidget()
-        self.python_designs_palette.setStyleSheet("background-color:gray;")
+        self.python_designs_palette.setStyleSheet(_("bggy"))
         self.python_designs_palette.setMaximumHeight(80)
         #
         self.python_palette_layout  = QHBoxLayout()
@@ -3702,9 +3663,9 @@ class FileWatcherGUI(QDialog):
         self.python_palette_widget_lhs.setText(chr1)
         self.python_palette_widget_rhs.setText(chr2)
         #
-        self.python_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
-        self.python_palette_widget_mid.setStyleSheet("background-color:white;")
-        self.python_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        self.python_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.python_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.python_palette_widget_rhs.setStyleSheet(_("bglg"))
         #
         #
         self.python_palette_widget_mid_layout = QHBoxLayout()
@@ -3750,7 +3711,7 @@ class FileWatcherGUI(QDialog):
         self.lisp_designs_layout  = QVBoxLayout()
         self.lisp_designs_layout.setContentsMargins(2,2,2,2)
         self.lisp_designs_palette = QWidget()
-        self.lisp_designs_palette.setStyleSheet("background-color:gray;")
+        self.lisp_designs_palette.setStyleSheet(_("bggy"))
         self.lisp_designs_palette.setMaximumHeight(80)
         #
         self.lisp_palette_layout  = QHBoxLayout()
@@ -3774,9 +3735,9 @@ class FileWatcherGUI(QDialog):
         self.lisp_palette_widget_lhs.setText(chr1)
         self.lisp_palette_widget_rhs.setText(chr2)
         #
-        self.lisp_palette_widget_lhs.setStyleSheet("background-color:lightgray;")
-        self.lisp_palette_widget_mid.setStyleSheet("background-color:white;")
-        self.lisp_palette_widget_rhs.setStyleSheet("background-color:lightgray;")
+        self.lisp_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.lisp_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.lisp_palette_widget_rhs.setStyleSheet(_("bglg"))
         #
         #
         self.lisp_palette_widget_mid_layout = QHBoxLayout()
@@ -3885,9 +3846,9 @@ class FileWatcherGUI(QDialog):
         
         #
         items = [
-            {"text": "Printer p:1", "icon": __app__img__int__ + "printer.png" },
-            {"text": "Printer p:2", "icon": __app__img__int__ + "printer.png" },
-            {"text": "Printer p:3", "icon": __app__img__int__ + "printer.png" }
+            {"text": "Printer p:1", "icon": __app__img__int__ + "printer" + __app__img_ext__ },
+            {"text": "Printer p:2", "icon": __app__img__int__ + "printer" + __app__img_ext__ },
+            {"text": "Printer p:3", "icon": __app__img__int__ + "printer" + __app__img_ext__ }
         ]
         for item in items:
             devices_list_item = QListWidgetItem(item["text"])
@@ -3908,9 +3869,9 @@ class FileWatcherGUI(QDialog):
         self.devices_layout.addWidget(self.devices_list_storages)
         #
         items = [
-            {"text": "Storage  s:1", "icon": __app__img__int__ + "storage.png" },
-            {"text": "Database d:2", "icon": __app__img__int__ + "database.png" },
-            {"text": "Database d:3", "icon": __app__img__int__ + "database.png" }
+            {"text": "Storage  s:1", "icon": __app__img__int__ + "storage"  + __app__img_ext__ },
+            {"text": "Database d:2", "icon": __app__img__int__ + "database" + __app__img_ext__ },
+            {"text": "Database d:3", "icon": __app__img__int__ + "database" + __app__img_ext__ }
         ]
         for item in items:
             devices_list_item = QListWidgetItem(item["text"])
@@ -3931,8 +3892,8 @@ class FileWatcherGUI(QDialog):
         self.devices_layout.addWidget(self.devices_list_widget3)
         #
         items = [
-            {"text": "Meeting m:1", "icon": __app__img__int__ + "meeting.png" },
-            {"text": "Session c:2", "icon": __app__img__int__ + "session.png" }
+            {"text": "Meeting m:1", "icon": __app__img__int__ + "meeting" + __app__img_ext__ },
+            {"text": "Session c:2", "icon": __app__img__int__ + "session" + __app__img_ext__ }
         ]
         for item in items:
             devices_list_item = QListWidgetItem(item["text"])
@@ -4080,13 +4041,13 @@ class FileWatcherGUI(QDialog):
         
         global tab2_tree_view
         tab2_tree_view = QTreeView()
-        tab2_tree_view.setStyleSheet(css_model_header)
+        tab2_tree_view.setStyleSheet(_(css_model_header))
         self.tab2_tree_model = QStandardItemModel()
         self.tab2_tree_model.setHorizontalHeaderLabels(["Topic name", "ID", "Status", "Help icon", "In Build"])
         tab2_tree_view.setModel(self.tab2_tree_model)
         
         self.tab2_top_layout.addWidget(tab2_tree_view)
-        self.populate_tree_view(self.tab2_file_path, __app__img__int__ + "open-folder.png")
+        self.populate_tree_view(self.tab2_file_path, __app__img__int__ + "open-folder" + __app__img_ext__)
         
         self.delegateID     = SpinEditDelegateID     (tab2_tree_view)
         self.delegateStatus = ComboBoxDelegateStatus (tab2_tree_view)
@@ -4282,7 +4243,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_file_tree = QTreeView()
         self.tab0_file_list = QListView()
         
-        self.tab0_file_tree.setStyleSheet(css_model_header)
+        self.tab0_file_tree.setStyleSheet(_(css_model_header))
         
         self.tab0_file_tree.setModel(self.tab0_dir_model)
         self.tab0_file_list.setModel(self.tab0_file_model)
@@ -4292,24 +4253,20 @@ class FileWatcherGUI(QDialog):
         
         self.tab0_help_list   = QListWidget()
         self.tab0_help_list.setMinimumWidth(260)
-        self.tab0_help_list_font1 = QFont("Arial", 12)
-        self.tab0_help_list_font1.setBold(True)
-        self.tab0_help_list_item1 = QListWidgetItem(_("Empty Project"),self.tab0_help_list)
-        self.tab0_help_list_item1.setIcon(QIcon(__app__img__int__ + "emptyproject.png"))
-        self.tab0_help_list_item1.setFont(self.tab0_help_list_font1)
-        self.tab0_help_list.setIconSize(QSize(40,40))
-        #
-        self.tab0_help_list_item2 = QListWidgetItem(_("Recipe"),self.tab0_help_list)
-        self.tab0_help_list_item2.setIcon(QIcon(__app__img__int__ + "recipe.png"))
-        self.tab0_help_list_item2.setFont(self.tab0_help_list_font1)
-        #
-        self.tab0_help_list_item3 = QListWidgetItem(_("API Project"),self.tab0_help_list)
-        self.tab0_help_list_item3.setIcon(QIcon(__app__img__int__ + "api.png"))
-        self.tab0_help_list_item3.setFont(self.tab0_help_list_font1)
-        #
-        self.tab0_help_list_item4 = QListWidgetItem(_("Software Documentation"),self.tab0_help_list)
-        self.tab0_help_list_item4.setIcon(QIcon(__app__img__int__ + "software.png"))
-        self.tab0_help_list_item4.setFont(self.tab0_help_list_font1)
+        self.tab0_help_list.setIconSize(QSize(34,34))
+        self.tab0_help_list.setFont(QFont("Arial", 12))
+        self.tab0_help_list.font().setBold(True)
+        
+        liste = [
+            ["Empty Project"         , "emptyproject" + __app__img_ext__],
+            ["Recipe"                , "recipe"       + __app__img_ext__],
+            ["API Project"           , "api"          + __app__img_ext__],
+            ["Software Documentation", "software"     + __app__img_ext__],
+        ]
+        for item in liste:
+            self.list_item1 = QListWidgetItem(_(item[0]),self.tab0_help_list)
+            self.list_item1.setIcon(QIcon(__app__img__int__ + item[1]))
+            self.list_item1.setFont(self.tab0_help_list.font())
         
         self.tab0_help_layout = QHBoxLayout()
         self.tab0_help_layout.addWidget(self.tab0_file_list)
@@ -4364,7 +4321,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_file_tree = QTreeView()
         self.tab1_file_list = QListView()
         
-        self.tab1_file_tree.setStyleSheet(css_model_header)
+        self.tab1_file_tree.setStyleSheet(_(css_model_header))
         
         self.tab1_file_tree.setModel(self.tab1_dir_model)
         self.tab1_file_list.setModel(self.tab1_file_model)
@@ -4429,7 +4386,7 @@ class FileWatcherGUI(QDialog):
         #
         self.tab1_preActionComboBox = QComboBox(self.tab1_0)
         self.tab1_preActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
-        self.tab1_preActionComboBox.setStyleSheet(css_combobox_style)
+        self.tab1_preActionComboBox.setStyleSheet(_(css_combobox_style))
         self.tab1_timeComboBox.setMaximumWidth(49)
         self.tab1_middle_layout.addWidget(self.tab1_preActionComboBox)
         
@@ -4477,7 +4434,7 @@ class FileWatcherGUI(QDialog):
         
         self.tab1_postActionComboBox = QComboBox(self.tab1_0)
         self.tab1_postActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
-        self.tab1_postActionComboBox.setStyleSheet(css_combobox_style)
+        self.tab1_postActionComboBox.setStyleSheet(_(css_combobox_style))
         self.tab1_right_layout.addWidget(self.tab1_postActionComboBox)
         
         self.tab1_postEditLineLabel = QLabel("Text / File:", self.tab1_0)

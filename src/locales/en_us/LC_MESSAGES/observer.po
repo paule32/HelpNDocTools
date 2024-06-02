@@ -586,6 +586,38 @@ msgstr ""
     "background: none;"
     "}"
 
+msgid "overlaycss"
+msgstr ""
+    "background-color:rgba(255,255,255,200);"
+    "color:black;"
+
+msgid "combo_actn"
+msgstr ""
+    "font-family:'Arial';font-size:12pt;height:30px;"
+    "font-weight:600;background-color:yellow;"
+
+msgid "model_hadr"
+msgstr ""
+    "QHeaderView::section{background-color:lightblue;color:black;font-weight:bold;}"
+
+msgid "bggy"
+msgstr ""
+    "background-color:gray;"
+
+msgid "join_build"
+msgstr ""
+    "QHeaderView::section{"
+    "background-color:rgb(0,190,255);"
+    "color:black;font-weight:bold}"
+
+msgid "bglg"
+msgstr ""
+    "background-color:lightgray;"
+
+msgid "bgwh"
+msgstr ""
+    "background-color:white;"
+
 # ---------------------------------------------------------------------------
 # supported languages by doxygen 1.10.0 ...
 # ---------------------------------------------------------------------------
