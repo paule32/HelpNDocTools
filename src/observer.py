@@ -2204,18 +2204,11 @@ class MyPushButton(QLabel):
             self.btn_img_fg = __app__img__int__ + "build1.png"
             self.btn_img_bg = __app__img__int__ + "build2.png"
         
-        self.setStyleSheet("""
-        MyPushButton {
-            border-image: url('""" + self.btn_img_fg + """') 0 0 0 0 stretch stretch;
-            background:yellow;
-            border-radius: 5px solid gray;
-        }
-        MyPushButton:hover {
-            border-image: url('""" + self.btn_img_bg + """') 0 0 0 0 stretch stretch;
-            background:yellow;
-            border-radius: 5px solid gray;
-        }
-        """)
+        style = _("push_css") \
+        .replace("{fg}",self.btn_img_fg) \
+        .replace("{bg}",self.btn_img_bg)
+        
+        self.setStyleSheet(style)
 
 class MyEllipseButton(QPushButton):
     def __init__(self, font):
@@ -2467,6 +2460,205 @@ class addProperty(QLabel):
         else:
             self.rhs.setText("FALSE" + self.ftext_spacer)
 
+class addInspectorItem():
+    def __init__(self, parent, text, value):
+        item = QTreeWidgetItem()
+        item.setText(0,text)
+        item.setText(1,str(value))
+        #
+        test1 = QTreeWidgetItem(item)
+        test2 = QTreeWidgetItem(item)
+        
+        test1.setText(0,"TEST_A")
+        test2.setText(0,"TEST_B")
+        #
+        parent.object_inspector.addTopLevelItem(item)
+
+
+class CppSyntaxHighlighter(QSyntaxHighlighter):
+    def __init__(self, document):
+        super().__init__(document)
+        
+        dark_green = QColor(0,100,0)
+        
+        self.commentFormat = QTextCharFormat()
+        self.commentFormat.setForeground(dark_green)
+        self.commentFormat.setFontWeight(QFont.Normal)  # Set the comment font weight to normal
+        
+        self.boldFormat = QTextCharFormat()
+        self.boldFormat.setFont(QFont("Consolas", 12))  # Set the font for keywords
+        self.boldFormat.setFontWeight(QFont.Bold)
+        
+        # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
+        self.keywords = ["TODO", "FIXME"]
+        
+        # Definiere die Muster für mehrzeilige Kommentare
+        self.multiLineCommentFormat = QTextCharFormat()
+        self.multiLineCommentFormat.setForeground(dark_green)
+        self.commentStartExpression = QRegExp(r"/\*")
+        self.commentEndExpression = QRegExp(r"\*/")
+    
+    def highlightBlock(self, text):
+        # Mehrzeilige Kommentare markieren
+        self.setCurrentBlockState(0)
+        
+        startIndex = 0
+        if self.previousBlockState() != 1:
+            startIndex = self.commentStartExpression.indexIn(text)
+        
+        while startIndex >= 0:
+            endIndex = self.commentEndExpression.indexIn(text, startIndex)
+            if endIndex == -1:
+                self.setCurrentBlockState(1)
+                commentLength = len(text) - startIndex
+            else:
+                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
+            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
+            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
+        
+        # Highlight single line comments
+        single_line_comment_patterns = [r"//", r"\*\*", r"&&"]
+        comment_positions = []
+        
+        # Suche nach einzeiligen Kommentaren und markiere sie
+        for pattern in single_line_comment_patterns:
+            for match in re.finditer(pattern, text):
+                start = match.start()
+                self.setFormat(start, len(text) - start, self.commentFormat)
+                comment_positions.append((start, len(text) - start))
+        
+        # Suche nach Keywords und markiere sie
+        for word in self.keywords:
+            pattern = re.compile(re.escape(word), re.IGNORECASE)
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                
+                # Prüfen, ob das Keyword in einem Kommentar steht
+                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
+                
+                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
+                if self.previousBlockState() != 1 and not in_comment:
+                    self.setFormat(start, length, self.boldFormat)
+
+class EditorTextEdit(QPlainTextEdit):
+    def __init__(self):
+        super().__init__()
+        self.lineNumberArea = LineNumberArea(self)
+        self.bookmarks = set()
+        self.highlighter = CppSyntaxHighlighter(self.document())
+        
+        self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
+        self.updateRequest.connect(self.updateLineNumberArea)
+        self.cursorPositionChanged.connect(self.highlightCurrentLine)
+        
+        self.updateLineNumberAreaWidth(0)
+        self.highlightCurrentLine()
+        
+        # Schriftgröße und Schriftart setzen
+        self.setFont(QFont("Consolas", 12))
+
+    def lineNumberAreaWidth(self):
+        digits = 1
+        max_num = max(1, self.blockCount())
+        while max_num >= 10:
+            max_num /= 10
+            digits += 1
+        space = 3 + self.fontMetrics().horizontalAdvance('9') * digits
+        icon_space = 20  # Platz für die Icons
+        return space + icon_space
+    
+    def updateLineNumberAreaWidth(self, _):
+        self.setViewportMargins(self.lineNumberAreaWidth(), 0, 0, 0)
+    
+    def updateLineNumberArea(self, rect, dy):
+        if dy:
+            self.lineNumberArea.scroll(0, dy)
+        else:
+            self.lineNumberArea.update(0, rect.y(), self.lineNumberArea.width(), rect.height())
+        
+        if rect.contains(self.viewport().rect()):
+            self.updateLineNumberAreaWidth(0)
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        cr = self.contentsRect()
+        self.lineNumberArea.setGeometry(QRect(cr.left(), cr.top(), self.lineNumberAreaWidth(), cr.height()))
+    
+    def highlightCurrentLine(self):
+        extraSelections = []
+        
+        if not self.isReadOnly():
+            selection = QTextEdit.ExtraSelection()
+            
+            lineColor = QColor(Qt.yellow).lighter(160)
+            
+            selection.format.setBackground(lineColor)
+            selection.format.setProperty(QTextFormat.FullWidthSelection, True)
+            selection.cursor = self.textCursor()
+            selection.cursor.clearSelection()
+            extraSelections.append(selection)
+        
+        self.setExtraSelections(extraSelections)
+    
+    def lineNumberAreaPaintEvent(self, event):
+        painter = QPainter(self.lineNumberArea)
+        painter.fillRect(event.rect(), Qt.lightGray)
+        
+        block = self.firstVisibleBlock()
+        blockNumber = block.blockNumber()
+        top = self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
+        bottom = top + self.blockBoundingRect(block).height()
+        
+        while block.isValid() and top <= event.rect().bottom():
+            if block.isVisible() and bottom >= event.rect().top():
+                number = str(blockNumber + 1)
+                painter.setPen(Qt.black)
+                rect = QRect(20, int(top), self.lineNumberArea.width() - 20, self.fontMetrics().height())
+                painter.drawText(rect, Qt.AlignRight, number)
+                
+                # Zeichnen des Icons
+                icon_rect = QRect(0, int(top), 20, self.fontMetrics().height())
+                if blockNumber in self.bookmarks:
+                    painter.setBrush(Qt.red)
+                    painter.drawEllipse(icon_rect.center(), 5, 5)
+            
+            block = block.next()
+            top = bottom
+            bottom = top + self.blockBoundingRect(block).height()
+            blockNumber += 1
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            cursor = self.cursorForPosition(event.pos())
+            block = cursor.block()
+            block_number = block.blockNumber()
+            top = self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
+            bottom = top + self.blockBoundingRect(block).height()
+            
+            # Überprüfen, ob der Klick innerhalb der Linie liegt
+            if int(top) <= event.pos().y() <= int(bottom):
+                if block_number in self.bookmarks:
+                    self.bookmarks.remove(block_number)
+                else:
+                    self.bookmarks.add(block_number)
+                self.lineNumberArea.update()
+        
+        super().mousePressEvent(event)
+
+class LineNumberArea(QWidget):
+    def __init__(self, editor):
+        super().__init__(editor)
+        self.editor = editor
+    
+    def sizeHint(self):
+        return QSize(self.editor.lineNumberAreaWidth(), 0)
+    
+    def paintEvent(self, event):
+        self.editor.lineNumberAreaPaintEvent(event)
+        self.setFont(QFont("Consolas", 12))  # Schriftgröße und Schriftart für Zeilennummerbereich setzen
+
+
 class myGridViewer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -2486,36 +2678,17 @@ class myGridViewer(QWidget):
         self.object_inspector = QTreeWidget()
         self.object_inspector.setIconSize(QSize(20,20))
         self.object_inspector.setFont(font1)
-        self.object_inspector.setStyleSheet(""
-        + "QHeaderView::section{"
-        + "background-color:rgb(0,190,255);"
-        + "color:black;font-weight:bold}")
+        self.object_inspector.setStyleSheet(_("inspect_css"))
         
         headerLabel = ["Name", "Count"]
         self.object_inspector.setColumnCount(len(headerLabel))
         self.object_inspector.setHeaderLabels(headerLabel)
         #
-        self.object_item_procedures = QTreeWidgetItem()
-        self.object_item_procedures.setText(0,"Procedure's")
-        self.object_item_procedures.setText(1,"100")
-        #
-        self.object_item_functions = QTreeWidgetItem()
-        self.object_item_functions.setText(0,"Function's")
-        self.object_item_functions.setText(1,"200")
-        
-        self.object_item_functions_test1 = QTreeWidgetItem(self.object_item_functions)
-        self.object_item_functions_test2 = QTreeWidgetItem(self.object_item_functions)
-        
-        self.object_item_functions_test1.setText(0,"TEST_A")
-        self.object_item_functions_test2.setText(0,"TEST_B")
-        #
-        self.object_item_variables = QTreeWidgetItem()
-        self.object_item_variables.setText(0,"Variable's")
-        self.object_item_variables.setText(1,"300")
-        #
-        self.object_inspector.addTopLevelItem(self.object_item_procedures)
-        self.object_inspector.addTopLevelItem(self.object_item_functions)
-        self.object_inspector.addTopLevelItem(self.object_item_variables)
+        addInspectorItem(self,"Objects's"  ,   0)
+        addInspectorItem(self,"Classes"    ,   0)
+        addInspectorItem(self,"Procedure's", 100)
+        addInspectorItem(self,"Function's" , 200)
+        addInspectorItem(self,"Variable's" , 300)
         
         
         self.property_page  = QTabWidget()
@@ -3081,6 +3254,13 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
         self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
         self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, "dBASE SQL Builder")
+        ####
+        self.dbase_tabs_editors_layout = QVBoxLayout()
+        self.dbase_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        
+        self.dbase_tabs_editor = EditorTextEdit()
+        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_editor)
+        self.dbase_tabs_editors_widget.setLayout(self.dbase_tabs_editors_layout)
         ####
         self.dbase_builder_layout = QVBoxLayout()
         self.dbase_builder_layout.setContentsMargins(2,2,2,2)
