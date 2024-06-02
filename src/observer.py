@@ -59,6 +59,7 @@ __app__dbasedb__    = __app__img__int__ + "dbase"
 __app__javadev__    = __app__img__int__ + "java"
 __app__javadoc__    = __app__img__int__ + "javadoc"
 __app__freepas__    = __app__img__int__ + "freepas"
+__app__locales__    = __app__img__int__ + "locales"
 
 __app__img_ext__    = ".png"
 
@@ -376,19 +377,21 @@ class myIconLabel(QLabel):
         if event.button() == Qt.LeftButton:
             #print(self.caption)
             if self.mode == 0:
-                self.btn_clicked(side_btn1,self.parent.parent.help_tabs)
-            if self.mode == 1:
-                self.btn_clicked(side_btn2,self.parent.parent.dbase_tabs)
-            if self.mode == 2:
-                self.btn_clicked(side_btn3,self.parent.parent.pascal_tabs)
-            if self.mode == 3:
-                self.btn_clicked(side_btn4,self.parent.parent.isoc_tabs)
-            if self.mode == 4:
-                self.btn_clicked(side_btn5,self.parent.parent.java_tabs)
-            if self.mode == 5:
-                self.btn_clicked(side_btn6,self.parent.parent.python_tabs)
-            if self.mode == 6:
-                self.btn_clicked(side_btn7,self.parent.parent.lisp_tabs)
+                self.btn_clicked(self.parent,self.parent.parent.help_tabs)
+            elif self.mode == 1:
+                self.btn_clicked(self.parent,self.parent.parent.dbase_tabs)
+            elif self.mode == 2:
+                self.btn_clicked(self.parent,self.parent.parent.pascal_tabs)
+            elif self.mode == 3:
+                self.btn_clicked(self.parent,self.parent.parent.isoc_tabs)
+            elif self.mode == 4:
+                self.btn_clicked(self.parent,self.parent.parent.java_tabs)
+            elif self.mode == 5:
+                self.btn_clicked(self.parent,self.parent.parent.python_tabs)
+            elif self.mode == 6:
+                self.btn_clicked(self.parent,self.parent.parent.lisp_tabs)
+            elif self.mode == 10:
+                self.btn_clicked(self.parent,self.parent.parent.locale_tabs)
     
     def enterEvent(self, event):
         self.show_overlay()
@@ -404,6 +407,7 @@ class myIconLabel(QLabel):
         self.parent.parent.java_tabs.hide()
         self.parent.parent.python_tabs.hide()
         self.parent.parent.lisp_tabs.hide()
+        self.parent.parent.locale_tabs.hide()
     
     def btn_clicked(self,btn,tabs):
         self.hide_tabs()
@@ -413,35 +417,46 @@ class myIconLabel(QLabel):
         btn.state = 2
         btn.set_style()
     
-        return
-    
     def set_null_state(self):
-        side_btn1.state = 0
-        side_btn2.state = 0
-        side_btn3.state = 0
-        side_btn4.state = 0
-        side_btn5.state = 0
-        side_btn6.state = 0
-        side_btn7.state = 0
+        self.parent.parent.side_btn1.state = 0
+        self.parent.parent.side_btn2.state = 0
+        self.parent.parent.side_btn3.state = 0
+        self.parent.parent.side_btn4.state = 0
+        self.parent.parent.side_btn5.state = 0
+        self.parent.parent.side_btn6.state = 0
+        self.parent.parent.side_btn7.state = 0
+        self.parent.parent.side_btnA.state = 0
         #
-        side_btn1.set_style()
-        side_btn2.set_style()
-        side_btn3.set_style()
-        side_btn4.set_style()
-        side_btn5.set_style()
-        side_btn6.set_style()
-        side_btn7.set_style()
+        self.parent.parent.side_btn1.set_style()
+        self.parent.parent.side_btn2.set_style()
+        self.parent.parent.side_btn3.set_style()
+        self.parent.parent.side_btn4.set_style()
+        self.parent.parent.side_btn5.set_style()
+        self.parent.parent.side_btn6.set_style()
+        self.parent.parent.side_btn7.set_style()
+        self.parent.parent.side_btnA.set_style()
 
 class myIconButton(QWidget):
-    def __init__(self, parent, mode, text):
-        super(myIconButton, self).__init__(parent.side_widget)
+    def __init__(self, parent, mode, label_text, text):
+        super().__init__()
         
-        parent.setMinimumWidth(100)
-        parent.side_layout.addWidget(self, Qt.AlignTop)
+        self.vl = QVBoxLayout()
+        self.pix_label = myIconLabel(self, text, mode)
         
-        self.label = myIconLabel(self, text, mode)
-        self.label.setAlignment(Qt.AlignTop)
-        self.label.setObjectName("s-image")
+        self.txt_fonda = QFont("Arial",10)
+        self.txt_fonda.setBold(True)
+        #
+        self.txt_label = QLabel(label_text)
+        self.txt_label.setAlignment(Qt.AlignCenter)
+        self.txt_label.setFont(self.txt_fonda)
+        
+        self.pix_label.setObjectName("lbl-image")
+        self.txt_label.setObjectName("lbl-text")
+        
+        self.vl.addWidget(self.pix_label)
+        self.vl.addWidget(self.txt_label)
+        #
+        self.setLayout(self.vl)
         
         self.caption = text
         self.mode    = mode
@@ -455,36 +470,49 @@ class myIconButton(QWidget):
         fg = str(1) + __app__img_ext__
         bg = str(2) + __app__img_ext__
         
-        self.label.setMinimumWidth (79)
-        self.label.setMinimumHeight(79)
+        self.pix_label.setMinimumWidth (79)
+        self.pix_label.setMinimumHeight(79)
         #
-        self.label.setMaximumWidth (79)
-        self.label.setMaximumHeight(79)
+        self.pix_label.setMaximumWidth (79)
+        self.pix_label.setMaximumHeight(79)
         
         self.image_fg = __app__helpdev__ + fg
         self.image_bg = __app__helpdev__ + bg
         
+        parent.side_layout.addWidget(self)
+        
         if mode == 0:
             self.image_fg = __app__helpdev__ + fg
             self.image_bg = __app__helpdev__ + bg
+            
         elif mode == 1:
             self.image_fg = __app__dbasedb__ + fg
             self.image_bg = __app__dbasedb__ + bg
+            
         elif mode == 2:
             self.image_fg = __app__freepas__ + fg
             self.image_bg = __app__freepas__ + bg
+            
         elif mode == 3:
             self.image_fg = __app__cpp1dev__ + fg
             self.image_bg = __app__cpp1dev__ + bg
+            
         elif mode == 4:
             self.image_fg = __app__javadev__ + fg
             self.image_bg = __app__javadev__ + bg
+            
         elif mode == 5:
             self.image_fg = __app__pythonc__ + fg
             self.image_bg = __app__pythonc__ + bg
+            
         elif mode == 6:
             self.image_fg = __app__lispmod__ + fg
             self.image_bg = __app__lispmod__ + bg
+            
+        if mode == 10:
+            self.image_fg = __app__locales__ + fg
+            self.image_bg = __app__locales__ + bg
+        
         self.set_style()
     
     def set_style(self):
@@ -498,7 +526,7 @@ class myIconButton(QWidget):
         .replace("{bg}", self.image_bg)  \
         .replace("{bc}", self.bordercolor)
         
-        self.label.setStyleSheet(style)
+        self.pix_label.setStyleSheet(style)
     
     def enterEvent(self, event):
         if self.state == 2:
@@ -3180,34 +3208,46 @@ class FileWatcherGUI(QDialog):
         self.main_widget.setContentsMargins(0,0,0,0)
         self.main_widget.setStyleSheet("padding:0px;margin:0px;")
         
-        self.side_layout = QVBoxLayout()
+        
+        self.side_scroll = QScrollArea()
         self.side_widget = QWidget()
-        self.side_widget.setMinimumWidth(100)
-        self.side_widget.setMaximumHeight(800)
-        
-        global side_btn1
-        global side_btn2
-        global side_btn3
-        global side_btn4
-        global side_btn5
-        global side_btn6
-        global side_btn7
+        self.side_layout = QVBoxLayout()
         #
-        side_btn1 = myIconButton(self, 0, "Help Authoring for/with:\no doxygen\no HelpNDoc")
-        side_btn2 = myIconButton(self, 1, "dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !")
-        side_btn3 = myIconButton(self, 2, "Pascal old school programming\no Delphi\no FPC")
-        side_btn4 = myIconButton(self, 3, "C / C++ embeded programming\nor cross platform")
-        side_btn5 = myIconButton(self, 4, "Java modern cross programming\nfor any device")
-        side_btn6 = myIconButton(self, 5, "Python modern GUI programming\nlets rock AI\nand TensorFlow")
-        side_btn7 = myIconButton(self, 6, "LISP traditional programming\nultimate old school")
+        self.side_widget.setContentsMargins(0,0,0,0)
+        self.side_scroll.setContentsMargins(0,0,0,0)
+        
+        self.side_btn1 = myIconButton(self,  0, "Help"   , "Help Authoring for/with:\no doxygen\no HelpNDoc")
+        self.side_btn2 = myIconButton(self,  1, "dBASE"  , "dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !")
+        self.side_btn3 = myIconButton(self,  2, "Pascal" , "Pascal old school programming\no Delphi\no FPC")
+        self.side_btn4 = myIconButton(self,  3, "ISO C"  , "C / C++ embeded programming\nor cross platform")
+        self.side_btn5 = myIconButton(self,  4, "Java"   , "Java modern cross programming\nfor any device")
+        self.side_btn6 = myIconButton(self,  5, "Python" , "Python modern GUI programming\nlets rock AI\nand TensorFlow")
+        self.side_btn7 = myIconButton(self,  6, "LISP"   , "LISP traditional programming\nultimate old school")
         #
-        side_btn1.bordercolor = "lime"
-        side_btn1.state       = 2
-        side_btn1.set_style()
+        self.side_btnA = myIconButton(self, 10, "Locales", "" \
+            + "Localization your Application with different supported languages\n" \
+            + "around the World.\n" \
+            + "Used tools are msgfmt - the Unix Tool for generationg .mo files.")
+        #
         
+        self.side_btn1.bordercolor = "lime"
+        self.side_btn1.state       = 2
+        self.side_btn1.set_style()
         
+        self.side_widget.setMaximumWidth(120)
         self.side_widget.setLayout(self.side_layout)
-        self.main_layout.addWidget(self.side_widget)
+        
+        self.side_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.side_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.side_scroll.setWidgetResizable(True)
+        self.side_scroll.setMinimumWidth(130)
+        self.side_scroll.setMaximumWidth(130)
+        self.side_scroll.setWidget(self.side_widget)
+        
+        ####
+        self.main_layout.addWidget(self.side_scroll)
+        
+        
         
         # dbase
         self.dbase_tabs = QTabWidget()
@@ -3767,6 +3807,24 @@ class FileWatcherGUI(QDialog):
         self.main_layout.addWidget(self.lisp_tabs)
         
         
+        
+        # locale
+        self.locale_tabs = QTabWidget()
+        self.locale_tabs.setStyleSheet(css_tabs)
+        self.locale_tabs.hide()
+        
+        self.locale_tabs_project_widget = QWidget()
+        self.locale_tabs_editors_widget = QWidget()
+        self.locale_tabs_designs_widget = QWidget()
+        #
+        self.locale_tabs.addTab(self.locale_tabs_project_widget, "Locales Project")
+        self.locale_tabs.addTab(self.locale_tabs_editors_widget, "Locales Editor")
+        self.locale_tabs.addTab(self.locale_tabs_designs_widget, "Locales Designer")
+        ####
+        self.main_layout.addWidget(self.locale_tabs)
+        
+        
+        
         # first register card - action's ...
         self.help_tabs = QTabWidget()
         self.help_tabs.setStyleSheet(css_tabs)
@@ -3912,7 +3970,6 @@ class FileWatcherGUI(QDialog):
         self.dl = QVBoxLayout()
         self.dl.setContentsMargins(1,0,0,1)
         self.dl.addWidget(self.devices_scroll)
-        
         ####
         self.main_layout.addLayout(self.dl)
         
