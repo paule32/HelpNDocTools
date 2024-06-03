@@ -60,6 +60,10 @@ __app__javadev__    = __app__img__int__ + "java"
 __app__javadoc__    = __app__img__int__ + "javadoc"
 __app__freepas__    = __app__img__int__ + "freepas"
 __app__locales__    = __app__img__int__ + "locales"
+__app__com_c64__    = __app__img__int__ + "c64"
+__app__keybc64__    = __app__img__int__ + "c64keyboard.png"
+__app__discc64__    = __app__img__int__ + "disk2.png"
+__app__datmc64__    = __app__img__int__ + "mc2.png"
 
 __app__img_ext__    = ".png"
 
@@ -374,24 +378,27 @@ class myIconLabel(QLabel):
         self.overlay.hide()
     
     def mousePressEvent(self, event):
+        parent = self.parent.parent
         if event.button() == Qt.LeftButton:
             #print(self.caption)
             if self.mode == 0:
-                self.btn_clicked(self.parent,self.parent.parent.help_tabs)
+                self.btn_clicked(self.parent,parent.help_tabs)
             elif self.mode == 1:
-                self.btn_clicked(self.parent,self.parent.parent.dbase_tabs)
+                self.btn_clicked(self.parent,parent.dbase_tabs)
             elif self.mode == 2:
-                self.btn_clicked(self.parent,self.parent.parent.pascal_tabs)
+                self.btn_clicked(self.parent,parent.pascal_tabs)
             elif self.mode == 3:
-                self.btn_clicked(self.parent,self.parent.parent.isoc_tabs)
+                self.btn_clicked(self.parent,parent.isoc_tabs)
             elif self.mode == 4:
-                self.btn_clicked(self.parent,self.parent.parent.java_tabs)
+                self.btn_clicked(self.parent,parent.java_tabs)
             elif self.mode == 5:
-                self.btn_clicked(self.parent,self.parent.parent.python_tabs)
+                self.btn_clicked(self.parent,parent.python_tabs)
             elif self.mode == 6:
-                self.btn_clicked(self.parent,self.parent.parent.lisp_tabs)
+                self.btn_clicked(self.parent,parent.lisp_tabs)
             elif self.mode == 10:
-                self.btn_clicked(self.parent,self.parent.parent.locale_tabs)
+                self.btn_clicked(self.parent,parent.locale_tabs)
+            elif self.mode == 11:
+                self.btn_clicked(self.parent,parent.c64_tabs)
     
     def enterEvent(self, event):
         self.show_overlay()
@@ -400,14 +407,17 @@ class myIconLabel(QLabel):
         self.hide_overlay()
     
     def hide_tabs(self):
-        self.parent.parent.help_tabs.hide()
-        self.parent.parent.dbase_tabs.hide()
-        self.parent.parent.pascal_tabs.hide()
-        self.parent.parent.isoc_tabs.hide()
-        self.parent.parent.java_tabs.hide()
-        self.parent.parent.python_tabs.hide()
-        self.parent.parent.lisp_tabs.hide()
-        self.parent.parent.locale_tabs.hide()
+        parent = self.parent.parent
+        
+        parent.help_tabs.hide()
+        parent.dbase_tabs.hide()
+        parent.pascal_tabs.hide()
+        parent.isoc_tabs.hide()
+        parent.java_tabs.hide()
+        parent.python_tabs.hide()
+        parent.lisp_tabs.hide()
+        parent.locale_tabs.hide()
+        parent.c64_tabs.hide()
     
     def btn_clicked(self,btn,tabs):
         self.hide_tabs()
@@ -418,23 +428,21 @@ class myIconLabel(QLabel):
         btn.set_style()
     
     def set_null_state(self):
-        self.parent.parent.side_btn1.state = 0
-        self.parent.parent.side_btn2.state = 0
-        self.parent.parent.side_btn3.state = 0
-        self.parent.parent.side_btn4.state = 0
-        self.parent.parent.side_btn5.state = 0
-        self.parent.parent.side_btn6.state = 0
-        self.parent.parent.side_btn7.state = 0
-        self.parent.parent.side_btnA.state = 0
-        #
-        self.parent.parent.side_btn1.set_style()
-        self.parent.parent.side_btn2.set_style()
-        self.parent.parent.side_btn3.set_style()
-        self.parent.parent.side_btn4.set_style()
-        self.parent.parent.side_btn5.set_style()
-        self.parent.parent.side_btn6.set_style()
-        self.parent.parent.side_btn7.set_style()
-        self.parent.parent.side_btnA.set_style()
+        parent = self.parent.parent
+        side_buttons = [
+            parent.side_btn1,
+            parent.side_btn2,
+            parent.side_btn3,
+            parent.side_btn4,
+            parent.side_btn5,
+            parent.side_btn6,
+            parent.side_btn7,
+            parent.side_btn8,
+            parent.side_btn9,
+        ]
+        for btn in side_buttons:
+            btn.state = 0
+            btn.set_style()
 
 class myIconButton(QWidget):
     def __init__(self, parent, mode, label_text, text):
@@ -509,9 +517,13 @@ class myIconButton(QWidget):
             self.image_fg = __app__lispmod__ + fg
             self.image_bg = __app__lispmod__ + bg
             
-        if mode == 10:
+        elif mode == 10:
             self.image_fg = __app__locales__ + fg
             self.image_bg = __app__locales__ + bg
+            
+        elif mode == 11:
+            self.image_fg = __app__com_c64__ + fg
+            self.image_bg = __app__com_c64__ + bg
         
         self.set_style()
     
@@ -2969,6 +2981,42 @@ class addDesignerTabs():
                     list_item = QListWidgetItem("", self._listwidget)
                     list_item.setIcon(QIcon(__app__img__int__ + item + "_150.bmp"))
 
+class c64Bildschirm(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setMinimumWidth ( 620 )
+        self.setMaximumWidth ( 620 )
+        #
+        self.setMinimumHeight( 515 )
+        self.setMaximumHeight( 515 )
+        
+        self.setStyleSheet("background-color:blue;")
+    
+    def paintEvent(self, event):
+        painter = QPainter()
+        painter.begin(self)
+        painter.setBrush(QBrush(QColor(0, 158, 255)))
+        painter.drawRect(1,1,320 + 64 + 20, 200 + 64 + 50)
+        
+        painter.setBrush(QBrush(QColor(0, 108, 255)))
+        painter.drawRect(20,20,320 + 44, 200 + 64 + 14)
+        
+        font = QFont("C64 Elite Mono",11)
+        font.setBold(False)
+        
+        painter.setPen(QColor(200, 228, 255))  # Blaue Schrift
+        painter.setFont(font)
+        
+        painter.drawText(21,32,"1234567890" * 4)
+        line = 11
+        i    =  2
+        while i < 26:
+            painter.drawText(21,32+(line),str(i))
+            i += 1
+            line += 11
+        
+        painter.end()
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -3224,11 +3272,13 @@ class FileWatcherGUI(QDialog):
         self.side_btn6 = myIconButton(self,  5, "Python" , "Python modern GUI programming\nlets rock AI\nand TensorFlow")
         self.side_btn7 = myIconButton(self,  6, "LISP"   , "LISP traditional programming\nultimate old school")
         #
-        self.side_btnA = myIconButton(self, 10, "Locales", "" \
+        self.side_btn8 = myIconButton(self, 10, "Locales", "" \
             + "Localization your Application with different supported languages\n" \
             + "around the World.\n" \
-            + "Used tools are msgfmt - the Unix Tool for generationg .mo files.")
+            + "Used tools are msgfmt - the Unix Tool for generationg .mo files.\n")
         #
+        self.side_btn9 = myIconButton(self,  11, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        
         
         self.side_btn1.bordercolor = "lime"
         self.side_btn1.state       = 2
@@ -3248,580 +3298,14 @@ class FileWatcherGUI(QDialog):
         self.main_layout.addWidget(self.side_scroll)
         
         
-        
-        # dbase
-        self.dbase_tabs = QTabWidget()
-        self.dbase_tabs.setStyleSheet(css_tabs)
-        self.dbase_tabs.hide()
-        
-        self.dbase_tabs_project_widget = QWidget()
-        self.dbase_tabs_editors_widget = QWidget()
-        self.dbase_tabs_designs_widget = QWidget()
-        self.dbase_tabs_builder_widget = QWidget()
-        self.dbase_tabs_datatab_widget = QWidget()
-        self.dbase_tabs_reports_widget = QWidget()
-        #
-        self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
-        self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
-        self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
-        self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, "dBASE SQL Builder")
-        self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, "dBASE Data Tables")
-        self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, "dBASE Reports")
-        ####
-        self.dbase_tabs_editors_layout = QVBoxLayout()
-        self.dbase_tabs_editors_layout.setContentsMargins(2,2,2,2)
-        
-        self.dbase_tabs_editor_menu = QWidget()
-        self.dbase_tabs_editor_menu.setStyleSheet("background-color:gray;")
-        self.dbase_tabs_editor_menu.setMinimumHeight(64)
-        #
-        ####
-        self.dbase_tabs_data_tables_layout = QVBoxLayout()
-        self.dbase_tabs_data_tables_layout.setContentsMargins(2,2,2,2)
-        
-        self.dbase_tabs_data_tables_menu = QWidget()
-        self.dbase_tabs_data_tables_menu.setStyleSheet("background-color:gray;")
-        self.dbase_tabs_data_tables_menu.setMinimumHeight(64)
-        #
-        ####
-        self.dbase_tabs_reports_layout = QVBoxLayout()
-        self.dbase_tabs_reports_layout.setContentsMargins(2,2,2,2)
-        
-        self.dbase_tabs_reports_menu = QWidget()
-        self.dbase_tabs_reports_menu.setStyleSheet("background-color:gray;")
-        self.dbase_tabs_reports_menu.setMinimumHeight(64)
-        #
-        
-        self.dbase_file_layout1 = QVBoxLayout()
-        self.dbase_file_layout1.setContentsMargins(1,0,0,1)
-        self.dbase_file_widget1 = QWidget()
-        ####
-        self.dbase_tabs_editor1 = EditorTextEdit("Example1.prg")
-        self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
-        self.dbase_file_widget1.setLayout(self.dbase_file_layout1)
-        #
-        ####
-        self.dbase_file_layout2 = QVBoxLayout()
-        self.dbase_file_layout2.setContentsMargins(1,0,0,1)
-        self.dbase_file_widget2 = QWidget()
-        ####
-        self.dbase_tabs_editor2 = EditorTextEdit("Example2.prg")
-        self.dbase_file_layout2.addWidget(self.dbase_tabs_editor2)
-        self.dbase_file_widget2.setLayout(self.dbase_file_layout2)
-        #
-        self.dbase_tabs_files  = QTabWidget()
-        self.dbase_tabs_files.setStyleSheet(css_tabs)
-        self.dbase_tabs_files.addTab(self.dbase_file_widget1, "Example1.prg")
-        self.dbase_tabs_files.addTab(self.dbase_file_widget2, "Example2.prg")
-        
-        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_editor_menu)
-        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_files)
-        
-        
-        self.dbase_tabs_editors_widget.setLayout(self.dbase_tabs_editors_layout)
-        ####
-        self.dbase_builder_layout = QVBoxLayout()
-        self.dbase_builder_layout.setContentsMargins(2,2,2,2)
-        
-        self.dbase_builder_widget_table = QWidget()
-        self.dbase_builder_widget_table.setStyleSheet(_("bggy"))
-        self.dbase_builder_widget_table.setMaximumHeight(56)
-        
-        self.dbase_builder_widget_view = myGridViewerOverlay(self.dbase_tabs_builder_widget)
-        self.dbase_builder_widget_view.setLayout(QVBoxLayout())
-        
-        
-        self.dbase_builder_window_1 = MySQLDialog("Table A")
-        self.dbase_builder_window_2 = MySQLDialog("Table B")
-        #
-        self.dbase_builder_widget_view.layout().addWidget(self.dbase_builder_window_1)
-        self.dbase_builder_widget_view.layout().addWidget(self.dbase_builder_window_2)
-        
-        self.dbase_builder_widget_join = QTableWidget()
-        self.dbase_builder_widget_join.setStyleSheet(_("join_build"))
-        
-        self.dbase_builder_widget_join.horizontalHeader().setStretchLastSection(True) 
-        self.dbase_builder_widget_join.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) 
-        
-        self.dbase_builder_widget_join.setRowCount(4)
-        self.dbase_builder_widget_join.setColumnCount(4)
-        
-        self.dbase_builder_widget_join.setMinimumHeight(180)
-        self.dbase_builder_widget_join.setMaximumHeight(180)
-        
-        
-        self.dbase_builder_widget_join.setHorizontalHeaderLabels(["Table 1","Table2","TableA","TableB"])
-        self.dbase_builder_widget_join.setVerticalHeaderLabels([" ID  "," ROW1  "," NAME  "," TEXT  "])
-        
-        header = self.dbase_builder_widget_join.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        
-        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_table)
-        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_view)
-        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_join)
-        
-        self.dbase_tabs_builder_widget.setLayout(self.dbase_builder_layout)
-        
-        ####
-        self.dbase_designs_layout  = QVBoxLayout()
-        self.dbase_designs_layout.setContentsMargins(2,2,2,2)
-        self.dbase_designs_palette = QWidget()
-        self.dbase_designs_palette.setStyleSheet(_("bggy"))
-        self.dbase_designs_palette.setMinimumHeight(85)
-        self.dbase_designs_palette.setMaximumHeight(85)
-        #
-        self.dbase_palette_layout  = QHBoxLayout()
-        self.dbase_palette_layout.setContentsMargins(2,2,2,2)
-        self.dbase_palette_widget_lhs  = QLabel ()
-        self.dbase_palette_widget_mid  = QWidget()
-        self.dbase_palette_widget_rhs  = QLabel ()
-        #
-        self.dbase_palette_widget_lhs.setMaximumWidth(20)
-        self.dbase_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.dbase_palette_widget_lhs.setFont(font)
-        self.dbase_palette_widget_rhs.setFont(font)
-        #
-        self.dbase_palette_widget_lhs.setText(chr1)
-        self.dbase_palette_widget_rhs.setText(chr2)
-        #
-        self.dbase_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.dbase_palette_widget_mid.setStyleSheet(_("bggy"))
-        self.dbase_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.dbase_palette_widget_mid_layout = QHBoxLayout()
-        self.dbase_palette_widget_mid_tabs   = QTabWidget()
-        self.dbase_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.dbase_palette_widget_mid_tabs)
-        
-        self.dbase_palette_widget_mid_layout.addWidget(self.dbase_palette_widget_mid_tabs)
-        #
-        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_lhs)
-        self.dbase_palette_layout.addLayout(self.dbase_palette_widget_mid_layout)
-        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_rhs)
-        #
-        self.dbase_designs_palette.setLayout(self.dbase_palette_layout)
-        ####
-        
-        self.dbase_designs_viewer  = myGridViewer(self)
-        self.dbase_designs_viewer.setStyleSheet(_("bgwh"))
-        
-        self.dbase_designs_layout.addWidget(self.dbase_designs_palette)
-        self.dbase_designs_layout.addWidget(self.dbase_designs_viewer)
-        #
-        self.dbase_tabs_designs_widget.setLayout(self.dbase_designs_layout)
-        ####
-        self.main_layout.addWidget(self.dbase_tabs)
-        #################
-        font = QFont("Arial", 12)
-        self.dbase_btn1 = myMoveButton(" move me A ", self.dbase_designs_viewer.content)
-        self.dbase_btn2 = myMoveButton(" move me B ", self.dbase_designs_viewer.content)
-        self.dbase_btn3 = myMoveButton(" move me C ", self.dbase_designs_viewer.content)
-        #
-        self.dbase_btn1.move(20,20)
-        self.dbase_btn2.move(40,40)
-        self.dbase_btn3.move(60,60)
-        #
-        self.dbase_btn1.setFont(font)
-        self.dbase_btn2.setFont(font)
-        self.dbase_btn3.setFont(font)
-        #
-        self.dbase_btn1.setStyleSheet("background-color:red;color:yellow;")
-        self.dbase_btn2.setStyleSheet("background-color:yellow;color:black;")
-        self.dbase_btn3.setStyleSheet("background-color:blue;color:white;")
-        
-        
-        # pascal
-        self.pascal_tabs = QTabWidget()
-        self.pascal_tabs.setStyleSheet(css_tabs)
-        self.pascal_tabs.hide()
-        
-        self.pascal_tabs_project_widget = QWidget()
-        self.pascal_tabs_editors_widget = QWidget()
-        self.pascal_tabs_designs_widget = QWidget()
-        #
-        self.pascal_tabs.addTab(self.pascal_tabs_project_widget, "Pascal Project")
-        self.pascal_tabs.addTab(self.pascal_tabs_editors_widget, "Pascal Editor")
-        self.pascal_tabs.addTab(self.pascal_tabs_designs_widget, "Pascal Designer")
-        
-        self.pascal_designs_layout  = QVBoxLayout()
-        self.pascal_designs_layout.setContentsMargins(2,2,2,2)
-        self.pascal_designs_palette = QWidget()
-        self.pascal_designs_palette.setStyleSheet(_("bggy"))
-        self.pascal_designs_palette.setMaximumHeight(80)
-        #
-        self.pascal_palette_layout  = QHBoxLayout()
-        self.pascal_palette_layout.setContentsMargins(2,2,2,2)
-        self.pascal_palette_widget_lhs  = QLabel ()
-        self.pascal_palette_widget_mid  = QWidget()
-        self.pascal_palette_widget_rhs  = QLabel ()
-        #
-        self.pascal_palette_widget_lhs.setMaximumWidth(20)
-        self.pascal_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.pascal_palette_widget_lhs.setFont(font)
-        self.pascal_palette_widget_rhs.setFont(font)
-        #
-        self.pascal_palette_widget_lhs.setText(chr1)
-        self.pascal_palette_widget_rhs.setText(chr2)
-        #
-        self.pascal_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.pascal_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.pascal_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.pascal_palette_widget_mid_layout = QHBoxLayout()
-        self.pascal_palette_widget_mid_tabs   = QTabWidget()
-        self.pascal_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.pascal_palette_widget_mid_tabs)
-        
-        self.pascal_palette_widget_mid_layout.addWidget(self.pascal_palette_widget_mid_tabs)
-        #
-        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_lhs)
-        self.pascal_palette_layout.addLayout(self.pascal_palette_widget_mid_layout)
-        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_rhs)
-        #
-        self.pascal_designs_palette.setLayout(self.pascal_palette_layout)
-        ####
-        
-        self.pascal_designs_viewer  = myGridViewer(self)
-        self.pascal_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.pascal_designs_layout.addWidget(self.pascal_designs_palette)
-        self.pascal_designs_layout.addWidget(self.pascal_designs_viewer)
-        #
-        self.pascal_tabs_designs_widget.setLayout(self.pascal_designs_layout)
-        ####
-        self.main_layout.addWidget(self.pascal_tabs)
-        #################
-        self.pascal_btn1 = myMoveButton("move me D", self.pascal_designs_viewer)
-        self.pascal_btn2 = myMoveButton("move me E", self.pascal_designs_viewer)
-        self.pascal_btn3 = myMoveButton("move me F", self.pascal_designs_viewer)
-        #
-        self.pascal_btn1.move(120,20)
-        self.pascal_btn2.move(140,40)
-        self.pascal_btn3.move(160,60)
-        
-        # isoc
-        self.isoc_tabs = QTabWidget()
-        self.isoc_tabs.setStyleSheet(css_tabs)
-        self.isoc_tabs.hide()
-        
-        self.isoc_tabs_project_widget = QWidget()
-        self.isoc_tabs_editors_widget = QWidget()
-        self.isoc_tabs_designs_widget = QWidget()
-        #
-        self.isoc_tabs.addTab(self.isoc_tabs_project_widget, "ISO C Project")
-        self.isoc_tabs.addTab(self.isoc_tabs_editors_widget, "ISO C Editor")
-        self.isoc_tabs.addTab(self.isoc_tabs_designs_widget, "ISO C Designer")
-        
-        self.isoc_designs_layout  = QVBoxLayout()
-        self.isoc_designs_layout.setContentsMargins(2,2,2,2)
-        self.isoc_designs_palette = QWidget()
-        self.isoc_designs_palette.setStyleSheet(_("bggy"))
-        self.isoc_designs_palette.setMaximumHeight(80)
-        #
-        self.isoc_palette_layout  = QHBoxLayout()
-        self.isoc_palette_layout.setContentsMargins(2,2,2,2)
-        self.isoc_palette_widget_lhs  = QLabel ()
-        self.isoc_palette_widget_mid  = QWidget()
-        self.isoc_palette_widget_rhs  = QLabel ()
-        #
-        self.isoc_palette_widget_lhs.setMaximumWidth(20)
-        self.isoc_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.isoc_palette_widget_lhs.setFont(font)
-        self.isoc_palette_widget_rhs.setFont(font)
-        #
-        self.isoc_palette_widget_lhs.setText(chr1)
-        self.isoc_palette_widget_rhs.setText(chr2)
-        #
-        self.isoc_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.isoc_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.isoc_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.isoc_palette_widget_mid_layout = QHBoxLayout()
-        self.isoc_palette_widget_mid_tabs   = QTabWidget()
-        self.isoc_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.isoc_palette_widget_mid_tabs)
-        
-        
-        self.isoc_palette_widget_mid_layout.addWidget(self.isoc_palette_widget_mid_tabs)
-        #
-        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_lhs)
-        self.isoc_palette_layout.addLayout(self.isoc_palette_widget_mid_layout)
-        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_rhs)
-        #
-        self.isoc_designs_palette.setLayout(self.isoc_palette_layout)
-        ####
-        
-        self.isoc_designs_viewer  = myGridViewer(self)
-        self.isoc_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.isoc_designs_layout.addWidget(self.isoc_designs_palette)
-        self.isoc_designs_layout.addWidget(self.isoc_designs_viewer)
-        #
-        self.isoc_tabs_designs_widget.setLayout(self.isoc_designs_layout)
-        ####
-        self.main_layout.addWidget(self.isoc_tabs)
-        
-        # java
-        self.java_tabs = QTabWidget()
-        self.java_tabs.setStyleSheet(css_tabs)
-        self.java_tabs.hide()
-        
-        self.java_tabs_project_widget = QWidget()
-        self.java_tabs_editors_widget = QWidget()
-        self.java_tabs_designs_widget = QWidget()
-        #
-        self.java_tabs.addTab(self.java_tabs_project_widget, "Java Project")
-        self.java_tabs.addTab(self.java_tabs_editors_widget, "Java Editor")
-        self.java_tabs.addTab(self.java_tabs_designs_widget, "Java Designer")
-        
-        self.java_designs_layout  = QVBoxLayout()
-        self.java_designs_layout.setContentsMargins(2,2,2,2)
-        self.java_designs_palette = QWidget()
-        self.java_designs_palette.setStyleSheet(_("bggy"))
-        self.java_designs_palette.setMaximumHeight(80)
-        #
-        self.java_palette_layout  = QHBoxLayout()
-        self.java_palette_layout.setContentsMargins(2,2,2,2)
-        self.java_palette_widget_lhs  = QLabel ()
-        self.java_palette_widget_mid  = QWidget()
-        self.java_palette_widget_rhs  = QLabel ()
-        #
-        self.java_palette_widget_lhs.setMaximumWidth(20)
-        self.java_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.java_palette_widget_lhs.setFont(font)
-        self.java_palette_widget_rhs.setFont(font)
-        #
-        self.java_palette_widget_lhs.setText(chr1)
-        self.java_palette_widget_rhs.setText(chr2)
-        #
-        self.java_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.java_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.java_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.java_palette_widget_mid_layout = QHBoxLayout()
-        self.java_palette_widget_mid_tabs   = QTabWidget()
-        self.java_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.java_palette_widget_mid_tabs)
-        
-        
-        self.java_palette_widget_mid_layout.addWidget(self.java_palette_widget_mid_tabs)
-        #
-        self.java_palette_layout.addWidget(self.java_palette_widget_lhs)
-        self.java_palette_layout.addLayout(self.java_palette_widget_mid_layout)
-        self.java_palette_layout.addWidget(self.java_palette_widget_rhs)
-        #
-        self.java_designs_palette.setLayout(self.java_palette_layout)
-        ####
-        
-        self.java_designs_viewer  = myGridViewer(self)
-        self.java_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.java_designs_layout.addWidget(self.java_designs_palette)
-        self.java_designs_layout.addWidget(self.java_designs_viewer)
-        #
-        self.java_tabs_designs_widget.setLayout(self.java_designs_layout)
-        ####
-        self.main_layout.addWidget(self.java_tabs)
-        
-        # python
-        self.python_tabs = QTabWidget()
-        self.python_tabs.setStyleSheet(css_tabs)
-        self.python_tabs.hide()
-        
-        self.python_tabs_project_widget = QWidget()
-        self.python_tabs_editors_widget = QWidget()
-        self.python_tabs_designs_widget = QWidget()
-        #
-        self.python_tabs.addTab(self.python_tabs_project_widget, "Python Project")
-        self.python_tabs.addTab(self.python_tabs_editors_widget, "Python Editor")
-        self.python_tabs.addTab(self.python_tabs_designs_widget, "Python Designer")
-        
-        self.python_designs_layout  = QVBoxLayout()
-        self.python_designs_layout.setContentsMargins(2,2,2,2)
-        self.python_designs_palette = QWidget()
-        self.python_designs_palette.setStyleSheet(_("bggy"))
-        self.python_designs_palette.setMaximumHeight(80)
-        #
-        self.python_palette_layout  = QHBoxLayout()
-        self.python_palette_layout.setContentsMargins(2,2,2,2)
-        self.python_palette_widget_lhs  = QLabel ()
-        self.python_palette_widget_mid  = QWidget()
-        self.python_palette_widget_rhs  = QLabel ()
-        #
-        self.python_palette_widget_lhs.setMaximumWidth(20)
-        self.python_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.python_palette_widget_lhs.setFont(font)
-        self.python_palette_widget_rhs.setFont(font)
-        #
-        self.python_palette_widget_lhs.setText(chr1)
-        self.python_palette_widget_rhs.setText(chr2)
-        #
-        self.python_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.python_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.python_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.python_palette_widget_mid_layout = QHBoxLayout()
-        self.python_palette_widget_mid_tabs   = QTabWidget()
-        self.python_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.python_palette_widget_mid_tabs)
-        
-        self.python_palette_widget_mid_layout.addWidget(self.python_palette_widget_mid_tabs)
-        #
-        self.python_palette_layout.addWidget(self.python_palette_widget_lhs)
-        self.python_palette_layout.addLayout(self.python_palette_widget_mid_layout)
-        self.python_palette_layout.addWidget(self.python_palette_widget_rhs)
-        #
-        self.python_designs_palette.setLayout(self.python_palette_layout)
-        ####
-        
-        self.python_designs_viewer  = myGridViewer(self)
-        self.python_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.python_designs_layout.addWidget(self.python_designs_palette)
-        self.python_designs_layout.addWidget(self.python_designs_viewer)
-        #
-        self.python_tabs_designs_widget.setLayout(self.python_designs_layout)
-        ####
-        self.main_layout.addWidget(self.python_tabs)
-        
-        
-        # lisp
-        self.lisp_tabs = QTabWidget()
-        self.lisp_tabs.setStyleSheet(css_tabs)
-        self.lisp_tabs.hide()
-        
-        self.lisp_tabs_project_widget = QWidget()
-        self.lisp_tabs_editors_widget = QWidget()
-        self.lisp_tabs_designs_widget = QWidget()
-        #
-        self.lisp_tabs.addTab(self.lisp_tabs_project_widget, "LISP Project")
-        self.lisp_tabs.addTab(self.lisp_tabs_editors_widget, "LISP Editor")
-        self.lisp_tabs.addTab(self.lisp_tabs_designs_widget, "LISP Designer")
-        
-        self.lisp_designs_layout  = QVBoxLayout()
-        self.lisp_designs_layout.setContentsMargins(2,2,2,2)
-        self.lisp_designs_palette = QWidget()
-        self.lisp_designs_palette.setStyleSheet(_("bggy"))
-        self.lisp_designs_palette.setMaximumHeight(80)
-        #
-        self.lisp_palette_layout  = QHBoxLayout()
-        self.lisp_palette_layout.setContentsMargins(2,2,2,2)
-        self.lisp_palette_widget_lhs  = QLabel ()
-        self.lisp_palette_widget_mid  = QWidget()
-        self.lisp_palette_widget_rhs  = QLabel ()
-        #
-        self.lisp_palette_widget_lhs.setMaximumWidth(20)
-        self.lisp_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.lisp_palette_widget_lhs.setFont(font)
-        self.lisp_palette_widget_rhs.setFont(font)
-        #
-        self.lisp_palette_widget_lhs.setText(chr1)
-        self.lisp_palette_widget_rhs.setText(chr2)
-        #
-        self.lisp_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.lisp_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.lisp_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.lisp_palette_widget_mid_layout = QHBoxLayout()
-        self.lisp_palette_widget_mid_tabs   = QTabWidget()
-        self.lisp_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.lisp_palette_widget_mid_tabs)
-        
-        self.lisp_palette_widget_mid_layout.addWidget(self.lisp_palette_widget_mid_tabs)
-        #
-        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_lhs)
-        self.lisp_palette_layout.addLayout(self.lisp_palette_widget_mid_layout)
-        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_rhs)
-        #
-        self.lisp_designs_palette.setLayout(self.lisp_palette_layout)
-        ####
-        
-        self.lisp_designs_viewer  = myGridViewer(self)
-        self.lisp_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.lisp_designs_layout.addWidget(self.lisp_designs_palette)
-        self.lisp_designs_layout.addWidget(self.lisp_designs_viewer)
-        #
-        self.lisp_tabs_designs_widget.setLayout(self.lisp_designs_layout)
-        ####
-        self.main_layout.addWidget(self.lisp_tabs)
-        
-        
-        
-        # locale
-        self.locale_tabs = QTabWidget()
-        self.locale_tabs.setStyleSheet(css_tabs)
-        self.locale_tabs.hide()
-        
-        self.locale_tabs_project_widget = QWidget()
-        self.locale_tabs_editors_widget = QWidget()
-        self.locale_tabs_designs_widget = QWidget()
-        #
-        self.locale_tabs.addTab(self.locale_tabs_project_widget, "Locales Project")
-        self.locale_tabs.addTab(self.locale_tabs_editors_widget, "Locales Editor")
-        self.locale_tabs.addTab(self.locale_tabs_designs_widget, "Locales Designer")
-        ####
-        self.main_layout.addWidget(self.locale_tabs)
+        self.handleDBase()
+        self.handlePascal()
+        self.handleIsoC()
+        self.handleJava()
+        self.handlePython()
+        self.handleLISP()
+        self.handleLocales()
+        self.handleCommodoreC64()
         
         
         
@@ -4188,7 +3672,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_text2.setFont(font)
         self.tab0_fold_edit2   = myLineEdit()
         self.tab0_fold_push2   = MyEllipseButton(font)
-
+        
         self.tab0_fold_scroll2 = QScrollArea()
         self.tab0_fold_scroll2.setMaximumWidth(300)
         self.tab0_fold_push21  = MyPushButton("Create", 1)
@@ -4551,7 +4035,673 @@ class FileWatcherGUI(QDialog):
         
         self.interval = 0
         self.currentTime = 0
+    
+    # dbase
+    def handleDBase(self):
+        self.dbase_tabs = QTabWidget()
+        self.dbase_tabs.setStyleSheet(css_tabs)
+        self.dbase_tabs.hide()
         
+        self.dbase_tabs_project_widget = QWidget()
+        self.dbase_tabs_editors_widget = QWidget()
+        self.dbase_tabs_designs_widget = QWidget()
+        self.dbase_tabs_builder_widget = QWidget()
+        self.dbase_tabs_datatab_widget = QWidget()
+        self.dbase_tabs_reports_widget = QWidget()
+        #
+        self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
+        self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
+        self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
+        self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, "dBASE SQL Builder")
+        self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, "dBASE Data Tables")
+        self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, "dBASE Reports")
+        ####
+        self.dbase_tabs_editors_layout = QVBoxLayout()
+        self.dbase_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        
+        self.dbase_tabs_editor_menu = QWidget()
+        self.dbase_tabs_editor_menu.setStyleSheet("background-color:gray;")
+        self.dbase_tabs_editor_menu.setMinimumHeight(64)
+        #
+        ####
+        self.dbase_tabs_data_tables_layout = QVBoxLayout()
+        self.dbase_tabs_data_tables_layout.setContentsMargins(2,2,2,2)
+        
+        self.dbase_tabs_data_tables_menu = QWidget()
+        self.dbase_tabs_data_tables_menu.setStyleSheet("background-color:gray;")
+        self.dbase_tabs_data_tables_menu.setMinimumHeight(64)
+        #
+        ####
+        self.dbase_tabs_reports_layout = QVBoxLayout()
+        self.dbase_tabs_reports_layout.setContentsMargins(2,2,2,2)
+        
+        self.dbase_tabs_reports_menu = QWidget()
+        self.dbase_tabs_reports_menu.setStyleSheet("background-color:gray;")
+        self.dbase_tabs_reports_menu.setMinimumHeight(64)
+        #
+        
+        self.dbase_file_layout1 = QVBoxLayout()
+        self.dbase_file_layout1.setContentsMargins(1,0,0,1)
+        self.dbase_file_widget1 = QWidget()
+        ####
+        self.dbase_tabs_editor1 = EditorTextEdit("Example1.prg")
+        self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
+        self.dbase_file_widget1.setLayout(self.dbase_file_layout1)
+        #
+        ####
+        self.dbase_file_layout2 = QVBoxLayout()
+        self.dbase_file_layout2.setContentsMargins(1,0,0,1)
+        self.dbase_file_widget2 = QWidget()
+        ####
+        self.dbase_tabs_editor2 = EditorTextEdit("Example2.prg")
+        self.dbase_file_layout2.addWidget(self.dbase_tabs_editor2)
+        self.dbase_file_widget2.setLayout(self.dbase_file_layout2)
+        #
+        self.dbase_tabs_files  = QTabWidget()
+        self.dbase_tabs_files.setStyleSheet(css_tabs)
+        self.dbase_tabs_files.addTab(self.dbase_file_widget1, "Example1.prg")
+        self.dbase_tabs_files.addTab(self.dbase_file_widget2, "Example2.prg")
+        
+        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_editor_menu)
+        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_files)
+        
+        
+        self.dbase_tabs_editors_widget.setLayout(self.dbase_tabs_editors_layout)
+        ####
+        self.dbase_builder_layout = QVBoxLayout()
+        self.dbase_builder_layout.setContentsMargins(2,2,2,2)
+        
+        self.dbase_builder_widget_table = QWidget()
+        self.dbase_builder_widget_table.setStyleSheet(_("bggy"))
+        self.dbase_builder_widget_table.setMaximumHeight(56)
+        
+        self.dbase_builder_widget_view = myGridViewerOverlay(self.dbase_tabs_builder_widget)
+        self.dbase_builder_widget_view.setLayout(QVBoxLayout())
+        
+        
+        self.dbase_builder_window_1 = MySQLDialog("Table A")
+        self.dbase_builder_window_2 = MySQLDialog("Table B")
+        #
+        self.dbase_builder_widget_view.layout().addWidget(self.dbase_builder_window_1)
+        self.dbase_builder_widget_view.layout().addWidget(self.dbase_builder_window_2)
+        
+        self.dbase_builder_widget_join = QTableWidget()
+        self.dbase_builder_widget_join.setStyleSheet(_("join_build"))
+        
+        self.dbase_builder_widget_join.horizontalHeader().setStretchLastSection(True) 
+        self.dbase_builder_widget_join.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) 
+        
+        self.dbase_builder_widget_join.setRowCount(4)
+        self.dbase_builder_widget_join.setColumnCount(4)
+        
+        self.dbase_builder_widget_join.setMinimumHeight(180)
+        self.dbase_builder_widget_join.setMaximumHeight(180)
+        
+        
+        self.dbase_builder_widget_join.setHorizontalHeaderLabels(["Table 1","Table2","TableA","TableB"])
+        self.dbase_builder_widget_join.setVerticalHeaderLabels([" ID  "," ROW1  "," NAME  "," TEXT  "])
+        
+        header = self.dbase_builder_widget_join.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        
+        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_table)
+        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_view)
+        self.dbase_builder_layout.addWidget(self.dbase_builder_widget_join)
+        
+        self.dbase_tabs_builder_widget.setLayout(self.dbase_builder_layout)
+        
+        ####
+        self.dbase_designs_layout  = QVBoxLayout()
+        self.dbase_designs_layout.setContentsMargins(2,2,2,2)
+        self.dbase_designs_palette = QWidget()
+        self.dbase_designs_palette.setStyleSheet(_("bggy"))
+        self.dbase_designs_palette.setMinimumHeight(85)
+        self.dbase_designs_palette.setMaximumHeight(85)
+        #
+        self.dbase_palette_layout  = QHBoxLayout()
+        self.dbase_palette_layout.setContentsMargins(2,2,2,2)
+        self.dbase_palette_widget_lhs  = QLabel ()
+        self.dbase_palette_widget_mid  = QWidget()
+        self.dbase_palette_widget_rhs  = QLabel ()
+        #
+        self.dbase_palette_widget_lhs.setMaximumWidth(20)
+        self.dbase_palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.dbase_palette_widget_lhs.setFont(font)
+        self.dbase_palette_widget_rhs.setFont(font)
+        #
+        self.dbase_palette_widget_lhs.setText(chr1)
+        self.dbase_palette_widget_rhs.setText(chr2)
+        #
+        self.dbase_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.dbase_palette_widget_mid.setStyleSheet(_("bggy"))
+        self.dbase_palette_widget_rhs.setStyleSheet(_("bglg"))
+        #
+        #
+        self.dbase_palette_widget_mid_layout = QHBoxLayout()
+        self.dbase_palette_widget_mid_tabs   = QTabWidget()
+        self.dbase_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        #######
+        addDesignerTabs(self.dbase_palette_widget_mid_tabs)
+        
+        self.dbase_palette_widget_mid_layout.addWidget(self.dbase_palette_widget_mid_tabs)
+        #
+        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_lhs)
+        self.dbase_palette_layout.addLayout(self.dbase_palette_widget_mid_layout)
+        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_rhs)
+        #
+        self.dbase_designs_palette.setLayout(self.dbase_palette_layout)
+        ####
+        
+        self.dbase_designs_viewer  = myGridViewer(self)
+        self.dbase_designs_viewer.setStyleSheet(_("bgwh"))
+        
+        self.dbase_designs_layout.addWidget(self.dbase_designs_palette)
+        self.dbase_designs_layout.addWidget(self.dbase_designs_viewer)
+        #
+        self.dbase_tabs_designs_widget.setLayout(self.dbase_designs_layout)
+        ####
+        self.main_layout.addWidget(self.dbase_tabs)
+        #################
+        font = QFont("Arial", 12)
+        self.dbase_btn1 = myMoveButton(" move me A ", self.dbase_designs_viewer.content)
+        self.dbase_btn2 = myMoveButton(" move me B ", self.dbase_designs_viewer.content)
+        self.dbase_btn3 = myMoveButton(" move me C ", self.dbase_designs_viewer.content)
+        #
+        self.dbase_btn1.move(20,20)
+        self.dbase_btn2.move(40,40)
+        self.dbase_btn3.move(60,60)
+        #
+        self.dbase_btn1.setFont(font)
+        self.dbase_btn2.setFont(font)
+        self.dbase_btn3.setFont(font)
+        #
+        self.dbase_btn1.setStyleSheet("background-color:red;color:yellow;")
+        self.dbase_btn2.setStyleSheet("background-color:yellow;color:black;")
+        self.dbase_btn3.setStyleSheet("background-color:blue;color:white;")
+    
+    # pascal
+    def handlePascal(self):
+        self.pascal_tabs = QTabWidget()
+        self.pascal_tabs.setStyleSheet(css_tabs)
+        self.pascal_tabs.hide()
+        
+        self.pascal_tabs_project_widget = QWidget()
+        self.pascal_tabs_editors_widget = QWidget()
+        self.pascal_tabs_designs_widget = QWidget()
+        #
+        self.pascal_tabs.addTab(self.pascal_tabs_project_widget, "Pascal Project")
+        self.pascal_tabs.addTab(self.pascal_tabs_editors_widget, "Pascal Editor")
+        self.pascal_tabs.addTab(self.pascal_tabs_designs_widget, "Pascal Designer")
+        
+        self.pascal_designs_layout  = QVBoxLayout()
+        self.pascal_designs_layout.setContentsMargins(2,2,2,2)
+        self.pascal_designs_palette = QWidget()
+        self.pascal_designs_palette.setStyleSheet(_("bggy"))
+        self.pascal_designs_palette.setMaximumHeight(80)
+        #
+        self.pascal_palette_layout  = QHBoxLayout()
+        self.pascal_palette_layout.setContentsMargins(2,2,2,2)
+        self.pascal_palette_widget_lhs  = QLabel ()
+        self.pascal_palette_widget_mid  = QWidget()
+        self.pascal_palette_widget_rhs  = QLabel ()
+        #
+        self.pascal_palette_widget_lhs.setMaximumWidth(20)
+        self.pascal_palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.pascal_palette_widget_lhs.setFont(font)
+        self.pascal_palette_widget_rhs.setFont(font)
+        #
+        self.pascal_palette_widget_lhs.setText(chr1)
+        self.pascal_palette_widget_rhs.setText(chr2)
+        #
+        self.pascal_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.pascal_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.pascal_palette_widget_rhs.setStyleSheet(_("bglg"))
+        #
+        #
+        self.pascal_palette_widget_mid_layout = QHBoxLayout()
+        self.pascal_palette_widget_mid_tabs   = QTabWidget()
+        self.pascal_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        #######
+        addDesignerTabs(self.pascal_palette_widget_mid_tabs)
+        
+        self.pascal_palette_widget_mid_layout.addWidget(self.pascal_palette_widget_mid_tabs)
+        #
+        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_lhs)
+        self.pascal_palette_layout.addLayout(self.pascal_palette_widget_mid_layout)
+        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_rhs)
+        #
+        self.pascal_designs_palette.setLayout(self.pascal_palette_layout)
+        ####
+        
+        self.pascal_designs_viewer  = myGridViewer(self)
+        self.pascal_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.pascal_designs_layout.addWidget(self.pascal_designs_palette)
+        self.pascal_designs_layout.addWidget(self.pascal_designs_viewer)
+        #
+        self.pascal_tabs_designs_widget.setLayout(self.pascal_designs_layout)
+        ####
+        self.main_layout.addWidget(self.pascal_tabs)
+        #################
+        self.pascal_btn1 = myMoveButton("move me D", self.pascal_designs_viewer)
+        self.pascal_btn2 = myMoveButton("move me E", self.pascal_designs_viewer)
+        self.pascal_btn3 = myMoveButton("move me F", self.pascal_designs_viewer)
+        #
+        self.pascal_btn1.move(120,20)
+        self.pascal_btn2.move(140,40)
+        self.pascal_btn3.move(160,60)
+        
+    # isoc
+    def handleIsoC(self):
+        self.isoc_tabs = QTabWidget()
+        self.isoc_tabs.setStyleSheet(css_tabs)
+        self.isoc_tabs.hide()
+        
+        self.isoc_tabs_project_widget = QWidget()
+        self.isoc_tabs_editors_widget = QWidget()
+        self.isoc_tabs_designs_widget = QWidget()
+        #
+        self.isoc_tabs.addTab(self.isoc_tabs_project_widget, "ISO C Project")
+        self.isoc_tabs.addTab(self.isoc_tabs_editors_widget, "ISO C Editor")
+        self.isoc_tabs.addTab(self.isoc_tabs_designs_widget, "ISO C Designer")
+        
+        self.isoc_designs_layout  = QVBoxLayout()
+        self.isoc_designs_layout.setContentsMargins(2,2,2,2)
+        self.isoc_designs_palette = QWidget()
+        self.isoc_designs_palette.setStyleSheet(_("bggy"))
+        self.isoc_designs_palette.setMaximumHeight(80)
+        #
+        self.isoc_palette_layout  = QHBoxLayout()
+        self.isoc_palette_layout.setContentsMargins(2,2,2,2)
+        self.isoc_palette_widget_lhs  = QLabel ()
+        self.isoc_palette_widget_mid  = QWidget()
+        self.isoc_palette_widget_rhs  = QLabel ()
+        #
+        self.isoc_palette_widget_lhs.setMaximumWidth(20)
+        self.isoc_palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.isoc_palette_widget_lhs.setFont(font)
+        self.isoc_palette_widget_rhs.setFont(font)
+        #
+        self.isoc_palette_widget_lhs.setText(chr1)
+        self.isoc_palette_widget_rhs.setText(chr2)
+        #
+        self.isoc_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.isoc_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.isoc_palette_widget_rhs.setStyleSheet(_("bglg"))
+        #
+        #
+        self.isoc_palette_widget_mid_layout = QHBoxLayout()
+        self.isoc_palette_widget_mid_tabs   = QTabWidget()
+        self.isoc_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        #######
+        addDesignerTabs(self.isoc_palette_widget_mid_tabs)
+        
+        
+        self.isoc_palette_widget_mid_layout.addWidget(self.isoc_palette_widget_mid_tabs)
+        #
+        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_lhs)
+        self.isoc_palette_layout.addLayout(self.isoc_palette_widget_mid_layout)
+        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_rhs)
+        #
+        self.isoc_designs_palette.setLayout(self.isoc_palette_layout)
+        ####
+        
+        self.isoc_designs_viewer  = myGridViewer(self)
+        self.isoc_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.isoc_designs_layout.addWidget(self.isoc_designs_palette)
+        self.isoc_designs_layout.addWidget(self.isoc_designs_viewer)
+        #
+        self.isoc_tabs_designs_widget.setLayout(self.isoc_designs_layout)
+        ####
+        self.main_layout.addWidget(self.isoc_tabs)
+    
+    # java
+    def handleJava(self):
+        # java
+        self.java_tabs = QTabWidget()
+        self.java_tabs.setStyleSheet(css_tabs)
+        self.java_tabs.hide()
+        
+        self.java_tabs_project_widget = QWidget()
+        self.java_tabs_editors_widget = QWidget()
+        self.java_tabs_designs_widget = QWidget()
+        #
+        self.java_tabs.addTab(self.java_tabs_project_widget, "Java Project")
+        self.java_tabs.addTab(self.java_tabs_editors_widget, "Java Editor")
+        self.java_tabs.addTab(self.java_tabs_designs_widget, "Java Designer")
+        
+        self.java_designs_layout  = QVBoxLayout()
+        self.java_designs_layout.setContentsMargins(2,2,2,2)
+        self.java_designs_palette = QWidget()
+        self.java_designs_palette.setStyleSheet(_("bggy"))
+        self.java_designs_palette.setMaximumHeight(80)
+        #
+        self.java_palette_layout  = QHBoxLayout()
+        self.java_palette_layout.setContentsMargins(2,2,2,2)
+        self.java_palette_widget_lhs  = QLabel ()
+        self.java_palette_widget_mid  = QWidget()
+        self.java_palette_widget_rhs  = QLabel ()
+        #
+        self.java_palette_widget_lhs.setMaximumWidth(20)
+        self.java_palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.java_palette_widget_lhs.setFont(font)
+        self.java_palette_widget_rhs.setFont(font)
+        #
+        self.java_palette_widget_lhs.setText(chr1)
+        self.java_palette_widget_rhs.setText(chr2)
+        #
+        self.java_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.java_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.java_palette_widget_rhs.setStyleSheet(_("bglg"))
+        #
+        #
+        self.java_palette_widget_mid_layout = QHBoxLayout()
+        self.java_palette_widget_mid_tabs   = QTabWidget()
+        self.java_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        #######
+        addDesignerTabs(self.java_palette_widget_mid_tabs)
+        
+        
+        self.java_palette_widget_mid_layout.addWidget(self.java_palette_widget_mid_tabs)
+        #
+        self.java_palette_layout.addWidget(self.java_palette_widget_lhs)
+        self.java_palette_layout.addLayout(self.java_palette_widget_mid_layout)
+        self.java_palette_layout.addWidget(self.java_palette_widget_rhs)
+        #
+        self.java_designs_palette.setLayout(self.java_palette_layout)
+        ####
+        
+        self.java_designs_viewer  = myGridViewer(self)
+        self.java_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.java_designs_layout.addWidget(self.java_designs_palette)
+        self.java_designs_layout.addWidget(self.java_designs_viewer)
+        #
+        self.java_tabs_designs_widget.setLayout(self.java_designs_layout)
+        ####
+        self.main_layout.addWidget(self.java_tabs)
+    
+    # python
+    def handlePython(self):
+        self.python_tabs = QTabWidget()
+        self.python_tabs.setStyleSheet(css_tabs)
+        self.python_tabs.hide()
+        
+        self.python_tabs_project_widget = QWidget()
+        self.python_tabs_editors_widget = QWidget()
+        self.python_tabs_designs_widget = QWidget()
+        #
+        self.python_tabs.addTab(self.python_tabs_project_widget, "Python Project")
+        self.python_tabs.addTab(self.python_tabs_editors_widget, "Python Editor")
+        self.python_tabs.addTab(self.python_tabs_designs_widget, "Python Designer")
+        
+        self.python_designs_layout  = QVBoxLayout()
+        self.python_designs_layout.setContentsMargins(2,2,2,2)
+        self.python_designs_palette = QWidget()
+        self.python_designs_palette.setStyleSheet(_("bggy"))
+        self.python_designs_palette.setMaximumHeight(80)
+        #
+        self.python_palette_layout  = QHBoxLayout()
+        self.python_palette_layout.setContentsMargins(2,2,2,2)
+        self.python_palette_widget_lhs  = QLabel ()
+        self.python_palette_widget_mid  = QWidget()
+        self.python_palette_widget_rhs  = QLabel ()
+        #
+        self.python_palette_widget_lhs.setMaximumWidth(20)
+        self.python_palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.python_palette_widget_lhs.setFont(font)
+        self.python_palette_widget_rhs.setFont(font)
+        #
+        self.python_palette_widget_lhs.setText(chr1)
+        self.python_palette_widget_rhs.setText(chr2)
+        #
+        self.python_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.python_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.python_palette_widget_rhs.setStyleSheet(_("bglg"))
+        #
+        #
+        self.python_palette_widget_mid_layout = QHBoxLayout()
+        self.python_palette_widget_mid_tabs   = QTabWidget()
+        self.python_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        #######
+        addDesignerTabs(self.python_palette_widget_mid_tabs)
+        
+        self.python_palette_widget_mid_layout.addWidget(self.python_palette_widget_mid_tabs)
+        #
+        self.python_palette_layout.addWidget(self.python_palette_widget_lhs)
+        self.python_palette_layout.addLayout(self.python_palette_widget_mid_layout)
+        self.python_palette_layout.addWidget(self.python_palette_widget_rhs)
+        #
+        self.python_designs_palette.setLayout(self.python_palette_layout)
+        ####
+        
+        self.python_designs_viewer  = myGridViewer(self)
+        self.python_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.python_designs_layout.addWidget(self.python_designs_palette)
+        self.python_designs_layout.addWidget(self.python_designs_viewer)
+        #
+        self.python_tabs_designs_widget.setLayout(self.python_designs_layout)
+        ####
+        self.main_layout.addWidget(self.python_tabs)
+    
+    # lisp
+    def handleLISP(self):
+        self.lisp_tabs = QTabWidget()
+        self.lisp_tabs.setStyleSheet(css_tabs)
+        self.lisp_tabs.hide()
+        
+        self.lisp_tabs_project_widget = QWidget()
+        self.lisp_tabs_editors_widget = QWidget()
+        self.lisp_tabs_designs_widget = QWidget()
+        #
+        self.lisp_tabs.addTab(self.lisp_tabs_project_widget, "LISP Project")
+        self.lisp_tabs.addTab(self.lisp_tabs_editors_widget, "LISP Editor")
+        self.lisp_tabs.addTab(self.lisp_tabs_designs_widget, "LISP Designer")
+        
+        self.lisp_designs_layout  = QVBoxLayout()
+        self.lisp_designs_layout.setContentsMargins(2,2,2,2)
+        self.lisp_designs_palette = QWidget()
+        self.lisp_designs_palette.setStyleSheet(_("bggy"))
+        self.lisp_designs_palette.setMaximumHeight(80)
+        #
+        self.lisp_palette_layout  = QHBoxLayout()
+        self.lisp_palette_layout.setContentsMargins(2,2,2,2)
+        self.lisp_palette_widget_lhs  = QLabel ()
+        self.lisp_palette_widget_mid  = QWidget()
+        self.lisp_palette_widget_rhs  = QLabel ()
+        #
+        self.lisp_palette_widget_lhs.setMaximumWidth(20)
+        self.lisp_palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.lisp_palette_widget_lhs.setFont(font)
+        self.lisp_palette_widget_rhs.setFont(font)
+        #
+        self.lisp_palette_widget_lhs.setText(chr1)
+        self.lisp_palette_widget_rhs.setText(chr2)
+        #
+        self.lisp_palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.lisp_palette_widget_mid.setStyleSheet(_("bgwh"))
+        self.lisp_palette_widget_rhs.setStyleSheet(_("bglg"))
+        #
+        #
+        self.lisp_palette_widget_mid_layout = QHBoxLayout()
+        self.lisp_palette_widget_mid_tabs   = QTabWidget()
+        self.lisp_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        #######
+        addDesignerTabs(self.lisp_palette_widget_mid_tabs)
+        
+        self.lisp_palette_widget_mid_layout.addWidget(self.lisp_palette_widget_mid_tabs)
+        #
+        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_lhs)
+        self.lisp_palette_layout.addLayout(self.lisp_palette_widget_mid_layout)
+        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_rhs)
+        #
+        self.lisp_designs_palette.setLayout(self.lisp_palette_layout)
+        ####
+        
+        self.lisp_designs_viewer  = myGridViewer(self)
+        self.lisp_designs_viewer.setStyleSheet("background-color:cyan;")
+        
+        self.lisp_designs_layout.addWidget(self.lisp_designs_palette)
+        self.lisp_designs_layout.addWidget(self.lisp_designs_viewer)
+        #
+        self.lisp_tabs_designs_widget.setLayout(self.lisp_designs_layout)
+        ####
+        self.main_layout.addWidget(self.lisp_tabs)
+    
+    # locale
+    def handleLocales(self):
+        self.locale_tabs = QTabWidget()
+        self.locale_tabs.setStyleSheet(css_tabs)
+        self.locale_tabs.hide()
+        
+        self.locale_tabs_project_widget = QWidget()
+        self.locale_tabs_editors_widget = QWidget()
+        self.locale_tabs_designs_widget = QWidget()
+        #
+        self.locale_tabs.addTab(self.locale_tabs_project_widget, "Locales Project")
+        self.locale_tabs.addTab(self.locale_tabs_editors_widget, "Locales Editor")
+        self.locale_tabs.addTab(self.locale_tabs_designs_widget, "Locales Designer")
+        ####
+        self.main_layout.addWidget(self.locale_tabs)
+    
+    # commodore c64
+    def handleCommodoreC64(self):
+        self.c64_tabs = QTabWidget()
+        self.c64_tabs.setStyleSheet(css_tabs)
+        self.c64_tabs.hide()
+        
+        self.c64_tabs_project_widget = QWidget()
+        self.c64_tabs_editors_widget = QWidget()
+        self.c64_tabs_designs_widget = QWidget()
+        #
+        self.c64_tabs.addTab(self.c64_tabs_project_widget, "C-64 Project")
+        self.c64_tabs.addTab(self.c64_tabs_editors_widget, "C-64 Editor")
+        self.c64_tabs.addTab(self.c64_tabs_designs_widget, "C-64 Designer")
+        
+        self.c64_layout = QVBoxLayout()
+        self.c64_frame_oben  = QFrame()
+        self.c64_frame_unten = QFrame()
+        
+        self.c64_frame_oben.setMinimumHeight(320)
+        self.c64_frame_oben.setMaximumHeight(320)
+        
+        self.c64_frame_oben .setStyleSheet("background-color:lightgray;")
+        self.c64_frame_unten.setStyleSheet("background-color:lightgray;")
+        
+        
+        self.c64_keyboard_label = QLabel(self.c64_frame_unten)
+        self.c64_keyboard_pixmap = QPixmap(__app__keybc64__)
+        self.c64_keyboard_label.setPixmap(self.c64_keyboard_pixmap)
+        
+        
+        scrlayout = QHBoxLayout()
+        self.c64_screen = c64Bildschirm(self.c64_frame_oben)
+        scrlayout.addWidget(self.c64_screen)
+        
+        _listpush_apps = QPushButton("Applications")
+        _listpush_game = QPushButton("Games")
+        
+        _listwidget = QListWidget()
+        _listwidget.setViewMode  (QListView.IconMode)
+        _listwidget.setResizeMode(QListView.Adjust)
+        _listwidget.setStyleSheet("background-color:white;")
+        
+        scrlayout.addWidget(_listwidget)
+        scrlayout.addWidget(_listpush_apps)
+        scrlayout.addWidget(_listpush_game)
+        
+        _listwidget   .setParent(self.c64_frame_oben)
+        _listpush_apps.setParent(self.c64_frame_oben)
+        _listpush_game.setParent(self.c64_frame_oben)
+        
+        font = QFont("Arial", 11)
+        font.setBold(True)
+        
+        _listwidget   .move(430,40); _listwidget   .resize(400,200)
+        _listpush_apps.move(430,10); _listpush_apps.resize(100,30)
+        _listpush_game.move(540,10); _listpush_game.resize(100,30)
+        #
+        _listpush_apps.setFont(font)
+        _listpush_game.setFont(font)
+        
+        c64_disc1_label  = QLabel(self.c64_frame_oben)
+        c64_disc1_pixmap = QPixmap(__app__discc64__)
+        c64_disc1_label.setPixmap(c64_disc1_pixmap)
+        #
+        c64_disc2_label  = QLabel(self.c64_frame_oben)
+        c64_disc2_pixmap = QPixmap(__app__discc64__)
+        c64_disc2_label.setPixmap(c64_disc2_pixmap)
+        #
+        c64_mc1_label  = QLabel(self.c64_frame_oben)
+        c64_mc1_pixmap = QPixmap(__app__datmc64__)
+        c64_mc1_label.setPixmap(c64_mc1_pixmap)
+        #
+        
+        scrlayout.addWidget(c64_disc1_label)
+        scrlayout.addWidget(c64_disc2_label)
+        scrlayout.addWidget(c64_mc1_label)
+        #
+        c64_disc1_label.move(440,240)
+        c64_disc2_label.move(540,240)
+        c64_mc1_label  .move(690,240)
+        
+        self.c64_layout.addWidget(self.c64_frame_oben)
+        self.c64_layout.addWidget(self.c64_frame_unten)
+        
+        self.c64_tabs_editors_widget.setLayout(self.c64_layout)
+        
+        ####
+        self.main_layout.addWidget(self.c64_tabs)
     
     # ------------------------------------------------------------------------
     # class member to get the widget item from list_widget_1 or list_widget_2.
