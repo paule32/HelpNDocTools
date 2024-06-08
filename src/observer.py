@@ -3058,6 +3058,19 @@ class c64Bildschirm(QWidget):
             line += 11
         self.painter.end()
 
+class addDataSourceDialog(QDialog):
+    def __init__(self, parent):
+        super().__init__()
+        self.setWindowTitle("Add Data Source...")
+        self.setMaximumWidth (600)
+        self.setMinimumWidth (400)
+        #
+        self.setMaximumHeight(600)
+        self.setMaximumHeight(400)
+        
+        font = QFont("Arial", 10)
+        self.setFont(font)
+        
 class myAddTableDialog(QDialog):
     def __init__(self, parent):
         super().__init__()
@@ -3066,7 +3079,7 @@ class myAddTableDialog(QDialog):
         self.setMinimumWidth (400)
         #
         self.setMaximumHeight(600)
-        self.setMaximumHeight(600)
+        self.setMaximumHeight(400)
         
         font = QFont("Arial", 10)
         self.setFont(font)
@@ -3143,7 +3156,7 @@ class myAddTableDialog(QDialog):
         local_sqlite_item = QListWidgetItem("Local Data Files:")
         local_sqlite_item.setFlags(local_sqlite_item.flags() & ~Qt.ItemIsSelectable) # non-selectable
         local_sqlite_item.setBackground(QBrush(QColor("blue")))
-        local_sqlite_item.setForeground(QBrush(QColor("white")))        
+        local_sqlite_item.setForeground(QBrush(QColor("white")))
         local_sqlite_item.setFont(self.font1)
         
         self.tbl_av_tables.addItem(local_sqlite_item)
@@ -3193,7 +3206,8 @@ class myAddTableDialog(QDialog):
         return
     
     def btn_addsrc_clicked(self):
-        print("source")
+        datadialog = addDataSourceDialog(self)
+        datadialog.exec_()
         return
     
     def btn_close_clicked(self):
@@ -3246,7 +3260,12 @@ class myDataTabWidget(QWidget):
             check_box = editor.findChild(QCheckBox)
             if check_box:
                 value = index.model().data(index, Qt.EditRole)
-                check_box.setChecked(value == "YES")
+                if value == "YES":
+                    check_box.setChecked(True)
+                    check_box.setText("YES")
+                else:
+                    check_box.setChecked(False)
+                    check_box.setText("NO")
         
         def setModelData(self, editor, model, index):
             check_box = editor.findChild(QCheckBox)
@@ -3273,7 +3292,7 @@ class myDataTabWidget(QWidget):
         #self.vlayout.addStretch()
         
         ###
-        font = QFont("Arial", 10)
+        font = QFont("Arial", 11)
         
         self.table_btn_add      = QPushButton("Add Table Field")
         self.table_btn_remove   = QPushButton("Remove Field")
@@ -3292,9 +3311,13 @@ class myDataTabWidget(QWidget):
         self.hlayout.addWidget(self.table_btn_remove)
         self.hlayout.addWidget(self.table_btn_clearall)
         
+        self.table_btn_add     .clicked.connect(self.table_btn_add_clicked)
+        self.table_btn_remove  .clicked.connect(self.table_btn_remove_clicked)
+        self.table_btn_clearall.clicked.connect(self.table_btn_clearall_clicked)
+        
         ###
         self.rlayout = QHBoxLayout()
-        self.table_widget = QTableWidget(3,5)
+        self.table_widget = QTableWidget(0,5)
         self.table_widget.setHorizontalHeaderLabels(["Name","Type","Len","Prec","PrKey"])
         
         horizontal_header = self.table_widget.horizontalHeader()
@@ -3313,6 +3336,7 @@ class myDataTabWidget(QWidget):
         # Delegate für die zweite Spalte setzen
         self.combo_box_delegate = self.ComboBoxDelegate(self.combo_items, self.table_widget)
         self.table_widget.setItemDelegateForColumn(1, self.combo_box_delegate)
+        self.table_widget.itemChanged.connect(self.check_if_checkbox_clicked)
         
         # Delegate für die dritte Spalte setzen
         self.check_box_delegate = self.CheckBoxDelegate(self.table_widget)
@@ -3321,11 +3345,90 @@ class myDataTabWidget(QWidget):
         
         self.rlayout.addWidget(self.table_widget)
         
+        self.lbl_table = QLabel("Data Table Name:")
+        self.lbl_table.setFont(font)
+        #
+        self.edt_table = QLineEdit("session")
+        self.edt_table.setFont(font)
+        #
+        self.edt_button = QPushButton("Save Data Informations")
+        self.edt_button.setFont(font)
+        self.edt_button.setMinimumHeight(29)
+        ###
+        #
+        self.lbl_source = QLabel("Data Source:")
+        self.lbl_source.setFont(font)
+        #
+        self.edt_source = QLineEdit(".\\\\server1")
+        self.edt_source.setFont(font)
+        
         self.vlayout.addLayout(self.hlayout)
         self.vlayout.addLayout(self.rlayout)
+        
+        self.vlayout.addWidget(self.lbl_table)
+        self.vlayout.addWidget(self.edt_table)
+        self.vlayout.addWidget(self.edt_button)
+        #
+        self.vlayout.addWidget(self.lbl_source)
+        self.vlayout.addWidget(self.edt_source)
+        ###
+        
+        self.sql_label    = QLabel("SQL Query:")
+        self.sql_window   = QPlainTextEdit()
+        self.sql_exec_btn = QPushButton("Execute SQL Query Text")
+        
+        self.sql_label.setFont(font)
+        #
+        self.sql_exec_btn.setMinimumHeight(29)
+        self.sql_exec_btn.setFont(font)
+        
+        self.vlayout.addWidget(self.sql_label)
+        self.vlayout.addWidget(self.sql_window)
+        self.vlayout.addWidget(self.sql_exec_btn)
+        
         self.vlayout.addStretch()
-                
         self.setLayout(self.vlayout)
+    
+    def add_row(self, table_widget):
+        row_position = table_widget.rowCount()
+        table_widget.insertRow(row_position)
+        
+        for col in range(table_widget.columnCount()):
+            item = QTableWidgetItem()
+            if col == 4:
+                item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                item.setCheckState(Qt.Unchecked)
+                item.setText("NO")
+            elif col == 0:
+                item.setText(f"FIELD_{row_position+1}")
+            elif col == 1:
+                item.setText("Option 1")
+            elif col == 2:
+                item.setText("10")
+            elif col == 3:
+                item.setText("0")
+            table_widget.setItem(row_position, col, item)
+    
+    def check_if_checkbox_clicked(self,item):
+        if item.column() == 4:  # Überprüfen, ob die Spalte die CheckBox-Spalte ist
+            if item.checkState() == Qt.Checked:
+                item.setText("YES")
+            else:
+                item.setText("NO")
+        
+    def del_row(self, table_widget):
+        current_row = table_widget.currentRow()
+        if current_row != -1:
+            table_widget.removeRow(current_row)
+    
+    def table_btn_add_clicked(self):
+        self.add_row(self.table_widget)
+        
+    def table_btn_remove_clicked(self):
+        self.del_row(self.table_widget)
+    
+    def table_btn_clearall_clicked(self):
+        print("clr all")
 
 class FileWatcherGUI(QDialog):
     def __init__(self):
@@ -4487,6 +4590,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_builder_layout.addLayout(self.db_hlayout)
         #
         self.dbase_builder_btn1.clicked.connect(self.dbase_builder_btn1_clicked)
+        self.dbase_builder_btn2.clicked.connect(self.dbase_builder_btn2_clicked)
         
         self.dbase_builder_layout.addWidget(self.dbase_builder_widget_view)
         self.dbase_builder_layout.addWidget(self.dbase_builder_widget_join)
@@ -4574,6 +4678,10 @@ class FileWatcherGUI(QDialog):
     def dbase_builder_btn1_clicked(self):
         tableDialog = myAddTableDialog(self)
         tableDialog.exec_()
+    
+    def dbase_builder_btn2_clicked(self):
+        sourceDialog = addDataSourceDialog(self)
+        sourceDialog.exec_()
     
     # pascal
     def handlePascal(self):
