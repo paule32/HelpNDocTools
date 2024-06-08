@@ -93,3 +93,7 @@ src/loc2.txt
 src/loc.txt
 src/build/test.pro
 src/build/1.pro
+src/chat1_fileAdata.db
+src/chat2_fileBdata.db
+src/chat1.db
+src/chat3.db

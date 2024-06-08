@@ -12,6 +12,7 @@ global error_result; error_result = 0
 global topic_counter; topic_counter = 1
 
 global debugMode
+global c64_painter
 
 import os            # operating system stuff
 import sys
@@ -43,6 +44,8 @@ sys.path.append("./tools")
 from appcollection import *
 img = "/img/"
 
+c64_painter = None
+
 __app__name         = "observer"
 __app__internal__   = "./_internal"
 __app__config_ini   = __app__internal__ + "/observer.ini"
@@ -64,6 +67,7 @@ __app__com_c64__    = __app__img__int__ + "c64"
 __app__keybc64__    = __app__img__int__ + "c64keyboard.png"
 __app__discc64__    = __app__img__int__ + "disk2.png"
 __app__datmc64__    = __app__img__int__ + "mc2.png"
+__app__logoc64__    = __app__img__int__ + "logo2.png"
 
 __app__img_ext__    = ".png"
 
@@ -420,6 +424,10 @@ class myIconLabel(QLabel):
         parent.c64_tabs.hide()
     
     def btn_clicked(self,btn,tabs):
+        if not self.parent.parent.c64_screen.worker_thread == None:
+            self.parent.parent.c64_screen.worker_thread.stop()
+            self.parent.parent.c64_screen.worker_thread = None
+        
         self.hide_tabs()
         tabs.show()
         
@@ -448,6 +456,8 @@ class myIconButton(QWidget):
     def __init__(self, parent, mode, label_text, text):
         super().__init__()
         
+        self.parent = parent
+        
         self.vl = QVBoxLayout()
         self.pix_label = myIconLabel(self, text, mode)
         
@@ -468,7 +478,6 @@ class myIconButton(QWidget):
         
         self.caption = text
         self.mode    = mode
-        self.parent  = parent
         self.state   = 0
         
         self.bordercolor = "lightgray"
@@ -492,35 +501,35 @@ class myIconButton(QWidget):
         if mode == 0:
             self.image_fg = __app__helpdev__ + fg
             self.image_bg = __app__helpdev__ + bg
-            
+        
         elif mode == 1:
             self.image_fg = __app__dbasedb__ + fg
             self.image_bg = __app__dbasedb__ + bg
-            
+        
         elif mode == 2:
             self.image_fg = __app__freepas__ + fg
             self.image_bg = __app__freepas__ + bg
-            
+        
         elif mode == 3:
             self.image_fg = __app__cpp1dev__ + fg
             self.image_bg = __app__cpp1dev__ + bg
-            
+        
         elif mode == 4:
             self.image_fg = __app__javadev__ + fg
             self.image_bg = __app__javadev__ + bg
-            
+        
         elif mode == 5:
             self.image_fg = __app__pythonc__ + fg
             self.image_bg = __app__pythonc__ + bg
-            
+        
         elif mode == 6:
             self.image_fg = __app__lispmod__ + fg
             self.image_bg = __app__lispmod__ + bg
-            
+        
         elif mode == 10:
             self.image_fg = __app__locales__ + fg
             self.image_bg = __app__locales__ + bg
-            
+        
         elif mode == 11:
             self.image_fg = __app__com_c64__ + fg
             self.image_bg = __app__com_c64__ + bg
@@ -2223,13 +2232,14 @@ class myExitDialog(QDialog):
         self.prevButton.setDefault(True)
         self.exitButton.setDefault(True)
         
+        self.vlayout.addWidget(self.helpButton)
+        self.vlayout.addWidget(self.prevButton)
+        self.vlayout.addWidget(self.exitButton)
+        
         self.helpButton.clicked.connect(self.help_click)
         self.prevButton.clicked.connect(self.prev_click)
         self.exitButton.clicked.connect(self.exit_click)
         
-        self.vlayout.addWidget(self.helpButton)
-        self.vlayout.addWidget(self.prevButton)
-        self.vlayout.addWidget(self.exitButton)
         
         self.hexitText = QLabel(_("Would you realy exit the Application"))
         
@@ -2247,6 +2257,7 @@ class myExitDialog(QDialog):
         self.close()
         return
     def exit_click(self):
+        print("exit")
         sys.exit(0)
 
 class myMoveButton(QPushButton):
@@ -2934,12 +2945,12 @@ class MySQLDialog(QFrame):
         if event.button() == Qt.LeftButton:
             self.dragging = True
             self.drag_start_position = event.pos()
-
+    
     def mouseMoveEvent(self, event):
         if self.dragging:
             delta = QPoint(event.globalPos() - self.mapToGlobal(self.drag_start_position))
             self.move(self.x() + delta.x(), self.y() + delta.y())
-
+    
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = False
@@ -2976,14 +2987,43 @@ class addDesignerTabs():
             self._listwidget.setViewMode(QListView.IconMode)
             self._listwidget.setResizeMode(QListView.Adjust)
             self._listwidget.setMinimumWidth(500)
+            
             if len(tabitem[1]) > 0:
                 for item in tabitem[1]:
                     list_item = QListWidgetItem("", self._listwidget)
                     list_item.setIcon(QIcon(__app__img__int__ + item + "_150.bmp"))
 
+class c64WorkerThread(threading.Thread):
+    def __init__(self, parent):
+        super().__init__()
+        self.running = False
+        self.parent  = parent
+        #self.painter = parent.painter
+    
+    def run(self):
+        count = 0
+        while self.running:
+            if count > 10000:
+                count = 0
+            count += 1
+            time.sleep(0.75)
+            print("debug text")
+    
+    def start(self):
+        self.running = True
+        super().start()
+    
+    def stop(self):
+        self.running = False
+    
+
 class c64Bildschirm(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
+        #
+        self.parent  = parent
+        self.painter = QPainter()
+        #
         self.setMinimumWidth ( 620 )
         self.setMaximumWidth ( 620 )
         #
@@ -2991,31 +3031,179 @@ class c64Bildschirm(QWidget):
         self.setMaximumHeight( 515 )
         
         self.setStyleSheet("background-color:blue;")
+        
+        self.worker_thread = c64WorkerThread(self)
     
     def paintEvent(self, event):
-        painter = QPainter()
-        painter.begin(self)
-        painter.setBrush(QBrush(QColor(0, 158, 255)))
-        painter.drawRect(1,1,320 + 64 + 20, 200 + 64 + 50)
+        self.painter.begin(self)
+        self.painter.setBrush(QBrush(QColor(0, 158, 255)))
+        self.painter.drawRect(1,1,320 + 64 + 20, 200 + 64 + 50)
         
-        painter.setBrush(QBrush(QColor(0, 108, 255)))
-        painter.drawRect(20,20,320 + 44, 200 + 64 + 14)
+        self.painter.setBrush(QBrush(QColor(0, 108, 255)))
+        self.painter.drawRect(20,20,320 + 44, 200 + 64 + 14)
         
         font = QFont("C64 Elite Mono",11)
-        font.setBold(False)
+        font.setBold(True)
         
-        painter.setPen(QColor(200, 228, 255))  # Blaue Schrift
-        painter.setFont(font)
+        self.painter.setPen(QColor(200, 228, 255))  # Blaue Schrift
+        self.painter.setFont(font)
         
-        painter.drawText(21,32,"1234567890" * 4)
+        self.painter.drawText(21,32,"1234567890" * 4)
         line = 11
         i    =  2
         while i < 26:
-            painter.drawText(21,32+(line),str(i))
+            self.painter.drawText(21,32+(line),str(i))
+            self.painter.drawText(21,32+22,"HUCH")
             i += 1
             line += 11
+        self.painter.end()
+
+class myAddTableDialog(QDialog):
+    def __init__(self, parent):
+        super().__init__()
+        self.setWindowTitle("Add Table")
+        self.setMaximumWidth (600)
+        self.setMinimumWidth (400)
+        #
+        self.setMaximumHeight(600)
+        self.setMaximumHeight(600)
         
-        painter.end()
+        font = QFont("Arial", 10)
+        self.setFont(font)
+        
+        self.layout_top = QVBoxLayout()
+        #
+        self.layout_top1 = QHBoxLayout()
+        self.lbl_av_tables = QLabel("Available Tables:")
+        self.lbl_in_tables = QLabel("Open Tables:")
+        #
+        self.layout_top1.addWidget(self.lbl_av_tables)
+        self.layout_top1.addWidget(self.lbl_in_tables)
+        
+        self.layout_top2 = QHBoxLayout()
+        self.tbl_av_tables = QListWidget()
+        self.tbl_in_tables = QListWidget()
+        #
+        #
+        self.layout_top3 = QVBoxLayout()
+        self.btn_move_add_1 = QPushButton(">>")
+        self.btn_move_del_1 = QPushButton("<<")
+        self.btn_move_add_2 = QPushButton("Add")
+        self.btn_move_clr_1 = QPushButton("Remove")
+        self.btn_move_clr_2 = QPushButton("Clear")
+        #
+        self.layout_top3.addWidget(self.btn_move_add_1)
+        self.layout_top3.addWidget(self.btn_move_del_1)
+        self.layout_top3.addWidget(self.btn_move_add_2)
+        self.layout_top3.addWidget(self.btn_move_clr_1)
+        self.layout_top3.addWidget(self.btn_move_clr_2)
+        #
+        self.layout_top2.addWidget(self.tbl_av_tables)
+        self.layout_top2.addLayout(self.layout_top3)
+        self.layout_top2.addWidget(self.tbl_in_tables)
+        
+        ###
+        self.layout_bottom = QHBoxLayout()
+        #
+        self.btn_add    = QPushButton("Add Table")
+        self.btn_addsrc = QPushButton("Add Data Source")
+        self.btn_close  = QPushButton("Close")
+        
+        self.btn_add   .setMinimumHeight(31)
+        self.btn_addsrc.setMinimumHeight(31)
+        self.btn_close .setMinimumHeight(31)
+        
+        self.layout_bottom.addWidget(self.btn_add)
+        self.layout_bottom.addWidget(self.btn_addsrc)
+        self.layout_bottom.addWidget(self.btn_close)
+        
+        self.layout_top.addLayout(self.layout_top1)
+        self.layout_top.addLayout(self.layout_top2)
+        self.layout_top.addLayout(self.layout_bottom)
+        
+        self.setLayout(self.layout_top)
+        
+        self.btn_add   .clicked.connect(self.btn_add_clicked)
+        self.btn_addsrc.clicked.connect(self.btn_addsrc_clicked)
+        self.btn_close .clicked.connect(self.btn_close_clicked)
+        
+        # ----------------------------------------
+        # detect files in the current directory...
+        # ----------------------------------------
+        directory = "./"
+        pattern = os.path.join(directory, "*.db")
+        db_files = glob.glob(pattern)
+        
+        self.font1 = QFont("Arial", 10)
+        self.font1.setBold(True)
+        
+        self.font2 = QFont("Arial", 10)
+        self.font2.setBold(False)
+        
+        local_sqlite_item = QListWidgetItem("Local Data Files:")
+        local_sqlite_item.setFlags(local_sqlite_item.flags() & ~Qt.ItemIsSelectable) # non-selectable
+        local_sqlite_item.setBackground(QBrush(QColor("blue")))
+        local_sqlite_item.setForeground(QBrush(QColor("white")))        
+        local_sqlite_item.setFont(self.font1)
+        
+        self.tbl_av_tables.addItem(local_sqlite_item)
+        if len(db_files) > 0:
+            tables = []
+            for file_name in db_files:
+                conn = sqlite3.connect(file_name)
+                cursor = conn.cursor()
+                
+                # query for the table names:
+                cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables = cursor.fetchall()
+                
+                if len(tables) > 0:
+                    for table in tables:
+                        table_name = table[0]
+                        cursor = conn.execute(f"SELECT COUNT(*) FROM {table_name}")
+                        row_count = cursor.fetchone()[0]
+                        
+                        if row_count > 0:
+                            table_name = file_name + " => " + table_name
+                            table_item = QListWidgetItem(table_name)
+                            table_item.setFont(self.font2)
+                            self.tbl_av_tables.addItem(table_item)
+                conn.close()
+                
+        local_data_item = QListWidgetItem("Local Data Sources:")
+        local_data_item.setFlags(local_data_item.flags() & ~Qt.ItemIsSelectable) # non-selectable
+        local_data_item.setBackground(QBrush(QColor("blue")))
+        local_data_item.setForeground(QBrush(QColor("white")))
+        local_data_item.setFont(self.font1)
+        
+        self.tbl_av_tables.addItem(local_data_item)
+        ###
+        #
+        remote_data_item = QListWidgetItem("Remote Data Sources:")
+        remote_data_item.setFlags(remote_data_item.flags() & ~Qt.ItemIsSelectable) # non-selectable
+        remote_data_item.setBackground(QBrush(QColor("blue")))
+        remote_data_item.setForeground(QBrush(QColor("white")))
+        remote_data_item.setFont(self.font1)
+        
+        self.tbl_av_tables.addItem(remote_data_item)
+        ###
+    
+    def btn_add_clicked(self):
+        print("add")
+        return
+    
+    def btn_addsrc_clicked(self):
+        print("source")
+        return
+    
+    def btn_close_clicked(self):
+        self.close()
+    
+    def shorten_string(self, s, maxlength):
+        if len(s) <= maxlength:
+            return s
+        else:
+            return s[:maxlength-3]+"..."
 
 class FileWatcherGUI(QDialog):
     def __init__(self):
@@ -3035,6 +3223,8 @@ class FileWatcherGUI(QDialog):
         self.setStyleSheet("padding:0px;margin:0px;")
         #self.setStyleSheet("font-family:'Arial';font-size:12pt;")
         
+        self.worker_hasFocus = False
+        
         self.my_list = MyItemRecord(0, QStandardItem(""))
         self.init_ui()
     
@@ -3045,6 +3235,10 @@ class FileWatcherGUI(QDialog):
         if event.key() == Qt.Key_Escape:
             exitBox = myExitDialog(_("Exit Dialog"))
             exitBox.exec_()
+        elif event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+            if self.worker_hasFocus == True:
+                # c64
+                print("xxx")
         else:
             super().keyPressEvent(event)
     
@@ -4115,6 +4309,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_builder_widget_table.setStyleSheet(_("bggy"))
         self.dbase_builder_widget_table.setMaximumHeight(56)
         
+        
         self.dbase_builder_widget_view = myGridViewerOverlay(self.dbase_tabs_builder_widget)
         self.dbase_builder_widget_view.setLayout(QVBoxLayout())
         
@@ -4144,9 +4339,35 @@ class FileWatcherGUI(QDialog):
         header = self.dbase_builder_widget_join.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         
+        ###
         self.dbase_builder_layout.addWidget(self.dbase_builder_widget_table)
+        
+        font = QFont("Arial",11)
+        self.db_hlayout = QHBoxLayout()
+                
+        self.dbase_builder_btn1 = QPushButton("Add Table")
+        self.dbase_builder_btn2 = QPushButton("Add Data Source")
+        self.dbase_builder_btn3 = QPushButton("Clear Dashboard")
+        #
+        self.dbase_builder_btn1.setFont(font)
+        self.dbase_builder_btn2.setFont(font)
+        self.dbase_builder_btn3.setFont(font)
+        
+        self.dbase_builder_btn1.setMinimumHeight(29)
+        self.dbase_builder_btn2.setMinimumHeight(29)
+        self.dbase_builder_btn3.setMinimumHeight(29)
+        #
+        self.db_hlayout.addWidget(self.dbase_builder_btn1)
+        self.db_hlayout.addWidget(self.dbase_builder_btn2)
+        self.db_hlayout.addWidget(self.dbase_builder_btn3)
+        
+        self.dbase_builder_layout.addLayout(self.db_hlayout)
+        #
+        self.dbase_builder_btn1.clicked.connect(self.dbase_builder_btn1_clicked)
+        
         self.dbase_builder_layout.addWidget(self.dbase_builder_widget_view)
         self.dbase_builder_layout.addWidget(self.dbase_builder_widget_join)
+        ###
         
         self.dbase_tabs_builder_widget.setLayout(self.dbase_builder_layout)
         
@@ -4226,6 +4447,10 @@ class FileWatcherGUI(QDialog):
         self.dbase_btn1.setStyleSheet("background-color:red;color:yellow;")
         self.dbase_btn2.setStyleSheet("background-color:yellow;color:black;")
         self.dbase_btn3.setStyleSheet("background-color:blue;color:white;")
+    
+    def dbase_builder_btn1_clicked(self):
+        tableDialog = myAddTableDialog(self)
+        tableDialog.exec_()
     
     # pascal
     def handlePascal(self):
@@ -4615,10 +4840,26 @@ class FileWatcherGUI(QDialog):
         self.main_layout.addWidget(self.locale_tabs)
     
     # commodore c64
+    def onC64TabChanged(self, index):
+        if index == 0 or index == 2:
+            print("end")
+            if not self.c64_screen.worker_thread == None:
+                self.c64_screen.worker_thread.stop()
+            self.worker_hasFocus = False
+        elif index == 1:
+            print("start")
+            if not self.c64_screen.worker_thread == None:
+                self.c64_screen.worker_thread.stop()
+            self.c64_screen.worker_thread = None
+            self.c64_screen.worker_thread = c64WorkerThread(self)
+            self.c64_screen.worker_thread.start()
+            self.worker_hasFocus = True
+    
     def handleCommodoreC64(self):
         self.c64_tabs = QTabWidget()
         self.c64_tabs.setStyleSheet(css_tabs)
         self.c64_tabs.hide()
+        
         
         self.c64_tabs_project_widget = QWidget()
         self.c64_tabs_editors_widget = QWidget()
@@ -4644,9 +4885,17 @@ class FileWatcherGUI(QDialog):
         self.c64_keyboard_label.setPixmap(self.c64_keyboard_pixmap)
         
         
-        scrlayout = QHBoxLayout()
+        #####
+        c64_logo_label  = QLabel(self.c64_frame_unten)
+        c64_logo_label_pixmap = QPixmap(__app__logoc64__)
+        c64_logo_label.setPixmap(c64_logo_label_pixmap)
+        c64_logo_label.move(502,1)
+        #####
+        
+        
         self.c64_screen = c64Bildschirm(self.c64_frame_oben)
-        scrlayout.addWidget(self.c64_screen)
+        
+        self.c64_tabs.currentChanged.connect(self.onC64TabChanged)
         
         _listpush_apps = QPushButton("Applications")
         _listpush_game = QPushButton("Games")
@@ -4655,10 +4904,6 @@ class FileWatcherGUI(QDialog):
         _listwidget.setViewMode  (QListView.IconMode)
         _listwidget.setResizeMode(QListView.Adjust)
         _listwidget.setStyleSheet("background-color:white;")
-        
-        scrlayout.addWidget(_listwidget)
-        scrlayout.addWidget(_listpush_apps)
-        scrlayout.addWidget(_listpush_game)
         
         _listwidget   .setParent(self.c64_frame_oben)
         _listpush_apps.setParent(self.c64_frame_oben)
@@ -4687,13 +4932,11 @@ class FileWatcherGUI(QDialog):
         c64_mc1_label.setPixmap(c64_mc1_pixmap)
         #
         
-        scrlayout.addWidget(c64_disc1_label)
-        scrlayout.addWidget(c64_disc2_label)
-        scrlayout.addWidget(c64_mc1_label)
         #
         c64_disc1_label.move(440,240)
         c64_disc2_label.move(540,240)
         c64_mc1_label  .move(690,240)
+        
         
         self.c64_layout.addWidget(self.c64_frame_oben)
         self.c64_layout.addWidget(self.c64_frame_unten)
@@ -4702,6 +4945,35 @@ class FileWatcherGUI(QDialog):
         
         ####
         self.main_layout.addWidget(self.c64_tabs)
+    
+    def closeEvent(self, event):
+        msg = QMessageBox()
+        msg.setWindowTitle("Confirmation")
+        msg.setText("Would you close the Application ?")
+        msg.setIcon(QMessageBox.Question)
+        
+        btn_yes = msg.addButton(QMessageBox.Yes)
+        btn_no  = msg.addButton(QMessageBox.No)
+        
+        msg.setStyleSheet("""
+        QPushButton{
+            min-width: 84px;
+            min-height: 25px;
+            font-size: 11pt;
+            border: 1px solid black;
+        }
+        QPushButton:hover{
+            border: 1px solid red;
+        }""")
+        
+        result = msg.exec_()
+        
+        if result == QMessageBox.Yes:
+            if not self.c64_screen.worker_thread == None:
+                self.c64_screen.worker_thread.stop()
+            event.accept()
+        else:
+            event.ignore()
     
     # ------------------------------------------------------------------------
     # class member to get the widget item from list_widget_1 or list_widget_2.

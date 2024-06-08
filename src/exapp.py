@@ -56,4 +56,5 @@ def handleExceptionApplication(func,arg1=""):
             print("abort.")
             sys.exit(error_result)
         
-        print("Done.")
+        print("Done tttz.")
+        sys.exit(0)
