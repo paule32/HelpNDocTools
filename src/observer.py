@@ -3205,6 +3205,128 @@ class myAddTableDialog(QDialog):
         else:
             return s[:maxlength-3]+"..."
 
+class myDataTabWidget(QWidget):
+    class MaxLengthDelegate(QStyledItemDelegate):
+        def __init__(self, max_length, parent=None):
+            super().__init__(parent)
+            self.max_length = max_length
+        
+        def createEditor(self, parent, option, index):
+            editor = QLineEdit(parent)
+            editor.setMaxLength(self.max_length)
+            return editor
+    
+    class ComboBoxDelegate(QStyledItemDelegate):
+        def __init__(self, items, parent=None):
+            super().__init__(parent)
+            self.items = items
+        
+        def createEditor(self, parent, option, index):
+            editor = QComboBox(parent)
+            editor.addItems(self.items)
+            return editor
+        
+        def setEditorData(self, editor, index):
+            super().setEditorData(editor, index)
+            editor.showPopup()
+    
+    class CheckBoxDelegate(QStyledItemDelegate):
+        def createEditor(self, parent, option, index):
+            editor = QWidget(parent)
+            layout = QHBoxLayout(editor)
+            layout.setContentsMargins(0, 0, 0, 0)
+            check_box = QCheckBox(parent)
+            layout.addWidget(check_box)
+            check_box.setTristate(False)
+            check_box.setChecked(index.model().data(index, Qt.EditRole) == "YES")
+            editor.setLayout(layout)
+            return editor
+        
+        def setEditorData(self, editor, index):
+            check_box = editor.findChild(QCheckBox)
+            if check_box:
+                value = index.model().data(index, Qt.EditRole)
+                check_box.setChecked(value == "YES")
+        
+        def setModelData(self, editor, model, index):
+            check_box = editor.findChild(QCheckBox)
+            if check_box:
+                value = "YES" if check_box.isChecked() else "NO"
+                model.setData(index, value, Qt.EditRole)
+        
+        def updateEditorGeometry(self, editor, option, index):
+            editor.setGeometry(option.rect)
+    
+    def __init__(self,parent):
+        super().__init__()
+        self.parent = parent
+        
+        self.vlayout = QVBoxLayout()
+        self.hlayout = QHBoxLayout()
+        
+        self.top_widget = QWidget()
+        self.top_widget.setStyleSheet("background-color: gray;")
+        self.top_widget.setMinimumHeight(62)
+        self.top_widget.setMaximumHeight(62)
+        
+        self.vlayout.addWidget(self.top_widget)
+        #self.vlayout.addStretch()
+        
+        ###
+        font = QFont("Arial", 10)
+        
+        self.table_btn_add      = QPushButton("Add Table Field")
+        self.table_btn_remove   = QPushButton("Remove Field")
+        self.table_btn_clearall = QPushButton("Clear Table Dash")
+        
+        self.table_btn_add.setMinimumHeight(29)
+        self.table_btn_add.setFont(font)
+        #
+        self.table_btn_remove.setMinimumHeight(29)
+        self.table_btn_remove.setFont(font)
+        #
+        self.table_btn_clearall.setMinimumHeight(29)
+        self.table_btn_clearall.setFont(font)
+        
+        self.hlayout.addWidget(self.table_btn_add)
+        self.hlayout.addWidget(self.table_btn_remove)
+        self.hlayout.addWidget(self.table_btn_clearall)
+        
+        ###
+        self.rlayout = QHBoxLayout()
+        self.table_widget = QTableWidget(3,5)
+        self.table_widget.setHorizontalHeaderLabels(["Name","Type","Len","Prec","PrKey"])
+        
+        horizontal_header = self.table_widget.horizontalHeader()
+        vertical_header   = self.table_widget.verticalHeader()
+        
+        horizontal_header.setStyleSheet("QHeaderView::section { background-color: lightgreen; color: black; font-weight: bold; }")
+        vertical_header  .setStyleSheet("QHeaderView::section { background-color: lightblue; color: black; font-weight: bold; }")
+        
+        
+        # Delegate für die erste Spalte setzen
+        self.delegate = self.MaxLengthDelegate(30, self.table_widget)
+        self.table_widget.setItemDelegateForColumn(0, self.delegate)
+        
+        self.combo_items = ["Option 1", "Option 2", "Option 3"]
+        
+        # Delegate für die zweite Spalte setzen
+        self.combo_box_delegate = self.ComboBoxDelegate(self.combo_items, self.table_widget)
+        self.table_widget.setItemDelegateForColumn(1, self.combo_box_delegate)
+        
+        # Delegate für die dritte Spalte setzen
+        self.check_box_delegate = self.CheckBoxDelegate(self.table_widget)
+        self.table_widget.setItemDelegateForColumn(4, self.check_box_delegate)
+        
+        
+        self.rlayout.addWidget(self.table_widget)
+        
+        self.vlayout.addLayout(self.hlayout)
+        self.vlayout.addLayout(self.rlayout)
+        self.vlayout.addStretch()
+                
+        self.setLayout(self.vlayout)
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -4240,8 +4362,9 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_editors_widget = QWidget()
         self.dbase_tabs_designs_widget = QWidget()
         self.dbase_tabs_builder_widget = QWidget()
-        self.dbase_tabs_datatab_widget = QWidget()
+        self.dbase_tabs_datatab_widget = myDataTabWidget(self)
         self.dbase_tabs_reports_widget = QWidget()
+        #
         #
         self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
         self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")

@@ -4,8 +4,8 @@ To download the Windows 10 64-Bit Professional based Application, you can visit:
 [Application](https://kallup.net/HelpNDoc/pyapp/)
 
 Here are some out dated screen shoot on running the application:
-
 For the Commodore C-64 TrueType Font, visit: [C64Font](https://style64.org/release/c64-truetype-v1.2.1-style)
+
 Preview Front-Window A2:
 ![Preview](src/img/screen010.png)
 
@@ -20,6 +20,9 @@ Preview Design-Window A5:
 
 Preview Design-Window A6:
 ![Preview](src/img/screen014.png)
+
+Preview Design-Window A7:
+![Preview](src/img/screen015.png)
 
 Preview Front-Window 1:
 ![Preview](src/img/screen00A.png)
