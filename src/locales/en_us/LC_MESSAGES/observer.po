@@ -618,6 +618,18 @@ msgid "bgwh"
 msgstr ""
     "background-color:white;"
 
+msgid "msgbox_css"
+msgstr ""
+    "QPushButton{"
+    "min-width: 84px;"
+    "min-height: 25px;"
+    "font-size: 11pt;"
+    "border: 1px solid black;"
+    "}""
+    "QPushButton:hover{"
+    "border: 1px solid red;"
+    "}"
+
 # ---------------------------------------------------------------------------
 # supported languages by doxygen 1.10.0 ...
 # ---------------------------------------------------------------------------

@@ -97,3 +97,8 @@ src/chat1_fileAdata.db
 src/chat2_fileBdata.db
 src/chat1.db
 src/chat3.db
+doc/help.lck
+doc/help.hnd-journal
+doc/help.hnd
+doc/help.chm
+src/help.chm

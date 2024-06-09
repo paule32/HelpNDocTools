@@ -89,11 +89,7 @@ try:
     # ------------------------------------------------------------------------
     # developers own modules ...
     # ------------------------------------------------------------------------
-    from exclasses  import *     # exception: templates
-    from exapp      import *     # exception: application block placeholder
-    
     from collection import *     # exception: templates
-    from exapp      import *     # exception: application block placeholder
     
     from VisualComponentLibrary import *
     

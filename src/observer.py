@@ -11,11 +11,22 @@ global EXIT_FAILURE; EXIT_FAILURE = 1
 global error_result; error_result = 0
 global topic_counter; topic_counter = 1
 
-global debugMode
 global c64_painter
 
+global basedir
+global tr
+global sv_help
+
+global error_fail
+global app, appwin
+global byte_code
+
+global debugMode
+
+appwin = None
+# ---------------------------------------------------------------------------
 import os            # operating system stuff
-import sys
+import sys           # system specifies
 
 if getattr(sys, 'frozen', False):
     import pyi_splash
@@ -31,24 +42,102 @@ if 'PYTHONPATH' in os.environ:
 # ---------------------------------------------------------------------------
 # extent the search paths for supported interpreters and tools ...
 # ---------------------------------------------------------------------------
-__app__inter__ = "./interpreter/"
+__app__app_dir__ = os.path.dirname(os.path.abspath(__file__))
+__app__modul__ = __app__app_dir__ + "\\"
+__app__inter__ = __app__app_dir__ + "\\interpreter\\"
 #
-sys.path.append(__app__inter__ + "pascal")
-sys.path.append(__app__inter__ + "dbase")
-sys.path.append(__app__inter__ + "doxygen")
-sys.path.append("./tools")
+print(__app__modul__)
+
+# ---------------------------------------------------------------------------
+# application imports ...
+# ---------------------------------------------------------------------------
+try:
+    import re            # regular expression handling
+    
+    import time          # thread count
+    import datetime      # date, and time routines
+    
+    import threading     # multiple action simulator
+    
+    import glob           # directory search
+    import atexit         # clean up
+    import subprocess     # start sub processes
+    import platform       # Windows ?
+    
+    import gzip           # pack/de-pack data
+    import base64         # base64 encoded data
+    import shutil         # shell utils
+    
+    import pkgutil        # attached binary data utils
+    import json           # json lists
+    
+    import gettext        # localization
+    import locale         # internal system locale
+    
+    import random         # randome numbers
+    import string
+    
+    import ctypes         # windows ip info
+    
+    import sqlite3        # database: sqlite
+    import configparser   # .ini files
+    
+    import traceback      # stack exception trace back
+    
+    import textwrap
+    import marshal        # bytecode exec
+    import inspect        # stack
+    
+    # ------------------------------------------------------------------------
+    # Qt5 gui framework
+    # ------------------------------------------------------------------------
+    from PyQt5.QtWidgets          import *
+    from PyQt5.QtWebEngineWidgets import *
+    from PyQt5.QtCore             import *
+    from PyQt5.QtGui              import *
+    
+    from logging    import *
+    
+    # ------------------------------------------------------------------------
+    # developers own modules ...
+    # ------------------------------------------------------------------------
+    sys.path.append(__app__inter__ + "pascal")
+    sys.path.append(__app__inter__ + "dbase")
+    sys.path.append(__app__inter__ + "doxygen")
+    sys.path.append(__app__inter__ )
+    sys.path.append(__app__modul__ + "tools")
+
+    from collection import *     # exception: templates
+    
+    from VisualComponentLibrary import *
+    
+    from dbaseConsole     import *
+    from EParserException import *     # exception handling for use with parser
+    from RunTimeLibrary   import *     # rtl functions for parser
+    
+    from ParserDSL        import *
+    
+    from colorama   import init, Fore, Back, Style  # ANSI escape
+    from pascal     import *     # pascal interpreter
+    from dbase      import *     # dbase ...
+    from doxygen    import *     # doxygen script
+    
+except Exception as err:
+    print(err)
+    sys.exit(1)
 
 # -----------------------------------------------------------------------
 # global used application stuff ...
 # -----------------------------------------------------------------------
-from appcollection import *
-img = "/img/"
+# from appcollection import *
+img = "img\\"
 
 c64_painter = None
 
 __app__name         = "observer"
-__app__internal__   = "./_internal"
-__app__config_ini   = __app__internal__ + "/observer.ini"
+__app__internal__   = __app__modul__ + "_internal\\"
+
+__app__config_ini   = __app__internal__ + "observer.ini"
 __app__img__int__   = __app__internal__ + img
 
 __app__doxygen__    = __app__img__int__ + "doxygen"
@@ -68,7 +157,7 @@ __app__keybc64__    = __app__img__int__ + "c64keyboard.png"
 __app__discc64__    = __app__img__int__ + "disk2.png"
 __app__datmc64__    = __app__img__int__ + "mc2.png"
 __app__logoc64__    = __app__img__int__ + "logo2.png"
-
+print("--> " + __app__helpdev__)
 __app__img_ext__    = ".png"
 
 __app__framework    = "PyQt5.QtWidgets.QApplication"
@@ -130,7 +219,63 @@ basedir = os.path.dirname(__file__)
 # ------------------------------------------------------------------------
 css_model_header   = "model_hadr"
 css_combobox_style = "combo_actn"
+
+class ListInstructionError(Exception):
+    def __init__(self):
+        print((""
+        + "Exception: List instructions error.\n"
+        + "note: Did you miss a parameter ?\n"
+        + "note: Add more information."))
+        error_result = 1
+        return
+
+class ListMustBeInstructionError(Exception):
+    def __init__(self):
+        print("Exception: List must be of class type: InstructionItem")
+        error_result = 1
+        return
+class ListIndexOutOfBoundsError(Exception):
+    def __init__(self):
+        print("Exception: List index out of bounds.")
+        error_result = 1
+        return
+
+class ENoParserError(Exception):
+    def __init__(self, message=None):
+        if message == None:
+            self.message = "this exception marks no error, but end of data."
+        else:
+            self.message = message
+    def __str__(self):
+        error_result = 0
+        return str(self.message)
+
+class EParserErrorEOF(Exception):
+    def __init__(self, message=None):
+        if message == None:
+            self.message = "this exception marks no error, but end of data."
+        else:
+            self.message = message
+    def __str__(self):
+        error_result = 0
+        return str(self.message)
+
+class EParserErrorUnknowID(Exception):
+    def __init__(self, message, lineno):
+        print("Exception: unknown id: " + message)
+        print("Line     : " + str(lineno))
+        error_result = 1
+        return
+
+class EInvalidParserError(Exception):
+    def __init__(self, message, lineno):
+        self.message  = "Exception: invalid id: '" + message + "'\n"
+        self.message += "line: " + str(lineno)
     
+    def __str__(self):
+        error_result = 1
+        return str(self.message)
+
 # ------------------------------------------------------------------------
 # date / time week days
 # ------------------------------------------------------------------------
@@ -254,6 +399,60 @@ def get_current_time():
 
 def get_current_date():
     return datetime.datetime.now().strftime("%Y_%m_%d")
+
+def handleExceptionApplication(func,arg1=""):
+    global error_fail, error_result
+    error_fail = False
+    error_result = 0
+    try:
+        func(arg1)
+    except ListInstructionError as ex:
+        ex.add_note("Did you miss a parameter ?")
+        ex.add_note("Add more information.")
+        print("List instructions error.")
+        error_result = 1
+    except ZeroDivisionError as ex:
+        ex.add_note("1/0 not allowed !")
+        print("Handling run-time error:", ex)
+        error_result = 1
+    except OSError as ex:
+        print("OS error:", ex)
+        error_result = 1
+    except ValueError as ex:
+        print("Could not convert data:", ex)
+        error_result = 1
+    except Exception as ex:
+        s = f"{ex.args}"
+        parts = [part.strip() for part in s.split("'") if part.strip()]
+        parts.pop( 0)   # delete first element
+        parts.pop(-1)   # delete last  element
+        
+        err = "error: Exception occured: "
+        if type(ex) == NameError:
+            err += "NameError\n"
+            err += "text: '" + parts[0]+"' not defined\n"
+        elif type(ex) == AttributeError:
+            err += "AttributeError\n"
+            err += "class: " + parts[0]+"\n"
+            err += "text : " + parts[2]+": "+parts[1]+"\n"
+        else:
+            err += "type  : " + "default  \n"
+        
+        error_ex = err
+        
+        error_result = 1
+        error_fail   = True
+        print(ex)
+    finally:
+        # ---------------------------------------------------------
+        # when all is gone, stop the running script ...
+        # ---------------------------------------------------------
+        if error_result > 0:
+            print("abort.")
+            sys.exit(error_result)
+        
+        print("Done.")
+        sys.exit(0)
 
 # ------------------------------------------------------------------------
 # custom widget for QListWidgetItem element's ...
@@ -493,46 +692,48 @@ class myIconButton(QWidget):
         self.pix_label.setMaximumWidth (79)
         self.pix_label.setMaximumHeight(79)
         
-        self.image_fg = __app__helpdev__ + fg
-        self.image_bg = __app__helpdev__ + bg
+        ptx = ""
+        
+        self.image_fg = ptx + __app__helpdev__ + fg
+        self.image_bg = ptx + __app__helpdev__ + bg
         
         parent.side_layout.addWidget(self)
         
         if mode == 0:
-            self.image_fg = __app__helpdev__ + fg
-            self.image_bg = __app__helpdev__ + bg
+            self.image_fg = ptx + __app__helpdev__ + fg
+            self.image_bg = ptx + __app__helpdev__ + bg
         
         elif mode == 1:
-            self.image_fg = __app__dbasedb__ + fg
-            self.image_bg = __app__dbasedb__ + bg
+            self.image_fg = ptx + __app__dbasedb__ + fg
+            self.image_bg = ptx + __app__dbasedb__ + bg
         
         elif mode == 2:
-            self.image_fg = __app__freepas__ + fg
-            self.image_bg = __app__freepas__ + bg
+            self.image_fg = ptx + __app__freepas__ + fg
+            self.image_bg = ptx + __app__freepas__ + bg
         
         elif mode == 3:
-            self.image_fg = __app__cpp1dev__ + fg
-            self.image_bg = __app__cpp1dev__ + bg
+            self.image_fg = ptx + __app__cpp1dev__ + fg
+            self.image_bg = ptx + __app__cpp1dev__ + bg
         
         elif mode == 4:
-            self.image_fg = __app__javadev__ + fg
-            self.image_bg = __app__javadev__ + bg
+            self.image_fg = ptx + __app__javadev__ + fg
+            self.image_bg = ptx + __app__javadev__ + bg
         
         elif mode == 5:
-            self.image_fg = __app__pythonc__ + fg
-            self.image_bg = __app__pythonc__ + bg
+            self.image_fg = ptx + __app__pythonc__ + fg
+            self.image_bg = ptx + __app__pythonc__ + bg
         
         elif mode == 6:
-            self.image_fg = __app__lispmod__ + fg
-            self.image_bg = __app__lispmod__ + bg
+            self.image_fg = ptx + __app__lispmod__ + fg
+            self.image_bg = ptx + __app__lispmod__ + bg
         
         elif mode == 10:
-            self.image_fg = __app__locales__ + fg
-            self.image_bg = __app__locales__ + bg
+            self.image_fg = ptx + __app__locales__ + fg
+            self.image_bg = ptx + __app__locales__ + bg
         
         elif mode == 11:
-            self.image_fg = __app__com_c64__ + fg
-            self.image_bg = __app__com_c64__ + bg
+            self.image_fg = ptx + __app__com_c64__ + fg
+            self.image_bg = ptx + __app__com_c64__ + bg
         
         self.set_style()
     
@@ -543,8 +744,8 @@ class myIconButton(QWidget):
             self.bordercolor = "lightgray"
         
         style = _("labelico_css")        \
-        .replace("{fg}", self.image_fg)  \
-        .replace("{bg}", self.image_bg)  \
+        .replace("{fg}", self.image_fg.replace("\\","/"))  \
+        .replace("{bg}", self.image_bg.replace("\\","/"))  \
         .replace("{bc}", self.bordercolor)
         
         self.pix_label.setStyleSheet(style)
@@ -1889,7 +2090,7 @@ class doxygenImageTracker(QWidget):
         .replace("{2i}",__app__doxygen__ + str(2) + __app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
-        self.img_origin_doxygen_label.setStyleSheet(style)
+        self.img_origin_doxygen_label.setStyleSheet(style.replace("\\","/"))
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -1942,11 +2143,14 @@ class helpNDocImageTracker(QWidget):
         self.set_style()
     
     def set_style(self):
-        style = _("doxtrack_css") \
-        .replace("{1i}",__app__hlpndoc__ + str(1) + __app__img_ext__).replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__hlpndoc__ + str(2) + __app__img_ext__).replace("{2b}",self.bordercolor )
+        txt1 = __app__hlpndoc__ + str(1) + __app__img_ext__
+        txt2 = __app__hlpndoc__ + str(2) + __app__img_ext__
         
-        self.img_origin_hlpndoc_label.setStyleSheet(style)
+        style = _("doxtrack_css") \
+        .replace("{1i}",txt1).replace("{1b}",self.bordercolor ) \
+        .replace("{2i}",txt2).replace("{2b}",self.bordercolor )
+        
+        self.img_origin_hlpndoc_label.setStyleSheet(style.replace("\\","/"))
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -2005,7 +2209,7 @@ class ccpplusImageTracker(QWidget):
         .replace("{1i}",__app__cpp1dev__ + str(1) + __app__img_ext__).replace("{1b}",self.bordercolor ) \
         .replace("{2i}",__app__cpp1dev__ + str(2) + __app__img_ext__).replace("{2b}",self.bordercolor )
         
-        self.img_origin_ccpplus_label.setStyleSheet(style)
+        self.img_origin_ccpplus_label.setStyleSheet(style.replace("\\","/"))
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -2070,7 +2274,7 @@ class javadocImageTracker(QWidget):
         .replace("{2i}",__app__javadoc__ + str(2) + __app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
-        self.img_origin_javadoc_label.setStyleSheet(style)
+        self.img_origin_javadoc_label.setStyleSheet(style.replace("\\","/"))
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -2135,7 +2339,7 @@ class freepasImageTracker(QWidget):
         .replace("{2i}",__app__freepas__ + str(2) + __app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
-        self.img_origin_freepas_label.setStyleSheet(style)
+        self.img_origin_freepas_label.setStyleSheet(style.replace("\\","/"))
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -2197,9 +2401,12 @@ class MyPushButton(QLabel):
             self.btn_img_fg = __app__img__int__ + "build1"  + __app__img_ext__
             self.btn_img_bg = __app__img__int__ + "build2"  + __app__img_ext__
         
+        fg = self.btn_img_fg.replace("\\","/")
+        bg = self.btn_img_bg.replace("\\","/")
+        
         style = _("push_css") \
-        .replace("{fg}",self.btn_img_fg) \
-        .replace("{bg}",self.btn_img_bg)
+        .replace("{fg}",fg)   \
+        .replace("{bg}",bg)
         
         self.setStyleSheet(style)
 
@@ -3457,7 +3664,24 @@ class FileWatcherGUI(QDialog):
     # dialog exit ? ...
     # --------------------
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key_F1:
+            help_chm = "help.chm"
+            if os.path.exists(help_chm):
+                os.startfile(help_chm)
+            else:
+                msg = QMessageBox()
+                msg.setWindowTitle("Warnin")
+                msg.setText(
+                    "The help file for  the Application\n"
+                    "Could not be found !")
+                msg.setIcon(QMessageBox.Warning)
+                
+                btn_ok = msg.addButton(QMessageBox.Ok)
+                
+                msg.setStyleSheet(_("msgbox_css"))
+                result = msg.exec_()
+        
+        elif event.key() == Qt.Key_Escape:
             exitBox = myExitDialog(_("Exit Dialog"))
             exitBox.exec_()
         elif event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
@@ -4210,6 +4434,10 @@ class FileWatcherGUI(QDialog):
         
         self.tab0_file_tree.setRootIndex(self.tab0_dir_model.index(self.tab0_path))
         self.tab0_file_list.setRootIndex(self.tab0_file_model.index(self.tab0_path))
+        ###
+        # Kontextmenü für QTreeView verbinden
+        self.tab0_file_tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tab0_file_tree.customContextMenuRequested.connect(self.openContextMenuTreeView)
         
         self.tab0_help_list   = QListWidget()
         self.tab0_help_list.setMinimumWidth(260)
@@ -4454,6 +4682,175 @@ class FileWatcherGUI(QDialog):
         
         self.interval = 0
         self.currentTime = 0
+    
+    # folder tree
+    def openContextMenuTreeView(self, position):
+        indexes = self.tab0_file_tree.selectedIndexes()
+        if indexes:
+            font = QFont("Arial", 11)
+            font.setBold(True)
+            
+            # Popup-Menü erstellen
+            menu = QMenu()
+            menu.setFont(font)
+            menu.setStyleSheet("""
+            QMenu{
+            background-color: navy;
+            color: yellow;
+            }
+            QMenu:item:selected{
+            background-color: green;
+            color:white;
+            }
+            """)
+            
+            # Aktionen zum Menü hinzufügen
+            enters_action = QAction("Enter Directory", self)
+            create_action = QAction("Create", self)
+            delete_action = QAction("Delete", self)
+            rename_action = QAction("Rename", self)
+            
+            menu.addAction(enters_action)
+            menu.addAction(create_action)
+            menu.addAction(delete_action)
+            menu.addAction(rename_action)
+            
+            # Aktionen verbinden
+            enters_action.triggered.connect(lambda: self.entersDirectory(indexes[0]))
+            create_action.triggered.connect(lambda: self.createDirectory(indexes[0]))
+            delete_action.triggered.connect(lambda: self.deleteDirectory(indexes[0]))
+            rename_action.triggered.connect(lambda: self.renameDirectory(indexes[0]))
+            
+            # Menü anzeigen
+            menu.exec_(self.tab0_file_tree.viewport().mapToGlobal(position))
+    
+    def expand_entry(self, tree_view, model, path):
+        index = model.index(path)
+        if index.isValid():
+            tree_view.expand(index)
+    def entersDirectory(self, index):
+        dir_path = self.tab0_dir_model.filePath(index)
+        if os.path.isdir(dir_path):
+            os.chdir(dir_path)
+            self.expand_entry(
+                self.tab0_file_tree,
+                self.tab0_dir_model,
+                dir_path)
+            
+            font = QFont("Arial", 11)
+            
+            dialog = QMessageBox(self)
+            dialog.setWindowTitle("Enter Directory")
+            dialog.setText(
+                "Operation successfully !\n"
+                "No Error.")
+            dialog.setFont(font)
+            
+            btn_ok = dialog.addButton(QMessageBox.Ok)
+            btn_ok.setFont(font)
+                    
+            dialog.setStyleSheet(_("msgbox_css"))
+            dialog.exec_()
+    
+    def createDirectory(self, index):
+        dir_path = self.tab0_dir_model.filePath(index)
+        if os.path.isdir(dir_path):
+            font = QFont("Arial", 11)
+            
+            dialog = QInputDialog(self)
+            dialog.setWindowTitle("Create new directory")
+            dialog.setLabelText("Type-In the name:")
+            dialog.setFont(font)
+            
+            if dialog.exec_() == QInputDialog.Accepted:
+                folder_name  = dialog.textValue()
+                new_dir_path = os.path.join(dir_path, folder_name)
+                new_dir_path = new_dir_path.replace('/',"\\")
+                try:
+                    if not os.path.exists(new_dir_path):
+                        os.makedirs(new_dir_path, exist_ok=True)
+                        
+                        msg = QMessageBox()
+                        msg.setWindowTitle("Information")
+                        msg.setFont(font)
+                        msg.setText(
+                            "The directpry was create successfully.\n"
+                            "No errors")
+                        msg.setIcon(QMessageBox.Information)
+                        
+                        btn_ok = msg.addButton(QMessageBox.Ok)
+                        btn_ok.setFont(font)
+                        
+                        msg.setStyleSheet(_("msgbox_css"))
+                        result = msg.exec_()
+                    else:
+                        msg = QMessageBox()
+                        msg.setWindowTitle("Error")
+                        msg.setFont(font)
+                        msg.setText(
+                            "The directpry already exists.\n"
+                            "Error.")
+                        msg.setIcon(QMessageBox.Information)
+                        
+                        btn_ok = msg.addButton(QMessageBox.Ok)
+                        btn_ok.setFont(font)
+                        
+                        msg.setStyleSheet(_("msgbox_css"))
+                        result = msg.exec_()
+                    
+                except PermissionError:
+                    msg = QMessageBox()
+                    msg.setWindowTitle("Error")
+                    msg.setFont(font)
+                    msg.setText("No permissions to crrate this directpry !\n")
+                    msg.setIcon(QMessageBox.Warning)
+                    
+                    btn_ok = msg.addButton(QMessageBox.Ok)
+                    btm_ok.setFont(font)
+                    
+                    msg.setStyleSheet(_("msgbox_css"))
+                    msg.exec_()
+                    
+                except FileExistsError:
+                    msg = QMessageBox()
+                    msg.setWindowTitle("Warning")
+                    msg.setFont(font)
+                    msg.setText(
+                        "A directpry with the same name already exists !\n"
+                        "Please try again, and giva a unique file name.")
+                    msg.setIcon(QMessageBox.Warning)
+                    
+                    btn_ok = msg.addButton(QMessageBox.Ok)
+                    btm_ok.setFont(font)
+                    
+                    msg.setStyleSheet(_("msgbox_css"))
+                    msg.exec_()
+                    
+                except Exception as e:
+                    print(e)
+                    msg = QMessageBox()
+                    msg.setWindowTitle("Warning")
+                    msg.setFont(font)
+                    msg.setText(
+                        "The directpry could not be created !\n"
+                        "Please try again, with different file name.")
+                    msg.setIcon(QMessageBox.Warning)
+                    
+                    btn_ok = msg.addButton(QMessageBox.Ok)
+                    btn_ok.setFont(font)
+                    
+                    msg.setStyleSheet(_("msgbox_css"))
+                    msg.exec_()
+                
+    
+    def deleteDirectory(self, index):
+        file_path = self.tab0_dir_model.filePath(index)
+        print(f"Löschen: {file_path}")
+    
+    def renameDirectory(self, index):
+        file_path = self.tab0_dir_model.filePath(index)
+        print(f"Umbenennen: {file_path}")
+    
     
     # dbase
     def handleDBase(self):
@@ -5186,17 +5583,7 @@ class FileWatcherGUI(QDialog):
         btn_yes = msg.addButton(QMessageBox.Yes)
         btn_no  = msg.addButton(QMessageBox.No)
         
-        msg.setStyleSheet("""
-        QPushButton{
-            min-width: 84px;
-            min-height: 25px;
-            font-size: 11pt;
-            border: 1px solid black;
-        }
-        QPushButton:hover{
-            border: 1px solid red;
-        }""")
-        
+        msg.setStyleSheet(_("msgbox_css"))
         result = msg.exec_()
         
         if result == QMessageBox.Yes:
@@ -5377,7 +5764,7 @@ class licenseWindow(QDialog):
         self.returnCode = 0
         
         self.file_content = ""
-        self.file_path = __app__internal__ + "/LICENSE"
+        self.file_path = __app__internal__ + "\\LICENSE"
         try:
             with open(self.file_path, "r") as file:
                 self.file_content = file.read()
@@ -5629,16 +6016,40 @@ def EntryPoint(arg1=None):
     conn_cursor = conn.cursor()
     conn.close()
     
-    if app == None:
-        app = QApplication(sys.argv)
-    
-    appwin = FileWatcherGUI()
-    appwin.move(100, 100)
-    
-    appwin.exec_()
-    
-    #error_result = app.exec_()
-    return
+    try:
+        if app == None:
+            app = QApplication(sys.argv)
+        
+        appwin = FileWatcherGUI()
+        appwin.move(100, 100)
+        
+        appwin.exec_()
+    except UnboundLocalError as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        filename, lineno, funcname, text = tb[-1]
+        if appwin == False:
+            print(f"Exception: {e}")
+            print(f"Error occurred in file: {filename}")
+            print(f"Function: {funcname}")
+            print(f"Line number: {lineno}")
+            print(f"Line text: {text}")
+        else:
+            txt = (
+                f"Exception: {e}\n"
+                f"Error occurred in file: {filename}\n"
+                f"Function: {funcname}\n"
+                f"Line number: {lineno}\n"
+                f"Line text: {text}")
+            #
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setText(txt)
+            msg.setIcon(QMessageBox.Warning)
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            msg.exec_()
 
 # ---------------------------------------------------------------------------
 # parse binary data:
@@ -5715,7 +6126,7 @@ if __name__ == '__main__':
     # Determine the path to the script and its name.
     script = os.path.abspath(sys.argv[0])
     script_path, script_name = os.path.split(script)
-    script_path = os.path.abspath(script_path)
+    script_path = os.path.abspath(script_path)    
     
     __app__observers = "observer --"
     __app__file__    = "file."
