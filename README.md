@@ -21,6 +21,9 @@ Preview Design-Window A5:
 Preview Design-Window A7:
 ![Preview](src/img/screen015.png)
 
+Preview Design-Window A72:
+![Preview](src/img/screen016.png)
+
 Preview Design-Window A6:
 ![Preview](src/img/screen014.png)
 
