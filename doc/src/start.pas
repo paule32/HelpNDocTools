@@ -8,8 +8,14 @@
 // @desc    This Pascal script forms a Example chm content project by the
 //          given files in the "topicFiles" Array as String.
 // --------------------------------------------------------------------------
-const global_BuildName   = 'Help Documentation';
-const global_BuildOutput = '.\output';
+
+// hard coded output file path for the help project files:
+const pro_path = 'E:\Projekte\HelpNDocTools\doc';
+//
+const bak_path = pro_path + '\backup';
+const out_path = pro_path + '\output';
+
+const prj_name = 'Help Documentation';
 
 // --------------------------------------------------------------------------
 // global exception stuff ...
@@ -22,19 +28,34 @@ type TProjectKind = (ptCHM, ptHTML);
 // project class stuff ...
 // --------------------------------------------------------------------------
 type
-    TDocProject = class(TObject)
+    TCustomEditor = class(TObject)
     private
-        FActive: Boolean;
-        
-        buildID: String;
-        buildName: String;
-        buildKind: TProjectKind;
-        buildOutput: String;
+        oEditor: TObject;  // temporary Editor
+        oMemory: TMemoryStream;
     public
         constructor Create;
         destructor Destroy; override;
         
-        procedure setActive(AValue: Boolean);
+        procedure Clear;
+    end;
+type
+    TDocProject = class(TObject)
+    private
+        FActive: Boolean;
+        FEditor: TCustomEditor;
+        
+        buildID: String;
+        buildOutput: String;
+        
+        FProjectKind: TProjectKind;
+        FProjectName: String;   // hid name
+        FProjectID  : String;   // internal name
+    public
+        constructor Create;
+        destructor Destroy; override;
+        
+        procedure setActive(AValue: Boolean); overload;
+        procedure setActive(AValue: String); overload;
         
         procedure setID(AValue: String);
         procedure setName(AValue: String);
@@ -42,6 +63,13 @@ type
         procedure setKind(AValue: TProjectKind);
         procedure setOutput(AValue: String);
         
+        procedure setAuthor(AValue: String);
+        procedure setTitle(AValue: String);
+        procedure setLang(AValue: String);
+        procedure setCharset(AValue: String);
+        
+        procedure setEditor(AValue: TCustomEditor);
+        function getEditor: TCustomEditor;
         function getActive: Boolean;
         
         function getID: String;
@@ -49,8 +77,16 @@ type
         
         function getKind: TProjectKind;
         function getOutput: String;
+        
+        function getAuthor: String;
+        function getTitle: String;
+        function getLang: String;
+        
+        function getCharset: String;
     published
         property Active: Boolean read FActive write FActive;
+        property Editor: TCustomEditor read FEditor write FEditor;
+        property Kind: TProjectKind read FProjectKind write FProjectKind;
     end;
 var
     doc: TDocProject;
@@ -64,17 +100,23 @@ var
 constructor TDocProject.Create;
 begin
     inherited Create;
-    printf('info: create: ' + global_BuildName,[]);
+    FEditor := TCustomEditor.Create;
+    
+    THndGeneratorInfo.BOMoutput := false;
+    HndProjects.NewProject(prj_name);
     
     HndBuilds.DeleteAllBuilds;
-    
     setID( HndBuilds.CreateBuild );
     
-    setName  ( global_BuildName );
-    setKind  ( ptCHM );
-    setOutput( global_BuildOutput );
+    setOutput (out_path);
+    setName   (prj_name);
+    setTitle  (prj_help);
     
-    HndBuilds.setBuildName( getID, getName );
+    setCharset(prj_utf8);
+    setLang   (prj_lang);
+    
+    setKind  (ptCHM);   // default: CHM
+    setActive(buildID);
 end;
 
 // ----------------------------------------------------------------------------
@@ -85,8 +127,15 @@ end;
 // ----------------------------------------------------------------------------
 destructor TDocProject.Destroy;
 begin
-    printf('info: destroy',[]);
+    FEditor.Free;
     inherited Destroy;
+end;
+
+procedure TDocProject.new(AValue: String);
+begin
+    SetLength(FProjectName,Length(AValue));
+    FProjectName := Copy(AValue, 1, Length(AValue));
+    FProjectID   := NewProject(FProjectName);
 end;
 
 // ----------------------------------------------------------------------------
@@ -115,8 +164,13 @@ begin
     if Length(Trim(AValue)) < 1 then
     raise EbuildProject.Create('project name is empty; so it can not set.');
     
-    SetLength(buildName, Length(AValue));
-    buildName := Copy(AValue, 1, Length(AValue));
+    if Length(Trim(buildID)) < 1 then
+    raise EbuildProject.Create('project id is empty.');
+    
+    SetLength(FProjectName, Length(AValue));
+    FProjectName := Copy(AValue, 1, Length(AValue));
+    
+    HndBuilds.setBuildName( getID, getName );
 end;
 
 // ----------------------------------------------------------------------------
@@ -141,10 +195,10 @@ end;
 // ----------------------------------------------------------------------------
 function TDocProject.getName: String;
 begin
-    if Length(Trim(buildName)) < 1 then
+    if Length(Trim(FProjectName)) < 1 then
     raise EbuildProject.Create('build name not set.');
     
-    result := buildName;
+    result := FProjectName;
 end;
 
 // ----------------------------------------------------------------------------
@@ -155,7 +209,7 @@ end;
 // ----------------------------------------------------------------------------
 procedure TDocProject.setKind(AValue: TProjectKind);
 begin
-    buildKind := AValue;
+    FProjectKind := AValue;
 end;
 
 // ----------------------------------------------------------------------------
@@ -166,7 +220,7 @@ end;
 // ----------------------------------------------------------------------------
 function TDocProject.getKind: TProjectKind;
 begin
-    result := buildKind;
+    result := FProjectKind;
 end;
 
 // ----------------------------------------------------------------------------
@@ -203,7 +257,20 @@ end;
 // ----------------------------------------------------------------------------
 procedure TDocProject.setActive(AValue: Boolean);
 begin
+    if Length(Trim( buildID )) < 1 then
+    raise EbuildProject.Create('build ID is empty.');
+
+    HndBuilds.setBuildEnabled( buildID, AValue );
     FActive := AValue;
+end;
+
+procedure TDocProject.setActive(AValue: String);
+begin
+    if Length(Trim( AValue )) < 1 then
+    raise EbuildProject.Create('build ID is empty.');
+
+    HndBuilds.setBuildEnabled( AValue, True );
+    FActive := True;
 end;
 
 // ----------------------------------------------------------------------------
@@ -217,6 +284,72 @@ begin
     result := FActive;
 end;
 
+procedure TDocProject.setEditor(AValue: TCustomEditor);
+begin
+    FEditor := AValue;
+end;
+
+function TDocProject.getEditor: TCustomEditor;
+begin
+    result := FEditor;
+end;
+
+procedure TDocProject.setAuthor(AValue: String);
+begin
+end;
+procedure TDocProject.setTitle(AValue: String);
+begin
+end;
+procedure TDocProject.setLang(AValue: String);
+begin
+end;
+procedure TDocProject.setCharset(AValue: String);
+begin
+end;
+
+function TDocProject.getAuthor: String;
+begin
+    result :=
+end;
+function TDocProject.getTitle: String;
+begin
+    result :=
+end;
+function TDocProject.getLang: String;
+begin
+    result :=
+end;
+function TDocProject.getCharset: String;
+begin
+    result :=
+end;
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+constructor TCustomEditor.Create;
+begin
+    inherited Create;
+    
+    oEditor := HndEditor.CreateTemporaryEditor;
+    oMemory := TMemoryStream.Create;
+    
+    oMemory.Clear;
+    Clear;
+end;
+destructor TCustomEditor.Destroy;
+begin
+    oMemory.Clear;
+    oMemory.Free;
+    
+    HndEditor.DestroyTemporaryEditor(oEditor);
+    inherited Destroy;
+end;
+
+procedure TCustomEditor.Clear;
+begin
+    HndEditor.Clear(oEditor);
+end;
+
 // ----------------------------------------------------------------------------
 // @brief  This is the entry point of our project generator.
 // ----------------------------------------------------------------------------
@@ -224,24 +357,23 @@ begin
     try
         try
             doc := TDocProject.Create;
-            doc.getID;
+            doc.kind := ptCHM;
+            
+            doc.Editor.Clear;
         except
             on E: EbuildProject do
             begin
-                printf(
-                    'Exception occured:' + #13#10 +
-                    E.Message + #13#10,[]);
+            printf('Exception occured:' + #13#10 +
+            E.Message,[]);
             end;
             on E: Exception do
             begin
-                ShowMessage(
-                   'Exception occured:' + #13#10 +
-                    E.Message);
+            printf('Exception occured:' + #13#10 +
+            E.Message,[]);
             end;
         end
     finally
         doc.Free;
-        
         printf('Done.',[]);
     end;
 end.
