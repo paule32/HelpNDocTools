@@ -16,6 +16,9 @@ const bak_path = pro_path + '\backup';
 const out_path = pro_path + '\output';
 
 const prj_name = 'Help Documentation';
+const prj_lang = 'English';
+const prj_help = 'Help';
+const prj_utf8 = 'utf-8';
 
 // --------------------------------------------------------------------------
 // global exception stuff ...
@@ -23,6 +26,29 @@ const prj_name = 'Help Documentation';
 type EbuildProject = class(Exception);
 
 type TProjectKind = (ptCHM, ptHTML);
+type TProjectCharset = (
+    csANSI,         // 0-127
+    csUtf8,         // utf-8: extended ascii: 0-255
+    csUtf8BOM,      // utf-8: bom (byte order mark)
+    csUtf16,
+    csUtf16BOM
+);
+type TProjectLanguage = (
+    plEnglish,
+    plFrench,
+    plGerman,
+    plEspanol,
+    plItaly,
+    plPolsky
+);
+
+// --------------------------------------------------------------------------
+// global place holders ...
+// --------------------------------------------------------------------------
+const phUtf8     = 'utf-8';
+const phUtf16    = 'utf-16';
+const phUtf8BOM  = 'utf-8.bom';     // utf-8 with bom (byte order mark)
+const phUtf16BOM = 'utf-16.bom';
 
 // --------------------------------------------------------------------------
 // project class stuff ...
@@ -50,6 +76,13 @@ type
         FProjectKind: TProjectKind;
         FProjectName: String;   // hid name
         FProjectID  : String;   // internal name
+        
+        FProjectCharset: TProjectCharset;
+        FProjectLangID : TProjectLanguage;
+        FProjectLang   : String;
+        
+        FProjectTitle  : String;
+        FProjectAuthor : String;
     public
         constructor Create;
         destructor Destroy; override;
@@ -65,8 +98,12 @@ type
         
         procedure setAuthor(AValue: String);
         procedure setTitle(AValue: String);
-        procedure setLang(AValue: String);
-        procedure setCharset(AValue: String);
+        
+        procedure setLang(AValue: TProjectLanguage); overload;
+        procedure setLang(AValue: String); overload;
+        
+        procedure setCharset(AValue: TProjectCharset); overload;
+        procedure setCharset(AValue: String); overload;
         
         procedure setEditor(AValue: TCustomEditor);
         function getEditor: TCustomEditor;
@@ -80,13 +117,18 @@ type
         
         function getAuthor: String;
         function getTitle: String;
+        
+        function getLangID: TProjectLanguage;
         function getLang: String;
         
-        function getCharset: String;
+        function getCharset: TProjectCharset;
     published
         property Active: Boolean read FActive write FActive;
         property Editor: TCustomEditor read FEditor write FEditor;
         property Kind: TProjectKind read FProjectKind write FProjectKind;
+        property Name: String read FProjectName write FProjectName;
+        property Author: String read FProjectAuthor write FProjectAuthor;
+        property Title: String read FProjectTitle write FProjectTitle;
     end;
 var
     doc: TDocProject;
@@ -102,17 +144,16 @@ begin
     inherited Create;
     FEditor := TCustomEditor.Create;
     
-    THndGeneratorInfo.BOMoutput := false;
-    HndProjects.NewProject(prj_name);
+    //setCharset(csUtf8);
     
+    HndProjects.newProject(prj_name);
     HndBuilds.DeleteAllBuilds;
+    
     setID( HndBuilds.CreateBuild );
     
     setOutput (out_path);
     setName   (prj_name);
     setTitle  (prj_help);
-    
-    setCharset(prj_utf8);
     setLang   (prj_lang);
     
     setKind  (ptCHM);   // default: CHM
@@ -129,13 +170,6 @@ destructor TDocProject.Destroy;
 begin
     FEditor.Free;
     inherited Destroy;
-end;
-
-procedure TDocProject.new(AValue: String);
-begin
-    SetLength(FProjectName,Length(AValue));
-    FProjectName := Copy(AValue, 1, Length(AValue));
-    FProjectID   := NewProject(FProjectName);
 end;
 
 // ----------------------------------------------------------------------------
@@ -286,6 +320,8 @@ end;
 
 procedure TDocProject.setEditor(AValue: TCustomEditor);
 begin
+    if FEditor = nil then
+    FEditor := TCustomEditor.Create else
     FEditor := AValue;
 end;
 
@@ -296,32 +332,107 @@ end;
 
 procedure TDocProject.setAuthor(AValue: String);
 begin
+    SetLength(FProjectAuthor,Length(AValue));
+    FProjectAuthor := AValue;
+    HndProjects.SetProjectAuthor(AValue);
 end;
+
 procedure TDocProject.setTitle(AValue: String);
 begin
+    SetLength(FProjectTitle,Length(AValue));
+    FProjectTitle := AValue;
+    HndProjects.SetProjectTitle(AValue);
 end;
+
 procedure TDocProject.setLang(AValue: String);
 begin
+    SetLength(FProjectLang,Length(AValue));
+    FProjectLang := AValue;
+end;
+
+procedure TDocProject.setLang(AValue: TProjectLanguage);
+begin
+    if AValue = plEnglish then begin
+        FProjectLangID := plEnglish;
+        {$ifdef LANG_ENG}
+            FProjectLang := 'English';
+        {$elseif LANG_DEU}
+            FProjectLang := 'Englisch';
+        {$endif}
+    end else
+    if AValue = plEspanol then begin
+        FProjectLangID := plEspanol;
+        {$ifdef LANG_ENG}
+            FProjectLang := 'Espanol';
+        {$elseif LANG_DEU}
+            FProjectLang := 'Spanisch';
+        {$endif}
+    end else
+    if AValue = plFrench then begin
+        FProjectLangID := plFrench;
+        {$ifdef LANG_ENG}
+            FProjectLang := 'French';
+        {$elseif LANG_DEU}
+            FProjectLang := 'Französisch';
+        {$endif}
+    end else
+    if AValue = plGerman then begin
+        FProjectLangID := plGerman;
+        {$ifdef LANG_ENG}
+            FProjectLang := 'German';
+        {$elseif LANG_DEU}
+            FProjectLang := 'Deutsch';
+        {$endif}
+    end else
+    if AValue = plPolsky then begin
+        FProjectLangID := plPolsky;
+        {$ifdef LANG_ENG}
+            FProjectLang := 'Polish';
+        {$elseif LANG_DEU}
+            FProjectLang := 'Polnisch';
+        {$endif}
+    end;
+end;
+
+procedure TDocProject.setCharset(AValue: TProjectCharset);
+begin
+    if (AValue = csUtf16BOM) or (AValue = csUtf8BOM) then
+    begin
+        HndProjects.SetProjectCharset(0);
+    end else
+    begin
+        HndProjects.SetProjectCharset(0);
+    end;
 end;
 procedure TDocProject.setCharset(AValue: String);
 begin
+    if LowerCase(AValue) = 'utf-8'      then setCharset(csUtf8   ) else
+    if LowerCase(AValue) = 'utf-16'     then setCharset(csUtf16  ) else
+    if LowerCase(AValue) = 'utf-8.bom'  then setCharset(csUtf16BOM) else
+    if LowerCase(AValue) = 'utf-16.bom' then setCharset(csUtf8BOM) ;
 end;
 
 function TDocProject.getAuthor: String;
 begin
-    result :=
+    result := FProjectAuthor;
 end;
 function TDocProject.getTitle: String;
 begin
-    result :=
+    result := FProjectTitle;
 end;
+
+function TDocProject.getLangID: TProjectLanguage;
+begin
+    result := FProjectLangID;
+end;
+
 function TDocProject.getLang: String;
 begin
-    result :=
+    result := FProjectLang;
 end;
-function TDocProject.getCharset: String;
+function TDocProject.getCharset: TProjectCharset;
 begin
-    result :=
+    result := FProjectCharset;
 end;
 
 // ----------------------------------------------------------------------------
