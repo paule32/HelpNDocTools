@@ -8,6 +8,7 @@
 // @desc    This Pascal script forms a Example chm content project by the
 //          given files in the "topicFiles" Array as String.
 // --------------------------------------------------------------------------
+{$define LANG_DEU}
 
 // hard coded output file path for the help project files:
 const pro_path = 'E:\Projekte\HelpNDocTools\doc';
@@ -17,7 +18,7 @@ const out_path = pro_path + '\output';
 
 const prj_name = 'Help Documentation';
 const prj_lang = 'English';
-const prj_help = 'Help';
+const prj_help = 'Help.hnd';
 const prj_utf8 = 'utf-8';
 
 // --------------------------------------------------------------------------
@@ -53,6 +54,19 @@ const phUtf16BOM = 'utf-16.bom';
 // --------------------------------------------------------------------------
 // project class stuff ...
 // --------------------------------------------------------------------------
+type
+    TLanguageMapper = class(TObject)
+    private
+        FStringList: TStringList;
+    public
+        constructor Create;
+        destructor Destroy; override;
+        
+        procedure add(AKey: String; AValue: String);
+        
+        function getValue(AKey: String): String; overload;
+        function getValue(AKey: Integer): String; overload;
+    end;
 type
     TCustomEditor = class(TObject)
     private
@@ -122,6 +136,11 @@ type
         function getLang: String;
         
         function getCharset: TProjectCharset;
+        
+        procedure SaveToFile(AValue: String); overload;
+        procedure SaveToFile(AValue: TMemoryStream); overload;
+        
+        procedure delete;
     published
         property Active: Boolean read FActive write FActive;
         property Editor: TCustomEditor read FEditor write FEditor;
@@ -143,13 +162,11 @@ constructor TDocProject.Create;
 begin
     inherited Create;
     FEditor := TCustomEditor.Create;
-    
-    //setCharset(csUtf8);
-    
-    HndProjects.newProject(prj_name);
+        
     HndBuilds.DeleteAllBuilds;
-    
     setID( HndBuilds.CreateBuild );
+    
+    setCharset(csUtf8);
     
     setOutput (out_path);
     setName   (prj_name);
@@ -435,6 +452,27 @@ begin
     result := FProjectCharset;
 end;
 
+procedure TDocProject.SaveToFile(AValue: String);
+begin
+    setName(prj_help);
+    HndProjects.SaveProject;
+end;
+procedure TDocProject.SaveToFile(AValue: TMemoryStream);
+begin
+end;
+
+procedure TDocProject.delete();
+var
+    s: string;
+begin
+    s := pro_path + '\' + prj_help;
+    if FileExists(s) then
+    begin
+        if DeleteFile(s) then
+        printf('file deleted',[]);
+    end;
+end;
+
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 constructor TCustomEditor.Create;
@@ -462,6 +500,72 @@ begin
 end;
 
 // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+constructor TLanguageMapper.Create;
+begin
+    inherited Create;
+    FStringList := TStringList.Create;
+    {ifdef LANG_ENG}
+        {$include lang_eng.pas}
+    {$elseif LANG_DEU}
+        {$include lang_deu.pas}
+    {$endif}
+end;
+destructor TLanguageMapper.Destroy;
+begin
+    FStringList.clear;
+    FStringList.Free;
+    FStringList := nil;
+    
+    inherited Destroy;
+end;
+
+procedure TLanguageMapper.add(AKey: String; AValue: String);
+var
+    len: Integer;
+    s: String;
+begin
+    if FStringList = nil then
+    FStringList := TStringList.Create;
+    
+    len := Length(AKey) + Length(AValue) + 1;
+    setLength(s, len);
+    s := Akey + '=' + AValue;
+    FStringList.Add(s);
+end;
+
+function TLanguageMapper.getValue(AKey: String): String;
+var
+    counter: Integer;
+    s: String;
+begin
+    result := '';
+    for counter := 1 to FStringList.Count do
+    begin
+        s := FStringList[counter];
+        if AKey = s then
+        begin
+            result := s;
+            exit;
+        end;
+    end;
+end;
+function TLanguageMapper.getValue(AKey: Integer): String;
+var
+    counter: Integer;
+begin
+    result := '';
+    for counter := 1 to FStringList.Count do
+    begin
+        if AKey = counter then
+        begin
+            result := FStringList[counter];
+            exit;
+        end;
+    end;
+end;
+
+// ----------------------------------------------------------------------------
 // @brief  This is the entry point of our project generator.
 // ----------------------------------------------------------------------------
 begin
@@ -471,6 +575,8 @@ begin
             doc.kind := ptCHM;
             
             doc.Editor.Clear;
+            doc.delete;
+            //doc.SaveToFile( doc.getName );
         except
             on E: EbuildProject do
             begin
