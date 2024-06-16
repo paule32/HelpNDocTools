@@ -13,6 +13,9 @@ add('German','Deutsch');
 add('French','Französisch');
 add('Espanol','Spanisch');
 add('Polish','Polnisch');
+
+
+add('project file deleted','Projekt-Datei wurde gelöscht.');
 add('project output name is empty; so it can not set.','Projekt Ausgabeverzeuchnis ist leer; kann nicht gesetzt werden');
 add('project name is empty; so it can not set.','Projekt Name ist leer; kann nicht gesetzt werden');
 add('project id is empty; so it can not set.','Projekt ID ist leer; kann nicht gesetzt werden');
@@ -22,6 +25,8 @@ add('build id not set.','Build ID nicht gesetzt');
 add('build name not set.','Build Name nicht gesetzt');
 add('project ID empty; can not get.','Projekt ID ist leer; kann nicht ermittelt werden');
 add('project name empty: can not get.','Projekt Name ist leer; kann nicht ermittelt werden.');
+add('Done.','Fertig.');
+
 add('welcome','Willkommen');
 add('exit','Beenden');
 add('file deleted','Datei gelöscht');

@@ -6,24 +6,8 @@
 //          all rights reserved.
 //
 // @desc    This Pascal script forms a Example chm content project by the
-//          given files in the "topicFiles" Array as String.
+//          given files.
 // --------------------------------------------------------------------------
-{$define LANG_DEU}
-
-// hard coded output file path for the help project files:
-const pro_path = 'E:\Projekte\HelpNDocTools\doc';
-//
-const bak_path = pro_path + '\backup';
-const out_path = pro_path + '\output';
-
-// --------------------------------------------------------------------------
-// the following lines must be fit to the first define above:
-// => LANG_ENG or LANG_DEU ...
-// --------------------------------------------------------------------------
-const prj_name = 'Help Documentation';
-const prj_lang = 'English';
-const prj_help = 'Help.hnd';
-const prj_utf8 = 'utf-8';
 
 // --------------------------------------------------------------------------
 // global exception stuff ...
@@ -38,14 +22,6 @@ type TProjectCharset = (
     csUtf16,
     csUtf16BOM
 );
-type TProjectLanguage = (
-    plEnglish,
-    plFrench,
-    plGerman,
-    plEspanol,
-    plItaly,
-    plPolsky
-);
 
 // --------------------------------------------------------------------------
 // global place holders ...
@@ -55,24 +31,12 @@ const phUtf16    = 'utf-16';
 const phUtf8BOM  = 'utf-8.bom';     // utf-8 with bom (byte order mark)
 const phUtf16BOM = 'utf-16.bom';
 
+{$include 'misc.pas'}               // twisted helper
+{$include 'locales.pas'}            // localization class
+
 // --------------------------------------------------------------------------
 // project class stuff ...
 // --------------------------------------------------------------------------
-type
-    TLanguageMapper = class(TStringList)
-    public
-        constructor Create;
-        destructor Destroy; override;
-        
-        procedure add(AKey: String; AValue: String); overload;
-        
-        function tr(AKey: String): String;
-    end;
-// --------------------------------------------------------------------------
-// the following variable(s) must be initiate before you can use it !
-// --------------------------------------------------------------------------
-var
-    intl: TLanguageMapper;
 type
     TCustomEditor = class(TObject)
     private
@@ -85,17 +49,65 @@ type
         procedure Clear;
     end;
 type
+    TProjectTopics = class(TObject)
+    private
+        Fprev: TProjectTopics;
+        Fnext: TProjectTopics;
+        
+        FTopicName: String;
+        FTopicID: String;
+        
+        Fmaps: TStringList;
+    public
+        constructor Create; overload;
+        constructor Create(prev: TProjectTopics); overload;
+        
+        destructor Destroy; override;
+        
+        procedure Clear;
+        
+        function add(AValue: String): TProjectTopics;
+        function del(AValue: String): Boolean;
+        
+        function get(AValue: String): TProjectTopics;
+        
+        function prev: TProjectTopics; overload;
+        function next: TProjectTopics; overload;
+        
+        function prev(AValue: String): TProjectTopics; overload;
+        function next(AValue: String): TProjectTopics; overload;
+    published
+        property Name: String read FTopicName write FTopicName;
+        property ID: String read FTopicID write FTopicID;
+    end;
+type
+    TDocBuild = class(TObject)
+    private
+        FBuildName: String;     // public name
+        FBuildID: String;       // internal name
+    public
+        constructor Create;
+        destructor Destroy; override;
+        
+        procedure setID(AValue: String);
+        procedure setName(AValue: String);
+        
+        function getID: String;
+        function getName: String;
+    published
+        property Name: String read FBuildName write FBuildName;
+        property ID: String read FBuildID write FBuildID;
+    end;
+type
     TDocProject = class(TObject)
     private
         FActive: Boolean;
         FEditor: TCustomEditor;
-        
-        FBuildName: String;     // public name
-        FbuildID: String;       // internal name
+        FBuild : TDocBuild;
         
         buildOutput: String;
-        
-        FLocalesMap: TLanguageMapper;
+        FLocales: TLocales;
+        FTopics: TProjectTopics;
         
         FProjectKind: TProjectKind;
         FProjectName: String;   // public name
@@ -107,20 +119,22 @@ type
         
         FProjectTitle  : String;
         FProjectAuthor : String;
+        
+        procedure setup;
     public
-        constructor Create;
+        constructor Create; overload;
+        constructor Create(AValue: TLocales); overload;
+        
         destructor Destroy; override;
         
         procedure setActive(AValue: Boolean); overload;
         procedure setActive(AValue: String); overload;
         
-        procedure setBuildID(AValue: String);
-        procedure setBuildName(AValue: String);
-        
         procedure setKind(AValue: TProjectKind);
         procedure setOutput(AValue: String);
         
-        procedure setProjectName(AValue: String);
+        procedure setName(AValue: String);
+        procedure setID(AValue: String);
         
         procedure setAuthor(AValue: String);
         procedure setTitle(AValue: String);
@@ -132,14 +146,12 @@ type
         procedure setCharset(AValue: String); overload;
         
         procedure setEditor(AValue: TCustomEditor);
+        
         function getEditor: TCustomEditor;
         function getActive: Boolean;
         
-        function getProjectID: String;
-        function getProjectName: String;
-        
-        function getBuildID: String;
-        function getBuildName: String;
+        function getID: String;
+        function getName: String;
         
         function getKind: TProjectKind;
         function getOutput: String;
@@ -154,22 +166,21 @@ type
         
         procedure SaveToFile(AValue: String); overload;
         procedure SaveToFile(AValue: TMemoryStream); overload;
+        procedure SaveToFile; overload;
         
         procedure del;
     published
         property Active: Boolean read FActive write FActive;
         property Editor: TCustomEditor read FEditor write FEditor;
-        property Locales: TLanguageMapper read FLocalesMap write FLocalesMap;
         property Kind: TProjectKind read FProjectKind write FProjectKind;
-        property ProjectName: String read FProjectName write FProjectName;
-        property BuildName: String read FBuildName write FBuildName;
         property Author: String read FProjectAuthor write FProjectAuthor;
         property Title: String read FProjectTitle write FProjectTitle;
-        property BuildID: String read FBuildID write FBuildID;
-        property ProjectID: String read FProjectID write FProjectID;
+        property Name: String read FProjectName write FProjectName;
+        property ID: String read FProjectID;
+        property Locales: TLocales read FLocales write FLocales;
+        property Build: TDocBuild read FBuild write FBuild;
+        property Topics: TProjectTopics read FTopics write FTopics;
     end;
-var
-    doc: TDocProject;
 
 // ----------------------------------------------------------------------------
 // @brief  This is the constructor of "buildProject".
@@ -180,23 +191,35 @@ var
 constructor TDocProject.Create;
 begin
     inherited Create;
-    del;
-    
-    FLocalesMap := TLanguageMapper.Create;
-    FEditor     := TCustomEditor  .Create;
+
+    Locales := TLocales.Create;
+    del; setup;
+end;
+constructor TDocProject.Create(AValue: TLocales);
+begin
+    inherited Create;
+
+    if AValue = nil then
+    Locales := TLocales.Create;// else
+    //Locales := AValue;
+
+    del; setup;
+end;
+procedure TDocProject.setup;
+begin
+    FBuild   := TDocBuild    .Create;
+    FEditor  := TCustomEditor.Create;
     
     setCharset(csUtf8);
     
-    setOutput      (out_path);
-    setProjectName (prj_name);
+    setOutput  (out_path);
+    setName    (prj_name);
     
     setKind    (ptCHM);   // default: CHM
     setTitle   (prj_help);
     setLang    (prj_lang);
     
-    setBuildID (HndBuilds.CreateBuild);
-    
-    setActive  (FbuildID);
+    setActive  (FBuild.ID);
 end;
 
 // ----------------------------------------------------------------------------
@@ -207,94 +230,28 @@ end;
 // ----------------------------------------------------------------------------
 destructor TDocProject.Destroy;
 begin
-    FLocalesMap.Free;
+    Locales.Clear;
+    Locales.Free;
+    
     FEditor.Free;
+    FBuild.Free;
     inherited Destroy;
 end;
 
-// ----------------------------------------------------------------------------
-// @brief  This procedure set the build ID.
-// @param  AValue - String.
-// @return No return value (procedure).
-// @see    setBuildName.
-// ----------------------------------------------------------------------------
-procedure TDocProject.setBuildID(AValue: String);
-begin
-    if Length(Trim(AValue)) < 1 then
-    raise EbuildProject.Create(Locales.tr('project id is empty; so it can not set.'));
-    
-    SetLength(FbuildID, Length(AValue));
-    FbuildID := Copy(AValue, 1, Length(AValue));
-end;
-
-// ----------------------------------------------------------------------------
-// @brief  This procedure set the build name.
-// @param  AValue - String.
-// @return No return value (procedure).
-// @see    setBuildID.
-// ----------------------------------------------------------------------------
-procedure TDocProject.setBuildName(AValue: String);
-begin
-    if Length(Trim(AValue)) < 1 then
-    raise EbuildProject.Create(Locales.tr('project name is empty; so it can not set.'));
-    
-    if Length(Trim(FbuildID)) < 1 then
-    raise EbuildProject.Create(Locales.tr('project id is empty.'));
-    
-    SetLength(FProjectName, Length(AValue));
-    FProjectName := Copy(AValue, 1, Length(AValue));
-    
-    HndBuilds.setBuildName( getBuildID, getBuildName );
-end;
-
-// ----------------------------------------------------------------------------
-// @brief  This function return/get the build id of the current project.
-// @param  No parameter.
-// @return String.
-// @see    getBuildName.
-// ----------------------------------------------------------------------------
-function TDocProject.getBuildID: String;
-begin
-    if Length(Trim(FbuildID)) < 1 then
-    raise EbuildProject.Create(Locales.tr('build id not set.'));
-
-    result := FbuildID;
-end;
-
-// ----------------------------------------------------------------------------
-// @brief  This function return/get the build name of the current project.
-// @param  No parameter.
-// @return String.
-// @see    getBuildID.
-// ----------------------------------------------------------------------------
-function TDocProject.getBuildName: String;
-begin
-    if Length(Trim(FbuildName)) < 1 then
-    raise EbuildProject.Create(Locales.tr('build name not set.'));
-    
-    result := FbuildName;
-end;
-
-procedure TDocProject.setProjectName(AValue: String);
-begin
-    FProjectName := AValue;
-end;
-
-function TDocProject.getProjectID: String;
+function TDocProject.getID: String;
 begin
     if Length(Trim(FProjectID)) < 1 then
     raise EbuildProject.Create(Locales.tr('project ID empty; can not get.'));
     
     result := FProjectID;
 end;
-function TDocProject.getProjectName: String;
+function TDocProject.getName: String;
 begin
     if Length(Trim(FProjectName)) < 1 then
     raise EbuildProject.Create(Locales.tr('project name empty: can not get.'));
     
     result := FProjectName;
 end;
-
 
 // ----------------------------------------------------------------------------
 // @brief  This procedure set the build kind (chm or html).
@@ -352,10 +309,10 @@ end;
 // ----------------------------------------------------------------------------
 procedure TDocProject.setActive(AValue: Boolean);
 begin
-    if Length(Trim( FbuildID )) < 1 then
+    if Length(Trim( FBuild.ID )) < 1 then
     raise EbuildProject.Create(Locales.tr('build ID is empty.'));
 
-    HndBuilds.setBuildEnabled( FbuildID, AValue );
+    HndBuilds.setBuildEnabled( FBuild.ID, AValue );
     FActive := AValue;
 end;
 
@@ -476,6 +433,10 @@ begin
     result := FProjectCharset;
 end;
 
+procedure TDocProject.SaveToFile;
+begin
+    SaveToFile(Name);
+end;
 procedure TDocProject.SaveToFile(AValue: String);
 begin
     HndProjects.SaveProject;
@@ -493,8 +454,8 @@ begin
     begin
         if DeleteFile(s) then
         begin
-            printf(Locales.tr('file deleted'),[]);
-            ProjectID := HndProjects.NewProject(s);
+            WriteLn(Locales.tr('project file deleted'));
+            setID(HndProjects.NewProject(s));
         end else
         begin
             HndKeywords.DeleteAllKeywords;
@@ -504,6 +465,89 @@ begin
             HndBuilds  .DeleteAllBuilds;
         end;
     end;
+end;
+
+procedure TDocProject.setID(AValue: String);
+begin
+    FProjectID := AValue;
+end;
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+constructor TDocBuild.Create;
+begin
+    inherited Create;
+    setID(HndBuilds.CreateBuild);
+end;
+destructor TDocBuild.Destroy;
+begin
+end;
+// ----------------------------------------------------------------------------
+// @brief  This procedure set the build ID.
+// @param  AValue - String.
+// @return No return value (procedure).
+// @see    setName.
+// ----------------------------------------------------------------------------
+procedure TDocBuild.setID(AValue: String);
+begin
+    if Length(Trim(AValue)) < 1 then
+    raise EbuildProject.Create(Locales.tr('project id is empty; so it can not set.'));
+    
+    SetLength(FbuildID, Length(AValue));
+    FbuildID := Copy(AValue, 1, Length(AValue));
+end;
+
+// ----------------------------------------------------------------------------
+// @brief  This procedure set the build name.
+// @param  AValue - String.
+// @return No return value (procedure).
+// @see    setID.
+// ----------------------------------------------------------------------------
+procedure TDocBuild.setName(AValue: String);
+begin
+    if Length(Trim(AValue)) < 1 then
+    raise EbuildProject.Create(Locales.tr('project name is empty; so it can not set.'));
+    
+    if Length(Trim(FbuildID)) < 1 then
+    raise EbuildProject.Create(Locales.tr('project id is empty.'));
+    
+    SetLength(FBuildName, Length(AValue));
+    FBuildName := Copy(AValue, 1, Length(AValue));
+    
+    HndBuilds.setBuildName( getID, getName );
+end;
+
+// ----------------------------------------------------------------------------
+// @brief  This function return/get the build id of the current project.
+// @param  No parameter.
+// @return String.
+// @see    getName.
+// ----------------------------------------------------------------------------
+function TDocBuild.getID: String;
+begin
+    if Length(Trim(FbuildID)) < 1 then
+    raise EbuildProject.Create(Locales.tr('build id not set.'));
+
+    result := FBuildID;
+end;
+
+// ----------------------------------------------------------------------------
+// @brief  This function return/get the build name of the current project.
+// @param  No parameter.
+// @return String.
+// @see    getID.
+// ----------------------------------------------------------------------------
+function TDocBuild.getName: String;
+begin
+    if Length(Trim(FbuildName)) < 1 then
+    raise EbuildProject.Create(Locales.tr('build name not set.'));
+    
+    result := FBuildName;
+end;
+
+procedure TDocProject.setName(AValue: String);
+begin
+    FProjectName := AValue;
 end;
 
 // ----------------------------------------------------------------------------
@@ -534,83 +578,104 @@ end;
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
-constructor TLanguageMapper.Create;
+constructor TProjectTopics.Create;
 begin
     inherited Create;
-
-    CaseSensitive := false;
-    clear;
-
-    {$ifdef LANG_ENG}
-        {$include 'src\lang_eng.pas'}
-    {$endif}
-    {$ifdef LANG_DEU}
-        {$include 'src\lang_deu.pas'}
-    {$endif}
+    FPrev := nil;
+    FNext := TProjectTopics.Create(self);
+    Fmaps := TStringList.Create;
 end;
-destructor TLanguageMapper.Destroy;
+constructor TProjectTopics.Create(prev: TProjectTopics);
 begin
-    clear;
+    inherited Create;
+    FPrev := prev;
+    FNext := TProjectTopics.Create(self);
+    Fmaps := TStringList.Create;
+end;
+destructor TProjectTopics.Destroy;
+begin
+    Fmaps.Clear;
+    Fmaps.Free;
+    
     inherited Destroy;
 end;
 
-procedure TLanguageMapper.add(AKey: String; AValue: String);
+function TProjectTopics.add(AValue: String): TProjectTopics;
+var
+    ATopicID: String;
 begin
-    add(AKey+'='+AValue);
+    result := self;
+    
+    ATopicID := HndTopics.CreateTopic;
+    HndTopics.SetTopicCaption(ATopicID, AValue);
+    
+    // save topic, and topic id
+    Fmaps.add(AValue   + '=' + ATopicID);
+    Fmaps.add(ATopicID + '=' + AValue);
 end;
 
-function TLanguageMapper.tr(AKey: String): String;
+function TProjectTopics.del(AValue: String): Boolean;
+begin
+    result := False;
+end;
+
+function TProjectTopics.get(AValue: String): TProjectTopics;
+begin
+    result := nil;
+end;
+
+function TProjectTopics.prev: TProjectTopics;
+begin
+end;
+function TProjectTopics.next: TProjectTopics;
+var
+    counter: Integer;
+    current: TProjectTopics;
+begin
+    if Fnext <> nil then
+    begin
+        current := Fnext;
+        while current <> nil do
+        begin
+            if current.Fnext = nil then
+            break;
+            current := current.Fnext;
+        end;
+    end;
+    result := nil;
+end;
+
+function TProjectTopics.prev(AValue: String): TProjectTopics;
 var
     counter: Integer;
 begin
-    result := Values[AKey];
-    for counter := 0 to Count - 1 do
+end;
+function TProjectTopics.next(AValue: String): TProjectTopics;
+var
+    counter: Integer;
+    current: TProjectTopics;
+begin
+    if Fnext <> nil then
     begin
-        if Strings[counter] = AKey then
+        current := Fnext;
+        while current <> nil do
         begin
-            result := Strings[counter];
-            exit;
+            for counter := 0 to Fmaps.Count - 1 do
+            begin
+                if Fmaps.Strings[counter] = AValue then
+                begin
+                    WriteLn(Fmaps.Strings[counter]);
+                    result := current;
+                    exit;
+                end;
+            end;
+            current := current.Fnext;
         end;
     end;
+    WriteLn('empty');
+    result := nil;
 end;
-
-// ----------------------------------------------------------------------------
-// @brief  This is the entry point of our project generator.
-// ----------------------------------------------------------------------------
+procedure TProjectTopics.Clear;
 begin
-    try
-        try
-            doc := TDocProject.Create;
-            doc.kind := ptCHM;
-            
-            intl := doc.Locales;
-            
-            doc.Editor.Clear;
-            doc.SaveToFile( doc.ProjectName );
-        except
-            on E: EbuildProject do begin
-                {$ifdef LANG_ENG}
-                    printf('Exception EBuildProject occured:' + #13#10 +
-                    E.Message,[]);
-                {$endif}
-                {$ifdef LANG_DEU}
-                    printf('Ausnahme EBuildProject produziert:' + #13#10 +
-                    E.Message,[]);
-                {$endif}
-            end;
-            on E: Exception do begin
-                {$ifdef LANG_ENG}
-                    printf('Exception occured:' + #13#10 +
-                    E.Message,[]);
-                {$endif}
-                {$ifdef LANG_DEU}
-                    printf('Ausnahme produziert:' + #13#10 +
-                    E.Message,[]);
-                {$endif}
-            end;
-        end
-    finally
-        doc.Free;
-        printf('Done.',[]);
-    end;
-end.
+    Fmaps.Clear;
+end;
