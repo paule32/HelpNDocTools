@@ -212,10 +212,10 @@ begin
     clear;
 
     {$ifdef LANG_ENG}
-        {$include 'lang_eng.pas'}
+        {$include 'src\lang_eng.pas'}
     {$endif}
     {$ifdef LANG_DEU}
-        {$include 'lang_deu.pas'}
+        {$include 'src\lang_deu.pas'}
     {$endif}
 end;
 destructor TLocales.Destroy;

@@ -16,6 +16,7 @@ add('German','');
 add('French','');
 add('Espanol','');
 add('Polish','');
+
 add('project output name is empty; so it can not set.','');
 add('project name is empty; so it can not set.','');
 add('project id is empty; so it can not set.','');
@@ -26,6 +27,8 @@ add('build name not set.','');
 add('project ID empty; can not get.','');
 add('project name empty: can not get.','');
 add('project file deleted','');
+add('project for build could not be set.','');
+add('could not get project name.','');
 add('Done.','');
 
 add('welcome','');

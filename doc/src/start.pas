@@ -31,8 +31,8 @@ const phUtf16    = 'utf-16';
 const phUtf8BOM  = 'utf-8.bom';     // utf-8 with bom (byte order mark)
 const phUtf16BOM = 'utf-16.bom';
 
-{$include 'misc.pas'}               // twisted helper
-{$include 'locales.pas'}            // localization class
+{$include 'src\misc.pas'}           // twisted helper
+{$include 'src\locales.pas'}        // localization class
 
 // --------------------------------------------------------------------------
 // project class stuff ...
@@ -80,24 +80,10 @@ type
         property Name: String read FTopicName write FTopicName;
         property ID: String read FTopicID write FTopicID;
     end;
-type
-    TDocBuild = class(TObject)
-    private
-        FBuildName: String;     // public name
-        FBuildID: String;       // internal name
-    public
-        constructor Create;
-        destructor Destroy; override;
-        
-        procedure setID(AValue: String);
-        procedure setName(AValue: String);
-        
-        function getID: String;
-        function getName: String;
-    published
-        property Name: String read FBuildName write FBuildName;
-        property ID: String read FBuildID write FBuildID;
-    end;
+// --------------------------------------------------------------------------
+// class forward declarations...
+// --------------------------------------------------------------------------
+type TDocBuild = class;
 type
     TDocProject = class(TObject)
     private
@@ -123,6 +109,7 @@ type
         procedure setup;
     public
         constructor Create; overload;
+        constructor Create(AValue: String); overload;
         constructor Create(AValue: TLocales); overload;
         
         destructor Destroy; override;
@@ -168,6 +155,9 @@ type
         procedure SaveToFile(AValue: TMemoryStream); overload;
         procedure SaveToFile; overload;
         
+        procedure Open(AValue: String);
+        procedure Save;
+        
         procedure del;
     published
         property Active: Boolean read FActive write FActive;
@@ -181,6 +171,29 @@ type
         property Build: TDocBuild read FBuild write FBuild;
         property Topics: TProjectTopics read FTopics write FTopics;
     end;
+type
+    TDocBuild = class(TObject)
+    private
+        FBuildName: String;     // public name
+        FBuildID: String;       // internal name
+        FProject: TDocProject;
+    public
+        constructor Create;
+        destructor Destroy; override;
+        
+        procedure setID(AValue: String);
+        procedure setName(AValue: String);
+        
+        procedure setProject(AValue: TDocProject);
+        function getProject: TDocProject;
+        
+        function getID: String;
+        function getName: String;
+    published
+        property Project: TDocProject read FProject write FProject;
+        property Name: String read FBuildName write FBuildName;
+        property ID: String read FBuildID write FBuildID;
+    end;
 
 // ----------------------------------------------------------------------------
 // @brief  This is the constructor of "buildProject".
@@ -193,33 +206,65 @@ begin
     inherited Create;
 
     Locales := TLocales.Create;
+
+    FBuild  := TDocBuild.Create; 
+    FBuild.setProject(self);
+    
+    FEditor := TCustomEditor.Create;
+    setName('help.hnd');
+    
+    if FileExists(getName) then
+    Open(getName) else
+    setID(HndProjects.NewProject(getName));
+    
     del; setup;
+end;
+constructor TDocProject.Create(AValue: String);
+begin
+    inherited Create;
+    
+    Locales := TLocales.Create;
+    
+    FBuild  := TDocBuild    .Create;
+    FEditor := TCustomEditor.Create;
+    
+    FBuild.setProject(self);
+    
+    if FileExists(AValue) then
+    Open(AValue) else
+    setID(HndProjects.NewProject(AValue));
+    
+    writeln(AValue);
+    save;
+    setup();
 end;
 constructor TDocProject.Create(AValue: TLocales);
 begin
     inherited Create;
 
     if AValue = nil then
-    Locales := TLocales.Create;// else
-    //Locales := AValue;
+    Locales := TLocales.Create else
+    Locales := AValue;
+
+    FBuild  := TDocBuild    .Create;
+    FEditor := TCustomEditor.Create;
+    
+    FBuild.setProject(self);
 
     del; setup;
 end;
 procedure TDocProject.setup;
 begin
-    FBuild   := TDocBuild    .Create;
-    FEditor  := TCustomEditor.Create;
-    
     setCharset(csUtf8);
     
-    setOutput  (out_path);
-    setName    (prj_name);
+    setOutput (out_path);
+    setName   (prj_name);
     
-    setKind    (ptCHM);   // default: CHM
-    setTitle   (prj_help);
-    setLang    (prj_lang);
+    setKind   (ptCHM);   // default: CHM
+    setTitle  (prj_help);
+    setLang   (prj_lang);
     
-    setActive  (FBuild.ID);
+    setActive ('');
 end;
 
 // ----------------------------------------------------------------------------
@@ -238,6 +283,11 @@ begin
     inherited Destroy;
 end;
 
+procedure TDocProject.Open(AValue: String);
+begin
+    setID(HndProjects.OpenProject(AValue, true));
+    setName(AValue);
+end;
 function TDocProject.getID: String;
 begin
     if Length(Trim(FProjectID)) < 1 then
@@ -318,8 +368,9 @@ end;
 
 procedure TDocProject.setActive(AValue: String);
 begin
-    if Length(Trim( AValue )) < 1 then
-    raise EbuildProject.Create(Locales.tr('build ID is empty.'));
+    if Length(Trim( FBuild.ID )) < 1 then
+    FBuild.ID := HndBuilds.CreateBuild else
+    FBuild.ID := AValue;
 
     HndBuilds.setBuildEnabled( AValue, True );
     FActive := True;
@@ -433,9 +484,13 @@ begin
     result := FProjectCharset;
 end;
 
+procedure TDocProject.Save;
+begin
+    SaveToFile(getName);
+end;
 procedure TDocProject.SaveToFile;
 begin
-    SaveToFile(Name);
+    SaveToFile(getName);
 end;
 procedure TDocProject.SaveToFile(AValue: String);
 begin
@@ -446,16 +501,13 @@ begin
 end;
 
 procedure TDocProject.del();
-var
-    s: string;
 begin
-    s := pro_path + '\' + prj_help;
-    if FileExists(s) then
+    if FileExists(getName) then
     begin
-        if DeleteFile(s) then
+        if DeleteFile(getName) then
         begin
             WriteLn(Locales.tr('project file deleted'));
-            setID(HndProjects.NewProject(s));
+            setID(HndProjects.NewProject(getName));
         end else
         begin
             HndKeywords.DeleteAllKeywords;
@@ -477,10 +529,25 @@ end;
 constructor TDocBuild.Create;
 begin
     inherited Create;
-    setID(HndBuilds.CreateBuild);
+    
+    FBuildID := HndBuilds.CreateBuild;
 end;
 destructor TDocBuild.Destroy;
 begin
+end;
+procedure TDocBuild.setProject(AValue: TDocProject);
+begin
+    if AValue = nil then
+    raise EBuildProject.Create(Locales.tr('project for build could not be set.'));
+    
+    FProject := AValue;
+end;
+function TDocBuild.getProject: TDocProject;
+begin
+    if FProject = nil then
+    raise EBuildProject.Create('project for build could not be set.');
+
+    result := FProject;
 end;
 // ----------------------------------------------------------------------------
 // @brief  This procedure set the build ID.
@@ -490,6 +557,7 @@ end;
 // ----------------------------------------------------------------------------
 procedure TDocBuild.setID(AValue: String);
 begin
+    writeln(Avalue);
     if Length(Trim(AValue)) < 1 then
     raise EbuildProject.Create(Locales.tr('project id is empty; so it can not set.'));
     

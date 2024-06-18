@@ -25,6 +25,8 @@ add('build id not set.','Build ID nicht gesetzt');
 add('build name not set.','Build Name nicht gesetzt');
 add('project ID empty; can not get.','Projekt ID ist leer; kann nicht ermittelt werden');
 add('project name empty: can not get.','Projekt Name ist leer; kann nicht ermittelt werden.');
+add('project for build could not be set.','Kein Project (Name/ID) für das Build verfügbar.');
+add('could not get project name.','Projekt konnte nicht ermittelt werden.');
 add('Done.','Fertig.');
 
 add('welcome','Willkommen');

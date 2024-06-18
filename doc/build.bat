@@ -9,11 +9,6 @@
 :: commercial use ist not allowed.
 :: ---------------------------------------------------------------------------
 @echo off
-cd src
-copy /B /Y dummy.hnd help.hnd
-hnd9.exe help.hnd ^
-    script ^
-    -file=".\demo.pas"
-copy /B /Y help.hnd ..\help.hnd
-cd ..
+hnd9.exe script -file=".\template.pas"
+
 ::-verysilent
