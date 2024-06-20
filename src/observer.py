@@ -52,12 +52,13 @@ print(__app__modul__)
 # application imports ...
 # ---------------------------------------------------------------------------
 try:
-    import re            # regular expression handling
+    import re             # regular expression handling
+    import requests       # get external url stuff
     
-    import time          # thread count
-    import datetime      # date, and time routines
+    import time           # thread count
+    import datetime       # date, and time routines
     
-    import threading     # multiple action simulator
+    import threading      # multiple action simulator
     
     import glob           # directory search
     import atexit         # clean up
@@ -70,9 +71,11 @@ try:
     
     import pkgutil        # attached binary data utils
     import json           # json lists
+    import csv            # simplest data format
     
     import gettext        # localization
     import locale         # internal system locale
+    import polib          # create .mo locales files from .po files
     
     import random         # randome numbers
     import string
@@ -96,7 +99,8 @@ try:
     from PyQt5.QtCore             import *
     from PyQt5.QtGui              import *
     
-    from logging    import *
+    from logging import *
+    from io      import BytesIO
     
     # ------------------------------------------------------------------------
     # developers own modules ...
@@ -129,7 +133,6 @@ except Exception as err:
 # -----------------------------------------------------------------------
 # global used application stuff ...
 # -----------------------------------------------------------------------
-# from appcollection import *
 img = "img\\"
 
 c64_painter = None
@@ -157,7 +160,7 @@ __app__keybc64__    = __app__img__int__ + "c64keyboard.png"
 __app__discc64__    = __app__img__int__ + "disk2.png"
 __app__datmc64__    = __app__img__int__ + "mc2.png"
 __app__logoc64__    = __app__img__int__ + "logo2.png"
-print("--> " + __app__helpdev__)
+
 __app__img_ext__    = ".png"
 
 __app__framework    = "PyQt5.QtWidgets.QApplication"
@@ -3637,6 +3640,113 @@ class myDataTabWidget(QWidget):
     def table_btn_clearall_clicked(self):
         print("clr all")
 
+class MyCountryProject(QWidget):
+    def __init__(self, parent, src, dst, srctxt, dsttxt):
+        super().__init__()
+        
+        hlayout = QHBoxLayout()
+        
+        vlayout = QVBoxLayout()
+        pixmap  = self.create_pixmap()
+        pixmap_label = QLabel(self)
+        pixmap_label.setPixmap(pixmap)
+        vlayout.addWidget(pixmap_label)
+        
+        fontN = QFont("Arial", 10)
+        fontB = QFont("Arial", 10)
+        fontB.setBold(True)
+        #
+        hlay = QHBoxLayout()
+        mid1 = QLabel(srctxt, self); mid1.setFont(fontB);
+        mid2 = QLabel("to:" , self); mid2.setFont(fontN);
+        mid3 = QLabel(dsttxt, self); mid3.setFont(fontB);
+        #
+        hlay.addWidget(mid1)
+        hlay.addWidget(mid2)
+        hlay.addWidget(mid3)
+        #
+        vlayout.addLayout(hlay)
+        
+        label_lhs = QLabel(self)
+        label_rhs = QLabel(self)
+        
+        label_lhs.setAlignment(Qt.AlignCenter)
+        label_rhs.setAlignment(Qt.AlignCenter)
+        
+        hlayout.addWidget(label_lhs)
+        hlayout.addLayout(vlayout)
+        hlayout.addWidget(label_rhs)
+        
+        pixmap_lhs = self.get_pixmap_from_url(src)
+        pixmap_rhs = self.get_pixmap_from_url(dst)
+        
+        if pixmap_lhs:
+            label_lhs.setPixmap(pixmap_lhs)
+        if pixmap_rhs:
+            label_rhs.setPixmap(pixmap_rhs)
+        
+        self.setLayout(hlayout)
+        #self.setStyleSheet("""
+        #""")
+        
+        listItem = QListWidgetItem(parent)
+        listItem.setSizeHint(self.sizeHint())
+        parent.setItemWidget(listItem, self)
+        
+    def get_pixmap_from_url(self, url):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()     # request ok ?
+            image_data = BytesIO(response.content)
+            pixmap = QPixmap()
+            if pixmap.loadFromData(image_data.read()):
+                return pixmap
+        except requests.RequestException as e:
+            print("error: could not load data file: " + e)
+        return None
+    
+    def create_pixmap(self):
+        # Create a pixmap with the specified size (double size)
+        pixmap = QPixmap(120, 60)
+        pixmap.fill(Qt.transparent)
+        
+        # Create a QPainter to draw on the pixmap
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Define colors for the 3D effect
+        light = QColor(255, 255, 255)
+        shadow = QColor(100, 100, 100)
+        fill = QColor(150, 150, 255)
+        
+        # Define the arrow points for a left-pointing arrow
+        arrow_points = [
+            QPoint(96, 30), QPoint(48, 42), QPoint(48, 36), QPoint(24, 36), QPoint(24, 24), 
+            QPoint(48, 24), QPoint(48, 18)
+        ]
+        
+        # Draw shadow for 3D effect
+        shadow_offset = 2
+        shadow_points = [QPoint(p.x() - shadow_offset, p.y() + shadow_offset) for p in arrow_points]
+        painter.setBrush(QBrush(shadow))
+        painter.setPen(Qt.NoPen)
+        painter.drawPolygon(*shadow_points)
+        
+        # Draw chrome border effect
+        border_offset = 1
+        border_points = [QPoint(p.x() - border_offset, p.y() + border_offset) for p in arrow_points]
+        painter.setBrush(QBrush(light))
+        painter.setPen(QPen(Qt.black, 2))
+        painter.drawPolygon(*border_points)
+        
+        # Draw the main arrow
+        painter.setBrush(QBrush(fill))
+        painter.setPen(QPen(Qt.black, 2))
+        painter.drawPolygon(*arrow_points)
+        
+        painter.end()
+        return pixmap
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -5466,6 +5576,187 @@ class FileWatcherGUI(QDialog):
         self.locale_tabs.addTab(self.locale_tabs_designs_widget, "Locales Designer")
         ####
         self.main_layout.addWidget(self.locale_tabs)
+        
+        self.handleLocalesProject()
+        
+    def handleLocalesProject(self):
+        edit_css = _("edit_css")
+        
+        font = QFont("Arial", 10)
+        self.locale_tabs_project_widget.setFont(font)
+        
+        vlayout0 = QVBoxLayout()
+        templateLabel = QLabel("Templates:")
+        templateLabel.setFont(font)
+        
+        push1 = MyPushButton("Create", 1)
+        push2 = MyPushButton("Open"  , 2)
+        push3 = MyPushButton("Repro" , 3)
+        push4 = MyPushButton("Build" , 4)
+        #
+        vlayout0.addWidget(templateLabel)
+        vlayout0.addWidget(push1)
+        vlayout0.addWidget(push2)
+        vlayout0.addWidget(push3)
+        vlayout0.addWidget(push4)
+        #
+        vlayout0.addStretch()
+        
+        vlayout1 = QVBoxLayout()
+        lbl = QLabel("Project name:")
+        lbl.setFont(font)
+        vlayout1.addWidget(lbl)
+        #
+        font2 = QFont("Consolas", 10)
+        edit1 = QLineEdit()
+        edit1.setFont(font2)
+        edit1.setStyleSheet(edit_css)
+        vlayout1.addWidget(edit1)
+        #
+        lblA = QLabel("Project File:")
+        lblA.setFont(font)
+        vlayout1.addWidget(lblA)
+        #
+        editA = QLineEdit()
+        editA.setFont(font2)
+        editA.setStyleSheet(edit_css)
+        vlayout1.addWidget(editA)
+        #
+        lbl2 = QLabel("Description:")
+        lbl2.setFont(font)
+        vlayout1.addWidget(lbl2)
+        #
+        edit2 = QPlainTextEdit()
+        edit2.setFont(font2)
+        vlayout1.addWidget(edit2)
+        #
+        vlayout1.addStretch()
+        
+        hlayout0 = QHBoxLayout()
+        hlayout0.addLayout(vlayout0)
+        hlayout0.addLayout(vlayout1)
+        
+        # ------------------------------------
+        # read in external url image data ...
+        # ------------------------------------
+        countryList = QListWidget()
+        countries = []
+        with open(__app__internal__ + "flags_iso.csv", mode="r", encoding="utf-8") as file:
+            reader = csv.reader(file)
+            header = next(reader)
+            
+            for row in reader:
+                land = [row[2], row[3]]
+                countries.append(land)
+        
+        for step1 in countries:
+            if step1[0] == "USA":
+                for step2 in countries:
+                    if step2[0] == "DEU":
+                        pro_USA_DEU = MyCountryProject(countryList, step1[1], step2[1], "USA", "DEU")
+                    elif step2[0] == "FRA":
+                        pro_USA_FRE = MyCountryProject(countryList, step1[1], step2[1], "USA", "FRA")
+            elif step1[0] == "DEU":
+                for step2 in countries:
+                    if step2[0] == "USA":
+                        pro_DEU_USA = MyCountryProject(countryList, step1[1], step2[1], "DEU", "USA")
+                    elif step2[0] == "FRA":
+                        pro_USA_FRE = MyCountryProject(countryList, step1[1], step2[1], "DEU", "FRA")
+            elif step1[0] == "FRA":
+                for step2 in countries:
+                    if step2[0] == "USA":
+                        pro_DEU_USA = MyCountryProject(countryList, step1[1], step2[1], "FRA", "USA")
+                    elif step2[0] == "DEU":
+                        pro_USA_FRE = MyCountryProject(countryList, step1[1], step2[1], "FRA", "DEU")
+        
+        vlayout = QVBoxLayout()
+        hlayout = QHBoxLayout()
+        
+        groupBox = QGroupBox("")
+        groupBox.setMinimumWidth(400)
+        groupBox.setFont(font)
+        groupvLayout = QVBoxLayout()
+        
+        #
+        l1 = QLabel(" Project-ID-Version:")
+        e1 = QLineEdit()
+        l2 = QLabel(" POT-Creation-Date:")
+        e2 = QLineEdit()
+        l3 = QLabel(" PO-Revision-Date:")
+        e3 = QLineEdit()
+        l4 = QLabel(" Last-Translator:")
+        e4 = QLineEdit()
+        l5 = QLabel(" Language-Team:")
+        e5 = QLineEdit()
+        l6 = QLabel(" MIME-Version:")
+        e6 = QLineEdit()
+        l7 = QLabel(" Content-Type:")
+        e7 = QLineEdit()
+        l8 = QLabel(" Content-Transfer-Encoding:")
+        e8 = QLineEdit()
+        
+        #
+        l1.setFont(font); e1.setFont(font2); e1.setStyleSheet(_(edit_css))
+        l2.setFont(font); e2.setFont(font2); e2.setStyleSheet(_(edit_css))
+        l3.setFont(font); e3.setFont(font2); e3.setStyleSheet(_(edit_css))
+        l4.setFont(font); e4.setFont(font2); e4.setStyleSheet(_(edit_css))
+        l5.setFont(font); e5.setFont(font2); e5.setStyleSheet(_(edit_css))
+        l6.setFont(font); e6.setFont(font2); e6.setStyleSheet(_(edit_css))
+        l7.setFont(font); e7.setFont(font2); e7.setStyleSheet(_(edit_css))
+        l8.setFont(font); e8.setFont(font2); e8.setStyleSheet(_(edit_css))
+        #
+        groupvLayout.addWidget(l1); groupvLayout.addWidget(e1)
+        groupvLayout.addWidget(l2); groupvLayout.addWidget(e2)
+        groupvLayout.addWidget(l3); groupvLayout.addWidget(e3)
+        groupvLayout.addWidget(l4); groupvLayout.addWidget(e4)
+        groupvLayout.addWidget(l5); groupvLayout.addWidget(e5)
+        groupvLayout.addWidget(l6); groupvLayout.addWidget(e6)
+        groupvLayout.addWidget(l7); groupvLayout.addWidget(e7)
+        groupvLayout.addWidget(l8); groupvLayout.addWidget(e8)
+        #
+        groupvLayout.addStretch()
+        
+        groupBox.setLayout(groupvLayout)
+        
+        hlayout.addWidget(countryList)
+        hlayout.addWidget(groupBox)
+        
+        vlayout.addLayout(hlayout0)
+        vlayout.addLayout(hlayout)
+        #
+        vlayout.addStretch()
+        
+        ###
+        font.setPointSize(11) #öööö
+        
+        btnLoad = QPushButton("Load") # todo
+        btnSave = QPushButton("Save")
+        
+        btnLoad.setMinimumHeight(32)
+        btnSave.setMinimumHeight(32)
+        
+        btnLoad.setFont(font)
+        btnSave.setFont(font)
+        
+        hlayout2 = QHBoxLayout()
+        hlayout2.addWidget(btnLoad)
+        hlayout2.addWidget(btnSave)
+        
+        vlayout.addLayout(hlayout2)
+        
+        btnLoad.clicked.connect(self.btnOpenLocales_clicked)
+        btnSave.clicked.connect(self.btnSaveLocales_clicked)
+        
+        self.locale_tabs_project_widget.setLayout(vlayout)
+        return
+    
+    def btnOpenLocales_clicked(self):
+        print("open locales")
+        return
+    
+    def btnSaveLocales_clicked(self):
+        print("save locales")
+        return
     
     # commodore c64
     def onC64TabChanged(self, index):

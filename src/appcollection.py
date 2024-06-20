@@ -55,12 +55,14 @@ try:
     import gzip           # pack/de-pack data
     import base64         # base64 encoded data
     import shutil         # shell utils
-
+    
     import pkgutil        # attached binary data utils
     import json           # json lists
+    import csv            # simplest data format
     
     import gettext        # localization
     import locale         # internal system locale
+    import polib          # create .mo files
     
     import random         # randome numbers
     import string
