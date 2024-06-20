@@ -21,8 +21,11 @@ Preview Design-Window A5:
 Preview Design-Window A7:
 ![Preview](src/img/screen015.png)
 
-Preview Locales-Projekt-Window A71:
+Preview Locales-Projekt-Window A70:
 ![Preview](src/img/screen017.png)
+
+Preview Locales-Projekt-Window A71:
+![Preview](src/img/screen018.png)
 
 Preview Design-Window A72:
 ![Preview](src/img/screen016.png)

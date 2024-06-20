@@ -14,7 +14,7 @@ global topic_counter; topic_counter = 1
 global c64_painter
 
 global basedir
-global tr
+global tr, appwin
 global sv_help
 
 global error_fail
@@ -3641,7 +3641,7 @@ class myDataTabWidget(QWidget):
         print("clr all")
 
 class MyCountryProject(QWidget):
-    def __init__(self, parent, src, dst, srctxt, dsttxt):
+    def __init__(self, clsparent, parent, src, dst, srctxt, dsttxt):
         super().__init__()
         
         hlayout = QHBoxLayout()
@@ -3677,8 +3677,67 @@ class MyCountryProject(QWidget):
         hlayout.addLayout(vlayout)
         hlayout.addWidget(label_rhs)
         
-        pixmap_lhs = self.get_pixmap_from_url(src)
-        pixmap_rhs = self.get_pixmap_from_url(dst)
+        
+        if srctxt == "USA":
+            if clsparent.usa_flag_data == None:
+                clsparent.usa_flag_data = self.get_pixmap_from_url(src)
+        if dsttxt == "USA":
+            if clsparent.usa_flag_data == None:
+                clsparent.usa_flag_data = self.get_pixmap_from_url(dst)
+        #
+        if srctxt == "DEU":
+            if clsparent.deu_flag_data == None:
+                clsparent.deu_flag_data = self.get_pixmap_from_url(src)
+        if dsttxt == "DEU":
+            if clsparent.deu_flag_data == None:
+                clsparent.deu_flag_data = self.get_pixmap_from_url(dst)
+        #
+        if srctxt == "ESP":
+            if clsparent.esp_flag_data == None:
+                clsparent.esp_flag_data = self.get_pixmap_from_url(src)
+        if dsttxt == "ESP":
+            if clsparent.esp_flag_data == None:
+                clsparent.esp_flag_data = self.get_pixmap_from_url(dst)
+        #
+        if srctxt == "FRA":
+            if clsparent.fra_flag_data == None:
+                clsparent.fra_flag_data = self.get_pixmap_from_url(src)
+        if dsttxt == "FRA":
+            if clsparent.fra_flag_data == None:
+                clsparent.fra_flag_data = self.get_pixmap_from_url(dst)
+        #
+        if srctxt == "USA":
+            pixmap_lhs = clsparent.usa_flag_data
+            if dsttxt == "FRA":
+                pixmap_rhs = clsparent.fra_flag_data
+            elif dsttxt == "DEU":
+                pixmap_rhs = clsparent.deu_flag_data
+            elif dsttxt == "ESP":
+                pixmap_rhs = clsparent.esp_flag_data
+        elif srctxt == "FRA":
+            pixmap_lhs = clsparent.fra_flag_data
+            if dsttxt == "ESP":
+                pixmap_rhs = clsparent.esp_flag_data
+            elif dsttxt == "DEU":
+                pixmap_rhs = clsparent.deu_flag_data
+            elif dsttxt == "USA":
+                pixmap_rhs = clsparent.usa_flag_data
+        elif srctxt == "DEU":
+            pixmap_lhs = clsparent.deu_flag_data
+            if dsttxt == "ESP":
+                pixmap_rhs = clsparent.esp_flag_data
+            elif dsttxt == "FRA":
+                pixmap_rhs = clsparent.fra_flag_data
+            elif dsttxt == "USA":
+                pixmap_rhs = clsparent.usa_flag_data
+        elif srctxt == "ESP":
+            pixmap_lhs = clsparent.esp_flag_data
+            if dsttxt == "FRA":
+                pixmap_rhs = clsparent.fra_flag_data
+            elif dsttxt == "DEU":
+                pixmap_rhs = clsparent.deu_flag_data
+            elif dsttxt == "USA":
+                pixmap_rhs = clsparent.usa_flag_data
         
         if pixmap_lhs:
             label_lhs.setPixmap(pixmap_lhs)
@@ -3746,6 +3805,34 @@ class MyCountryProject(QWidget):
         
         painter.end()
         return pixmap
+
+class ExtensionFilterProxyModel(QSortFilterProxyModel):
+    def __init__(self, extensions, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.extensions = extensions
+    
+    def filterAcceptsRow(self, source_row, source_parent):
+        index = self.sourceModel().index(source_row, 0, source_parent)
+        if not index.isValid():
+            return False
+        
+        file_path = self.sourceModel().filePath(index)
+        file_name = os.path.basename(file_path)
+        
+        # Check if it's a directory
+        if os.path.isdir(file_path):
+            # Exclude hidden directories (starting with a dot)
+            if file_name.startswith('.'):
+                return False
+            return True
+        
+        # Exclude hidden files (starting with a dot)
+        if file_name.startswith('.'):
+            return False
+        
+        # Check file extension
+        file_extension = os.path.splitext(file_path)[1].lower()
+        return file_extension in self.extensions
 
 class FileWatcherGUI(QDialog):
     def __init__(self):
@@ -4803,16 +4890,7 @@ class FileWatcherGUI(QDialog):
             # Popup-Menü erstellen
             menu = QMenu()
             menu.setFont(font)
-            menu.setStyleSheet("""
-            QMenu{
-            background-color: navy;
-            color: yellow;
-            }
-            QMenu:item:selected{
-            background-color: green;
-            color:white;
-            }
-            """)
+            menu.setStyleSheet(_("menu_css"))
             
             # Aktionen zum Menü hinzufügen
             enters_action = QAction("Enter Directory", self)
@@ -5578,7 +5656,74 @@ class FileWatcherGUI(QDialog):
         self.main_layout.addWidget(self.locale_tabs)
         
         self.handleLocalesProject()
+        self.handleLocalesEditor()
+    
+    def handleLocalesEditor(self):
+        vbox = QVBoxLayout()
+        hbox = QHBoxLayout()
         
+        font = QFont("Arial", 10)
+        font2 = QFont("Consolas", 11)
+        
+        self.list_widget = QListWidget()
+        self.list_widget.setFont(font2)
+        self.list_widget.setMaximumWidth(320)
+        self.list_widget.currentItemChanged.connect(self.on_list_item_changed)
+        
+        self.text_edit = QPlainTextEdit()
+        self.text_edit.setFont(font2)
+        
+        self.load_button = QPushButton('Load .mo File')
+        self.load_button.setFont(font)
+        self.load_button.setMinimumHeight(31)
+        self.load_button.clicked.connect(self.load_mo_file)
+        
+        self.save_button = QPushButton('Save Changes')
+        self.save_button.setFont(font)
+        self.save_button.setMinimumHeight(31)
+        self.save_button.clicked.connect(self.save_changes)
+        
+        self.status_label = QLabel('Load a .mo file to begin editing.')
+        self.status_label.setFont(font)
+        
+        hbox.addWidget(self.list_widget)
+        hbox.addWidget(self.text_edit)
+        
+        vbox.addLayout(hbox)
+        vbox.addWidget(self.load_button)
+        vbox.addWidget(self.save_button)
+        vbox.addWidget(self.status_label)
+        
+        self.locale_tabs_editors_widget.setLayout(vbox)
+        return
+        
+    def load_mo_file(self):
+        file_name, _ = QFileDialog.getOpenFileName(self, 'Open .mo file', '', 'MO Files (*.mo)')
+        if file_name:
+            self.po = polib.mofile(file_name)
+            self.list_widget.clear()
+            for entry in self.po:
+                self.list_widget.addItem(entry.msgid)
+            self.status_label.setText(f'Loaded: {file_name}')
+            self.current_file = file_name
+    
+    def on_list_item_changed(self, current, previous):
+        if current:
+            msgid = current.text()
+            entry = self.po.find(msgid)
+            if entry:
+                self.text_edit.setPlainText(entry.msgstr)
+    
+    def save_changes(self):
+        current_item = self.list_widget.currentItem()
+        if current_item:
+            msgid = current_item.text()
+            entry = self.po.find(msgid)
+            if entry:
+                entry.msgstr = self.text_edit.toPlainText()
+            self.po.save(self.current_file)
+            self.status_label.setText('Changes saved.')
+    
     def handleLocalesProject(self):
         edit_css = _("edit_css")
         
@@ -5611,6 +5756,7 @@ class FileWatcherGUI(QDialog):
         edit1 = QLineEdit()
         edit1.setFont(font2)
         edit1.setStyleSheet(edit_css)
+        edit1.setPlaceholderText("Example Project")
         vlayout1.addWidget(edit1)
         #
         lblA = QLabel("Project File:")
@@ -5620,6 +5766,7 @@ class FileWatcherGUI(QDialog):
         editA = QLineEdit()
         editA.setFont(font2)
         editA.setStyleSheet(edit_css)
+        editA.setPlaceholderText("example.pro")
         vlayout1.addWidget(editA)
         #
         lbl2 = QLabel("Description:")
@@ -5640,6 +5787,7 @@ class FileWatcherGUI(QDialog):
         # read in external url image data ...
         # ------------------------------------
         countryList = QListWidget()
+        countryList.setMinimumHeight(212)
         countries = []
         with open(__app__internal__ + "flags_iso.csv", mode="r", encoding="utf-8") as file:
             reader = csv.reader(file)
@@ -5649,25 +5797,50 @@ class FileWatcherGUI(QDialog):
                 land = [row[2], row[3]]
                 countries.append(land)
         
+        self.usa_flag_data = None
+        self.fra_flag_data = None
+        self.deu_flag_data = None
+        self.esp_flag_data = None
+        
         for step1 in countries:
             if step1[0] == "USA":
                 for step2 in countries:
                     if step2[0] == "DEU":
-                        pro_USA_DEU = MyCountryProject(countryList, step1[1], step2[1], "USA", "DEU")
+                        pro_USA_DEU = MyCountryProject(self, countryList, step1[1], step2[1], "USA", "DEU")
                     elif step2[0] == "FRA":
-                        pro_USA_FRE = MyCountryProject(countryList, step1[1], step2[1], "USA", "FRA")
-            elif step1[0] == "DEU":
+                        pro_USA_FRE = MyCountryProject(self, countryList, step1[1], step2[1], "USA", "FRA")
+                    elif step2[0] == "ESP":
+                        pro_USA_ESP = MyCountryProject(self, countryList, step1[1], step2[1], "USA", "ESP")
+        
+        for step1 in countries:
+            if step1[0] == "DEU":
                 for step2 in countries:
                     if step2[0] == "USA":
-                        pro_DEU_USA = MyCountryProject(countryList, step1[1], step2[1], "DEU", "USA")
+                        pro_DEU_USA = MyCountryProject(self, countryList, step1[1], step2[1], "DEU", "USA")
                     elif step2[0] == "FRA":
-                        pro_USA_FRE = MyCountryProject(countryList, step1[1], step2[1], "DEU", "FRA")
-            elif step1[0] == "FRA":
+                        pro_DEU_FRA = MyCountryProject(self, countryList, step1[1], step2[1], "DEU", "FRA")
+                    elif step2[0] == "ESP":
+                        pro_DEU_ESP = MyCountryProject(self, countryList, step1[1], step2[1], "DEU", "ESP")
+        
+        for step1 in countries:
+            if step1[0] == "FRA":
                 for step2 in countries:
                     if step2[0] == "USA":
-                        pro_DEU_USA = MyCountryProject(countryList, step1[1], step2[1], "FRA", "USA")
+                        pro_FRA_USA = MyCountryProject(self, countryList, step1[1], step2[1], "FRA", "USA")
+                    elif step2[0] == "ESP":
+                        pro_FRA_ESP = MyCountryProject(self, countryList, step1[1], step2[1], "FRA", "ESP")
                     elif step2[0] == "DEU":
-                        pro_USA_FRE = MyCountryProject(countryList, step1[1], step2[1], "FRA", "DEU")
+                        pro_FRA_DEU = MyCountryProject(self, countryList, step1[1], step2[1], "FRA", "DEU")
+        
+        for step1 in countries:
+            if step1[0] == "ESP":
+                for step2 in countries:
+                    if step2[0] == "USA":
+                        pro_ESP_USA = MyCountryProject(self, countryList, step1[1], step2[1], "ESP", "USA")
+                    elif step2[0] == "FRA":
+                        pro_ESP_FRA = MyCountryProject(self, countryList, step1[1], step2[1], "ESP", "FRA")
+                    elif step2[0] == "DEU":
+                        pro_ESP_DEU = MyCountryProject(self, countryList, step1[1], step2[1], "ESP", "DEU")
         
         vlayout = QVBoxLayout()
         hlayout = QHBoxLayout()
@@ -5679,52 +5852,105 @@ class FileWatcherGUI(QDialog):
         
         #
         l1 = QLabel(" Project-ID-Version:")
-        e1 = QLineEdit()
-        l2 = QLabel(" POT-Creation-Date:")
-        e2 = QLineEdit()
-        l3 = QLabel(" PO-Revision-Date:")
-        e3 = QLineEdit()
-        l4 = QLabel(" Last-Translator:")
-        e4 = QLineEdit()
-        l5 = QLabel(" Language-Team:")
-        e5 = QLineEdit()
-        l6 = QLabel(" MIME-Version:")
-        e6 = QLineEdit()
-        l7 = QLabel(" Content-Type:")
-        e7 = QLineEdit()
-        l8 = QLabel(" Content-Transfer-Encoding:")
-        e8 = QLineEdit()
+        self.e1Locales = QLineEdit()
+        self.e1Locales.setPlaceholderText("1.0.0")
+        self.e1Locales.returnPressed.connect(self.e1_on_return_pressed)
         
+        l2 = QLabel(" POT-Creation-Date:")
+        self.e2Locales = QLineEdit()
+        self.e2Locales.setPlaceholderText("2024-04-06 20:33+0200")
+        self.e2Locales.returnPressed.connect(self.e2_on_return_pressed)
+        
+        l3 = QLabel(" PO-Revision-Date:")
+        self.e3Locales = QLineEdit()
+        self.e3Locales.setPlaceholderText("2024-04-06 20:15+0200")
+        self.e3Locales.returnPressed.connect(self.e3_on_return_pressed)
+        
+        l4 = QLabel(" Last-Translator:")
+        self.e4Locales = QLineEdit()
+        self.e4Locales.setPlaceholderText("John Jonsen <jhon@example.com")
+        self.e4Locales.returnPressed.connect(self.e4_on_return_pressed)
+        
+        l5 = QLabel(" Language-Team:")
+        self.e5Locales = QLineEdit()
+        self.e5Locales.setPlaceholderText("English <jhon@example.com>")
+        self.e5Locales.returnPressed.connect(self.e5_on_return_pressed)
+        
+        l6 = QLabel(" MIME-Version:")
+        self.e6Locales = QLineEdit()
+        self.e6Locales.setPlaceholderText("1.0")
+        self.e6Locales.returnPressed.connect(self.e6_on_return_pressed)
+        
+        l7 = QLabel(" Content-Type:")
+        self.e7Locales = QLineEdit()
+        self.e7Locales.setPlaceholderText("text/plain; charset=cp1252")
+        self.e7Locales.returnPressed.connect(self.e7_on_return_pressed)
+        
+        l8 = QLabel(" Content-Transfer-Encoding:")
+        self.e8Locales = QLineEdit()
+        self.e8Locales.setPlaceholderText("8bit")
+        self.e8Locales.returnPressed.connect(self.e8_on_return_pressed)
         #
-        l1.setFont(font); e1.setFont(font2); e1.setStyleSheet(_(edit_css))
-        l2.setFont(font); e2.setFont(font2); e2.setStyleSheet(_(edit_css))
-        l3.setFont(font); e3.setFont(font2); e3.setStyleSheet(_(edit_css))
-        l4.setFont(font); e4.setFont(font2); e4.setStyleSheet(_(edit_css))
-        l5.setFont(font); e5.setFont(font2); e5.setStyleSheet(_(edit_css))
-        l6.setFont(font); e6.setFont(font2); e6.setStyleSheet(_(edit_css))
-        l7.setFont(font); e7.setFont(font2); e7.setStyleSheet(_(edit_css))
-        l8.setFont(font); e8.setFont(font2); e8.setStyleSheet(_(edit_css))
+        l1.setFont(font); self.e1Locales.setFont(font2); self.e1Locales.setStyleSheet(_(edit_css))
+        l2.setFont(font); self.e2Locales.setFont(font2); self.e2Locales.setStyleSheet(_(edit_css))
+        l3.setFont(font); self.e3Locales.setFont(font2); self.e3Locales.setStyleSheet(_(edit_css))
+        l4.setFont(font); self.e4Locales.setFont(font2); self.e4Locales.setStyleSheet(_(edit_css))
+        l5.setFont(font); self.e5Locales.setFont(font2); self.e5Locales.setStyleSheet(_(edit_css))
+        l6.setFont(font); self.e6Locales.setFont(font2); self.e6Locales.setStyleSheet(_(edit_css))
+        l7.setFont(font); self.e7Locales.setFont(font2); self.e7Locales.setStyleSheet(_(edit_css))
+        l8.setFont(font); self.e8Locales.setFont(font2); self.e8Locales.setStyleSheet(_(edit_css))
         #
-        groupvLayout.addWidget(l1); groupvLayout.addWidget(e1)
-        groupvLayout.addWidget(l2); groupvLayout.addWidget(e2)
-        groupvLayout.addWidget(l3); groupvLayout.addWidget(e3)
-        groupvLayout.addWidget(l4); groupvLayout.addWidget(e4)
-        groupvLayout.addWidget(l5); groupvLayout.addWidget(e5)
-        groupvLayout.addWidget(l6); groupvLayout.addWidget(e6)
-        groupvLayout.addWidget(l7); groupvLayout.addWidget(e7)
-        groupvLayout.addWidget(l8); groupvLayout.addWidget(e8)
+        groupvLayout.addWidget(l1); groupvLayout.addWidget(self.e1Locales)
+        groupvLayout.addWidget(l2); groupvLayout.addWidget(self.e2Locales)
+        groupvLayout.addWidget(l3); groupvLayout.addWidget(self.e3Locales)
+        groupvLayout.addWidget(l4); groupvLayout.addWidget(self.e4Locales)
+        groupvLayout.addWidget(l5); groupvLayout.addWidget(self.e5Locales)
+        groupvLayout.addWidget(l6); groupvLayout.addWidget(self.e6Locales)
+        groupvLayout.addWidget(l7); groupvLayout.addWidget(self.e7Locales)
+        groupvLayout.addWidget(l8); groupvLayout.addWidget(self.e8Locales)
         #
         groupvLayout.addStretch()
         
         groupBox.setLayout(groupvLayout)
         
-        hlayout.addWidget(countryList)
+        extensions = [".pro"]
+        directory  = QDir.homePath() 
+        
+        self.modelLocales = QFileSystemModel()
+        self.modelLocales.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs | QDir.Files)
+        self.modelLocales.setRootPath(directory)
+        
+        self.proxyModelLocales = ExtensionFilterProxyModel(extensions)
+        self.proxyModelLocales.setSourceModel(self.modelLocales)
+        
+        self.treeLocales = QTreeView()
+        self.treeLocales.setModel(self.proxyModelLocales)
+        self.treeLocales.setRootIndex(self.proxyModelLocales.mapFromSource(self.modelLocales.index(directory)))
+        
+        
+        # Hide the "Size" and "Type" columns
+        self.treeLocales.setColumnHidden(1, True)  # Size
+        self.treeLocales.setColumnHidden(2, True)  # Type
+        
+        self.treeLocales.setColumnWidth(0, 250)
+        self.treeLocales.setAlternatingRowColors(True)
+        self.treeLocales.setSortingEnabled(True)
+        
+        self.treeLocales.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.treeLocales.customContextMenuRequested.connect(self.openContextMenuLocales)
+        
+        #projects = QListWidget()
+        vlayout.addWidget(countryList)
+        vlayout.addWidget(self.treeLocales)
+        
+        hlayout.addLayout(vlayout)
         hlayout.addWidget(groupBox)
         
-        vlayout.addLayout(hlayout0)
-        vlayout.addLayout(hlayout)
+        vlayout2 = QVBoxLayout()
+        vlayout2.addLayout(hlayout0)
+        vlayout2.addLayout(hlayout)
         #
-        vlayout.addStretch()
+        vlayout2.addStretch()
         
         ###
         font.setPointSize(11) #öööö
@@ -5742,13 +5968,93 @@ class FileWatcherGUI(QDialog):
         hlayout2.addWidget(btnLoad)
         hlayout2.addWidget(btnSave)
         
-        vlayout.addLayout(hlayout2)
+        vlayout2.addLayout(hlayout2)
         
         btnLoad.clicked.connect(self.btnOpenLocales_clicked)
         btnSave.clicked.connect(self.btnSaveLocales_clicked)
         
-        self.locale_tabs_project_widget.setLayout(vlayout)
+        self.locale_tabs_project_widget.setLayout(vlayout2)
         return
+    
+    def e1_on_return_pressed(self):
+        self.e2Locales.setFocus()
+        return
+    def e2_on_return_pressed(self):
+        self.e3Locales.setFocus()
+        return
+    def e3_on_return_pressed(self):
+        self.e4Locales.setFocus()
+        return
+    def e4_on_return_pressed(self):
+        self.e5Locales.setFocus()
+        return
+    def e5_on_return_pressed(self):
+        self.e6Locales.setFocus()
+        return
+    def e6_on_return_pressed(self):
+        self.e7Locales.setFocus()
+        return
+    def e7_on_return_pressed(self):
+        self.e8Locales.setFocus()
+        return
+    def e8_on_return_pressed(self):
+        self.e1Locales.setFocus()
+        return
+        
+    def openContextMenuLocales(self, position):
+        indexes = self.treeLocales.selectedIndexes()
+        if indexes:
+            index = self.proxyModelLocales.mapToSource(indexes[0])
+            file_path = self.modelLocales.filePath(index)
+            
+            font = QFont("Arial", 11)
+            font.setBold(True)
+            
+            # Popup-Menü erstellen
+            menu = QMenu()
+            menu.setFont(font)
+            menu.setStyleSheet(_("menu_css"))
+            
+            # Aktionen zum Menü hinzufügen
+            newone_action = QAction("New Project ...", self)
+            openex_action = QAction("Open", self)
+            rename_action = QAction("Rename", self)
+            tempel_action = QAction("Template", self)
+            
+            menu.addAction(newone_action)
+            menu.addAction(openex_action)
+            menu.addAction(rename_action)
+            menu.addAction(tempel_action)
+            
+            # Aktionen verbinden
+            newone_action.triggered.connect(lambda: self.newoneLocales(file_path))
+            openex_action.triggered.connect(lambda: self.openexLocales(file_path))
+            rename_action.triggered.connect(lambda: self.renameLocales(file_path))
+            tempel_action.triggered.connect(lambda: self.tempelLocales(file_path))
+            
+            menu.exec_(self.treeLocales.viewport().mapToGlobal(position))
+    
+    def newoneLocales(self, filepath):
+        print(filepath)
+        return
+    def openexLocales(self, filepath):
+        print(filepath)
+        return
+    def renameLocales(self, filepath):
+        print(filepath)
+        return
+    def tempelLocales(self, filepath):
+        print(filepath)
+        return
+    
+    def openFile(self, file_path):
+        print(f"Opening file: {file_path}")
+        # Hier können Sie den Code hinzufügen, um die Datei zu öffnen
+    
+    def deleteFile(self, file_path):
+        print(f"Deleting file: {file_path}")
+        # Hier können Sie den Code hinzufügen, um die Datei zu löschen
+    
     
     def btnOpenLocales_clicked(self):
         print("open locales")
@@ -6311,6 +6617,7 @@ def EntryPoint(arg1=None):
         if app == None:
             app = QApplication(sys.argv)
         
+        global appwin
         appwin = FileWatcherGUI()
         appwin.move(100, 100)
         
@@ -6318,7 +6625,7 @@ def EntryPoint(arg1=None):
     except UnboundLocalError as e:
         tb = traceback.extract_tb(e.__traceback__)
         filename, lineno, funcname, text = tb[-1]
-        if appwin == False:
+        if appwin == None:
             print(f"Exception: {e}")
             print(f"Error occurred in file: {filename}")
             print(f"Function: {funcname}")
