@@ -3840,7 +3840,7 @@ class OpenProFileDialog(QDialog):
         self.initUI()
         self.load_favorites_from_ini()
         self.load_drives()
-        
+    
     def initUI(self):
         hbox = QHBoxLayout(self)
         
@@ -3848,7 +3848,7 @@ class OpenProFileDialog(QDialog):
         
         # Create the favorites tree
         self.favorites_tree = QTreeWidget()
-        self.favorites_tree.setHeaderLabels(["Project Name", "Path"])
+        self.favorites_tree.setHeaderLabels(["Project File Name", "Path"])
         self.favorites_tree.setColumnWidth(0, 150)
         self.favorites_tree.header().setSectionResizeMode(0, QHeaderView.Interactive)
         self.favorites_tree.header().setSectionResizeMode(1, QHeaderView.Interactive)
@@ -3879,8 +3879,11 @@ class OpenProFileDialog(QDialog):
         self.tree_view.setStyleSheet("QHeaderView::section { background-color: lightblue }")
         
         # Create the file list view
-        self.file_list = QListWidget()
-        self.file_list.itemDoubleClicked.connect(self.on_file_double_clicked)
+        self.file_list = QTreeWidget()
+        self.file_list.setHeaderLabels(["Project Name", "Filename"])
+        self.file_list.header().setSectionResizeMode(0, QHeaderView.Interactive)
+        self.file_list.header().setSectionResizeMode(1, QHeaderView.Interactive)
+        self.file_list.setStyleSheet("QHeaderView::section { background-color: lightblue }")
         
         # Create the path input
         self.path_input = QLineEdit()
@@ -4007,18 +4010,41 @@ class OpenProFileDialog(QDialog):
         self.update_file_list(dir_path)
     
     def update_file_list(self, dir_path):
-        self.file_list.clear()
-        self.current_files = [f for f in os.listdir(dir_path) if f.endswith('.pro')]
-        self.file_list.addItems(self.current_files)
+        dir_path = dir_path.replace("/","\\")
+        
+        if dir_path.endswith(".pro"):
+            dir_str, file_name = os.path.split(dir_path)
+            
+            self.current_files = os.listdir(dir_str)
+            self.file_list.clear()
+            
+            config = configparser.ConfigParser()
+            config.read(file_name)
+            
+            project_name = config["project"]["name"]
+            project_path = dir_str
+            
+            item = QTreeWidgetItem([project_name, file_name])
+            self.file_list.addTopLevelItem(item)
     
     def filter_files(self):
         filter_text = self.filter_input.text().lower()
         self.file_list.clear()
         filtered_files = [f for f in self.current_files if filter_text in f.lower()]
-        self.file_list.addItems(filtered_files)
+        for file in filtered_files:
+            project_name = self.get_project_name(os.path.join(self.path_input.text(), file))
+            item = QTreeWidgetItem([file, project_name])
+            self.file_list.addTopLevelItem(item)
+    
+    def get_project_name(self, file_path):
+        config = configparser.ConfigParser()
+        config.read(file_path)
+        if 'Project' in config and 'Name' in config['Project']:
+            return config['Project']['Name']
+        return "Unknown"
     
     def on_file_double_clicked(self, item):
-        file_path = os.path.join(self.path_input.text(), item.text())
+        file_path = os.path.join(self.path_input.text(), item.text(0))
         self.label.setText(f'Selected file: {file_path}')
         self.open_button.setEnabled(True)
     
