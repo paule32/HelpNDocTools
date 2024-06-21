@@ -24,6 +24,9 @@ Preview Design-Window A7:
 Preview Locales-Projekt-Window A70:
 ![Preview](src/img/screen017.png)
 
+Preview Locales-Projekt-Window A712:
+![Preview](src/img/screen019.png)
+
 Preview Locales-Projekt-Window A71:
 ![Preview](src/img/screen018.png)
 

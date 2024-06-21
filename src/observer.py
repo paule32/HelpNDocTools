@@ -3834,6 +3834,240 @@ class ExtensionFilterProxyModel(QSortFilterProxyModel):
         file_extension = os.path.splitext(file_path)[1].lower()
         return file_extension in self.extensions
 
+class OpenProFileDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.initUI()
+        self.load_favorites_from_ini()
+        self.load_drives()
+        
+    def initUI(self):
+        hbox = QHBoxLayout(self)
+        
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # Create the favorites tree
+        self.favorites_tree = QTreeWidget()
+        self.favorites_tree.setHeaderLabels(["Project Name", "Path"])
+        self.favorites_tree.setColumnWidth(0, 150)
+        self.favorites_tree.header().setSectionResizeMode(0, QHeaderView.Interactive)
+        self.favorites_tree.header().setSectionResizeMode(1, QHeaderView.Interactive)
+        self.favorites_tree.setMaximumWidth(400)
+        self.favorites_tree.itemDoubleClicked.connect(self.on_favorite_double_clicked)
+        self.favorites_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.favorites_tree.setSizeAdjustPolicy(QTreeWidget.AdjustToContents)
+        self.favorites_tree.setStyleSheet("QHeaderView::section { background-color: lightblue }")
+        
+        # Create the drives tree
+        self.drives_tree = QTreeWidget()
+        self.drives_tree.setHeaderLabels(["Drive", "Available Space", "Total Size"])
+        self.drives_tree.header().setSectionResizeMode(QHeaderView.Interactive)
+        self.drives_tree.itemClicked.connect(self.on_drive_clicked)
+        self.drives_tree.setStyleSheet("QHeaderView::section { background-color: lightgreen }")
+        
+        # Create the directory view
+        self.dir_model = QFileSystemModel()
+        self.dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
+        self.dir_model.setRootPath(QDir.rootPath())
+        
+        self.tree_view = QTreeView()
+        self.tree_view.setModel(self.dir_model)
+        self.tree_view.setRootIndex(self.dir_model.index(QDir.rootPath()))
+        self.tree_view.clicked.connect(self.on_tree_view_clicked)
+        self.tree_view.setHeaderHidden(False)
+        self.tree_view.header().setSectionResizeMode(QHeaderView.Interactive)
+        self.tree_view.setStyleSheet("QHeaderView::section { background-color: lightblue }")
+        
+        # Create the file list view
+        self.file_list = QListWidget()
+        self.file_list.itemDoubleClicked.connect(self.on_file_double_clicked)
+        
+        # Create the path input
+        self.path_input = QLineEdit()
+        self.path_input.setReadOnly(True)
+        self.set_custom_lineedit_style(self.path_input)
+        
+        # Create the filter input
+        self.filter_input = QLineEdit()
+        self.filter_input.setPlaceholderText('Filter files...')
+        self.filter_input.textChanged.connect(self.filter_files)
+        self.set_custom_lineedit_style(self.filter_input)
+        
+        # Create the label
+        self.label = QLabel('No file selected.', self)
+        self.set_custom_font(self.label)
+        
+        # Create the buttons
+        self.add_favorite_button = QPushButton('Add to Favorites', self)
+        self.add_favorite_button.clicked.connect(self.add_to_favorites)
+        
+        self.remove_favorite_button = QPushButton('Remove from Favorites', self)
+        self.remove_favorite_button.clicked.connect(self.remove_from_favorites)
+        
+        self.open_button = QPushButton('Open', self)
+        self.open_button.clicked.connect(self.open_file)
+        self.open_button.setEnabled(False)
+        
+        self.cancel_button = QPushButton('Cancel', self)
+        self.cancel_button.clicked.connect(self.reject)
+        
+        # Customize buttons
+        self.set_custom_button_style(self.add_favorite_button)
+        self.set_custom_button_style(self.remove_favorite_button)
+        self.set_custom_button_style(self.open_button)
+        self.set_custom_button_style(self.cancel_button)
+        
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.add_favorite_button)
+        button_layout.addWidget(self.remove_favorite_button)
+        button_layout.addWidget(self.open_button)
+        button_layout.addWidget(self.cancel_button)
+        
+        right_layout = QVBoxLayout()
+        right_layout.addWidget(self.path_input)
+        right_layout.addWidget(self.filter_input)
+        right_layout.addWidget(self.tree_view)
+        right_layout.addWidget(self.file_list)
+        right_layout.addWidget(self.label)
+        right_layout.addLayout(button_layout)
+        
+        right_widget = QWidget()
+        right_widget.setLayout(right_layout)
+        
+        left_layout = QVBoxLayout()
+        left_layout.addWidget(self.favorites_tree)
+        left_layout.addWidget(self.drives_tree)
+        
+        left_widget = QWidget()
+        left_widget.setLayout(left_layout)
+        
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_widget)
+        
+        hbox.addWidget(splitter)
+        
+        self.setLayout(hbox)
+        self.setWindowTitle('Open .pro File')
+        self.setGeometry(300, 300, 800, 400)
+    
+    def set_custom_button_style(self, button):
+        button.setMinimumHeight(31)
+        button.setFont(QFont("Arial", 10))
+    
+    def set_custom_font(self, widget):
+        widget.setFont(QFont("Arial", 10))
+    
+    def set_custom_lineedit_style(self, lineedit):
+        lineedit.setFont(QFont("Consolas", 11))
+    
+    def load_favorites_from_ini(self):
+        self.config = configparser.ConfigParser()
+        self.config.read('favorites.ini')
+        if 'Favorites' in self.config:
+            for name, path in self.config['Favorites'].items():
+                item = QTreeWidgetItem([name, path])
+                self.favorites_tree.addTopLevelItem(item)
+    
+    def save_favorites_to_ini(self):
+        self.config['Favorites'] = {}
+        for index in range(self.favorites_tree.topLevelItemCount()):
+            item = self.favorites_tree.topLevelItem(index)
+            self.config['Favorites'][item.text(0)] = item.text(1)
+        with open('favorites.ini', 'w') as configfile:
+            self.config.write(configfile)
+    
+    def load_drives(self):
+        drives = [drive for drive in QDir.drives()]
+        for drive in drives:
+            total_size, available_space = self.get_drive_info(drive.absolutePath())
+            item = QTreeWidgetItem([drive.absolutePath(), available_space, total_size])
+            self.drives_tree.addTopLevelItem(item)
+    
+    def get_drive_info(self, drive):
+        try:
+            total, used, free = shutil.disk_usage(drive)
+            return self.format_size(total), self.format_size(free)
+        except Exception as e:
+            return "N/A", "N/A"
+    
+    def format_size(self, size):
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if size < 1024.0:
+                return f"{size:.2f} {unit}"
+            size /= 1024.0
+    
+    def on_drive_clicked(self, item):
+        drive_path = item.text(0)
+        self.path_input.setText(drive_path)
+        self.tree_view.setRootIndex(self.dir_model.index(drive_path))
+    
+    def on_tree_view_clicked(self, index):
+        dir_path = self.dir_model.filePath(index)
+        self.path_input.setText(dir_path)
+        self.update_file_list(dir_path)
+    
+    def update_file_list(self, dir_path):
+        self.file_list.clear()
+        self.current_files = [f for f in os.listdir(dir_path) if f.endswith('.pro')]
+        self.file_list.addItems(self.current_files)
+    
+    def filter_files(self):
+        filter_text = self.filter_input.text().lower()
+        self.file_list.clear()
+        filtered_files = [f for f in self.current_files if filter_text in f.lower()]
+        self.file_list.addItems(filtered_files)
+    
+    def on_file_double_clicked(self, item):
+        file_path = os.path.join(self.path_input.text(), item.text())
+        self.label.setText(f'Selected file: {file_path}')
+        self.open_button.setEnabled(True)
+    
+    def open_file(self):
+        selected_file = self.label.text().replace('Selected file: ', '')
+        if selected_file:
+            print(f'Opening file: {selected_file}')
+            self.accept()
+        else:
+            self.label.setText('No file selected.')
+    
+    def add_to_favorites(self):
+        selected_items = self.file_list.selectedItems()
+        if selected_items:
+            file_name = selected_items[0].text()
+            project_name = os.path.splitext(file_name)[0]
+            file_path = os.path.join(self.path_input.text(), file_name)
+            item = QTreeWidgetItem([project_name, file_path])
+            self.favorites_tree.addTopLevelItem(item)
+            self.save_favorites_to_ini()
+    
+    def remove_from_favorites(self):
+        selected_items = self.favorites_tree.selectedItems()
+        if selected_items:
+            for item in selected_items:
+                index = self.favorites_tree.indexOfTopLevelItem(item)
+                if index != -1:
+                    self.favorites_tree.takeTopLevelItem(index)
+            self.save_favorites_to_ini()
+    
+    def on_favorite_double_clicked(self, item):
+        dir_path = item.text(1)
+        self.path_input.setText(dir_path)
+        self.update_file_list(dir_path)
+
+class doubleClickLocalesLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setPlaceholderText("example.pro")
+    
+    def mouseDoubleClickEvent(self, event):
+        self.on_lineedit_double_clicked()
+        super().mouseDoubleClickEvent(event)
+    
+    def on_lineedit_double_clicked(self):
+        dialog = OpenProFileDialog(self)
+        dialog.exec_()
+        return
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -5763,7 +5997,7 @@ class FileWatcherGUI(QDialog):
         lblA.setFont(font)
         vlayout1.addWidget(lblA)
         #
-        editA = QLineEdit()
+        editA = doubleClickLocalesLineEdit(self)
         editA.setFont(font2)
         editA.setStyleSheet(edit_css)
         editA.setPlaceholderText("example.pro")
