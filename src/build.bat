@@ -229,6 +229,10 @@ goto TheEnd
 :TheEnd
 echo,
 echo exit without error's, done.
+
+cd dist\observer
+touch test.txt
+cd ..\..
 goto skipper
 
 :: ---------------------------------------------------------------------------

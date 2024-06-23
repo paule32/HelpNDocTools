@@ -3,33 +3,29 @@
 # Author: (c) 2024 Jens Kallup - paule32
 # All rights reserved
 # ---------------------------------------------------------------------------
-# try catch import exceptions ...
+
+# -----------------------------------------------------------------------
+# global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
-global EXIT_SUCCESS; EXIT_SUCCESS = 0
-global EXIT_FAILURE; EXIT_FAILURE = 1
-
-global error_result; error_result = 0
-global topic_counter; topic_counter = 1
-
-global c64_painter
-
-global basedir
-global tr, appwin
-global sv_help
-
-global error_fail
-global app, appwin
-global byte_code
-
-global debugMode
-
-appwin = None
-# ---------------------------------------------------------------------------
-import os            # operating system stuff
-import sys           # system specifies
-
-if getattr(sys, 'frozen', False):
-    import pyi_splash
+try:
+    import os            # operating system stuff
+    import sys           # system specifies
+    import traceback
+    
+    if getattr(sys, 'frozen', False):
+        import pyi_splash
+except Exception as e:
+    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+    tb = traceback.extract_tb(e.__traceback__)[-1]
+    
+    print(f"Exception occur:")
+    print(f"type : {exc_type.__name__}")
+    print(f"value: {exc_value}")
+    print(misc.StringRepeat("-",40))
+    #
+    print(f"file : {tb.filename}")
+    print(f"line : {tb.lineno}")
+    sys.exit(1)
 
 # ---------------------------------------------------------------------------
 # under the windows console, python paths can make problems ...
@@ -40,13 +36,111 @@ if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
 
 # ---------------------------------------------------------------------------
+# to hide global variables from other packages, i use this class for a common
+# container. the reference of this class is declared later in the source.
+# i assume, that the os package is strict available by the current/latest
+# Python version...
+# ---------------------------------------------------------------------------
+class globalEnv:
+    def __init__(self):
+        self.v__app__debug        = True
+        
+        self.v__app__app_dir__    = os.path.dirname(os.path.abspath(__file__))
+        self.v__app__modul__      = os.path.join(self.v__app__app_dir__, "")
+        self.v__app__inter__      = os.path.join(self.v__app__app_dir__, "interpreter")
+        
+        self.v__app__name         = "observer"
+        
+        self.v__app__internal__   = os.path.join(self.v__app__modul__, "_internal")
+        self.v__app__config_ini   = os.path.join(self.v__app__modul__, self.v__app__name) + ".ini"
+        
+        self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
+        
+        self.v__app__doxygen__    = os.path.join(self.v__app__img__int__, "doxygen")
+        self.v__app__hlpndoc__    = os.path.join(self.v__app__img__int__, "helpndoc")
+        self.v__app__helpdev__    = os.path.join(self.v__app__img__int__, "help")
+        self.v__app__pythonc__    = os.path.join(self.v__app__img__int__, "python")
+        self.v__app__lispmod__    = os.path.join(self.v__app__img__int__, "lisp")
+        self.v__app__ccpplus__    = os.path.join(self.v__app__img__int__, "cpp")
+        self.v__app__cpp1dev__    = os.path.join(self.v__app__img__int__, "c")
+        self.v__app__dbasedb__    = os.path.join(self.v__app__img__int__, "dbase")
+        self.v__app__javadev__    = os.path.join(self.v__app__img__int__, "java")
+        self.v__app__javadoc__    = os.path.join(self.v__app__img__int__, "javadoc")
+        self.v__app__freepas__    = os.path.join(self.v__app__img__int__, "freepas")
+        self.v__app__locales__    = os.path.join(self.v__app__img__int__, "locales")
+        self.v__app__com_c64__    = os.path.join(self.v__app__img__int__, "c64")
+        self.v__app__keybc64__    = os.path.join(self.v__app__img__int__, "c64keyboard.png")
+        self.v__app__discc64__    = os.path.join(self.v__app__img__int__, "disk2.png")
+        self.v__app__datmc64__    = os.path.join(self.v__app__img__int__, "mc2.png")
+        self.v__app__logoc64__    = os.path.join(self.v__app__img__int__, "logo2.png")
+        
+        self.v__app__img_ext__    = ".png"
+        self.v__app__font         = "Arial"
+        self.v__app__font_edit    = "Consolas"
+        
+        self.v__app__framework    = "PyQt5.QtWidgets.QApplication"
+        self.v__app__exec_name    = sys.executable
+        
+        self.v__app__error_level  = "0"
+        
+        self.v__app__scriptname__ = ""
+        
+        # ------------------------------------------------------------------------
+        self.v__app__config   = None
+        
+        self.css_model_header = ""
+        self.css_tabs = ""
+        self.css__widget_item = ""
+        self.css_button_style = ""
+        
+        # ------------------------------------------------------------------------
+        # branding water marks ...
+        # ------------------------------------------------------------------------
+        self.__version__ = "Version 0.0.1"
+        self.__authors__ = "paule32"
+        
+        self.__date__    = "2024-01-04"
+        
+        self.EXIT_SUCCESS = 0
+        self.EXIT_FAILURE = 1
+        
+        self.basedir = os.path.dirname(__file__)
+        # ------------------------------------------------------------------------
+                
+        self.error_result = 0
+        self.topic_counter = 1
+        
+        self.c64_painter = None
+        
+        self.tr = None
+        self.sv_help = None
+        
+        self.doxy_env   = "DOXYGEN_PATH"  # doxygen.exe
+        self.doxy_hhc   = "DOXYHHC_PATH"  # hhc.exe
+        
+        self.doxy_path  = self.v__app__internal__
+        self.hhc__path  = ""
+        
+        self.doxyfile   = os.path.join(self.v__app__internal__, "Doxyfile")
+        
+        self.error_fail = False
+        self.app = None
+        self.appwin = None
+        
+        self.byte_code = None
+
+# ---------------------------------------------------------------------------
+global genv
+genv = globalEnv()
+
+# ---------------------------------------------------------------------------
 # extent the search paths for supported interpreters and tools ...
 # ---------------------------------------------------------------------------
-__app__app_dir__ = os.path.dirname(os.path.abspath(__file__))
-__app__modul__ = __app__app_dir__ + "\\"
-__app__inter__ = __app__app_dir__ + "\\interpreter\\"
-#
-print(__app__modul__)
+sys.path.append(os.path.join(genv.v__app__inter__, "pascal"))
+sys.path.append(os.path.join(genv.v__app__inter__, "dbase"))
+sys.path.append(os.path.join(genv.v__app__inter__, "doxygen"))
+sys.path.append(os.path.join(genv.v__app__inter__, ""))
+sys.path.append(os.path.join(genv.v__app__modul__, "tools"))
 
 # ---------------------------------------------------------------------------
 # application imports ...
@@ -105,12 +199,6 @@ try:
     # ------------------------------------------------------------------------
     # developers own modules ...
     # ------------------------------------------------------------------------
-    sys.path.append(__app__inter__ + "pascal")
-    sys.path.append(__app__inter__ + "dbase")
-    sys.path.append(__app__inter__ + "doxygen")
-    sys.path.append(__app__inter__ )
-    sys.path.append(__app__modul__ + "tools")
-
     from collection import *     # exception: templates
     
     from VisualComponentLibrary import *
@@ -126,62 +214,25 @@ try:
     from dbase      import *     # dbase ...
     from doxygen    import *     # doxygen script
     
-except Exception as err:
-    print(err)
+    # ------------------------------------------------------------------------
+    # forward initializations ...
+    # ------------------------------------------------------------------------
+    genv.v__app__config = configparser.ConfigParser()
+    genv.v__app__config.read(genv.v__app__config_ini)
+    
+    
+except Exception as e:
+    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+    tb = traceback.extract_tb(e.__traceback__)[-1]
+    
+    print(f"Exception occur at module import:")
+    print(f"type : {exc_type.__name__}")
+    print(f"value: {exc_value}")
+    print(misc.StringRepeat("-",40))
+    #
+    print(f"file : {tb.filename}")
+    print(f"line : {tb.lineno}")
     sys.exit(1)
-
-# -----------------------------------------------------------------------
-# global used application stuff ...
-# -----------------------------------------------------------------------
-img = "img\\"
-
-c64_painter = None
-
-__app__name         = "observer"
-__app__internal__   = __app__modul__ + "_internal\\"
-
-__app__config_ini   = __app__internal__ + "observer.ini"
-__app__img__int__   = __app__internal__ + img
-
-__app__doxygen__    = __app__img__int__ + "doxygen"
-__app__hlpndoc__    = __app__img__int__ + "helpndoc"
-__app__helpdev__    = __app__img__int__ + "help"
-__app__pythonc__    = __app__img__int__ + "python"
-__app__lispmod__    = __app__img__int__ + "lisp"
-__app__ccpplus__    = __app__img__int__ + "cpp"
-__app__cpp1dev__    = __app__img__int__ + "c"
-__app__dbasedb__    = __app__img__int__ + "dbase"
-__app__javadev__    = __app__img__int__ + "java"
-__app__javadoc__    = __app__img__int__ + "javadoc"
-__app__freepas__    = __app__img__int__ + "freepas"
-__app__locales__    = __app__img__int__ + "locales"
-__app__com_c64__    = __app__img__int__ + "c64"
-__app__keybc64__    = __app__img__int__ + "c64keyboard.png"
-__app__discc64__    = __app__img__int__ + "disk2.png"
-__app__datmc64__    = __app__img__int__ + "mc2.png"
-__app__logoc64__    = __app__img__int__ + "logo2.png"
-
-__app__img_ext__    = ".png"
-
-__app__framework    = "PyQt5.QtWidgets.QApplication"
-__app__exec_name    = sys.executable
-
-__app__error_level  = "0"
-__app__comment_hdr  = ("# " + misc.StringRepeat("-",78) + "\n")
-
-__app__scriptname__ = ""
-
-global css_model_header, css_tabs, css__widget_item, css_button_style
-
-# ------------------------------------------------------------------------
-# branding water marks ...
-# ------------------------------------------------------------------------
-__version__ = "Version 0.0.1"
-__authors__ = "paule32"
-
-__date__    = "2024-01-04"
-
-debugMode = True
 
 # ------------------------------------------------------------------------
 # when the user start the application script under Windows 7 and higher:
@@ -211,11 +262,9 @@ __error__locales_error = "" \
 # ------------------------------------------------------------------------
 # global used locales constants ...
 # ------------------------------------------------------------------------
-__locale__    = __app__internal__ + "/locales"
+__locale__    = os.path.join(genv.v__app__internal__, "locales")
 __locale__enu = "en_us"
 __locale__deu = "de_de"
-
-basedir = os.path.dirname(__file__)
 
 # ------------------------------------------------------------------------
 # style sheet definition's:
@@ -305,7 +354,7 @@ def convertPath(text):
         result = text.replace("\\", "/")
     else:
         showApplicationError(__error__os__error)
-        sys.exit(EXIT_FAILURE)
+        sys.exit(genv.EXIT_FAILURE)
     return result
 
 # ------------------------------------------------------------------------
@@ -320,37 +369,46 @@ def handle_language(lang):
         if system_lang.lower() == __locale__enu:
             if lang.lower() == __locale__enu:
                 _ = gettext.translation(
-                __app__name,
+                genv.v__app__name,
                 localedir=__locale__,
                 languages=[__locale__enu])  # english
             elif lang.lower() == __locale__deu:
                 _ = gettext.translation(
-                __app__name,
+                genv.v__app__name,
                 localedir=__locale__,
                 languages=[__locale__deu])  # german
         elif system_lang.lower() == __locale__deu:
             if lang.lower() == __locale__deu:
                 _ = gettext.translation(
-                __app__name,
+                genv.v__app__name,
                 localedir=__locale__,
                 languages=[__locale__deu])  # german
             elif lang.lower() == __locale__enu:
                 _ = gettext.translation(
-                __app__name,
+                genv.v__app__name,
                 localedir=__locale__,
                 languages=[__locale__enu])  # english
         else:
             _ = gettext.translation(
-            __app__name,
+            genv.v__app__name,
             localedir=__locale__,
             languages=[__locale__enu])  # fallback - english
         
         _.install()
         return _
-    except Exception as ex:
-        print(f"{ex}")
-        sys.exit(EXIT_FAILURE)
-        return None
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+        tb = traceback.extract_tb(e.__traceback__)[-1]
+        
+        print(f"Exception occur during handle language:")
+        print(f"type : {exc_type.__name__}")
+        print(f"value: {exc_value}")
+        print(misc.StringRepeat("-",40))
+        #
+        print(f"file : {tb.filename}")
+        print(f"line : {tb.lineno}")
+        #
+        sys.exit(genv.EXIT_FAILURE)
 
 # ------------------------------------------------------------------------
 # check, if the gui application is initialized by an instance of app ...
@@ -425,6 +483,19 @@ def handleExceptionApplication(func,arg1=""):
         print("Could not convert data:", ex)
         error_result = 1
     except Exception as ex:
+        exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+        tb = traceback.extract_tb(ex.__traceback__)[-1]
+        
+        print(f"Exception occur:")
+        print(f"type : {exc_type.__name__}")
+        print(f"value: {exc_value}")
+        print(misc.StringRepeat("-",40))
+        #
+        print(f"file : {tb.filename}")
+        print(f"line : {tb.lineno}")
+        #
+        print(misc.StringRepeat("-",40))
+        
         s = f"{ex.args}"
         parts = [part.strip() for part in s.split("'") if part.strip()]
         parts.pop( 0)   # delete first element
@@ -498,12 +569,24 @@ class myDBaseTextEditor(QTextEdit):
         self.setLineWrapMode(QTextEdit.NoWrap)
         try:
             if not name == None:
-                self.script_name = __app__scriptname__
+                self.script_name = genv.v__app__scriptname__
                 with open(self.script_name, "r") as file:
                     text = file.read()
                     self.setText(text)
                     file.close()
-        except:
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            
+            print(f"Exception occur during file load:")
+            print(f"type : {exc_type.__name__}")
+            print(f"value: {exc_value}")
+            print(misc.StringRepeat("-",40))
+            #
+            print(f"file : {tb.filename}")
+            print(f"line : {tb.lineno}")
+            #
+            print(misc.StringRepeat("-",40))
             print("file not found.")
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F2:
@@ -552,7 +635,7 @@ class OverlayWidget(QWidget):
         
         self.caption = text
         
-        font = QFont("Arial")
+        font = QFont(genv.v__app__font)
         font.setPointSize(11)
         font.setBold(True)
         
@@ -663,7 +746,7 @@ class myIconButton(QWidget):
         self.vl = QVBoxLayout()
         self.pix_label = myIconLabel(self, text, mode)
         
-        self.txt_fonda = QFont("Arial",10)
+        self.txt_fonda = QFont(genv.v__app__font,10)
         self.txt_fonda.setBold(True)
         #
         self.txt_label = QLabel(label_text)
@@ -686,8 +769,8 @@ class myIconButton(QWidget):
         self.parent      = parent
         self.state       = 0
         
-        fg = str(1) + __app__img_ext__
-        bg = str(2) + __app__img_ext__
+        fg = str(1) + genv.v__app__img_ext__
+        bg = str(2) + genv.v__app__img_ext__
         
         self.pix_label.setMinimumWidth (79)
         self.pix_label.setMinimumHeight(79)
@@ -697,46 +780,46 @@ class myIconButton(QWidget):
         
         ptx = ""
         
-        self.image_fg = ptx + __app__helpdev__ + fg
-        self.image_bg = ptx + __app__helpdev__ + bg
+        self.image_fg = ptx + genv.v__app__helpdev__ + fg
+        self.image_bg = ptx + genv.v__app__helpdev__ + bg
         
         parent.side_layout.addWidget(self)
         
         if mode == 0:
-            self.image_fg = ptx + __app__helpdev__ + fg
-            self.image_bg = ptx + __app__helpdev__ + bg
+            self.image_fg = ptx + genv.v__app__helpdev__ + fg
+            self.image_bg = ptx + genv.v__app__helpdev__ + bg
         
         elif mode == 1:
-            self.image_fg = ptx + __app__dbasedb__ + fg
-            self.image_bg = ptx + __app__dbasedb__ + bg
+            self.image_fg = ptx + genv.v__app__dbasedb__ + fg
+            self.image_bg = ptx + genv.v__app__dbasedb__ + bg
         
         elif mode == 2:
-            self.image_fg = ptx + __app__freepas__ + fg
-            self.image_bg = ptx + __app__freepas__ + bg
+            self.image_fg = ptx + genv.v__app__freepas__ + fg
+            self.image_bg = ptx + genv.v__app__freepas__ + bg
         
         elif mode == 3:
-            self.image_fg = ptx + __app__cpp1dev__ + fg
-            self.image_bg = ptx + __app__cpp1dev__ + bg
+            self.image_fg = ptx + genv.v__app__cpp1dev__ + fg
+            self.image_bg = ptx + genv.v__app__cpp1dev__ + bg
         
         elif mode == 4:
-            self.image_fg = ptx + __app__javadev__ + fg
-            self.image_bg = ptx + __app__javadev__ + bg
+            self.image_fg = ptx + genv.v__app__javadev__ + fg
+            self.image_bg = ptx + genv.v__app__javadev__ + bg
         
         elif mode == 5:
-            self.image_fg = ptx + __app__pythonc__ + fg
-            self.image_bg = ptx + __app__pythonc__ + bg
+            self.image_fg = ptx + genv.v__app__pythonc__ + fg
+            self.image_bg = ptx + genv.v__app__pythonc__ + bg
         
         elif mode == 6:
-            self.image_fg = ptx + __app__lispmod__ + fg
-            self.image_bg = ptx + __app__lispmod__ + bg
+            self.image_fg = ptx + genv.v__app__lispmod__ + fg
+            self.image_bg = ptx + genv.v__app__lispmod__ + bg
         
         elif mode == 10:
-            self.image_fg = ptx + __app__locales__ + fg
-            self.image_bg = ptx + __app__locales__ + bg
+            self.image_fg = ptx + genv.v__app__locales__ + fg
+            self.image_bg = ptx + genv.v__app__locales__ + bg
         
         elif mode == 11:
-            self.image_fg = ptx + __app__com_c64__ + fg
-            self.image_bg = ptx + __app__com_c64__ + bg
+            self.image_fg = ptx + genv.v__app__com_c64__ + fg
+            self.image_bg = ptx + genv.v__app__com_c64__ + bg
         
         self.set_style()
     
@@ -866,7 +949,7 @@ class myCustomScrollArea(QScrollArea):
         super().__init__()
         
         self.name = name
-        self.font = QFont("Arial")
+        self.font = QFont(genv.v__app__font)
         self.font.setPointSize(10)
         
         self.type_label        = 1
@@ -877,11 +960,11 @@ class myCustomScrollArea(QScrollArea):
         self.type_push_button  = 6
         self.type_radio_button = 7
         
-        font_primary   = "Consolas"
+        font_primary   = genv.v__app__font_edit
         font_secondary = "Courier New"
         
-        self.font_a = QFont("Consolas"); self.font_a.setPointSize(11)
-        self.font_b = QFont("Arial");    self.font_a.setPointSize(10)
+        self.font_a = QFont(genv.v__app__font_edit); self.font_a.setPointSize(11)
+        self.font_b = QFont(genv.v__app__font);      self.font_a.setPointSize(10)
         
         self.font_a.setFamily(font_primary)
         font_id = QFontDatabase.addApplicationFont(self.font_a.family())
@@ -1042,9 +1125,9 @@ class myCustomScrollArea(QScrollArea):
                     data = json.loads(self.supported_langs)
                     elements[i][3] = data
                     for j in range(0, len(data)):
-                        img = __app__img__int__ + "flag_"  \
-                        + elements[i][3][j] \
-                        + __app__img_ext__
+                        img = os.path.join(genv.v__app__img__int__, "flag_"  \
+                        + elements[i][3][j]    \
+                        + genv.v__app__img_ext__)
                         img = img.lower()
                         
                         vw_2.addItem(QIcon(img), elements[i][3][j-1])
@@ -1086,7 +1169,7 @@ class customScrollView_1(myCustomScrollArea):
         layout = QVBoxLayout(content_widget)
         layout.setAlignment(Qt.AlignLeft)
         
-        font = QFont("Arial")
+        font = QFont(genv.v__app__font)
         font.setPointSize(10)
         
         w_layout_0 = QHBoxLayout()
@@ -1142,9 +1225,7 @@ class customScrollView_1(myCustomScrollArea):
         #
         widget_4_licon_1 = self.addLabel("", False, layout_4)
         widget_4_licon_1.setPixmap(QIcon(
-            os.path.join(basedir,__app__img__int__,
-            "floppy-disk" + __app__img_ext__))
-            .pixmap(42,42))
+            os.path.join(genv.v__app__img__int__, "floppy-disk" + genv.v__app__img_ext__)).pixmap(42,42))
         #
         layout.addLayout(layout_4)
         
@@ -1921,7 +2002,7 @@ class customScrollView_help(QTextEdit):
     def __init__(self):
         super().__init__()
         
-        font = QFont("Arial")
+        font = QFont(genv.v__app__font)
         font.setPointSize(11)
         
         self.setFont(font)
@@ -1968,10 +2049,10 @@ class ComboBoxDelegateStatus(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QComboBox(parent)
         # Add items to the combobox
-        editor.addItem(QIcon(__app__img__int__ + "icon_white"  + __app__img_ext__), "Complete"     )
-        editor.addItem(QIcon(__app__img__int__ + "icon_blue"   + __app__img_ext__), "Needs Review" )
-        editor.addItem(QIcon(__app__img__int__ + "icon_yellow" + __app__img_ext__), "In Progress"  )
-        editor.addItem(QIcon(__app__img__int__ + "icon_red"    + __app__img_ext__), "Out of Date"  )
+        editor.addItem(QIcon(os.path.join(genv.v__app__img__int__, "icon_white"  + genv.v__app__img_ext__)), "Complete"     )
+        editor.addItem(QIcon(os.path.join(genv.v__app__img__int__, "icon_blue"   + genv.v__app__img_ext__)), "Needs Review" )
+        editor.addItem(QIcon(os.path.join(genv.v__app__img__int__, "icon_yellow" + genv.v__app__img_ext__)), "In Progress"  )
+        editor.addItem(QIcon(os.path.join(genv.v__app__img__int__, "icon_red"    + genv.v__app__img_ext__)), "Out of Date"  )
         
         #editor.activated.connect(self.on_activated)
         editor.currentTextChanged.connect(self.on_current_text_changed)
@@ -2028,11 +2109,11 @@ class ComboBoxDelegateBuild(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = CheckableComboBox(parent); i = 1
         i = 1
-        ico_yellow = "icon_yellow" + __app__img_ext__
+        ico_yellow = "icon_yellow" + genv.v__app__img_ext__
         
         liste = ["CHM", "HTML", "Word", "PDF", "EPub", "Kindle", "Qt Help", "MarkDown"]
         for item in liste:
-            editor.addItem(QIcon(__app__img__int__ + ico_yellow ), item + " " + str(i))
+            editor.addItem(QIcon(os.path.join(genv.v__app__img__int__, ico_yellow )), item + " " + str(i))
             it1 = editor.model().item(i-1, 0)
             it1.setCheckState(Qt.Unchecked)
             i = i + 1
@@ -2088,9 +2169,9 @@ class doxygenImageTracker(QWidget):
     
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__doxygen__ + str(1) + __app__img_ext__) \
+        .replace("{1i}",genv.v__app__doxygen__ + str(1) + genv.v__app__img_ext__) \
         .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__doxygen__ + str(2) + __app__img_ext__) \
+        .replace("{2i}",genv.v__app__doxygen__ + str(2) + genv.v__app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
         self.img_origin_doxygen_label.setStyleSheet(style.replace("\\","/"))
@@ -2146,8 +2227,8 @@ class helpNDocImageTracker(QWidget):
         self.set_style()
     
     def set_style(self):
-        txt1 = __app__hlpndoc__ + str(1) + __app__img_ext__
-        txt2 = __app__hlpndoc__ + str(2) + __app__img_ext__
+        txt1 = genv.v__app__hlpndoc__ + str(1) + genv.v__app__img_ext__
+        txt2 = genv.v__app__hlpndoc__ + str(2) + genv.v__app__img_ext__
         
         style = _("doxtrack_css") \
         .replace("{1i}",txt1).replace("{1b}",self.bordercolor ) \
@@ -2209,8 +2290,8 @@ class ccpplusImageTracker(QWidget):
     
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__cpp1dev__ + str(1) + __app__img_ext__).replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__cpp1dev__ + str(2) + __app__img_ext__).replace("{2b}",self.bordercolor )
+        .replace("{1i}", genv.v__app__cpp1dev__ + str(1) + genv.v__app__img_ext__).replace("{1b}", self.bordercolor ) \
+        .replace("{2i}", genv.v__app__cpp1dev__ + str(2) + genv.v__app__img_ext__).replace("{2b}", self.bordercolor )
         
         self.img_origin_ccpplus_label.setStyleSheet(style.replace("\\","/"))
     
@@ -2272,9 +2353,9 @@ class javadocImageTracker(QWidget):
         
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__javadoc__ + str(1) + __app__img_ext__) \
+        .replace("{1i}",genv.v__app__javadoc__ + str(1) + genv.v__app__img_ext__) \
         .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__javadoc__ + str(2) + __app__img_ext__) \
+        .replace("{2i}",genv.v__app__javadoc__ + str(2) + genv.v__app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
         self.img_origin_javadoc_label.setStyleSheet(style.replace("\\","/"))
@@ -2337,9 +2418,9 @@ class freepasImageTracker(QWidget):
         
     def set_style(self):
         style = _("doxtrack_css") \
-        .replace("{1i}",__app__freepas__ + str(1) + __app__img_ext__) \
+        .replace("{1i}",genv.v__app__freepas__ + str(1) + genv.v__app__img_ext__) \
         .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",__app__freepas__ + str(2) + __app__img_ext__) \
+        .replace("{2i}",genv.v__app__freepas__ + str(2) + genv.v__app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
         self.img_origin_freepas_label.setStyleSheet(style.replace("\\","/"))
@@ -2392,17 +2473,17 @@ class MyPushButton(QLabel):
         self.setMinimumHeight(34)
         
         if mode == 1:
-            self.btn_img_fg = __app__img__int__ + "create1" + __app__img_ext__
-            self.btn_img_bg = __app__img__int__ + "create2" + __app__img_ext__
+            self.btn_img_fg = os.path.join(genv.v__app__img__int__, "create1" + genv.v__app__img_ext__)
+            self.btn_img_bg = os.path.join(genv.v__app__img__int__, "create2" + genv.v__app__img_ext__)
         elif mode == 2:
-            self.btn_img_fg = __app__img__int__ + "open1"   + __app__img_ext__
-            self.btn_img_bg = __app__img__int__ + "open2"   + __app__img_ext__
+            self.btn_img_fg = os.path.join(genv.v__app__img__int__, "open1"   + genv.v__app__img_ext__)
+            self.btn_img_bg = os.path.join(genv.v__app__img__int__, "open2"   + genv.v__app__img_ext__)
         elif mode == 3:
-            self.btn_img_fg = __app__img__int__ + "repro1"  + __app__img_ext__
-            self.btn_img_bg = __app__img__int__ + "repro2"  + __app__img_ext__
+            self.btn_img_fg = os.path.join(genv.v__app__img__int__, "repro1"  + genv.v__app__img_ext__)
+            self.btn_img_bg = os.path.join(genv.v__app__img__int__, "repro2"  + genv.v__app__img_ext__)
         elif mode == 4:
-            self.btn_img_fg = __app__img__int__ + "build1"  + __app__img_ext__
-            self.btn_img_bg = __app__img__int__ + "build2"  + __app__img_ext__
+            self.btn_img_fg = os.path.join(genv.v__app__img__int__, "build1"  + genv.v__app__img_ext__)
+            self.btn_img_bg = os.path.join(genv.v__app__img__int__, "build2"  + genv.v__app__img_ext__)
         
         fg = self.btn_img_fg.replace("\\","/")
         bg = self.btn_img_bg.replace("\\","/")
@@ -2427,7 +2508,7 @@ class myExitDialog(QDialog):
         
         self.setWindowTitle(title)
         
-        font = QFont("Arial", 10)
+        font = QFont(genv.v__app__font, 10)
         font.setBold(True)
         self.setFont(font)
         
@@ -2538,8 +2619,8 @@ class addEventField(QLabel):
     def __init__(self, parent, text):
         super().__init__(text, parent)
         
-        font1 = QFont("Arial", 10); font1.setBold(True)
-        font2 = QFont("Arial", 10); font2.setBold(False)
+        font1 = QFont(genv.v__app__font, 10); font1.setBold(True)
+        font2 = QFont(genv.v__app__font, 10); font2.setBold(False)
         
         self.hlayout = QHBoxLayout()
         self.lhs     = self
@@ -2574,7 +2655,7 @@ class addPropertyCat(QLabel):
     def __init__(self, parent, text):
         super().__init__(text, parent)
         
-        font = QFont("Arial",12)
+        font = QFont(genv.v__app__font,12)
         font.setBold(True)
         
         self.setContentsMargins(2,0,0,2)
@@ -2597,9 +2678,9 @@ class addProperty(QLabel):
     def __init__(self, parent, kind, text):
         super().__init__(text, parent)
         
-        font1 = QFont("Arial", 10)
+        font1 = QFont(genv.v__app__font, 10)
         font1.setBold(True)
-        font2 = QFont("Arial", 10)
+        font2 = QFont(genv.v__app__font, 10)
         font2.setBold(False)
         
         self.hlayout = QHBoxLayout()
@@ -2691,7 +2772,7 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
         self.commentFormat.setFontWeight(QFont.Normal)  # Set the comment font weight to normal
         
         self.boldFormat = QTextCharFormat()
-        self.boldFormat.setFont(QFont("Consolas", 12))  # Set the font for keywords
+        self.boldFormat.setFont(QFont(genv.v__app__font_edit, 12))  # Set the font for keywords
         self.boldFormat.setFontWeight(QFont.Bold)
         
         # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
@@ -2780,7 +2861,7 @@ class EditorTextEdit(QPlainTextEdit):
         self.highlightCurrentLine()
         
         # Schriftgröße und Schriftart setzen
-        self.setFont(QFont("Consolas", 12))
+        self.setFont(QFont(genv.v__app__font_edit, 12))
         
         with open(file_name, 'r') as file:
             text = file.read()
@@ -2886,7 +2967,7 @@ class LineNumberArea(QWidget):
     
     def paintEvent(self, event):
         self.editor.lineNumberAreaPaintEvent(event)
-        self.setFont(QFont("Consolas", 12))  # Schriftgröße und Schriftart für Zeilennummerbereich setzen
+        self.setFont(QFont(genv.v__app__font_edit, 12))  # Schriftgröße und Schriftart für Zeilennummerbereich setzen
 
 
 class myGridViewer(QWidget):
@@ -2902,8 +2983,8 @@ class myGridViewer(QWidget):
         self.layout         .setContentsMargins(0,0,0,0)
         self.property_layout.setContentsMargins(0,0,0,0)
         
-        font1 = QFont("Arial", 10); font1.setBold(False)
-        font2 = QFont("Arial", 10); font2.setBold(True)
+        font1 = QFont(genv.v__app__font, 10); font1.setBold(False)
+        font2 = QFont(genv.v__app__font, 10); font2.setBold(True)
         
         self.object_inspector = QTreeWidget()
         self.object_inspector.setIconSize(QSize(20,20))
@@ -3100,7 +3181,7 @@ class MySQLDialog(QFrame):
     def __init__(self, text):
         super().__init__()
         
-        font = QFont("Arial", 10)
+        font = QFont(genv.v__app__font, 10)
         font.setBold(True)
         
         self.setFrameShape(QFrame.StyledPanel)
@@ -3201,7 +3282,7 @@ class addDesignerTabs():
             if len(tabitem[1]) > 0:
                 for item in tabitem[1]:
                     list_item = QListWidgetItem("", self._listwidget)
-                    list_item.setIcon(QIcon(__app__img__int__ + item + "_150.bmp"))
+                    list_item.setIcon(QIcon(os.path.join(genv.v__app__img__int__, item + "_150.bmp")))
 
 class c64WorkerThread(threading.Thread):
     def __init__(self, parent):
@@ -3278,7 +3359,7 @@ class addDataSourceDialog(QDialog):
         self.setMaximumHeight(600)
         self.setMaximumHeight(400)
         
-        font = QFont("Arial", 10)
+        font = QFont(genv.v__app__font, 10)
         self.setFont(font)
         
 class myAddTableDialog(QDialog):
@@ -3291,7 +3372,7 @@ class myAddTableDialog(QDialog):
         self.setMaximumHeight(600)
         self.setMaximumHeight(400)
         
-        font = QFont("Arial", 10)
+        font = QFont(genv.v__app__font, 10)
         self.setFont(font)
         
         self.layout_top = QVBoxLayout()
@@ -3357,10 +3438,10 @@ class myAddTableDialog(QDialog):
         pattern = os.path.join(directory, "*.db")
         db_files = glob.glob(pattern)
         
-        self.font1 = QFont("Arial", 10)
+        self.font1 = QFont(genv.v__app__font, 10)
         self.font1.setBold(True)
         
-        self.font2 = QFont("Arial", 10)
+        self.font2 = QFont(genv.v__app__font, 10)
         self.font2.setBold(False)
         
         local_sqlite_item = QListWidgetItem("Local Data Files:")
@@ -3502,7 +3583,7 @@ class myDataTabWidget(QWidget):
         #self.vlayout.addStretch()
         
         ###
-        font = QFont("Arial", 11)
+        font = QFont(genv.v__app__font, 11)
         
         self.table_btn_add      = QPushButton("Add Table Field")
         self.table_btn_remove   = QPushButton("Remove Field")
@@ -3652,8 +3733,8 @@ class MyCountryProject(QWidget):
         pixmap_label.setPixmap(pixmap)
         vlayout.addWidget(pixmap_label)
         
-        fontN = QFont("Arial", 10)
-        fontB = QFont("Arial", 10)
+        fontN = QFont(genv.v__app__font, 10)
+        fontB = QFont(genv.v__app__font, 10)
         fontB.setBold(True)
         #
         hlay = QHBoxLayout()
@@ -3834,12 +3915,94 @@ class ExtensionFilterProxyModel(QSortFilterProxyModel):
         file_extension = os.path.splitext(file_path)[1].lower()
         return file_extension in self.extensions
 
+class setLocalesProjectSetting(QDialog):
+    def __init__(self, parent, prop, value):
+        super().__init__(parent)
+        
+        self.parent = parent
+        self.parent.property_value = value
+        self.parent.property_name  = prop
+        
+        self.prop   = prop
+        self.value  = value
+        self.initUI()
+    
+    def initUI(self):
+        okbtn = QPushButton("Save and Close")
+        clbtn = QPushButton("Close")
+        
+        okbtn.clicked.connect(self.save_and_close)
+        clbtn.clicked.connect(self.reject)
+        
+        hbox  = QHBoxLayout()
+        hbox.addWidget(okbtn)
+        hbox.addWidget(clbtn)
+        
+        prop  = QLabel("Property:   " + self.prop)
+        label = QLabel("Value:")
+        #
+        self.edit = QLineEdit("Value:")
+        self.edit.setText(self.value)
+        
+        vbox  = QVBoxLayout()
+        vbox.addWidget(prop)
+        vbox.addWidget(label)
+        vbox.addWidget(self.edit)
+        
+        vbox.addLayout(hbox)
+        self.setLayout(vbox)
+        
+        self.set_custom_button_style(okbtn)
+        self.set_custom_button_style(clbtn)
+        
+        self.set_custom_lineedit_style(self.edit)
+        
+        self.set_custom_font(prop)
+        self.set_custom_font(label)
+        
+        self.setMinimumWidth(300)
+        self.setWindowTitle("Locales properties")
+    
+    def save_and_close(self):
+        self.parent.property_value = self.edit.text()
+        self.close()
+    
+    def set_custom_button_style(self, button):
+        button.setMinimumHeight(31)
+        self.set_custom_font(button)
+    
+    def set_custom_font(self, widget):
+        widget.setFont(QFont(genv.v__app__font, 10))
+    
+    def set_custom_lineedit_style(self, lineedit):
+        lineedit.setFont(QFont(genv.v__app__font_edit, 11))
+    
 class OpenProFileDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        
+        self.property_value = ""
+        self.property_name  = ""
+        
         self.initUI()
         self.load_favorites_from_ini()
         self.load_drives()
+        
+        noan = "n/a"
+        #
+        self.project_name    = noan
+        self.project_author  = noan
+        self.project_version = noan
+        self.project_email   = noan
+        self.project_lastmod = noan
+        #
+        self.project_content_type     = noan
+        self.project_content_encoding = noan
+        self.project_mime_type        = noan
+        self.project_language_team    = noan
+        self.project_last_translater  = noan
+        self.project_pot_create_date  = noan
+        self.project_po_revision_date = noan
     
     def initUI(self):
         hbox = QHBoxLayout(self)
@@ -3848,11 +4011,11 @@ class OpenProFileDialog(QDialog):
         
         # Create the favorites tree
         self.favorites_tree = QTreeWidget()
-        self.favorites_tree.setHeaderLabels(["Project File Name", "Path"])
+        self.favorites_tree.setHeaderLabels(["Project Name", "Path"])
         self.favorites_tree.setColumnWidth(0, 150)
         self.favorites_tree.header().setSectionResizeMode(0, QHeaderView.Interactive)
         self.favorites_tree.header().setSectionResizeMode(1, QHeaderView.Interactive)
-        self.favorites_tree.setMaximumWidth(400)
+        self.favorites_tree.setMaximumWidth(380)
         self.favorites_tree.itemDoubleClicked.connect(self.on_favorite_double_clicked)
         self.favorites_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.favorites_tree.setSizeAdjustPolicy(QTreeWidget.AdjustToContents)
@@ -3861,9 +4024,23 @@ class OpenProFileDialog(QDialog):
         # Create the drives tree
         self.drives_tree = QTreeWidget()
         self.drives_tree.setHeaderLabels(["Drive", "Available Space", "Total Size"])
+        self.drives_tree.setMaximumHeight(120)
+        self.drives_tree.setMaximumWidth(380)
         self.drives_tree.header().setSectionResizeMode(QHeaderView.Interactive)
         self.drives_tree.itemClicked.connect(self.on_drive_clicked)
         self.drives_tree.setStyleSheet("QHeaderView::section { background-color: lightgreen }")
+        
+        
+        ##
+        self.project_tree = QTreeWidget()
+        self.project_tree.setHeaderLabels(["Name", "Path"])
+        self.project_tree.setMaximumHeight(100)
+        self.project_tree.setMaximumWidth(380)
+        self.project_tree.header().setSectionResizeMode(QHeaderView.Interactive)
+        self.project_tree.itemClicked.connect(self.on_project_clicked)
+        self.project_tree.setStyleSheet("QHeaderView::section { background-color: lightgreen }")
+        ##
+        
         
         # Create the directory view
         self.dir_model = QFileSystemModel()
@@ -3873,6 +4050,7 @@ class OpenProFileDialog(QDialog):
         self.tree_view = QTreeView()
         self.tree_view.setModel(self.dir_model)
         self.tree_view.setRootIndex(self.dir_model.index(QDir.rootPath()))
+        self.tree_view.setMinimumWidth(300)
         self.tree_view.clicked.connect(self.on_tree_view_clicked)
         self.tree_view.setHeaderHidden(False)
         self.tree_view.header().setSectionResizeMode(QHeaderView.Interactive)
@@ -3880,10 +4058,10 @@ class OpenProFileDialog(QDialog):
         
         # Create the file list view
         self.file_list = QTreeWidget()
-        self.file_list.setHeaderLabels(["Project Name", "Filename"])
+        self.file_list.setHeaderLabels(["Key", "Value"])
         self.file_list.header().setSectionResizeMode(0, QHeaderView.Interactive)
         self.file_list.header().setSectionResizeMode(1, QHeaderView.Interactive)
-        self.file_list.setStyleSheet("QHeaderView::section { background-color: lightblue }")
+        self.file_list.itemDoubleClicked.connect(self.on_file_double_clicked)
         
         # Create the path input
         self.path_input = QLineEdit()
@@ -3911,6 +4089,10 @@ class OpenProFileDialog(QDialog):
         self.open_button.clicked.connect(self.open_file)
         self.open_button.setEnabled(False)
         
+        self.save_button = QPushButton('Save', self)
+        self.save_button.clicked.connect(self.save_file)
+        self.save_button.setEnabled(True)
+        
         self.cancel_button = QPushButton('Cancel', self)
         self.cancel_button.clicked.connect(self.reject)
         
@@ -3918,13 +4100,22 @@ class OpenProFileDialog(QDialog):
         self.set_custom_button_style(self.add_favorite_button)
         self.set_custom_button_style(self.remove_favorite_button)
         self.set_custom_button_style(self.open_button)
+        self.set_custom_button_style(self.save_button)
         self.set_custom_button_style(self.cancel_button)
         
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.add_favorite_button)
-        button_layout.addWidget(self.remove_favorite_button)
-        button_layout.addWidget(self.open_button)
-        button_layout.addWidget(self.cancel_button)
+        button_layout  = QVBoxLayout()
+        #
+        button1_layout = QHBoxLayout()
+        button1_layout.addWidget(self.add_favorite_button)
+        button1_layout.addWidget(self.remove_favorite_button)
+        #
+        button2_layout = QHBoxLayout()
+        button2_layout.addWidget(self.open_button)
+        button2_layout.addWidget(self.save_button)
+        button2_layout.addWidget(self.cancel_button)
+        #
+        button_layout.addLayout(button1_layout)
+        button_layout.addLayout(button2_layout)
         
         right_layout = QVBoxLayout()
         right_layout.addWidget(self.path_input)
@@ -3940,6 +4131,7 @@ class OpenProFileDialog(QDialog):
         left_layout = QVBoxLayout()
         left_layout.addWidget(self.favorites_tree)
         left_layout.addWidget(self.drives_tree)
+        left_layout.addWidget(self.project_tree)
         
         left_widget = QWidget()
         left_widget.setLayout(left_layout)
@@ -3951,33 +4143,32 @@ class OpenProFileDialog(QDialog):
         
         self.setLayout(hbox)
         self.setWindowTitle('Open .pro File')
-        self.setGeometry(300, 300, 800, 400)
+        self.setGeometry(300, 300, 750, 450)
     
     def set_custom_button_style(self, button):
         button.setMinimumHeight(31)
-        button.setFont(QFont("Arial", 10))
+        button.setFont(QFont(genv.v__app__font, 10))
     
     def set_custom_font(self, widget):
-        widget.setFont(QFont("Arial", 10))
+        widget.setFont(QFont(genv.v__app__font, 10))
     
     def set_custom_lineedit_style(self, lineedit):
-        lineedit.setFont(QFont("Consolas", 11))
+        lineedit.setFont(QFont(genv.v__app__font_edit, 11))
     
     def load_favorites_from_ini(self):
-        self.config = configparser.ConfigParser()
-        self.config.read('favorites.ini')
-        if 'Favorites' in self.config:
-            for name, path in self.config['Favorites'].items():
+        genv.v__app__config.read('favorites.ini')
+        if 'Favorites' in genv.v__app__config:
+            for name, path in genv.v__app__config['Favorites'].items():
                 item = QTreeWidgetItem([name, path])
                 self.favorites_tree.addTopLevelItem(item)
     
     def save_favorites_to_ini(self):
-        self.config['Favorites'] = {}
+        genv.v__app__config['Favorites'] = {}
         for index in range(self.favorites_tree.topLevelItemCount()):
             item = self.favorites_tree.topLevelItem(index)
-            self.config['Favorites'][item.text(0)] = item.text(1)
+            genv.v__app__config['Favorites'][item.text(0)] = item.text(1)
         with open('favorites.ini', 'w') as configfile:
-            self.config.write(configfile)
+            genv.v__app__config.write(configfile)
     
     def load_drives(self):
         drives = [drive for drive in QDir.drives()]
@@ -4002,30 +4193,191 @@ class OpenProFileDialog(QDialog):
     def on_drive_clicked(self, item):
         drive_path = item.text(0)
         self.path_input.setText(drive_path)
+        
+        self.project_tree.clear()
+        self.file_list.clear()
+        
         self.tree_view.setRootIndex(self.dir_model.index(drive_path))
+    
+    def save_file(self):
+        return
+    
+    def on_project_clicked(self, item):
+        file_name = item.text(0)
+        file_path = os.path.join(item.text(1), file_name)
+        
+        self.path_input.setText(file_path)
+        self.label.setText(f'Selected file: {file_name}')
+        
+        self.path_input.setText(file_path)
+        self.update_file_list(file_path)
+        
+        self.tree_view.setRootIndex(self.dir_model.index(item.text(1)))
+        return
     
     def on_tree_view_clicked(self, index):
         dir_path = self.dir_model.filePath(index)
         self.path_input.setText(dir_path)
         self.update_file_list(dir_path)
+        
+        files = os.listdir(dir_path)
+        pro_files = []
+        
+        self.project_tree.clear()
+        for file in files:
+            if file.endswith(".pro"):
+                if os.path.isfile(os.path.join(dir_path, file)):
+                    item = QTreeWidgetItem([file, dir_path])
+                    self.project_tree.addTopLevelItem(item)
+        
+    def update_project_files(self, dir_path):
+        dir_path, file_name = os.path.split(dir_path)
+        files = os.listdir(dir_path)
+        pro_files = []
+        
+        self.project_tree.clear()
+        for file in files:
+            if file.endswith(".pro"):
+                if os.path.isfile(os.path.join(dir_path, file)):
+                    item = QTreeWidgetItem([file, dir_path])
+                    self.project_tree.addTopLevelItem(item)
     
     def update_file_list(self, dir_path):
-        dir_path = dir_path.replace("/","\\")
-        
-        if dir_path.endswith(".pro"):
-            dir_str, file_name = os.path.split(dir_path)
-            
-            self.current_files = os.listdir(dir_str)
+        dir_full = dir_path.replace("\\","/")
+        dir_path, file_name = os.path.split(dir_full)
+        #
+        if dir_full.endswith(".pro"):
             self.file_list.clear()
             
-            config = configparser.ConfigParser()
-            config.read(file_name)
+            genv.v__app__config.read(dir_full)
+            noan = "n/a"
+            #
+            self.project_file    = file_name
+            self.project_name    = noan
+            self.project_author  = noan
+            self.project_version = noan
+            self.project_email   = noan
+            self.project_lastmod = noan
+            #
+            self.project_content_type     = noan
+            self.project_content_encoding = noan
+            self.project_mime_type        = noan
+            self.project_language_team    = noan
+            self.project_last_translater  = noan
+            self.project_pot_create_date  = noan
+            self.project_po_revision_date = noan
             
-            project_name = config["project"]["name"]
-            project_path = dir_str
+            genv.v__app__config.read(dir_full)
+            pro = "project"
+            #
+            try:
+                self.project_name = self.maxLength(genv.v__app__config[pro]["name"],126)
+            except Exception as e:
+                if e == 'name':
+                    self.project_name = noan
+                pass
+            try:
+                self.project_author = self.maxLength(genv.v__app__config[pro]["author"],64)
+            except Exception as e:
+                if e == 'author':
+                    self.project_author = noan
+                pass
+            try:
+                self.project_version = self.maxLength(genv.v__app__config[pro]["version"],32)
+            except Exception as e:
+                if e == 'version':
+                    self.project_version = noan
+                pass
+            try:
+                self.project_email = self.maxLength(genv.v__app__config[pro]["e-mail"],64)
+            except Exception as e:
+                if e == 'e-mail':
+                    self.project_email = noan
+                pass
+            try:
+                self.project_lastmod = self.maxLength(genv.v__app__config[pro]["lastmod"],32)
+            except Exception as e:
+                if e == 'lastmod':
+                    self.project_lastmod = noan
+                pass
+            try:
+                self.project_content_type = self.maxLength(genv.v__app__config[pro]["content-type"],32)
+            except Exception as e:
+                if e == 'content-type':
+                    self.project_content_type = noan
+                pass
+            try:
+                self.project_content_encoding = self.maxLength(genv.v__app__config[pro]["content-encoding"],32)
+            except Exception as e:
+                if e == 'content-encoding':
+                    self.project_content_encoding = noan
+                pass
+            try:
+                self.project_mime_type = self.maxLength(genv.v__app__config[pro]["mime-type"],32)
+            except Exception as e:
+                if e == 'mime-type':
+                    self.project_mime_type = noan
+                pass
+            try:
+                self.project_language_team = self.maxLength(genv.v__app__config[pro]["language-team"],32)
+            except Exception as e:
+                if e == 'language-team':
+                    self.project_language_team = noan
+                pass
+            try:
+                self.project_last_translater = self.maxLength(genv.v__app__config[pro]["last-translater"],32)
+            except Exception as e:
+                if e == 'last-translater':
+                    self.project_last_translater = noan
+                pass
+            try:
+                self.project_pot_create_date = self.maxLength(genv.v__app__config[pro]["pot-create-date"],32)
+            except Exception as e:
+                if e == 'pot-create-date':
+                    self.project_pot_create_date = noan
+                pass
+            try:
+                self.project_po_revision_date = self.maxLength(genv.v__app__config[pro]["po-revision-date"],32)
+            except Exception as e:
+                if e == 'po-revision-date':
+                    self.project_po_revision_date = noan
+                pass
             
-            item = QTreeWidgetItem([project_name, file_name])
-            self.file_list.addTopLevelItem(item)
+            items = [
+                ['Name', self.project_name],
+                ['File', self.project_file],
+                ['Author', self.project_author],
+                ['Version', self.project_version],
+                ['E-Mail', self.project_email],
+                ['Last-Modified', self.project_lastmod],
+                ['Content-Type', self.project_content_type],
+                ['Content-Encoding', self.project_content_encoding],
+                ['MIME-Type', self.project_mime_type],
+                ['Language-Team', self.project_language_team],
+                ['Last-Translater', self.project_last_translater],
+                ['POT-Create-Date', self.project_pot_create_date],
+                ['PO-Revision-Date', self.project_po_revision_date]
+            ]
+            for item in items:
+                witem = QTreeWidgetItem([item[0], item[1]])
+                self.file_list.addTopLevelItem(witem)
+    
+    def maxLength(self, input_string, length):
+        if len(input_string) > length:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(
+                "The maximal string exceeds valid length:\n"
+                "maximum is: " + str(length) + "\n"+
+                "Result string will is truncated !")
+            msg.setIcon(QMessageBox.Information)
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            return input_string[:length]
+        else:
+            return input_string
     
     def filter_files(self):
         filter_text = self.filter_input.text().lower()
@@ -4037,16 +4389,104 @@ class OpenProFileDialog(QDialog):
             self.file_list.addTopLevelItem(item)
     
     def get_project_name(self, file_path):
-        config = configparser.ConfigParser()
-        config.read(file_path)
-        if 'Project' in config and 'Name' in config['Project']:
-            return config['Project']['Name']
+        genv.v__app__config.read(file_path)
+        if 'Project' in genv.v__app__config and 'Name' in genv.v__app__config['Project']:
+            return genv.v__app__config['Project']['Name']
         return "Unknown"
     
+    # -----------------------------------------------------
+    # right lower box - properties of locales .pro file(s).
+    # -----------------------------------------------------
     def on_file_double_clicked(self, item):
-        file_path = os.path.join(self.path_input.text(), item.text(0))
-        self.label.setText(f'Selected file: {file_path}')
-        self.open_button.setEnabled(True)
+        # ------------------------------------
+        # .pro files shall not be changed ...
+        # ------------------------------------
+        if item.text(0).lower() == "file":
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(
+                "The locales project file name for the Application\n"
+                "Can't be changed/rename !")
+            msg.setIcon(QMessageBox.Information)
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            return
+        
+        setting_dialog = setLocalesProjectSetting(self, item.text(0),item.text(1))
+        setting_dialog.exec_()
+        
+        #print(self.property_name + " : " + self.property_value)
+        
+        if self.project_tree.currentItem == None:
+            if not self.favorites_tree.currentItem == None:
+                pro_name = self.favorites_tree.currentItem().text(0)
+                pro_path = self.favorites_tree.currentItem().text(1)
+            else:
+                pro_name = self.project_tree.currentItem().text(0)
+                pro_path = self.project_tree.currentItem().text(1)
+        else:
+            pro_name = self.favorites_tree.currentItem().text(0)
+            pro_path = self.favorites_tree.currentItem().text(1)
+        
+        pro_file = pro_path.replace("\\", "/")
+        
+        # read try block
+        try:
+            genv.v__app__config.read(pro_file)
+            #
+            if self.property_name.lower() == "last-modified":
+                self.property_name = "lastmod"
+            #
+            genv.v__app__config.set("project", self.property_name, self.property_value)
+        except:
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setText(
+                "The locales project file for the Application\n"
+                "Could not be read !")
+            msg.setIcon(QMessageBox.Warning)
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            pass
+        # write try block
+        try:
+            with open(pro_file,"w") as configfile:
+                genv.v__app__config.write(configfile)
+                configfile.close()
+        except:
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setText(
+                "The locales project file for the Application\n"
+                "Could not be saved !")
+            msg.setIcon(QMessageBox.Warning)
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            pass
+        # read try block
+        try:
+            genv.v__app__config.read(pro_file)
+            self.update_file_list(pro_file)
+        except:
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setText(
+                "The locales project file for the Application\n"
+                "Could not be read !")
+            msg.setIcon(QMessageBox.Warning)
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            pass
+        #
+        return
     
     def open_file(self):
         selected_file = self.label.text().replace('Selected file: ', '')
@@ -4057,14 +4497,16 @@ class OpenProFileDialog(QDialog):
             self.label.setText('No file selected.')
     
     def add_to_favorites(self):
-        selected_items = self.file_list.selectedItems()
-        if selected_items:
-            file_name = selected_items[0].text()
-            project_name = os.path.splitext(file_name)[0]
-            file_path = os.path.join(self.path_input.text(), file_name)
-            item = QTreeWidgetItem([project_name, file_path])
+        current_item = self.project_tree.currentItem()
+        if current_item:
+            file_name = current_item.text(0)
+            file_path = os.path.join(current_item.text(1), file_name)
+            item = QTreeWidgetItem([file_name, file_path])
             self.favorites_tree.addTopLevelItem(item)
             self.save_favorites_to_ini()
+        else:
+            self.add_favorite_button.setEnabled(False)
+            self.remove_favorite_button.setEnabed(False)
     
     def remove_from_favorites(self):
         selected_items = self.favorites_tree.selectedItems()
@@ -4077,8 +4519,15 @@ class OpenProFileDialog(QDialog):
     
     def on_favorite_double_clicked(self, item):
         dir_path = item.text(1)
+        dir_path = dir_path.replace("\\", "/")
+        #
+        path, file_name = os.path.split(dir_path)
+
         self.path_input.setText(dir_path)
         self.update_file_list(dir_path)
+        self.update_project_files(dir_path)
+        
+        self.tree_view.setRootIndex(self.dir_model.index(path))
 
 class doubleClickLocalesLineEdit(QLineEdit):
     def __init__(self, parent=None):
@@ -4106,7 +4555,7 @@ class FileWatcherGUI(QDialog):
         css_menu_label_style = _("css_menu_label_style")
         css_menu_item        = _("css_menu_item")
         
-        self.font = QFont("Arial", 10)
+        self.font = QFont(genv.v__app__font, 10)
         self.setFont(self.font)
         self.setContentsMargins(0,0,0,0)
         self.setStyleSheet("padding:0px;margin:0px;")
@@ -4330,9 +4779,9 @@ class FileWatcherGUI(QDialog):
         self.tool_bar_button_exit.setText("Clear")
         self.tool_bar_button_exit.setCheckable(True)
         
-        self.tool_bar_action_new1 = QAction(QIcon(__app__img__int__ + "floppy-disk" + __app__img_ext__), "Flopp", self)
-        self.tool_bar_action_new2 = QAction(QIcon(__app__img__int__ + "floppy-disk" + __app__img_ext__), "Flopp", self)
-        self.tool_bar_action_new3 = QAction(QIcon(__app__img__int__ + "floppy-disk" + __app__img_ext__), "Flopp", self)
+        self.tool_bar_action_new1 = QAction(QIcon(os.path.join(genv.v__app__img__int__, "floppy-disk" + genv.v__app__img_ext__)), "Flopp", self)
+        self.tool_bar_action_new2 = QAction(QIcon(os.path.join(genv.v__app__img__int__, "floppy-disk" + genv.v__app__img_ext__)), "Flopp", self)
+        self.tool_bar_action_new3 = QAction(QIcon(os.path.join(genv.v__app__img__int__, "floppy-disk" + genv.v__app__img_ext__)), "Flopp", self)
         
         self.tool_bar.addAction(self.tool_bar_action_new1)
         self.tool_bar.addAction(self.tool_bar_action_new2)
@@ -4457,7 +4906,7 @@ class FileWatcherGUI(QDialog):
         
         ####
         # devices
-        font = QFont("Arial",14)
+        font = QFont(genv.v__app__font,14)
         font.setBold(True)
         
         ####
@@ -4488,9 +4937,9 @@ class FileWatcherGUI(QDialog):
         
         #
         items = [
-            {"text": "Printer p:1", "icon": __app__img__int__ + "printer" + __app__img_ext__ },
-            {"text": "Printer p:2", "icon": __app__img__int__ + "printer" + __app__img_ext__ },
-            {"text": "Printer p:3", "icon": __app__img__int__ + "printer" + __app__img_ext__ }
+            {"text": "Printer p:1", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) },
+            {"text": "Printer p:2", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) },
+            {"text": "Printer p:3", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) }
         ]
         for item in items:
             devices_list_item = QListWidgetItem(item["text"])
@@ -4511,9 +4960,9 @@ class FileWatcherGUI(QDialog):
         self.devices_layout.addWidget(self.devices_list_storages)
         #
         items = [
-            {"text": "Storage  s:1", "icon": __app__img__int__ + "storage"  + __app__img_ext__ },
-            {"text": "Database d:2", "icon": __app__img__int__ + "database" + __app__img_ext__ },
-            {"text": "Database d:3", "icon": __app__img__int__ + "database" + __app__img_ext__ }
+            {"text": "Storage  s:1", "icon": os.path.join(genv.v__app__img__int__, "storage"  + genv.v__app__img_ext__) },
+            {"text": "Database d:2", "icon": os.path.join(genv.v__app__img__int__, "database" + genv.v__app__img_ext__) },
+            {"text": "Database d:3", "icon": os.path.join(genv.v__app__img__int__, "database" + genv.v__app__img_ext__) }
         ]
         for item in items:
             devices_list_item = QListWidgetItem(item["text"])
@@ -4534,8 +4983,8 @@ class FileWatcherGUI(QDialog):
         self.devices_layout.addWidget(self.devices_list_widget3)
         #
         items = [
-            {"text": "Meeting m:1", "icon": __app__img__int__ + "meeting" + __app__img_ext__ },
-            {"text": "Session c:2", "icon": __app__img__int__ + "session" + __app__img_ext__ }
+            {"text": "Meeting m:1", "icon": os.path.join(genv.v__app__img__int__, "meeting" + genv.v__app__img_ext__) },
+            {"text": "Session c:2", "icon": os.path.join(genv.v__app__img__int__, "session" + genv.v__app__img_ext__) }
         ]
         for item in items:
             devices_list_item = QListWidgetItem(item["text"])
@@ -4561,7 +5010,7 @@ class FileWatcherGUI(QDialog):
         ##self.tab1_layout = QHBoxLayout()
         ##self.tab1_widget = QWidget()
         
-        self.widget_font = QFont("Arial", 12)
+        self.widget_font = QFont(genv.v__app__font, 12)
         self.widget_font.setBold(True)
         
         self.tab_widget_1 = QTabWidget()
@@ -4678,7 +5127,7 @@ class FileWatcherGUI(QDialog):
         self.tab3_top_layout.addWidget(self.tab_widget_1)
         
         
-        self.tab2_file_path = __app__internal__ + "/topics.txt"
+        self.tab2_file_path = os.path.join(genv.v__app__internal__, "topics.txt")
         
         global tab2_tree_view
         tab2_tree_view = QTreeView()
@@ -4688,7 +5137,7 @@ class FileWatcherGUI(QDialog):
         tab2_tree_view.setModel(self.tab2_tree_model)
         
         self.tab2_top_layout.addWidget(tab2_tree_view)
-        self.populate_tree_view(self.tab2_file_path, __app__img__int__ + "open-folder" + __app__img_ext__)
+        self.populate_tree_view(self.tab2_file_path, os.path.join(genv.v__app__img__int__, "open-folder" + genv.v__app__img_ext__))
         
         self.delegateID     = SpinEditDelegateID     (tab2_tree_view)
         self.delegateStatus = ComboBoxDelegateStatus (tab2_tree_view)
@@ -4737,7 +5186,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_topB_vlayout.setAlignment(Qt.AlignTop)
         #
         #
-        font = QFont("Arial", 11)
+        font = QFont(genv.v__app__font, 11)
         font.setPointSize(11)
         #
         self.tab0_fold_text1 = QLabel("Directory:")
@@ -4899,18 +5348,18 @@ class FileWatcherGUI(QDialog):
         self.tab0_help_list   = QListWidget()
         self.tab0_help_list.setMinimumWidth(260)
         self.tab0_help_list.setIconSize(QSize(34,34))
-        self.tab0_help_list.setFont(QFont("Arial", 12))
+        self.tab0_help_list.setFont(QFont(genv.v__app__font, 12))
         self.tab0_help_list.font().setBold(True)
         
         liste = [
-            ["Empty Project"         , "emptyproject" + __app__img_ext__],
-            ["Recipe"                , "recipe"       + __app__img_ext__],
-            ["API Project"           , "api"          + __app__img_ext__],
-            ["Software Documentation", "software"     + __app__img_ext__],
+            ["Empty Project"         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
+            ["Recipe"                , os.path.join("recipe"       + genv.v__app__img_ext__) ],
+            ["API Project"           , os.path.join("api"          + genv.v__app__img_ext__) ],
+            ["Software Documentation", os.path.join("software"     + genv.v__app__img_ext__) ],
         ]
         for item in liste:
             self.list_item1 = QListWidgetItem(_(item[0]),self.tab0_help_list)
-            self.list_item1.setIcon(QIcon(__app__img__int__ + item[1]))
+            self.list_item1.setIcon(QIcon(os.path.join(genv.v__app__img__int__, item[1])))
             self.list_item1.setFont(self.tab0_help_list.font())
         
         self.tab0_help_layout = QHBoxLayout()
@@ -5144,7 +5593,7 @@ class FileWatcherGUI(QDialog):
     def openContextMenuTreeView(self, position):
         indexes = self.tab0_file_tree.selectedIndexes()
         if indexes:
-            font = QFont("Arial", 11)
+            font = QFont(genv.v__app__font, 11)
             font.setBold(True)
             
             # Popup-Menü erstellen
@@ -5185,7 +5634,7 @@ class FileWatcherGUI(QDialog):
                 self.tab0_dir_model,
                 dir_path)
             
-            font = QFont("Arial", 11)
+            font = QFont(genv.v__app__font, 11)
             
             dialog = QMessageBox(self)
             dialog.setWindowTitle("Enter Directory")
@@ -5203,7 +5652,7 @@ class FileWatcherGUI(QDialog):
     def createDirectory(self, index):
         dir_path = self.tab0_dir_model.filePath(index)
         if os.path.isdir(dir_path):
-            font = QFont("Arial", 11)
+            font = QFont(genv.v__app__font, 11)
             
             dialog = QInputDialog(self)
             dialog.setWindowTitle("Create new directory")
@@ -5413,7 +5862,7 @@ class FileWatcherGUI(QDialog):
         ###
         self.dbase_builder_layout.addWidget(self.dbase_builder_widget_table)
         
-        font = QFont("Arial",11)
+        font = QFont(genv.v__app__font,11)
         self.db_hlayout = QHBoxLayout()
                 
         self.dbase_builder_btn1 = QPushButton("Add Table")
@@ -5503,7 +5952,7 @@ class FileWatcherGUI(QDialog):
         ####
         self.main_layout.addWidget(self.dbase_tabs)
         #################
-        font = QFont("Arial", 12)
+        font = QFont(genv.v__app__font, 12)
         self.dbase_btn1 = myMoveButton(" move me A ", self.dbase_designs_viewer.content)
         self.dbase_btn2 = myMoveButton(" move me B ", self.dbase_designs_viewer.content)
         self.dbase_btn3 = myMoveButton(" move me C ", self.dbase_designs_viewer.content)
@@ -5922,8 +6371,8 @@ class FileWatcherGUI(QDialog):
         vbox = QVBoxLayout()
         hbox = QHBoxLayout()
         
-        font = QFont("Arial", 10)
-        font2 = QFont("Consolas", 11)
+        font  = QFont(genv.v__app__font, 10)
+        font2 = QFont(genv.v__app__font_edit, 11)
         
         self.list_widget = QListWidget()
         self.list_widget.setFont(font2)
@@ -5987,7 +6436,7 @@ class FileWatcherGUI(QDialog):
     def handleLocalesProject(self):
         edit_css = _("edit_css")
         
-        font = QFont("Arial", 10)
+        font = QFont(genv.v__app__font, 10)
         self.locale_tabs_project_widget.setFont(font)
         
         vlayout0 = QVBoxLayout()
@@ -6012,7 +6461,7 @@ class FileWatcherGUI(QDialog):
         lbl.setFont(font)
         vlayout1.addWidget(lbl)
         #
-        font2 = QFont("Consolas", 10)
+        font2 = QFont(genv.v__app__font_edit, 10)
         edit1 = QLineEdit()
         edit1.setFont(font2)
         edit1.setStyleSheet(edit_css)
@@ -6049,7 +6498,7 @@ class FileWatcherGUI(QDialog):
         countryList = QListWidget()
         countryList.setMinimumHeight(212)
         countries = []
-        with open(__app__internal__ + "flags_iso.csv", mode="r", encoding="utf-8") as file:
+        with open(os.path.join(genv.v__app__internal__, "flags_iso.csv"), mode="r", encoding="utf-8") as file:
             reader = csv.reader(file)
             header = next(reader)
             
@@ -6108,70 +6557,44 @@ class FileWatcherGUI(QDialog):
         groupBox = QGroupBox("")
         groupBox.setMinimumWidth(400)
         groupBox.setFont(font)
+        
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        
+        container_widget = QWidget()
         groupvLayout = QVBoxLayout()
         
         #
-        l1 = QLabel(" Project-ID-Version:")
-        self.e1Locales = QLineEdit()
-        self.e1Locales.setPlaceholderText("1.0.0")
-        self.e1Locales.returnPressed.connect(self.e1_on_return_pressed)
-        
-        l2 = QLabel(" POT-Creation-Date:")
-        self.e2Locales = QLineEdit()
-        self.e2Locales.setPlaceholderText("2024-04-06 20:33+0200")
-        self.e2Locales.returnPressed.connect(self.e2_on_return_pressed)
-        
-        l3 = QLabel(" PO-Revision-Date:")
-        self.e3Locales = QLineEdit()
-        self.e3Locales.setPlaceholderText("2024-04-06 20:15+0200")
-        self.e3Locales.returnPressed.connect(self.e3_on_return_pressed)
-        
-        l4 = QLabel(" Last-Translator:")
-        self.e4Locales = QLineEdit()
-        self.e4Locales.setPlaceholderText("John Jonsen <jhon@example.com")
-        self.e4Locales.returnPressed.connect(self.e4_on_return_pressed)
-        
-        l5 = QLabel(" Language-Team:")
-        self.e5Locales = QLineEdit()
-        self.e5Locales.setPlaceholderText("English <jhon@example.com>")
-        self.e5Locales.returnPressed.connect(self.e5_on_return_pressed)
-        
-        l6 = QLabel(" MIME-Version:")
-        self.e6Locales = QLineEdit()
-        self.e6Locales.setPlaceholderText("1.0")
-        self.e6Locales.returnPressed.connect(self.e6_on_return_pressed)
-        
-        l7 = QLabel(" Content-Type:")
-        self.e7Locales = QLineEdit()
-        self.e7Locales.setPlaceholderText("text/plain; charset=cp1252")
-        self.e7Locales.returnPressed.connect(self.e7_on_return_pressed)
-        
-        l8 = QLabel(" Content-Transfer-Encoding:")
-        self.e8Locales = QLineEdit()
-        self.e8Locales.setPlaceholderText("8bit")
-        self.e8Locales.returnPressed.connect(self.e8_on_return_pressed)
-        #
-        l1.setFont(font); self.e1Locales.setFont(font2); self.e1Locales.setStyleSheet(_(edit_css))
-        l2.setFont(font); self.e2Locales.setFont(font2); self.e2Locales.setStyleSheet(_(edit_css))
-        l3.setFont(font); self.e3Locales.setFont(font2); self.e3Locales.setStyleSheet(_(edit_css))
-        l4.setFont(font); self.e4Locales.setFont(font2); self.e4Locales.setStyleSheet(_(edit_css))
-        l5.setFont(font); self.e5Locales.setFont(font2); self.e5Locales.setStyleSheet(_(edit_css))
-        l6.setFont(font); self.e6Locales.setFont(font2); self.e6Locales.setStyleSheet(_(edit_css))
-        l7.setFont(font); self.e7Locales.setFont(font2); self.e7Locales.setStyleSheet(_(edit_css))
-        l8.setFont(font); self.e8Locales.setFont(font2); self.e8Locales.setStyleSheet(_(edit_css))
-        #
-        groupvLayout.addWidget(l1); groupvLayout.addWidget(self.e1Locales)
-        groupvLayout.addWidget(l2); groupvLayout.addWidget(self.e2Locales)
-        groupvLayout.addWidget(l3); groupvLayout.addWidget(self.e3Locales)
-        groupvLayout.addWidget(l4); groupvLayout.addWidget(self.e4Locales)
-        groupvLayout.addWidget(l5); groupvLayout.addWidget(self.e5Locales)
-        groupvLayout.addWidget(l6); groupvLayout.addWidget(self.e6Locales)
-        groupvLayout.addWidget(l7); groupvLayout.addWidget(self.e7Locales)
-        groupvLayout.addWidget(l8); groupvLayout.addWidget(self.e8Locales)
+        liste = [
+            [ QLabel(" Project-ID-Version:"),        QLineEdit(), self.e1_on_return_pressed, "1.0.0" ],
+            [ QLabel(" POT-Creation-Date:"),         QLineEdit(), self.e2_on_return_pressed, "2024-04-06 20:33+0200" ],
+            [ QLabel(" PO-Revision-Date:"),          QLineEdit(), self.e3_on_return_pressed, "2024-04-06 20:15+0200" ],
+            [ QLabel(" Last-Translator:"),           QLineEdit(), self.e4_on_return_pressed, "John Jonsen <jhon@example.com" ],
+            [ QLabel(" Language-Team:"),             QLineEdit(), self.e5_on_return_pressed, "English <jhon@example.com>" ],
+            [ QLabel(" MIME-Version:"),              QLineEdit(), self.e6_on_return_pressed, "1.0" ],
+            [ QLabel(" Content-Type:"),              QLineEdit(), self.e7_on_return_pressed, "text/plain; charset=cp1252" ],
+            [ QLabel(" Content-Transfer-Encoding:"), QLineEdit(), self.e8_on_return_pressed, "8bit" ]
+        ]
+        for item in liste:
+            item[0].setFont(font)
+            #
+            item[1].setPlaceholderText(item[3])
+            item[1].setFont(font2)
+            item[1].setStyleSheet(_(edit_css))
+            item[1].returnPressed.connect(item[2])
+            #
+            groupvLayout.addWidget(item[0])
+            groupvLayout.addWidget(item[1])
         #
         groupvLayout.addStretch()
         
-        groupBox.setLayout(groupvLayout)
+        container_widget.setLayout(groupvLayout)
+        scroll_area.setWidget(container_widget)
+        
+        group_layout = QVBoxLayout()
+        group_layout.addWidget(scroll_area)
+        
+        groupBox.setLayout(group_layout)
         
         extensions = [".pro"]
         directory  = QDir.homePath() 
@@ -6267,7 +6690,7 @@ class FileWatcherGUI(QDialog):
             index = self.proxyModelLocales.mapToSource(indexes[0])
             file_path = self.modelLocales.filePath(index)
             
-            font = QFont("Arial", 11)
+            font = QFont(genv.v__app__font, 11)
             font.setBold(True)
             
             # Popup-Menü erstellen
@@ -6366,13 +6789,13 @@ class FileWatcherGUI(QDialog):
         
         
         self.c64_keyboard_label = QLabel(self.c64_frame_unten)
-        self.c64_keyboard_pixmap = QPixmap(__app__keybc64__)
+        self.c64_keyboard_pixmap = QPixmap(genv.v__app__keybc64__)
         self.c64_keyboard_label.setPixmap(self.c64_keyboard_pixmap)
         
         
         #####
         c64_logo_label  = QLabel(self.c64_frame_unten)
-        c64_logo_label_pixmap = QPixmap(__app__logoc64__)
+        c64_logo_label_pixmap = QPixmap(genv.v__app__logoc64__)
         c64_logo_label.setPixmap(c64_logo_label_pixmap)
         c64_logo_label.move(502,1)
         #####
@@ -6394,7 +6817,7 @@ class FileWatcherGUI(QDialog):
         _listpush_apps.setParent(self.c64_frame_oben)
         _listpush_game.setParent(self.c64_frame_oben)
         
-        font = QFont("Arial", 11)
+        font = QFont(genv.v__app__font, 11)
         font.setBold(True)
         
         _listwidget   .move(430,40); _listwidget   .resize(400,200)
@@ -6405,15 +6828,15 @@ class FileWatcherGUI(QDialog):
         _listpush_game.setFont(font)
         
         c64_disc1_label  = QLabel(self.c64_frame_oben)
-        c64_disc1_pixmap = QPixmap(__app__discc64__)
+        c64_disc1_pixmap = QPixmap(genv.v__app__discc64__)
         c64_disc1_label.setPixmap(c64_disc1_pixmap)
         #
         c64_disc2_label  = QLabel(self.c64_frame_oben)
-        c64_disc2_pixmap = QPixmap(__app__discc64__)
+        c64_disc2_pixmap = QPixmap(genv.v__app__discc64__)
         c64_disc2_label.setPixmap(c64_disc2_pixmap)
         #
         c64_mc1_label  = QLabel(self.c64_frame_oben)
-        c64_mc1_pixmap = QPixmap(__app__datmc64__)
+        c64_mc1_pixmap = QPixmap(genv.v__app__datmc64__)
         c64_mc1_label.setPixmap(c64_mc1_pixmap)
         #
         
@@ -6621,7 +7044,7 @@ class licenseWindow(QDialog):
         self.returnCode = 0
         
         self.file_content = ""
-        self.file_path = __app__internal__ + "\\LICENSE"
+        self.file_path = os.path.join(genv.v__app__internal__, "LICENSE")
         try:
             with open(self.file_path, "r") as file:
                 self.file_content = file.read()
@@ -6629,11 +7052,22 @@ class licenseWindow(QDialog):
         except FileNotFoundError:
             print("error: license file not found.")
             print("abort.")
-            sys.exit(EXIT_FAILURE)
+            sys.exit(genv.EXIT_FAILURE)
             
-        except Exception as ex:
-            print("error: exception:", ex)
-            sys.exit(EXIT_FAILURE)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            
+            print(f"Exception occur at license view:")
+            print(f"type : {exc_type.__name__}")
+            print(f"value: {exc_value}")
+            print(misc.StringRepeat("-",40))
+            #
+            print(f"file : {tb.filename}")
+            print(f"line : {tb.lineno}")
+            #
+            print(misc.StringRepeat("-",40))
+            sys.exit(genv.EXIT_FAILURE)
         
         self.setWindowTitle("LICENSE - Please read, before you start.")
         self.setMinimumWidth(820)
@@ -6670,7 +7104,7 @@ class licenseWindow(QDialog):
     def button2_clicked(self):
         #self.returnCode = 1
         #self.close()
-        sys.exit(EXIT_FAILURE)
+        sys.exit(genv.EXIT_FAILURE)
 
 # ------------------------------------------------------------------------
 # atexit: callback when sys.exit() is handled, and come back to console...
@@ -6685,6 +7119,8 @@ def ApplicationAtExit():
 def EntryPoint(arg1=None):
     atexit.register(ApplicationAtExit)
     
+    genv.v__app__comment_hdr  = ("# " + misc.StringRepeat("-",78) + "\n")
+    
     global conn
     global conn_cursor
     
@@ -6694,8 +7130,8 @@ def EntryPoint(arg1=None):
     topic_counter = 1
     
     if not arg1 == None:
-        __app__scriptname__ = arg1
-        if not os.path.exists(__app__scriptname__):
+        genv.v__app__scriptname__ = arg1
+        if not os.path.exists(genv.v__app__scriptname__):
             print("script does not exists !")
             error_result = 1
             sys.exit(1)
@@ -6712,45 +7148,34 @@ def EntryPoint(arg1=None):
     # ---------------------------------------------------------
     # scoped global stuff ...
     # ---------------------------------------------------------
-    global doxyfile, hhc__path
-    
     pcount     = len(sys.argv) - 1
-    
-    doxy_env   = "DOXYGEN_PATH"  # doxygen.exe
-    doxy_hhc   = "DOXYHHC_PATH"  # hhc.exe
-    
-    doxy_path  = __app__internal__
-    hhc__path  = ""
-    
-    doxyfile   = __app__internal__ + "/Doxyfile"
-    
     
     # ---------------------------------------------------------
     # doxygen.exe directory path ...
     # ---------------------------------------------------------
-    if not doxy_env in os.environ:
-        if debugMode == True:
+    if not genv.doxy_env in os.environ:
+        if genv.v__app__debug == True:
             os.environ["DOXYGEN_PATH"] = "E:\\doxygen\\bin"
         else:
-            print(("error: " + f"{doxy_env}"
+            print(("error: " + f"{genv.doxy_env}"
             + " is not set in your system settings."))
-            sys.exit(EXIT_FAILURE)
+            sys.exit(genv.EXIT_FAILURE)
     else:
-        doxy_path = os.environ[doxy_env]
+        genv.doxy_path = os.environ[genv.doxy_env]
     
     # ---------------------------------------------------------
     # Microsoft Help Workshop path ...
     # ---------------------------------------------------------
-    if not doxy_hhc in os.environ:
-        if debugMode == True:
+    if not genv.doxy_hhc in os.environ:
+        if genv.v__app__debug == True:
             os.environ["DOXYHHC_PATH"] = "E:\\doxygen\\hhc"
         else:
             print((""
-                + "error: " + f"{doxy_hhc}"
+                + "error: " + f"{genv.doxy_hhc}"
                 + " is not set in your system settings."))
-            sys.exit(EXIT_FAILURE)
+            sys.exit(genv.EXIT_FAILURE)
     else:
-        hhc__path = os.environ[doxy_hhc]
+        genv.hhc__path = os.environ[genv.doxy_hhc]
     
     # ---------------------------------------------------------
     # first, we check the operating system platform:
@@ -6781,12 +7206,11 @@ def EntryPoint(arg1=None):
         
     license_window.exec_()
     
-    
     # ---------------------------------------------------------
     # when config.ini does not exists, then create a small one:
     # ---------------------------------------------------------
-    if not os.path.exists(__app__config_ini):
-        with open(__app__config_ini, "w", encoding="utf-8") as output_file:
+    if not os.path.exists(genv.v__app__config_ini):
+        with open(genv.v__app__config_ini, "w", encoding="utf-8") as output_file:
             content = (""
             + "[common]\n"
             + "language = en_us\n")
@@ -6794,30 +7218,30 @@ def EntryPoint(arg1=None):
             output_file.close()
             ini_lang = "en_us" # default is english; en_us
     else:
-        config = configparser.ConfigParser()
-        config.read(__app__config_ini)
-        ini_lang = config.get("common", "language")
+        genv.v__app__config.read(genv.v__app__config_ini)
+        ini_lang = genv.v__app__config.get("common", "language")
     
     _ = handle_language(ini_lang)
     
     # ---------------------------------------------------------
     # combine the puzzle names, and folders ...
     # ---------------------------------------------------------
-    po_file_name = (__app__internal__ + "/locales/"
-        + f"{ini_lang}"    + "/LC_MESSAGES/"
-        + f"{__app__name}" + ".po")
+    po_file_name = (
+        os.path.join(genv.v__app__internal__, "locales") + "/"
+        + f"{ini_lang}"  + "/LC_MESSAGES/"
+        + f"{genv.v__app__name}" + ".po")
     
     if not os.path.exists(convertPath(po_file_name)):
         print(__error__locales_error)
-        sys.exit(EXIT_FAILURE)
+        sys.exit(genv.EXIT_FAILURE)
     
     # ---------------------------------------------------------
     # when config file not exists, then spite a info message,
     # and create a default template for doxygen 1.10.0
     # ---------------------------------------------------------
-    if not os.path.exists(doxyfile):
+    if not os.path.exists(genv.doxyfile):
         print("info: config: '" \
-        + f"{doxyfile}" + "' does not exists. I will fix this by create a default file.")
+        + f"{genv.doxyfile}" + "' does not exists. I will fix this by create a default file.")
         
         file_content_warn = [
             ["QUIET", "YES"],
@@ -6833,13 +7257,13 @@ def EntryPoint(arg1=None):
             ["WARN_LOGFILE", "warnings.log"]
         ]
         with open(doxyfile, 'w') as file:
-            file.write(__app__comment_hdr)
+            file.write(genv.v__app__comment_hdr)
             file.write("# File: Doxyfile\n")
             file.write("# Author: (c) 2024 Jens Kallup - paule32 non-profit software\n")
             file.write("#"  + (" " *  9) + "all rights reserved.\n")
             file.write("#\n")
             file.write("# optimized for: # Doxyfile 1.10.1\n")
-            file.write(__app__comment_hdr)
+            file.write(genv.v__app__comment_hdr)
             
             for i in range(0, len(file_content)):
                 if len(file_content[i][0]) > 1:
@@ -6849,9 +7273,9 @@ def EntryPoint(arg1=None):
                 else:
                     file.write("\n")
             
-            file.write(__app__comment_hdr)
+            file.write(genv.v__app__comment_hdr)
             file.write("# warning settings ...\n")
-            file.write(__app__comment_hdr)
+            file.write(genv.v__app__comment_hdr)
             
             for i in range(0, len(file_content_warn)):
                 if len(file_content_warn[i][0]) > 1:
@@ -6869,7 +7293,7 @@ def EntryPoint(arg1=None):
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     time_str = datetime.datetime.now().strftime("%H:%M:%S")
     
-    conn = sqlite3.connect(__app__internal__ + "/data.db")
+    conn = sqlite3.connect(os.path.join(genv.v__app__internal__, "data.db"))
     conn_cursor = conn.cursor()
     conn.close()
     
@@ -6986,54 +7410,54 @@ if __name__ == '__main__':
     script_path, script_name = os.path.split(script)
     script_path = os.path.abspath(script_path)    
     
-    __app__observers = "observer --"
-    __app__file__    = "file."
-    __app__space__   = "       "
-    __app__parameter = (""
-    + "Usage: "      + __app__observers + "dbase   " + __app__file__ + "prg\n"
-    + __app__space__ + __app__observers + "pascal  " + __app__file__ + "pas\n"
-    + __app__space__ + __app__observers + "doxygen " + __app__file__ + "dox\n"
-    + __app__space__ + __app__observers + "exec    " + __app__file__ + "bin\n"
-    + __app__space__ + __app__observers + "gui\n")
+    genv.v__app__observers = "observer --"
+    genv.v__app__file__    = "file."
+    genv.v__app__space__   = "       "
+    genv.v__app__parameter = (""
+    + "Usage: "            + genv.v__app__observers + "dbase   " + genv.v__app__file__ + "prg\n"
+    + genv.v__app__space__ + genv.v__app__observers + "pascal  " + genv.v__app__file__ + "pas\n"
+    + genv.v__app__space__ + genv.v__app__observers + "doxygen " + genv.v__app__file__ + "dox\n"
+    + genv.v__app__space__ + genv.v__app__observers + "exec    " + genv.v__app__file__ + "bin\n"
+    + genv.v__app__space__ + genv.v__app__observers + "gui\n")
     
-    __app__tmp3 = "parse..."
+    genv.v__app__tmp3 = "parse..."
     
     if len(sys.argv) < 2:
         print("no arguments given.")
-        print(__app__parameter)
+        print(genv.v__app__parameter)
         sys.exit(1)
     
     if len(sys.argv) >= 1:
         if sys.argv[1] == "--gui":
             if len(sys.argv) == 2:
                 sys.argv.append("test.txt")
-            __app__scriptname__ = sys.argv[2]
-            handleExceptionApplication(EntryPoint,__app__scriptname__)
+            genv.v__app__scriptname__ = sys.argv[2]
+            handleExceptionApplication(EntryPoint,genv.v__app__scriptname__)
             sys.exit(0)
         elif sys.argv[1] == "--doxygen":
             if len(sys.argv) == 2:
                 sys.argv.append("Doxyfile")
-            __app__scriptname__ = sys.argv[2]
+            genv.v__app__scriptname__ = sys.argv[2]
             handleExceptionApplication(parserDoxyGen,sys.argv[2])
             sys.exit(0)
         elif sys.argv[1] == "--exec":
-            __app__scriptname__ = sys.argv[2]
+            genv.v__app__scriptname__ = sys.argv[2]
             handleExceptionApplication(parserBinary,sys.argv[2])
         elif sys.argv[1] == "--dbase":
-            print(__app__tmp3)
+            print(genv.v__app__tmp3)
             try:
                 handleExceptionApplication(parserDBasePoint,sys.argv[2])
                 sys.exit(0)
             except Exception as ex:
                 sys.exit(1)
         elif sys.argv[1] == "--pascal":
-            print(__app__tmp3)
-            __app__scriptname__ = sys.argv[2]
+            print(genv.v__app__tmp3)
+            genv.v__app__scriptname__ = sys.argv[2]
             handleExceptionApplication(parserPascalPoint,sys.argv[2])
             sys.exit(0)
         else:
             print("parameter unknown.")
-            print(__app__parameter)
+            print(genv.v__app__parameter)
             sys.exit(1)
         
 # ----------------------------------------------------------------------------
