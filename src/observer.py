@@ -3729,6 +3729,8 @@ class MyCountryProject(QWidget):
         
         vlayout = QVBoxLayout()
         pixmap  = self.create_pixmap()
+        pixmap  = pixmap.scaled(90,32,aspectRatioMode=Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation)
+        
         pixmap_label = QLabel(self)
         pixmap_label.setPixmap(pixmap)
         vlayout.addWidget(pixmap_label)
@@ -4522,7 +4524,7 @@ class OpenProFileDialog(QDialog):
         dir_path = dir_path.replace("\\", "/")
         #
         path, file_name = os.path.split(dir_path)
-
+        
         self.path_input.setText(dir_path)
         self.update_file_list(dir_path)
         self.update_project_files(dir_path)
@@ -6492,6 +6494,13 @@ class FileWatcherGUI(QDialog):
         hlayout0.addLayout(vlayout0)
         hlayout0.addLayout(vlayout1)
         
+        # left scroll area
+        scroll_area0 = QScrollArea()
+        scroll_area0.setWidgetResizable(True)
+        
+        container_widget0 = QWidget()
+        country_layout = QVBoxLayout()
+        
         # ------------------------------------
         # read in external url image data ...
         # ------------------------------------
@@ -6565,7 +6574,7 @@ class FileWatcherGUI(QDialog):
         groupvLayout = QVBoxLayout()
         
         #
-        liste = [
+        self.localeliste = [
             [ QLabel(" Project-ID-Version:"),        QLineEdit(), self.e1_on_return_pressed, "1.0.0" ],
             [ QLabel(" POT-Creation-Date:"),         QLineEdit(), self.e2_on_return_pressed, "2024-04-06 20:33+0200" ],
             [ QLabel(" PO-Revision-Date:"),          QLineEdit(), self.e3_on_return_pressed, "2024-04-06 20:15+0200" ],
@@ -6575,7 +6584,7 @@ class FileWatcherGUI(QDialog):
             [ QLabel(" Content-Type:"),              QLineEdit(), self.e7_on_return_pressed, "text/plain; charset=cp1252" ],
             [ QLabel(" Content-Transfer-Encoding:"), QLineEdit(), self.e8_on_return_pressed, "8bit" ]
         ]
-        for item in liste:
+        for item in self.localeliste:
             item[0].setFont(font)
             #
             item[1].setPlaceholderText(item[3])
@@ -6606,9 +6615,21 @@ class FileWatcherGUI(QDialog):
         self.proxyModelLocales = ExtensionFilterProxyModel(extensions)
         self.proxyModelLocales.setSourceModel(self.modelLocales)
         
+        # Create the drives tree
+        self.drives_treeLocales = QTreeWidget()
+        self.drives_treeLocales.setHeaderLabels(["Drive", "Available Space", "Total Size"])
+        self.drives_treeLocales.setMinimumHeight(120)
+        #self.drives_treeLocales.setMaximumWidth(380)
+        self.drives_treeLocales.header().setSectionResizeMode(QHeaderView.Interactive)
+        self.drives_treeLocales.itemClicked.connect(self.on_driveLocales_clicked)
+        self.drives_treeLocales.setStyleSheet("QHeaderView::section { background-color: lightgreen }")
+        
+        
         self.treeLocales = QTreeView()
         self.treeLocales.setModel(self.proxyModelLocales)
         self.treeLocales.setRootIndex(self.proxyModelLocales.mapFromSource(self.modelLocales.index(directory)))
+        self.treeLocales.setMinimumHeight(200)
+        self.treeLocales.clicked.connect(self.on_treeLocales_double_clicked)
         
         
         # Hide the "Size" and "Type" columns
@@ -6622,9 +6643,23 @@ class FileWatcherGUI(QDialog):
         self.treeLocales.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeLocales.customContextMenuRequested.connect(self.openContextMenuLocales)
         
-        #projects = QListWidget()
-        vlayout.addWidget(countryList)
-        vlayout.addWidget(self.treeLocales)
+        #projects = QListWidget
+        country_layout.addWidget(countryList)
+        country_layout.addWidget(self.drives_treeLocales)
+        country_layout.addWidget(self.treeLocales)
+        
+        container_widget0.setLayout(country_layout)
+        scroll_area0.setWidget(container_widget0)
+        
+        groupBox0 = QGroupBox("")
+        groupBox0.setMinimumWidth(360)
+        groupBox0_layout = QVBoxLayout()
+        groupBox0_layout.addWidget(scroll_area0)
+        
+        groupBox0.setLayout(groupBox0_layout)
+        
+        vlayout.addWidget(groupBox0)
+        #vlayout.addWidget(self.treeLocales)
         
         hlayout.addLayout(vlayout)
         hlayout.addWidget(groupBox)
@@ -6657,6 +6692,54 @@ class FileWatcherGUI(QDialog):
         btnSave.clicked.connect(self.btnSaveLocales_clicked)
         
         self.locale_tabs_project_widget.setLayout(vlayout2)
+        
+        self.load_drives()
+        return
+    
+    def on_treeLocales_double_clicked(self, index):
+        indexes = self.treeLocales.selectedIndexes()
+        if indexes:
+            index = self.proxyModelLocales.mapToSource(indexes[0])
+            file_path = self.modelLocales.filePath(index)
+            file_full = file_path.replace("\\", "/")
+            
+            file_path, file_name = os.path.split(file_path)
+            
+            if os.path.isfile(file_full):
+                if file_name.endswith(".pro"):
+                    with open(file_full, "rb") as file:
+                        header = file.read(3)
+                        if header == b"\x1f\x8b\x08":
+                            print("file: " + file_name + " is packed.")
+                        else:
+                            print("file: " + file_name + " is not packed.")
+                        file.close()
+                    print(self.localeliste[0][0].text())
+        return
+    
+    def load_drives(self):
+        drives = [drive for drive in QDir.drives()]
+        for drive in drives:
+            total_size, available_space = self.get_drive_info(drive.absolutePath())
+            item = QTreeWidgetItem([drive.absolutePath(), available_space, total_size])
+            self.drives_treeLocales.addTopLevelItem(item)
+    
+    def get_drive_info(self, drive):
+        try:
+            total, used, free = shutil.disk_usage(drive)
+            return self.format_size(total), self.format_size(free)
+        except Exception as e:
+            return "N/A", "N/A"
+    
+    def format_size(self, size):
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if size < 1024.0:
+                return f"{size:.2f} {unit}"
+            size /= 1024.0
+    
+    def on_driveLocales_clicked(self, item):
+        drive_path = item.text(0)
+        self.treeLocales.setRootIndex(self.proxyModelLocales.mapFromSource(self.modelLocales.index(drive_path)))
         return
     
     def e1_on_return_pressed(self):
