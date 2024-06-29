@@ -57,6 +57,7 @@ class globalEnv:
         #
         self.v__app__logfile      = os.path.join(self.v__app__internal__, self.v__app__name) + ".log"
         self.v__app__config_ini   = os.path.join(self.v__app__internal__, self.v__app__name) + ".ini"
+        self.v__app__logging      = None
         
         self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
         
@@ -77,6 +78,25 @@ class globalEnv:
         self.v__app__discc64__    = os.path.join(self.v__app__img__int__, "disk2.png")
         self.v__app__datmc64__    = os.path.join(self.v__app__img__int__, "mc2.png")
         self.v__app__logoc64__    = os.path.join(self.v__app__img__int__, "logo2.png")
+        
+        # ------------------------------------------------------------------------
+        # some state flags ...
+        # ------------------------------------------------------------------------
+        self.currentTextChanged_connected  = False
+        self.currentIndexChanged_connected = False
+        
+        self.view_pressed_connected = False
+        self.rhs_stateChanged_connected = False
+        self.blockCountChanged_connected = False
+        self.cursorPositionChanged_connected = False
+        
+        self.btn_add_connected    = False
+        self.btn_addsrc_connected = False
+        self.btn_close_connected  = False
+        
+        self.helpButton_connected = False
+        self.prevButton_connected = False
+        self.exitButton_connected = False
         
         self.v__app__img_ext__    = ".png"
         self.v__app__font         = "Arial"
@@ -194,6 +214,8 @@ try:
     import marshal        # bytecode exec
     import inspect        # stack
     
+    import logging
+    
     # ------------------------------------------------------------------------
     # Qt5 gui framework
     # ------------------------------------------------------------------------
@@ -201,8 +223,6 @@ try:
     from PyQt5.QtWebEngineWidgets import *
     from PyQt5.QtCore             import *
     from PyQt5.QtGui              import *
-    
-    from logging import *
     
     from pathlib import Path
     
@@ -221,13 +241,29 @@ try:
     
     from colorama   import init, Fore, Back, Style  # ANSI escape
     from pascal     import *     # pascal interpreter
-    from dbase      import *     # dbase ...
     from doxygen    import *     # doxygen script
+
+    # -------------------------------------------------------------------
+    # for debuging, we use python logging library ...
+    # -------------------------------------------------------------------
+    file_path = genv.v__app__logfile
+    file_path = file_path.replace("\\", "/")
+    
+    if not os.path.exists(file_path):
+        Path(file_path).touch()
+    
+    genv.v__app__logging = logging.getLogger(file_path)
+    logging.basicConfig(
+        format="%(asctime)s: %(levelname)s: %(message)s",
+        filename=file_path,
+        encoding="utf-8",
+        filemode="w",
+        level=logging.DEBUG)
+    genv.v__app__logging.info("init ok: session start...")
     
     # ------------------------------------------------------------------------
     # forward initializations ...
     # ------------------------------------------------------------------------
-    print(genv.v__app__config_ini)
     genv.v__app__config = configparser.ConfigParser()
     genv.v__app__config.read(genv.v__app__config_ini)
     
@@ -531,25 +567,22 @@ css_model_header   = "model_hadr"
 css_combobox_style = "combo_actn"
 
 class FileSystemWatcher(QObject):
-    fileContentChanged = pyqtSignal(str, str)  # Signal für geänderten Dateiinhalt
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.watcher = QFileSystemWatcher()
         self.fileContents = {}
-
-        self.watcher.fileChanged.connect(self.fileChangedSlot)
-
+    
     def addFile(self, filePath):
+        print("--> " + filePath)
         self.watcher.addPath(filePath)
         self.fileContents[filePath] = self.readFromFile(filePath)  # Initialen Inhalt der Datei einlesen
-
+    
     def fileChangedSlot(self, filePath):
         newContent = self.readFromFile(filePath)
         if self.fileContents.get(filePath) != newContent:
             self.fileContents[filePath] = newContent
-            self.fileContentChanged.emit(filePath, newContent)
-
+            return newContent
+    
     def readFromFile(self, filePath):
         fileContent = ""
         file = QFile(filePath)
@@ -772,14 +805,13 @@ class interpreter_dBase:
     def __init__(self, fname):
         self.script_name = fname
         
-        global con
-        con = consoleApp()
+        genv.dbase_console = None
+        genv.dbase_console = consoleApp()
         
         self.line_row    = 1
         self.line_col    = 1
         
         self.pos         = -1
-        self.log         = None
         
         self.token_id    = ""
         self.token_prev  = ""
@@ -812,28 +844,9 @@ if __name__ == '__main__':
     con = consoleApp()
 """
         
-        # -------------------------------------------------------------------
-        # for debuging, we use python logging library ...
-        # -------------------------------------------------------------------
-        try:
-            print(genv.v__app__logfile)
-            if not os.path.exists(genv.v_app__logfile):
-                print("looo noooo")
-                sys.exit(1)
-            self.log = logging.getLogger(genv.v__app__logfile)
-            logging.basicConfig(
-                format="%(asctime)s: %(levelname)s: %(message)s",
-                filename="observer.log",
-                encoding="utf-8",
-                filemode="w",
-                level=logging.DEBUG)
-        except:
-            print("log file could not be open.")
-            return
+        genv.v__app__logging.info("start parse: " + self.script_name)
         
-        self.log.info("init ok: session start...")
-        self.log.info("start parse: " + self.script_name)
-        
+        self.parser_stop = False
         self.parse_open(self.script_name)
         self.source = self.parse_data[0]
     
@@ -841,12 +854,12 @@ if __name__ == '__main__':
     # \brief finalize checks and cleaning stuff ...
     # -----------------------------------------------------------------------
     def finalize(self):
-        self.log.debug("macro   : " + str(self.token_macro_counter))
-        self.log.debug("comment : " + str(self.token_comment_flag))
+        genv.v__app__logging.debug("macro   : " + str(self.token_macro_counter))
+        genv.v__app__logging.debug("comment : " + str(self.token_comment_flag))
         if self.command_ok == False:
             raise EParserErrorEOF("command not finished.")
         if self.token_macro_counter < 0:
-            self.log.debug("\aerror: unbound macro.")
+            genv.v__app__logging.debug("\aerror: unbound macro.")
             sys.exit(1)
     
     # -----------------------------------------------------------------------
@@ -865,11 +878,16 @@ if __name__ == '__main__':
     # \since  1.0.0
     # -----------------------------------------------------------------------
     def parse_open(self, file_name):
+        self.parse_data.clear()
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
             self.file.seek(0)
+            lines  = 0
             lines  = len(self.file.readlines())
             self.file.seek(0)
+            
+            source = ""
             source = self.file.read()
+            
             self.file.close()
         self.parse_data.append(source)
     
@@ -889,6 +907,7 @@ if __name__ == '__main__':
             self.text_code,
             "<string>",
             "exec")
+        self.byte_code = None
         self.byte_code = marshal.dumps(bytecode_text)
         
         # ---------------------
@@ -896,6 +915,7 @@ if __name__ == '__main__':
         # ---------------------
         cachedir = "__cache__"
         if not os.path.exists(cachedir):
+            print("oooooo")
             os.makedirs(cachedir)
         filename = os.path.basename(self.script_name)
         filename = os.path.splitext(filename)[0]
@@ -950,7 +970,9 @@ if __name__ == '__main__':
             if self.in_comment > 0:
                 raise EParserErrorEOF("\aunterminated string reached EOF.")
             else:
-                raise ENoParserError("\aend of file reached.")
+                self.parser_stop = True
+                c = '\0'
+                #raise ENoParserError("\aend of file reached.")
         else:
             c = self.source[self.pos]
             return c
@@ -988,7 +1010,9 @@ if __name__ == '__main__':
     def skip_white_spaces(self):
         while True:
             c = self.getChar()
-            if c == "\t" or c == " ":
+            if c == '\0' or self.parser_stop == True:
+                return c
+            elif c == "\t" or c == " ":
                 self.line_col += 1
                 continue
             elif c == "\n" or c == "\r":
@@ -1170,7 +1194,7 @@ if __name__ == '__main__':
             self.total_lines = len(self.file.readlines())
             self.file.seek(0)
             self.source = self.file.read()
-            self.log.debug("lines: " + str(self.total_lines))
+            genv.v__app__logging.debug("lines: " + str(self.total_lines))
             self.file.close()
         
         if len(self.source) < 1:
@@ -1181,7 +1205,9 @@ if __name__ == '__main__':
         # ------------------------------------
         while True:
             c = self.skip_white_spaces()
-            if c == '@':
+            if c == '\0' or self.parser_stop == True:
+                break
+            elif c == '@':
                 self.handle_say()
             elif c.isalpha():
                 self.token_str = c
@@ -1240,21 +1266,13 @@ if __name__ == '__main__':
 # \author paule32
 # \since  1.0.0
 # ---------------------------------------------------------------------------
-class dBaseDSL:
+class dBaseDSL():
     def __init__(self, script_name):
         self.script = None
-        parser = interpreter_dBase(script_name)
-        try:
-            parser.parse()
-        except Exception as e:
-            parser.run()
-        return self
-    
-    def parse(self):
-        return
-    
-    def run(self):
-        return
+        
+        self.parser = None
+        self.parser = interpreter_dBase(script_name)
+        self.parser.parse()
 
 # ------------------------------------------------------------------------
 # read a file into memory ...
@@ -2984,8 +3002,12 @@ class ComboBoxDelegateStatus(QStyledItemDelegate):
         editor.addItem(QIcon(os.path.join(genv.v__app__img__int__, "icon_red"    + genv.v__app__img_ext__)), "Out of Date"  )
         
         #editor.activated.connect(self.on_activated)
-        editor.currentTextChanged.connect(self.on_current_text_changed)
-        editor.currentIndexChanged.connect(self.on_current_index_changed)
+        if not genv.currentTextChanged_connected:
+            genv.currentTextChanged_connected  = True
+            genv.currentIndexChanged_connected = True
+            #
+            editor.currentTextChanged.connect(self.on_current_text_changed)
+            editor.currentIndexChanged.connect(self.on_current_index_changed)
         return editor
     
     # index is text/string
@@ -3024,8 +3046,10 @@ class ComboBoxDelegateIcon(QStyledItemDelegate):
 class CheckableComboBox(QComboBox):
     def __init__(self, parent):
         super(CheckableComboBox, self).__init__(parent)
-        self.view().pressed.connect(self.handleItemPressed)
-        self.setModel(QStandardItemModel(self))
+        if not genv.view_pressed_connected:
+            genv.view_pressed_connected = True
+            self.view().pressed.connect(self.handleItemPressed)
+            self.setModel(QStandardItemModel(self))
 
     def handleItemPressed(self, index):
         item = self.model().itemFromIndex(index)
@@ -3456,9 +3480,14 @@ class myExitDialog(QDialog):
         self.vlayout.addWidget(self.prevButton)
         self.vlayout.addWidget(self.exitButton)
         
-        self.helpButton.clicked.connect(self.help_click)
-        self.prevButton.clicked.connect(self.prev_click)
-        self.exitButton.clicked.connect(self.exit_click)
+        if not genv.helpButton_connected:
+            genv.helpButton_connected = True
+            genv.prevButton_connected = True
+            genv.exitButton_connected = True
+            
+            self.helpButton.clicked.connect(self.help_click)
+            self.prevButton.clicked.connect(self.prev_click)
+            self.exitButton.clicked.connect(self.exit_click)
         
         
         self.hexitText = QLabel(_("Would you realy exit the Application"))
@@ -3641,7 +3670,9 @@ class addProperty(QLabel):
             self.rhs = QCheckBox()
             self.rhs.setText("FALSE" + self.ftext_spacer)
             self.rhs.setMaximumWidth((self.width()+100)//2)
-            self.rhs.stateChanged.connect(self.checkbox_changed)
+            if not genv.rhs_stateChanged_connected:
+                genv.rhs_stateChanged_connected = True
+                self.rhs.stateChanged.connect(self.checkbox_changed)
         elif kind == 4:
             self.rhs = QComboBox()
             self.rhs.setMaximumWidth((self.width()+100)//2)
@@ -3783,9 +3814,13 @@ class EditorTextEdit(QPlainTextEdit):
         self.bookmarks = set()
         self.highlighter = CppSyntaxHighlighter(self.document())
         
-        self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
-        self.updateRequest.connect(self.updateLineNumberArea)
-        self.cursorPositionChanged.connect(self.highlightCurrentLine)
+        if not genv.blockCountChanged_connected:
+            genv.blockCountChanged_connected = True
+            genv.cursorPositionChanged_connected = True
+            
+            self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
+            self.updateRequest.connect(self.updateLineNumberArea)
+            self.cursorPositionChanged.connect(self.highlightCurrentLine)
         
         self.updateLineNumberAreaWidth(0)
         self.highlightCurrentLine()
@@ -4360,9 +4395,14 @@ class myAddTableDialog(QDialog):
         
         self.setLayout(self.layout_top)
         
-        self.btn_add   .clicked.connect(self.btn_add_clicked)
-        self.btn_addsrc.clicked.connect(self.btn_addsrc_clicked)
-        self.btn_close .clicked.connect(self.btn_close_clicked)
+        if not genv.btn_add_connected:
+            genv.btn_add_connected    = True
+            genv.btn_addsrc_connected = True
+            genv.btn_close_connected  = True
+            
+            self.btn_add   .clicked.connect(self.btn_add_clicked)
+            self.btn_addsrc.clicked.connect(self.btn_addsrc_clicked)
+            self.btn_close .clicked.connect(self.btn_close_clicked)
         
         # ----------------------------------------
         # detect files in the current directory...
@@ -5190,6 +5230,7 @@ class OpenProFileDialog(QDialog):
     
     def maxLength(self, input_string, length):
         if len(input_string) > length:
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Information")
             msg.setText(
@@ -5211,6 +5252,7 @@ class OpenProFileDialog(QDialog):
         filtered_files = [f for f in self.current_files if filter_text in f.lower()]
         for file in filtered_files:
             project_name = self.get_project_name(os.path.join(self.path_input.text(), file))
+            item = None
             item = QTreeWidgetItem([file, project_name])
             self.file_list.addTopLevelItem(item)
     
@@ -5228,6 +5270,7 @@ class OpenProFileDialog(QDialog):
         # .pro files shall not be changed ...
         # ------------------------------------
         if item.text(0).lower() == "file":
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Information")
             msg.setText(
@@ -5240,6 +5283,7 @@ class OpenProFileDialog(QDialog):
             result = msg.exec_()
             return
         
+        setting_dialog = None
         setting_dialog = setLocalesProjectSetting(self, item.text(0),item.text(1))
         setting_dialog.exec_()
         
@@ -5267,6 +5311,7 @@ class OpenProFileDialog(QDialog):
             #
             genv.v__app__config.set("project", self.property_name, self.property_value)
         except:
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Warning")
             msg.setText(
@@ -5277,13 +5322,16 @@ class OpenProFileDialog(QDialog):
             
             msg.setStyleSheet(_("msgbox_css"))
             result = msg.exec_()
+            msg = None
             pass
         # write try block
         try:
             with open(pro_file,"w") as configfile:
                 genv.v__app__config.write(configfile)
                 configfile.close()
+                configfile = None
         except:
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Warning")
             msg.setText(
@@ -5300,6 +5348,7 @@ class OpenProFileDialog(QDialog):
             genv.v__app__config.read(pro_file)
             self.update_file_list(pro_file)
         except:
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Warning")
             msg.setText(
@@ -5365,6 +5414,7 @@ class doubleClickLocalesLineEdit(QLineEdit):
         super().mouseDoubleClickEvent(event)
     
     def on_lineedit_double_clicked(self):
+        dialog = None
         dialog = OpenProFileDialog(self)
         dialog.exec_()
         return
@@ -5387,14 +5437,76 @@ class CustomWidget1(QWidget):
     
     def initUI(self):
         self.setFixedSize(42, 42)  # Set fixed size for the widget
+    
+    def mousePressEvent(self, event):
+        file_path = ""
+        if event.button() == Qt.LeftButton:
+            msg = None
+            msg = QMessageBox()
+            msg.setWindowTitle("Confirmation")
+            msg.setText(
+                "The source file content will be overwrite if you choose YES !\n"
+                "Would you save the current content ?")
+            msg.setIcon(QMessageBox.Question)
+            
+            btn_yes = msg.addButton(QMessageBox.Yes)
+            btn_no  = msg.addButton(QMessageBox.No)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            
+            if result == QMessageBox.Yes:
+                if self.parent_class.dbase_tabs_editor1.hasFocus():
+                    file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example1.prg")
+                    file_path = file_path.replace("\\", "/")
+                    #
+                    with open(file_path, "w") as file:
+                        file.write(self.parent_class.dbase_tabs_editor1.toPlainText())
+                        file.close()
+                elif self.parent_class.dbase_tabs_editor2.hasFocus():
+                    file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example2.prg")
+                    file_path = file_path.replace("\\", "/")
+                    #
+                    with open(file_path) as file:
+                        file.write(self.parent_class.dbase_tabs_editor2.toPlainText())
+                        file.close()
+                event.accept()
+            else:
+                event.ignore()
+    
+    def paintEvent(self, event):
+        painter = None
+        pixmap  = None
+        
+        painter = QPainter(self)
+        pixmap  = QPixmap(os.path.join(genv.v__app__img__int__, "floppy-disk.png"))
+        
+        painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
+        painter.end()
+
+class CustomWidget0(QWidget):
+    def __init__(self, parent_class):
+        super().__init__()
+        self.parent_class = parent_class
+        self.initUI()
+    
+    def initUI(self):
+        self.setFixedSize(42, 42)  # Set fixed size for the widget
+        
+        self.context_menu = None
         self.context_menu = QMenu(self)
         self.context_menu.setStyleSheet(_("css_menu_button"))
         
+        self.action01 = None
+        self.action02 = None
         self.action01 = QAction("./examples/dbase/Example1.prg\tdBASE ", self)
         self.action02 = QAction("./examples/dbase/Example2.prg\tdBASE ", self)
         #
+        self.action11 = None
         self.action11 = QAction("./examples/pascal/Example1.prg\tPascal", self)
         #
+        self.action21 = None
+        self.action22 = None
         self.action21 = QAction("./examples/lisp/Example1.prg\tLISP  ", self)
         self.action22 = QAction("./examples/lisp/Example1.prg\tLISP  ", self)
         
@@ -5415,8 +5527,10 @@ class CustomWidget1(QWidget):
         self.context_menu.addAction(self.action22)
                 
         pict = os.path.join(genv.v__app__img__int__, "arrowsmall.png")
+        pixmpa = None
         pixmap = QPixmap(pict)
         
+        self.arrow_button = None
         self.arrow_button = ClickableLabel(self)
         self.arrow_button.setPixmap(pixmap)
         self.arrow_button.resize(15, 42)
@@ -5495,20 +5609,28 @@ class CustomWidget1(QWidget):
             self.open_dialog()
     
     def open_dialog(self):
+        dialog = None
+        
         dialog = QDialog(self)
         dialog.setWindowTitle("Custom Dialog")
         dialog.setFixedSize(200, 150)
         
+        layout = None
+        label  = None
+        
         layout = QVBoxLayout()
-        label = QLabel("This is a custom dialog", dialog)
+        label  = QLabel("This is a custom dialog", dialog)
+        
         layout.addWidget(label)
         dialog.setLayout(layout)
         
         dialog.exec_()
+        dialog = None
     
     def paintEvent(self, event):
+        painter = None
         painter = QPainter(self)
-        pixmap = QPixmap(os.path.join(genv.v__app__img__int__, "floppy-disk.png"))
+        pixmap  = QPixmap(os.path.join(genv.v__app__img__int__, "open-folder.png"))
         painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
         painter.end()
 
@@ -5528,31 +5650,35 @@ class CustomWidget2(QWidget):
                 if not os.path.exists(script_name):
                     print(f"Error: file does not exists: {script_name}.")
                     return
+                
+                prg = None
                 prg = dBaseDSL(script_name)
-                try:
-                    prg.parse(self)
-                    prg.run(self)
-                except ENoParserError as noerror:
-                    prg.finalize()
-                    print("\nend of data")
+                #prg.parser.parse()
+                print("\nend of data")
+                
+                #prg.parser.run()
+                #prg.parser.finalize()
+                
             elif self.parent_class.dbase_tabs_editor2.hasFocus():
                 script_name = "./examples/dbase/example2.prg"
                 if not os.path.exists(script_name):
                     print(f"Error: file does not exists: {script_name}.")
                     return
+                
+                prg = None
                 prg = dBaseDSL(script_name)
-                try:
-                    prg.parse(self)
-                    prg.run(self)
-                except ENoParserError as noerror:
-                    prg.finalize()
-                    print("\nend of data")
+                prg.parser.parse()
+                print("\nend of data")
+                
+                prg.parser.run()
+                prg.parser.finalize()
             else:
                 print("no editor selected.")
     
     def paintEvent(self, event):
+        painter = None
         painter = QPainter(self)
-        pixmap = QPixmap(os.path.join(genv.v__app__img__int__, "floppy-disk.png"))
+        pixmap  = QPixmap(os.path.join(genv.v__app__img__int__, "play.png"))
         painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
         painter.end()
 
@@ -6765,12 +6891,12 @@ class FileWatcherGUI(QDialog):
         print(f"Umbenennen: {file_path}")
     
     # dbase
-    def dbase_file_editor0_checkmessage(self, obj, new_content):
+    def dbase_file_editor0_checkmessage(self, obj, file_path):
         if obj.hasFocus():
             msg = QMessageBox()
             msg.setWindowTitle("Confirmation")
             msg.setText(
-                "The file content has been changed on file system.\n" +
+                "The file content has been changed on file system.\n"
                 "Would you reload the new content ?")
             msg.setIcon(QMessageBox.Question)
             
@@ -6781,16 +6907,23 @@ class FileWatcherGUI(QDialog):
             result = msg.exec_()
             
             if result == QMessageBox.Yes:
+                new_content = self.readFromFile(file_path)
                 obj.setPlainText(new_content)
-                event.accept()
-            else:
-                event.ignore()
     
-    def dbase_file_editor1_changed(self, file_path, new_content):
-        dbase_file_editor0_checkmessage(self.dbase_tabs_editor1, new_content)
+    def readFromFile(self, file_path):
+        file_content = ""
+        file = QFile(file_path)
+        if file.open(QFile.ReadOnly | QFile.Text):
+            stream = QTextStream(file)
+            file_content = stream.readAll()
+            file.close()
+        return file_content
+    
+    def dbase_file_editor1_changed(self, file_path):
+        self.dbase_file_editor0_checkmessage(self.dbase_tabs_editor1, file_path)
     #
-    def dbase_file_editor2_changed(self, file_path, new_content):
-        dbase_file_editor0_checkmessage(self.dbase_tabs_editor2, new_content)
+    def dbase_file_editor2_changed(self, file_path):
+        self.dbase_file_editor0_checkmessage(self.dbase_tabs_editor2, file_path)
     
     def handleDBase(self):
         self.dbase_tabs = QTabWidget()
@@ -6842,36 +6975,48 @@ class FileWatcherGUI(QDialog):
         
         self.dbase_file_hlay = QHBoxLayout()
         
+        custom_widget0 = CustomWidget0(self)
         custom_widget1 = CustomWidget1(self)
         custom_widget2 = CustomWidget2(self)
         
+        self.dbase_file_hlay.addWidget(custom_widget0)
         self.dbase_file_hlay.addWidget(custom_widget1)
         self.dbase_file_hlay.addWidget(custom_widget2)
         self.dbase_file_hlay.addStretch()
         #
         self.dbase_tabs_editor_menu.setLayout(self.dbase_file_hlay)
         
-        ####
-        self.dbase_tabs_editor1 = EditorTextEdit("./examples/dbase/example1.prg")
-        self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
-        self.dbase_file_widget1.setLayout(self.dbase_file_layout1)
-        
-        self.dbase_file_editor1_filewatcher = FileSystemWatcher()
-        self.dbase_file_editor1_filewatcher.addFile("./examples/dbase/example1.prg")
-        self.dbase_file_editor1_filewatcher.fileContentChanged(self.dbase_file_editor1_changed)
-        #
-        ####
         self.dbase_file_layout2 = QVBoxLayout()
         self.dbase_file_layout2.setContentsMargins(1,0,0,1)
         self.dbase_file_widget2 = QWidget()
+        
         ####
-        self.dbase_tabs_editor2 = EditorTextEdit("./examples/dbase/example2.prg")
+        file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example1.prg")
+        file_path = file_path.replace("\\","/")
+        
+        self.dbase_tabs_editor1 = EditorTextEdit(file_path)
+        self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
+        self.dbase_file_widget1.setLayout(self.dbase_file_layout1)
+        #
+        if os.path.exists(file_path):
+            print("ok")
+            self.dbase_file_editor1_filewatcher = FileSystemWatcher()
+            self.dbase_file_editor1_filewatcher.addFile(file_path)
+            self.dbase_file_editor1_filewatcher.watcher.fileChanged.connect(self.dbase_file_editor1_changed)
+        ####
+        file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example2.prg")
+        file_path = file_path.replace("\\","/")
+        
+        self.dbase_tabs_editor2 = EditorTextEdit(file_path)
         self.dbase_file_layout2.addWidget(self.dbase_tabs_editor2)
         self.dbase_file_widget2.setLayout(self.dbase_file_layout2)
-        
-        self.dbase_file_editor2_filewatcher = FileSystemWatcher()
-        self.dbase_file_editor2_filewatcher.addFile("./examples/dbase/example2.prg")
-        self.dbase_file_editor2_filewatcher.fileContentChanged(self.dbase_file_editor2_changed)
+        #
+        if os.path.exists(file_path):
+            print("ok")
+            self.dbase_file_editor2_filewatcher = FileSystemWatcher()
+            self.dbase_file_editor2_filewatcher.addFile(file_path)
+            self.dbase_file_editor2_filewatcher.watcher.fileChanged.connect(self.dbase_file_editor2_changed)
+        ####
         #
         self.dbase_tabs_files  = QTabWidget()
         self.dbase_tabs_files.setStyleSheet(css_tabs)
@@ -8456,10 +8601,11 @@ class parserBinary:
 # ---------------------------------------------------------------------------
 class parserDBasePoint:
     def __init__(self, script_name):
+        prg = None
         prg = dBaseDSL(script_name)
         try:
-            prg.parse(self)
-            prg.run(self)
+            prg.parse()
+            prg.run()
         except ENoParserError as noerror:
             prg.finalize()
             print("\nend of data")
@@ -8471,8 +8617,8 @@ class parserDoxyGen:
     def __init__(self, script_name):
         prg = doxygenDSL(script_name)
         try:
-            prg.parse(self)
-            prg.run(self)
+            prg.parse()
+            prg.run()
         except ENoParserError as noerror:
             prg.finalize()
             print("\nend of data")

@@ -106,3 +106,4 @@ src/_internal/img/*.png
 src/_internal/img/flags/*.gif
 !src/img/screen*.png
 src/img/*.png
+online/
