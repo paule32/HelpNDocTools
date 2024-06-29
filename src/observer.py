@@ -50,9 +50,13 @@ class globalEnv:
         self.v__app__inter__      = os.path.join(self.v__app__app_dir__, "interpreter")
         
         self.v__app__name         = "observer"
+        self.v__app__name_mo      = self.v__app__name + ".mo"
         
+        self.v__app__cdn_host     = "http://localhost/cdn"
         self.v__app__internal__   = os.path.join(self.v__app__modul__, "_internal")
-        self.v__app__config_ini   = os.path.join(self.v__app__modul__, self.v__app__name) + ".ini"
+        #
+        self.v__app__logfile      = os.path.join(self.v__app__internal__, self.v__app__name) + ".log"
+        self.v__app__config_ini   = os.path.join(self.v__app__internal__, self.v__app__name) + ".ini"
         
         self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
         
@@ -142,6 +146,9 @@ sys.path.append(os.path.join(genv.v__app__inter__, "doxygen"))
 sys.path.append(os.path.join(genv.v__app__inter__, ""))
 sys.path.append(os.path.join(genv.v__app__modul__, "tools"))
 
+class IgnoreOuterException(Exception):
+    pass
+
 # ---------------------------------------------------------------------------
 # application imports ...
 # ---------------------------------------------------------------------------
@@ -171,6 +178,8 @@ try:
     import locale         # internal system locale
     import polib          # create .mo locales files from .po files
     
+    import io             # memory streams
+    
     import random         # randome numbers
     import string
     
@@ -194,7 +203,8 @@ try:
     from PyQt5.QtGui              import *
     
     from logging import *
-    from io      import BytesIO
+    
+    from pathlib import Path
     
     # ------------------------------------------------------------------------
     # developers own modules ...
@@ -217,22 +227,277 @@ try:
     # ------------------------------------------------------------------------
     # forward initializations ...
     # ------------------------------------------------------------------------
+    print(genv.v__app__config_ini)
     genv.v__app__config = configparser.ConfigParser()
     genv.v__app__config.read(genv.v__app__config_ini)
     
+    # ------------------------------------------------------------------------
+    # global used locales constants ...
+    # ------------------------------------------------------------------------
+    genv.v__locale__    = os.path.join(genv.v__app__internal__, "locales")
+    genv.v__locale__enu = "en_us"            # enu
+    genv.v__locale__deu = "de_de"            # deu
+    genv.v__locale__sys = locale.getlocale() # system locale
     
+    # ------------------------------------------------------------------------
+    # selected list of flags for translation localization display ...
+    # ------------------------------------------------------------------------
+    cdn_host = genv.v__app__cdn_host + "/observer/img/flags/"
+    cdn_suff = ".gif"
+    genv.v__app__cdn_flags = [
+        [ "AFG", cdn_host + "AFG" + cdn_suff ],
+        [ "ALB", cdn_host + "ALB" + cdn_suff ],
+        [ "DZA", cdn_host + "DZA" + cdn_suff ],
+        [ "AND", cdn_host + "AND" + cdn_suff ],
+        [ "AGO", cdn_host + "AGO" + cdn_suff ],
+        [ "ATG", cdn_host + "ATG" + cdn_suff ],
+        [ "ARG", cdn_host + "ARG" + cdn_suff ],
+        [ "ARM", cdn_host + "ARM" + cdn_suff ],
+        [ "AUS", cdn_host + "AUS" + cdn_suff ],
+        [ "AUT", cdn_host + "AUT" + cdn_suff ],
+        [ "AZE", cdn_host + "AZE" + cdn_suff ],
+        [ "BHS", cdn_host + "BHS" + cdn_suff ],
+        [ "BHR", cdn_host + "BHR" + cdn_suff ],
+        [ "BGD", cdn_host + "BGD" + cdn_suff ],
+        [ "BRB", cdn_host + "BRB" + cdn_suff ],
+        [ "BLR", cdn_host + "BLR" + cdn_suff ],
+        [ "BEL", cdn_host + "BEL" + cdn_suff ],
+        [ "BLZ", cdn_host + "BLZ" + cdn_suff ],
+        [ "BEN", cdn_host + "BEN" + cdn_suff ],
+        [ "BTN", cdn_host + "BTN" + cdn_suff ],
+        [ "BOL", cdn_host + "BOL" + cdn_suff ],
+        [ "BIH", cdn_host + "BIH" + cdn_suff ],
+        [ "BWA", cdn_host + "BWA" + cdn_suff ],
+        [ "BRA", cdn_host + "BRA" + cdn_suff ],
+        [ "BRN", cdn_host + "BRN" + cdn_suff ],
+        [ "BGR", cdn_host + "BGR" + cdn_suff ],
+        [ "BFA", cdn_host + "BFA" + cdn_suff ],
+        [ "BDI", cdn_host + "BDI" + cdn_suff ],
+        [ "CPV", cdn_host + "CPV" + cdn_suff ],
+        [ "KHM", cdn_host + "KHM" + cdn_suff ],
+        [ "CMR", cdn_host + "CMR" + cdn_suff ],
+        [ "CAN", cdn_host + "CAN" + cdn_suff ],
+        [ "CAF", cdn_host + "CAF" + cdn_suff ],
+        [ "TCD", cdn_host + "TCD" + cdn_suff ],
+        [ "CHL", cdn_host + "CHL" + cdn_suff ],
+        [ "CHN", cdn_host + "CHN" + cdn_suff ],
+        [ "COL", cdn_host + "COL" + cdn_suff ],
+        [ "COM", cdn_host + "COM" + cdn_suff ],
+        [ "COD", cdn_host + "COD" + cdn_suff ],
+        [ "COG", cdn_host + "COG" + cdn_suff ],
+        [ "CRI", cdn_host + "CRI" + cdn_suff ],
+        [ "CIV", cdn_host + "CIV" + cdn_suff ],
+        [ "HRV", cdn_host + "HRV" + cdn_suff ],
+        [ "CUB", cdn_host + "CUB" + cdn_suff ],
+        [ "CYP", cdn_host + "CYP" + cdn_suff ],
+        [ "CZE", cdn_host + "CZE" + cdn_suff ],
+        [ "DNK", cdn_host + "DNK" + cdn_suff ],
+        [ "DJI", cdn_host + "DJI" + cdn_suff ],
+        [ "DMA", cdn_host + "DMA" + cdn_suff ],
+        [ "DOM", cdn_host + "DOM" + cdn_suff ],
+        [ "ECU", cdn_host + "ECU" + cdn_suff ],
+        [ "EGY", cdn_host + "EGY" + cdn_suff ],
+        [ "SLV", cdn_host + "SLV" + cdn_suff ],
+        [ "GNQ", cdn_host + "GNQ" + cdn_suff ],
+        [ "ERI", cdn_host + "ERI" + cdn_suff ],
+        [ "EST", cdn_host + "EST" + cdn_suff ],
+        [ "SWZ", cdn_host + "SWZ" + cdn_suff ],
+        [ "ETH", cdn_host + "ETH" + cdn_suff ],
+        [ "FJI", cdn_host + "FJI" + cdn_suff ],
+        [ "FIN", cdn_host + "FIN" + cdn_suff ],
+        [ "FRA", cdn_host + "FRA" + cdn_suff ],
+        [ "GAB", cdn_host + "GAB" + cdn_suff ],
+        [ "GMB", cdn_host + "GMB" + cdn_suff ],
+        [ "GEO", cdn_host + "GEO" + cdn_suff ],
+        [ "DEU", cdn_host + "DEU" + cdn_suff ],
+        [ "GHA", cdn_host + "GHA" + cdn_suff ],
+        [ "GRC", cdn_host + "GRC" + cdn_suff ],
+        [ "GRD", cdn_host + "GRD" + cdn_suff ],
+        [ "GTM", cdn_host + "GTM" + cdn_suff ],
+        [ "GIN", cdn_host + "GIN" + cdn_suff ],
+        [ "GNB", cdn_host + "GNB" + cdn_suff ],
+        [ "GUY", cdn_host + "GUY" + cdn_suff ],
+        [ "HTI", cdn_host + "HTI" + cdn_suff ],
+        [ "VAT", cdn_host + "VAT" + cdn_suff ],
+        [ "HND", cdn_host + "HND" + cdn_suff ],
+        [ "HUN", cdn_host + "HUN" + cdn_suff ],
+        [ "ISL", cdn_host + "ISL" + cdn_suff ],
+        [ "IND", cdn_host + "IND" + cdn_suff ],
+        [ "IDN", cdn_host + "IDN" + cdn_suff ],
+        [ "IRN", cdn_host + "IRN" + cdn_suff ],
+        [ "IRQ", cdn_host + "IRQ" + cdn_suff ],
+        [ "IRL", cdn_host + "IRL" + cdn_suff ],
+        [ "ISR", cdn_host + "ISR" + cdn_suff ],
+        [ "ITA", cdn_host + "ITA" + cdn_suff ],
+        [ "JAM", cdn_host + "JAM" + cdn_suff ],
+        [ "JPN", cdn_host + "JPN" + cdn_suff ],
+        [ "JOR", cdn_host + "JOR" + cdn_suff ],
+        [ "KAZ", cdn_host + "KAZ" + cdn_suff ],
+        [ "KEN", cdn_host + "KEN" + cdn_suff ],
+        [ "KIR", cdn_host + "KIR" + cdn_suff ],
+        [ "PRK", cdn_host + "PRK" + cdn_suff ],
+        [ "KOR", cdn_host + "KOR" + cdn_suff ],
+        [ "KWT", cdn_host + "KWT" + cdn_suff ],
+        [ "KGZ", cdn_host + "KGZ" + cdn_suff ],
+        [ "LAO", cdn_host + "LAO" + cdn_suff ],
+        [ "LVA", cdn_host + "LVA" + cdn_suff ],
+        [ "LBN", cdn_host + "LBN" + cdn_suff ],
+        [ "LSO", cdn_host + "LSO" + cdn_suff ],
+        [ "LBR", cdn_host + "LBR" + cdn_suff ],
+        [ "LBY", cdn_host + "LBY" + cdn_suff ],
+        [ "LIE", cdn_host + "LIE" + cdn_suff ],
+        [ "LTU", cdn_host + "LTU" + cdn_suff ],
+        [ "LUX", cdn_host + "LUX" + cdn_suff ],
+        [ "MDG", cdn_host + "MDG" + cdn_suff ],
+        [ "MWI", cdn_host + "MWI" + cdn_suff ],
+        [ "MYS", cdn_host + "MYS" + cdn_suff ],
+        [ "MDV", cdn_host + "MDV" + cdn_suff ],
+        [ "MLI", cdn_host + "MLI" + cdn_suff ],
+        [ "MLT", cdn_host + "MLT" + cdn_suff ],
+        [ "MHL", cdn_host + "MHL" + cdn_suff ],
+        [ "MRT", cdn_host + "MRT" + cdn_suff ],
+        [ "MUS", cdn_host + "MUS" + cdn_suff ],
+        [ "MEX", cdn_host + "MEX" + cdn_suff ],
+        [ "FSM", cdn_host + "FSM" + cdn_suff ],
+        [ "MDA", cdn_host + "MDA" + cdn_suff ],
+        [ "MCO", cdn_host + "MCO" + cdn_suff ],
+        [ "MNG", cdn_host + "MNG" + cdn_suff ],
+        [ "MNE", cdn_host + "MNE" + cdn_suff ],
+        [ "MAR", cdn_host + "MAR" + cdn_suff ],
+        [ "MOZ", cdn_host + "MOZ" + cdn_suff ],
+        [ "MMR", cdn_host + "MMR" + cdn_suff ],
+        [ "NAM", cdn_host + "NAM" + cdn_suff ],
+        [ "NRU", cdn_host + "NRU" + cdn_suff ],
+        [ "NPL", cdn_host + "NPL" + cdn_suff ],
+        [ "NLD", cdn_host + "NLD" + cdn_suff ],
+        [ "NZL", cdn_host + "NZL" + cdn_suff ],
+        [ "NIC", cdn_host + "NIC" + cdn_suff ],
+        [ "NER", cdn_host + "NER" + cdn_suff ],
+        [ "NGA", cdn_host + "NGA" + cdn_suff ],
+        [ "NOR", cdn_host + "NOR" + cdn_suff ],
+        [ "OMN", cdn_host + "OMN" + cdn_suff ],
+        [ "PAK", cdn_host + "PAK" + cdn_suff ],
+        [ "PLW", cdn_host + "PLW" + cdn_suff ],
+        [ "PSE", cdn_host + "PSE" + cdn_suff ],
+        [ "PAN", cdn_host + "PAN" + cdn_suff ],
+        [ "PNG", cdn_host + "PNG" + cdn_suff ],
+        [ "PRY", cdn_host + "PRY" + cdn_suff ],
+        [ "PER", cdn_host + "PER" + cdn_suff ],
+        [ "PHL", cdn_host + "PHL" + cdn_suff ],
+        [ "POL", cdn_host + "POL" + cdn_suff ],
+        [ "PRT", cdn_host + "PRT" + cdn_suff ],
+        [ "QAT", cdn_host + "QAT" + cdn_suff ],
+        [ "MKD", cdn_host + "MKD" + cdn_suff ],
+        [ "ROU", cdn_host + "ROU" + cdn_suff ],
+        [ "RUS", cdn_host + "RUS" + cdn_suff ],
+        [ "RWA", cdn_host + "RWA" + cdn_suff ],
+        [ "KNA", cdn_host + "KNA" + cdn_suff ],
+        [ "LCA", cdn_host + "LCA" + cdn_suff ],
+        [ "VCT", cdn_host + "VCT" + cdn_suff ],
+        [ "WSM", cdn_host + "WSM" + cdn_suff ],
+        [ "SMR", cdn_host + "SMR" + cdn_suff ],
+        [ "STP", cdn_host + "STP" + cdn_suff ],
+        [ "SAU", cdn_host + "SAU" + cdn_suff ],
+        [ "SEN", cdn_host + "SEN" + cdn_suff ],
+        [ "SRB", cdn_host + "SRB" + cdn_suff ],
+        [ "SYC", cdn_host + "SYC" + cdn_suff ],
+        [ "SLE", cdn_host + "SLE" + cdn_suff ],
+        [ "SGP", cdn_host + "SGP" + cdn_suff ],
+        [ "SVK", cdn_host + "SVK" + cdn_suff ],
+        [ "SVN", cdn_host + "SVN" + cdn_suff ],
+        [ "SLB", cdn_host + "SLB" + cdn_suff ],
+        [ "SOM", cdn_host + "SOM" + cdn_suff ],
+        [ "ZAF", cdn_host + "ZAF" + cdn_suff ],
+        [ "SSD", cdn_host + "SSD" + cdn_suff ],
+        [ "ESP", cdn_host + "ESP" + cdn_suff ],
+        [ "LKA", cdn_host + "LKA" + cdn_suff ],
+        [ "SDN", cdn_host + "SDN" + cdn_suff ],
+        [ "SUR", cdn_host + "SUR" + cdn_suff ],
+        [ "SWE", cdn_host + "SWE" + cdn_suff ],
+        [ "CHE", cdn_host + "CHE" + cdn_suff ],
+        [ "SYR", cdn_host + "SYR" + cdn_suff ],
+        [ "TJK", cdn_host + "TJK" + cdn_suff ],
+        [ "TZA", cdn_host + "TZA" + cdn_suff ],
+        [ "THA", cdn_host + "THA" + cdn_suff ],
+        [ "TLS", cdn_host + "TLS" + cdn_suff ],
+        [ "TGO", cdn_host + "TGO" + cdn_suff ],
+        [ "TON", cdn_host + "TON" + cdn_suff ],
+        [ "TTO", cdn_host + "TTO" + cdn_suff ],
+        [ "TUN", cdn_host + "TUN" + cdn_suff ],
+        [ "TUR", cdn_host + "TUR" + cdn_suff ],
+        [ "TKM", cdn_host + "TKM" + cdn_suff ],
+        [ "TUV", cdn_host + "TUV" + cdn_suff ],
+        [ "UGA", cdn_host + "UGA" + cdn_suff ],
+        [ "UKR", cdn_host + "UKR" + cdn_suff ],
+        [ "ARE", cdn_host + "ARE" + cdn_suff ],
+        [ "GBR", cdn_host + "GBR" + cdn_suff ],
+        [ "USA", cdn_host + "USA" + cdn_suff ],
+        [ "URY", cdn_host + "URY" + cdn_suff ],
+        [ "UZB", cdn_host + "UZB" + cdn_suff ],
+        [ "VUT", cdn_host + "VUT" + cdn_suff ],
+        [ "VEN", cdn_host + "VEN" + cdn_suff ],
+        [ "VNM", cdn_host + "VNM" + cdn_suff ],
+        [ "YEM", cdn_host + "YEM" + cdn_suff ],
+        [ "ZMB", cdn_host + "ZMB" + cdn_suff ],
+        [ "ZWE", cdn_host + "ZWE" + cdn_suff ],
+    ]
+
+    check_path = Path(genv.v__locale__)
+    if not check_path.is_dir():
+        print("Error: loacles directory not found.")
+        print("abort.")
+        sys.exit(1)
+    try:
+        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
+        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__config["common"]["language"])
+        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
+        #
+        if len(genv.v__app__locale) < 5:
+            print("Error: locale out of seed.")
+            print("abort.")
+            sys.exit(1)
+        #
+        raise IgnoreOuterException
+    except:
+        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
+        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
+        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
+        #
+        raise IgnoreOuterException
+
+except IgnoreOuterException:
+    print(genv.v__app__locale)
+    pass
+except configparser.NoOptionError as e:
+    print("Exception: option 'language' not found.")
+    print("abort.")
+    sys.exit(1)
+except configparser.NoSectionError as e:
+    print("Exception: section 'kanguage' not found.\n")
+    print("abort.")
+    sys.exit(1)
+except configparser.Error as e:
+    print("Exception: config error occur.")
+    print("abort.")
+    sys.exit(1)
 except Exception as e:
     exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     tb = traceback.extract_tb(e.__traceback__)[-1]
-    
-    print(f"Exception occur at module import:")
-    print(f"type : {exc_type.__name__}")
-    print(f"value: {exc_value}")
-    print(misc.StringRepeat("-",40))
     #
-    print(f"file : {tb.filename}")
-    print(f"line : {tb.lineno}")
-    sys.exit(1)
+    if exc_type.__name__ == "NoOptionError":
+        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
+        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
+        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
+        pass
+    else:
+        print(f"Exception occur at module import:")
+        print(f"type : {exc_type.__name__}")
+        print(f"value: {exc_value}")
+        print(misc.StringRepeat("-",40))
+        #
+        print(f"file : {tb.filename}")
+        print(f"line : {tb.lineno}")
+        sys.exit(1)
 
 # ------------------------------------------------------------------------
 # when the user start the application script under Windows 7 and higher:
@@ -260,17 +525,39 @@ __error__locales_error = "" \
     + "no locales file for this application."
 
 # ------------------------------------------------------------------------
-# global used locales constants ...
-# ------------------------------------------------------------------------
-__locale__    = os.path.join(genv.v__app__internal__, "locales")
-__locale__enu = "en_us"
-__locale__deu = "de_de"
-
-# ------------------------------------------------------------------------
 # style sheet definition's:
 # ------------------------------------------------------------------------
 css_model_header   = "model_hadr"
 css_combobox_style = "combo_actn"
+
+class FileSystemWatcher(QObject):
+    fileContentChanged = pyqtSignal(str, str)  # Signal für geänderten Dateiinhalt
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.watcher = QFileSystemWatcher()
+        self.fileContents = {}
+
+        self.watcher.fileChanged.connect(self.fileChangedSlot)
+
+    def addFile(self, filePath):
+        self.watcher.addPath(filePath)
+        self.fileContents[filePath] = self.readFromFile(filePath)  # Initialen Inhalt der Datei einlesen
+
+    def fileChangedSlot(self, filePath):
+        newContent = self.readFromFile(filePath)
+        if self.fileContents.get(filePath) != newContent:
+            self.fileContents[filePath] = newContent
+            self.fileContentChanged.emit(filePath, newContent)
+
+    def readFromFile(self, filePath):
+        fileContent = ""
+        file = QFile(filePath)
+        if file.open(QFile.ReadOnly | QFile.Text):
+            stream = QTextStream(file)
+            fileContent = stream.readAll()
+            file.close()
+        return fileContent
 
 class ListInstructionError(Exception):
     def __init__(self):
@@ -357,6 +644,664 @@ def convertPath(text):
         sys.exit(genv.EXIT_FAILURE)
     return result
 
+class dbase_function:
+    def __init__(self, src, name):
+        self.what   = "func"
+        self.owner  = src
+        self.name   = name
+        self.result = "tztz"
+        self.add(src)
+    def add(self):
+        self.owner.AST.append(self)
+        return self
+
+class dbase_val_variable:
+    def __init__(self, src, value=0):
+        self.what  = "val"
+        self.owner = src
+        self.value = value
+        self.add(src)
+    def add(self):
+        self.owner.AST.append(self)
+        return self
+
+class dbase_str_variable:
+    def __init__(self, src, value=""):
+        self.what  = "str"
+        self.owner = src
+        self.value = value
+        self.add(src)
+    def add(self):
+        self.owner.AST.append(self)
+        return self
+
+class dbase_symbol:
+    def __init__(self, src, name, link=None):
+        self.what  = "symbol"
+        self.owner = src
+        self.name  = name
+        self.link  = link
+        self.add(src)
+    def add(self):
+        self.owner.AST.append(self)
+        return self
+
+class dbase_loop:
+    def __init__(self, src, start, end):
+        self.what  = "loop"
+        seöf.owner = src
+        self.start = start
+        self.end   = end
+        self.add(src)
+    def add(self):
+        self.owner.AST.append(self)
+        return self
+
+class dbase_command:
+    def __init__(self, src, name, link=None):
+        print("---> " + name)
+        self.what  = "keyword"
+        self.owner = src
+        self.name  = name
+        self.proc  = None
+        self.prev  = None
+        self.link  = link
+    def add(self):
+        self.owner.AST.append(self)
+        return self
+
+# ---------------------------------------------------------------------------
+# only for testing ...
+# ---------------------------------------------------------------------------
+class dbase_test_array_struct:
+    def __init__(self):
+        test_proc = dbase_function(self, "test")
+        test_loop = dbase_loop(self, 1,5)
+        #
+        test_var1 = dbase_val_variable(self, 1234)
+        test_var2 = dbase_str_variable(self, "fuzzy")
+        #
+        test_sym1 = dbase_symbol(self, "foo", test_var1)
+        test_sym2 = dbase_symbol(self, "bar", test_var2)
+        test_sym3 = dbase_symbol(self, "baz", test_proc)
+        #
+        test_symA = dbase_symbol(self, "L", test_loop)
+        
+        self.AST = [
+            test_sym1,
+            test_sym2,
+            test_sym3,
+            test_symA
+        ]
+        for obj in self.AST:
+            if isinstance(obj, dbase_symbol):
+                print("dbase:")
+                print("\tObject: " + obj.name)
+                #print("--> " + str(obj.what))
+            if isinstance(obj.link, dbase_function):
+                #print("gfun")
+                print("\t\tfunc type  : " + obj.link.what)
+                print("\t\tfunc name  : " + obj.link.name)
+                print("\t\tfunc result: " + obj.link.result)
+            elif isinstance(obj.link, dbase_val_variable):
+                print("\t\tfunc type  : " + obj.link.what)
+                print("\t\tfunc value : " + str(obj.link.value))
+            elif isinstance(obj.link, dbase_str_variable):
+                print("\t\tfunc type  : " + obj.link.what)
+                print("\t\tfunc value : " + obj.link.value)
+            elif isinstance(obj.link, dbase_loop):
+                print("\t\tfunc type  : " + obj.link.what)
+                print("\t\tfunc start : " + str(obj.link.start))
+                print("\t\tfunc end   : " + str(obj.link.end))
+        
+        sys.exit(20)
+
+# ---------------------------------------------------------------------------
+# \brief  class for interpreting dBase related stuff ...
+#         the constructor need a string based script name that shall be read
+#         and execute from memory.
+#
+# \param  filename - a named string for the script name
+# \return objref - ctor's return the created object referenz from an memory
+#         internal address that is managed by the operating system logic.
+#
+# \author paule32
+# \since  1.0.0
+# ---------------------------------------------------------------------------
+class interpreter_dBase:
+    def __init__(self, fname):
+        self.script_name = fname
+        
+        global con
+        con = consoleApp()
+        
+        self.line_row    = 1
+        self.line_col    = 1
+        
+        self.pos         = -1
+        self.log         = None
+        
+        self.token_id    = ""
+        self.token_prev  = ""
+        self.token_str   = ""
+        
+        self.parse_data  = []
+        
+        self.token_macro_counter = 0
+        self.token_comment_flag  = 0
+        
+        self.in_comment = 0
+        
+        self.AST = []
+        
+        self.byte_code = ""
+        self.text_code = ""
+        self.text_code = """
+import os
+import sys           # system specifies
+import time          # thread count
+import datetime      # date, and time routines
+
+import builtins
+print = builtins.print
+
+from dbaseConsole import *
+
+if __name__ == '__main__':
+    global con
+    con = consoleApp()
+"""
+        
+        # -------------------------------------------------------------------
+        # for debuging, we use python logging library ...
+        # -------------------------------------------------------------------
+        try:
+            print(genv.v__app__logfile)
+            if not os.path.exists(genv.v_app__logfile):
+                print("looo noooo")
+                sys.exit(1)
+            self.log = logging.getLogger(genv.v__app__logfile)
+            logging.basicConfig(
+                format="%(asctime)s: %(levelname)s: %(message)s",
+                filename="observer.log",
+                encoding="utf-8",
+                filemode="w",
+                level=logging.DEBUG)
+        except:
+            print("log file could not be open.")
+            return
+        
+        self.log.info("init ok: session start...")
+        self.log.info("start parse: " + self.script_name)
+        
+        self.parse_open(self.script_name)
+        self.source = self.parse_data[0]
+    
+    # -----------------------------------------------------------------------
+    # \brief finalize checks and cleaning stuff ...
+    # -----------------------------------------------------------------------
+    def finalize(self):
+        self.log.debug("macro   : " + str(self.token_macro_counter))
+        self.log.debug("comment : " + str(self.token_comment_flag))
+        if self.command_ok == False:
+            raise EParserErrorEOF("command not finished.")
+        if self.token_macro_counter < 0:
+            self.log.debug("\aerror: unbound macro.")
+            sys.exit(1)
+    
+    # -----------------------------------------------------------------------
+    # \brief open a script file, and append the readed lines to the source
+    #        object of this class. step one read the lines (maybe not need
+    #        in future releases. step two read the content of the given file
+    #        as one dimensional list which is used to parse the memory stream
+    #        quicker than reading from storage disks.
+    #        this function have a little payload, yes - but the time of read-
+    #        ing the source data informations into the memory is quantitative
+    #        better as doing read/write operations by the operation system.
+    #
+    # \param  filename - a string that identify the file/script that should
+    #                    be loaded and parsed.
+    # \author paule32
+    # \since  1.0.0
+    # -----------------------------------------------------------------------
+    def parse_open(self, file_name):
+        with open(self.script_name, 'r', encoding="utf-8") as self.file:
+            self.file.seek(0)
+            lines  = len(self.file.readlines())
+            self.file.seek(0)
+            source = self.file.read()
+            self.file.close()
+        self.parse_data.append(source)
+    
+    def add_command(self, name, link):
+        self.token_command = dbase_command(self, name, link)
+        return self.token_command
+    
+    def run(self):
+        self.finalize()
+        print("----------------------")
+        print(self.text_code)
+        input("press enter to start...")
+        
+        self.text_code += "print('Hello World !')\n"
+        
+        bytecode_text = compile(
+            self.text_code,
+            "<string>",
+            "exec")
+        self.byte_code = marshal.dumps(bytecode_text)
+        
+        # ---------------------
+        # save binary code ...
+        # ---------------------
+        cachedir = "__cache__"
+        if not os.path.exists(cachedir):
+            os.makedirs(cachedir)
+        filename = os.path.basename(self.script_name)
+        filename = os.path.splitext(filename)[0]
+        filename = cachedir+"/"+filename+".bin"
+        print("filename: " + filename)
+        try:
+            with open(filename,"wb") as bytefile:
+                bytefile.write(self.byte_code)
+                bytefile.close()
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+        
+        # ---------------------
+        # load binary code ...
+        # ---------------------
+        try:
+            with open(filename,"rb") as bytefile:
+                bytecode = bytefile.read()
+                bytefile.close()
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+        
+        # ---------------------
+        # execute binary code:
+        # ---------------------
+        #bytecode = marshal.loads(self.byte_code)
+        #exec(bytecode)
+    
+    # -----------------------------------------------------------------------
+    # \brief  get one char from the input stream/source line.
+    #         the internal position cursor self.pos for the self.source will
+    #         be incdrement by 1 character. for statistics, the line column
+    #         position wull be updated.
+    #         if the sel.pos cursor is greater as self.source codem then the
+    #         end of data is marked, and python raise a silent "no errpr"
+    #         exception to stop the processing of data (to prevent data/buffer
+    #         overflow.
+    #
+    # \param  nothing
+    # \return char - The "non" whitespace character that was found between
+    #                existing comment types.
+    # \author paule32
+    # \since  1.0.0
+    # -----------------------------------------------------------------------
+    def getChar(self):
+        self.line_col += 1
+        self.pos += 1
+
+        if self.pos >= len(self.source):
+            if self.in_comment > 0:
+                raise EParserErrorEOF("\aunterminated string reached EOF.")
+            else:
+                raise ENoParserError("\aend of file reached.")
+        else:
+            c = self.source[self.pos]
+            return c
+    
+    def ungetChar(self, num):
+        self.line_col -= num;
+        self.pos -= num;
+        c = self.source[self.pos]
+        return c
+    
+    def getIdent(self):
+        while True:
+            c = self.getChar()
+            if c.isspace():
+                return self.token_str
+            elif c.isalnum():
+                self.token_str += c
+            else:
+                self.pos -= 1
+                return self.token_str
+    
+    def getNumber(self):
+        while True:
+            c = self.getChar()
+            if c.isdigit():
+                self.token_str += c
+            else:
+                self.pos -= 1
+                return self.token_str
+    
+    # -----------------------------------------------------------------------
+    # \brief skip all whitespaces. whitespaces are empty lines, lines with
+    #        one or more spaces (0x20): " ", \t, "\n".
+    # -----------------------------------------------------------------------
+    def skip_white_spaces(self):
+        while True:
+            c = self.getChar()
+            if c == "\t" or c == " ":
+                self.line_col += 1
+                continue
+            elif c == "\n" or c == "\r":
+                self.line_col  = 1
+                self.line_row += 1
+                continue
+            elif c == '/':
+                c = self.getChar()
+                if c == '*':
+                    self.in_comment += 1
+                    while True:
+                        c = self.getChar()
+                        if c == "\n":
+                            self.line_col  = 1
+                            self.line_row += 1
+                            continue
+                        if c == '*':
+                            c = self.getChar()
+                            if c == '/':
+                                self.in_comment -= 1
+                                break
+                    return self.skip_white_spaces()
+                elif c == '/':
+                    self.handle_oneline_comment()
+                    continue
+                else:
+                    self.ungetChar(1)
+                    c = "/"
+                    return c
+            elif c == '&':
+                c = self.getChar()
+                if c == '&':
+                    self.handle_oneline_comment()
+                    continue
+                else:
+                    self.__unexpectedChar('&')
+            elif c == '*':
+                c = self.getChar()
+                if c == '*':
+                    self.handle_oneline_comment()
+                    continue
+                else:
+                    self.__unexpectedChar('*')
+            else:
+                return c
+    
+    # -----------------------------------------------------------------------
+    # \brief parse a one line comment: // for c++, ** and && for dBase ...
+    # -----------------------------------------------------------------------
+    def handle_oneline_comment(self):
+        while True:
+            c = self.getChar()
+            if c == "\n":
+                self.line_row += 1
+                self.line_col  = 1
+                break
+    
+    def handle_commands(self):
+        if self.token_str.lower() == "date":
+            c = self.skip_white_spaces()
+            if c == '(':
+                c = self.skip_white_spaces()
+                if c == ')':
+                    print("dater")
+                    self.text_code   += ("    con.gotoxy(" +
+                    self.xpos + ","   +
+                    self.ypos + ")\n" +  "    con.print_date()\n")
+                    
+                    self.command_ok = True
+                else:
+                    self.__unexpectedChar(c)
+            else:
+                self.__unexpectedChar(c)
+        elif self.token_str.lower() == "str":
+            c = self.skip_white_spaces()
+            if c == '(':
+                c = self.skip_white_spaces()
+                if c == ')':
+                    print("strrr")
+                    self.command_ok = True
+                else:
+                    self.__unexpectedChar(c)
+            else:
+                self.__unexpectedChar(c)
+        else:
+            self.__unexpectedToken()
+    
+    def handle_string(self):
+        while True:
+            c = self.getChar()
+            if c == '"':
+                break
+            elif c == '\\':
+                c = self.getChar()
+                if c == "\n" or c == "\r":
+                    self.__unexpectedEndOfLine()
+                elif c == " ":
+                    self.__unexpectedEscapeSign()
+                elif c == '\\':
+                    self.token_str += "\\"
+                elif c == 't':
+                    self.token_str += "    "
+                elif c == 'n':
+                    self.token_str += "\n"
+                elif c == 'r':
+                    self.token_str += "\r"
+                elif c == 'a':
+                    self.token_str += "\a"
+                else:
+                    self.token_str += c
+                continue
+            else:
+                self.token_str += c
+                continue
+        c = self.skip_white_spaces()
+        if c == '+':
+            c = self.skip_white_spaces()
+            if c == '"':
+                self.handle_string()
+                print("---> " + self.token_str)
+                return
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                self.handle_commands()
+                print("---> " + self.token_str)
+                return
+            else:
+                self.__unexpectedChar(c)
+        if c == '@':
+            self.ungetChar(1)
+            return
+        else:
+            self.__unexpectedChar(c)
+    
+    def handle_say(self):
+        self.command_ok = False
+        c = self.skip_white_spaces()
+        print("==> " + c)
+        if c.isdigit():
+            self.token_str = c
+            self.getNumber()                        # row
+            self.ypos = self.token_str
+            c = self.skip_white_spaces()
+            if c == ',':
+                c = self.skip_white_spaces()
+                if c.isdigit():
+                    self.token_str = c
+                    self.getNumber()                # col
+                    self.xpos = self.token_str
+                    c = self.skip_white_spaces()
+                    if c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str.lower() == "say":
+                            self.prev = "say"
+                            c = self.skip_white_spaces()
+                            if c.isalpha():
+                                self.token_str = c
+                                self.getIdent()
+                                self.handle_commands()
+                            elif c == '"':
+                                print("ssss")
+                                self.token_str = ""
+                                self.handle_string()
+                                print("eeeee")
+                        else:
+                            raise Exception("say expected.")
+                    else:
+                        raise Exception("say expected.")
+                else:
+                    raise Exception("number expected.")
+            else:
+                raise Exception("comma expected.")
+    
+    def parse(self):
+        with open(self.script_name, 'r', encoding="utf-8") as self.file:
+            self.file.seek(0)
+            self.total_lines = len(self.file.readlines())
+            self.file.seek(0)
+            self.source = self.file.read()
+            self.log.debug("lines: " + str(self.total_lines))
+            self.file.close()
+        
+        if len(self.source) < 1:
+            print("no data available.")
+            return
+        
+        # ------------------------------------
+        # ------------------------------------
+        while True:
+            c = self.skip_white_spaces()
+            if c == '@':
+                self.handle_say()
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                if self.token_str == "clear":
+                    print("clear")
+                    c = self.skip_white_spaces()
+                    if c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str == "screen":
+                            print("scre")
+                            self.text_code += "    con.cls()\n";
+                        elif self.token_str == "memory":
+                            print("mem")
+                        else:
+                            print("--> " + self.token_str)
+                            self.ungetChar(len(self.token_str))
+                    else:
+                        self.ungetChar(1)
+                        continue
+                if self.token_str == "show":
+                    print("--> " + self.token_str)
+    
+    def __unexpectedToken(self):
+        __msg = "unexpected token: '" + self.token_str + "'"
+        __unexpectedError(__msg)
+    
+    def __unexpectedChar(self, chr):
+        __msg = "unexpected character: '" + chr + "'"
+        __unexpectedError(__msg)
+    
+    def __unexpectedEndOfLine(self):
+        __unexpectedError("unexpected end of line")
+    
+    def __unexpectedEscapeSign(self):
+        __unexpectedError("nunexpected escape sign")
+    
+    def __unexpectedError(self, message):
+        calledFrom = inspect.stack()[1][3]
+        msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
+        msg = msg % (
+            self.line_row,
+            self.script_name)
+        print(msg)
+        sys.exit(1)
+    
+# ---------------------------------------------------------------------------
+# \brief  provide dBase DSL (domain source language)- dBL (data base language
+#         class for handling and programming database applications.
+#
+# \param  filename - a string based file/script that shall be handled.
+# \return objref - ctor's return the created object referenz from an memory
+#         internal address that is managed by the operating system logic.
+#
+# \author paule32
+# \since  1.0.0
+# ---------------------------------------------------------------------------
+class dBaseDSL:
+    def __init__(self, script_name):
+        self.script = None
+        parser = interpreter_dBase(script_name)
+        try:
+            parser.parse()
+        except Exception as e:
+            parser.run()
+        return self
+    
+    def parse(self):
+        return
+    
+    def run(self):
+        return
+
+# ------------------------------------------------------------------------
+# read a file into memory ...
+# ------------------------------------------------------------------------
+def read_gzfile_to_memory(file_path):
+    check_file = Path(file_path)
+    print(check_file)
+    if not check_file.exists():
+        print("Error: gzfile directory exists, but file could not found.")
+        print("abort.")
+        sys.exit(1)
+    if check_file.is_dir():
+        print("Error: gzfile is not a file.")
+        print("abort.")
+        sys.exit(1)
+    if check_file.is_file():
+        with open(check_file, "rb") as file:
+            file_header = file.read(3)
+            if file_header == b'\x1f\x8b\x08':
+                print("packed")
+                file.seek(0)
+                file_data = file.read()
+                compressed_data = io.BytesIO(file_data)
+                with gzip.GzipFile(fileobj=compressed_data, mode="rb") as gzip_file:
+                    uncompressed_data = gzip_file.read()
+                file.close()
+                mo_file = io.BytesIO(uncompressed_data)
+                translations = gettext.GNUTranslations(mo_file)
+                translations.install()
+                _ = translations.gettext
+                return _
+            elif file_header == b'\xde\x12\x04':
+                print("not packed")
+                file.seek(0)
+                file_data = file.read()
+                mo_file = io.BytesIO(file_data)
+                translations = gettext.GNUTranslations(mo_file)
+                translations.install()
+                _ = translations.gettext
+                return _
+            else:
+                file.close()
+                print("Error: language mo file could not be load.")
+                print("abort.")
+                sys.exit(1)
+    return None
+
 # ------------------------------------------------------------------------
 # get the locale, based on the system locale settings ...
 # ------------------------------------------------------------------------
@@ -365,36 +1310,14 @@ def getLangIDText(text):
 
 def handle_language(lang):
     try:
-        system_lang, _ = locale.getlocale()
-        if system_lang.lower() == __locale__enu:
-            if lang.lower() == __locale__enu:
-                _ = gettext.translation(
-                genv.v__app__name,
-                localedir=__locale__,
-                languages=[__locale__enu])  # english
-            elif lang.lower() == __locale__deu:
-                _ = gettext.translation(
-                genv.v__app__name,
-                localedir=__locale__,
-                languages=[__locale__deu])  # german
-        elif system_lang.lower() == __locale__deu:
-            if lang.lower() == __locale__deu:
-                _ = gettext.translation(
-                genv.v__app__name,
-                localedir=__locale__,
-                languages=[__locale__deu])  # german
-            elif lang.lower() == __locale__enu:
-                _ = gettext.translation(
-                genv.v__app__name,
-                localedir=__locale__,
-                languages=[__locale__enu])  # english
-        else:
-            _ = gettext.translation(
-            genv.v__app__name,
-            localedir=__locale__,
-            languages=[__locale__enu])  # fallback - english
-        
-        _.install()
+        # todo: .ini over write
+        # os.path.join(genv.v__locale__,genv.v__locale__sys[0])
+        #
+        file_path = os.path.join(genv.v__locale__, genv.v__locale__enu)
+        file_path = os.path.join(file_path, "LC_MESSAGES")
+        file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
+        #
+        _ = read_gzfile_to_memory(file_path)
         return _
     except Exception as e:
         exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
@@ -406,7 +1329,7 @@ def handle_language(lang):
         print(misc.StringRepeat("-",40))
         #
         print(f"file : {tb.filename}")
-        print(f"line : {tb.lineno}")
+        print(f"llline : {tb.lineno}")
         #
         sys.exit(genv.EXIT_FAILURE)
 
@@ -467,6 +1390,12 @@ def handleExceptionApplication(func,arg1=""):
     error_result = 0
     try:
         func(arg1)
+    except NoOptionError:
+        print("----")
+        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
+        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
+        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
+        print("==> " + genv.v__app__locale)
     except ListInstructionError as ex:
         ex.add_note("Did you miss a parameter ?")
         ex.add_note("Add more information.")
@@ -2849,6 +3778,7 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
 class EditorTextEdit(QPlainTextEdit):
     def __init__(self, file_name):
         super().__init__()
+        
         self.lineNumberArea = LineNumberArea(self)
         self.bookmarks = set()
         self.highlighter = CppSyntaxHighlighter(self.document())
@@ -2863,6 +3793,9 @@ class EditorTextEdit(QPlainTextEdit):
         # Schriftgröße und Schriftart setzen
         self.setFont(QFont(genv.v__app__font_edit, 12))
         
+        if not os.path.exists(file_name):
+            print(f"Error: file does not exists: {file_name}")
+            return
         with open(file_name, 'r') as file:
             text = file.read()
             file.close()
@@ -3722,32 +4655,28 @@ class myDataTabWidget(QWidget):
         print("clr all")
 
 class MyCountryProject(QWidget):
-    def __init__(self, clsparent, parent, src, dst, srctxt, dsttxt):
+    def __init__(self, class_parent, parent, itemA, itemB):
         super().__init__()
         
         hlayout = QHBoxLayout()
-        
         vlayout = QVBoxLayout()
-        pixmap  = self.create_pixmap()
-        pixmap  = pixmap.scaled(90,32,aspectRatioMode=Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation)
-        
-        pixmap_label = QLabel(self)
-        pixmap_label.setPixmap(pixmap)
-        vlayout.addWidget(pixmap_label)
         
         fontN = QFont(genv.v__app__font, 10)
         fontB = QFont(genv.v__app__font, 10)
         fontB.setBold(True)
-        #
+        
         hlay = QHBoxLayout()
-        mid1 = QLabel(srctxt, self); mid1.setFont(fontB);
-        mid2 = QLabel("to:" , self); mid2.setFont(fontN);
-        mid3 = QLabel(dsttxt, self); mid3.setFont(fontB);
-        #
+        mid1 = QLabel("USA", self)
+        mid1.setFont(fontB)
+        mid2 = QLabel("to:", self)
+        mid2.setFont(fontN)
+        mid3 = QLabel(itemB[0], self)
+        mid3.setFont(fontB)
+        
         hlay.addWidget(mid1)
         hlay.addWidget(mid2)
         hlay.addWidget(mid3)
-        #
+        
         vlayout.addLayout(hlay)
         
         label_lhs = QLabel(self)
@@ -3756,137 +4685,32 @@ class MyCountryProject(QWidget):
         label_lhs.setAlignment(Qt.AlignCenter)
         label_rhs.setAlignment(Qt.AlignCenter)
         
+        pixmap_lhs = self.get_pixmap_from_url("USA.gif")
+        pixmap_rhs = self.get_pixmap_from_url(itemB[0] + ".gif")
+        
+        if not pixmap_lhs.isNull():
+            label_lhs.setPixmap(pixmap_lhs)
+        else:
+            label_lhs.setText("Image not found")
+        
+        if not pixmap_rhs.isNull():
+            label_rhs.setPixmap(pixmap_rhs)
+        else:
+            label_rhs.setText("Image not found")
+        
         hlayout.addWidget(label_lhs)
         hlayout.addLayout(vlayout)
         hlayout.addWidget(label_rhs)
         
-        
-        if srctxt == "USA":
-            if clsparent.usa_flag_data == None:
-                clsparent.usa_flag_data = self.get_pixmap_from_url(src)
-        if dsttxt == "USA":
-            if clsparent.usa_flag_data == None:
-                clsparent.usa_flag_data = self.get_pixmap_from_url(dst)
-        #
-        if srctxt == "DEU":
-            if clsparent.deu_flag_data == None:
-                clsparent.deu_flag_data = self.get_pixmap_from_url(src)
-        if dsttxt == "DEU":
-            if clsparent.deu_flag_data == None:
-                clsparent.deu_flag_data = self.get_pixmap_from_url(dst)
-        #
-        if srctxt == "ESP":
-            if clsparent.esp_flag_data == None:
-                clsparent.esp_flag_data = self.get_pixmap_from_url(src)
-        if dsttxt == "ESP":
-            if clsparent.esp_flag_data == None:
-                clsparent.esp_flag_data = self.get_pixmap_from_url(dst)
-        #
-        if srctxt == "FRA":
-            if clsparent.fra_flag_data == None:
-                clsparent.fra_flag_data = self.get_pixmap_from_url(src)
-        if dsttxt == "FRA":
-            if clsparent.fra_flag_data == None:
-                clsparent.fra_flag_data = self.get_pixmap_from_url(dst)
-        #
-        if srctxt == "USA":
-            pixmap_lhs = clsparent.usa_flag_data
-            if dsttxt == "FRA":
-                pixmap_rhs = clsparent.fra_flag_data
-            elif dsttxt == "DEU":
-                pixmap_rhs = clsparent.deu_flag_data
-            elif dsttxt == "ESP":
-                pixmap_rhs = clsparent.esp_flag_data
-        elif srctxt == "FRA":
-            pixmap_lhs = clsparent.fra_flag_data
-            if dsttxt == "ESP":
-                pixmap_rhs = clsparent.esp_flag_data
-            elif dsttxt == "DEU":
-                pixmap_rhs = clsparent.deu_flag_data
-            elif dsttxt == "USA":
-                pixmap_rhs = clsparent.usa_flag_data
-        elif srctxt == "DEU":
-            pixmap_lhs = clsparent.deu_flag_data
-            if dsttxt == "ESP":
-                pixmap_rhs = clsparent.esp_flag_data
-            elif dsttxt == "FRA":
-                pixmap_rhs = clsparent.fra_flag_data
-            elif dsttxt == "USA":
-                pixmap_rhs = clsparent.usa_flag_data
-        elif srctxt == "ESP":
-            pixmap_lhs = clsparent.esp_flag_data
-            if dsttxt == "FRA":
-                pixmap_rhs = clsparent.fra_flag_data
-            elif dsttxt == "DEU":
-                pixmap_rhs = clsparent.deu_flag_data
-            elif dsttxt == "USA":
-                pixmap_rhs = clsparent.usa_flag_data
-        
-        if pixmap_lhs:
-            label_lhs.setPixmap(pixmap_lhs)
-        if pixmap_rhs:
-            label_rhs.setPixmap(pixmap_rhs)
-        
         self.setLayout(hlayout)
-        #self.setStyleSheet("""
-        #""")
         
         listItem = QListWidgetItem(parent)
         listItem.setSizeHint(self.sizeHint())
         parent.setItemWidget(listItem, self)
-        
-    def get_pixmap_from_url(self, url):
-        try:
-            response = requests.get(url)
-            response.raise_for_status()     # request ok ?
-            image_data = BytesIO(response.content)
-            pixmap = QPixmap()
-            if pixmap.loadFromData(image_data.read()):
-                return pixmap
-        except requests.RequestException as e:
-            print("error: could not load data file: " + e)
-        return None
     
-    def create_pixmap(self):
-        # Create a pixmap with the specified size (double size)
-        pixmap = QPixmap(120, 60)
-        pixmap.fill(Qt.transparent)
-        
-        # Create a QPainter to draw on the pixmap
-        painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        # Define colors for the 3D effect
-        light = QColor(255, 255, 255)
-        shadow = QColor(100, 100, 100)
-        fill = QColor(150, 150, 255)
-        
-        # Define the arrow points for a left-pointing arrow
-        arrow_points = [
-            QPoint(96, 30), QPoint(48, 42), QPoint(48, 36), QPoint(24, 36), QPoint(24, 24), 
-            QPoint(48, 24), QPoint(48, 18)
-        ]
-        
-        # Draw shadow for 3D effect
-        shadow_offset = 2
-        shadow_points = [QPoint(p.x() - shadow_offset, p.y() + shadow_offset) for p in arrow_points]
-        painter.setBrush(QBrush(shadow))
-        painter.setPen(Qt.NoPen)
-        painter.drawPolygon(*shadow_points)
-        
-        # Draw chrome border effect
-        border_offset = 1
-        border_points = [QPoint(p.x() - border_offset, p.y() + border_offset) for p in arrow_points]
-        painter.setBrush(QBrush(light))
-        painter.setPen(QPen(Qt.black, 2))
-        painter.drawPolygon(*border_points)
-        
-        # Draw the main arrow
-        painter.setBrush(QBrush(fill))
-        painter.setPen(QPen(Qt.black, 2))
-        painter.drawPolygon(*arrow_points)
-        
-        painter.end()
+    def get_pixmap_from_url(self, url):
+        pict = os.path.join(genv.v__app__img__int__, "flags", url)
+        pixmap = QPixmap(pict)
         return pixmap
 
 class ExtensionFilterProxyModel(QSortFilterProxyModel):
@@ -4545,17 +5369,200 @@ class doubleClickLocalesLineEdit(QLineEdit):
         dialog.exec_()
         return
 
+class ClickableLabel(QLabel):
+    clicked = pyqtSignal()
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+
+class CustomWidget1(QWidget):
+    def __init__(self, parent_class):
+        super().__init__()
+        self.parent_class = parent_class
+        self.initUI()
+    
+    def initUI(self):
+        self.setFixedSize(42, 42)  # Set fixed size for the widget
+        self.context_menu = QMenu(self)
+        self.context_menu.setStyleSheet(_("css_menu_button"))
+        
+        self.action01 = QAction("./examples/dbase/Example1.prg\tdBASE ", self)
+        self.action02 = QAction("./examples/dbase/Example2.prg\tdBASE ", self)
+        #
+        self.action11 = QAction("./examples/pascal/Example1.prg\tPascal", self)
+        #
+        self.action21 = QAction("./examples/lisp/Example1.prg\tLISP  ", self)
+        self.action22 = QAction("./examples/lisp/Example1.prg\tLISP  ", self)
+        
+        self.action01.triggered.connect(self.action01_triggered)
+        self.action02.triggered.connect(self.action02_triggered)
+        #
+        self.action11.triggered.connect(self.action11_triggered)
+        #
+        self.action21.triggered.connect(self.action21_triggered)
+        self.action22.triggered.connect(self.action22_triggered)
+        
+        self.context_menu.addAction(self.action01)
+        self.context_menu.addAction(self.action02)
+        self.context_menu.addSeparator()
+        self.context_menu.addAction(self.action11)
+        self.context_menu.addSeparator()
+        self.context_menu.addAction(self.action21)
+        self.context_menu.addAction(self.action22)
+                
+        pict = os.path.join(genv.v__app__img__int__, "arrowsmall.png")
+        pixmap = QPixmap(pict)
+        
+        self.arrow_button = ClickableLabel(self)
+        self.arrow_button.setPixmap(pixmap)
+        self.arrow_button.resize(15, 42)
+        self.arrow_button.setStyleSheet("background-color: transparent; border: none;")
+        self.arrow_button.move(self.width() - 15, 0)
+        self.arrow_button.clicked.connect(self.show_context_menu)
+    
+    def action01_triggered(self):
+        self.interpreter = self.action01.text()[-6:]
+        self.script_name = self.action01.text()[:-7]
+        self.open_script(self.parent_class.dbase_tabs)
+        return
+    def action02_triggered(self):
+        self.interpreter = self.action02.text()[-6:]
+        self.script_name = self.action02.text()[:-7]
+        self.open_script(self.parent_class.dbase_tabs)
+        return
+        
+    def action11_triggered(self):
+        self.interpreter = self.action11.text()[-6:]
+        self.script_name = self.action11.text()[:-7]
+        self.open_script(self.parent_class.pascal_tabs)
+        return
+        
+    def action21_triggered(self):
+        self.interpreter = self.action21.text()[-6:]
+        self.script_name = self.action21.text()[:-7]
+        self.open_script(self.parent_class.lisp_tabs)
+        return
+    def action22_triggered(self):
+        self.interpreter = self.action22.text()[-6:]
+        self.script_name = self.action22.text()[:-7]
+        self.open_script(self.parent_class.lisp_tabs)
+        return
+    
+    def open_script(self, tabser):
+        self.parent_class.help_tabs.hide()
+        self.parent_class.dbase_tabs.hide()
+        self.parent_class.pascal_tabs.hide()
+        self.parent_class.isoc_tabs.hide()
+        self.parent_class.java_tabs.hide()
+        self.parent_class.python_tabs.hide()
+        self.parent_class.lisp_tabs.hide()
+        self.parent_class.locale_tabs.hide()
+        self.parent_class.c64_tabs.hide()
+        #
+        tabser.show()
+        
+        self.set_null_state()
+        self.parent_class.side_btn1.set_style()
+        #self.parent_class.set_style()
+    
+    def set_null_state(self):
+        parent = self.parent_class
+        side_buttons = [
+            parent.side_btn1,
+            parent.side_btn2,
+            parent.side_btn3,
+            parent.side_btn4,
+            parent.side_btn5,
+            parent.side_btn6,
+            parent.side_btn7,
+            parent.side_btn8,
+            parent.side_btn9,
+        ]
+        for btn in side_buttons:
+            btn.state = 0
+            btn.set_style()
+        return
+        
+    def show_context_menu(self):
+        self.context_menu.exec_(self.mapToGlobal(self.arrow_button.pos()))
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.open_dialog()
+    
+    def open_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Custom Dialog")
+        dialog.setFixedSize(200, 150)
+        
+        layout = QVBoxLayout()
+        label = QLabel("This is a custom dialog", dialog)
+        layout.addWidget(label)
+        dialog.setLayout(layout)
+        
+        dialog.exec_()
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        pixmap = QPixmap(os.path.join(genv.v__app__img__int__, "floppy-disk.png"))
+        painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
+        painter.end()
+
+class CustomWidget2(QWidget):
+    def __init__(self, parent_class):
+        super().__init__()
+        self.parent_class = parent_class
+        self.initUI()
+    
+    def initUI(self):
+        self.setFixedSize(42, 42)
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if self.parent_class.dbase_tabs_editor1.hasFocus():
+                script_name = "./examples/dbase/example1.prg"
+                if not os.path.exists(script_name):
+                    print(f"Error: file does not exists: {script_name}.")
+                    return
+                prg = dBaseDSL(script_name)
+                try:
+                    prg.parse(self)
+                    prg.run(self)
+                except ENoParserError as noerror:
+                    prg.finalize()
+                    print("\nend of data")
+            elif self.parent_class.dbase_tabs_editor2.hasFocus():
+                script_name = "./examples/dbase/example2.prg"
+                if not os.path.exists(script_name):
+                    print(f"Error: file does not exists: {script_name}.")
+                    return
+                prg = dBaseDSL(script_name)
+                try:
+                    prg.parse(self)
+                    prg.run(self)
+                except ENoParserError as noerror:
+                    prg.finalize()
+                    print("\nend of data")
+            else:
+                print("no editor selected.")
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        pixmap = QPixmap(os.path.join(genv.v__app__img__int__, "floppy-disk.png"))
+        painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
+        painter.end()
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
         
-        global css_menu_item
-        global css_menu_label_style
-        global css_menu_item_style
-        
-        css_menu_item_style  = _("css_menu_item_style")
-        css_menu_label_style = _("css_menu_label_style")
-        css_menu_item        = _("css_menu_item")
+        genv.css_menu_item_style  = _("css_menu_item_style")
+        genv.css_menu_label_style = _("css_menu_label_style")
+        genv.css_menu_item        = _("css_menu_item")
         
         self.font = QFont(genv.v__app__font, 10)
         self.setFont(self.font)
@@ -4706,13 +5713,13 @@ class FileWatcherGUI(QDialog):
         #
         self.menu_label = QLabel(name)
         self.menu_label.setContentsMargins(0,0,0,0)
-        self.menu_label.setStyleSheet(css_menu_label_style)
+        self.menu_label.setStyleSheet(genv.css_menu_label_style)
         self.menu_label.setMinimumWidth(160)
         #
         self.menu_shortcut = QLabel(shortcut)
         self.menu_shortcut.setContentsMargins(0,0,0,0)
         self.menu_shortcut.setMinimumWidth(100)
-        self.menu_shortcut.setStyleSheet(css_menu_item)
+        self.menu_shortcut.setStyleSheet(genv.css_menu_item)
         
         self.menu_layout.addWidget(self.menu_icon)
         self.menu_layout.addWidget(self.menu_label)
@@ -4742,32 +5749,39 @@ class FileWatcherGUI(QDialog):
         
         # menu bar
         self.menu_bar = QMenuBar(self)
-        self.menu_bar.setStyleSheet(css_menu_item_style)
-        
-        self.menu_file = self.menu_bar.addMenu("&File")
-        self.menu_edit = self.menu_bar.addMenu("&Edit")
-        self.menu_help = self.menu_bar.addMenu("&Help")
+        self.menu_bar.setStyleSheet(genv.css_menu_item_style)
         
         self.menu_style_bg = "background-color:navy;"
-        
-        self.menu_file.setStyleSheet(self.menu_style_bg)
-        self.menu_edit.setStyleSheet(self.menu_style_bg)
-        self.menu_help.setStyleSheet(self.menu_style_bg)
-        
-        # file menu ...
-        self.add_menu_item("New",        "Ctrl+N", self.menu_file, self.menu_file_clicked_new)
-        self.add_menu_item("Open",       "Ctrl+O", self.menu_file, self.menu_file_clicked_open)
-        self.add_menu_item("Save",       "Ctrl+S", self.menu_file, self.menu_file_clicked_save)
-        self.add_menu_item("Save As...", ""      , self.menu_file, self.menu_file_clicked_saveas)
-        self.add_menu_item("Exit"      , "Ctrl+X", self.menu_file, self.menu_file_clicked_exit)
-        
-        # edit menu ...
-        self.add_menu_item("Undo"      , ""      , self.menu_edit, self.menu_edit_clicked_undo)
-        self.add_menu_item("Redo"      , ""      , self.menu_edit, self.menu_edit_clicked_redo)
-        self.add_menu_item("Clear All" , "Ctrl+D", self.menu_edit, self.menu_edit_clicked_clearall)
-        
-        # help menu ...
-        self.add_menu_item("About...", "F1", self.menu_help, self.menu_help_clicked_about)
+        menu_list = [
+            ["&File",
+                [
+                    ["New"       , "Ctrl+N", self.menu_file_clicked_new   ],
+                    ["Open"      , "Ctrl+O", self.menu_file_clicked_open  ],
+                    ["Save"      , "Ctrl+S", self.menu_file_clicked_save  ],
+                    ["Save As...", ""      , self.menu_file_clicked_saveas],
+                    ["Exit"      , "Ctrl+X", self.menu_file_clicked_exit  ]
+                ]
+            ],
+            ["&Edit",
+                [
+                    ["Undo"     , ""      , self.menu_edit_clicked_undo     ],
+                    ["Redo"     , ""      , self.menu_edit_clicked_redo     ],
+                    ["Clear All", "Ctrl+0", self.menu_edit_clicked_clearall ]
+                ]
+            ],
+            ["&Help",
+                [
+                    ["About...", "F1", self.menu_help_clicked_about ]
+                ]
+            ]
+        ]
+        for item in menu_list:
+            name = item[0]; menu = item[1]
+            mbar = self.menu_bar.addMenu(name)
+            mbar.setStyleSheet(self.menu_style_bg)
+            for menu_item in menu:
+                subs = menu_item
+                self.add_menu_item(subs[0], subs[1], mbar, subs[2])
         
         self.layout.addWidget( self.menu_bar )
         self.menu_bar.show()
@@ -4775,7 +5789,7 @@ class FileWatcherGUI(QDialog):
         # tool bar
         self.tool_bar = QToolBar()
         self.tool_bar.setContentsMargins(0,0,0,0)
-        self.tool_bar.setStyleSheet("background-color:gray;font-size:11pt;height:38px;padding:0px;margin:0px;")
+        self.tool_bar.setStyleSheet(_("toolbar_css"))
         
         self.tool_bar_button_exit = QToolButton()
         self.tool_bar_button_exit.setText("Clear")
@@ -5750,8 +6764,34 @@ class FileWatcherGUI(QDialog):
         file_path = self.tab0_dir_model.filePath(index)
         print(f"Umbenennen: {file_path}")
     
-    
     # dbase
+    def dbase_file_editor0_checkmessage(self, obj, new_content):
+        if obj.hasFocus():
+            msg = QMessageBox()
+            msg.setWindowTitle("Confirmation")
+            msg.setText(
+                "The file content has been changed on file system.\n" +
+                "Would you reload the new content ?")
+            msg.setIcon(QMessageBox.Question)
+            
+            btn_yes = msg.addButton(QMessageBox.Yes)
+            btn_no  = msg.addButton(QMessageBox.No)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            
+            if result == QMessageBox.Yes:
+                obj.setPlainText(new_content)
+                event.accept()
+            else:
+                event.ignore()
+    
+    def dbase_file_editor1_changed(self, file_path, new_content):
+        dbase_file_editor0_checkmessage(self.dbase_tabs_editor1, new_content)
+    #
+    def dbase_file_editor2_changed(self, file_path, new_content):
+        dbase_file_editor0_checkmessage(self.dbase_tabs_editor2, new_content)
+    
     def handleDBase(self):
         self.dbase_tabs = QTabWidget()
         self.dbase_tabs.setStyleSheet(css_tabs)
@@ -5799,19 +6839,39 @@ class FileWatcherGUI(QDialog):
         self.dbase_file_layout1 = QVBoxLayout()
         self.dbase_file_layout1.setContentsMargins(1,0,0,1)
         self.dbase_file_widget1 = QWidget()
+        
+        self.dbase_file_hlay = QHBoxLayout()
+        
+        custom_widget1 = CustomWidget1(self)
+        custom_widget2 = CustomWidget2(self)
+        
+        self.dbase_file_hlay.addWidget(custom_widget1)
+        self.dbase_file_hlay.addWidget(custom_widget2)
+        self.dbase_file_hlay.addStretch()
+        #
+        self.dbase_tabs_editor_menu.setLayout(self.dbase_file_hlay)
+        
         ####
-        self.dbase_tabs_editor1 = EditorTextEdit("Example1.prg")
+        self.dbase_tabs_editor1 = EditorTextEdit("./examples/dbase/example1.prg")
         self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
         self.dbase_file_widget1.setLayout(self.dbase_file_layout1)
+        
+        self.dbase_file_editor1_filewatcher = FileSystemWatcher()
+        self.dbase_file_editor1_filewatcher.addFile("./examples/dbase/example1.prg")
+        self.dbase_file_editor1_filewatcher.fileContentChanged(self.dbase_file_editor1_changed)
         #
         ####
         self.dbase_file_layout2 = QVBoxLayout()
         self.dbase_file_layout2.setContentsMargins(1,0,0,1)
         self.dbase_file_widget2 = QWidget()
         ####
-        self.dbase_tabs_editor2 = EditorTextEdit("Example2.prg")
+        self.dbase_tabs_editor2 = EditorTextEdit("./examples/dbase/example2.prg")
         self.dbase_file_layout2.addWidget(self.dbase_tabs_editor2)
         self.dbase_file_widget2.setLayout(self.dbase_file_layout2)
+        
+        self.dbase_file_editor2_filewatcher = FileSystemWatcher()
+        self.dbase_file_editor2_filewatcher.addFile("./examples/dbase/example2.prg")
+        self.dbase_file_editor2_filewatcher.fileContentChanged(self.dbase_file_editor2_changed)
         #
         self.dbase_tabs_files  = QTabWidget()
         self.dbase_tabs_files.setStyleSheet(css_tabs)
@@ -5853,7 +6913,6 @@ class FileWatcherGUI(QDialog):
         
         self.dbase_builder_widget_join.setMinimumHeight(180)
         self.dbase_builder_widget_join.setMaximumHeight(180)
-        
         
         self.dbase_builder_widget_join.setHorizontalHeaderLabels(["Table 1","Table2","TableA","TableB"])
         self.dbase_builder_widget_join.setVerticalHeaderLabels([" ID  "," ROW1  "," NAME  "," TEXT  "])
@@ -6435,6 +7494,12 @@ class FileWatcherGUI(QDialog):
             self.po.save(self.current_file)
             self.status_label.setText('Changes saved.')
     
+    def on_item_double_clicked(self, item):
+        index = self.countryList.row(item)
+        el = genv.v__app__cdn_flags[index][1][-7:]
+        el = el[:3]
+        print(el)
+    
     def handleLocalesProject(self):
         edit_css = _("edit_css")
         
@@ -6504,62 +7569,18 @@ class FileWatcherGUI(QDialog):
         # ------------------------------------
         # read in external url image data ...
         # ------------------------------------
-        countryList = QListWidget()
-        countryList.setMinimumHeight(212)
+        self.countryList = QListWidget()
+        self.countryList.setMinimumHeight(212)
         countries = []
-        with open(os.path.join(genv.v__app__internal__, "flags_iso.csv"), mode="r", encoding="utf-8") as file:
-            reader = csv.reader(file)
-            header = next(reader)
-            
-            for row in reader:
-                land = [row[2], row[3]]
-                countries.append(land)
         
-        self.usa_flag_data = None
-        self.fra_flag_data = None
-        self.deu_flag_data = None
-        self.esp_flag_data = None
+        self.countryList.itemDoubleClicked.connect(self.on_item_double_clicked)
         
-        for step1 in countries:
-            if step1[0] == "USA":
-                for step2 in countries:
-                    if step2[0] == "DEU":
-                        pro_USA_DEU = MyCountryProject(self, countryList, step1[1], step2[1], "USA", "DEU")
-                    elif step2[0] == "FRA":
-                        pro_USA_FRE = MyCountryProject(self, countryList, step1[1], step2[1], "USA", "FRA")
-                    elif step2[0] == "ESP":
-                        pro_USA_ESP = MyCountryProject(self, countryList, step1[1], step2[1], "USA", "ESP")
-        
-        for step1 in countries:
-            if step1[0] == "DEU":
-                for step2 in countries:
-                    if step2[0] == "USA":
-                        pro_DEU_USA = MyCountryProject(self, countryList, step1[1], step2[1], "DEU", "USA")
-                    elif step2[0] == "FRA":
-                        pro_DEU_FRA = MyCountryProject(self, countryList, step1[1], step2[1], "DEU", "FRA")
-                    elif step2[0] == "ESP":
-                        pro_DEU_ESP = MyCountryProject(self, countryList, step1[1], step2[1], "DEU", "ESP")
-        
-        for step1 in countries:
-            if step1[0] == "FRA":
-                for step2 in countries:
-                    if step2[0] == "USA":
-                        pro_FRA_USA = MyCountryProject(self, countryList, step1[1], step2[1], "FRA", "USA")
-                    elif step2[0] == "ESP":
-                        pro_FRA_ESP = MyCountryProject(self, countryList, step1[1], step2[1], "FRA", "ESP")
-                    elif step2[0] == "DEU":
-                        pro_FRA_DEU = MyCountryProject(self, countryList, step1[1], step2[1], "FRA", "DEU")
-        
-        for step1 in countries:
-            if step1[0] == "ESP":
-                for step2 in countries:
-                    if step2[0] == "USA":
-                        pro_ESP_USA = MyCountryProject(self, countryList, step1[1], step2[1], "ESP", "USA")
-                    elif step2[0] == "FRA":
-                        pro_ESP_FRA = MyCountryProject(self, countryList, step1[1], step2[1], "ESP", "FRA")
-                    elif step2[0] == "DEU":
-                        pro_ESP_DEU = MyCountryProject(self, countryList, step1[1], step2[1], "ESP", "DEU")
-        
+        for itemlistA in genv.v__app__cdn_flags:
+            if itemlistA[0] == "USA":
+                for itemlistB in genv.v__app__cdn_flags:
+                    MyCountryProject(self, self.countryList, itemlistA, itemlistB)
+                break
+
         vlayout = QVBoxLayout()
         hlayout = QHBoxLayout()
         
@@ -6644,7 +7665,7 @@ class FileWatcherGUI(QDialog):
         self.treeLocales.customContextMenuRequested.connect(self.openContextMenuLocales)
         
         #projects = QListWidget
-        country_layout.addWidget(countryList)
+        country_layout.addWidget(self.countryList)
         country_layout.addWidget(self.drives_treeLocales)
         country_layout.addWidget(self.treeLocales)
         
@@ -7293,6 +8314,7 @@ def EntryPoint(arg1=None):
     # when config.ini does not exists, then create a small one:
     # ---------------------------------------------------------
     if not os.path.exists(genv.v__app__config_ini):
+        print("1212121212")
         with open(genv.v__app__config_ini, "w", encoding="utf-8") as output_file:
             content = (""
             + "[common]\n"
@@ -7301,22 +8323,14 @@ def EntryPoint(arg1=None):
             output_file.close()
             ini_lang = "en_us" # default is english; en_us
     else:
-        genv.v__app__config.read(genv.v__app__config_ini)
-        ini_lang = genv.v__app__config.get("common", "language")
+        try:
+            genv.v__app__config.read(genv.v__app__config_ini)
+            ini_lang = genv.v__app__config.get("common", "language")
+        except:
+            ini_lang = "en_us"
+            pass
     
     _ = handle_language(ini_lang)
-    
-    # ---------------------------------------------------------
-    # combine the puzzle names, and folders ...
-    # ---------------------------------------------------------
-    po_file_name = (
-        os.path.join(genv.v__app__internal__, "locales") + "/"
-        + f"{ini_lang}"  + "/LC_MESSAGES/"
-        + f"{genv.v__app__name}" + ".po")
-    
-    if not os.path.exists(convertPath(po_file_name)):
-        print(__error__locales_error)
-        sys.exit(genv.EXIT_FAILURE)
     
     # ---------------------------------------------------------
     # when config file not exists, then spite a info message,
@@ -7504,7 +8518,6 @@ if __name__ == '__main__':
     + genv.v__app__space__ + genv.v__app__observers + "gui\n")
     
     genv.v__app__tmp3 = "parse..."
-    
     if len(sys.argv) < 2:
         print("no arguments given.")
         print(genv.v__app__parameter)

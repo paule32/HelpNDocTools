@@ -51,7 +51,7 @@ rm -rf dist
 ::pip install pyinstaller
 ::pip install --upgrade pyinstaller
 
-echo create directories...  [
+echo create directories...
 
 :: ---------------------------------------------------------------------------
 :: for default, the neccassary localization directories, and file are already
@@ -80,15 +80,18 @@ for %%A in (en_us, de_de) do (
                 %BASEDIR%\locales\%%A\LC_MESSAGES\observer.mo ^
                 %BASEDIR%\locales\%%A\LC_MESSAGES\observer.po
                 if errorlevel 0 (
-                    echo|set /p="[ ok   ], "
+                    cd %BASEDIR%\locales\%%A\LC_MESSAGES
+                    rm -rf observer.mo.gz
+                    gzip -9 observer.mo
+                    copy /b observer.mo.gz %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.mo.gz
+                    cd %BASEDIR%
                 )   else (
-                    echo|set /p="[ fail ], "
+                    echo error: %%A not created.
                 )
             )
         )
     )
 )
-echo ]
 goto TheEnd
 :: ---------------------------------------------------------------------------
 :: Python can produce byte-code, and executable files to speed up the loading
@@ -227,12 +230,24 @@ goto TheEnd
 :: no errors was detected - normal exit.
 :: ---------------------------------------------------------------------------
 :TheEnd
-echo,
+if exist "dist" (
+    cd dist
+    if exist "observer" (
+        cd observer
+        touch test.txt
+    )   else (
+        echo observer directory does not exists.
+        goto error
+    )
+)   else (
+    goto endstep
+    echo dist directory does not exists.
+    goto error
+)
+:endstep
+cd %BASEDIR%
+echo.
 echo exit without error's, done.
-
-cd dist\observer
-touch test.txt
-cd ..\..
 goto skipper
 
 :: ---------------------------------------------------------------------------
