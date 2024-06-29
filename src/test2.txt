@@ -1,3 +1,0 @@
-
-    QT_AUTOBRIEF     = xx 
-   
