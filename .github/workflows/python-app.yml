@@ -71,11 +71,17 @@ jobs:
         python3 -m compileall observer.py
         Write-Output "Create Application ..."
         $pyInstallerArgs = "pyInstaller --noconfirm --onefile --console      " +
-        "--icon         $env:MY_WORK_DIR\src\img\floppy-disk.ico " +
-        "--splash       $env:MY_WORK_DIR\src\img\splash.png      " +
+        "--icon         $env:MY_WORK_DIR\src\_internal\img\floppy-disk.ico " +
+        "--splash       $env:MY_WORK_DIR\src\_internal\img\splash.png      " +
         "--version-file $env:MY_WORK_DIR\src\version.info        " +
         "               $env:MY_WORK_DIR\src\observer.py"
         $pyInstallerArgs
+        
+    - name: Download a single artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: my-artifact
+
 
   # -----------------------------------
   # optimized for Linux - not tested !
