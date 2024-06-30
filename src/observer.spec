@@ -22,9 +22,9 @@ hiddenimports += collect_submodules('src/interpreter/pascal/pascal.py')
 
 a = Analysis(
     ['src/observer.py'],
-    pathex=['./', 'src/interpreter/doxygen', 'src/interpreter/pascal', 'src/interpreter/dbase', 'src/interpreter', 'src/tools', 'src'],
+    pathex=['./', 'src/_internal', 'src/_internal/img', 'src/interpreter/doxygen', 'src/interpreter/pascal', 'src/interpreter/dbase', 'src/interpreter', 'src/tools', 'src'],
     binaries=[],
-    datas=[('_internal/locales', 'locales/'), ('_internal/img', 'img/'), ('LICENSE', '.'), ('README.md', '.'), ('CONTRIBUTING.md', '.'), ('CODE_OF_CONDUCT.md', '.') ],
+    datas=[('src/_internal/locales', '_internal/locales/'), ('src/_internal/img', '_internal/img/'), ('LICENSE', '.'), ('README.md', '.'), ('CONTRIBUTING.md', '.'), ('CODE_OF_CONDUCT.md', '.') ],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -34,8 +34,9 @@ a = Analysis(
     optimize=0,
 )
 pyz = PYZ(a.pure)
+
 splash = Splash(
-    '_internal/img/splash.png',
+    'src/_internal/img/splash.png',
     binaries=a.binaries,
     datas=a.datas,
     text_pos=None,

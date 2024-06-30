@@ -43,7 +43,6 @@ src/__pycache__/observer.cpython-310.pyc.gz
 src/interpreter/pascal/__pycache__/pascal.cpython-310.pyc
 /src/__pycache__
 src/unicodedata.pyd
-src/spec
 src/select.pyd
 src/_socket.pyd
 src/_lzma.pyd
