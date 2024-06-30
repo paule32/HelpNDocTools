@@ -88,12 +88,16 @@ jobs:
         - name: Upload
           uses: actions/upload-artifact@v4
           with:
-            name: binary.exe
+            name: binary
             path: /builds/windows
-        - name: Download a single artifact
-          uses: actions/download-artifact@v4
-          with:
-            name: binary.exe
+    # ------------------------------------------------------
+    # now, we can download the artifact ...
+    # ------------------------------------------------------
+    - name: Download a single artifact
+      runs-on: windows-latest
+      uses: actions/download-artifact@v4
+      with:
+        name: binary
   
   # -----------------------------------
   # optimized for Linux - not tested !
