@@ -63,27 +63,27 @@ echo create directories...
 :: ---------------------------------------------------------------------------
 for %%A in (en_us, de_de) do (
     cd %BASEDIR%
-    dir /A:D %BASEDIR%\locales  >nul 2>&1
+    dir /A:D %BASEDIR%\_internal\locales  >nul 2>&1
     if errorlevel 0 (
-        mkdir %BASEDIR%\locales >nul 2>&1
-        dir /A:D %BASEDIR%\locales\%%A  >nul 2>&1
+        mkdir %BASEDIR%\_internal\locales >nul 2>&1
+        dir /A:D %BASEDIR%\_internal\locales\%%A  >nul 2>&1
         if errorlevel 0 (
             echo|set /p="%%A => "
-            mkdir %BASEDIR%\locales\%%A >nul 2>&1
-            dir /A:D locales\%%A\LC_MESSAGES >nul 2>&1
+            mkdir %BASEDIR%\_internal\locales\%%A >nul 2>&1
+            dir /A:D %BASEDIR%\_internal\locales\%%A\LC_MESSAGES >nul 2>&1
             if errorlevel 0 (
                 echo|set /p="ok, "
-                mkdir locales\%%A\LC_MESSAGES >nul 2>&1
-                cd %BASEDIR%\locales\%%A\LC_MESSAGES
+                mkdir %BASEDIR%\_internal\locales\%%A\LC_MESSAGES >nul 2>&1
+                cd %BASEDIR%\_internal\locales\%%A\LC_MESSAGES
                 echo|set /p="locales compiled => "
                 msgfmt -o ^
-                %BASEDIR%\locales\%%A\LC_MESSAGES\observer.mo ^
-                %BASEDIR%\locales\%%A\LC_MESSAGES\observer.po
+                %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.mo ^
+                %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.po
                 if errorlevel 0 (
-                    cd %BASEDIR%\locales\%%A\LC_MESSAGES
+                    cd %BASEDIR%\_internal\locales\%%A\LC_MESSAGES
                     rm -rf observer.mo.gz
                     gzip -9 observer.mo
-                    copy /b observer.mo.gz %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.mo.gz
+                    ::copy /b observer.mo.gz %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.mo.gz
                     cd %BASEDIR%
                 )   else (
                     echo error: %%A not created.
@@ -99,32 +99,31 @@ for %%A in (en_us, de_de) do (
 :: ---------------------------------------------------------------------------
 cd %BASEDIR%
 echo Create Byte-Code...
-cd tools
-python -m compileall tool001.py
-if errorlevel 1 (
-    echo fail tool001.pyc
-    goto error_bytecode)  else ( echo tool001.pyc created )
-python tool001.py
-if errorlevel 1 (
-    echo fail tool001 batch
-    goto error_bytecode ) else ( echo tool001.py exec ok )
-python -m compileall collection.py
-if errorlevel 1 (
-    echo fail collection.pyc
-    goto error_bytecode ) else ( echo collection.pyc created )
-python collection.py
-if errorlevel 1 (
-    echo fail collection batch
-    goto error_bytecode ) else ( echo collection.py exec ok )
-cd ..
+::cd tools
+::python -m compileall tool001.py
+::if errorlevel 1 (
+::    echo fail tool001.pyc
+::    goto error_bytecode)  else ( echo tool001.pyc created )
+::python tool001.py
+::if errorlevel 1 (
+::    echo fail tool001 batch
+::    goto error_bytecode ) else ( echo tool001.py exec ok )
+::python -m compileall collection.py
+::if errorlevel 1 (
+::    echo fail collection.pyc
+::    goto error_bytecode ) else ( echo collection.pyc created )
+::python collection.py
+::if errorlevel 1 (
+::    echo fail collection batch
+::    goto error_bytecode ) else ( echo collection.py exec ok )
+::cd ..
 %PY%\python.exe -m compileall %BASEDIR%\observer.py
 if errorlevel 1 ( goto error_bytecode )
-echo  ok   ]
 pyinstaller --noconfirm --console  ^
-    --icon="%PRJ%/src/_internal/img/floppy-disk.ico"  ^
+    --icon="%PRJ%/_internal/img/floppy-disk.ico"  ^
     --clean       ^
     --log-level="WARN"   ^
-    --splash="%PRJ%/src/_internal/img/splash.png"     ^
+    --splash="%PRJ%/_internal/img/splash.png"     ^
     --strip                                 ^
     --hide-console="minimize-late"          ^
     --version-file="%PRJ%/src/version.info" ^
@@ -140,31 +139,7 @@ pyinstaller --noconfirm --console  ^
     --paths="%PRJ%/src/tools"               ^
     --paths="%PRJ%/src"                     ^
     ^
-    --add-data="%PRJ%/_internal/locales;locales/" ^
-    --add-data="%PRJ%/_internal/img;img/"   ^
-    --add-data="%PRJ%/_internal/img/flags;img/flags"   ^
-    --add-data="%PRJ%/LICENSE;."            ^
-    --add-data="%PRJ%/README.md;."          ^
-    --add-data="%PRJ%/CONTRIBUTING.md;."    ^
-    --add-data="%PRJ%/CODE_OF_CONDUCT.md;." ^
-    --add-data="%PRJ%/src/topics.txt;."     ^
-    ^
-    --collect-submodules="%PRJ%/src/appcollection.py"    ^
     --collect-submodules="%PRJ%/src/__init__.py"         ^
-    --collect-submodules="%PRJ%/src/tools/collection.py" ^
-    --collect-submodules="%PRJ%/src/tools/data001.py"    ^
-    --collect-submodules="%PRJ%/src/tools/data002.py"    ^
-    --collect-submodules="%PRJ%/src/tools/data003.py"    ^
-    --collect-submodules="%PRJ%/src/tools/data004.py"    ^
-    --collect-submodules="%PRJ%/src/tools/data005.py"    ^
-    --collect-submodules="%PRJ%/src/tools/misc.py"       ^
-    --collect-submodules="%PRJ%/src/tools/__init__.py"   ^
-    --collect-submodules="%PRJ%/src/interpreter/EParserException.py" ^
-    --collect-submodules="%PRJ%/src/interpreter/ParserDSL.py"        ^
-    --collect-submodules="%PRJ%/src/interpreter/RunTimeLibrary.py"   ^
-    --collect-submodules="%PRJ%/src/interpreter/VisualComponentLibrary.py" ^
-    --collect-submodules="%PRJ%/src/interpreter/doxygen/doxygen.py"        ^
-    --collect-submodules="%PRJ%/src/interpreter/pascal/pascal.py" ^
     ^
     --hidden-import="shutil"          ^
     --hidden-import="types"           ^

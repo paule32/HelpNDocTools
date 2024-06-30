@@ -21,7 +21,7 @@ except Exception as e:
     print(f"Exception occur:")
     print(f"type : {exc_type.__name__}")
     print(f"value: {exc_value}")
-    print(misc.StringRepeat("-",40))
+    print(StringRepeat("-",40))
     #
     print(f"file : {tb.filename}")
     print(f"line : {tb.lineno}")
@@ -74,7 +74,7 @@ class globalEnv:
         self.v__app__freepas__    = os.path.join(self.v__app__img__int__, "freepas")
         self.v__app__locales__    = os.path.join(self.v__app__img__int__, "locales")
         self.v__app__com_c64__    = os.path.join(self.v__app__img__int__, "c64")
-        self.v__app__keybc64__    = os.path.join(self.v__app__img__int__, "c64keyboard.png")
+        self.v__app__keybc64__    = os.path.join(self.v__app__img__int__, "c64keyboard.png2")
         self.v__app__discc64__    = os.path.join(self.v__app__img__int__, "disk2.png")
         self.v__app__datmc64__    = os.path.join(self.v__app__img__int__, "mc2.png")
         self.v__app__logoc64__    = os.path.join(self.v__app__img__int__, "logo2.png")
@@ -101,6 +101,7 @@ class globalEnv:
         self.v__app_object        = None
         self.v__app_win           = None
         #
+        self.v__app__locales      = ""
         self.v__app__img_ext__    = ".png"
         self.v__app__font         = "Arial"
         self.v__app__font_edit    = "Consolas"
@@ -116,9 +117,45 @@ class globalEnv:
         self.v__app__config   = None
         
         self.css_model_header = ""
-        self.css_tabs = ""
+        self.css_tabs =  """
+QTabWidget::pane{border-top:2px solid #C2C7CB;}
+QTabWidget::tab-bar{left:5px;}
+QTabBar::tab{
+font-family:'Arial';
+font-size:11pt;
+background:qlineargradient(x1:0,y1:0,x2:0,y2:1,
+stop:0 #E1E1E1,stop:0.4 #DDDDDD,
+stop:0.5 #D8D8D8,stop:1.0 #D3D3D3);
+border:2px solid #C4C4C3;
+border-bottom-color:#C2C7CB;
+border-top-left-radius:4px;
+border-top-right-radius:4px;
+min-width:35ex;
+padding:2px;}
+QTabBar::tab:selected,QTabBar::tab:hover{
+background:qlineargradient(x1:0,y1:0,x2:0,y2:1,
+stop:0 #fafafa,stop:0.4 #f4f4f4,
+stop:0.5 #e7e7e7,stop:1.0 #fafafa);}
+QTabBar::tab:selected{
+border-color:#9B9B9B;
+border-bottom-color:#C2C7CB;}
+QTabBar::tab:!selected{margin-top:2px;}        """ #"tab_widget_1"
         self.css__widget_item = ""
-        self.css_button_style = ""
+        self.css_button_style = """
+        QPushButton{
+font-family:'Arial';
+font-weight:600;
+font-size:16px;
+color:yellow;
+background-color:navy;
+padding:10px 20px;
+border:solid #cc0000 2px;
+border-radius:50px;}
+QPushButton:hover{
+background-color:green;
+padding:10px 20px;
+color:white;}
+        """ #"__button_style_css"
         
         # ------------------------------------------------------------------------
         # branding water marks ...
@@ -230,18 +267,8 @@ try:
     # ------------------------------------------------------------------------
     # developers own modules ...
     # ------------------------------------------------------------------------
-    from collection import *     # exception: templates
-    
-    from VisualComponentLibrary import *
-    
-    from EParserException import *     # exception handling for use with parser
-    from RunTimeLibrary   import *     # rtl functions for parser
-    
-    from ParserDSL        import *
-    
+    #from collection import *     # exception: templates
     from colorama   import init, Fore, Back, Style  # ANSI escape
-    from pascal     import *     # pascal interpreter
-    from doxygen    import *     # doxygen script
 
     # -------------------------------------------------------------------
     # for debuging, we use python logging library ...
@@ -251,7 +278,6 @@ try:
     
     if not os.path.exists(file_path):
         Path(file_path).touch()
-    
     genv.v__app__logging = logging.getLogger(file_path)
     logging.basicConfig(
         format="%(asctime)s: %(levelname)s: %(message)s",
@@ -484,25 +510,26 @@ try:
         print("abort.")
         sys.exit(1)
     try:
-        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__config["common"]["language"])
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
+        genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
+        genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
+        genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+        genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo + ".gz")
         #
-        if len(genv.v__app__locale) < 5:
+        if len(genv.v__app__locales) < 5:
             print("Error: locale out of seed.")
             print("abort.")
             sys.exit(1)
         #
         raise IgnoreOuterException
     except:
-        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
         #
         raise IgnoreOuterException
 
 except IgnoreOuterException:
-    print(genv.v__app__locale)
+    print(genv.v__app__locales)
     pass
 except configparser.NoOptionError as e:
     print("Exception: option 'language' not found.")
@@ -521,15 +548,15 @@ except Exception as e:
     tb = traceback.extract_tb(e.__traceback__)[-1]
     #
     if exc_type.__name__ == "NoOptionError":
-        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
         pass
     else:
         print(f"Exception occur at module import:")
         print(f"type : {exc_type.__name__}")
         print(f"value: {exc_value}")
-        print(misc.StringRepeat("-",40))
+        print(StringRepeat("-",40))
         #
         print(f"file : {tb.filename}")
         print(f"line : {tb.lineno}")
@@ -560,11 +587,239 @@ __error__os__error = (""
 __error__locales_error = "" \
     + "no locales file for this application."
 
+
+genv.html_content = "<!-- -->"
+
+global css__widget_item
+css__widget_item = """
+QListView{font-family:'Arial';background-color:white;color:black;font-weight:bold;font-size:11pt;
+border:1px solid black;padding-left:2px;padding-top:2px;padding-bottom:2px;padding-right:2px;}
+QListView::item:selected{font-family:'Arial';background-color:blue;color:yellow;
+font-weight:bold;border:none;outline:none;font-size:11pt;}
+QListView::icon{left:10px;}
+QListView::text{left:10px;}"""
+
 # ------------------------------------------------------------------------
 # style sheet definition's:
 # ------------------------------------------------------------------------
 css_model_header   = "model_hadr"
 css_combobox_style = "combo_actn"
+
+# ------------------------------------------------------------------------------
+# convert string to list ...
+# ------------------------------------------------------------------------------
+def StrToList(string):
+    liste = []
+    lines = string.split("\r\n")
+    
+    for line in lines:
+        line = re.sub(r"^(\[)|(\],$)|(\]$)", '', line)
+        line = line.split(",")
+        col1 = re.sub(r'^\"|\"$', '', line[0])
+        col2 = re.sub(r'^PROJECT_.*\".*\"$|^\"', '', line[1])
+        col2 = col2.replace("@",",")
+        list_item = [ col1, col2 ]
+        liste.append(list_item)
+    return liste
+
+# ------------------------------------------------------------------------------
+# print a string S repeatly NT times...
+# ------------------------------------------------------------------------------
+def StringRepeat(s,nt):
+    return (s*nt)
+
+class RunTimeLibrary:
+    # -----------------------------------------------------------------------
+    # \brief __init__ is the initializator - maybe uneeded, because __new__
+    #        is the constructor ...
+    # -----------------------------------------------------------------------
+    def __init__(self):
+        self.version     = "1.0.0"
+        self.author      = "paule32"
+        self.initialized = False
+    
+    # -----------------------------------------------------------------------
+    # \brief  this is the constructor of class "RunTimeLibrary" ...
+    #         The return value is the created object pointer in memory space.
+    #
+    # \param  nothing
+    # \return Object - a pointer to this class object
+    # -----------------------------------------------------------------------
+    def __new__(self):
+        self.initialized = True
+        return self
+    
+    def __enter__(self):
+        return self
+    
+    # -----------------------------------------------------------------------
+    # \brief  destructor for class "RunTimeLibrary" ...
+    #
+    # \param  nothing
+    # \return nothing - destructors doesnt return values.
+    # -----------------------------------------------------------------------
+    def __del__(self):
+        self.check_initialized(self)
+        self.initialized = False
+    
+    # -----------------------------------------------------------------------
+    # \brief  This function returns True if a file with "name" exists on the
+    #         disk, False otherwise. On Microsoft Windows, the function will
+    #         return False if a directory is passed as "name"
+    #
+    # \param  name  - the script file name to check.
+    # \return False - when the checks fails
+    #         True  - when the file checks success
+    # -----------------------------------------------------------------------
+    def FileExists(name):
+        RunTimeLibrary.check_initialized()
+        if not os.path.exists(name):
+            return False
+        elif os.path.isdir(name):
+            return False
+        elif os.path.isfile(name):
+            return True
+    
+    # -----------------------------------------------------------------------
+    # \brief  This function read the content of a text file, and return the
+    #         readed content.
+    #
+    # \param  name - the file name that content should read
+    # \return encoding text string content that was read from file.
+    # -----------------------------------------------------------------------
+    def ReadFile(name):
+        RunTimeLibrary.check_initialized()
+        if not RunTimeLibrary.FileExists(name):
+            raise EParserError(10000)
+        with open(name, "r", encoding="utf-8") as file:
+            file.seek(0)
+            data = file.read()
+            file.close()
+        return data
+    
+    # -----------------------------------------------------------------------
+    # \brief  StringCompare compare the string "str" with the occurences of
+    #         strings in the list. The string_list can contain multiple
+    #         strings separated by a comma.
+    #
+    # \param  str  - the string to be check
+    # \param  list - the list of strings which can contain "str"
+    # \return True - if check is okay, True is the return value, else False
+    # -----------------------------------------------------------------------
+    def StringCompare(string, string_list):
+        result = False
+        if string in string_list:
+            return True
+        else:
+            return False
+    
+    # -----------------------------------------------------------------------
+    # \brief raise an exception, if the runtime libaray is not initialized...
+    # -----------------------------------------------------------------------
+    def check_initialized():
+        if not RunTimeLibrary.initialized:
+            raise EParserError(1000)
+
+class TMenu:
+    struct = [];
+    def __init__(self,parent):
+        print(parent);
+        return
+    def add(self, menu_list):
+        self.struct.append(menu_list)
+        return
+    def show(self, make_visible=True):
+        if make_visible:
+            print(self.struct);
+        return
+
+# ---------------------------------------------------------------------------
+# \brief this class provides accessible menubar for the application on the
+#        top upper part line.
+# ---------------------------------------------------------------------------
+class TMenuBar(TMenu):
+    def __init__(self,parent):
+        super().__init__(parent)
+        font_name  = "Arial"
+        font_size  = 10
+        
+        font_color = "white"
+        back_color = "navy"
+        back_str   = "background-color"
+        
+        str_font   = "fint"
+        str_size   = "size"
+        str_color  = "color"
+        
+        self.standardMenuBar = {
+        "File": [{
+            "subitem": [{
+                "New" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Open" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Save" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Save As" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Print" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Exit" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+            }]
+        }],
+        "Edit": [{
+            "subitem": [{
+                "Undo" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color },
+                ],
+                "Redo" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color },
+                ],
+            }]
+        }],
+        "Help": [{
+            "subitem": [{
+                "Online" : [
+                    { str_font  : font_name  },
+                    { str_size  : font_size  },
+                    { str_color : font_color },
+                    { back_str  : back_color },
+                ],
+                "About"  : [
+                    { str_font  : font_name  },
+                    { str_size  : font_size  },
+                    { str_color : font_color },
+                    { back_str  : back_color }
+                ]
+            }]
+        }]  }
+        
+        super().add(self.standardMenuBar)
+        super().show(self)
+        return
 
 class consoleApp():
     def __init__(self):
@@ -707,6 +962,476 @@ def convertPath(text):
         showApplicationError(__error__os__error)
         sys.exit(genv.EXIT_FAILURE)
     return result
+
+# ---------------------------------------------------------------------------
+# \brief A parser generator class to create a DSL (domain source language)
+#        parser with Python 3.12.
+#
+# \field files - an array of used script files
+# \field data  - an array of used script files data
+# \field info  - information about the parse processor (encoding, ...)
+# \field stat  - for statistics
+# \field rtl   - a link reference to the runtime library for this class
+# ---------------------------------------------------------------------------
+class ParserDSL:
+    # -----------------------------------------------------------------------
+    # \brief __init__ is the initializator - maybe uneeded, because __new__
+    #        is the constructor ...
+    # -----------------------------------------------------------------------
+    def __init__(self):
+        self.files  = []
+        self.data   = []
+        
+        self.name   = ""
+        
+        self.info   = None
+        self.stat   = None
+        self.this   = None
+        
+        self.rtl    = None
+        
+        self.AST    = []
+        
+        self.initialized = False
+    
+    # -----------------------------------------------------------------------
+    # \brief this is the constructor of class "ParserDSL" ...
+    # -----------------------------------------------------------------------
+    def __new__(self, lang="dbase"):
+        self.name   = lang.lower()
+        self.parser = self
+        self.rtl    = RunTimeLibrary()
+        self.AST    = []
+        self.files  = [
+            [ "root.src", "dbase", "** comment" ]
+        ]
+        self.initialized = True
+        return self
+    
+    def __enter__(self):
+        return self
+    
+    # -----------------------------------------------------------------------
+    # \brief destructor for parser generator class ...
+    # -----------------------------------------------------------------------
+    def __del__(self):
+        self.files.clear()
+        self.data.clear()
+    
+    # -----------------------------------------------------------------------
+    # \brief Add new script file to self.file array [].
+    #
+    # \param name - the file name of the script.
+    # -----------------------------------------------------------------------
+    def addFile(name):
+        if not ParserDSL.rtl.FileExists(name):
+            raise EParserError(10000)
+        else:
+            data = []
+            code = ParserDSL.rtl.ReadFile(name)
+            
+            data.append(name)
+            data.append(name)
+            data.append(code)
+            
+            ParserDSL.files.append(data)
+            print(ParserDSL.files)
+        return True
+    
+    # -------------------------------------------------------------------
+    # \brief add comment types to the AST of a DSL parser.
+    #        currently the following types are available:
+    #
+    #        dBase:
+    #        ** one liner comment
+    #        && one liner
+    #        // one liner comment
+    #        /* block */ dbase multi line comment block
+    #
+    #        C/C++:
+    #        // C(C++ comment one liner
+    #        /* block */ C++ multi line comment block
+    #
+    #        Bash, misc:
+    #        # comment one liner
+    #
+    #        Assembly, LISP:
+    #        ; one line comment
+    # -------------------------------------------------------------------
+    def add(object_type):
+        if type(object_type) == ParserDSL.comment:
+            self  = ParserDSL()
+            which = ParserDSL.name.lower()
+            
+            # --------------------------
+            # no syntax comments
+            # --------------------------
+            if which == "":
+                comment = [[None,None]]
+                comment_object = self.comment("unknown")
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # dBase 7 syntax comments
+            # --------------------------
+            if which == "dbase":
+                comment = [
+                    [ "**", None ],
+                    [ "&&", None ],
+                    [ "//", None ],
+                    [ "/*", "*/" ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern C syntax comments
+            # --------------------------
+            elif which == "c":
+                comment = [
+                    ["/*", "*/" ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern C++ syntax comments
+            # --------------------------
+            elif self.rtl.StringCompare(which, ["c++","cc","cpp"]):
+                comment = [
+                    ["/*", "*/" ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern Pascal comments
+            # --------------------------
+            elif which == "pascal":
+                comment = [
+                    ["(*", "*)" ],
+                    ["{" , "}"  ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # old ASM, and LISP comments
+            # --------------------------
+            elif self.rtl.StringCompare(which, ["asm","lisp"]):
+                comment = [
+                    [";", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # *nix tool style comments
+            # --------------------------
+            elif which == "bash":
+                comment = [
+                    ["#", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            else:
+                #"no known comment type"
+                raise EParserError(1100)
+    
+    # -------------------------------------------------------------------
+    # \brief class is used to mark a AST scope using comment type  ...
+    # -------------------------------------------------------------------
+    class comment:
+        def __init__(self, argument=None):
+            self.data   = []
+            self.name   = "s"
+            self.parent = ParserDSL
+            
+            # --------------------------
+            # no argument given.
+            # --------------------------
+            if argument == None:
+                print("info: current scope without "
+                + "comments initialized.")
+            # --------------------------
+            # argument type is a class
+            # --------------------------
+            elif argument == ParserDSL:
+                self.parent = argument
+                if self.parent.name != argument.name:
+                    print("info: current scope with: "
+                    + argument.name
+                    + " comments overwrite.")
+                    self.parent.name = argument.name
+                else:
+                    print("info: current scope not touched, because"
+                    + " comments already initialized with: "
+                    + argument.name
+                    + ".")
+            # --------------------------
+            # argument type is a string
+            # --------------------------
+            elif type(argument) == str:
+                supported_dsl = [
+                    "dbase", "pascal", "c", "c++", "cpp", "cc",
+                    "asm", "bash", "lisp"
+                ]
+                # --------------------------
+                # dsl is in supported list:
+                # --------------------------
+                if argument in supported_dsl:
+                    print("info: current scope with: "
+                    + argument
+                    + " comments initialized.")
+                    self.parent.name = argument
+                # --------------------------
+                # dsl not in supported list
+                # --------------------------
+                else:
+                    print("info: current scope with custom "
+                    + "comments initialized.")
+                    self.parent.name = argument
+        
+        # ---------------------------------------------------------------
+        # \brief  add a comment type to the existing comment scope ...
+        #
+        # \param  name  - the name for the parser DSL
+        # \param  kind  - a list with supported comment styles.
+        #                 the format is: [ <start>, <end> ]; if None set
+        #                 for <end>, then it is a one liner comment.
+        # \return True  - if the kind list is append successfully to the
+        #                 available data list.
+        #         False - when other event was occured.
+        # ---------------------------------------------------------------
+        def add(self, name, kind):
+            self.name = name
+            self.data.append(kind)
+            return True
+        
+        # ---------------------------------------------------------------
+        # \brief set a new comment type to the existing comment scope ...
+        #
+        # \param name - the DSL parser language
+        # \param kind - the comment styles that are available for <name>
+        # ---------------------------------------------------------------
+        def set(self, name, kind):
+            self.name = name
+            self.data = kind
+            return True
+        
+        # ---------------------------------------------------------------
+        # \brief  set the parser name for which the comments are ...
+        #
+        # \param  name - a string for parser name
+        # \return True - boolean if successfully; else False
+        # ---------------------------------------------------------------
+        def set(self, name):
+            self.name = name
+            return True
+        
+        # ---------------------------------------------------------------
+        # \brief  get the comment data list for the given comment scope.
+        #
+        # \param  nothing
+        # \return data - the self.data list
+        # ---------------------------------------------------------------
+        def get(self):
+            return self.data
+        
+        # ---------------------------------------------------------------
+        # \brief  returns the name which comments stands for DSL name
+        #
+        # \param  nothing
+        # \return string - the parser name
+        # ---------------------------------------------------------------
+        def getName(self):
+            return self.name
+    
+    # -----------------------------------------------------------------------
+    # \brief A class that act as record, to hold the informations about a
+    #        decent parser...
+    #
+    # \field name     - a name for the parser
+    # \field encoding - the source encoding of script file
+    # -----------------------------------------------------------------------
+    class parser_info:
+        # -------------------------------------------------------------------
+        # \brief __init__ is the initializator - maybe uneeded, because
+        #        __new__  is the constructor ...
+        # -------------------------------------------------------------------
+        def __init__(self, name=None, encoding="utf-8"):
+            self.name     = name
+            self.encoding = encoding
+        
+        # -------------------------------------------------------------------
+        # \brief this is the constructor of class "parser_info" ...
+        # -------------------------------------------------------------------
+        def __new__(self):
+            return self
+        
+        def __enter__(self):
+            return self
+        
+        # -------------------------------------------------------------------
+        # \brief destructor for class "parser_info" ...
+        # -------------------------------------------------------------------
+        def __del__(self):
+            self.name = ""
+        
+        # -------------------------------------------------------------------
+        # setters for parser informations ...
+        # -------------------------------------------------------------------
+        def setName(self, name):
+            self.name = name
+        
+        # -------------------------------------------------------------------
+        # getters for parser informations ...
+        # -------------------------------------------------------------------
+        def getName(self):
+            return self.name
+    
+    # -----------------------------------------------------------------------
+    # \brief A class that act as record, to hold the statistically infos of a
+    #        parse run...
+    # \field time_start - time of start processing
+    # \field time_end   - time of end   processing
+    # -----------------------------------------------------------------------
+    class parser_stat:
+        # -------------------------------------------------------------------
+        # \brief __init__ is the initializator - maybe uneeded, because
+        #        __new__  is the constructor ...
+        # -------------------------------------------------------------------
+        def __init__(self):
+            self.time_start = None
+            self.time_end   = None
+            self.encoding   = None
+        
+        # -------------------------------------------------------------------
+        # \brief this is the constructor of class "parser_stat" ...
+        # -------------------------------------------------------------------
+        def __new__(self):
+            return self
+        
+        def __enter__(self):
+            return self
+        
+        # -------------------------------------------------------------------
+        # \brief destructor for class "parser_stat" ...
+        # -------------------------------------------------------------------
+        def __del__(self):
+            self.time_start = None
+            self.time_end   = None
+        
+        # -------------------------------------------------------------------
+        # setters for statistically informations ...
+        # -------------------------------------------------------------------
+        def setStart(self, time):
+            self.time_start = time
+        def setEnd(self, time):
+            self.time_end   = time
+        def setEncoding(self, encoding="utf-8"):
+            self.encoding   = encoding
+        
+        # -------------------------------------------------------------------
+        # getters for statistically informations ...
+        # -------------------------------------------------------------------
+        def getStart(self):
+            return self.time_start
+        def getEnd(self):
+            return self.time_end
+        def getEncoding(self):
+            return self.encoding
+    
+    # -----------------------------------------------------------------------
+    # \brief A class that act as record, to hold the script file data infos
+    #        for used files...
+    #
+    # \field name    - the script name
+    # \field size    - the size of the script in bytes
+    # \field date    - the date of creation
+    # \field datemod - the date of last modification
+    # -----------------------------------------------------------------------
+    class parser_file:
+        # -------------------------------------------------------------------
+        # \brief __init__ is the initializator - maybe uneeded, because
+        #        __new__  is the constructor ...
+        # -------------------------------------------------------------------
+        def __init__(self, name):
+            self.name    = name
+            self.size    = 0
+            self.date    = None
+            self.datemod = None
+        
+        # -------------------------------------------------------------------
+        # \brief this is the constructor of class "parser_file" ...
+        # -------------------------------------------------------------------
+        def __new__(self):
+            return self
+        
+        def __enter__(self):
+            return self
+        
+        # -------------------------------------------------------------------
+        # \brief destructor for class "parser_file" ...
+        # -------------------------------------------------------------------
+        def __del__(self):
+            self.name = None
+    
+    # -----------------------------------------------------------------------
+    # \brief A class that act as record, to hold the data of a script file.
+    #
+    # \field name  - the script name
+    # \field data  - the script data/source
+    # \field lines - the lines of the script
+    # -----------------------------------------------------------------------
+    class parser_data:
+        # -------------------------------------------------------------------
+        # \brief __init__ is the initializator - maybe uneeded, because
+        #        __new__  is the constructor ...
+        # -------------------------------------------------------------------
+        def __init__(self, name, data="", lines=0):
+            self.name  = name
+            self.data  = data
+            self.lines = lines
+        
+        # -------------------------------------------------------------------
+        # \brief this is the constructor of class "parser_data" ...
+        # -------------------------------------------------------------------
+        def __new__(self):
+            return self
+        
+        def __enter__(self):
+            return self
+        
+        # -------------------------------------------------------------------
+        # \brief destructor for class "parser_data" ...
+        # -------------------------------------------------------------------
+        def __del__(self):
+            self.name = None
+        
+        # -------------------------------------------------------------------
+        # setters
+        # -------------------------------------------------------------------
+        def setLines(self, lines):
+            self.lines = lines
+        def setName(self, name):
+            self.name  = name
+        def setData(self, data):
+            self.data  = data
+        
+        # -------------------------------------------------------------------
+        # getters
+        # -------------------------------------------------------------------
+        def getLines(self):
+            return self.lines
+        def getName(self):
+            return self.name
+        def getData(self):
+            return self.data
 
 class dbase_function:
     def __init__(self, src, name):
@@ -1309,6 +2034,237 @@ class dBaseDSL():
         self.parser = interpreter_dBase(script_name)
         self.parser.parse()
 
+class interpreter_Pascal:
+    def __init__(self, script_name):
+        return
+
+# ---------------------------------------------------------------------------
+# \brief  class for interpreting DoxyGen related stuff ...
+#         the constructor need a string based script name that shall be read
+#         and execute from memory.
+#
+# \param  filename - a named string for the script name
+# \return objref - ctor's return the created object referenz from an memory
+#         internal address that is managed by the operating system logic.
+#
+# \author paule32
+# \since  1.0.0
+# ---------------------------------------------------------------------------
+class interpreter_DoxyGen:
+    def __init__(self, filename):
+        self.script_name = filename
+        self.__app__config_ini = __app__internal__ + "/observer.ini"
+        
+        self.line_row    = 1
+        self.line_col    = 1
+        
+        self.pos         = -1
+        
+        self.token_id    = ""
+        self.token_prev  = ""
+        self.token_str   = ""
+        
+        self.parse_data  = []
+        
+        self.parse_open(self.script_name)
+        self.source = self.parse_data[0]
+        
+        # ---------------------------------------------------------
+        # when config.ini does not exists, then create a small one:
+        # ---------------------------------------------------------
+        if not os.path.exists(self.__app__config_ini):
+            with open(self.__app__config_ini, "w", encoding="utf-8") as output_file:
+                content = (""
+                + "[common]\n"
+                + "language = en_us\n")
+                output_file.write(content)
+                output_file.close()
+                ini_lang = "en_us" # default is english; en_us
+        else:
+            config = configparser.ConfigParser()
+            config.read(self.__app__config_ini)
+            ini_lang = config.get("common", "language")
+        
+        _ = handle_language(ini_lang)
+    
+    def parse_open(self, file_name):
+        with open(self.script_name, 'r', encoding="utf-8") as self.file:
+            self.file.seek(0)
+            lines  = len(self.file.readlines())
+            self.file.seek(0)
+            source = self.file.read()
+            self.file.close()
+        self.parse_data.append(source)
+    
+    # -----------------------------------------------------------------------
+    # \brief  get one char from the input stream/source line.
+    #         the internal position cursor self.pos for the self.source will
+    #         be incdrement by 1 character. for statistics, the line column
+    #         position wull be updated.
+    #         if the sel.pos cursor is greater as self.source codem then the
+    #         end of data is marked, and python raise a silent "no errpr"
+    #         exception to stop the processing of data (to prevent data/buffer
+    #         overflow.
+    #
+    # \param  nothing
+    # \return char - The "non" whitespace character that was found between
+    #                existing comment types.
+    # \author paule32
+    # \since  1.0.0
+    # -----------------------------------------------------------------------
+    def getChar(self):
+        self.line_col += 1
+        self.pos += 1
+        
+        if self.pos >= len(self.source):
+            raise ENoParserError("")
+        else:
+            c = self.source[self.pos]
+            return c
+    
+    def ungetChar(self, num):
+        self.line_col -= num;
+        self.pos -= num;
+        c = self.source[self.pos]
+        return c
+    
+    def getIdent(self):
+        while True:
+            c = self.getChar()
+            if c.isspace():
+                return self.token_str
+            elif c.isspace():
+                return self.token_str
+            elif c.isalnum() or c == '_':
+                self.token_str += c
+            else:
+                self.pos -= 1
+                return self.token_str
+    
+    def getNumber(self):
+        while True:
+            c = self.getChar()
+            if c.isdigit():
+                self.token_str += c
+            else:
+                self.pos -= 1
+                return self.token_str
+    
+    # -----------------------------------------------------------------------
+    # \brief skip all whitespaces. whitespaces are empty lines, lines with
+    #        one or more spaces (0x20): " ", \t, "\n".
+    # -----------------------------------------------------------------------
+    def skip_white_spaces(self):
+        while True:
+            c = self.getChar()
+            if c == "\t" or c == " ":
+                self.line_col += 1
+                continue
+            elif c == "\n" or c == "\r":
+                self.line_col  = 1
+                self.line_row += 1
+                continue
+            elif c == '#':
+                while True:
+                    c = self.getChar()
+                    if c == "\n":
+                        self.line_col  = 1
+                        self.line_row += 1
+                        break
+            else:
+                return c
+    
+    # -----------------------------------------------------------------------
+    # \brief parse a one line comment: // for c++, ** and && for dBase ...
+    # -----------------------------------------------------------------------
+    def handle_oneline_comment(self):
+        while True:
+            c = self.getChar()
+            if c == "\n":
+                self.line_row += 1
+                self.line_col  = 1
+                break
+    
+    def parse(self):
+        with open(self.script_name, 'r', encoding="utf-8") as self.file:
+            self.file.seek(0)
+            self.total_lines = len(self.file.readlines())
+            self.file.seek(0)
+            self.source = self.file.read()
+            self.file.close()
+        
+        if len(self.source) < 1:
+            print("no data available.")
+            return
+        
+        while True:
+            c = self.skip_white_spaces()
+            self.token_str = c
+            self.getIdent()
+            if self.check_token():
+                print("OK")
+    
+    def check_token(self):
+        res = json.loads(getLangIDText("doxytoken"))
+        result = False
+        if self.token_str in res:
+            result = True
+            c = self.skip_white_spaces()
+            if c == '=':
+                self.token_prop = self.token_str
+                self.token_str = ""
+                c = self.skip_white_spaces()
+                if c.isalnum():
+                    self.token_str = c
+                    self.getIdent()
+                    return result
+                else:
+                    self.__unexpectedChar(c)
+            else:
+                self.__unexpectedChar(c)
+        else:
+            raise EInvalidParserError(self.token_str, self.line_row)
+            return False
+    
+    def __unexpectedToken(self):
+        __msg = "unexpected token: '" + self.token_str + "'"
+        self__unexpectedError(__msg)
+    
+    def __unexpectedChar(self, chr):
+        __msg = "unexpected character: '" + chr + "'"
+        self.__unexpectedError(__msg)
+    
+    def __unexpectedEndOfLine(self):
+        self.__unexpectedError("unexpected end of line")
+    
+    def __unexpectedEscapeSign(self):
+        self.__unexpectedError("nunexpected escape sign")
+    
+    def __unexpectedError(self, message):
+        calledFrom = inspect.stack()[1][3]
+        msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
+        msg = msg % (
+            self.line_row,
+            self.script_name)
+        print(msg)
+        sys.exit(1)
+
+class doxygenDSL:
+    def __init__(self):
+        self.script = None
+    
+    def __new__(self, script_name):
+        parser = interpreter_DoxyGen(script_name)
+        parser.parse()
+        
+        return self
+    
+    def parse(self):
+        return
+    
+    def run(self):
+        return
+
 # ------------------------------------------------------------------------
 # read a file into memory ...
 # ------------------------------------------------------------------------
@@ -1366,11 +2322,11 @@ def handle_language(lang):
         # todo: .ini over write
         # os.path.join(genv.v__locale__,genv.v__locale__sys[0])
         #
-        file_path = os.path.join(genv.v__locale__, genv.v__locale__enu)
-        file_path = os.path.join(file_path, "LC_MESSAGES")
-        file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
+        #file_path = os.path.join(genv.v__app__locales, genv.v__locale__enu)
+        #file_path = os.path.join(file_path, "LC_MESSAGES")
+        #file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
         #
-        _ = read_gzfile_to_memory(file_path)
+        _ = read_gzfile_to_memory(genv.v__app__locales)
         return _
     except Exception as e:
         exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
@@ -1379,7 +2335,7 @@ def handle_language(lang):
         print(f"Exception occur during handle language:")
         print(f"type : {exc_type.__name__}")
         print(f"value: {exc_value}")
-        print(misc.StringRepeat("-",40))
+        print(StringRepeat("-",40))
         #
         print(f"file : {tb.filename}")
         print(f"llline : {tb.lineno}")
@@ -1455,10 +2411,9 @@ def handleExceptionApplication(func,arg1=""):
         func(arg1)
     except NoOptionError:
         print("----")
-        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
-        print("==> " + genv.v__app__locale)
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
+        #genv.v__app__locales = os.path.join(genv.v__aoo__locales, "LC_MESSAGES")
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
     except ListInstructionError as ex:
         ex.add_note("Did you miss a parameter ?")
         ex.add_note("Add more information.")
@@ -1481,12 +2436,12 @@ def handleExceptionApplication(func,arg1=""):
         print(f"Exception occur:")
         print(f"type : {exc_type.__name__}")
         print(f"value: {exc_value}")
-        print(misc.StringRepeat("-",40))
+        print(StringRepeat("-",40))
         #
         print(f"file : {tb.filename}")
         print(f"line : {tb.lineno}")
         #
-        print(misc.StringRepeat("-",40))
+        print(StringRepeat("-",40))
         
         s = f"{ex.args}"
         parts = [part.strip() for part in s.split("'") if part.strip()]
@@ -1574,12 +2529,12 @@ class myDBaseTextEditor(QTextEdit):
         #    print(f"Exception occur during file load:")
         #    print(f"type : {exc_type.__name__}")
         #    print(f"value: {exc_value}")
-        #    print(misc.StringRepeat("-",40))
+        #    print(StringRepeat("-",40))
         #    #
         #    print(f"file : {tb.filename}")
         #    print(f"line : {tb.lineno}")
         #    #
-        #    print(misc.StringRepeat("-",40))
+        #    print(StringRepeat("-",40))
         #    print("file not found.")
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F2:
@@ -1781,35 +2736,27 @@ class myIconButton(QWidget):
         if mode == 0:
             self.image_fg = ptx + genv.v__app__helpdev__ + fg
             self.image_bg = ptx + genv.v__app__helpdev__ + bg
-        
         elif mode == 1:
             self.image_fg = ptx + genv.v__app__dbasedb__ + fg
             self.image_bg = ptx + genv.v__app__dbasedb__ + bg
-        
         elif mode == 2:
             self.image_fg = ptx + genv.v__app__freepas__ + fg
             self.image_bg = ptx + genv.v__app__freepas__ + bg
-        
         elif mode == 3:
             self.image_fg = ptx + genv.v__app__cpp1dev__ + fg
             self.image_bg = ptx + genv.v__app__cpp1dev__ + bg
-        
         elif mode == 4:
             self.image_fg = ptx + genv.v__app__javadev__ + fg
             self.image_bg = ptx + genv.v__app__javadev__ + bg
-        
         elif mode == 5:
             self.image_fg = ptx + genv.v__app__pythonc__ + fg
             self.image_bg = ptx + genv.v__app__pythonc__ + bg
-        
         elif mode == 6:
             self.image_fg = ptx + genv.v__app__lispmod__ + fg
             self.image_bg = ptx + genv.v__app__lispmod__ + bg
-        
         elif mode == 10:
             self.image_fg = ptx + genv.v__app__locales__ + fg
             self.image_bg = ptx + genv.v__app__locales__ + bg
-        
         elif mode == 11:
             self.image_fg = ptx + genv.v__app__com_c64__ + fg
             self.image_bg = ptx + genv.v__app__com_c64__ + bg
@@ -1822,9 +2769,12 @@ class myIconButton(QWidget):
         else:
             self.bordercolor = "lightgray"
         
+        self.image_fg = self.image_fg.replace("\\", "/")
+        self.image_bg = self.image_bg.replace("\\", "/")
+        
         style = _("labelico_css")        \
-        .replace("{fg}", self.image_fg.replace("\\","/"))  \
-        .replace("{bg}", self.image_bg.replace("\\","/"))  \
+        .replace("{fg}", self.image_fg)  \
+        .replace("{bg}", self.image_bg)  \
         .replace("{bc}", self.bordercolor)
         
         self.pix_label.setStyleSheet(style)
@@ -2294,8 +3244,8 @@ class customScrollView_1(myCustomScrollArea):
         layout.addLayout(layout_9)
         
         layout_10 = QVBoxLayout()
-        widget_10_button_1 = QPushButton("Convert" ,self); widget_10_button_1.setStyleSheet(css_button_style)
-        widget_10_button_2 = QPushButton("HelpNDoc",self); widget_10_button_2.setStyleSheet(css_button_style)
+        widget_10_button_1 = QPushButton("Convert" ,self); widget_10_button_1.setStyleSheet(_(genv.css_button_style))
+        widget_10_button_2 = QPushButton("HelpNDoc",self); widget_10_button_2.setStyleSheet(_(genv.css_button_style))
         #
         layout_10.addWidget(widget_10_button_1)
         layout_10.addWidget(widget_10_button_2)
@@ -3130,7 +4080,7 @@ class CustomItem(QStandardItem):
     def __init__(self, text, icon):
         super().__init__(text)
         self.icon = icon
-    
+        
     def paint(self, painter, option, index):
         super().paint(painter, option, index)
         
@@ -5746,7 +6696,7 @@ class FileWatcherGUI(QDialog):
         
         self.my_list = MyItemRecord(0, QStandardItem(""))
         self.init_ui()
-            
+        
     # --------------------
     # dialog exit ? ...
     # --------------------
@@ -6016,7 +6966,6 @@ class FileWatcherGUI(QDialog):
         #
         self.side_btn9 = myIconButton(self,  11, "C-64", "The most popular Commodore C-64\from int the 1980er")
         
-        
         self.side_btn1.bordercolor = "lime"
         self.side_btn1.state       = 2
         self.side_btn1.set_style()
@@ -6048,7 +6997,7 @@ class FileWatcherGUI(QDialog):
         
         # first register card - action's ...
         self.help_tabs = QTabWidget()
-        self.help_tabs.setStyleSheet(css_tabs)
+        self.help_tabs.setStyleSheet(_(genv.css_tabs))
         
         # help
         self.tab0_0 = QWidget()
@@ -6619,10 +7568,9 @@ class FileWatcherGUI(QDialog):
         self.tab1_file_tree.clicked.connect(self.tab1_file_tree_clicked)
         self.tab1_file_list.clicked.connect(self.tab1_file_list_clicked)
         
-        
         # Eingabezeile für den Pfad
         self.tab1_path_lineEdit = QLineEdit(self.tab1_0)
-        self.tab1_path_lineEdit.setStyleSheet(css_button_style)
+        self.tab1_path_lineEdit.setStyleSheet(_(genv.css_button_style))
         self.tab1_path_lineButton = QPushButton("...")
         self.tab1_path_lineButton.setMinimumWidth(28)
         self.tab1_path_lineButton.setMaximumHeight(28)
@@ -6637,19 +7585,19 @@ class FileWatcherGUI(QDialog):
         
         # Start und Stop Buttons
         self.tab1_startButton = QPushButton("Start", self.tab1_0)
-        self.tab1_startButton.setStyleSheet(css_button_style)
+        self.tab1_startButton.setStyleSheet(_(genv.css_button_style))
         self.tab1_startButton.clicked.connect(self.startWatching)
         self.tab1_left_layout.addWidget(self.tab1_startButton)
         
         self.tab1_stopButton = QPushButton('Stop', self.tab1_0)
-        self.tab1_stopButton.setStyleSheet(css_button_style)
+        self.tab1_stopButton.setStyleSheet(_(genv.css_button_style))
         self.tab1_stopButton.clicked.connect(self.stopWatching)
         self.tab1_left_layout.addWidget(self.tab1_stopButton)
         
         # ComboBox für Zeitangaben
         self.tab1_timeComboBox = QComboBox(self.tab1_0)
         self.tab1_timeComboBox.addItems(["10", "15", "20", "25", "30", "60", "120"])
-        self.tab1_timeComboBox.setStyleSheet(css_button_style)
+        self.tab1_timeComboBox.setStyleSheet(_(genv.css_button_style))
         self.tab1_timeComboBox.setMaximumWidth(49)
         self.tab1_left_layout.addWidget(self.tab1_timeComboBox)
         
@@ -6679,7 +7627,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_pre_layout = QHBoxLayout()
         
         self.tab1_preEditLineText = QLineEdit(self.tab1_0)
-        self.tab1_preEditLineText.setStyleSheet(css_button_style)
+        self.tab1_preEditLineText.setStyleSheet(_(genv.css_button_style))
      
         self.tab1_path_lineButton.setMaximumHeight(28)
         
@@ -6689,13 +7637,13 @@ class FileWatcherGUI(QDialog):
         self.tab1_middle_layout.addLayout(self.tab1_pre_layout)
         
         self.tab1_preAddButton = QPushButton("Add")
-        self.tab1_preAddButton.setStyleSheet(css_button_style)
+        self.tab1_preAddButton.setStyleSheet(_(genv.css_button_style))
         #
         self.tab1_preDelButton = QPushButton("Delete")
-        self.tab1_preDelButton.setStyleSheet(css_button_style)
+        self.tab1_preDelButton.setStyleSheet(_(genv.css_button_style))
         #            
         self.tab1_preClrButton = QPushButton("Clear All")
-        self.tab1_preClrButton.setStyleSheet(css_button_style)
+        self.tab1_preClrButton.setStyleSheet(_(genv.css_button_style))
         
         self.tab1_preAddButton.clicked.connect(self.button_clicked_preadd)
         self.tab1_preDelButton.clicked.connect(self.button_clicked_preDel)
@@ -6726,19 +7674,19 @@ class FileWatcherGUI(QDialog):
         self.tab1_post_layout = QHBoxLayout()
         
         self.tab1_postEditLineText = QLineEdit(self.tab1_0)
-        self.tab1_postEditLineText.setStyleSheet(css_button_style)
+        self.tab1_postEditLineText.setStyleSheet(_(genv.css_button_style))
         #
         self.tab1_post_layout.addWidget(self.tab1_postEditLineText)
         self.tab1_right_layout.addLayout(self.tab1_post_layout)
         
         self.tab1_postAddButton = QPushButton("Add")
-        self.tab1_postAddButton.setStyleSheet(css_button_style)
+        self.tab1_postAddButton.setStyleSheet(_(genv.css_button_style))
         #
         self.tab1_postDelButton = QPushButton("Delete")
-        self.tab1_postDelButton.setStyleSheet(css_button_style)
+        self.tab1_postDelButton.setStyleSheet(_(genv.css_button_style))
         #
         self.tab1_postClrButton = QPushButton("Clear All")
-        self.tab1_postClrButton.setStyleSheet(css_button_style)
+        self.tab1_postClrButton.setStyleSheet(_(genv.css_button_style))
         
         self.tab1_postAddButton.clicked.connect(self.button_clicked_postadd)
         self.tab1_postDelButton.clicked.connect(self.button_clicked_postDel)
@@ -6756,7 +7704,7 @@ class FileWatcherGUI(QDialog):
         self.profile1 = QWebEngineProfile("storage1", self.webView1)
         self.page1    = QWebEnginePage(self.profile1, self.webView1)
         self.webView1.setPage(self.page1)
-        self.webView1.setHtml(html_content, baseUrl = QUrl. fromLocalFile('.'))
+        #self.webView1.setHtml(genv.html_content, baseUrl = QUrl.fromLocalFile('.'))
         
         self.tab5_top_layout.addWidget(self.webView1);            
         self.tab0_top_layout.addLayout(self.tab0_left_layout)
@@ -6974,7 +7922,7 @@ class FileWatcherGUI(QDialog):
     
     def handleDBase(self):
         self.dbase_tabs = QTabWidget()
-        self.dbase_tabs.setStyleSheet(css_tabs)
+        self.dbase_tabs.setStyleSheet(_(genv.css_tabs))
         self.dbase_tabs.hide()
         
         self.dbase_tabs_project_widget = QWidget()
@@ -7066,7 +8014,7 @@ class FileWatcherGUI(QDialog):
         ####
         #
         self.dbase_tabs_files  = QTabWidget()
-        self.dbase_tabs_files.setStyleSheet(css_tabs)
+        self.dbase_tabs_files.setStyleSheet(_(genv.css_tabs))
         self.dbase_tabs_files.addTab(self.dbase_file_widget1, "Example1.prg")
         self.dbase_tabs_files.addTab(self.dbase_file_widget2, "Example2.prg")
         
@@ -7233,7 +8181,7 @@ class FileWatcherGUI(QDialog):
     # pascal
     def handlePascal(self):
         self.pascal_tabs = QTabWidget()
-        self.pascal_tabs.setStyleSheet(css_tabs)
+        self.pascal_tabs.setStyleSheet(_(genv.css_tabs))
         self.pascal_tabs.hide()
         
         self.pascal_tabs_project_widget = QWidget()
@@ -7313,7 +8261,7 @@ class FileWatcherGUI(QDialog):
     # isoc
     def handleIsoC(self):
         self.isoc_tabs = QTabWidget()
-        self.isoc_tabs.setStyleSheet(css_tabs)
+        self.isoc_tabs.setStyleSheet(_(genv.css_tabs))
         self.isoc_tabs.hide()
         
         self.isoc_tabs_project_widget = QWidget()
@@ -7387,7 +8335,7 @@ class FileWatcherGUI(QDialog):
     def handleJava(self):
         # java
         self.java_tabs = QTabWidget()
-        self.java_tabs.setStyleSheet(css_tabs)
+        self.java_tabs.setStyleSheet(_(genv.css_tabs))
         self.java_tabs.hide()
         
         self.java_tabs_project_widget = QWidget()
@@ -7460,7 +8408,7 @@ class FileWatcherGUI(QDialog):
     # python
     def handlePython(self):
         self.python_tabs = QTabWidget()
-        self.python_tabs.setStyleSheet(css_tabs)
+        self.python_tabs.setStyleSheet(_(genv.css_tabs))
         self.python_tabs.hide()
         
         self.python_tabs_project_widget = QWidget()
@@ -7532,7 +8480,7 @@ class FileWatcherGUI(QDialog):
     # lisp
     def handleLISP(self):
         self.lisp_tabs = QTabWidget()
-        self.lisp_tabs.setStyleSheet(css_tabs)
+        self.lisp_tabs.setStyleSheet(_(genv.css_tabs))
         self.lisp_tabs.hide()
         
         self.lisp_tabs_project_widget = QWidget()
@@ -7604,7 +8552,7 @@ class FileWatcherGUI(QDialog):
     # locale
     def handleLocales(self):
         self.locale_tabs = QTabWidget()
-        self.locale_tabs.setStyleSheet(css_tabs)
+        self.locale_tabs.setStyleSheet(_(genv.css_tabs))
         self.locale_tabs.hide()
         
         self.locale_tabs_project_widget = QWidget()
@@ -8061,7 +9009,7 @@ class FileWatcherGUI(QDialog):
     
     def handleCommodoreC64(self):
         self.c64_tabs = QTabWidget()
-        self.c64_tabs.setStyleSheet(css_tabs)
+        self.c64_tabs.setStyleSheet(_(genv.css_tabs))
         self.c64_tabs.hide()
         
         
@@ -8087,7 +9035,6 @@ class FileWatcherGUI(QDialog):
         self.c64_keyboard_label = QLabel(self.c64_frame_unten)
         self.c64_keyboard_pixmap = QPixmap(genv.v__app__keybc64__)
         self.c64_keyboard_label.setPixmap(self.c64_keyboard_pixmap)
-        
         
         #####
         c64_logo_label  = QLabel(self.c64_frame_unten)
@@ -8357,12 +9304,12 @@ class licenseWindow(QDialog):
             print(f"Exception occur at license view:")
             print(f"type : {exc_type.__name__}")
             print(f"value: {exc_value}")
-            print(misc.StringRepeat("-",40))
+            print(StringRepeat("-",40))
             #
             print(f"file : {tb.filename}")
             print(f"line : {tb.lineno}")
             #
-            print(misc.StringRepeat("-",40))
+            print(StringRepeat("-",40))
             sys.exit(genv.EXIT_FAILURE)
         
         self.setWindowTitle("LICENSE - Please read, before you start.")
@@ -8415,7 +9362,7 @@ def ApplicationAtExit():
 def EntryPoint(arg1=None):
     atexit.register(ApplicationAtExit)
     
-    genv.v__app__comment_hdr  = ("# " + misc.StringRepeat("-",78) + "\n")
+    genv.v__app__comment_hdr  = ("# " + StringRepeat("-",78) + "\n")
     
     global conn
     global conn_cursor
@@ -8557,6 +9504,288 @@ def EntryPoint(arg1=None):
         print("info: config: '" \
         + f"{genv.doxyfile}" + "' does not exists. I will fix this by create a default file.")
         
+        file_content = [
+            ["PROJECT_NAME", "Project name"],
+            ["PROJECT_NUMBER", "1.0.0" ],
+            ["PROJECT_LOGO", "" ],
+            ["",""],
+            ["DOXYFILE_ENCODING", "UTF-8"],
+            ["INPUT_ECODING", "UTF-8"],
+            ["INPUT_FILE_ENCODING", "UTF-8"],
+            ["",""],
+            ["ALLOW_UNICODE_NAMES", "YES"],
+            ["",""],
+            ["ENABLED_SECTIONS", "english"],
+            ["OUTPUT_LANGUAGE", "English"],
+            ["OUTPUT_DIRECTORY", "./dox/enu/dark"],
+            ["",""],
+            ["CHM_FILE", "project.chm"],
+            ["HHC_LOCATION", ""],
+            ["",""],
+            ["GENERATE_HTML", "YES"],
+            ["GENERATE_HTMLHELP", "YES"],
+            ["GENERATE_TREEVIEW", "NO"],
+            ["GENERATE_LATEX", "NO"],
+            ["GENERATE_CHI", "NO"],
+            ["",""],
+            ["HTML_OUTPUT", "html"],
+            ["HTML_COLORSTYLE", "DARK"],
+            ["",""],
+            ["BINARY_TOC", "NO"],
+            ["TOC_EXPAND", "NO"],
+            ["",""],
+            ["DISABLE_INDEX", "NO"],
+            ["FULL_SIDEBAR", "NO"],
+            ["",""],
+            ["INPUT", ""],
+            ["",""],
+            ["BRIEF_MEMBER_DESC", "YES"],
+            ["REPEAT_BRIEF", "YES"],
+            ["",""],
+            ["FILE_PATTERNS", "*.c *.cc *.cxx *.cpp *.c++ *.h *.hh *.hxx *.hpp *.h++"],
+            ["ALIASES", ""],
+            ["",""],
+            ["CREATE_SUBDIRS", "YES"],
+            ["CREATE_SUBDIRS_LEVEL", "8"],
+            ["",""],
+            ["ALWAYS_DETAILED_SEC", "YES"],
+            ["INLINE_INHERITED_MEMB", "YES"],
+            ["",""],
+            ["FULL_PATH_NAMES", "NO"],
+            ["SHORT_NAMES", "NO"],
+            ["",""],
+            ["STRIP_FROM_PATH", "YES"],
+            ["STRIP_FROM_INC_PATH", "YES"],
+            ["",""],
+            ["MULTILINE_CPP_IS_BRIEF", "NO"],
+            ["INHERITED_DOCS", "YES"],
+            ["SEPERATE_MEMBER_PAGES", "NO"],
+            ["",""],
+            ["TAB_SIZE", "8"],
+            ["",""],
+            ["OPTIMIZE_OUTPUT_FOR_C", "YES"],
+            ["OPTIMIZE_OUTPUT_JAVA", "NO"],
+            ["OPTIMIZE_FOR_FORTRAN", "NO"],
+            ["",""],
+            ["EXTERNAL_MAPPING", ""],
+            ["",""],
+            ["TOC_INCLUDE_HEADINGS", "5"],
+            ["AUTOLINK_SUPPORT", "YES"],
+            ["",""],
+            ["BUILTIN_STL_SUPPORT", "NO"],
+            ["CPP_CLI_SUPPORT", "YES"],
+            ["",""],
+            ["SIP_SUPPORT", "NO"],
+            ["IDL_PROPERTY_SUPPORT", "YES"],
+            ["",""],
+            ["DISTRIBUTE_GROUP_DOC", "NO"],
+            ["GROUP_NESTED_COMPOUNDS", "NO"],
+            ["SUBGROUPING", "YES"],
+            ["",""],
+            ["INLINE_GROUPED_CLASSES", "NO"],
+            ["INLINE_SIMPLE_STRUCTS", "NO"],
+            ["",""],
+            ["TYPEDEF_HIDES_STRUCT", "NO"],
+            ["",""],
+            ["LOOKUP_CACHE_SIZE", "0"],
+            ["NUM_PROC_THREADS", "1"],
+            ["CASE_SENSE_NAMES", "YES"],
+            ["",""],
+            ["EXTRACT_ALL", "YES"],
+            ["EXTRACT_PRIVATE", "NO"],
+            ["EXTRAVT_PRIV_VIRTUAL", "NO"],
+            ["EXTRACT_PACKAGE", "NO"],
+            ["EXTRACT_STATIC", "YES"],
+            ["EXTRACT_LOCAL_CLASSES", "YES"],
+            ["EXTRACT_LOCAL_METHODS", "YES"],
+            ["EXTRACT_ANON_NSPACES", "YES"],
+            ["",""],
+            ["RESOLVE_UNUSED_PARAMS", "YES"],
+            ["",""],
+            ["HIDE_UNDOC_MEMBERS", "NO"],
+            ["HIDE_UNDOC_CLASSES", "NO"],
+            ["HIDE_UNDOC_RELATIONS", "NO"],
+            ["",""],
+            ["HIDE_FRIEND_COMPOUNDS", "NO"],
+            ["HIDE_IN_BODY_DOCS", "NO"],
+            ["HIDE_SCOPE_NAMES", "NO"],
+            ["HIDE_COMPOUND_REFERENCE", "NO"],
+            ["",""],
+            ["INTERNAL_DOCS", "YES"],
+            ["",""],
+            ["SHOW_HEADERFILE", "NO"],
+            ["SHOW_INCLUDE_FILES", "NO"],
+            ["SHOW_GROUPED_MEMB_INC", "NO"],
+            ["",""],
+            ["FORCE_LOCAL_INCLUDES", "NO"],
+            ["",""],
+            ["INLINE_INFO", "NO"],
+            ["",""],
+            ["SORT_MEMBER_DOCS", "YES"],
+            ["SORT_BRIEF_DOCS", "YES"],
+            ["SORT_MEMBERS_CTORS_IST", "NO"],
+            ["SORT_GROUP_NAMES", "NO"],
+            ["SORT_BY_SCOPE_NAME", "YES"],
+            ["",""],
+            ["STRICT_PROTO_MATCHING", "NO"],
+            ["",""],
+            ["GENERATE_TODO_LIST", "YES"],
+            ["GENERATE_TESTLIST", "YES"],
+            ["GENERATE_BUGLIST", "YES"],
+            ["GENERATE_DEPRECATEDLIST", "YES"],
+            ["",""],
+            ["MAX_INITIALIZER_LINES", "30"],
+            ["",""],
+            ["SHOW_FILES", "NO"],
+            ["SHOW_USED_FILES", "NO"],
+            ["SHOW_NAMESPACES", "YES"],
+            ["",""],
+            ["FILE_VERSION_FILTER", ""],
+            ["CITE_BIB_FILES", ""],
+            ["",""],
+            ["RECURSIVE", "NO"],
+            ["",""],
+            ["EXCLUDE", ""],
+            ["EXCLUDE_SYMLINKS", "NO"],
+            ["EXCLUDE_PATTERNS", ""],
+            ["EXCLUDE_SYMBOLS", ""],
+            ["",""],
+            ["EXAMPLE_PATH", "./src/doc"],
+            ["EXAMPLE_PATTERNS", "*"],
+            ["EXAMPLE_RECURSIVE", "NO"],
+            ["",""],
+            ["IMAGE_PATH", ""],
+            ["INPUT_FILTER", ""],
+            ["",""],
+            ["FILTER_PATTERNS", ""],
+            ["FILTER_SOURCE_FILES", "NO"],
+            ["FILTER_SOURCE_PATTERNS", ""],
+            ["",""],
+            ["USE_MDFILE_AS_MAINPAGE", ""],
+            ["",""],
+            ["SOURCE_BROWSER", "NO"],
+            ["INLINE_SOURCES", "NO"],
+            ["",""],
+            ["STRIP_CODE_COMMENTS", "YES"],
+            ["",""],
+            ["REFERENCES_RELATION", "YES"],
+            ["REFERENCES_LINK_SOURCE", "NO"],
+            ["",""],
+            ["SOURCE_TOOLTIPS", "NO"],
+            ["USE_HTAGS", "NO"],
+            ["VERBATIM_HEADERS", "NO"],
+            ["",""],
+            ["ALPHABETICAL_INDEX", "YES"],
+            ["",""],
+            ["IGNORE_PREFIX", ""],
+            ["",""],
+            ["ENUM_VALUES_PER_LINE", "4"],
+            ["",""],
+            ["HTML_FILE_EXTENSION", ".html"],
+            ["HTML_CODE_FOLDING", "NO"],
+            ["HTML_COPY_CLIPBOARD", "NO"],
+            ["",""],
+            ["HTML_HEADER", ""],
+            ["HTML_FOOTER", "./src/doc/empty.html"],
+            ["HTML_STYLESHEET", ""],
+            ["",""],
+            ["HTML_EXTRA_STYLESHEET", "./doxyfile.css"],
+            ["HTML_EXTRA_FILES", ""],
+            ["",""],
+            ["HTML_COLORSTYLE_HUE", "220"],
+            ["HTML_COLORSTYLE_SAT", "100"],
+            ["HTML_COLORSTYLE_GAMMA", "80"],
+            ["",""],
+            ["HTML_DYNAMIC_MENUS", "NO"],
+            ["HTML_DYNAMIC_SECTIONS", "NO"],
+            ["",""],
+            ["HTML_INDEX_NUM_ENTRIES", "100"],
+            ["",""],
+            ["TREEVIEW_WIDTH", "210"],
+            ["",""],
+            ["EXT_LINKS_IN_WINDOW", "NO"],
+            ["OBFUSCATE_EMAILS", "YES"],
+            ["",""],
+            ["HAVE_DOT", "NO"],
+            ["DOT_PATH", ""],
+            ["DIA_PATH", ""],
+            ["",""],
+            ["DOT_COMMON_ATTR", "'fontname=FreeSans@fontsize=10'"],
+            ["DOT_EDGE_ATTR", "'labelfontname=FreeSans@labelfontsize=10'"],
+            ["DOT_NODE_ATTR", "'shape=box@height=02@width=04'"],
+            ["DOT_FONTPATH", ""],
+            ["",""],
+            ["USE_MATHJAX", "NO"],
+            ["",""],
+            ["MATHJAX_VERSION", "MathJax_2"],
+            ["MATHJAX_FORMAT", "HTML-CSS"],
+            ["MATHJAX_RELPATH", ""],
+            ["MATHJAX_EXTENSIONS", ""],
+            ["MATHJAX_CODEFILE", ""],
+            ["",""],
+            ["HTML_FORMULA_FORMAT", "png"],
+            ["",""],
+            ["FORMULA_FONTSIZE", "10"],
+            ["FORMULA_MACROFILE", ""],
+            ["",""],
+            ["SEARCH_ENGINE", "NO"],
+            ["SERVER_BASED_SEARCH", "NO"],
+            ["",""],
+            ["EXTERNAL_SEARCH", "NO"],
+            ["EXTERNAL_SEARCH_ID", "NO"],
+            ["",""],
+            ["EXTERNAL_GROUPS", "YES"],
+            ["EXTERNAL_PAGES", "YES"],
+            ["",""],
+            ["GENERATE_AUTOGEN_DEF", "NO"],
+            ["",""],
+            ["ENABLE_PREPROCESSING", "YES"],
+            ["MACRO_EXPANSION", "YES"],
+            ["EXPAND_ONLY_PREDEF", "NO"],
+            ["",""],
+            ["SEARCH_INCLUDES", "NO"],
+            ["",""],
+            ["INCLUDE_PATH", ""],
+            ["INCLUDE_FILE_PATTERNS", ""],
+            ["",""],
+            ["PREDEFINED", ""],
+            ["EXPAND_AS_DEFINED", ""],
+            ["SKIP_FUNCTION_MACROS", "YES"],
+            ["",""],
+            ["TAGFILES", ""],
+            ["GENERATE_TAGFILE", ""],
+            ["ALLEXTERNALS", "NO"],
+            ["",""],
+            ["CLASS_GRAPH", "YES"],
+            ["COLLABORATION_GRAPH", "YES"],
+            ["GROUP_GRAPHS", "YES"],
+            ["",""],
+            ["UML_LOOK", "NO"],
+            ["UML_LIMIT_NUM_FIELDS", "10"],
+            ["",""],
+            ["DOT_UML_DETAILS", "NO"],
+            ["DOT_WRAP_THRESHOLD", "17"],
+            ["DOT_CLEANUP", "YES"],
+            ["",""],
+            ["TEMPLATE_RELATIONS", "YES"],
+            ["",""],
+            ["INCLUDE_GRAPH", "YES"],
+            ["INCLUDED_BY_GRAPH", "YES"],
+            ["",""],
+            ["CALL_GRAPH", "NO"],
+            ["CALLER_GRAPH", "NO"],
+            ["",""],
+            ["GRAPHICAL_HIERARCHY", "YES"],
+            ["DIRECTORY_GRAPH", "YES"],
+            ["DIR_GRAPH_MAX_DEPTH", "5"],
+            ["",""],
+            ["DOT_IMAGE_FORMAT", "png"],
+            ["",""],
+            ["DOT_GRAPH_MAX_NODES", "50"],
+            ["MAX_DOT_GRAPH_DEPTH", "1000"],
+            ["",""],
+            ["GENERATE_LEGEND", "YES"],
+        ]
         file_content_warn = [
             ["QUIET", "YES"],
             ["WARNINGS", "YES"],
@@ -8570,7 +9799,7 @@ def EntryPoint(arg1=None):
             ["WARN_LINE_FORMAT", "\"at line $line of file $file\""],
             ["WARN_LOGFILE", "warnings.log"]
         ]
-        with open(doxyfile, 'w') as file:
+        with open(genv.doxyfile, 'w') as file:
             file.write(genv.v__app__comment_hdr)
             file.write("# File: Doxyfile\n")
             file.write("# Author: (c) 2024 Jens Kallup - paule32 non-profit software\n")
