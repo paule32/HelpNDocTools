@@ -26,7 +26,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Build for Windows
-      - uses: actions/checkout@v3
+        uses: actions/checkout@v3
       # ------------------------------
       # pre-installed Python check ...
       # ------------------------------
