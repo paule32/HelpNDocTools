@@ -140,8 +140,9 @@ pyinstaller --noconfirm --console  ^
     --paths="%PRJ%/src/tools"               ^
     --paths="%PRJ%/src"                     ^
     ^
-    --add-data="%PRJ%/src/locales;locales/" ^
-    --add-data="%PRJ%/src/img;img/"         ^
+    --add-data="%PRJ%/_internal/locales;locales/" ^
+    --add-data="%PRJ%/_internal/img;img/"   ^
+    --add-data="%PRJ%/_internal/img/flags;img/flags"   ^
     --add-data="%PRJ%/LICENSE;."            ^
     --add-data="%PRJ%/README.md;."          ^
     --add-data="%PRJ%/CONTRIBUTING.md;."    ^
