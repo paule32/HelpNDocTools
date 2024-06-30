@@ -77,25 +77,25 @@ jobs:
       # ------------------------------------------------------
       # we must upload artifact, before we can download it ...
       # ------------------------------------------------------
-      - name: Build binary directory ...
-        shell: pwsh
-        run: |
-          $env:MY_WORK_DIR = "${{ github.workspace }}"
-          D:
-          cd $env:MY_WORK_DIR
-          mkdir builds/windows
-          dir
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          path: /builds/windows
+      #- name: Build binary directory ...
+      #  shell: pwsh
+      #  run: |
+      #    $env:MY_WORK_DIR = "${{ github.workspace }}"
+      #    D:
+      #    cd $env:MY_WORK_DIR
+      #    mkdir builds/windows
+      #    dir
+      #- name: Upload
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    path: /builds/windows
       # ------------------------------------------------------
       # now, we can download the artifact ...
       # ------------------------------------------------------
-      - name: Download a single artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: /builds/windows
+      #- name: Download a single artifact
+      #  uses: actions/download-artifact@v4
+      #  with:
+      #    path: /builds/windows
 
   # -----------------------------------
   # optimized for Linux - not tested !
