@@ -92,7 +92,7 @@ for %%A in (en_us, de_de) do (
         )
     )
 )
-goto TheEnd
+::goto TheEnd
 :: ---------------------------------------------------------------------------
 :: Python can produce byte-code, and executable files to speed up the loading
 :: and for information hidding ...
@@ -121,10 +121,10 @@ cd ..
 if errorlevel 1 ( goto error_bytecode )
 echo  ok   ]
 pyinstaller --noconfirm --console  ^
-    --icon="%PRJ%/src/img/floppy-disk.ico"  ^
+    --icon="%PRJ%/src/_internal/img/floppy-disk.ico"  ^
     --clean       ^
     --log-level="WARN"   ^
-    --splash="%PRJ%/src/img/splash.png"     ^
+    --splash="%PRJ%/src/_internal/img/splash.png"     ^
     --strip                                 ^
     --hide-console="minimize-late"          ^
     --version-file="%PRJ%/src/version.info" ^
@@ -147,11 +147,7 @@ pyinstaller --noconfirm --console  ^
     --add-data="%PRJ%/CONTRIBUTING.md;."    ^
     --add-data="%PRJ%/CODE_OF_CONDUCT.md;." ^
     --add-data="%PRJ%/src/topics.txt;."     ^
-    --add-data="%PRJ%/src/test.byte;."      ^
-    --add-data="%PRJ%/src/test.txt;."       ^
     ^
-    --collect-submodules="%PRJ%/src/exapp.py"            ^
-    --collect-submodules="%PRJ%/src/exclasses.py"        ^
     --collect-submodules="%PRJ%/src/appcollection.py"    ^
     --collect-submodules="%PRJ%/src/__init__.py"         ^
     --collect-submodules="%PRJ%/src/tools/collection.py" ^
@@ -167,8 +163,6 @@ pyinstaller --noconfirm --console  ^
     --collect-submodules="%PRJ%/src/interpreter/RunTimeLibrary.py"   ^
     --collect-submodules="%PRJ%/src/interpreter/VisualComponentLibrary.py" ^
     --collect-submodules="%PRJ%/src/interpreter/doxygen/doxygen.py"        ^
-    --collect-submodules="%PRJ%/src/interpreter/dbase/dbaseConsole.py"     ^
-    --collect-submodules="%PRJ%/src/interpreter/dbase/dbase.py"   ^
     --collect-submodules="%PRJ%/src/interpreter/pascal/pascal.py" ^
     ^
     --hidden-import="shutil"          ^

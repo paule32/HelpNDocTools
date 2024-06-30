@@ -43,7 +43,7 @@ if 'PYTHONPATH' in os.environ:
 # ---------------------------------------------------------------------------
 class globalEnv:
     def __init__(self):
-        self.v__app__debug        = True
+        self.v__app__debug        = False
         
         self.v__app__app_dir__    = os.path.dirname(os.path.abspath(__file__))
         self.v__app__modul__      = os.path.join(self.v__app__app_dir__, "")
@@ -85,9 +85,9 @@ class globalEnv:
         self.currentTextChanged_connected  = False
         self.currentIndexChanged_connected = False
         
-        self.view_pressed_connected = False
-        self.rhs_stateChanged_connected = False
-        self.blockCountChanged_connected = False
+        self.view_pressed_connected          = False
+        self.rhs_stateChanged_connected      = False
+        self.blockCountChanged_connected     = False
         self.cursorPositionChanged_connected = False
         
         self.btn_add_connected    = False
@@ -98,6 +98,9 @@ class globalEnv:
         self.prevButton_connected = False
         self.exitButton_connected = False
         
+        self.v__app_object        = None
+        self.v__app_win           = None
+        #
         self.v__app__img_ext__    = ".png"
         self.v__app__font         = "Arial"
         self.v__app__font_edit    = "Consolas"
@@ -107,7 +110,7 @@ class globalEnv:
         
         self.v__app__error_level  = "0"
         
-        self.v__app__scriptname__ = ""
+        self.v__app__scriptname__ = "./examples/dbase/example1.prg"
         
         # ------------------------------------------------------------------------
         self.v__app__config   = None
@@ -148,8 +151,6 @@ class globalEnv:
         self.doxyfile   = os.path.join(self.v__app__internal__, "Doxyfile")
         
         self.error_fail = False
-        self.app = None
-        self.appwin = None
         
         self.byte_code = None
 
@@ -233,7 +234,6 @@ try:
     
     from VisualComponentLibrary import *
     
-    from dbaseConsole     import *
     from EParserException import *     # exception handling for use with parser
     from RunTimeLibrary   import *     # rtl functions for parser
     
@@ -566,6 +566,37 @@ __error__locales_error = "" \
 css_model_header   = "model_hadr"
 css_combobox_style = "combo_actn"
 
+class consoleApp():
+    def __init__(self):
+        init(autoreset = True)
+        sys.stdout.write(Fore.RESET + Back.RESET + Style.RESET_ALL)
+        return
+    
+    def cls(self):
+        sys.stdout.write("\033[H\033[2J")
+        sys.stdout.flush()
+        return
+    
+    def gotoxy(self, xpos, ypos):
+        sys.stdout.write("\033["
+        + str(ypos) + ";"
+        + str(xpos) + "H")
+        sys.stdout.flush()
+        return
+    
+    def print(self, data):
+        sys.stdout.write(data)
+        sys.stdout.flush()
+        return
+    
+    def print_date(self):
+        dat = datetime.datetime.now()
+        sys.stdout.write(dat.strftime("%Y-%m-%d"))
+        sys.stdout.flush()
+
+genv.dbase_console = None
+genv.dbase_console = consoleApp()
+
 class FileSystemWatcher(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -805,9 +836,6 @@ class interpreter_dBase:
     def __init__(self, fname):
         self.script_name = fname
         
-        genv.dbase_console = None
-        genv.dbase_console = consoleApp()
-        
         self.line_row    = 1
         self.line_col    = 1
         
@@ -901,7 +929,7 @@ if __name__ == '__main__':
         print(self.text_code)
         input("press enter to start...")
         
-        self.text_code += "print('Hello World !')\n"
+        #self.text_code += "print('Hello World !')\n"
         
         bytecode_text = compile(
             self.text_code,
@@ -1189,11 +1217,18 @@ if __name__ == '__main__':
                 raise Exception("comma expected.")
     
     def parse(self):
+        self.token_str = ""
+        self.text_code = ""
+        
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
             self.file.seek(0)
+            self.total_lines = 0
             self.total_lines = len(self.file.readlines())
             self.file.seek(0)
+            
+            self.source = ""
             self.source = self.file.read()
+            
             genv.v__app__logging.debug("lines: " + str(self.total_lines))
             self.file.close()
         
@@ -1355,13 +1390,20 @@ def handle_language(lang):
 # check, if the gui application is initialized by an instance of app ...
 # ------------------------------------------------------------------------
 def isApplicationInit():
-    app_instance = QApplication.instance()
-    return app_instance is not None
+    if genv.v__app_object == None:
+        genv.v__app_object = QApplication(sys.argv)
+    # ----------------------------------------------
+    if genv.v__app_object.instance() == None:
+        genv.v__app_object = QApplication(sys.argv)
+    return True
 
 # ------------------------------------------------------------------------
 # methode to show information about this application script ...
 # ------------------------------------------------------------------------
 def showInfo(text):
+    if not genv.v__app_object:
+        genv.v__app_object = QApplication(sys.argv)
+    
     infoWindow = QMessageBox()
     infoWindow.setIcon(QMessageBox.Information)
     infoWindow.setWindowTitle("Information")
@@ -1370,7 +1412,7 @@ def showInfo(text):
 
 def showApplicationInformation(text):
     if isApplicationInit() == False:
-        app = QApplication(sys.argv)
+        genv.v__app_object = QApplication(sys.argv)
         showInfo(text)
     else:
         print(text)
@@ -1379,6 +1421,9 @@ def showApplicationInformation(text):
 # methode to show error about this application script ...
 # ------------------------------------------------------------------------
 def showError(text):
+    if not isApplicationInit():
+        genv.v__app_object = QApplication(sys.argv)
+    
     infoWindow = QMessageBox()
     infoWindow.setIcon(QMessageBox.Critical)
     infoWindow.setWindowTitle("Error")
@@ -1388,7 +1433,7 @@ def showError(text):
 
 def showApplicationError(text):
     if isApplicationInit() == False:
-        app = QApplication(sys.argv)
+        genv.v__app_object = QApplication(sys.argv)
         showError(text)
     else:
         print(text)
@@ -1514,27 +1559,28 @@ class myDBaseTextEditor(QTextEdit):
         self.setMaximumHeight(545)
         self.setMinimumHeight(545)
         self.setLineWrapMode(QTextEdit.NoWrap)
-        try:
-            if not name == None:
-                self.script_name = genv.v__app__scriptname__
-                with open(self.script_name, "r") as file:
-                    text = file.read()
-                    self.setText(text)
-                    file.close()
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-            tb = traceback.extract_tb(e.__traceback__)[-1]
-            
-            print(f"Exception occur during file load:")
-            print(f"type : {exc_type.__name__}")
-            print(f"value: {exc_value}")
-            print(misc.StringRepeat("-",40))
-            #
-            print(f"file : {tb.filename}")
-            print(f"line : {tb.lineno}")
-            #
-            print(misc.StringRepeat("-",40))
-            print("file not found.")
+        
+        #try:
+        #    #if not name == None:
+        #    #    self.script_name = genv.v__app__scriptname__
+        #    #    with open(self.script_name, "r") as file:
+        #    #        text = file.read()
+        #    #        self.setText(text)
+        #    #        file.close()
+        #except Exception as e:
+        #    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+        #    tb = traceback.extract_tb(e.__traceback__)[-1]
+        #    
+        #    print(f"Exception occur during file load:")
+        #    print(f"type : {exc_type.__name__}")
+        #    print(f"value: {exc_value}")
+        #    print(misc.StringRepeat("-",40))
+        #    #
+        #    print(f"file : {tb.filename}")
+        #    print(f"line : {tb.lineno}")
+        #    #
+        #    print(misc.StringRepeat("-",40))
+        #    print("file not found.")
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F2:
             print("\a")
@@ -5667,11 +5713,11 @@ class CustomWidget2(QWidget):
                 
                 prg = None
                 prg = dBaseDSL(script_name)
-                prg.parser.parse()
+                #prg.parser.parse()
                 print("\nend of data")
                 
-                prg.parser.run()
-                prg.parser.finalize()
+                #prg.parser.run()
+                #prg.parser.finalize()
             else:
                 print("no editor selected.")
     
@@ -5700,7 +5746,7 @@ class FileWatcherGUI(QDialog):
         
         self.my_list = MyItemRecord(0, QStandardItem(""))
         self.init_ui()
-    
+            
     # --------------------
     # dialog exit ? ...
     # --------------------
@@ -6440,6 +6486,7 @@ class FileWatcherGUI(QDialog):
         #
         #self.img_scroll2_layout.addWidget(self.tab0_fold_scroll2)
         #
+        
         global img_ccpplus
         global img_javadoc
         global img_freepas
@@ -6730,7 +6777,7 @@ class FileWatcherGUI(QDialog):
         
         self.interval = 0
         self.currentTime = 0
-    
+        
     # folder tree
     def openContextMenuTreeView(self, position):
         indexes = self.tab0_file_tree.selectedIndexes()
@@ -8378,12 +8425,13 @@ def EntryPoint(arg1=None):
     
     topic_counter = 1
     
-    if not arg1 == None:
-        genv.v__app__scriptname__ = arg1
-        if not os.path.exists(genv.v__app__scriptname__):
-            print("script does not exists !")
-            error_result = 1
-            sys.exit(1)
+    #if not arg1 == None:
+    #    genv.v__app__scriptname__ = arg1
+    #    print("--> " + genv.v__app__scriptname__)
+    #    if not os.path.exists(genv.v__app__scriptname__):
+    #        print("script does not exists !")
+    #        error_result = 1
+    #        sys.exit(1)
     
     # ---------------------------------------------------------
     # init pascal interpreter ...
@@ -8404,11 +8452,24 @@ def EntryPoint(arg1=None):
     # ---------------------------------------------------------
     if not genv.doxy_env in os.environ:
         if genv.v__app__debug == True:
-            os.environ["DOXYGEN_PATH"] = "E:\\doxygen\\bin"
+            os.environ["DOXYGEN_PATH"] = "E:/doxygen/bin"
         else:
-            print(("error: " + f"{genv.doxy_env}"
-            + " is not set in your system settings."))
-            sys.exit(genv.EXIT_FAILURE)
+            try:
+                print(genv.v__app__config.get("doxygen","path"))
+            except Exception as e:
+                showError("error: "
+                "no section: 'doxygen' or option: 'path'\n"
+                "(missing) in observer.ini")
+                sys.exit(1)
+            
+            file_path = genv.v__app__config["doxygen"]["path"]
+            
+            if len(file_path) < 1:
+                showError("error: " + genv.doxy_env +
+                " is not set in your system settings.")
+                sys.exit(genv.EXIT_FAILURE)
+            else:
+                os.environ["DOXYGEN_PATH"] = file_path
     else:
         genv.doxy_path = os.environ[genv.doxy_env]
     
@@ -8417,12 +8478,24 @@ def EntryPoint(arg1=None):
     # ---------------------------------------------------------
     if not genv.doxy_hhc in os.environ:
         if genv.v__app__debug == True:
-            os.environ["DOXYHHC_PATH"] = "E:\\doxygen\\hhc"
+            os.environ["DOXYHHC_PATH"] = "E:/doxygen/hhc"
         else:
-            print((""
-                + "error: " + f"{genv.doxy_hhc}"
-                + " is not set in your system settings."))
-            sys.exit(genv.EXIT_FAILURE)
+            try:
+                file_path = genv.v__app__config["doxygen"]["hhc"]
+            except Exception as e:
+                showError("error: "
+                "no section: 'doxygen' or option: 'hhc'\n"
+                "(missing) in observer.ini")
+                sys.exit(1)
+            
+            file_path = genv.v__app__config["doxygen"]["hhc"]
+            
+            if len(file_path) < 1:
+                showError("error: " + genv.doxy_hhc +
+                " is not set in your system settings.")
+                sys.exit(genv.EXIT_FAILURE)
+            else:
+                os.environ["DOXYHHC_PATH"] = file_path
     else:
         genv.hhc__path = os.environ[genv.doxy_hhc]
     
@@ -8444,7 +8517,7 @@ def EntryPoint(arg1=None):
     # show a license window, when readed, and user give a
     # okay, to accept it, then start the application ...
     # -----------------------------------------------------
-    app = QApplication(sys.argv)
+    genv.v__app_object = QApplication(sys.argv)
     
     license_window = licenseWindow()
     # -------------------------------
@@ -8459,7 +8532,6 @@ def EntryPoint(arg1=None):
     # when config.ini does not exists, then create a small one:
     # ---------------------------------------------------------
     if not os.path.exists(genv.v__app__config_ini):
-        print("1212121212")
         with open(genv.v__app__config_ini, "w", encoding="utf-8") as output_file:
             content = (""
             + "[common]\n"
@@ -8540,18 +8612,17 @@ def EntryPoint(arg1=None):
     conn.close()
     
     try:
-        if app == None:
-            app = QApplication(sys.argv)
+        if genv.v__app_object == None:
+            genv.v__app_object = QApplication(sys.argv)
         
-        global appwin
-        appwin = FileWatcherGUI()
-        appwin.move(100, 100)
+        genv.v__app_win = FileWatcherGUI()
+        genv.v__app_win.move(100, 100)
+        genv.v__app_win.exec_()
         
-        appwin.exec_()
     except UnboundLocalError as e:
         tb = traceback.extract_tb(e.__traceback__)
         filename, lineno, funcname, text = tb[-1]
-        if appwin == None:
+        if genv.v__app_win == None:
             print(f"Exception: {e}")
             print(f"Error occurred in file: {filename}")
             print(f"Function: {funcname}")
@@ -8605,7 +8676,7 @@ class parserDBasePoint:
         prg = dBaseDSL(script_name)
         try:
             prg.parse()
-            prg.run()
+            #prg.run()
         except ENoParserError as noerror:
             prg.finalize()
             print("\nend of data")
@@ -8618,7 +8689,7 @@ class parserDoxyGen:
         prg = doxygenDSL(script_name)
         try:
             prg.parse()
-            prg.run()
+            #prg.run()
         except ENoParserError as noerror:
             prg.finalize()
             print("\nend of data")
@@ -8628,10 +8699,11 @@ class parserDoxyGen:
 # ---------------------------------------------------------------------------
 class parserPascalPoint:
     def __init__(self, script_name):
+        self.prg = None
         self.prg = interpreter_Pascal(script_name)
         try:
             self.prg.parse()
-            self.prg.run()
+            #self.prg.run()
         except ENoParserError as noerror:
             self.finalize()
             print("\nend of data")
@@ -8671,10 +8743,11 @@ if __name__ == '__main__':
     
     if len(sys.argv) >= 1:
         if sys.argv[1] == "--gui":
-            if len(sys.argv) == 2:
-                sys.argv.append("test.txt")
-            genv.v__app__scriptname__ = sys.argv[2]
-            handleExceptionApplication(EntryPoint,genv.v__app__scriptname__)
+            #if len(sys.argv) == 2:
+            #    sys.argv.append("test.txt")
+            #genv.v__app__scriptname__ = sys.argv[2]
+            #handleExceptionApplication(EntryPoint,genv.v__app__scriptname__)
+            handleExceptionApplication(EntryPoint)
             sys.exit(0)
         elif sys.argv[1] == "--doxygen":
             if len(sys.argv) == 2:
