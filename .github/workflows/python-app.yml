@@ -118,7 +118,7 @@ jobs:
         python3 -m compileall observer.py
         echo "Create Application ..."
         pyinstaller --noconfirm --onefile --console     \
-        --icon     $MY_WORK_DIR/src/img/floppy-disk.ico \
-        --splash   $MY_WORK_DIR/src/img/splash.png      \
+        --icon     $MY_WORK_DIR/src/_internal/img/floppy-disk.ico \
+        --splash   $MY_WORK_DIR/src/_internal/img/splash.png      \
         --version-file $MY_WORK_DIR/src/version.info    \
         $MY_WORK_DIR/src/observer.py
