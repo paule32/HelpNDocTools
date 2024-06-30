@@ -73,15 +73,21 @@ jobs:
           "--version-file $env:MY_WORK_DIR\src\version.info        " +
           "               $env:MY_WORK_DIR\src\observer.py"
           $pyInstallerArgs
+          dir
       # ------------------------------------------------------
       # we must upload artifact, before we can download it ...
       # ------------------------------------------------------
-      - name: Build binary directory
-        run: mkdir -p /builds/windows
+      - name: Build binary directory ...
+        shell: pwsh
+        run: |
+          $env:MY_WORK_DIR = "${{ github.workspace }}"
+          D:
+          cd $env:MY_WORK_DIR
+          mkdir builds/windows
+          dir
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: binary
           path: /builds/windows
       # ------------------------------------------------------
       # now, we can download the artifact ...
@@ -89,7 +95,6 @@ jobs:
       - name: Download a single artifact
         uses: actions/download-artifact@v4
         with:
-          name: binary
           path: /builds/windows
 
   # -----------------------------------
