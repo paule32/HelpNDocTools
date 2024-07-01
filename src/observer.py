@@ -116,6 +116,10 @@ class globalEnv:
         # ------------------------------------------------------------------------
         self.v__app__config   = None
         
+        self.toolbar_css = """
+        QToolBar{background-color:gray;padding:0px;margin:0px;height:42px;}
+        """
+
         self.css_model_header = ""
         self.css_tabs =  """
 QTabWidget::pane{border-top:2px solid #C2C7CB;}
@@ -6911,7 +6915,8 @@ class FileWatcherGUI(QDialog):
         # tool bar
         self.tool_bar = QToolBar()
         self.tool_bar.setContentsMargins(0,0,0,0)
-        self.tool_bar.setStyleSheet(_("toolbar_css"))
+        self.tool_bar.setMinimumHeight(36)
+        self.tool_bar.setStyleSheet(_(genv.toolbar_css))
         
         self.tool_bar_button_exit = QToolButton()
         self.tool_bar_button_exit.setText("Clear")
@@ -6928,7 +6933,7 @@ class FileWatcherGUI(QDialog):
         self.tool_bar.addWidget(self.tool_bar_button_exit)
         
         self.layout.addWidget(self.tool_bar)
-        self.tool_bar.show()
+        #self.tool_bar.show()
         
         # status bar
         self.status_bar = QStatusBar()
@@ -6992,7 +6997,6 @@ class FileWatcherGUI(QDialog):
         self.handleLISP()
         self.handleLocales()
         self.handleCommodoreC64()
-        
         
         
         # first register card - action's ...
@@ -7106,7 +7110,6 @@ class FileWatcherGUI(QDialog):
             devices_list_item.setIcon(QIcon(item["icon"]))
             self.devices_list_storages.addItem(devices_list_item)
         #
-        
         
         self.devices_tabs_label3 = QPushButton()
         self.devices_tabs_label3.setText("  Team Server:  ")
@@ -7265,7 +7268,10 @@ class FileWatcherGUI(QDialog):
         
         
         self.tab2_file_path = os.path.join(genv.v__app__internal__, "topics.txt")
-        
+        if not os.path.exists(self.tab2_file_path):
+            showError("Error: file does not exists:\n" + self.tab2_file_path)
+            sys.exit(1)
+        print("---> " + self.tab2_file_path)
         global tab2_tree_view
         tab2_tree_view = QTreeView()
         tab2_tree_view.setStyleSheet(_(css_model_header))
@@ -7287,7 +7293,6 @@ class FileWatcherGUI(QDialog):
         tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
         
         #self.tab2_top_layout.
-        
         
         # create project tab
         self.tab0_top_layout    = QHBoxLayout(self.tab0_0)

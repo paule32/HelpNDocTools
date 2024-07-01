@@ -96,3 +96,7 @@ src/tools.pro/flags/img
 /src/i1
 /src/interpreter
 /src/t2
+src/stub.py
+src/build.py
+src/_internal/observer.log
+src/_internal/observer.log
