@@ -63,27 +63,27 @@ echo create directories...
 :: ---------------------------------------------------------------------------
 for %%A in (en_us, de_de) do (
     cd %BASEDIR%
-    dir /A:D %BASEDIR%\_internal\locales  >nul 2>&1
+    dir /A:D %BASEDIR%\locales  >nul 2>&1
     if errorlevel 0 (
-        mkdir %BASEDIR%\_internal\locales >nul 2>&1
-        dir /A:D %BASEDIR%\_internal\locales\%%A  >nul 2>&1
+        mkdir %BASEDIR%\locales >nul 2>&1
+        dir /A:D %BASEDIR%\locales\%%A  >nul 2>&1
         if errorlevel 0 (
             echo|set /p="%%A => "
-            mkdir %BASEDIR%\_internal\locales\%%A >nul 2>&1
-            dir /A:D %BASEDIR%\_internal\locales\%%A\LC_MESSAGES >nul 2>&1
+            mkdir %BASEDIR%\locales\%%A >nul 2>&1
+            dir /A:D %BASEDIR%\locales\%%A\LC_MESSAGES >nul 2>&1
             if errorlevel 0 (
                 echo|set /p="ok, "
-                mkdir %BASEDIR%\_internal\locales\%%A\LC_MESSAGES >nul 2>&1
-                cd %BASEDIR%\_internal\locales\%%A\LC_MESSAGES
+                mkdir %BASEDIR%\locales\%%A\LC_MESSAGES >nul 2>&1
+                cd %BASEDIR%\locales\%%A\LC_MESSAGES
                 echo|set /p="locales compiled => "
                 msgfmt -o ^
-                %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.mo ^
-                %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.po
+                %BASEDIR%\locales\%%A\LC_MESSAGES\observer.mo ^
+                %BASEDIR%\locales\%%A\LC_MESSAGES\observer.po
                 if errorlevel 0 (
-                    cd %BASEDIR%\_internal\locales\%%A\LC_MESSAGES
+                    cd %BASEDIR%\locales\%%A\LC_MESSAGES
                     rm -rf observer.mo.gz
                     gzip -9 observer.mo
-                    ::copy /b observer.mo.gz %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.mo.gz
+                    copy /b observer.mo.gz %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.mo.gz
                     cd %BASEDIR%
                 )   else (
                     echo error: %%A not created.
@@ -92,7 +92,7 @@ for %%A in (en_us, de_de) do (
         )
     )
 )
-::goto TheEnd
+goto endstep
 :: ---------------------------------------------------------------------------
 :: Python can produce byte-code, and executable files to speed up the loading
 :: and for information hidding ...

@@ -47,7 +47,6 @@ class globalEnv:
         
         self.v__app__app_dir__    = os.path.dirname(os.path.abspath(__file__))
         self.v__app__modul__      = os.path.join(self.v__app__app_dir__, "")
-        self.v__app__inter__      = os.path.join(self.v__app__app_dir__, "interpreter")
         
         self.v__app__name         = "observer"
         self.v__app__name_mo      = self.v__app__name + ".mo"
@@ -116,51 +115,14 @@ class globalEnv:
         # ------------------------------------------------------------------------
         self.v__app__config   = None
         
-        self.toolbar_css = """
-        QToolBar{background-color:gray;padding:0px;margin:0px;height:42px;}
-        """
-
-        self.css_model_header = ""
-        self.css_tabs =  """
-QTabWidget::pane{border-top:2px solid #C2C7CB;}
-QTabWidget::tab-bar{left:5px;}
-QTabBar::tab{
-font-family:'Arial';
-font-size:11pt;
-background:qlineargradient(x1:0,y1:0,x2:0,y2:1,
-stop:0 #E1E1E1,stop:0.4 #DDDDDD,
-stop:0.5 #D8D8D8,stop:1.0 #D3D3D3);
-border:2px solid #C4C4C3;
-border-bottom-color:#C2C7CB;
-border-top-left-radius:4px;
-border-top-right-radius:4px;
-min-width:35ex;
-padding:2px;}
-QTabBar::tab:selected,QTabBar::tab:hover{
-background:qlineargradient(x1:0,y1:0,x2:0,y2:1,
-stop:0 #fafafa,stop:0.4 #f4f4f4,
-stop:0.5 #e7e7e7,stop:1.0 #fafafa);}
-QTabBar::tab:selected{
-border-color:#9B9B9B;
-border-bottom-color:#C2C7CB;}
-QTabBar::tab:!selected{margin-top:2px;}        """ #"tab_widget_1"
-        self.css__widget_item = ""
-        self.css_button_style = """
-        QPushButton{
-font-family:'Arial';
-font-weight:600;
-font-size:16px;
-color:yellow;
-background-color:navy;
-padding:10px 20px;
-border:solid #cc0000 2px;
-border-radius:50px;}
-QPushButton:hover{
-background-color:green;
-padding:10px 20px;
-color:white;}
-        """ #"__button_style_css"
+        self.toolbar_css      = "toolbar_css"
         
+        self.css__widget_item = "listview_css"
+        self.css_model_header = ""
+        self.css_tabs         = "tabs_css"
+        self.css_button_style = "button_style_css"
+        
+        self.html_content = "html_content"
         # ------------------------------------------------------------------------
         # branding water marks ...
         # ------------------------------------------------------------------------
@@ -199,17 +161,14 @@ color:white;}
 global genv
 genv = globalEnv()
 
-# ---------------------------------------------------------------------------
-# extent the search paths for supported interpreters and tools ...
-# ---------------------------------------------------------------------------
-sys.path.append(os.path.join(genv.v__app__inter__, "pascal"))
-sys.path.append(os.path.join(genv.v__app__inter__, "dbase"))
-sys.path.append(os.path.join(genv.v__app__inter__, "doxygen"))
-sys.path.append(os.path.join(genv.v__app__inter__, ""))
-sys.path.append(os.path.join(genv.v__app__modul__, "tools"))
-
 class IgnoreOuterException(Exception):
     pass
+
+# ------------------------------------------------------------------------------
+# print a string S repeatly NT times...
+# ------------------------------------------------------------------------------
+def StringRepeat(s,nt):
+    return (s*nt)
 
 # ---------------------------------------------------------------------------
 # application imports ...
@@ -233,6 +192,7 @@ try:
     import shutil         # shell utils
     
     import pkgutil        # attached binary data utils
+    import ast            # string to list
     import json           # json lists
     import csv            # simplest data format
     
@@ -273,7 +233,7 @@ try:
     # ------------------------------------------------------------------------
     #from collection import *     # exception: templates
     from colorama   import init, Fore, Back, Style  # ANSI escape
-
+    
     # -------------------------------------------------------------------
     # for debuging, we use python logging library ...
     # -------------------------------------------------------------------
@@ -305,209 +265,6 @@ try:
     genv.v__locale__deu = "de_de"            # deu
     genv.v__locale__sys = locale.getlocale() # system locale
     
-    # ------------------------------------------------------------------------
-    # selected list of flags for translation localization display ...
-    # ------------------------------------------------------------------------
-    cdn_host = genv.v__app__cdn_host + "/observer/img/flags/"
-    cdn_suff = ".gif"
-    genv.v__app__cdn_flags = [
-        [ "AFG", cdn_host + "AFG" + cdn_suff ],
-        [ "ALB", cdn_host + "ALB" + cdn_suff ],
-        [ "DZA", cdn_host + "DZA" + cdn_suff ],
-        [ "AND", cdn_host + "AND" + cdn_suff ],
-        [ "AGO", cdn_host + "AGO" + cdn_suff ],
-        [ "ATG", cdn_host + "ATG" + cdn_suff ],
-        [ "ARG", cdn_host + "ARG" + cdn_suff ],
-        [ "ARM", cdn_host + "ARM" + cdn_suff ],
-        [ "AUS", cdn_host + "AUS" + cdn_suff ],
-        [ "AUT", cdn_host + "AUT" + cdn_suff ],
-        [ "AZE", cdn_host + "AZE" + cdn_suff ],
-        [ "BHS", cdn_host + "BHS" + cdn_suff ],
-        [ "BHR", cdn_host + "BHR" + cdn_suff ],
-        [ "BGD", cdn_host + "BGD" + cdn_suff ],
-        [ "BRB", cdn_host + "BRB" + cdn_suff ],
-        [ "BLR", cdn_host + "BLR" + cdn_suff ],
-        [ "BEL", cdn_host + "BEL" + cdn_suff ],
-        [ "BLZ", cdn_host + "BLZ" + cdn_suff ],
-        [ "BEN", cdn_host + "BEN" + cdn_suff ],
-        [ "BTN", cdn_host + "BTN" + cdn_suff ],
-        [ "BOL", cdn_host + "BOL" + cdn_suff ],
-        [ "BIH", cdn_host + "BIH" + cdn_suff ],
-        [ "BWA", cdn_host + "BWA" + cdn_suff ],
-        [ "BRA", cdn_host + "BRA" + cdn_suff ],
-        [ "BRN", cdn_host + "BRN" + cdn_suff ],
-        [ "BGR", cdn_host + "BGR" + cdn_suff ],
-        [ "BFA", cdn_host + "BFA" + cdn_suff ],
-        [ "BDI", cdn_host + "BDI" + cdn_suff ],
-        [ "CPV", cdn_host + "CPV" + cdn_suff ],
-        [ "KHM", cdn_host + "KHM" + cdn_suff ],
-        [ "CMR", cdn_host + "CMR" + cdn_suff ],
-        [ "CAN", cdn_host + "CAN" + cdn_suff ],
-        [ "CAF", cdn_host + "CAF" + cdn_suff ],
-        [ "TCD", cdn_host + "TCD" + cdn_suff ],
-        [ "CHL", cdn_host + "CHL" + cdn_suff ],
-        [ "CHN", cdn_host + "CHN" + cdn_suff ],
-        [ "COL", cdn_host + "COL" + cdn_suff ],
-        [ "COM", cdn_host + "COM" + cdn_suff ],
-        [ "COD", cdn_host + "COD" + cdn_suff ],
-        [ "COG", cdn_host + "COG" + cdn_suff ],
-        [ "CRI", cdn_host + "CRI" + cdn_suff ],
-        [ "CIV", cdn_host + "CIV" + cdn_suff ],
-        [ "HRV", cdn_host + "HRV" + cdn_suff ],
-        [ "CUB", cdn_host + "CUB" + cdn_suff ],
-        [ "CYP", cdn_host + "CYP" + cdn_suff ],
-        [ "CZE", cdn_host + "CZE" + cdn_suff ],
-        [ "DNK", cdn_host + "DNK" + cdn_suff ],
-        [ "DJI", cdn_host + "DJI" + cdn_suff ],
-        [ "DMA", cdn_host + "DMA" + cdn_suff ],
-        [ "DOM", cdn_host + "DOM" + cdn_suff ],
-        [ "ECU", cdn_host + "ECU" + cdn_suff ],
-        [ "EGY", cdn_host + "EGY" + cdn_suff ],
-        [ "SLV", cdn_host + "SLV" + cdn_suff ],
-        [ "GNQ", cdn_host + "GNQ" + cdn_suff ],
-        [ "ERI", cdn_host + "ERI" + cdn_suff ],
-        [ "EST", cdn_host + "EST" + cdn_suff ],
-        [ "SWZ", cdn_host + "SWZ" + cdn_suff ],
-        [ "ETH", cdn_host + "ETH" + cdn_suff ],
-        [ "FJI", cdn_host + "FJI" + cdn_suff ],
-        [ "FIN", cdn_host + "FIN" + cdn_suff ],
-        [ "FRA", cdn_host + "FRA" + cdn_suff ],
-        [ "GAB", cdn_host + "GAB" + cdn_suff ],
-        [ "GMB", cdn_host + "GMB" + cdn_suff ],
-        [ "GEO", cdn_host + "GEO" + cdn_suff ],
-        [ "DEU", cdn_host + "DEU" + cdn_suff ],
-        [ "GHA", cdn_host + "GHA" + cdn_suff ],
-        [ "GRC", cdn_host + "GRC" + cdn_suff ],
-        [ "GRD", cdn_host + "GRD" + cdn_suff ],
-        [ "GTM", cdn_host + "GTM" + cdn_suff ],
-        [ "GIN", cdn_host + "GIN" + cdn_suff ],
-        [ "GNB", cdn_host + "GNB" + cdn_suff ],
-        [ "GUY", cdn_host + "GUY" + cdn_suff ],
-        [ "HTI", cdn_host + "HTI" + cdn_suff ],
-        [ "VAT", cdn_host + "VAT" + cdn_suff ],
-        [ "HND", cdn_host + "HND" + cdn_suff ],
-        [ "HUN", cdn_host + "HUN" + cdn_suff ],
-        [ "ISL", cdn_host + "ISL" + cdn_suff ],
-        [ "IND", cdn_host + "IND" + cdn_suff ],
-        [ "IDN", cdn_host + "IDN" + cdn_suff ],
-        [ "IRN", cdn_host + "IRN" + cdn_suff ],
-        [ "IRQ", cdn_host + "IRQ" + cdn_suff ],
-        [ "IRL", cdn_host + "IRL" + cdn_suff ],
-        [ "ISR", cdn_host + "ISR" + cdn_suff ],
-        [ "ITA", cdn_host + "ITA" + cdn_suff ],
-        [ "JAM", cdn_host + "JAM" + cdn_suff ],
-        [ "JPN", cdn_host + "JPN" + cdn_suff ],
-        [ "JOR", cdn_host + "JOR" + cdn_suff ],
-        [ "KAZ", cdn_host + "KAZ" + cdn_suff ],
-        [ "KEN", cdn_host + "KEN" + cdn_suff ],
-        [ "KIR", cdn_host + "KIR" + cdn_suff ],
-        [ "PRK", cdn_host + "PRK" + cdn_suff ],
-        [ "KOR", cdn_host + "KOR" + cdn_suff ],
-        [ "KWT", cdn_host + "KWT" + cdn_suff ],
-        [ "KGZ", cdn_host + "KGZ" + cdn_suff ],
-        [ "LAO", cdn_host + "LAO" + cdn_suff ],
-        [ "LVA", cdn_host + "LVA" + cdn_suff ],
-        [ "LBN", cdn_host + "LBN" + cdn_suff ],
-        [ "LSO", cdn_host + "LSO" + cdn_suff ],
-        [ "LBR", cdn_host + "LBR" + cdn_suff ],
-        [ "LBY", cdn_host + "LBY" + cdn_suff ],
-        [ "LIE", cdn_host + "LIE" + cdn_suff ],
-        [ "LTU", cdn_host + "LTU" + cdn_suff ],
-        [ "LUX", cdn_host + "LUX" + cdn_suff ],
-        [ "MDG", cdn_host + "MDG" + cdn_suff ],
-        [ "MWI", cdn_host + "MWI" + cdn_suff ],
-        [ "MYS", cdn_host + "MYS" + cdn_suff ],
-        [ "MDV", cdn_host + "MDV" + cdn_suff ],
-        [ "MLI", cdn_host + "MLI" + cdn_suff ],
-        [ "MLT", cdn_host + "MLT" + cdn_suff ],
-        [ "MHL", cdn_host + "MHL" + cdn_suff ],
-        [ "MRT", cdn_host + "MRT" + cdn_suff ],
-        [ "MUS", cdn_host + "MUS" + cdn_suff ],
-        [ "MEX", cdn_host + "MEX" + cdn_suff ],
-        [ "FSM", cdn_host + "FSM" + cdn_suff ],
-        [ "MDA", cdn_host + "MDA" + cdn_suff ],
-        [ "MCO", cdn_host + "MCO" + cdn_suff ],
-        [ "MNG", cdn_host + "MNG" + cdn_suff ],
-        [ "MNE", cdn_host + "MNE" + cdn_suff ],
-        [ "MAR", cdn_host + "MAR" + cdn_suff ],
-        [ "MOZ", cdn_host + "MOZ" + cdn_suff ],
-        [ "MMR", cdn_host + "MMR" + cdn_suff ],
-        [ "NAM", cdn_host + "NAM" + cdn_suff ],
-        [ "NRU", cdn_host + "NRU" + cdn_suff ],
-        [ "NPL", cdn_host + "NPL" + cdn_suff ],
-        [ "NLD", cdn_host + "NLD" + cdn_suff ],
-        [ "NZL", cdn_host + "NZL" + cdn_suff ],
-        [ "NIC", cdn_host + "NIC" + cdn_suff ],
-        [ "NER", cdn_host + "NER" + cdn_suff ],
-        [ "NGA", cdn_host + "NGA" + cdn_suff ],
-        [ "NOR", cdn_host + "NOR" + cdn_suff ],
-        [ "OMN", cdn_host + "OMN" + cdn_suff ],
-        [ "PAK", cdn_host + "PAK" + cdn_suff ],
-        [ "PLW", cdn_host + "PLW" + cdn_suff ],
-        [ "PSE", cdn_host + "PSE" + cdn_suff ],
-        [ "PAN", cdn_host + "PAN" + cdn_suff ],
-        [ "PNG", cdn_host + "PNG" + cdn_suff ],
-        [ "PRY", cdn_host + "PRY" + cdn_suff ],
-        [ "PER", cdn_host + "PER" + cdn_suff ],
-        [ "PHL", cdn_host + "PHL" + cdn_suff ],
-        [ "POL", cdn_host + "POL" + cdn_suff ],
-        [ "PRT", cdn_host + "PRT" + cdn_suff ],
-        [ "QAT", cdn_host + "QAT" + cdn_suff ],
-        [ "MKD", cdn_host + "MKD" + cdn_suff ],
-        [ "ROU", cdn_host + "ROU" + cdn_suff ],
-        [ "RUS", cdn_host + "RUS" + cdn_suff ],
-        [ "RWA", cdn_host + "RWA" + cdn_suff ],
-        [ "KNA", cdn_host + "KNA" + cdn_suff ],
-        [ "LCA", cdn_host + "LCA" + cdn_suff ],
-        [ "VCT", cdn_host + "VCT" + cdn_suff ],
-        [ "WSM", cdn_host + "WSM" + cdn_suff ],
-        [ "SMR", cdn_host + "SMR" + cdn_suff ],
-        [ "STP", cdn_host + "STP" + cdn_suff ],
-        [ "SAU", cdn_host + "SAU" + cdn_suff ],
-        [ "SEN", cdn_host + "SEN" + cdn_suff ],
-        [ "SRB", cdn_host + "SRB" + cdn_suff ],
-        [ "SYC", cdn_host + "SYC" + cdn_suff ],
-        [ "SLE", cdn_host + "SLE" + cdn_suff ],
-        [ "SGP", cdn_host + "SGP" + cdn_suff ],
-        [ "SVK", cdn_host + "SVK" + cdn_suff ],
-        [ "SVN", cdn_host + "SVN" + cdn_suff ],
-        [ "SLB", cdn_host + "SLB" + cdn_suff ],
-        [ "SOM", cdn_host + "SOM" + cdn_suff ],
-        [ "ZAF", cdn_host + "ZAF" + cdn_suff ],
-        [ "SSD", cdn_host + "SSD" + cdn_suff ],
-        [ "ESP", cdn_host + "ESP" + cdn_suff ],
-        [ "LKA", cdn_host + "LKA" + cdn_suff ],
-        [ "SDN", cdn_host + "SDN" + cdn_suff ],
-        [ "SUR", cdn_host + "SUR" + cdn_suff ],
-        [ "SWE", cdn_host + "SWE" + cdn_suff ],
-        [ "CHE", cdn_host + "CHE" + cdn_suff ],
-        [ "SYR", cdn_host + "SYR" + cdn_suff ],
-        [ "TJK", cdn_host + "TJK" + cdn_suff ],
-        [ "TZA", cdn_host + "TZA" + cdn_suff ],
-        [ "THA", cdn_host + "THA" + cdn_suff ],
-        [ "TLS", cdn_host + "TLS" + cdn_suff ],
-        [ "TGO", cdn_host + "TGO" + cdn_suff ],
-        [ "TON", cdn_host + "TON" + cdn_suff ],
-        [ "TTO", cdn_host + "TTO" + cdn_suff ],
-        [ "TUN", cdn_host + "TUN" + cdn_suff ],
-        [ "TUR", cdn_host + "TUR" + cdn_suff ],
-        [ "TKM", cdn_host + "TKM" + cdn_suff ],
-        [ "TUV", cdn_host + "TUV" + cdn_suff ],
-        [ "UGA", cdn_host + "UGA" + cdn_suff ],
-        [ "UKR", cdn_host + "UKR" + cdn_suff ],
-        [ "ARE", cdn_host + "ARE" + cdn_suff ],
-        [ "GBR", cdn_host + "GBR" + cdn_suff ],
-        [ "USA", cdn_host + "USA" + cdn_suff ],
-        [ "URY", cdn_host + "URY" + cdn_suff ],
-        [ "UZB", cdn_host + "UZB" + cdn_suff ],
-        [ "VUT", cdn_host + "VUT" + cdn_suff ],
-        [ "VEN", cdn_host + "VEN" + cdn_suff ],
-        [ "VNM", cdn_host + "VNM" + cdn_suff ],
-        [ "YEM", cdn_host + "YEM" + cdn_suff ],
-        [ "ZMB", cdn_host + "ZMB" + cdn_suff ],
-        [ "ZWE", cdn_host + "ZWE" + cdn_suff ],
-    ]
-
     check_path = Path(genv.v__locale__)
     if not check_path.is_dir():
         print("Error: loacles directory not found.")
@@ -592,17 +349,6 @@ __error__locales_error = "" \
     + "no locales file for this application."
 
 
-genv.html_content = "<!-- -->"
-
-global css__widget_item
-css__widget_item = """
-QListView{font-family:'Arial';background-color:white;color:black;font-weight:bold;font-size:11pt;
-border:1px solid black;padding-left:2px;padding-top:2px;padding-bottom:2px;padding-right:2px;}
-QListView::item:selected{font-family:'Arial';background-color:blue;color:yellow;
-font-weight:bold;border:none;outline:none;font-size:11pt;}
-QListView::icon{left:10px;}
-QListView::text{left:10px;}"""
-
 # ------------------------------------------------------------------------
 # style sheet definition's:
 # ------------------------------------------------------------------------
@@ -625,12 +371,6 @@ def StrToList(string):
         list_item = [ col1, col2 ]
         liste.append(list_item)
     return liste
-
-# ------------------------------------------------------------------------------
-# print a string S repeatly NT times...
-# ------------------------------------------------------------------------------
-def StringRepeat(s,nt):
-    return (s*nt)
 
 class RunTimeLibrary:
     # -----------------------------------------------------------------------
@@ -4806,6 +4546,43 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
                 if self.previousBlockState() != 1 and not in_comment:
                     self.setFormat(start, length, self.boldFormat)
 
+class EditorTranslate(QWidget):
+    def __init__(self, parent):
+        super().__init__()
+        font = QFont(genv.v__app__font,11)
+        
+        self.setContentsMargins(0,0,0,0)
+        self.setMinimumWidth(200)
+        self.setFont(font)
+        
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0,0,0,0)
+        
+        self.group_box = QGroupBox(" Choose a Translation: ")
+        self.group_box.setFont(font)
+        self.group_layout = QVBoxLayout()
+
+        self.dummyl = QLabel(" ")
+        self.radio1 = QRadioButton("Convert to FPC Pascal")
+        self.radio2 = QRadioButton("Convert to GNU C++")
+        self.radio3 = QRadioButton("Convert to Byte-Code")
+        
+        self.dummyl.setFont(font)
+        self.radio1.setFont(font)
+        self.radio2.setFont(font)
+        self.radio3.setFont(font)
+
+        self.group_layout.addWidget(self.dummyl)
+        self.group_layout.addWidget(self.radio1)
+        self.group_layout.addWidget(self.radio2)
+        self.group_layout.addWidget(self.radio3)
+        self.group_layout.addStretch()
+
+        self.group_box.setLayout(self.group_layout)
+
+        self.layout.addWidget(self.group_box)
+        self.setLayout(self.layout)
+
 class EditorTextEdit(QPlainTextEdit):
     def __init__(self, file_name):
         super().__init__()
@@ -6682,6 +6459,196 @@ class CustomWidget2(QWidget):
         painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
         painter.end()
 
+class scrollBoxTabser(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        self.setLayout(QVBoxLayout())
+        
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        
+        scroll_content = QWidget()
+        scroll_content.setLayout(QVBoxLayout())
+        
+        scroll_content.layout().addWidget(QLabel("hallo"))
+        scroll_area.setWidget(scroll_content)
+        
+        self.layout().addWidget(scroll_area)
+
+class dBaseProjectWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        main_layout = QHBoxLayout(self)
+                
+        font3 = QFont(genv.v__app__font, 10)
+        font3.setBold(True)
+
+        splitter = QSplitter()
+        splitter.setStyleSheet("QSplitter{width:4px; }")
+        
+        self.tree_view = QTreeView()
+        self.tree_view.header().hide()
+        self.tree_view.setMinimumWidth(180)
+        self.tree_view.setFont(QFont(genv.v__app__font,11))
+        self.populate_tree()
+        
+        pro_layout = QHBoxLayout()
+        pro_layout.setContentsMargins(0,0,0,0)
+        
+        pro_open   = QPushButton("Open Project")
+        pro_close  = QPushButton("Close")
+        pro_new    = QPushButton("New Project")
+        
+        pro_open .setMinimumHeight(36)
+        pro_close.setMinimumHeight(36)
+        pro_new  .setMinimumHeight(36)
+        
+        pro_open .setFont(font3)
+        pro_close.setFont(font3)
+        pro_new  .setFont(font3)
+        
+        pro_layout.addWidget(pro_open)
+        pro_layout.addWidget(pro_close)
+        pro_layout.addWidget(pro_new)
+        
+        left_layout = QVBoxLayout()
+        left_layout.setContentsMargins(0,0,0,0)
+        
+        left_layout.addWidget(self.tree_view)
+        left_layout.addLayout(pro_layout)
+        
+        left_widget = QWidget()
+        left_widget.setLayout(left_layout)
+        
+        hlay_pro = QHBoxLayout()
+        hlay_pro.setContentsMargins(0,0,0,0)
+        
+        hlay_edit = QLineEdit()
+        hlay_edit.setStyleSheet("""
+        QLineEdit {
+            background-color:white;
+            font-family:'Consolas';
+            font-size:11pt;
+            color:black;
+        }
+        QLineEdit:hover {
+            background-color: yellow;
+        }
+        """)
+        
+        hlay_push = QPushButton("...")
+        hlay_push.setMinimumWidth(30)
+        hlay_push.setMinimumHeight(30)
+        hlay_push.setFont(font3)
+        #
+        hlay_pro.addWidget(hlay_edit)
+        hlay_pro.addWidget(hlay_push)
+        
+        self.list_view = QListView()
+        self.list_view.setMinimumWidth(470)
+        self.list_view.setFont(QFont(genv.v__app__font,11))
+        
+        self.lay_push = QHBoxLayout()
+        self.add_push = QPushButton("Add")
+        self.clr_push = QPushButton("Clear All")
+        self.del_push = QPushButton("Remove")
+        #
+        self.add_push.setMinimumHeight(36)
+        self.clr_push.setMinimumHeight(36)
+        self.del_push.setMinimumHeight(36)
+        #
+        self.add_push.setFont(font3)
+        self.clr_push.setFont(font3)
+        self.del_push.setFont(font3)
+        #
+        self.lay_push.addWidget(self.add_push)
+        self.lay_push.addWidget(self.clr_push)
+        self.lay_push.addWidget(self.del_push)
+        
+        scroll_box_tab1 = scrollBoxTabser()
+        
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(scroll_box_tab1, "Tab 1")
+        self.tab_widget.addTab(QWidget(), "Tab 2")
+        self.tab_widget.addTab(QWidget(), "Tab 3")
+        
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0,0,0,0)
+        
+        right_layout.addLayout(hlay_pro)
+        #
+        right_layout.addWidget(self.list_view)
+        right_layout.addLayout(self.lay_push)
+        right_layout.addWidget(self.tab_widget)
+        
+        right_widget = QWidget()
+        right_widget.setLayout(right_layout)
+        
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_widget)
+        
+        main_layout.addWidget(splitter)
+        
+        self.setLayout(main_layout)
+    
+    def populate_tree(self):
+        model = QStandardItemModel()
+        root_node = model.invisibleRootItem()
+        
+        font1 = QFont(genv.v__app__font, 12)
+        font1.setBold(True)
+        #
+        font2 = QFont(genv.v__app__font, 11)
+        font2.setBold(True)
+        font2.setItalic(True)
+        
+        parent_item = QStandardItem("Project Files")
+        parent_item.setFont(font1)
+        
+        child_item_1 = QStandardItem("Form")
+        child_item_1.setFont(font2)
+        
+        child_item_2 = QStandardItem("Report")
+        child_item_2.setFont(font2)
+        
+        child_item_3 = QStandardItem("Program")
+        child_item_3.setFont(font2)
+        
+        child_item_4 = QStandardItem("Desktop Tables")
+        child_item_4.setFont(font2)
+        
+        child_item_5 = QStandardItem("SQL")
+        child_item_5.setFont(font2)
+        
+        child_item_6 = QStandardItem("Image")
+        child_item_6.setFont(font2)
+        
+        child_item_7 = QStandardItem("Other")
+        child_item_7.setFont(font2)
+        #
+        parent_item.appendRow(child_item_1)
+        parent_item.appendRow(child_item_2)
+        parent_item.appendRow(child_item_3)
+        parent_item.appendRow(child_item_4)
+        parent_item.appendRow(child_item_5)
+        parent_item.appendRow(child_item_6)
+        parent_item.appendRow(child_item_7)
+        
+        root_node.appendRow(parent_item)
+        self.tree_view.setModel(model)
+        
+        self.expand_all_items(self.tree_view, model.indexFromItem(model.invisibleRootItem()))
+    
+    def expand_all_items(self, tree_view, index):
+        tree_view.expand(index)
+        model = tree_view.model()
+        
+        for row in range(model.rowCount(index)):
+            child_index = model.index(row, 0, index)
+            self.expand_all_items(tree_view, child_index)
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -7175,7 +7142,7 @@ class FileWatcherGUI(QDialog):
         list_layout_a.addLayout(list_layout_1)
         
         list_widget_1.setFocusPolicy(Qt.NoFocus)
-        list_widget_1.setStyleSheet(css__widget_item)
+        list_widget_1.setStyleSheet(_(genv.css__widget_item))
         list_widget_1.setMinimumHeight(300)
         list_widget_1.setMaximumWidth(200)
         self.list_widget_1_elements = ["Project", "Mode", "Output", "Diagrams" ]
@@ -7223,7 +7190,7 @@ class FileWatcherGUI(QDialog):
         list_layout_b.addLayout(list_layout_2)
         
         list_widget_2.setFocusPolicy(Qt.NoFocus)
-        list_widget_2.setStyleSheet(css__widget_item)
+        list_widget_2.setStyleSheet(_(genv.css__widget_item))
         list_widget_2.setMinimumHeight(300)
         list_widget_2.setMaximumWidth(200)
         self.list_widget_2_elements = [                                     \
@@ -7709,7 +7676,7 @@ class FileWatcherGUI(QDialog):
         self.profile1 = QWebEngineProfile("storage1", self.webView1)
         self.page1    = QWebEnginePage(self.profile1, self.webView1)
         self.webView1.setPage(self.page1)
-        #self.webView1.setHtml(genv.html_content, baseUrl = QUrl.fromLocalFile('.'))
+        self.webView1.setHtml(_(genv.html_content), baseUrl = QUrl.fromLocalFile('.'))
         
         self.tab5_top_layout.addWidget(self.webView1);            
         self.tab0_top_layout.addLayout(self.tab0_left_layout)
@@ -7938,12 +7905,23 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_reports_widget = QWidget()
         #
         #
+        self.dbase_tabs_project_widget.setContentsMargins(1,1,1,1)
+        ####
         self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
         self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
         self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
         self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, "dBASE SQL Builder")
         self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, "dBASE Data Tables")
         self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, "dBASE Reports")
+        ####
+        try:
+            self.dBaseProjectVLayout = QVBoxLayout()
+            self.dBaseProjectVLayout.setContentsMargins(0,0,0,0)
+            self.dBaseProjectWidget  = dBaseProjectWidget()
+            self.dBaseProjectVLayout.addWidget(self.dBaseProjectWidget)
+            self.dbase_tabs_project_widget.setLayout(self.dBaseProjectVLayout)
+        except Exception as e:
+            print(e)
         ####
         self.dbase_tabs_editors_layout = QVBoxLayout()
         self.dbase_tabs_editors_layout.setContentsMargins(2,2,2,2)
@@ -7969,7 +7947,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_reports_menu.setMinimumHeight(64)
         #
         
-        self.dbase_file_layout1 = QVBoxLayout()
+        self.dbase_file_layout1 = QHBoxLayout()
         self.dbase_file_layout1.setContentsMargins(1,0,0,1)
         self.dbase_file_widget1 = QWidget()
         
@@ -7994,8 +7972,12 @@ class FileWatcherGUI(QDialog):
         file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example1.prg")
         file_path = file_path.replace("\\","/")
         
-        self.dbase_tabs_editor1 = EditorTextEdit(file_path)
+        self.dbase_tabs_editor1  = EditorTextEdit(file_path)
+        self.dbase_tabs_rightBox = EditorTranslate(self)
+        #
         self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
+        self.dbase_file_layout1.addWidget(self.dbase_tabs_rightBox)
+        #
         self.dbase_file_widget1.setLayout(self.dbase_file_layout1)
         #
         if os.path.exists(file_path):
@@ -9501,6 +9483,22 @@ def EntryPoint(arg1=None):
     
     _ = handle_language(ini_lang)
     
+    # ------------------------------------------------------------------------
+    # selected list of flags for translation localization display ...
+    # ------------------------------------------------------------------------
+    cdn_host = genv.v__app__cdn_host + "/observer/img/flags/"
+    cdn_suff = ".gif"
+    genv.v__app__cdn_flags = _("moped_list")
+    #
+    pattern_host = r"cdn_host"
+    pattern_suff = r"cdn_suff"
+    #
+    processed_string = re.sub(pattern_host, repr(cdn_host), genv.v__app__cdn_flags)
+    processed_string = re.sub(pattern_suff, repr(cdn_suff), processed_string)
+    #
+    genv.v__app__cdn_flags = eval(processed_string)
+    
+    
     # ---------------------------------------------------------
     # when config file not exists, then spite a info message,
     # and create a default template for doxygen 1.10.0
@@ -9509,301 +9507,17 @@ def EntryPoint(arg1=None):
         print("info: config: '" \
         + f"{genv.doxyfile}" + "' does not exists. I will fix this by create a default file.")
         
-        file_content = [
-            ["PROJECT_NAME", "Project name"],
-            ["PROJECT_NUMBER", "1.0.0" ],
-            ["PROJECT_LOGO", "" ],
-            ["",""],
-            ["DOXYFILE_ENCODING", "UTF-8"],
-            ["INPUT_ECODING", "UTF-8"],
-            ["INPUT_FILE_ENCODING", "UTF-8"],
-            ["",""],
-            ["ALLOW_UNICODE_NAMES", "YES"],
-            ["",""],
-            ["ENABLED_SECTIONS", "english"],
-            ["OUTPUT_LANGUAGE", "English"],
-            ["OUTPUT_DIRECTORY", "./dox/enu/dark"],
-            ["",""],
-            ["CHM_FILE", "project.chm"],
-            ["HHC_LOCATION", ""],
-            ["",""],
-            ["GENERATE_HTML", "YES"],
-            ["GENERATE_HTMLHELP", "YES"],
-            ["GENERATE_TREEVIEW", "NO"],
-            ["GENERATE_LATEX", "NO"],
-            ["GENERATE_CHI", "NO"],
-            ["",""],
-            ["HTML_OUTPUT", "html"],
-            ["HTML_COLORSTYLE", "DARK"],
-            ["",""],
-            ["BINARY_TOC", "NO"],
-            ["TOC_EXPAND", "NO"],
-            ["",""],
-            ["DISABLE_INDEX", "NO"],
-            ["FULL_SIDEBAR", "NO"],
-            ["",""],
-            ["INPUT", ""],
-            ["",""],
-            ["BRIEF_MEMBER_DESC", "YES"],
-            ["REPEAT_BRIEF", "YES"],
-            ["",""],
-            ["FILE_PATTERNS", "*.c *.cc *.cxx *.cpp *.c++ *.h *.hh *.hxx *.hpp *.h++"],
-            ["ALIASES", ""],
-            ["",""],
-            ["CREATE_SUBDIRS", "YES"],
-            ["CREATE_SUBDIRS_LEVEL", "8"],
-            ["",""],
-            ["ALWAYS_DETAILED_SEC", "YES"],
-            ["INLINE_INHERITED_MEMB", "YES"],
-            ["",""],
-            ["FULL_PATH_NAMES", "NO"],
-            ["SHORT_NAMES", "NO"],
-            ["",""],
-            ["STRIP_FROM_PATH", "YES"],
-            ["STRIP_FROM_INC_PATH", "YES"],
-            ["",""],
-            ["MULTILINE_CPP_IS_BRIEF", "NO"],
-            ["INHERITED_DOCS", "YES"],
-            ["SEPERATE_MEMBER_PAGES", "NO"],
-            ["",""],
-            ["TAB_SIZE", "8"],
-            ["",""],
-            ["OPTIMIZE_OUTPUT_FOR_C", "YES"],
-            ["OPTIMIZE_OUTPUT_JAVA", "NO"],
-            ["OPTIMIZE_FOR_FORTRAN", "NO"],
-            ["",""],
-            ["EXTERNAL_MAPPING", ""],
-            ["",""],
-            ["TOC_INCLUDE_HEADINGS", "5"],
-            ["AUTOLINK_SUPPORT", "YES"],
-            ["",""],
-            ["BUILTIN_STL_SUPPORT", "NO"],
-            ["CPP_CLI_SUPPORT", "YES"],
-            ["",""],
-            ["SIP_SUPPORT", "NO"],
-            ["IDL_PROPERTY_SUPPORT", "YES"],
-            ["",""],
-            ["DISTRIBUTE_GROUP_DOC", "NO"],
-            ["GROUP_NESTED_COMPOUNDS", "NO"],
-            ["SUBGROUPING", "YES"],
-            ["",""],
-            ["INLINE_GROUPED_CLASSES", "NO"],
-            ["INLINE_SIMPLE_STRUCTS", "NO"],
-            ["",""],
-            ["TYPEDEF_HIDES_STRUCT", "NO"],
-            ["",""],
-            ["LOOKUP_CACHE_SIZE", "0"],
-            ["NUM_PROC_THREADS", "1"],
-            ["CASE_SENSE_NAMES", "YES"],
-            ["",""],
-            ["EXTRACT_ALL", "YES"],
-            ["EXTRACT_PRIVATE", "NO"],
-            ["EXTRAVT_PRIV_VIRTUAL", "NO"],
-            ["EXTRACT_PACKAGE", "NO"],
-            ["EXTRACT_STATIC", "YES"],
-            ["EXTRACT_LOCAL_CLASSES", "YES"],
-            ["EXTRACT_LOCAL_METHODS", "YES"],
-            ["EXTRACT_ANON_NSPACES", "YES"],
-            ["",""],
-            ["RESOLVE_UNUSED_PARAMS", "YES"],
-            ["",""],
-            ["HIDE_UNDOC_MEMBERS", "NO"],
-            ["HIDE_UNDOC_CLASSES", "NO"],
-            ["HIDE_UNDOC_RELATIONS", "NO"],
-            ["",""],
-            ["HIDE_FRIEND_COMPOUNDS", "NO"],
-            ["HIDE_IN_BODY_DOCS", "NO"],
-            ["HIDE_SCOPE_NAMES", "NO"],
-            ["HIDE_COMPOUND_REFERENCE", "NO"],
-            ["",""],
-            ["INTERNAL_DOCS", "YES"],
-            ["",""],
-            ["SHOW_HEADERFILE", "NO"],
-            ["SHOW_INCLUDE_FILES", "NO"],
-            ["SHOW_GROUPED_MEMB_INC", "NO"],
-            ["",""],
-            ["FORCE_LOCAL_INCLUDES", "NO"],
-            ["",""],
-            ["INLINE_INFO", "NO"],
-            ["",""],
-            ["SORT_MEMBER_DOCS", "YES"],
-            ["SORT_BRIEF_DOCS", "YES"],
-            ["SORT_MEMBERS_CTORS_IST", "NO"],
-            ["SORT_GROUP_NAMES", "NO"],
-            ["SORT_BY_SCOPE_NAME", "YES"],
-            ["",""],
-            ["STRICT_PROTO_MATCHING", "NO"],
-            ["",""],
-            ["GENERATE_TODO_LIST", "YES"],
-            ["GENERATE_TESTLIST", "YES"],
-            ["GENERATE_BUGLIST", "YES"],
-            ["GENERATE_DEPRECATEDLIST", "YES"],
-            ["",""],
-            ["MAX_INITIALIZER_LINES", "30"],
-            ["",""],
-            ["SHOW_FILES", "NO"],
-            ["SHOW_USED_FILES", "NO"],
-            ["SHOW_NAMESPACES", "YES"],
-            ["",""],
-            ["FILE_VERSION_FILTER", ""],
-            ["CITE_BIB_FILES", ""],
-            ["",""],
-            ["RECURSIVE", "NO"],
-            ["",""],
-            ["EXCLUDE", ""],
-            ["EXCLUDE_SYMLINKS", "NO"],
-            ["EXCLUDE_PATTERNS", ""],
-            ["EXCLUDE_SYMBOLS", ""],
-            ["",""],
-            ["EXAMPLE_PATH", "./src/doc"],
-            ["EXAMPLE_PATTERNS", "*"],
-            ["EXAMPLE_RECURSIVE", "NO"],
-            ["",""],
-            ["IMAGE_PATH", ""],
-            ["INPUT_FILTER", ""],
-            ["",""],
-            ["FILTER_PATTERNS", ""],
-            ["FILTER_SOURCE_FILES", "NO"],
-            ["FILTER_SOURCE_PATTERNS", ""],
-            ["",""],
-            ["USE_MDFILE_AS_MAINPAGE", ""],
-            ["",""],
-            ["SOURCE_BROWSER", "NO"],
-            ["INLINE_SOURCES", "NO"],
-            ["",""],
-            ["STRIP_CODE_COMMENTS", "YES"],
-            ["",""],
-            ["REFERENCES_RELATION", "YES"],
-            ["REFERENCES_LINK_SOURCE", "NO"],
-            ["",""],
-            ["SOURCE_TOOLTIPS", "NO"],
-            ["USE_HTAGS", "NO"],
-            ["VERBATIM_HEADERS", "NO"],
-            ["",""],
-            ["ALPHABETICAL_INDEX", "YES"],
-            ["",""],
-            ["IGNORE_PREFIX", ""],
-            ["",""],
-            ["ENUM_VALUES_PER_LINE", "4"],
-            ["",""],
-            ["HTML_FILE_EXTENSION", ".html"],
-            ["HTML_CODE_FOLDING", "NO"],
-            ["HTML_COPY_CLIPBOARD", "NO"],
-            ["",""],
-            ["HTML_HEADER", ""],
-            ["HTML_FOOTER", "./src/doc/empty.html"],
-            ["HTML_STYLESHEET", ""],
-            ["",""],
-            ["HTML_EXTRA_STYLESHEET", "./doxyfile.css"],
-            ["HTML_EXTRA_FILES", ""],
-            ["",""],
-            ["HTML_COLORSTYLE_HUE", "220"],
-            ["HTML_COLORSTYLE_SAT", "100"],
-            ["HTML_COLORSTYLE_GAMMA", "80"],
-            ["",""],
-            ["HTML_DYNAMIC_MENUS", "NO"],
-            ["HTML_DYNAMIC_SECTIONS", "NO"],
-            ["",""],
-            ["HTML_INDEX_NUM_ENTRIES", "100"],
-            ["",""],
-            ["TREEVIEW_WIDTH", "210"],
-            ["",""],
-            ["EXT_LINKS_IN_WINDOW", "NO"],
-            ["OBFUSCATE_EMAILS", "YES"],
-            ["",""],
-            ["HAVE_DOT", "NO"],
-            ["DOT_PATH", ""],
-            ["DIA_PATH", ""],
-            ["",""],
-            ["DOT_COMMON_ATTR", "'fontname=FreeSans@fontsize=10'"],
-            ["DOT_EDGE_ATTR", "'labelfontname=FreeSans@labelfontsize=10'"],
-            ["DOT_NODE_ATTR", "'shape=box@height=02@width=04'"],
-            ["DOT_FONTPATH", ""],
-            ["",""],
-            ["USE_MATHJAX", "NO"],
-            ["",""],
-            ["MATHJAX_VERSION", "MathJax_2"],
-            ["MATHJAX_FORMAT", "HTML-CSS"],
-            ["MATHJAX_RELPATH", ""],
-            ["MATHJAX_EXTENSIONS", ""],
-            ["MATHJAX_CODEFILE", ""],
-            ["",""],
-            ["HTML_FORMULA_FORMAT", "png"],
-            ["",""],
-            ["FORMULA_FONTSIZE", "10"],
-            ["FORMULA_MACROFILE", ""],
-            ["",""],
-            ["SEARCH_ENGINE", "NO"],
-            ["SERVER_BASED_SEARCH", "NO"],
-            ["",""],
-            ["EXTERNAL_SEARCH", "NO"],
-            ["EXTERNAL_SEARCH_ID", "NO"],
-            ["",""],
-            ["EXTERNAL_GROUPS", "YES"],
-            ["EXTERNAL_PAGES", "YES"],
-            ["",""],
-            ["GENERATE_AUTOGEN_DEF", "NO"],
-            ["",""],
-            ["ENABLE_PREPROCESSING", "YES"],
-            ["MACRO_EXPANSION", "YES"],
-            ["EXPAND_ONLY_PREDEF", "NO"],
-            ["",""],
-            ["SEARCH_INCLUDES", "NO"],
-            ["",""],
-            ["INCLUDE_PATH", ""],
-            ["INCLUDE_FILE_PATTERNS", ""],
-            ["",""],
-            ["PREDEFINED", ""],
-            ["EXPAND_AS_DEFINED", ""],
-            ["SKIP_FUNCTION_MACROS", "YES"],
-            ["",""],
-            ["TAGFILES", ""],
-            ["GENERATE_TAGFILE", ""],
-            ["ALLEXTERNALS", "NO"],
-            ["",""],
-            ["CLASS_GRAPH", "YES"],
-            ["COLLABORATION_GRAPH", "YES"],
-            ["GROUP_GRAPHS", "YES"],
-            ["",""],
-            ["UML_LOOK", "NO"],
-            ["UML_LIMIT_NUM_FIELDS", "10"],
-            ["",""],
-            ["DOT_UML_DETAILS", "NO"],
-            ["DOT_WRAP_THRESHOLD", "17"],
-            ["DOT_CLEANUP", "YES"],
-            ["",""],
-            ["TEMPLATE_RELATIONS", "YES"],
-            ["",""],
-            ["INCLUDE_GRAPH", "YES"],
-            ["INCLUDED_BY_GRAPH", "YES"],
-            ["",""],
-            ["CALL_GRAPH", "NO"],
-            ["CALLER_GRAPH", "NO"],
-            ["",""],
-            ["GRAPHICAL_HIERARCHY", "YES"],
-            ["DIRECTORY_GRAPH", "YES"],
-            ["DIR_GRAPH_MAX_DEPTH", "5"],
-            ["",""],
-            ["DOT_IMAGE_FORMAT", "png"],
-            ["",""],
-            ["DOT_GRAPH_MAX_NODES", "50"],
-            ["MAX_DOT_GRAPH_DEPTH", "1000"],
-            ["",""],
-            ["GENERATE_LEGEND", "YES"],
-        ]
-        file_content_warn = [
-            ["QUIET", "YES"],
-            ["WARNINGS", "YES"],
-            ["",""],
-            ["WARN_IF_UNDOCUMENTED", "NO"],
-            ["WARN_IF_UNDOC_ENUM_VAL", "NO"],
-            ["WARN_IF_DOC_ERROR", "YES"],
-            ["WARN_IF_INCOMPLETE_DOC", "YES"],
-            ["WARN_AS_ERROR", "NO"],
-            ["WARN_FORMAT", "\"$file:$line: $text\""],
-            ["WARN_LINE_FORMAT", "\"at line $line of file $file\""],
-            ["WARN_LOGFILE", "warnings.log"]
-        ]
+        file_content      = json.loads(_("doxyfile_content"))
+        print(file_content)
+        
+        try:
+            file_content_warn = json.loads(_("doxyfile_content_warn"))
+            print(file_content_warn)
+        except Exception as e:
+            print(e)
+        print(">>>")
+        print(file_content)
+        print("<<<")
         with open(genv.doxyfile, 'w') as file:
             file.write(genv.v__app__comment_hdr)
             file.write("# File: Doxyfile\n")
