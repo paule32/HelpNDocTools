@@ -7,25 +7,10 @@
 # -----------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
-try:
-    import os            # operating system stuff
-    import sys           # system specifies
-    import traceback
-    
-    if getattr(sys, 'frozen', False):
-        import pyi_splash
-except Exception as e:
-    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-    tb = traceback.extract_tb(e.__traceback__)[-1]
-    
-    print(f"Exception occur:")
-    print(f"type : {exc_type.__name__}")
-    print(f"value: {exc_value}")
-    print(StringRepeat("-",40))
-    #
-    print(f"file : {tb.filename}")
-    print(f"line : {tb.lineno}")
-    sys.exit(1)
+import importlib
+import subprocess
+import sys
+import os
 
 # ---------------------------------------------------------------------------
 # under the windows console, python paths can make problems ...
@@ -34,6 +19,46 @@ if 'PYTHONHOME' in os.environ:
     del os.environ['PYTHONHOME']
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
+
+def check_and_install_module(module_name):
+    try:
+        importlib.import_module(module_name)
+        print(f"{module_name} is already installed.")
+    except ImportError:
+        print(f"{module_name} not found. Installing...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", module_name])
+        print(f"{module_name} installed successfully.")
+
+required_modules = [
+    "re", "polib", "requests", "timer", "threading", "glob", "atexit",
+    "platform", "gzip", "base64", "shutil", "datetime", "pkgutil", "ast",
+    "csv", "gettext", "locale", "io", "random", "string", "ctypes", "sqlite3",
+    "configparser", "traceback", "marshal", "inspect", "logging", "PyQt5",
+    "pathlib", "colorama" ]
+
+for module in required_modules:
+    check_and_install_module(module)
+
+try:
+    import os            # operating system stuff
+    import sys           # system specifies
+    import traceback
+    
+    if getattr(sys, 'frozen', False):
+        import pyi_splash
+    
+except Exception as e:
+    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+    tb = traceback.extract_tb(e.__traceback__)[-1]
+    
+    print(f"Exception occur:")
+    print(f"type : {exc_type.__name__}")
+    print(f"value: {exc_value}")
+    print(StringRepeat("-", 40))
+    #
+    print(f"file : {tb.filename}")
+    print(f"line : {tb.lineno}")
+    sys.exit(1)
 
 # ---------------------------------------------------------------------------
 # to hide global variables from other packages, i use this class for a common
@@ -60,23 +85,25 @@ class globalEnv:
         
         self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
         
-        self.v__app__doxygen__    = os.path.join(self.v__app__img__int__, "doxygen")
-        self.v__app__hlpndoc__    = os.path.join(self.v__app__img__int__, "helpndoc")
-        self.v__app__helpdev__    = os.path.join(self.v__app__img__int__, "help")
-        self.v__app__pythonc__    = os.path.join(self.v__app__img__int__, "python")
-        self.v__app__lispmod__    = os.path.join(self.v__app__img__int__, "lisp")
-        self.v__app__ccpplus__    = os.path.join(self.v__app__img__int__, "cpp")
-        self.v__app__cpp1dev__    = os.path.join(self.v__app__img__int__, "c")
-        self.v__app__dbasedb__    = os.path.join(self.v__app__img__int__, "dbase")
-        self.v__app__javadev__    = os.path.join(self.v__app__img__int__, "java")
-        self.v__app__javadoc__    = os.path.join(self.v__app__img__int__, "javadoc")
-        self.v__app__freepas__    = os.path.join(self.v__app__img__int__, "freepas")
-        self.v__app__locales__    = os.path.join(self.v__app__img__int__, "locales")
-        self.v__app__com_c64__    = os.path.join(self.v__app__img__int__, "c64")
-        self.v__app__keybc64__    = os.path.join(self.v__app__img__int__, "c64keyboard.png2")
-        self.v__app__discc64__    = os.path.join(self.v__app__img__int__, "disk2.png")
-        self.v__app__datmc64__    = os.path.join(self.v__app__img__int__, "mc2.png")
-        self.v__app__logoc64__    = os.path.join(self.v__app__img__int__, "logo2.png")
+        im_path = self.v__app__img__int__ + "/"
+        
+        self.v__app__doxygen__    = im_path + "doxygen"
+        self.v__app__hlpndoc__    = im_path + "helpndoc"
+        self.v__app__helpdev__    = im_path + "help"
+        self.v__app__pythonc__    = im_path + "python"
+        self.v__app__lispmod__    = im_path + "lisp"
+        self.v__app__ccpplus__    = im_path + "cpp"
+        self.v__app__cpp1dev__    = im_path + "c"
+        self.v__app__dbasedb__    = im_path + "dbase"
+        self.v__app__javadev__    = im_path + "java"
+        self.v__app__javadoc__    = im_path + "javadoc"
+        self.v__app__freepas__    = im_path + "freepas"
+        self.v__app__locales__    = im_path + "locales"
+        self.v__app__com_c64__    = im_path + "c64"
+        self.v__app__keybc64__    = im_path + "c64keyboard.png"
+        self.v__app__discc64__    = im_path + "disk2.png"
+        self.v__app__datmc64__    = im_path + "mc2.png"
+        self.v__app__logoc64__    = im_path + "logo2.png"
         
         # ------------------------------------------------------------------------
         # some state flags ...
@@ -237,15 +264,14 @@ try:
     # -------------------------------------------------------------------
     # for debuging, we use python logging library ...
     # -------------------------------------------------------------------
-    file_path = genv.v__app__logfile
-    file_path = file_path.replace("\\", "/")
+    genv.v__app__logfile = genv.v__app__logfile.replace("\\", "/")
     
-    if not os.path.exists(file_path):
-        Path(file_path).touch()
-    genv.v__app__logging = logging.getLogger(file_path)
+    if not os.path.exists(genv.v__app__logfile):
+        Path(genv.v__app__logfile).touch()
+    genv.v__app__logging = logging.getLogger(genv.v__app__logfile)
     logging.basicConfig(
         format="%(asctime)s: %(levelname)s: %(message)s",
-        filename=file_path,
+        filename=genv.v__app__logfile,
         encoding="utf-8",
         filemode="w",
         level=logging.DEBUG)
@@ -271,6 +297,7 @@ try:
         print("abort.")
         sys.exit(1)
     try:
+        print(genv.v__app__config["common"]["language"])
         genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
         genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
         genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
@@ -297,9 +324,11 @@ except configparser.NoOptionError as e:
     print("abort.")
     sys.exit(1)
 except configparser.NoSectionError as e:
-    print("Exception: section 'kanguage' not found.\n")
-    print("abort.")
-    sys.exit(1)
+    pass
+    #print("Exception: section not found.\n")
+    #print(e)
+    #print("abort.")
+    #sys.exit(1)
 except configparser.Error as e:
     print("Exception: config error occur.")
     print("abort.")
@@ -2019,7 +2048,7 @@ def read_gzfile_to_memory(file_path):
         print("Error: gzfile directory exists, but file could not found.")
         print("abort.")
         sys.exit(1)
-    if check_file.is_dir():
+    if not check_file.is_file():
         print("Error: gzfile is not a file.")
         print("abort.")
         sys.exit(1)
@@ -5812,6 +5841,7 @@ class OpenProFileDialog(QDialog):
             genv.v__app__config['Favorites'][item.text(0)] = item.text(1)
         with open('favorites.ini', 'w') as configfile:
             genv.v__app__config.write(configfile)
+            configfile.close()
     
     def load_drives(self):
         drives = [drive for drive in QDir.drives()]
@@ -6476,29 +6506,79 @@ class scrollBoxTabser(QWidget):
         
         self.layout().addWidget(scroll_area)
 
+class CustomListWidget(QListWidget):
+    def __init__(self, parent=None):
+        super(CustomListWidget, self).__init__(parent)
+    
+    def mouseDoubleClickEvent(self, event):
+        item = self.itemAt(event.pos())
+        if item:
+            QMessageBox.information(self, "Item Double Clicked", f"You double-clicked on {item.text()}")
+
+class myProjectLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super(myProjectLineEdit, self).__init__(parent)
+        self.parent = parent
+    
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            folder = QFileDialog.getExistingDirectory(self, 'Ordner auswählen')
+            if folder:
+                print(f"Ausgewählter Ordner: {folder}")
+            
+        super(myProjectLineEdit, self).mouseDoubleClickEvent(event)
+
 class dBaseProjectWidget(QWidget):
     def __init__(self):
         super().__init__()
+        
+        self.font   = QFont(genv.v__app__font, 11)
+        self.model  = QStandardItemModel()
+        
+        self.selected_item = None
+        css_linestyle = _("editfield_css")
         
         main_layout = QHBoxLayout(self)
                 
         font3 = QFont(genv.v__app__font, 10)
         font3.setBold(True)
+        
+        font4 = QFont(genv.v__app__font, 10)
 
         splitter = QSplitter()
-        splitter.setStyleSheet("QSplitter{width:4px; }")
+        splitter.setStyleSheet("QSplitter{width:4px;}")
         
         self.tree_view = QTreeView()
         self.tree_view.header().hide()
         self.tree_view.setMinimumWidth(180)
         self.tree_view.setFont(QFont(genv.v__app__font,11))
+        self.tree_view.clicked.connect(self.on_item_clicked)
+        
         self.populate_tree()
+        
+        fav_layout = QHBoxLayout()
+        fav_layout.setContentsMargins(0,0,0,0)
+        
+        fav_add = QPushButton("Add Favorite")
+        fav_del = QPushButton("Remove Favorite")
+        
+        fav_add.setFont(font4)
+        fav_del.setFont(font4)
+        
+        fav_add.setMinimumHeight(32)
+        fav_del.setMinimumHeight(32)
+        
+        fav_add.clicked.connect(self.fav_add_clicked)
+        fav_del.clicked.connect(self.fav_del_clicked)
+        
+        fav_layout.addWidget(fav_add)
+        fav_layout.addWidget(fav_del)
         
         pro_layout = QHBoxLayout()
         pro_layout.setContentsMargins(0,0,0,0)
         
         pro_open   = QPushButton("Open Project")
-        pro_close  = QPushButton("Close")
+        pro_close  = QPushButton("Clear")
         pro_new    = QPushButton("New Project")
         
         pro_open .setMinimumHeight(36)
@@ -6509,42 +6589,80 @@ class dBaseProjectWidget(QWidget):
         pro_close.setFont(font3)
         pro_new  .setFont(font3)
         
+        pro_open .clicked.connect(self.pro_open_clicked)
+        pro_close.clicked.connect(self.pro_close_clicked)
+        pro_new  .clicked.connect(self.pro_new_clicked)
+        
         pro_layout.addWidget(pro_open)
         pro_layout.addWidget(pro_close)
         pro_layout.addWidget(pro_new)
         
-        left_layout = QVBoxLayout()
-        left_layout.setContentsMargins(0,0,0,0)
+        path_layout = QHBoxLayout()
+        path_layout.setContentsMargins(0,0,0,0)
+        #
+        self.path_edit  = myProjectLineEdit()
+        self.path_edit.setStyleSheet(css_linestyle)
+        self.path_edit.setFont(font3)
+        #
+        self.path_push  = QPushButton("...")
+        self.path_push.setMinimumWidth(30)
+        self.path_push.setMinimumHeight(30)
+        self.path_push.setFont(font3)
+        self.path_push.clicked.connect(self.path_push_clicked)
+        #
+        path_layout.addWidget(self.path_edit)
+        path_layout.addWidget(self.path_push)
         
-        left_layout.addWidget(self.tree_view)
-        left_layout.addLayout(pro_layout)
+        self.list_label = QLabel("Favorites:")
+        self.list_label.setFont(font3)
         
-        left_widget = QWidget()
-        left_widget.setLayout(left_layout)
+        self.list_widget = CustomListWidget()
+        self.list_widget.setMaximumHeight(150)
+        self.list_widget.setFont(font4)
         
+        self.icon_name = "open-folder-green.png"
+        
+        self.icon  = QIcon(os.path.join(genv.v__app__img__int__, self.icon_name))
+        
+        item1 = QListWidgetItem(self.icon, 'Item 1')
+        item2 = QListWidgetItem(self.icon, 'Item 2')
+        item3 = QListWidgetItem(self.icon, 'Item 3')
+        
+        self.list_widget.addItem(item1)
+        self.list_widget.addItem(item2)
+        self.list_widget.addItem(item3)
+
         hlay_pro = QHBoxLayout()
         hlay_pro.setContentsMargins(0,0,0,0)
         
-        hlay_edit = QLineEdit()
-        hlay_edit.setStyleSheet("""
-        QLineEdit {
-            background-color:white;
-            font-family:'Consolas';
-            font-size:11pt;
-            color:black;
-        }
-        QLineEdit:hover {
-            background-color: yellow;
-        }
-        """)
+        self.hlay_edit = QLineEdit()
+        self.hlay_edit.setStyleSheet(css_linestyle)
         
         hlay_push = QPushButton("...")
         hlay_push.setMinimumWidth(30)
         hlay_push.setMinimumHeight(30)
         hlay_push.setFont(font3)
         #
-        hlay_pro.addWidget(hlay_edit)
+        hlay_push.clicked.connect(self.pro_open_clicked)
+        #
+        hlay_pro.addWidget(self.hlay_edit)
         hlay_pro.addWidget(hlay_push)
+        
+        left_layout = QVBoxLayout()
+        left_layout.setContentsMargins(0,0,0,0)
+        
+        left_layout.addWidget(self.tree_view)
+        left_layout.addLayout(path_layout)
+        left_layout.addWidget(self.list_label)
+        left_layout.addWidget(self.list_widget)
+        
+        left_layout.addLayout(hlay_pro)
+        left_layout.addLayout(fav_layout)
+        left_layout.addLayout(pro_layout)
+        
+        left_widget = QWidget()
+        left_widget.setLayout(left_layout)
+        
         
         self.list_view = QListView()
         self.list_view.setMinimumWidth(470)
@@ -6577,8 +6695,6 @@ class dBaseProjectWidget(QWidget):
         right_layout = QVBoxLayout()
         right_layout.setContentsMargins(0,0,0,0)
         
-        right_layout.addLayout(hlay_pro)
-        #
         right_layout.addWidget(self.list_view)
         right_layout.addLayout(self.lay_push)
         right_layout.addWidget(self.tab_widget)
@@ -6593,9 +6709,232 @@ class dBaseProjectWidget(QWidget):
         
         self.setLayout(main_layout)
     
+    # -----------------------------------------------
+    # search for item with <text> in the widget list.
+    # if it present, then return True; else False...
+    # -----------------------------------------------
+    def isItemInList(self, text):
+        for index in range(self.list_widget.count()):
+            if self.list_widget.item(index).text() == text:
+                return True
+        return False
+    
+    # -----------------------------------------------
+    # dialog, to open a new project file ...
+    # -----------------------------------------------
+    def pro_open_clicked(self):
+        options  = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_path, file_pattern = QFileDialog.getOpenFileName(self,
+            "Open File", "",
+            "All Files (*);;Project Files (*.pro)",
+            options=options)
+        self.hlay_edit.setText(file_path)
+    
+    # -----------------------------------------------
+    # close the current opened project file ...
+    # -----------------------------------------------
+    def pro_close_clicked(self):
+        self.list_widget.clear()
+        self.hlay_edit.setText("")
+        return
+    def pro_new_clicked(self):
+        return
+    
+    # -----------------------------------------------
+    # add project file name to favorite list ...
+    # -----------------------------------------------
+    def fav_add_clicked(self):
+        txt = self.hlay_edit.text()
+        if len(txt.strip()) > 0:
+            if not self.isItemInList(txt):
+                if txt.endswith(".pro"):
+                    if os.path.exists(txt):
+                        item = QListWidgetItem(self.icon, txt) 
+                        self.list_widget.addItem(item)
+                    else:
+                        msg = QMessageBox()
+                        msg.setWindowTitle("Information")
+                        msg.setFont(self.font)
+                        msg.setText(
+                            "File can not add to Favorite list.\n"
+                            "Either, you have no access permission's. Or it was deleted.\n"
+                            "Command aborted.")
+                        msg.setIcon(QMessageBox.Information)
+                        
+                        btn_ok = msg.addButton(QMessageBox.Ok)
+                        btn_ok.setFont(self.font)
+                        
+                        msg.setStyleSheet(_("msgbox_css"))
+                        result = msg.exec_()
+                else:
+                    msg = QMessageBox()
+                    msg.setWindowTitle("Information")
+                    msg.setFont(self.font)
+                    msg.setText(
+                        "Project files must be end with .pro extension.\n"
+                        "Command aborted.")
+                    msg.setIcon(QMessageBox.Information)
+                    
+                    btn_ok = msg.addButton(QMessageBox.Ok)
+                    btn_ok.setFont(self.font)
+                    
+                    msg.setStyleSheet(_("msgbox_css"))
+                    result = msg.exec_()
+            else:
+                msg = QMessageBox()
+                msg.setWindowTitle("Information")
+                msg.setFont(self.font)
+                msg.setText(
+                    "No item is already in the Favorite list.\n"
+                    "Command aborted.")
+                msg.setIcon(QMessageBox.Information)
+                
+                btn_ok = msg.addButton(QMessageBox.Ok)
+                btn_ok.setFont(self.font)
+                
+                msg.setStyleSheet(_("msgbox_css"))
+                result = msg.exec_()
+        else:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setFont(self.font)
+            msg.setText(
+                "No text available for adding into the Favorite list.\n"
+                "Command aborted.")
+            msg.setIcon(QMessageBox.Information)
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            btn_ok.setFont(self.font)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+        return
+    
+    # -----------------------------------------------
+    # delete selected favorite from the given list...
+    # -----------------------------------------------
+    def fav_del_clicked(self):
+        selected_items = self.list_widget.selectedItems()
+        if selected_items:
+            selected_item = selected_items[0]
+            self.list_widget.takeItem(self.list_widget.row(selected_item))
+        else:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setFont(self.font)
+            msg.setText(
+                "No item is selected in the Favorite list.\n"
+                "Command aborted.")
+            msg.setIcon(QMessageBox.Information)
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            btn_ok.setFont(self.font)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+        return
+    
+    def path_push_clicked(self):
+        if len(self.hlay_edit.text().split()) < 1:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setFont(self.font)
+            msg.setText(
+                "You must open a Project before you can add Element's\n"
+                "Command aborted.")
+            msg.setIcon(QMessageBox.Information)
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            btn_ok.setFont(self.font)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            return
+        old_text = self.path_edit.text()
+        if self.selected_item == None:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setFont(self.font)
+            msg.setText(
+                "No project file section selected.\n"
+                "Command aborted.")
+            msg.setIcon(QMessageBox.Information)
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            btn_ok.setFont(self.font)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            self.path_edit.setText(old_text)
+            return
+        new_text = QFileDialog.getExistingDirectory(self, "Select Folder:")
+        if len(new_text.strip()) > 0:
+            if not os.path.isdir(new_text):
+                self.path_edit.setText(new_text)
+                msg = QMessageBox()
+                msg.setWindowTitle("Information")
+                msg.setFont(self.font)
+                msg.setText(
+                    f"Path for Component: {new_text} could not be set.\n"
+                    "Not a directory.\n"
+                    "aborted.")
+                msg.setIcon(QMessageBox.Information)
+                
+                btn_ok = msg.addButton(QMessageBox.Ok)
+                btn_ok.setFont(self.font)
+                
+                msg.setStyleSheet(_("msgbox_css"))
+                result = msg.exec_()
+                return
+            try:
+                path_name = "@"
+                if self.selected_item:
+                    print("ok")
+                    if self.selected_item == "Form":
+                        path_name = genv.v__app__config.get("dBaseProject", "Form")
+                    elif self.selected_item == "Report":
+                        path_name = genv.v__app__config.get("dBaseProject", "Report")
+                    elif self.selected_item == "Program":
+                        path_name = genv.v__app__config.get("dBaseProject", "Program")
+                    elif self.selected_item == "Desktop Tables":
+                        path_name = genv.v__app__config.get("dBaseProject", "DeskTable")
+                    elif self.selected_item == "SQL":
+                        path_name = genv.v__app__config.get("dBaseProject", "SQL")
+                    elif self.selected_item == "Image":
+                        path_name = genv.v__app__config.get("dBaseProject", "Image")
+                    elif self.selected_item == "Other":
+                        path_name = genv.v__app__config.get("dBaseProject", "Other")
+                #
+                print(path_name)
+                self.path_edit.setText(path_name)
+            except Exception as e:
+                print(f"text error: {e}")
+                pass
+            self.path_edit.setText(new_text)
+        else:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setFont(self.font)
+            msg.setText(
+                "Something went wrong during selecting folder.\n"
+                "set old value...\n"
+                "Command aborted.")
+            msg.setIcon(QMessageBox.Information)
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            btn_ok.setFont(self.font)
+            
+            msg.setStyleSheet(_("msgbox_css"))
+            result = msg.exec_()
+            self.path_edit.setText(old_text)
+        return
+    
+    # -----------------------------------------------
+    # setup project file items list ...
+    # -----------------------------------------------
     def populate_tree(self):
-        model = QStandardItemModel()
-        root_node = model.invisibleRootItem()
+        root_node = self.model.invisibleRootItem()
         
         font1 = QFont(genv.v__app__font, 12)
         font1.setBold(True)
@@ -6604,29 +6943,40 @@ class dBaseProjectWidget(QWidget):
         font2.setBold(True)
         font2.setItalic(True)
         
+        icon1 = QIcon(os.path.join(genv.v__app__img__int__, "open-folder-blue.png"))
+        icon2 = QIcon(os.path.join(genv.v__app__img__int__, "open-folder-yellow.png"))
+        
         parent_item = QStandardItem("Project Files")
         parent_item.setFont(font1)
+        parent_item.setIcon(icon1)
         
         child_item_1 = QStandardItem("Form")
         child_item_1.setFont(font2)
+        child_item_1.setIcon(icon2)
         
         child_item_2 = QStandardItem("Report")
         child_item_2.setFont(font2)
+        child_item_2.setIcon(icon2)
         
         child_item_3 = QStandardItem("Program")
         child_item_3.setFont(font2)
+        child_item_3.setIcon(icon2)
         
         child_item_4 = QStandardItem("Desktop Tables")
         child_item_4.setFont(font2)
+        child_item_4.setIcon(icon2)
         
         child_item_5 = QStandardItem("SQL")
         child_item_5.setFont(font2)
+        child_item_5.setIcon(icon2)
         
         child_item_6 = QStandardItem("Image")
         child_item_6.setFont(font2)
+        child_item_6.setIcon(icon2)
         
         child_item_7 = QStandardItem("Other")
         child_item_7.setFont(font2)
+        child_item_7.setIcon(icon2)
         #
         parent_item.appendRow(child_item_1)
         parent_item.appendRow(child_item_2)
@@ -6637,10 +6987,73 @@ class dBaseProjectWidget(QWidget):
         parent_item.appendRow(child_item_7)
         
         root_node.appendRow(parent_item)
-        self.tree_view.setModel(model)
+        self.tree_view.setModel(self.model)
         
-        self.expand_all_items(self.tree_view, model.indexFromItem(model.invisibleRootItem()))
+        self.expand_all_items(
+            self.tree_view,
+            self.model.indexFromItem(
+            self.model.invisibleRootItem()))
     
+    # -----------------------------------------------
+    # get the item selected from the file item list.
+    # -----------------------------------------------
+    def on_item_clicked(self, index):
+        item = self.model.itemFromIndex(index)
+        self.selected_item = item
+        if not item == None:
+            parent_item = item.parent()
+            if not parent_item == None:
+                if parent_item.text() == "Project Files":
+                    if item.text() == "Form":
+                        print("form direct")
+                        return
+                    elif item.text() == "Report":
+                        print("report direct")
+                        return
+                    elif item.text() == "Program":
+                        print("program direct")
+                        return
+                    elif item.text() == "Desktop Tables":
+                        print("desktop tables direct")
+                        return
+                    elif item.text() == "SQL":
+                        print("sql direct")
+                        return
+                    elif item.text() == "Image":
+                        print("image direct")
+                        return
+                    elif item.text() == "Other":
+                        print("other direct")
+                        return
+                elif parent_item.text() == "Form":
+                    print("form direct 1")
+                    return
+                elif parent_item.text() == "Report":
+                    print("report direct 1")
+                    return
+                elif parent_item.text() == "Program":
+                    print("program direct 1")
+                    return
+                elif parent_item.text() == "Desktop Tables":
+                    print("deskt tables direct 1")
+                    return
+                elif parent_item.text() == "SQL":
+                    print("sql direct")
+                    return
+                elif parent_item.text() == "Image":
+                    print("image direct 1")
+                    return
+                elif item.text() == "Other":
+                    print("other direct 1")
+                    return
+            else:
+                if item.text() == "Project Files":
+                    print("project files 11")
+                    return
+    
+    # -----------------------------------------------
+    # expand all items in the tree view ...
+    # -----------------------------------------------
     def expand_all_items(self, tree_view, index):
         tree_view.expand(index)
         model = tree_view.model()
