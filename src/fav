@@ -6,3 +6,6 @@ test1.pro = E:/Projekte/HelpNDocTools/src\test1.pro
 [Project]
 Form = E:/form
 Report = E:/reports
+
+[dBaseProject]
+k1 = 123

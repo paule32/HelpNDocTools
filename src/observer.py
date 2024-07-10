@@ -138,6 +138,7 @@ class globalEnv:
         self.v__app__error_level  = "0"
         
         self.v__app__scriptname__ = "./examples/dbase/example1.prg"
+        self.v__app__favorites    = os.path.join(self.v__app__internal__, "favorites.ini")
         
         # ------------------------------------------------------------------------
         self.v__app__config   = None
@@ -6509,11 +6510,18 @@ class scrollBoxTabser(QWidget):
 class CustomListWidget(QListWidget):
     def __init__(self, parent=None):
         super(CustomListWidget, self).__init__(parent)
+        self.parent = parent
     
     def mouseDoubleClickEvent(self, event):
         item = self.itemAt(event.pos())
-        if item:
-            QMessageBox.information(self, "Item Double Clicked", f"You double-clicked on {item.text()}")
+        if not item:
+            return
+        
+        file_path = item.text()
+        
+        self.parent.hlay_edit.clear  ()
+        self.parent.hlay_edit.setText(file_path)
+        self.parent.setup_favorites  (file_path)
 
 class myProjectLineEdit(QLineEdit):
     def __init__(self, parent=None):
@@ -6529,11 +6537,20 @@ class myProjectLineEdit(QLineEdit):
         super(myProjectLineEdit, self).mouseDoubleClickEvent(event)
 
 class dBaseProjectWidget(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super(dBaseProjectWidget, self).__init__(parent)
         
         self.font   = QFont(genv.v__app__font, 11)
         self.model  = QStandardItemModel()
+        self.parent = parent
+
+        self.child_item_form        = None
+        self.child_item_report      = None
+        self.child_item_program     = None
+        self.child_item_desk_tables = None
+        self.child_item_sql         = None
+        self.child_item_image       = None
+        self.child_item_other       = None
         
         self.selected_item = None
         css_linestyle = _("editfield_css")
@@ -6578,23 +6595,23 @@ class dBaseProjectWidget(QWidget):
         pro_layout.setContentsMargins(0,0,0,0)
         
         pro_open   = QPushButton("Open Project")
-        pro_close  = QPushButton("Clear")
+        pro_clear  = QPushButton("Clear")
         pro_new    = QPushButton("New Project")
         
         pro_open .setMinimumHeight(36)
-        pro_close.setMinimumHeight(36)
+        pro_clear.setMinimumHeight(36)
         pro_new  .setMinimumHeight(36)
         
         pro_open .setFont(font3)
-        pro_close.setFont(font3)
+        pro_clear.setFont(font3)
         pro_new  .setFont(font3)
         
         pro_open .clicked.connect(self.pro_open_clicked)
-        pro_close.clicked.connect(self.pro_close_clicked)
+        pro_clear.clicked.connect(self.pro_clear_clicked)
         pro_new  .clicked.connect(self.pro_new_clicked)
         
         pro_layout.addWidget(pro_open)
-        pro_layout.addWidget(pro_close)
+        pro_layout.addWidget(pro_clear)
         pro_layout.addWidget(pro_new)
         
         path_layout = QHBoxLayout()
@@ -6616,7 +6633,7 @@ class dBaseProjectWidget(QWidget):
         self.list_label = QLabel("Favorites:")
         self.list_label.setFont(font3)
         
-        self.list_widget = CustomListWidget()
+        self.list_widget = CustomListWidget(self)
         self.list_widget.setMaximumHeight(150)
         self.list_widget.setFont(font4)
         
@@ -6624,13 +6641,13 @@ class dBaseProjectWidget(QWidget):
         
         self.icon  = QIcon(os.path.join(genv.v__app__img__int__, self.icon_name))
         
-        item1 = QListWidgetItem(self.icon, 'Item 1')
-        item2 = QListWidgetItem(self.icon, 'Item 2')
-        item3 = QListWidgetItem(self.icon, 'Item 3')
+        #item1 = QListWidgetItem(self.icon, 'Item 1')
+        #item2 = QListWidgetItem(self.icon, 'Item 2')
+        #item3 = QListWidgetItem(self.icon, 'Item 3')
         
-        self.list_widget.addItem(item1)
-        self.list_widget.addItem(item2)
-        self.list_widget.addItem(item3)
+        #self.list_widget.addItem(item1)
+        #self.list_widget.addItem(item2)
+        #self.list_widget.addItem(item3)
 
         hlay_pro = QHBoxLayout()
         hlay_pro.setContentsMargins(0,0,0,0)
@@ -6707,6 +6724,17 @@ class dBaseProjectWidget(QWidget):
         
         main_layout.addWidget(splitter)
         
+        # setup favorites ...
+        try:
+            genv.v__app__config.read(genv.v__app__favorites)
+            for name, path in genv.v__app__config["dBaseFavorites"].items():
+                item = QListWidgetItem(self.icon, path)
+                self.list_widget.addItem(item)
+        except Exception as e:
+            self.messageBox(""
+            + "Error: something went wrong during reading the Project paths."
+            + "Command aborted.")
+        
         self.setLayout(main_layout)
     
     # -----------------------------------------------
@@ -6729,12 +6757,182 @@ class dBaseProjectWidget(QWidget):
             "Open File", "",
             "All Files (*);;Project Files (*.pro)",
             options=options)
+        
+        if len(file_path.strip()) < 1:
+            self.messageBox("No Project file selected.")
+            return
+        
+        if not os.path.isfile(file_path):
+            messageBox("Selection is not a Project file.")
+            return
+        
+        if os.path.isdir(file_path):
+            self.messageBox(
+            "Selection is a directory. But file expected.\n"
+            "Command aborted.")
+            return
+        
+        if not file_path.endswith(".pro"):
+            self.messageBox(
+            "Project files must have a postfix with .pro at end of name\n"
+            "Command aborted.")
+            return
+            
         self.hlay_edit.setText(file_path)
+        self.setup_favorites  (file_path)
+    
+    def setup_favorites(self, file_path):
+        newline1 = " = ./\n"
+        newline2 = " = \n"
+        
+        db_path  = "paths"
+        db_pro   = "dBaseProject"
+        
+        if not os.path.exists(file_path):
+            try:
+                with open(file_path, "w", encoding="utf-8") as configfile:
+                    configfile.write(""
+                    + "[paths]\n"
+                    + "Forms"      + newline1
+                    + "Programs"   + newline1
+                    + "Reports"    + newline1
+                    + "Tables"     + newline1
+                    + "Images"     + newline1
+                    + "SQL"        + newline1
+                    + "Other"      + newline1
+                    + "\n"
+                    + "[" + db_pro + "]\n"
+                    + "Forms"      + newline2
+                    + "Programs"   + newline2
+                    + "Reports"    + newline2
+                    + "DeskTables" + newline2
+                    + "Images"     + newline2
+                    + "SQL"        + newline2
+                    + "Other"      + newline2)
+                    configfile.close()
+            except Exception as e:
+                self.messageBox(""
+                + "Error: file could not be open in write mode.\n"
+                + file_path + "\n"
+                + "Command aborted")
+                return
+        
+        if not os.path.isfile(file_path):
+            self.messageBox(""
+            + "Error: You choose a file that is not a Project file.\n"
+            + file_path + "\n"
+            + "Command aborted.")
+            return
+        try:
+            genv.v__app__config.read(file_path)
+        except Exception as e:
+            self.messageBox("Error: " + e)
+            return
+        try:
+            self.dbase_path_forms    = genv.v__app__config[db_path]["Forms"]
+            self.dbase_path_reports  = genv.v__app__config[db_path]["Reports"]
+            self.dbase_path_programs = genv.v__app__config[db_path]["Programs"]
+            self.dbase_path_images   = genv.v__app__config[db_path]["Images"]
+            self.dbase_path_tables   = genv.v__app__config[db_path]["Tables"]
+            self.dbase_path_sql      = genv.v__app__config[db_path]["SQL"]
+            self.dbase_path_other    = genv.v__app__config[db_path]["Other"]
+            
+            self.dbase_forms        = genv.v__app__config[db_pro]["Forms"]
+            self.dbase_forms_arr    = []
+            self.dbase_forms_arr.append(self.dbase_forms)
+            self.dbase_forms_arr    = self.dbase_forms_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_forms_arr) > 0:
+                for file_name in self.dbase_forms_arr:
+                    file_name = file_name.replace("\"","")
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_form.appendRow(child)
+            
+            self.dbase_reports      = genv.v__app__config[db_pro]["Reports"]
+            self.dbase_reports_arr  = []
+            self.dbase_reports_arr.append(self.dbase_reports)
+            self.dbase_reports_arr    = self.dbase_reports_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_reports_arr) > 0:
+                for file_name in self.dbase_reports_arr:
+                    file_name = file_name.replace("\"","")
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_report.appendRow(child)
+            
+            self.dbase_programs     = genv.v__app__config[db_pro]["Programs"]
+            self.dbase_programs_arr = []
+            self.dbase_programs_arr.append(self.dbase_programs)
+            self.dbase_programs_arr = self.dbase_programs_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_programs_arr) > 0:
+                for file_name in self.dbase_programs_arr:
+                    file_name = file_name.replace("\"","")
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_program.appendRow(child)
+            
+            self.dbase_tables       = genv.v__app__config[db_pro]["DeskTables"]
+            self.dbase_tables_arr   = []
+            self.dbase_tables_arr.append(self.dbase_tables)
+            self.dbase_tables_arr   = self.dbase_tables_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_tables_arr) > 0:
+                for file_name in self.dbase_tables_arr:
+                    file_name = file_name.replace("\"","")
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_desk_tables.appendRow(child)
+            
+            self.dbase_images       = genv.v__app__config[db_pro]["Images"]
+            self.dbase_images_arr   = []
+            self.dbase_images_arr.append(self.dbase_images)
+            self.dbase_images_arr   = self.dbase_images_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_images_arr) > 0:
+                for file_name in self.dbase_images_arr:
+                    file_name = file_name.replace("\"","")
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_image.appendRow(child)
+            
+            self.dbase_sql          = genv.v__app__config[db_pro]["SQL"]
+            self.dbase_sql_arr      = []
+            self.dbase_sql_arr.append(self.dbase_sql)
+            self.dbase_sql_arr      = self.dbase_sql_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_sql_arr) > 0:
+                for file_name in self.dbase_sql_arr:
+                    file_name = file_name.replace("\"","")
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_sql.appendRow(child)
+            
+            self.dbase_other        = genv.v__app__config[db_pro]["Other"]
+            self.dbase_other_arr    = []
+            self.dbase_other_arr.append(self.dbase_other)
+            self.dbase_other_arr    = self.dbase_other_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_other_arr) > 0:
+                for file_name in self.dbase_other_arr:
+                    file_name = file_name.replace("\"","")
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_other.appendRow(child)
+            
+        except Exception as e:
+            print(e)
+            self.messageBox(""
+            + "Error: .pro file have not the needed format.\n"
+            + file_path + "\n"
+            + "Command aborted.")
+            self.hlay_edit.clear()
     
     # -----------------------------------------------
     # close the current opened project file ...
     # -----------------------------------------------
-    def pro_close_clicked(self):
+    def pro_clear_clicked(self):
         self.list_widget.clear()
         self.hlay_edit.setText("")
         return
@@ -6750,65 +6948,50 @@ class dBaseProjectWidget(QWidget):
             if not self.isItemInList(txt):
                 if txt.endswith(".pro"):
                     if os.path.exists(txt):
-                        item = QListWidgetItem(self.icon, txt) 
-                        self.list_widget.addItem(item)
+                        counter = 0
+                        if not os.path.exists(genv.v__app__favorites):
+                            self.messageBox(""
+                            + "Info: favorite.ini file does not exists - I will fix this.")
+                            try:
+                                with open(genv.v__app__favorites, "w", encoding="utf-8") as configfile:
+                                    configfile.write(""
+                                    + "[dBaseFavorites]\n"
+                                    + "1: " + txt + "\n")
+                                    configfile.close()
+                            except Exception as e:
+                                self.messageBox(""
+                                + "Error: favorite.ini file could not be open in write mode.\n"
+                                + "maybe you don't have access permission's to this file.\n"
+                                + "\n"
+                                + "Command aborted.")
+                                return
+                        try:
+                            genv.v__app__config.read(genv.v__app__favorites)
+                            for name, path in genv.v__app__config["dBaseFavorites"].items():
+                                item = QListWidgetItem(self.icon, path)
+                                self.list_widget.addItem(item)
+                        except Exception as e:
+                            self.messageBox(""
+                            + "Error: something went wrong during reading the Project paths."
+                            + "Command aborted.")
+                        return
                     else:
-                        msg = QMessageBox()
-                        msg.setWindowTitle("Information")
-                        msg.setFont(self.font)
-                        msg.setText(
-                            "File can not add to Favorite list.\n"
-                            "Either, you have no access permission's. Or it was deleted.\n"
-                            "Command aborted.")
-                        msg.setIcon(QMessageBox.Information)
-                        
-                        btn_ok = msg.addButton(QMessageBox.Ok)
-                        btn_ok.setFont(self.font)
-                        
-                        msg.setStyleSheet(_("msgbox_css"))
-                        result = msg.exec_()
-                else:
-                    msg = QMessageBox()
-                    msg.setWindowTitle("Information")
-                    msg.setFont(self.font)
-                    msg.setText(
-                        "Project files must be end with .pro extension.\n"
+                        self.messageBox(
+                        "File can not add to Favorite list.\n"
+                        "Either, you have no access permission's. Or it was deleted.\n"
                         "Command aborted.")
-                    msg.setIcon(QMessageBox.Information)
-                    
-                    btn_ok = msg.addButton(QMessageBox.Ok)
-                    btn_ok.setFont(self.font)
-                    
-                    msg.setStyleSheet(_("msgbox_css"))
-                    result = msg.exec_()
-            else:
-                msg = QMessageBox()
-                msg.setWindowTitle("Information")
-                msg.setFont(self.font)
-                msg.setText(
-                    "No item is already in the Favorite list.\n"
+                else:
+                    self.messageBox(
+                    "Project files must be end with .pro extension.\n"
                     "Command aborted.")
-                msg.setIcon(QMessageBox.Information)
-                
-                btn_ok = msg.addButton(QMessageBox.Ok)
-                btn_ok.setFont(self.font)
-                
-                msg.setStyleSheet(_("msgbox_css"))
-                result = msg.exec_()
-        else:
-            msg = QMessageBox()
-            msg.setWindowTitle("Information")
-            msg.setFont(self.font)
-            msg.setText(
-                "No text available for adding into the Favorite list.\n"
+            else:
+                self.messageBox(
+                "No item is already in the Favorite list.\n"
                 "Command aborted.")
-            msg.setIcon(QMessageBox.Information)
-            
-            btn_ok = msg.addButton(QMessageBox.Ok)
-            btn_ok.setFont(self.font)
-            
-            msg.setStyleSheet(_("msgbox_css"))
-            result = msg.exec_()
+        else:
+            self.messageBox(
+            "No text available for adding into the Favorite list.\n"
+            "Command aborted.")
         return
     
     # -----------------------------------------------
@@ -6820,115 +7003,262 @@ class dBaseProjectWidget(QWidget):
             selected_item = selected_items[0]
             self.list_widget.takeItem(self.list_widget.row(selected_item))
         else:
-            msg = QMessageBox()
-            msg.setWindowTitle("Information")
-            msg.setFont(self.font)
-            msg.setText(
-                "No item is selected in the Favorite list.\n"
-                "Command aborted.")
-            msg.setIcon(QMessageBox.Information)
-            
-            btn_ok = msg.addButton(QMessageBox.Ok)
-            btn_ok.setFont(self.font)
-            
-            msg.setStyleSheet(_("msgbox_css"))
-            result = msg.exec_()
+            self.messageBox(
+            "No item is selected in the Favorite list.\n"
+            "Command aborted.")
         return
     
+    # -----------------------------------------------------------
+    # to save code space, and minimaze maintain code, we use this
+    # definition to display a message box with an ok button ...
+    # -----------------------------------------------------------
+    def messageBox(self, text):
+        msg = QMessageBox()
+        msg.setWindowTitle("Information")
+        msg.setFont(self.font)
+        msg.setText(text)
+        msg.setIcon(QMessageBox.Information)
+        
+        btn_ok = msg.addButton(QMessageBox.Ok)
+        btn_ok.setFont(self.font)
+        
+        msg.setStyleSheet(_("msgbox_css"))
+        result = msg.exec_()
+    
+    # -----------------------------------------------
+    # path changer (ellipse pushbutton)
+    # -----------------------------------------------
     def path_push_clicked(self):
-        if len(self.hlay_edit.text().split()) < 1:
-            msg = QMessageBox()
-            msg.setWindowTitle("Information")
-            msg.setFont(self.font)
-            msg.setText(
-                "You must open a Project before you can add Element's\n"
-                "Command aborted.")
-            msg.setIcon(QMessageBox.Information)
-            
-            btn_ok = msg.addButton(QMessageBox.Ok)
-            btn_ok.setFont(self.font)
-            
-            msg.setStyleSheet(_("msgbox_css"))
-            result = msg.exec_()
-            return
         old_text = self.path_edit.text()
-        if self.selected_item == None:
-            msg = QMessageBox()
-            msg.setWindowTitle("Information")
-            msg.setFont(self.font)
-            msg.setText(
-                "No project file section selected.\n"
-                "Command aborted.")
-            msg.setIcon(QMessageBox.Information)
-            
-            btn_ok = msg.addButton(QMessageBox.Ok)
-            btn_ok.setFont(self.font)
-            
-            msg.setStyleSheet(_("msgbox_css"))
-            result = msg.exec_()
+        
+        if len(self.hlay_edit.text().split()) < 1:
+            self.messageBox(
+            "You must open a Project before you can add Element's\n"
+            "Command aborted.")
             self.path_edit.setText(old_text)
             return
-        new_text = QFileDialog.getExistingDirectory(self, "Select Folder:")
-        if len(new_text.strip()) > 0:
-            if not os.path.isdir(new_text):
-                self.path_edit.setText(new_text)
-                msg = QMessageBox()
-                msg.setWindowTitle("Information")
-                msg.setFont(self.font)
-                msg.setText(
-                    f"Path for Component: {new_text} could not be set.\n"
-                    "Not a directory.\n"
-                    "aborted.")
-                msg.setIcon(QMessageBox.Information)
                 
-                btn_ok = msg.addButton(QMessageBox.Ok)
-                btn_ok.setFont(self.font)
-                
-                msg.setStyleSheet(_("msgbox_css"))
-                result = msg.exec_()
-                return
-            try:
-                path_name = "@"
-                if self.selected_item:
-                    print("ok")
-                    if self.selected_item == "Form":
-                        path_name = genv.v__app__config.get("dBaseProject", "Form")
-                    elif self.selected_item == "Report":
-                        path_name = genv.v__app__config.get("dBaseProject", "Report")
-                    elif self.selected_item == "Program":
-                        path_name = genv.v__app__config.get("dBaseProject", "Program")
-                    elif self.selected_item == "Desktop Tables":
-                        path_name = genv.v__app__config.get("dBaseProject", "DeskTable")
-                    elif self.selected_item == "SQL":
-                        path_name = genv.v__app__config.get("dBaseProject", "SQL")
-                    elif self.selected_item == "Image":
-                        path_name = genv.v__app__config.get("dBaseProject", "Image")
-                    elif self.selected_item == "Other":
-                        path_name = genv.v__app__config.get("dBaseProject", "Other")
-                #
-                print(path_name)
-                self.path_edit.setText(path_name)
-            except Exception as e:
-                print(f"text error: {e}")
-                pass
-            self.path_edit.setText(new_text)
-        else:
-            msg = QMessageBox()
-            msg.setWindowTitle("Information")
-            msg.setFont(self.font)
-            msg.setText(
-                "Something went wrong during selecting folder.\n"
-                "set old value...\n"
-                "Command aborted.")
-            msg.setIcon(QMessageBox.Information)
-            
-            btn_ok = msg.addButton(QMessageBox.Ok)
-            btn_ok.setFont(self.font)
-            
-            msg.setStyleSheet(_("msgbox_css"))
-            result = msg.exec_()
+        if self.selected_item == None:
+            self.messageBox(
+            "No project file section selected.\n"
+            "Command aborted.")
             self.path_edit.setText(old_text)
-        return
+            return
+        
+        new_text = QFileDialog.getExistingDirectory(self, "Select Folder:")
+        if len(new_text.strip()) < 1:
+            self.messageBox(
+            "Something went wrong during selecting folder.\n"
+            "set old value...\n"
+            "Command aborted.")
+            self.path_edit.setText(old_text)
+            return
+        
+        if not os.path.isdir(new_text):
+            self.path_edit.setText(new_text)
+            self.messageBox(
+            "Not a directory.\n"
+            "aborted.")
+            self.path_edit.setText(old_text)
+            return
+        
+        if not self.hlay_edit.text().endswith(".pro"):
+            self.messageBox(
+            "Project files must be post fixed with .pro\n"
+            "Command aborted.")
+            self.path_edit.setText(old_text)
+            return
+        
+        self.path_edit.setText(new_text)
+        
+        path_name = self.path_edit.text()
+        hlay_name = self.hlay_edit.text()
+        #
+        path_mess = "config file could not be write."
+        
+        # 1
+        try:
+            genv.v__app__config.read(path_name)
+            if self.selected_item.text() == "Form":
+                genv.v__app__config["dBaseProject"]["Form"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set form path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config["dBaseProject"] = {
+                "Form": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print("bbb")
+                print(e)
+                self.messageBox(path_mess)
+        # 2
+        try:
+            if self.selected_item.text() == "Report":
+                genv.v__app__config["dBaseProject"]["Report"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set report path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config["dBaseProject"] = {
+                "Report": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 3
+        try:
+            if self.selected_item.text() == "Program":
+                genv.v__app__config["dBaseProject"]["Program"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set program path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config["dBaseProject"] = {
+                "Program": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 4
+        try:
+            if self.selected_item.text() == "Desktop Tables":
+                genv.v__app__config["dBaseProject"]["DeskTables"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set desk tables path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config["dBaseProject"] = {
+                "DeskTables": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 5
+        try:
+            if self.selected_item.text() == "SQL":
+                genv.v__app__config["dBaseProject"]["SQL"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set sql path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config["dBaseProject"] = {
+                "SQL": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 6
+        try:
+            if self.selected_item.text() == "Image":
+                genv.v__app__config["dBaseProject"]["Image"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set image path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config["dBaseProject"] = {
+                "Image": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 7
+        try:
+            if self.selected_item.text() == "Other":
+                genv.v__app__config["dBaseProject"]["Other"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set other path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config["dBaseProject"] = {
+                "Other": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
     
     # -----------------------------------------------
     # setup project file items list ...
@@ -6950,41 +7280,41 @@ class dBaseProjectWidget(QWidget):
         parent_item.setFont(font1)
         parent_item.setIcon(icon1)
         
-        child_item_1 = QStandardItem("Form")
-        child_item_1.setFont(font2)
-        child_item_1.setIcon(icon2)
+        self.child_item_form = QStandardItem("Form")
+        self.child_item_form.setFont(font2)
+        self.child_item_form.setIcon(icon2)
         
-        child_item_2 = QStandardItem("Report")
-        child_item_2.setFont(font2)
-        child_item_2.setIcon(icon2)
+        self.child_item_report = QStandardItem("Report")
+        self.child_item_report.setFont(font2)
+        self.child_item_report.setIcon(icon2)
         
-        child_item_3 = QStandardItem("Program")
-        child_item_3.setFont(font2)
-        child_item_3.setIcon(icon2)
+        self.child_item_program = QStandardItem("Program")
+        self.child_item_program.setFont(font2)
+        self.child_item_program.setIcon(icon2)
         
-        child_item_4 = QStandardItem("Desktop Tables")
-        child_item_4.setFont(font2)
-        child_item_4.setIcon(icon2)
+        self.child_item_desk_tables = QStandardItem("Desktop Tables")
+        self.child_item_desk_tables.setFont(font2)
+        self.child_item_desk_tables.setIcon(icon2)
         
-        child_item_5 = QStandardItem("SQL")
-        child_item_5.setFont(font2)
-        child_item_5.setIcon(icon2)
+        self.child_item_sql = QStandardItem("SQL")
+        self.child_item_sql.setFont(font2)
+        self.child_item_sql.setIcon(icon2)
         
-        child_item_6 = QStandardItem("Image")
-        child_item_6.setFont(font2)
-        child_item_6.setIcon(icon2)
+        self.child_item_image = QStandardItem("Image")
+        self.child_item_image.setFont(font2)
+        self.child_item_image.setIcon(icon2)
         
-        child_item_7 = QStandardItem("Other")
-        child_item_7.setFont(font2)
-        child_item_7.setIcon(icon2)
+        self.child_item_other = QStandardItem("Other")
+        self.child_item_other.setFont(font2)
+        self.child_item_other.setIcon(icon2)
         #
-        parent_item.appendRow(child_item_1)
-        parent_item.appendRow(child_item_2)
-        parent_item.appendRow(child_item_3)
-        parent_item.appendRow(child_item_4)
-        parent_item.appendRow(child_item_5)
-        parent_item.appendRow(child_item_6)
-        parent_item.appendRow(child_item_7)
+        parent_item.appendRow(self.child_item_form)
+        parent_item.appendRow(self.child_item_report)
+        parent_item.appendRow(self.child_item_program)
+        parent_item.appendRow(self.child_item_desk_tables)
+        parent_item.appendRow(self.child_item_sql)
+        parent_item.appendRow(self.child_item_image)
+        parent_item.appendRow(self.child_item_other)
         
         root_node.appendRow(parent_item)
         self.tree_view.setModel(self.model)
@@ -7005,46 +7335,60 @@ class dBaseProjectWidget(QWidget):
             if not parent_item == None:
                 if parent_item.text() == "Project Files":
                     if item.text() == "Form":
-                        print("form direct")
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_forms)
                         return
                     elif item.text() == "Report":
-                        print("report direct")
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_reports)
                         return
                     elif item.text() == "Program":
-                        print("program direct")
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_programs)
                         return
                     elif item.text() == "Desktop Tables":
-                        print("desktop tables direct")
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_tables)
                         return
                     elif item.text() == "SQL":
-                        print("sql direct")
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_sql)
                         return
                     elif item.text() == "Image":
-                        print("image direct")
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_images)
                         return
                     elif item.text() == "Other":
-                        print("other direct")
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_other)
                         return
                 elif parent_item.text() == "Form":
-                    print("form direct 1")
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_forms)
                     return
                 elif parent_item.text() == "Report":
-                    print("report direct 1")
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_reports)
                     return
                 elif parent_item.text() == "Program":
-                    print("program direct 1")
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_programs)
                     return
                 elif parent_item.text() == "Desktop Tables":
-                    print("deskt tables direct 1")
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_tables)
                     return
                 elif parent_item.text() == "SQL":
-                    print("sql direct")
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_sql)
                     return
                 elif parent_item.text() == "Image":
-                    print("image direct 1")
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_images)
                     return
                 elif item.text() == "Other":
-                    print("other direct 1")
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_other)
                     return
             else:
                 if item.text() == "Project Files":
@@ -9882,7 +10226,16 @@ def EntryPoint(arg1=None):
         with open(genv.v__app__config_ini, "w", encoding="utf-8") as output_file:
             content = (""
             + "[common]\n"
-            + "language = en_us\n")
+            + "language = en_us\n"
+            + "\n"
+            + "[dBaseProject]\n"
+            + "Form = "
+            + "Report = "
+            + "Program = "
+            + "DeskTables = "
+            + "Images = "
+            + "SQL = "
+            + "Other = ")
             output_file.write(content)
             output_file.close()
             ini_lang = "en_us" # default is english; en_us
