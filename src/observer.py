@@ -6542,8 +6542,15 @@ class dBaseProjectWidget(QWidget):
         
         self.font   = QFont(genv.v__app__font, 11)
         self.model  = QStandardItemModel()
+        self.result = QMessageBox.No        # default: no overwrite .pro file
         self.parent = parent
-
+        
+        self.newline1 = " = ./\n"
+        self.newline2 = " = \n"
+        
+        self.db_path  = "paths"
+        self.db_pro   = "dBaseProject"
+        
         self.child_item_form        = None
         self.child_item_report      = None
         self.child_item_program     = None
@@ -6782,33 +6789,27 @@ class dBaseProjectWidget(QWidget):
         self.setup_favorites  (file_path)
     
     def setup_favorites(self, file_path):
-        newline1 = " = ./\n"
-        newline2 = " = \n"
-        
-        db_path  = "paths"
-        db_pro   = "dBaseProject"
-        
         if not os.path.exists(file_path):
             try:
                 with open(file_path, "w", encoding="utf-8") as configfile:
                     configfile.write(""
                     + "[paths]\n"
-                    + "Forms"      + newline1
-                    + "Programs"   + newline1
-                    + "Reports"    + newline1
-                    + "Tables"     + newline1
-                    + "Images"     + newline1
-                    + "SQL"        + newline1
-                    + "Other"      + newline1
+                    + "Forms"      + self.newline1
+                    + "Programs"   + self.newline1
+                    + "Reports"    + self.newline1
+                    + "Tables"     + self.newline1
+                    + "Images"     + self.newline1
+                    + "SQL"        + self.newline1
+                    + "Other"      + self.newline1
                     + "\n"
                     + "[" + db_pro + "]\n"
-                    + "Forms"      + newline2
-                    + "Programs"   + newline2
-                    + "Reports"    + newline2
-                    + "DeskTables" + newline2
-                    + "Images"     + newline2
-                    + "SQL"        + newline2
-                    + "Other"      + newline2)
+                    + "Forms"      + self.newline2
+                    + "Programs"   + self.newline2
+                    + "Reports"    + self.newline2
+                    + "DeskTables" + self.newline2
+                    + "Images"     + self.newline2
+                    + "SQL"        + self.newline2
+                    + "Other"      + self.newline2)
                     configfile.close()
             except Exception as e:
                 self.messageBox(""
@@ -6829,15 +6830,15 @@ class dBaseProjectWidget(QWidget):
             self.messageBox("Error: " + e)
             return
         try:
-            self.dbase_path_forms    = genv.v__app__config[db_path]["Forms"]
-            self.dbase_path_reports  = genv.v__app__config[db_path]["Reports"]
-            self.dbase_path_programs = genv.v__app__config[db_path]["Programs"]
-            self.dbase_path_images   = genv.v__app__config[db_path]["Images"]
-            self.dbase_path_tables   = genv.v__app__config[db_path]["Tables"]
-            self.dbase_path_sql      = genv.v__app__config[db_path]["SQL"]
-            self.dbase_path_other    = genv.v__app__config[db_path]["Other"]
+            self.dbase_path_forms    = genv.v__app__config[self.db_path]["Forms"]
+            self.dbase_path_reports  = genv.v__app__config[self.db_path]["Reports"]
+            self.dbase_path_programs = genv.v__app__config[self.db_path]["Programs"]
+            self.dbase_path_images   = genv.v__app__config[self.db_path]["Images"]
+            self.dbase_path_tables   = genv.v__app__config[self.db_path]["Tables"]
+            self.dbase_path_sql      = genv.v__app__config[self.db_path]["SQL"]
+            self.dbase_path_other    = genv.v__app__config[self.db_path]["Other"]
             
-            self.dbase_forms        = genv.v__app__config[db_pro]["Forms"]
+            self.dbase_forms        = genv.v__app__config[self.db_pro]["Forms"]
             self.dbase_forms_arr    = []
             self.dbase_forms_arr.append(self.dbase_forms)
             self.dbase_forms_arr    = self.dbase_forms_arr[0].replace("'","").split(", ")
@@ -6849,7 +6850,7 @@ class dBaseProjectWidget(QWidget):
                     if child:
                         self.child_item_form.appendRow(child)
             
-            self.dbase_reports      = genv.v__app__config[db_pro]["Reports"]
+            self.dbase_reports      = genv.v__app__config[self.db_pro]["Reports"]
             self.dbase_reports_arr  = []
             self.dbase_reports_arr.append(self.dbase_reports)
             self.dbase_reports_arr    = self.dbase_reports_arr[0].replace("'","").split(", ")
@@ -6861,7 +6862,7 @@ class dBaseProjectWidget(QWidget):
                     if child:
                         self.child_item_report.appendRow(child)
             
-            self.dbase_programs     = genv.v__app__config[db_pro]["Programs"]
+            self.dbase_programs     = genv.v__app__config[self.db_pro]["Programs"]
             self.dbase_programs_arr = []
             self.dbase_programs_arr.append(self.dbase_programs)
             self.dbase_programs_arr = self.dbase_programs_arr[0].replace("'","").split(", ")
@@ -6873,7 +6874,7 @@ class dBaseProjectWidget(QWidget):
                     if child:
                         self.child_item_program.appendRow(child)
             
-            self.dbase_tables       = genv.v__app__config[db_pro]["DeskTables"]
+            self.dbase_tables       = genv.v__app__config[self.db_pro]["DeskTables"]
             self.dbase_tables_arr   = []
             self.dbase_tables_arr.append(self.dbase_tables)
             self.dbase_tables_arr   = self.dbase_tables_arr[0].replace("'","").split(", ")
@@ -6885,7 +6886,7 @@ class dBaseProjectWidget(QWidget):
                     if child:
                         self.child_item_desk_tables.appendRow(child)
             
-            self.dbase_images       = genv.v__app__config[db_pro]["Images"]
+            self.dbase_images       = genv.v__app__config[self.db_pro]["Images"]
             self.dbase_images_arr   = []
             self.dbase_images_arr.append(self.dbase_images)
             self.dbase_images_arr   = self.dbase_images_arr[0].replace("'","").split(", ")
@@ -6897,7 +6898,7 @@ class dBaseProjectWidget(QWidget):
                     if child:
                         self.child_item_image.appendRow(child)
             
-            self.dbase_sql          = genv.v__app__config[db_pro]["SQL"]
+            self.dbase_sql          = genv.v__app__config[self.db_pro]["SQL"]
             self.dbase_sql_arr      = []
             self.dbase_sql_arr.append(self.dbase_sql)
             self.dbase_sql_arr      = self.dbase_sql_arr[0].replace("'","").split(", ")
@@ -6909,7 +6910,7 @@ class dBaseProjectWidget(QWidget):
                     if child:
                         self.child_item_sql.appendRow(child)
             
-            self.dbase_other        = genv.v__app__config[db_pro]["Other"]
+            self.dbase_other        = genv.v__app__config[self.db_pro]["Other"]
             self.dbase_other_arr    = []
             self.dbase_other_arr.append(self.dbase_other)
             self.dbase_other_arr    = self.dbase_other_arr[0].replace("'","").split(", ")
@@ -6934,9 +6935,195 @@ class dBaseProjectWidget(QWidget):
     # -----------------------------------------------
     def pro_clear_clicked(self):
         self.list_widget.clear()
-        self.hlay_edit.setText("")
+        #
+        self.tree_view.clear()
+        self.path_edit.clear()
+        self.hlay_edit.clear()
         return
+    
+    # -----------------------------------------------
+    # new project file ...
+    # -----------------------------------------------
     def pro_new_clicked(self):
+        self.dialog  = QDialog(self)
+        dialog_font  = QFont(genv.v__app__font,10)
+        dialog_font.setBold(True)
+        
+        dialog_vlay  = QVBoxLayout()
+        dialog_label = QLabel("Please input the Project name:")
+        dialog_label.setFont(dialog_font)
+        
+        self.dialog_edlay = QHBoxLayout()
+        self.dialog_edit  = QLineEdit()
+        self.dialog_edit.setStyleSheet(_("editfield_css"))
+        
+        dialog_push = QPushButton("...")
+        dialog_push.setMinimumHeight(28)
+        dialog_push.setFont(QFont(genv.v__app__font_edit,10))
+        dialog_push.clicked.connect(self.dialog_push_clicked)
+        #
+        self.dialog_edlay.addWidget(self.dialog_edit)
+        self.dialog_edlay.addWidget(dialog_push)
+        #
+        dialog_vlay.addLayout(self.dialog_edlay)
+        
+        dialog_hlay  = QHBoxLayout()
+        dialog_push_ok = QPushButton("Ok.")
+        dialog_push_ok.setMinimumHeight(32)
+        dialog_push_ok.setFont(QFont(genv.v__app__font,11))
+        dialog_push.clicked.connect(self.dialog_push_ok_clicked)
+        
+        dialog_push_cancel = QPushButton("Cancel")
+        dialog_push_cancel.setMinimumHeight(32)
+        dialog_push_cancel.setFont(QFont(genv.v__app__font,11))
+        dialog_push.clicked.connect(self.dialog_push_cancel_clicked)
+        
+        dialog_hlay.addWidget(dialog_push_ok)
+        dialog_hlay.addWidget(dialog_push_cancel)
+        
+        dialog_vlay.addWidget(dialog_label)
+        dialog_vlay.addWidget(self.dialog_edit)
+        dialog_vlay.addLayout(dialog_hlay)
+        
+        self.dialog.setLayout(dialog_vlay)
+        self.dialog.setWindowTitle("New Project...")
+        self.dialog.exec_()
+        #
+        return
+    
+    # ----------------------------------------------
+    # dialog for new .pro file - cancel btn click:
+    # ----------------------------------------------
+    def dialog_push_cancel_clicked(self):
+        self.dialog_edit.clear()
+        self.dialog.close()
+        return
+    
+    # ----------------------------------------------
+    # dialog for new .pro file - ok button click ...
+    # ----------------------------------------------
+    def dialog_push_ok_clicked(self):
+        file_path = self.dialog_edit.text().strip()
+        if not file_path:
+            self.messageBox(""
+            + "Error: no project file given.\n"
+            + "Command aborted.")
+            return
+        if not os.path.exists(file_path):
+            self.messageBox(""
+            + "Error: project file does not exists.\n"
+            + "Command aborted.")
+            return
+        if not os.path.isfile(file_path):
+            self.dialog_edit.clear()
+            self.messageBox(""
+            + "Error: project file is not a normal file object.\n"
+            + "Command aborted.")
+            return
+        
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                file.close()
+        except Exception as e:
+            self.messageBox(""
+            + "Error: file could not be open:\n"
+            + file_path + "\n\n"
+            + "Command aborted.")
+        
+        self.setup_favorites(file_path)
+        return
+    
+    # -----------------------------------------------
+    # dialog to open/create a .pro file ...
+    # -----------------------------------------------
+    def dialog_push_clicked(self):
+        file_dialog = QFileDialog()
+        file_dialog.setStyleSheet("QFileDialog * {font-size: 11pt;}")
+        
+        layout = self.layout()
+        
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            widget = item.widget()
+            if isinstance(widget, QPushButton):
+                widget.setMinimumHeight(21)
+        
+        options  = file_dialog.Options()
+        options |= file_dialog.DontUseNativeDialog
+        file_path, file_pattern = file_dialog.getOpenFileName(self,
+            "Create new Project File", "",
+            "All Files (*);;Project Files (*.pro)",
+            options=options)
+        
+        if file_path:
+            if not file_path.endswith(".pro"):
+                self.messageBox(""
+                + "Error: Project file must have .pro as suffix in file name.\n"
+                + "Command aborted.")
+                return
+            if not os.path.exists(file_path):
+                self.messageBox(""
+                + "Error: file does not exists:\n"
+                + file_path + "\n"
+                + "Command aborted.")
+                return
+            else:
+                msg = QMessageBox()
+                msg.setWindowTitle("Information")
+                msg.setFont(self.font)
+                msg.setText(""
+                + "Info: the file you choose already exists.\n"
+                + "Did you would like overwrite it ?")
+                msg.setIcon(QMessageBox.Information)
+                
+                btn_nok = msg.addButton(QMessageBox.No)
+                btn_yes = msg.addButton(QMessageBox.Yes)
+                
+                btn_nok.setFont(self.font)
+                btn_yes.setFont(self.font)
+                
+                msg.setStyleSheet(_("msgbox_css"))
+                self.result = msg.exec_()
+                
+            if not os.path.isfile(file_path):
+                self.messageBox(""
+                + "Error: you choose a file name that is not a file.\n"
+                + "Maybe it is a directory ?\n"
+                + "\n"
+                + "Command aborted")
+                return
+            try:
+                if self.result == QMessageBox.Yes:
+                    with open(file_path, "w", encoding="utf-8") as file:
+                        file.write(""
+                        + "[paths]\n"
+                        + "Forms"     + self.newline1
+                        + "Programs"  + self.newline1
+                        + "Reports"   + self.newline1
+                        + "Tables"    + self.newline1
+                        + "Images"    + self.newline1
+                        + "SQL"       + self.newline1
+                        + "Other"     + self.newline1
+                        + "\n"
+                        + "[dBaseProject]\n"
+                        + "Forms"     + self.newline2
+                        + "Programs"  + self.newline2
+                        + "Reports"   + self.newline2
+                        + "Tables"    + self.newline2
+                        + "Images"    + self.newline2
+                        + "SQL"       + self.newline2
+                        + "Other"     + self.newline2)
+                        file.close()
+                
+                self.dialog_edit.clear()
+                self.dialog_edit.setText(file_path)
+                
+            except Exception as e:
+                self.messageBox(""
+                + "Error: file could not be open in write-mode:\n"
+                + file_path + "\n"
+                + "Command aborted.")
+                return
         return
     
     # -----------------------------------------------
@@ -7171,7 +7358,7 @@ class dBaseProjectWidget(QWidget):
         except Exception as e:
             print(e)
             genv.v__app__config["dBaseProject"] = {
-                "DeskTables": path_name
+                "Tables": path_name
             }
             try:
                 with open(hlay_name, "w", encoding="utf-8") as configfile:
