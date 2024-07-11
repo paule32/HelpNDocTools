@@ -260,7 +260,7 @@ try:
     # developers own modules ...
     # ------------------------------------------------------------------------
     #from collection import *     # exception: templates
-    from colorama   import init, Fore, Back, Style  # ANSI escape
+    from colorama   import init, deinit, Fore, Back, Style  # ANSI escape
     
     # -------------------------------------------------------------------
     # for debuging, we use python logging library ...
@@ -599,6 +599,10 @@ class consoleApp():
     def __init__(self):
         init(autoreset = True)
         sys.stdout.write(Fore.RESET + Back.RESET + Style.RESET_ALL)
+        return
+    
+    def reset(self):
+        deinit()
         return
     
     def cls(self):
@@ -1354,7 +1358,6 @@ class interpreter_dBase:
         self.AST = []
         
         self.byte_code = ""
-        self.text_code = ""
         self.text_code = """
 import os
 import sys           # system specifies
@@ -1363,8 +1366,6 @@ import datetime      # date, and time routines
 
 import builtins
 print = builtins.print
-
-from dbaseConsole import *
 
 if __name__ == '__main__':
     global con
@@ -1383,12 +1384,13 @@ if __name__ == '__main__':
     def finalize(self):
         genv.v__app__logging.debug("macro   : " + str(self.token_macro_counter))
         genv.v__app__logging.debug("comment : " + str(self.token_comment_flag))
+        
         if self.command_ok == False:
             raise EParserErrorEOF("command not finished.")
         if self.token_macro_counter < 0:
             genv.v__app__logging.debug("\aerror: unbound macro.")
             sys.exit(1)
-    
+        
     # -----------------------------------------------------------------------
     # \brief open a script file, and append the readed lines to the source
     #        object of this class. step one read the lines (maybe not need
@@ -1424,11 +1426,8 @@ if __name__ == '__main__':
     
     def run(self):
         self.finalize()
-        print("----------------------")
-        print(self.text_code)
-        input("press enter to start...")
         
-        #self.text_code += "print('Hello World !')\n"
+        self.text_code += "    con.reset()\n"
         
         bytecode_text = compile(
             self.text_code,
@@ -1440,7 +1439,7 @@ if __name__ == '__main__':
         # ---------------------
         # save binary code ...
         # ---------------------
-        cachedir = "__cache__"
+        cachedir = genv.v__app__internal__ + "/__cache__"
         if not os.path.exists(cachedir):
             print("oooooo")
             os.makedirs(cachedir)
@@ -1470,8 +1469,8 @@ if __name__ == '__main__':
         # ---------------------
         # execute binary code:
         # ---------------------
-        #bytecode = marshal.loads(self.byte_code)
-        #exec(bytecode)
+        bytecode = marshal.loads(self.byte_code)
+        exec(bytecode)
     
     # -----------------------------------------------------------------------
     # \brief  get one char from the input stream/source line.
@@ -1659,13 +1658,13 @@ if __name__ == '__main__':
             c = self.skip_white_spaces()
             if c == '"':
                 self.handle_string()
-                print("---> " + self.token_str)
+                #print("---> " + self.token_str)
                 return
             elif c.isalpha():
                 self.token_str = c
                 self.getIdent()
                 self.handle_commands()
-                print("---> " + self.token_str)
+                #print("---> " + self.token_str)
                 return
             else:
                 self.__unexpectedChar(c)
@@ -1705,7 +1704,7 @@ if __name__ == '__main__':
                                 print("ssss")
                                 self.token_str = ""
                                 self.handle_string()
-                                print("eeeee")
+                                self.text_code += "    con.print(\'" + self.token_str + "\')\n"
                         else:
                             raise Exception("say expected.")
                     else:
@@ -1717,7 +1716,6 @@ if __name__ == '__main__':
     
     def parse(self):
         self.token_str = ""
-        self.text_code = ""
         
         with open(self.script_name, 'r', encoding="utf-8") as self.file:
             self.file.seek(0)
@@ -1753,7 +1751,7 @@ if __name__ == '__main__':
                         self.token_str = c
                         self.getIdent()
                         if self.token_str == "screen":
-                            print("scre")
+                            print("screen")
                             self.text_code += "    con.cls()\n";
                         elif self.token_str == "memory":
                             print("mem")
@@ -3069,19 +3067,19 @@ class customScrollView_3(myCustomScrollArea):
         # HTML
         self.addCheckBox("HTML", True)
         #
-        self.addRadioButton("plain HTML")
-        self.addRadioButton("with navigation Panel")
-        self.addRadioButton("prepare for compressed HTML .chm")
-        self.addCheckBox("with search function")
+        self.addRadioButton(_("plain HTML"))
+        self.addRadioButton(_("with navigation Panel"))
+        self.addRadioButton(_("prepare for compressed HTML .chm"))
+        self.addCheckBox(_("with search function"))
         
         self.addFrame()
         
         # LaTeX
         self.addCheckBox("LaTeX", True)
         #
-        self.addRadioButton("an intermediate format for hypter-linked PDF")
-        self.addRadioButton("an intermediate format for PDF")
-        self.addRadioButton("an intermediate format for PostScript")
+        self.addRadioButton(_("an intermediate format for hyper-linked PDF"))
+        self.addRadioButton(_("an intermediate format for PDF"))
+        self.addRadioButton(_("an intermediate format for PostScript"))
         
         self.addFrame()
         
@@ -3103,22 +3101,22 @@ class customScrollView_4(myCustomScrollArea):
         
         self.addLabel("Diagrams to generate:", True)
         
-        self.addRadioButton("No diagrams")
-        self.addRadioButton("Text only")
-        self.addRadioButton("Use built-in diagram generator")
-        self.addRadioButton("Use Dot-Tool from the GrappVz package")
+        self.addRadioButton(_("No diagrams"))
+        self.addRadioButton(_("Text only"))
+        self.addRadioButton(_("Use built-in diagram generator"))
+        self.addRadioButton(_("Use Dot-Tool from the GrappVz package"))
         
         self.addFrame()
         
-        self.addLabel("Dot graphs to generate:", True)
+        self.addLabel(_("Dot graphs to generate:"), True)
         
-        self.addCheckBox("Class graph")
-        self.addCheckBox("Colaboration diagram")
-        self.addCheckBox("Overall Class hiearchy")
-        self.addCheckBox("Include dependcy graphs")
-        self.addCheckBox("Included by dependcy graphs")
-        self.addCheckBox("Call graphs")
-        self.addCheckBox("Called-by graphs")
+        self.addCheckBox(_("Class graph"))
+        self.addCheckBox(_("Colaboration diagram"))
+        self.addCheckBox(_("Overall Class hiearchy"))
+        self.addCheckBox(_("Include dependcy graphs"))
+        self.addCheckBox(_("Included by dependcy graphs"))
+        self.addCheckBox(_("Call graphs"))
+        self.addCheckBox(_("Called-by graphs"))
 
 class customScrollView_5(myCustomScrollArea):
     def __init__(self, name):
@@ -3133,7 +3131,7 @@ class customScrollView_5(myCustomScrollArea):
             # <text>,                  <type 1>,             <help>, <type 2>,  <list 1>
             [0xA0101, self.type_edit,       0],
             
-            [0xA0102, self.type_edit,       0, "My Project"],
+            [0xA0102, self.type_edit,       0, _("My Project")],
             [0xA0103, self.type_edit,       0],
             [0xA0104, self.type_edit,       0],
             [0xA0105, self.type_edit,       1],
@@ -4582,20 +4580,21 @@ class EditorTranslate(QWidget):
         font = QFont(genv.v__app__font,11)
         
         self.setContentsMargins(0,0,0,0)
-        self.setMinimumWidth(200)
+        self.setMinimumWidth(220)
+        self.setMaximumWidth(220)
         self.setFont(font)
         
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0,0,0,0)
         
-        self.group_box = QGroupBox(" Choose a Translation: ")
+        self.group_box = QGroupBox(_(" Choose a Translation: "))
         self.group_box.setFont(font)
         self.group_layout = QVBoxLayout()
 
         self.dummyl = QLabel(" ")
-        self.radio1 = QRadioButton("Convert to FPC Pascal")
-        self.radio2 = QRadioButton("Convert to GNU C++")
-        self.radio3 = QRadioButton("Convert to Byte-Code")
+        self.radio1 = QRadioButton(_("Convert to FPC Pascal"))
+        self.radio2 = QRadioButton(_("Convert to GNU C++"))
+        self.radio3 = QRadioButton(_("Convert to Byte-Code"))
         
         self.dummyl.setFont(font)
         self.radio1.setFont(font)
@@ -4609,13 +4608,27 @@ class EditorTranslate(QWidget):
         self.group_layout.addStretch()
 
         self.group_box.setLayout(self.group_layout)
-
+        
+        self.mini_map = MiniMap(self)
+        
+        # QScrollArea for MiniMap
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setMaximumWidth(210)
+        self.scroll_area.setWidget(self.mini_map)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
         self.layout.addWidget(self.group_box)
+        self.layout.addWidget(self.scroll_area)
+        
         self.setLayout(self.layout)
 
 class EditorTextEdit(QPlainTextEdit):
-    def __init__(self, file_name):
+    def __init__(self, parent, file_name):
         super().__init__()
+        
+        self.parent = parent
         
         self.lineNumberArea = LineNumberArea(self)
         self.bookmarks = set()
@@ -4628,6 +4641,10 @@ class EditorTextEdit(QPlainTextEdit):
             self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
             self.updateRequest.connect(self.updateLineNumberArea)
             self.cursorPositionChanged.connect(self.highlightCurrentLine)
+            self.textChanged.connect(self.update_mini_map)
+            
+            global main_text_edit
+            main_text_edit = self
         
         self.updateLineNumberAreaWidth(0)
         self.highlightCurrentLine()
@@ -4643,6 +4660,22 @@ class EditorTextEdit(QPlainTextEdit):
             file.close()
         
         self.setPlainText(text)
+    
+    def update_mini_map(self):
+        text = self.toPlainText()
+        try:
+            self.parent.dbase_tabs_rightBox.mini_map.set_text(text)
+        except Exception as e:
+            print(e)
+            pass
+    
+    def sync_minimap_scroll(self):
+        value = self.verticalScrollBar().value()
+        try:
+            self.parent.dbase_tabs_rightBox.mini_map.sync_scroll(value)
+        except Exception as e:
+            print(e)
+            pass
     
     def lineNumberAreaWidth(self):
         digits = 1
@@ -6462,10 +6495,10 @@ class CustomWidget2(QWidget):
                 prg = None
                 prg = dBaseDSL(script_name)
                 #prg.parser.parse()
-                print("\nend of data")
+                print("\nend of data\n")
+                print(prg.parser.text_code)
                 
-                #prg.parser.run()
-                #prg.parser.finalize()
+                prg.parser.run()
                 
             elif self.parent_class.dbase_tabs_editor2.hasFocus():
                 script_name = "./examples/dbase/example2.prg"
@@ -6507,6 +6540,66 @@ class scrollBoxTabser(QWidget):
         
         self.layout().addWidget(scroll_area)
 
+class clearChildTreeItems():
+    def __init__(self, parent):
+        self.parent = parent
+    
+    # --------------------------------------------------
+    # remove project files from list, when double click
+    # with mouse on a favorite item ...
+    # --------------------------------------------------
+    def remove(self):
+        while self.parent.child_item_form.rowCount() > 0:
+            self.parent.child_item_form.removeRow(0)
+        
+        while self.parent.child_item_report.rowCount() > 0:
+            self.parent.child_item_report.removeRow(0)
+        
+        while self.parent.child_item_program.rowCount() > 0:
+            self.parent.child_item_program.removeRow(0)
+        
+        while self.parent.child_item_image.rowCount() > 0:
+            self.parent.child_item_image.removeRow(0)
+        
+        while self.parent.child_item_tables.rowCount() > 0:
+            self.parent.child_item_tables.removeRow(0)
+        
+        while self.parent.child_item_sql.rowCount() > 0:
+            self.parent.child_item_sql.removeRow(0)
+        
+        while self.parent.child_item_other.rowCount() > 0:
+            self.parent.child_item_other.removeRow(0)
+
+class MiniMap(QFrame):
+    def __init__(self, parent=None):
+        super(MiniMap, self).__init__(parent)
+        
+        self.setFrameStyle(QFrame.Box)
+        self.setFixedWidth(100)
+        self.setMaximumWidth(200)
+        
+        self.label = QLabel(self)
+        self.label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.label.setWordWrap(True)
+        
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.label)
+        
+        self.setLayout(layout)
+    
+    def set_text(self, text):
+        self.label.setText(text)
+        self.label.adjustSize()
+    
+    def sync_minimap_scroll(self, value):
+        text_height = self.label.height()
+        widget_height = self.height()
+        if text_height > widget_height:
+            ratio = value / main_text_edit.verticalScrollBar().maximum()
+            self.label.move(0, -int(ratio * (text_height - widget_height)))
+        else:
+            self.label.move(0, 0)
+
 class CustomListWidget(QListWidget):
     def __init__(self, parent=None):
         super(CustomListWidget, self).__init__(parent)
@@ -6519,7 +6612,14 @@ class CustomListWidget(QListWidget):
         
         file_path = item.text()
         
-        self.parent.hlay_edit.clear  ()
+        # --------------------------------------------------
+        # remove project files from list, when double click
+        # with mouse on a favorite item ...
+        # --------------------------------------------------
+        i = clearChildTreeItems(self.parent)
+        i.remove()
+        
+        self.parent.hlay_edit.clear()
         self.parent.hlay_edit.setText(file_path)
         self.parent.setup_favorites  (file_path)
 
@@ -6551,13 +6651,32 @@ class dBaseProjectWidget(QWidget):
         self.db_path  = "paths"
         self.db_pro   = "dBaseProject"
         
-        self.child_item_form        = None
-        self.child_item_report      = None
-        self.child_item_program     = None
-        self.child_item_desk_tables = None
-        self.child_item_sql         = None
-        self.child_item_image       = None
-        self.child_item_other       = None
+        self.dbase_path    = "./"
+        
+        self.pro_files     = "Project Files"
+        self.pro_forms     = "Form"
+        self.pro_reports   = "Report"
+        self.pro_programs  = "Program"
+        self.pro_tables    = "Desktop Tables"
+        self.pro_sql       = "SQL"
+        self.pro_images    = "Image"
+        self.pro_other     = "Other"
+        
+        self.dbase_path_forms    = ""
+        self.dbase_path_reports  = ""
+        self.dbase_path_programs = ""
+        self.dbase_path_tables   = ""
+        self.dbase_path_images   = ""
+        self.dbase_path_sql      = ""
+        self.dbase_path_other    = ""
+        
+        self.child_item_form    = None
+        self.child_item_report  = None
+        self.child_item_program = None
+        self.child_item_tables  = None
+        self.child_item_sql     = None
+        self.child_item_image   = None
+        self.child_item_other   = None
         
         self.selected_item = None
         css_linestyle = _("editfield_css")
@@ -6794,6 +6913,7 @@ class dBaseProjectWidget(QWidget):
                 with open(file_path, "w", encoding="utf-8") as configfile:
                     configfile.write(""
                     + "[paths]\n"
+                    + "Path"       + self.newline1
                     + "Forms"      + self.newline1
                     + "Programs"   + self.newline1
                     + "Reports"    + self.newline1
@@ -6806,7 +6926,7 @@ class dBaseProjectWidget(QWidget):
                     + "Forms"      + self.newline2
                     + "Programs"   + self.newline2
                     + "Reports"    + self.newline2
-                    + "DeskTables" + self.newline2
+                    + "Tables" + self.newline2
                     + "Images"     + self.newline2
                     + "SQL"        + self.newline2
                     + "Other"      + self.newline2)
@@ -6830,6 +6950,8 @@ class dBaseProjectWidget(QWidget):
             self.messageBox("Error: " + e)
             return
         try:
+            self.dbase_path          = genv.v__app__config[self.db_path]["Path"]
+            #
             self.dbase_path_forms    = genv.v__app__config[self.db_path]["Forms"]
             self.dbase_path_reports  = genv.v__app__config[self.db_path]["Reports"]
             self.dbase_path_programs = genv.v__app__config[self.db_path]["Programs"]
@@ -6846,6 +6968,8 @@ class dBaseProjectWidget(QWidget):
             if len(self.dbase_forms_arr) > 0:
                 for file_name in self.dbase_forms_arr:
                     file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
                     child = QStandardItem(file_name)
                     if child:
                         self.child_item_form.appendRow(child)
@@ -6858,6 +6982,8 @@ class dBaseProjectWidget(QWidget):
             if len(self.dbase_reports_arr) > 0:
                 for file_name in self.dbase_reports_arr:
                     file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
                     child = QStandardItem(file_name)
                     if child:
                         self.child_item_report.appendRow(child)
@@ -6870,11 +6996,13 @@ class dBaseProjectWidget(QWidget):
             if len(self.dbase_programs_arr) > 0:
                 for file_name in self.dbase_programs_arr:
                     file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
                     child = QStandardItem(file_name)
                     if child:
                         self.child_item_program.appendRow(child)
             
-            self.dbase_tables       = genv.v__app__config[self.db_pro]["DeskTables"]
+            self.dbase_tables       = genv.v__app__config[self.db_pro]["Tables"]
             self.dbase_tables_arr   = []
             self.dbase_tables_arr.append(self.dbase_tables)
             self.dbase_tables_arr   = self.dbase_tables_arr[0].replace("'","").split(", ")
@@ -6882,9 +7010,11 @@ class dBaseProjectWidget(QWidget):
             if len(self.dbase_tables_arr) > 0:
                 for file_name in self.dbase_tables_arr:
                     file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
                     child = QStandardItem(file_name)
                     if child:
-                        self.child_item_desk_tables.appendRow(child)
+                        self.child_item_tables.appendRow(child)
             
             self.dbase_images       = genv.v__app__config[self.db_pro]["Images"]
             self.dbase_images_arr   = []
@@ -6894,6 +7024,8 @@ class dBaseProjectWidget(QWidget):
             if len(self.dbase_images_arr) > 0:
                 for file_name in self.dbase_images_arr:
                     file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
                     child = QStandardItem(file_name)
                     if child:
                         self.child_item_image.appendRow(child)
@@ -6906,6 +7038,8 @@ class dBaseProjectWidget(QWidget):
             if len(self.dbase_sql_arr) > 0:
                 for file_name in self.dbase_sql_arr:
                     file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
                     child = QStandardItem(file_name)
                     if child:
                         self.child_item_sql.appendRow(child)
@@ -6918,6 +7052,8 @@ class dBaseProjectWidget(QWidget):
             if len(self.dbase_other_arr) > 0:
                 for file_name in self.dbase_other_arr:
                     file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
                     child = QStandardItem(file_name)
                     if child:
                         self.child_item_other.appendRow(child)
@@ -6934,9 +7070,15 @@ class dBaseProjectWidget(QWidget):
     # close the current opened project file ...
     # -----------------------------------------------
     def pro_clear_clicked(self):
-        self.list_widget.clear()
-        #
-        self.tree_view.clear()
+        #self.list_widget.clear()
+
+        # --------------------------------------------------
+        # remove project files from list, when double click
+        # with mouse on a favorite item ...
+        # --------------------------------------------------
+        i = clearChildTreeItems(self)
+        i.remove()
+        
         self.path_edit.clear()
         self.hlay_edit.clear()
         return
@@ -7097,6 +7239,7 @@ class dBaseProjectWidget(QWidget):
                     with open(file_path, "w", encoding="utf-8") as file:
                         file.write(""
                         + "[paths]\n"
+                        + "Path"      + self.newline1
                         + "Forms"     + self.newline1
                         + "Programs"  + self.newline1
                         + "Reports"   + self.newline1
@@ -7261,13 +7404,13 @@ class dBaseProjectWidget(QWidget):
         path_name = self.path_edit.text()
         hlay_name = self.hlay_edit.text()
         #
-        path_mess = "config file could not be write."
+        path_mess = _("config file could not be write.")
         
         # 1
         try:
             genv.v__app__config.read(path_name)
-            if self.selected_item.text() == "Form":
-                genv.v__app__config["dBaseProject"]["Form"] = path_name
+            if self.selected_item.text() == _(self.pro_forms):
+                genv.v__app__config[self.db_pro]["Form"] = path_name
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
                         genv.v__app__config.write(configfile)
@@ -7279,7 +7422,7 @@ class dBaseProjectWidget(QWidget):
                 print("set form path")
         except Exception as e:
             print(e)
-            genv.v__app__config["dBaseProject"] = {
+            genv.v__app__config[self.db_pro] = {
                 "Form": path_name
             }
             try:
@@ -7292,8 +7435,8 @@ class dBaseProjectWidget(QWidget):
                 self.messageBox(path_mess)
         # 2
         try:
-            if self.selected_item.text() == "Report":
-                genv.v__app__config["dBaseProject"]["Report"] = path_name
+            if self.selected_item.text() == _(self.pro_reports):
+                genv.v__app__config[self.db_pro]["Report"] = path_name
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
                         genv.v__app__config.write(configfile)
@@ -7305,7 +7448,7 @@ class dBaseProjectWidget(QWidget):
                 print("set report path")
         except Exception as e:
             print(e)
-            genv.v__app__config["dBaseProject"] = {
+            genv.v__app__config[self.db_pro] = {
                 "Report": path_name
             }
             try:
@@ -7318,8 +7461,8 @@ class dBaseProjectWidget(QWidget):
                 return
         # 3
         try:
-            if self.selected_item.text() == "Program":
-                genv.v__app__config["dBaseProject"]["Program"] = path_name
+            if self.selected_item.text() == _(self.pro_programs):
+                genv.v__app__config[self.db_pro]["Program"] = path_name
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
                         genv.v__app__config.write(configfile)
@@ -7331,7 +7474,7 @@ class dBaseProjectWidget(QWidget):
                 print("set program path")
         except Exception as e:
             print(e)
-            genv.v__app__config["dBaseProject"] = {
+            genv.v__app__config[self.db_pro] = {
                 "Program": path_name
             }
             try:
@@ -7344,8 +7487,8 @@ class dBaseProjectWidget(QWidget):
                 return
         # 4
         try:
-            if self.selected_item.text() == "Desktop Tables":
-                genv.v__app__config["dBaseProject"]["DeskTables"] = path_name
+            if self.selected_item.text() == _(self.pro_tables):
+                genv.v__app__config[self.db_pro]["Tables"] = path_name
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
                         genv.v__app__config.write(configfile)
@@ -7357,7 +7500,7 @@ class dBaseProjectWidget(QWidget):
                 print("set desk tables path")
         except Exception as e:
             print(e)
-            genv.v__app__config["dBaseProject"] = {
+            genv.v__app__config[self.db_pro] = {
                 "Tables": path_name
             }
             try:
@@ -7370,8 +7513,8 @@ class dBaseProjectWidget(QWidget):
                 return
         # 5
         try:
-            if self.selected_item.text() == "SQL":
-                genv.v__app__config["dBaseProject"]["SQL"] = path_name
+            if self.selected_item.text() == _(self.pro_sql):
+                genv.v__app__config[self.db_pro]["SQL"] = path_name
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
                         genv.v__app__config.write(configfile)
@@ -7383,7 +7526,7 @@ class dBaseProjectWidget(QWidget):
                 print("set sql path")
         except Exception as e:
             print(e)
-            genv.v__app__config["dBaseProject"] = {
+            genv.v__app__config[self.db_pro] = {
                 "SQL": path_name
             }
             try:
@@ -7396,8 +7539,8 @@ class dBaseProjectWidget(QWidget):
                 return
         # 6
         try:
-            if self.selected_item.text() == "Image":
-                genv.v__app__config["dBaseProject"]["Image"] = path_name
+            if self.selected_item.text() == _(self.pro_images):
+                genv.v__app__config[self.db_pro]["Image"] = path_name
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
                         genv.v__app__config.write(configfile)
@@ -7409,7 +7552,7 @@ class dBaseProjectWidget(QWidget):
                 print("set image path")
         except Exception as e:
             print(e)
-            genv.v__app__config["dBaseProject"] = {
+            genv.v__app__config[self.db_pro] = {
                 "Image": path_name
             }
             try:
@@ -7422,8 +7565,8 @@ class dBaseProjectWidget(QWidget):
                 return
         # 7
         try:
-            if self.selected_item.text() == "Other":
-                genv.v__app__config["dBaseProject"]["Other"] = path_name
+            if self.selected_item.text() == _(self.pro_other):
+                genv.v__app__config[self.db_pro]["Other"] = path_name
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
                         genv.v__app__config.write(configfile)
@@ -7435,7 +7578,7 @@ class dBaseProjectWidget(QWidget):
                 print("set other path")
         except Exception as e:
             print(e)
-            genv.v__app__config["dBaseProject"] = {
+            genv.v__app__config[self.db_pro] = {
                 "Other": path_name
             }
             try:
@@ -7463,42 +7606,42 @@ class dBaseProjectWidget(QWidget):
         icon1 = QIcon(os.path.join(genv.v__app__img__int__, "open-folder-blue.png"))
         icon2 = QIcon(os.path.join(genv.v__app__img__int__, "open-folder-yellow.png"))
         
-        parent_item = QStandardItem("Project Files")
+        parent_item = QStandardItem(_(self.pro_files))
         parent_item.setFont(font1)
         parent_item.setIcon(icon1)
         
-        self.child_item_form = QStandardItem("Form")
+        self.child_item_form = QStandardItem(_(self.pro_forms))
         self.child_item_form.setFont(font2)
         self.child_item_form.setIcon(icon2)
         
-        self.child_item_report = QStandardItem("Report")
+        self.child_item_report = QStandardItem(_(self.pro_reports))
         self.child_item_report.setFont(font2)
         self.child_item_report.setIcon(icon2)
         
-        self.child_item_program = QStandardItem("Program")
+        self.child_item_program = QStandardItem(_(self.pro_programs))
         self.child_item_program.setFont(font2)
         self.child_item_program.setIcon(icon2)
         
-        self.child_item_desk_tables = QStandardItem("Desktop Tables")
-        self.child_item_desk_tables.setFont(font2)
-        self.child_item_desk_tables.setIcon(icon2)
+        self.child_item_tables = QStandardItem(_(self.pro_tables))
+        self.child_item_tables.setFont(font2)
+        self.child_item_tables.setIcon(icon2)
         
-        self.child_item_sql = QStandardItem("SQL")
+        self.child_item_sql = QStandardItem(_("SQL"))
         self.child_item_sql.setFont(font2)
         self.child_item_sql.setIcon(icon2)
         
-        self.child_item_image = QStandardItem("Image")
+        self.child_item_image = QStandardItem(_(self.pro_images))
         self.child_item_image.setFont(font2)
         self.child_item_image.setIcon(icon2)
         
-        self.child_item_other = QStandardItem("Other")
+        self.child_item_other = QStandardItem(_(self.pro_other))
         self.child_item_other.setFont(font2)
         self.child_item_other.setIcon(icon2)
         #
         parent_item.appendRow(self.child_item_form)
         parent_item.appendRow(self.child_item_report)
         parent_item.appendRow(self.child_item_program)
-        parent_item.appendRow(self.child_item_desk_tables)
+        parent_item.appendRow(self.child_item_tables)
         parent_item.appendRow(self.child_item_sql)
         parent_item.appendRow(self.child_item_image)
         parent_item.appendRow(self.child_item_other)
@@ -7515,71 +7658,86 @@ class dBaseProjectWidget(QWidget):
     # get the item selected from the file item list.
     # -----------------------------------------------
     def on_item_clicked(self, index):
+        liste = [
+            self.pro_files,
+            self.dbase_path_forms,
+            self.dbase_path_reports,
+            self.dbase_path_programs,
+            self.dbase_path_tables,
+            self.dbase_path_images,
+            self.dbase_path_sql,
+            self.dbase_path_other
+        ]
+        for el in liste:
+            if not el:
+                return
+        
         item = self.model.itemFromIndex(index)
         self.selected_item = item
         if not item == None:
             parent_item = item.parent()
             if not parent_item == None:
-                if parent_item.text() == "Project Files":
-                    if item.text() == "Form":
+                if parent_item.text() == _(self.pro_files):
+                    if item.text() == _(self.pro_forms):
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_forms)
                         return
-                    elif item.text() == "Report":
+                    elif item.text() == _(self.pro_reports):
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_reports)
                         return
-                    elif item.text() == "Program":
+                    elif item.text() == _(self.pro_programs):
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_programs)
                         return
-                    elif item.text() == "Desktop Tables":
+                    elif item.text() == _(self.pro_tables):
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_tables)
                         return
-                    elif item.text() == "SQL":
+                    elif item.text() == _(self.pro_sql):
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_sql)
                         return
-                    elif item.text() == "Image":
+                    elif item.text() == _(self.pro_images):
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_images)
                         return
-                    elif item.text() == "Other":
+                    elif item.text() == _(self.pro_other):
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_other)
                         return
-                elif parent_item.text() == "Form":
+                elif parent_item.text() == _(self.pro_forms):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_forms)
                     return
-                elif parent_item.text() == "Report":
+                elif parent_item.text() == _(self.pro_reports):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_reports)
                     return
-                elif parent_item.text() == "Program":
+                elif parent_item.text() == _(self.pro_programs):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_programs)
                     return
-                elif parent_item.text() == "Desktop Tables":
+                elif parent_item.text() == _(self.pro_tables):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_tables)
                     return
-                elif parent_item.text() == "SQL":
+                elif parent_item.text() == _(self.pro_sql):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_sql)
                     return
-                elif parent_item.text() == "Image":
+                elif parent_item.text() == _(self.pro_images):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_images)
                     return
-                elif item.text() == "Other":
+                elif item.text() == _(self.pro_other):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_other)
                     return
             else:
-                if item.text() == "Project Files":
-                    print("project files 11")
+                if item.text() == _(self.pro_files):
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path)
                     return
     
     # -----------------------------------------------
@@ -7624,8 +7782,8 @@ class FileWatcherGUI(QDialog):
                 msg = QMessageBox()
                 msg.setWindowTitle("Warnin")
                 msg.setText(
-                    "The help file for  the Application\n"
-                    "Could not be found !")
+                    _("The help file for the Application\n"
+                    + "Could not be found !"))
                 msg.setIcon(QMessageBox.Warning)
                 
                 btn_ok = msg.addButton(QMessageBox.Ok)
@@ -7867,18 +8025,18 @@ class FileWatcherGUI(QDialog):
         self.side_widget.setContentsMargins(0,0,0,0)
         self.side_scroll.setContentsMargins(0,0,0,0)
         
-        self.side_btn1 = myIconButton(self,  0, "Help"   , "Help Authoring for/with:\no doxygen\no HelpNDoc")
-        self.side_btn2 = myIconButton(self,  1, "dBASE"  , "dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !")
-        self.side_btn3 = myIconButton(self,  2, "Pascal" , "Pascal old school programming\no Delphi\no FPC")
-        self.side_btn4 = myIconButton(self,  3, "ISO C"  , "C / C++ embeded programming\nor cross platform")
-        self.side_btn5 = myIconButton(self,  4, "Java"   , "Java modern cross programming\nfor any device")
-        self.side_btn6 = myIconButton(self,  5, "Python" , "Python modern GUI programming\nlets rock AI\nand TensorFlow")
-        self.side_btn7 = myIconButton(self,  6, "LISP"   , "LISP traditional programming\nultimate old school")
+        self.side_btn1 = myIconButton(self,  0, _("Help")   , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
+        self.side_btn2 = myIconButton(self,  1, _("dBASE")  , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
+        self.side_btn3 = myIconButton(self,  2, _("Pascal") , _("Pascal old school programming\no Delphi\no FPC"))
+        self.side_btn4 = myIconButton(self,  3, _("ISO C")  , _("C / C++ embeded programming\nor cross platform"))
+        self.side_btn5 = myIconButton(self,  4, _("Java")   , _("Java modern cross programming\nfor any device"))
+        self.side_btn6 = myIconButton(self,  5, _("Python") , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
+        self.side_btn7 = myIconButton(self,  6, _("LISP")   , _("LISP traditional programming\nultimate old school"))
         #
-        self.side_btn8 = myIconButton(self, 10, "Locales", "" \
-            + "Localization your Application with different supported languages\n" \
-            + "around the World.\n" \
-            + "Used tools are msgfmt - the Unix Tool for generationg .mo files.\n")
+        self.side_btn8 = myIconButton(self, 10, "Locales", _(""
+            + "Localization your Application with different supported languages\n"
+            + "around the World.\n"
+            + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
         #
         self.side_btn9 = myIconButton(self,  11, "C-64", "The most popular Commodore C-64\from int the 1980er")
         
@@ -8406,10 +8564,10 @@ class FileWatcherGUI(QDialog):
         self.tab0_help_list.font().setBold(True)
         
         liste = [
-            ["Empty Project"         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
-            ["Recipe"                , os.path.join("recipe"       + genv.v__app__img_ext__) ],
-            ["API Project"           , os.path.join("api"          + genv.v__app__img_ext__) ],
-            ["Software Documentation", os.path.join("software"     + genv.v__app__img_ext__) ],
+            [_("Empty Project")         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
+            [_("Recipe")                , os.path.join("recipe"       + genv.v__app__img_ext__) ],
+            [_("API Project")           , os.path.join("api"          + genv.v__app__img_ext__) ],
+            [_("Software Documentation"), os.path.join("software"     + genv.v__app__img_ext__) ],
         ]
         for item in liste:
             self.list_item1 = QListWidgetItem(_(item[0]),self.tab0_help_list)
@@ -8441,8 +8599,8 @@ class FileWatcherGUI(QDialog):
         # ------------------
         # left, top part ...
         # ------------------
-        self.tab1_fold_text = QLabel('Directory:', self.tab1_0)
-        self.tab1_file_text = QLabel("File:", self.tab1_0)
+        self.tab1_fold_text = QLabel(_("Directory:"), self.tab1_0)
+        self.tab1_file_text = QLabel(_("File:"), self.tab1_0)
         #
         self.tab1_left_layout.addWidget(self.tab1_fold_text)
         
@@ -8532,7 +8690,7 @@ class FileWatcherGUI(QDialog):
         
         #
         self.tab1_preActionComboBox = QComboBox(self.tab1_0)
-        self.tab1_preActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
+        self.tab1_preActionComboBox.addItems([_(" Message"), _(" Script"), " URL", " FTP"])
         self.tab1_preActionComboBox.setStyleSheet(_(css_combobox_style))
         self.tab1_timeComboBox.setMaximumWidth(49)
         self.tab1_middle_layout.addWidget(self.tab1_preActionComboBox)
@@ -8552,13 +8710,13 @@ class FileWatcherGUI(QDialog):
         
         self.tab1_middle_layout.addLayout(self.tab1_pre_layout)
         
-        self.tab1_preAddButton = QPushButton("Add")
+        self.tab1_preAddButton = QPushButton(_("Add"))
         self.tab1_preAddButton.setStyleSheet(_(genv.css_button_style))
         #
-        self.tab1_preDelButton = QPushButton("Delete")
+        self.tab1_preDelButton = QPushButton(_("Delete"))
         self.tab1_preDelButton.setStyleSheet(_(genv.css_button_style))
         #            
-        self.tab1_preClrButton = QPushButton("Clear All")
+        self.tab1_preClrButton = QPushButton(_("Clear All"))
         self.tab1_preClrButton.setStyleSheet(_(genv.css_button_style))
         
         self.tab1_preAddButton.clicked.connect(self.button_clicked_preadd)
@@ -8572,7 +8730,7 @@ class FileWatcherGUI(QDialog):
         
         # rechte Seite
         self.tab1_postActionList = QListWidget(self.tab1_0)
-        self.tab1_postActionList_Label  = QLabel("Content:", self.tab1_0)
+        self.tab1_postActionList_Label  = QLabel(_("Content:"), self.tab1_0)
         self.tab1_postActionList_Editor = QPlainTextEdit()
         #
         self.tab1_right_layout.addWidget(self.tab1_postActionList)
@@ -8580,7 +8738,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_right_layout.addWidget(self.tab1_postActionList_Editor)
         
         self.tab1_postActionComboBox = QComboBox(self.tab1_0)
-        self.tab1_postActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
+        self.tab1_postActionComboBox.addItems([_(" Message"), _(" Script"), " URL", " FTP"])
         self.tab1_postActionComboBox.setStyleSheet(_(css_combobox_style))
         self.tab1_right_layout.addWidget(self.tab1_postActionComboBox)
         
@@ -8601,7 +8759,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_postDelButton = QPushButton("Delete")
         self.tab1_postDelButton.setStyleSheet(_(genv.css_button_style))
         #
-        self.tab1_postClrButton = QPushButton("Clear All")
+        self.tab1_postClrButton = QPushButton(_("Clear All"))
         self.tab1_postClrButton.setStyleSheet(_(genv.css_button_style))
         
         self.tab1_postAddButton.clicked.connect(self.button_clicked_postadd)
@@ -8678,6 +8836,7 @@ class FileWatcherGUI(QDialog):
         index = model.index(path)
         if index.isValid():
             tree_view.expand(index)
+    
     def entersDirectory(self, index):
         dir_path = self.tab0_dir_model.filePath(index)
         if os.path.isdir(dir_path):
@@ -8692,8 +8851,8 @@ class FileWatcherGUI(QDialog):
             dialog = QMessageBox(self)
             dialog.setWindowTitle("Enter Directory")
             dialog.setText(
-                "Operation successfully !\n"
-                "No Error.")
+                _("Operation successfully !\n"
+                + "No Error."))
             dialog.setFont(font)
             
             btn_ok = dialog.addButton(QMessageBox.Ok)
@@ -8708,8 +8867,8 @@ class FileWatcherGUI(QDialog):
             font = QFont(genv.v__app__font, 11)
             
             dialog = QInputDialog(self)
-            dialog.setWindowTitle("Create new directory")
-            dialog.setLabelText("Type-In the name:")
+            dialog.setWindowTitle(_("Create new directory"))
+            dialog.setLabelText(_("Type-In the name:"))
             dialog.setFont(font)
             
             if dialog.exec_() == QInputDialog.Accepted:
@@ -8724,8 +8883,8 @@ class FileWatcherGUI(QDialog):
                         msg.setWindowTitle("Information")
                         msg.setFont(font)
                         msg.setText(
-                            "The directpry was create successfully.\n"
-                            "No errors")
+                            _("The directpry was create successfully.\n"
+                            + "No errors."))
                         msg.setIcon(QMessageBox.Information)
                         
                         btn_ok = msg.addButton(QMessageBox.Ok)
@@ -8735,11 +8894,11 @@ class FileWatcherGUI(QDialog):
                         result = msg.exec_()
                     else:
                         msg = QMessageBox()
-                        msg.setWindowTitle("Error")
+                        msg.setWindowTitle(_("Error"))
                         msg.setFont(font)
                         msg.setText(
-                            "The directpry already exists.\n"
-                            "Error.")
+                            _("The directpry already exists.\n"
+                            + "Error."))
                         msg.setIcon(QMessageBox.Information)
                         
                         btn_ok = msg.addButton(QMessageBox.Ok)
@@ -8750,9 +8909,9 @@ class FileWatcherGUI(QDialog):
                     
                 except PermissionError:
                     msg = QMessageBox()
-                    msg.setWindowTitle("Error")
+                    msg.setWindowTitle(_("Error"))
                     msg.setFont(font)
-                    msg.setText("No permissions to crrate this directpry !\n")
+                    msg.setText(_("No permissions to crrate this directpry !"))
                     msg.setIcon(QMessageBox.Warning)
                     
                     btn_ok = msg.addButton(QMessageBox.Ok)
@@ -8763,11 +8922,11 @@ class FileWatcherGUI(QDialog):
                     
                 except FileExistsError:
                     msg = QMessageBox()
-                    msg.setWindowTitle("Warning")
+                    msg.setWindowTitle(_("Warning"))
                     msg.setFont(font)
                     msg.setText(
-                        "A directpry with the same name already exists !\n"
-                        "Please try again, and giva a unique file name.")
+                        _("A directpry with the same name already exists !\n"
+                        + "Please try again, and giva a unique file name."))
                     msg.setIcon(QMessageBox.Warning)
                     
                     btn_ok = msg.addButton(QMessageBox.Ok)
@@ -8782,8 +8941,8 @@ class FileWatcherGUI(QDialog):
                     msg.setWindowTitle("Warning")
                     msg.setFont(font)
                     msg.setText(
-                        "The directpry could not be created !\n"
-                        "Please try again, with different file name.")
+                        _("The directpry could not be created !\n"
+                        + "Please try again, with different file name."))
                     msg.setIcon(QMessageBox.Warning)
                     
                     btn_ok = msg.addButton(QMessageBox.Ok)
@@ -8807,8 +8966,8 @@ class FileWatcherGUI(QDialog):
             msg = QMessageBox()
             msg.setWindowTitle("Confirmation")
             msg.setText(
-                "The file content has been changed on file system.\n"
-                "Would you reload the new content ?")
+                _("The file content has been changed on file system.\n"
+                + "Would you reload the new content ?"))
             msg.setIcon(QMessageBox.Question)
             
             btn_yes = msg.addButton(QMessageBox.Yes)
@@ -8851,12 +9010,12 @@ class FileWatcherGUI(QDialog):
         #
         self.dbase_tabs_project_widget.setContentsMargins(1,1,1,1)
         ####
-        self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
-        self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
-        self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
-        self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, "dBASE SQL Builder")
-        self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, "dBASE Data Tables")
-        self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, "dBASE Reports")
+        self.dbase_tabs.addTab(self.dbase_tabs_project_widget, _("dBASE Project"))
+        self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, _("dBASE Editor"))
+        self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, _("dBASE Designer"))
+        self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, _("dBASE SQL Builder"))
+        self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, _("dBASE Data Tables"))
+        self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, _("dBASE Reports"))
         ####
         try:
             self.dBaseProjectVLayout = QVBoxLayout()
@@ -8916,7 +9075,7 @@ class FileWatcherGUI(QDialog):
         file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example1.prg")
         file_path = file_path.replace("\\","/")
         
-        self.dbase_tabs_editor1  = EditorTextEdit(file_path)
+        self.dbase_tabs_editor1  = EditorTextEdit(self, file_path)
         self.dbase_tabs_rightBox = EditorTranslate(self)
         #
         self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
@@ -8933,7 +9092,7 @@ class FileWatcherGUI(QDialog):
         file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example2.prg")
         file_path = file_path.replace("\\","/")
         
-        self.dbase_tabs_editor2 = EditorTextEdit(file_path)
+        self.dbase_tabs_editor2 = EditorTextEdit(self, file_path)
         self.dbase_file_layout2.addWidget(self.dbase_tabs_editor2)
         self.dbase_file_widget2.setLayout(self.dbase_file_layout2)
         #
@@ -9119,9 +9278,9 @@ class FileWatcherGUI(QDialog):
         self.pascal_tabs_editors_widget = QWidget()
         self.pascal_tabs_designs_widget = QWidget()
         #
-        self.pascal_tabs.addTab(self.pascal_tabs_project_widget, "Pascal Project")
-        self.pascal_tabs.addTab(self.pascal_tabs_editors_widget, "Pascal Editor")
-        self.pascal_tabs.addTab(self.pascal_tabs_designs_widget, "Pascal Designer")
+        self.pascal_tabs.addTab(self.pascal_tabs_project_widget, _("Pascal Project"))
+        self.pascal_tabs.addTab(self.pascal_tabs_editors_widget, _("Pascal Editor"))
+        self.pascal_tabs.addTab(self.pascal_tabs_designs_widget, _("Pascal Designer"))
         
         self.pascal_designs_layout  = QVBoxLayout()
         self.pascal_designs_layout.setContentsMargins(2,2,2,2)
@@ -9199,7 +9358,7 @@ class FileWatcherGUI(QDialog):
         self.isoc_tabs_editors_widget = QWidget()
         self.isoc_tabs_designs_widget = QWidget()
         #
-        self.isoc_tabs.addTab(self.isoc_tabs_project_widget, "ISO C Project")
+        self.isoc_tabs.addTab(self.isoc_tabs_project_widget, _("ISO C Project"))
         self.isoc_tabs.addTab(self.isoc_tabs_editors_widget, "ISO C Editor")
         self.isoc_tabs.addTab(self.isoc_tabs_designs_widget, "ISO C Designer")
         
@@ -9273,9 +9432,9 @@ class FileWatcherGUI(QDialog):
         self.java_tabs_editors_widget = QWidget()
         self.java_tabs_designs_widget = QWidget()
         #
-        self.java_tabs.addTab(self.java_tabs_project_widget, "Java Project")
-        self.java_tabs.addTab(self.java_tabs_editors_widget, "Java Editor")
-        self.java_tabs.addTab(self.java_tabs_designs_widget, "Java Designer")
+        self.java_tabs.addTab(self.java_tabs_project_widget, _("Java Project"))
+        self.java_tabs.addTab(self.java_tabs_editors_widget, _("Java Editor"))
+        self.java_tabs.addTab(self.java_tabs_designs_widget, _("Java Designer"))
         
         self.java_designs_layout  = QVBoxLayout()
         self.java_designs_layout.setContentsMargins(2,2,2,2)
@@ -9346,9 +9505,9 @@ class FileWatcherGUI(QDialog):
         self.python_tabs_editors_widget = QWidget()
         self.python_tabs_designs_widget = QWidget()
         #
-        self.python_tabs.addTab(self.python_tabs_project_widget, "Python Project")
-        self.python_tabs.addTab(self.python_tabs_editors_widget, "Python Editor")
-        self.python_tabs.addTab(self.python_tabs_designs_widget, "Python Designer")
+        self.python_tabs.addTab(self.python_tabs_project_widget, _("Python Project"))
+        self.python_tabs.addTab(self.python_tabs_editors_widget, _("Python Editor"))
+        self.python_tabs.addTab(self.python_tabs_designs_widget, _("Python Designer"))
         
         self.python_designs_layout  = QVBoxLayout()
         self.python_designs_layout.setContentsMargins(2,2,2,2)
@@ -9418,9 +9577,9 @@ class FileWatcherGUI(QDialog):
         self.lisp_tabs_editors_widget = QWidget()
         self.lisp_tabs_designs_widget = QWidget()
         #
-        self.lisp_tabs.addTab(self.lisp_tabs_project_widget, "LISP Project")
-        self.lisp_tabs.addTab(self.lisp_tabs_editors_widget, "LISP Editor")
-        self.lisp_tabs.addTab(self.lisp_tabs_designs_widget, "LISP Designer")
+        self.lisp_tabs.addTab(self.lisp_tabs_project_widget, _("LISP Project"))
+        self.lisp_tabs.addTab(self.lisp_tabs_editors_widget, _("LISP Editor"))
+        self.lisp_tabs.addTab(self.lisp_tabs_designs_widget, _("LISP Designer"))
         
         self.lisp_designs_layout  = QVBoxLayout()
         self.lisp_designs_layout.setContentsMargins(2,2,2,2)
@@ -9490,9 +9649,9 @@ class FileWatcherGUI(QDialog):
         self.locale_tabs_editors_widget = QWidget()
         self.locale_tabs_designs_widget = QWidget()
         #
-        self.locale_tabs.addTab(self.locale_tabs_project_widget, "Locales Project")
-        self.locale_tabs.addTab(self.locale_tabs_editors_widget, "Locales Editor")
-        self.locale_tabs.addTab(self.locale_tabs_designs_widget, "Locales Designer")
+        self.locale_tabs.addTab(self.locale_tabs_project_widget, _("Locales Project"))
+        self.locale_tabs.addTab(self.locale_tabs_editors_widget, _("Locales Editor"))
+        self.locale_tabs.addTab(self.locale_tabs_designs_widget, _("Locales Designer"))
         ####
         self.main_layout.addWidget(self.locale_tabs)
         
@@ -9514,7 +9673,7 @@ class FileWatcherGUI(QDialog):
         self.text_edit = QPlainTextEdit()
         self.text_edit.setFont(font2)
         
-        self.load_button = QPushButton('Load .mo File')
+        self.load_button = QPushButton(_("Load .mo File"))
         self.load_button.setFont(font)
         self.load_button.setMinimumHeight(31)
         self.load_button.clicked.connect(self.load_mo_file)
@@ -9539,7 +9698,7 @@ class FileWatcherGUI(QDialog):
         return
         
     def load_mo_file(self):
-        file_name, _ = QFileDialog.getOpenFileName(self, 'Open .mo file', '', 'MO Files (*.mo)')
+        file_name, _ = QFileDialog.getOpenFileName(self, _("Open .mo file"), '', 'MO Files (*.mo)')
         if file_name:
             self.po = polib.mofile(file_name)
             self.list_widget.clear()
@@ -9709,7 +9868,7 @@ class FileWatcherGUI(QDialog):
         
         # Create the drives tree
         self.drives_treeLocales = QTreeWidget()
-        self.drives_treeLocales.setHeaderLabels(["Drive", "Available Space", "Total Size"])
+        self.drives_treeLocales.setHeaderLabels([_("Drive"), _("Available Space"), _("Total Size")])
         self.drives_treeLocales.setMinimumHeight(120)
         #self.drives_treeLocales.setMaximumWidth(380)
         self.drives_treeLocales.header().setSectionResizeMode(QHeaderView.Interactive)
@@ -9948,9 +10107,9 @@ class FileWatcherGUI(QDialog):
         self.c64_tabs_editors_widget = QWidget()
         self.c64_tabs_designs_widget = QWidget()
         #
-        self.c64_tabs.addTab(self.c64_tabs_project_widget, "C-64 Project")
-        self.c64_tabs.addTab(self.c64_tabs_editors_widget, "C-64 Editor")
-        self.c64_tabs.addTab(self.c64_tabs_designs_widget, "C-64 Designer")
+        self.c64_tabs.addTab(self.c64_tabs_project_widget, _("C-64 Project"))
+        self.c64_tabs.addTab(self.c64_tabs_editors_widget, _("C-64 Editor"))
+        self.c64_tabs.addTab(self.c64_tabs_designs_widget, _("C-64 Designer"))
         
         self.c64_layout = QVBoxLayout()
         self.c64_frame_oben  = QFrame()
@@ -9979,8 +10138,8 @@ class FileWatcherGUI(QDialog):
         
         self.c64_tabs.currentChanged.connect(self.onC64TabChanged)
         
-        _listpush_apps = QPushButton("Applications")
-        _listpush_game = QPushButton("Games")
+        _listpush_apps = QPushButton(_("Applications"))
+        _listpush_game = QPushButton(_("Games"))
         
         _listwidget = QListWidget()
         _listwidget.setViewMode  (QListView.IconMode)
@@ -10031,7 +10190,7 @@ class FileWatcherGUI(QDialog):
     def closeEvent(self, event):
         msg = QMessageBox()
         msg.setWindowTitle("Confirmation")
-        msg.setText("Would you close the Application ?")
+        msg.setText(_("Would you close the Application ?"))
         msg.setIcon(QMessageBox.Question)
         
         btn_yes = msg.addButton(QMessageBox.Yes)
@@ -10217,32 +10376,6 @@ class licenseWindow(QDialog):
         
         self.returnCode = 0
         
-        self.file_content = ""
-        self.file_path = os.path.join(genv.v__app__internal__, "LICENSE")
-        try:
-            with open(self.file_path, "r") as file:
-                self.file_content = file.read()
-            
-        except FileNotFoundError:
-            print("error: license file not found.")
-            print("abort.")
-            sys.exit(genv.EXIT_FAILURE)
-            
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-            tb = traceback.extract_tb(e.__traceback__)[-1]
-            
-            print(f"Exception occur at license view:")
-            print(f"type : {exc_type.__name__}")
-            print(f"value: {exc_value}")
-            print(StringRepeat("-",40))
-            #
-            print(f"file : {tb.filename}")
-            print(f"line : {tb.lineno}")
-            #
-            print(StringRepeat("-",40))
-            sys.exit(genv.EXIT_FAILURE)
-        
         self.setWindowTitle("LICENSE - Please read, before you start.")
         self.setMinimumWidth(820)
         
@@ -10251,8 +10384,8 @@ class licenseWindow(QDialog):
         
         layout = QVBoxLayout()
         
-        button1 = QPushButton("Accept")
-        button2 = QPushButton("Decline")
+        button1 = QPushButton(_("Accept"))
+        button2 = QPushButton(_("Decline"))
         
         button1.clicked.connect(self.button1_clicked)
         button2.clicked.connect(self.button2_clicked)
@@ -10269,7 +10402,7 @@ class licenseWindow(QDialog):
         # ---------------------------------------------------------
         # get license to front, before the start shot ...
         # ---------------------------------------------------------
-        textfield.setPlainText(self.file_content)
+        textfield.setPlainText(_("LICENSE"))
     
     def button1_clicked(self):
         #self.returnCode = 0
@@ -10397,15 +10530,6 @@ def EntryPoint(arg1=None):
     # -----------------------------------------------------
     genv.v__app_object = QApplication(sys.argv)
     
-    license_window = licenseWindow()
-    # -------------------------------
-    # close tje splash screen ...
-    # -------------------------------
-    if getattr(sys, 'frozen', False):
-        pyi_splash.close()
-        
-    license_window.exec_()
-    
     # ---------------------------------------------------------
     # when config.ini does not exists, then create a small one:
     # ---------------------------------------------------------
@@ -10419,7 +10543,7 @@ def EntryPoint(arg1=None):
             + "Form = "
             + "Report = "
             + "Program = "
-            + "DeskTables = "
+            + "Tables = "
             + "Images = "
             + "SQL = "
             + "Other = ")
@@ -10435,6 +10559,15 @@ def EntryPoint(arg1=None):
             pass
     
     _ = handle_language(ini_lang)
+    
+    license_window = licenseWindow()
+    # -------------------------------
+    # close tje splash screen ...
+    # -------------------------------
+    if getattr(sys, 'frozen', False):
+        pyi_splash.close()
+        
+    license_window.exec_()
     
     # ------------------------------------------------------------------------
     # selected list of flags for translation localization display ...
