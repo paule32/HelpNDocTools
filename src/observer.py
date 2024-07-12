@@ -595,41 +595,6 @@ class TMenuBar(TMenu):
         super().show(self)
         return
 
-class consoleApp():
-    def __init__(self):
-        init(autoreset = True)
-        sys.stdout.write(Fore.RESET + Back.RESET + Style.RESET_ALL)
-        return
-    
-    def reset(self):
-        deinit()
-        return
-    
-    def cls(self):
-        sys.stdout.write("\033[H\033[2J")
-        sys.stdout.flush()
-        return
-    
-    def gotoxy(self, xpos, ypos):
-        sys.stdout.write("\033["
-        + str(ypos) + ";"
-        + str(xpos) + "H")
-        sys.stdout.flush()
-        return
-    
-    def print(self, data):
-        sys.stdout.write(data)
-        sys.stdout.flush()
-        return
-    
-    def print_date(self):
-        dat = datetime.datetime.now()
-        sys.stdout.write(dat.strftime("%Y-%m-%d"))
-        sys.stdout.flush()
-
-genv.dbase_console = None
-genv.dbase_console = consoleApp()
-
 class FileSystemWatcher(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -740,6 +705,202 @@ def convertPath(text):
         showApplicationError(__error__os__error)
         sys.exit(genv.EXIT_FAILURE)
     return result
+
+# ---------------------------------------------------------------------------
+# \brief A dos-console Qt5 Dialog - used by dBase console Applications.
+# ---------------------------------------------------------------------------
+class DOSConsoleScreen(QPlainTextEdit):
+    def __init__(self, parent=None):
+        super(DOSConsoleScreen, self).__init__(parent)
+        self.overwrite_mode = False
+        
+        self.xpos = 0   # cursor: x
+        self.ypos = 0   # cursor: y
+        
+        font_name    = "Consolas"
+        font_size    = 10
+        
+        font_object  = QFont(font_name, font_size)
+        font_metrics = QFontMetrics(font_object)
+        
+        font_width   = font_metrics.width ('W')
+        font_height  = font_metrics.height()
+        
+        self.setFont(font_object)
+        
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy  (Qt.ScrollBarAlwaysOff)
+        self.setStyleSheet("""
+        DOSConsoleScreen {
+        background-color: black;
+        color: lightgray;
+        line-height:0.2;
+        }""")
+        
+        self.setMinimumHeight(font_height * 26)
+        self.setMinimumWidth (font_width  * 82)
+        
+        self.setMaximumHeight(font_height * 26)
+        self.setMaximumWidth (font_width  * 82)
+        
+        self.cursor_thickness = 3
+        self.cursor_color = QColor('yellow')
+        self.cursor_visible = True
+        self.blinking = True
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.toggle_cursor_visibility)
+        self.timer.start(500)
+    
+    def setLineSpacing(self, line_spacing):
+        cursor = self.textCursor()
+        cursor.select(QTextCursor.Document)
+        
+        # Create a new text block format
+        block_format = QTextBlockFormat()
+        
+        # Set the line height using the line spacing factor
+        block_format.setLineHeight(line_spacing, QTextBlockFormat.FixedHeight)
+        
+        # Apply the new block format to each block in the document
+        cursor.beginEditBlock()
+        while not cursor.atEnd():
+            cursor.movePosition(QTextCursor.Down, QTextCursor.MoveAnchor, 1)
+            cursor.setBlockFormat(block_format)
+        cursor.endEditBlock()
+        
+        self.setTextCursor(cursor)
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Insert:
+            self.overwrite_mode = not self.overwrite_mode
+        
+        if self.overwrite_mode and event.text() and not event.modifiers():
+            cursor = self.textCursor()
+            if cursor.hasSelection():
+                cursor.removeSelectedText()
+            cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, 1)
+            cursor.removeSelectedText()
+            cursor.insertText(event.text())
+        else:
+            super(DOSConsoleScreen, self).keyPressEvent(event)
+    
+    def toggle_cursor_visibility(self):
+        self.cursor_visible = not self.cursor_visible
+        self.viewport().update()
+    
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.cursor_visible:
+            cursor = self.textCursor()
+            cursor_rect = self.cursorRect(cursor)
+            painter = QPainter(self.viewport())
+            painter.setPen(QPen(self.cursor_color, self.cursor_thickness))
+            painter.drawLine(cursor_rect.topLeft(), cursor_rect.bottomLeft())
+    
+    # ---------------------------------------------------------
+    # \brief  Emulate a clear screen, to swipe the text data
+    #         from the console.
+    #
+    # \param  nothing
+    # \return nothing
+    # ---------------------------------------------------------
+    def clear_con_screen(self):
+        try:
+            if self.toPlainText():
+                self.document().setPlainText(" ")
+            self.gotoxy(1,1)
+        except Exception as e:
+            print(e)
+    
+    # ---------------------------------------------------------
+    # \brief  Set the cursor position to column (xpos), and the
+    #         row (ypos).
+    #
+    # \param  xpos - int => the column
+    # \param  ypos - int => the row
+    #
+    # \return nothing
+    # ---------------------------------------------------------
+    def gotoxy(self, xpos, ypos):
+        self.xpos = xpos
+        self.ypos = ypos
+    
+    # ---------------------------------------------------------
+    # \brief  Print the text, given by the first parameter.
+    #
+    # \param  text - string
+    # \return nothing
+    # ---------------------------------------------------------
+    def print_line(self, text):
+        try:
+            cursor    = self.textCursor()
+            document  = self.document()
+            
+            while document.blockCount() <= self.ypos:
+                self.appendPlainText("")
+            
+            cursor.movePosition(QTextCursor.Start)
+            cursor.movePosition(QTextCursor.Down , QTextCursor.MoveAnchor, self.ypos)
+            cursor.movePosition(QTextCursor.Right, QTextCursor.MoveAnchor, self.xpos)
+            
+            cursor.movePosition(QTextCursor.EndOfLine, QTextCursor.KeepAnchor)
+            cursor.removeSelectedText()
+            
+            cursor.insertText(text)
+        except Exception as e:
+            print(e)
+
+    def print_date(self):
+        dat = datetime.datetime.now()
+        self.print_line(dat.strftime("%Y-%m-%d"))
+    
+    def set_color(self):
+        self.text_format = QTextCharFormat()
+        self.text_format.setBackground(QColor("red"))
+        self.text_format.setForeground(QColor("yellow"))
+        #cursor.insertText(text, text_format)
+
+class DOSConsole(QDialog):
+    def __init__(self):
+        super().__init__()
+        
+        dlg_layout = QHBoxLayout()
+        lhs_layout = QVBoxLayout()
+        rhs_layout = QVBoxLayout()
+        
+        printer_box = QListWidget()
+        printer_box.setMaximumWidth(100)
+        
+        try:
+            self.screen = DOSConsoleScreen()
+        except Exception as e:
+            msg = QMessageBox()
+            msg.setWindowTitle('Warning')
+            msg.setText("e")
+            msg.setIcon(QMessageBox.Warning)
+            
+            btn_nok = msg.addButton(QMessageBox.Ok)
+            
+            self.result = msg.exec_() 
+                
+        btn_close  = QPushButton(_("Close"))
+        btn_close.setMinimumHeight(32)
+        btn_close.setFont(QFont(genv.v__app__font_edit,10))
+        btn_close.clicked.connect(self.btn_close_clicked)
+        
+        
+        lhs_layout.addWidget(printer_box)
+        
+        rhs_layout.addWidget(self.screen)
+        rhs_layout.addWidget(btn_close)
+        
+        dlg_layout.addLayout(lhs_layout)
+        dlg_layout.addLayout(rhs_layout)
+        
+        self.setLayout(dlg_layout)
+        
+    def btn_close_clicked(self):
+        self.close()
 
 # ---------------------------------------------------------------------------
 # \brief A parser generator class to create a DSL (domain source language)
@@ -1357,6 +1518,8 @@ class interpreter_dBase:
         
         self.AST = []
         
+        global textertext
+        textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2024 by Jens Kallup - paule32.'
         self.byte_code = ""
         self.text_code = """
 import os
@@ -1369,7 +1532,8 @@ print = builtins.print
 
 if __name__ == '__main__':
     global con
-    con = consoleApp()
+    con = DOSConsole()
+    con.screen.setPlainText(textertext)
 """
         
         genv.v__app__logging.info("start parse: " + self.script_name)
@@ -1385,11 +1549,11 @@ if __name__ == '__main__':
         genv.v__app__logging.debug("macro   : " + str(self.token_macro_counter))
         genv.v__app__logging.debug("comment : " + str(self.token_comment_flag))
         
-        if self.command_ok == False:
-            raise EParserErrorEOF("command not finished.")
-        if self.token_macro_counter < 0:
-            genv.v__app__logging.debug("\aerror: unbound macro.")
-            sys.exit(1)
+        #if self.command_ok == False:
+        #    raise EParserErrorEOF("command not finished.")
+        #if self.token_macro_counter < 0:
+        #    genv.v__app__logging.debug("\aerror: unbound macro.")
+        #    sys.exit(1)
         
     # -----------------------------------------------------------------------
     # \brief open a script file, and append the readed lines to the source
@@ -1427,50 +1591,57 @@ if __name__ == '__main__':
     def run(self):
         self.finalize()
         
-        self.text_code += "    con.reset()\n"
+        #self.text_code += "    con.reset()\n"
+        #self.text_code += "    con.exec_()\n"
         
-        bytecode_text = compile(
-            self.text_code,
-            "<string>",
-            "exec")
-        self.byte_code = None
-        self.byte_code = marshal.dumps(bytecode_text)
+        #if application_mode == 1:
+        #global con_dialog
+        #con_dialog = DOSConsole()
         
-        # ---------------------
-        # save binary code ...
-        # ---------------------
-        cachedir = genv.v__app__internal__ + "/__cache__"
-        if not os.path.exists(cachedir):
-            print("oooooo")
-            os.makedirs(cachedir)
-        filename = os.path.basename(self.script_name)
-        filename = os.path.splitext(filename)[0]
-        filename = cachedir+"/"+filename+".bin"
-        print("filename: " + filename)
         try:
+            bytecode_text = compile(
+                self.text_code,
+                "<string>",
+                "exec")
+            self.byte_code = None
+            self.byte_code = marshal.dumps(bytecode_text)
+            
+            # ---------------------
+            # save binary code ...
+            # ---------------------
+            cachedir = genv.v__app__internal__ + "/__cache__"
+            if not os.path.exists(cachedir):
+                print("oooooo")
+                os.makedirs(cachedir)
+            filename = os.path.basename(self.script_name)
+            filename = os.path.splitext(filename)[0]
+            filename = cachedir+"/"+filename+".bin"
+            print("filename: " + filename)
+            
             with open(filename,"wb") as bytefile:
                 bytefile.write(self.byte_code)
                 bytefile.close()
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                raise
-        
-        # ---------------------
-        # load binary code ...
-        # ---------------------
-        try:
+            
             with open(filename,"rb") as bytefile:
                 bytecode = bytefile.read()
                 bytefile.close()
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                raise
         
-        # ---------------------
-        # execute binary code:
-        # ---------------------
-        bytecode = marshal.loads(self.byte_code)
-        exec(bytecode)
+            # ---------------------
+            # execute binary code:
+            # ---------------------
+            bytecode = marshal.loads(self.byte_code)
+            exec(bytecode)
+        except Exception as e:
+            msg = QMessageBox()
+            msg.setWindowTitle('Warning')
+            #msg.setFont(self.font)
+            msg.setText("Error in script")
+            msg.setIcon(QMessageBox.Warning)
+            
+            btn_nok = msg.addButton(QMessageBox.Ok)
+            #btn_nok.setFont(self.font)
+            
+            self.result = msg.exec_() 
     
     # -----------------------------------------------------------------------
     # \brief  get one char from the input stream/source line.
@@ -1603,9 +1774,9 @@ if __name__ == '__main__':
                 c = self.skip_white_spaces()
                 if c == ')':
                     print("dater")
-                    self.text_code   += ("    con.gotoxy(" +
+                    self.text_code   += ("    con.screen.gotoxy(" +
                     self.xpos + ","   +
-                    self.ypos + ")\n" +  "    con.print_date()\n")
+                    self.ypos + ")\n" +  "    con.screen.print_date()\n")
                     
                     self.command_ok = True
                 else:
@@ -1656,6 +1827,9 @@ if __name__ == '__main__':
         c = self.skip_white_spaces()
         if c == '+':
             c = self.skip_white_spaces()
+            if c == None:
+                print("no type")
+                return
             if c == '"':
                 self.handle_string()
                 #print("---> " + self.token_str)
@@ -1690,12 +1864,18 @@ if __name__ == '__main__':
                     self.getNumber()                # col
                     self.xpos = self.token_str
                     c = self.skip_white_spaces()
+                    if c == None:
+                        print("no type")
+                        return
                     if c.isalpha():
                         self.token_str = c
                         self.getIdent()
                         if self.token_str.lower() == "say":
                             self.prev = "say"
                             c = self.skip_white_spaces()
+                            if c == None:
+                                print("no type")
+                                return
                             if c.isalpha():
                                 self.token_str = c
                                 self.getIdent()
@@ -1704,7 +1884,7 @@ if __name__ == '__main__':
                                 print("ssss")
                                 self.token_str = ""
                                 self.handle_string()
-                                self.text_code += "    con.print(\'" + self.token_str + "\')\n"
+                                self.text_code += "    con.screen.print_line(\"" + self.token_str + "\")\n"
                         else:
                             raise Exception("say expected.")
                     else:
@@ -1737,6 +1917,9 @@ if __name__ == '__main__':
         # ------------------------------------
         while True:
             c = self.skip_white_spaces()
+            if c == None:
+                print("no type")
+                return
             if c == '\0' or self.parser_stop == True:
                 break
             elif c == '@':
@@ -1747,12 +1930,15 @@ if __name__ == '__main__':
                 if self.token_str == "clear":
                     print("clear")
                     c = self.skip_white_spaces()
+                    if c == None:
+                        print("no type")
+                        return
                     if c.isalpha():
                         self.token_str = c
                         self.getIdent()
                         if self.token_str == "screen":
                             print("screen")
-                            self.text_code += "    con.cls()\n";
+                            self.text_code += "    con.screen.clear_con_screen()\n";
                         elif self.token_str == "memory":
                             print("mem")
                         else:
@@ -1763,6 +1949,9 @@ if __name__ == '__main__':
                         continue
                 if self.token_str == "show":
                     print("--> " + self.token_str)
+            else:
+                print("oooo>>> " + self.token_str)
+                return
     
     def __unexpectedToken(self):
         __msg = "unexpected token: '" + self.token_str + "'"
@@ -6492,13 +6681,21 @@ class CustomWidget2(QWidget):
                     print(f"Error: file does not exists: {script_name}.")
                     return
                 
+                global application_mode
+                application_mode = 1
+                                
                 prg = None
                 prg = dBaseDSL(script_name)
                 #prg.parser.parse()
                 print("\nend of data\n")
+                
+                prg.parser.text_code += "    con.exec_()\n"
                 print(prg.parser.text_code)
                 
-                prg.parser.run()
+                try:
+                    prg.parser.run()
+                except Exception as e:
+                    print(e)
                 
             elif self.parent_class.dbase_tabs_editor2.hasFocus():
                 script_name = "./examples/dbase/example2.prg"
@@ -7754,6 +7951,9 @@ class dBaseProjectWidget(QWidget):
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
+        
+        global application_window
+        application_window = self
         
         genv.css_menu_item_style  = _("css_menu_item_style")
         genv.css_menu_label_style = _("css_menu_label_style")
