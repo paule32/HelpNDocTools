@@ -6649,9 +6649,27 @@ class CustomWidget0(QWidget):
             self.open_dialog()
     
     def open_dialog(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        file_path, pattern = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.prg)", options=options)
+        dialog  = QFileDialog()
+        file_path = ""
+        icon_size = 20
+        
+        dialog.setWindowTitle(_("Open File"))
+        dialog.setStyleSheet (_("QFileDlog"))
+        
+        dialog.setFileMode(QFileDialog.AnyFile)
+        dialog.setViewMode(QFileDialog.Detail)
+        
+        dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
+        dialog.setNameFilters(["Program Files (*.prg)", "Text Files (*.txt)", "All Files (*)"])
+        
+        list_views = dialog.findChildren(QListView)
+        tree_views = dialog.findChildren(QTreeView)
+        
+        for view in list_views + tree_views:
+            view.setIconSize(QSize(icon_size, icon_size))
+    
+        if dialog.exec_() == QFileDialog.Accepted:
+            file_path = dialog.selectedFiles()[0]
         
         if not file_path:
             msg = QMessageBox()
@@ -7986,6 +8004,94 @@ class applicationProjectWidget(QWidget):
             child_index = model.index(row, 0, index)
             self.expand_all_items(tree_view, child_index)
 
+class CustomTitleBar(QWidget):
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+        self.minimize_icon = QIcon(QPixmap(16, 16))  # Dummy icon, replace with actual icon
+        self.maximize_icon = QIcon(QPixmap(16, 16))  # Dummy icon, replace with actual icon
+        self.close_icon    = QIcon(QPixmap(16, 16))  # Dummy icon, replace with actual icon
+        
+        self.title = title
+        self.initUI()
+        
+    def initUI(self):
+        self.setFixedHeight(30)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        self.title_label = QLabel(self.title)
+        self.title_label.setStyleSheet(_("DialogTitleBar"))
+        
+        self.minimize_button = QPushButton()
+        self.minimize_button.setIcon(self.minimize_icon)
+        self.minimize_button.setFixedSize(30, 30)
+        self.minimize_button.setStyleSheet("background: transparent;")
+        
+        self.maximize_button = QPushButton()
+        self.maximize_button.setIcon(self.maximize_icon)
+        self.maximize_button.setFixedSize(30, 30)
+        self.maximize_button.setStyleSheet("background: transparent;")
+        
+        self.close_button = QPushButton()
+        self.close_button.setIcon(self.close_icon)
+        self.close_button.setFixedSize(30, 30)
+        self.close_button.setStyleSheet("background: transparent;")
+        
+        layout.addWidget(self.title_label)
+        layout.addStretch()
+        layout.addWidget(self.minimize_button)
+        layout.addWidget(self.maximize_button)
+        layout.addWidget(self.close_button)
+        
+        self.setLayout(layout)
+    
+    # paint border: red
+    def paintEvent(self, event):
+        #super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setBrush(Qt.NoBrush)
+        #
+        gradient = QLinearGradient(0, 0, self.width(), 0)
+        # Create a gradient with 64 steps from yellow to red
+        steps = 64
+        for i in range(steps):
+            t = i / (steps - 1)
+            if t < 0.5:
+                # Interpolate from black to yellow
+                ratio = t / 0.5
+                color = QColor(
+                    int(255 * ratio),  # Red   component (linear interpolation)
+                    int(255 * ratio),  # Green component (linear interpolation)
+                    0                  # Blue  component (constant)
+                )
+            else:
+                # Interpolate from yellow to red
+                ratio = (t - 0.5) / 0.5
+                color = QColor(
+                    255,                     # Red   component (constant)
+                    int(255 * (1 - ratio)),  # Green component (linear interpolation)
+                    0                        # Blue  component (constant)
+                )
+            gradient.setColorAt(t, color)
+        
+        painter.fillRect(self.rect(), gradient)
+
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.parent().mouse_press_pos = event.globalPos()
+            self.parent().mouse_move_pos = event.globalPos() - self.parent().frameGeometry().topLeft()
+    
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            self.parent().move(event.globalPos() - self.parent().mouse_move_pos)
+    
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.parent().toggleMaximizeRestore()
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -8004,6 +8110,10 @@ class FileWatcherGUI(QDialog):
         #self.setStyleSheet("font-family:'Arial';font-size:12pt;")
         
         self.worker_hasFocus = False
+        self.is_maximized    = False
+        
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.windowtitle = 'HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32'
         
         self.my_list = MyItemRecord(0, QStandardItem(""))
         self.init_ui()
@@ -8180,6 +8290,17 @@ class FileWatcherGUI(QDialog):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0,0,0,0)
         
+        layout = QVBoxLayout()
+        
+        self.title_bar = CustomTitleBar(self.windowtitle, self)
+        self.title_bar.minimize_button.clicked.connect(self.showMinimized)
+        self.title_bar.maximize_button.clicked.connect(self.showMaximized)
+        self.title_bar.close_button.clicked.connect(self.close)
+        
+        content = QWidget()
+        content_layout = QVBoxLayout()
+        content.setLayout(content_layout)
+        
         # menu bar
         self.menu_bar = QMenuBar(self)
         self.menu_bar.setStyleSheet(genv.css_menu_item_style)
@@ -8216,8 +8337,8 @@ class FileWatcherGUI(QDialog):
                 subs = menu_item
                 self.add_menu_item(subs[0], subs[1], mbar, subs[2])
         
-        self.layout.addWidget( self.menu_bar )
-        self.menu_bar.show()
+        #self.layout.addWidget( self.menu_bar )
+        #self.menu_bar.show()
         
         # tool bar
         self.tool_bar = QToolBar()
@@ -8239,7 +8360,7 @@ class FileWatcherGUI(QDialog):
         
         self.tool_bar.addWidget(self.tool_bar_button_exit)
         
-        self.layout.addWidget(self.tool_bar)
+        #self.layout.addWidget(self.tool_bar)
         #self.tool_bar.show()
         
         # status bar
@@ -9024,12 +9145,18 @@ class FileWatcherGUI(QDialog):
         self.tab1_top_layout.addLayout(self.tab1_left_layout)
         self.tab1_top_layout.addLayout(self.tab1_middle_layout)
         self.tab1_top_layout.addLayout(self.tab1_right_layout)
+        print("0000")
+        layout.addWidget(self.title_bar  )
+        layout.addWidget(self.menu_bar   )
+        layout.addWidget(self.tool_bar   )
+        layout.addLayout(self.main_layout)
+        layout.addWidget(self.status_bar )
+
+        #self.layout.addLayout(self.main_layout)
+        #self.layout.addWidget(self.status_bar)
         
-        self.layout.addLayout(self.main_layout)
-        self.layout.addWidget(self.status_bar)
-        
-        self.setLayout(self.layout)
-        self.setWindowTitle('HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32')
+        self.setLayout(layout)
+        self.setWindowTitle(self.windowtitle)
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         # Timer
         self.timer = QTimer(self)
@@ -9226,12 +9353,6 @@ class FileWatcherGUI(QDialog):
             file_content = stream.readAll()
             file.close()
         return file_content
-    
-    def dbase_file_editor1_changed(self, file_path):
-        self.dbase_file_editor0_checkmessage(self.dbase_tabs_editor1, file_path)
-    #
-    def dbase_file_editor2_changed(self, file_path):
-        self.dbase_file_editor0_checkmessage(self.dbase_tabs_editor2, file_path)
     
     def handleDBase(self):
         self.dbase_tabs = QTabWidget()
@@ -10793,6 +10914,98 @@ class FileWatcherGUI(QDialog):
         else:
             print(f"File {filePath} not found.")
             # ktionen durchführen, wenn die Datei nicht existiert
+    
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.mouse_press_pos = event.globalPos()
+            self.mouse_move_pos = event.globalPos() - self.frameGeometry().topLeft()
+            self.resizing = self.getCursorPosition(event.pos())
+    
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            if self.resizing:
+                self.resizeWindow(event.globalPos())
+            else:
+                self.move(event.globalPos() - self.mouse_move_pos)
+        else:
+            self.updateCursor(event.pos())
+    
+    def mouseReleaseEvent(self, event):
+        self.resizing = None
+    
+    def updateCursor(self, pos):
+        cursor_pos = self.getCursorPosition(pos)
+        if cursor_pos:
+            self.setCursor(cursor_pos)
+        else:
+            self.setCursor(Qt.ArrowCursor)
+    
+    def getCursorPosition(self, pos):
+        rect = self.rect()
+        margin = 10
+        
+        if pos.x() < margin and pos.y() < margin:
+            return Qt.SizeFDiagCursor
+        elif pos.x() > rect.width() - margin and pos.y() > rect.height() - margin:
+            return Qt.SizeFDiagCursor
+        elif pos.x() > rect.width() - margin and pos.y() < margin:
+            return Qt.SizeBDiagCursor
+        elif pos.x() < margin and pos.y() > rect.height() - margin:
+            return Qt.SizeBDiagCursor
+        elif pos.x() < margin:
+            return Qt.SizeHorCursor
+        elif pos.x() > rect.width() - margin:
+            return Qt.SizeHorCursor
+        elif pos.y() < margin:
+            return Qt.SizeVerCursor
+        elif pos.y() > rect.height() - margin:
+            return Qt.SizeVerCursor
+        else:
+            return None
+    
+    def resizeWindow(self, global_pos):
+        rect = self.frameGeometry()
+        diff = global_pos - self.mouse_press_pos
+        self.mouse_press_pos = global_pos
+        
+        if self.resizing == Qt.SizeFDiagCursor:
+            rect.setTopLeft(rect.topLeft() + diff)
+        elif self.resizing == Qt.SizeBDiagCursor:
+            rect.setBottomRight(rect.bottomRight() + diff)
+        elif self.resizing == Qt.SizeHorCursor:
+            if self.mouse_press_pos.x() < rect.center().x():
+                rect.setLeft(rect.left() + diff.x())
+            else:
+                rect.setRight(rect.right() + diff.x())
+        elif self.resizing == Qt.SizeVerCursor:
+            if self.mouse_press_pos.y() < rect.center().y():
+                rect.setTop(rect.top() + diff.y())
+            else:
+                rect.setBottom(rect.bottom() + diff.y())
+        self.setGeometry(rect)
+    
+    def toggleMaximizeRestore(self):
+        if self.is_maximized:
+            self.setGeometry(self.normal_geometry)
+            self.is_maximized = False
+        else:
+            self.normal_geometry = self.geometry()
+            self.setGeometry(QApplication.desktop().availableGeometry(self))
+            self.is_maximized = True
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(255, 0, 0))
+        
+        # Use the standard background color from the widget's palette
+        standard_background_color = self.palette().color(QPalette.Window)
+        adjusted_rect = self.rect().adjusted(10, 10, -10, -10)
+        painter.fillRect(adjusted_rect, standard_background_color)
+        
+        painter.setBrush(Qt.NoBrush)
+        painter.setPen(QColor(255, 0, 0))
+        painter.drawRect(10, 10, self.width() - 1, self.height() - 1)
 
 # ------------------------------------------------------------------------
 # inform the user about the rules/license of this application script ...
