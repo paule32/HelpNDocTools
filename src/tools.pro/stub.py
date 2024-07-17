@@ -15,74 +15,13 @@ image_index = 0
 pos         = 0
 
 while pos < len(data_byte):
-    c = data_byte[pos]
-    if c == ord('-'):
-        pos += 1
-        c = data_byte[pos]
-        if c == ord('-'):
-            pos += 1
-            c = data_byte[pos]
-            if c == ord('p'):
-                pos += 1
-                c = data_byte[pos]
-                if c == ord('a'):
-                    pos += 1
-                    c = data_byte[pos]
-                    if c == ord('y'):
-                        pos += 1
-                        c = data_byte[pos]
-                        if c == ord('l'):
-                            pos += 1
-                            c = data_byte[pos]
-                            if c == ord('o'):
-                                pos += 1
-                                c = data_byte[pos]
-                                if c == ord('a'):
-                                    pos += 1
-                                    c = data_byte[pos]
-                                    if c == ord('d'):
-                                        pos += 1
-                                        c = data_byte[pos]
-                                        if c == ord('-'):
-                                            pos += 1
-                                            c = data_byte[pos]
-                                            if c == ord('-'):
-                                                bytes_pos = pos
-                                                print("found")
-                                                break;
-                                            else:
-                                                pos += 1
-                                                continue
-                                        else:
-                                            pos += 1
-                                            continue
-                                    else:
-                                        pos += 1
-                                        continue
-                                else:
-                                    pos += 1
-                                    continue
-                            else:
-                                pos += 1
-                                continue
-                        else:
-                            pos += 1
-                            continue
-                    else:
-                        pos += 1
-                        continue
-                else:
-                    pos += 1
-                    continue
-            else:
-                pos += 1
-                continue
-        else:
-            pos += 1
-            continue
-    else:
-        pos += 1
-        continue
+    if data_byte[pos] == ord('-') and data_byte[pos + 1] == ord('-') and data_byte[pos + 2] == ord('p'):
+        if data_byte[pos + 3] == ord('a') and data_byte[pos + 4] == ord('y') and data_byte[pos + 5] == ord('l'):
+            if data_byte[pos + 6] == ord('o') and data_byte[pos + 7] == ord('a') and data_byte[pos + 8] == ord('d'):
+                if data_byte[pos + 9] == ord('-') and data_byte[pos + 10] == ord('-'):
+                    bytes_pos = pos + 10
+                    break;
+    pos += 1
 
 if bytes_pos == 0:
     print("error: invalide data")
