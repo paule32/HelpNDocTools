@@ -32,7 +32,7 @@ def compress_images_to_gzip(file_root, file_stub, file_output):
     try:
         image_extensions = (
             # python files ...
-            file_stub,
+            'start.pyc',
             
             # image files ...
             '.jpg', '.jpeg', '.png', '.gif',

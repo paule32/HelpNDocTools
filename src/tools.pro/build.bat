@@ -12,6 +12,7 @@
 ::         NO WARRANTIES - USE IT AT YOUR OWN RISK !!!
 :: ----------------------------------------------------------------------
 :: compile the stub, and add images to the temp.pyc ...
+@echo off
 python -m compileall stub.py
 copy __pycache__\stub.cpython-312.pyc .\stub.pyc
 python zipfiles.py
