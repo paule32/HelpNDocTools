@@ -8092,6 +8092,90 @@ class CustomTitleBar(QWidget):
         if event.button() == Qt.LeftButton:
             self.parent().toggleMaximizeRestore()
 
+class designerWindow():
+    def __init__(self, parent, main_layout, tabs_design, tabs):
+        self.parent = parent
+        self.main_layout = main_layout
+        self.tabs_designs_widget = tabs_design
+        self.tabs = tabs
+        
+        self.designs_layout  = QVBoxLayout()
+        self.designs_layout.setContentsMargins(2,2,2,2)
+        self.designs_palette = QWidget()
+        self.designs_palette.setStyleSheet(_("bggy"))
+        self.designs_palette.setMinimumHeight(85)
+        self.designs_palette.setMaximumHeight(85)
+        #
+        self.palette_layout  = QHBoxLayout()
+        self.palette_layout.setContentsMargins(2,2,2,2)
+        self.palette_widget_lhs  = QLabel ()
+        self.palette_widget_mid  = QWidget()
+        self.palette_widget_rhs  = QLabel ()
+        #
+        self.palette_widget_lhs.setMaximumWidth(20)
+        self.palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.palette_widget_lhs.setFont(font)
+        self.palette_widget_rhs.setFont(font)
+        #
+        self.palette_widget_lhs.setText(chr1)
+        self.palette_widget_rhs.setText(chr2)
+        #
+        self.palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.palette_widget_mid.setStyleSheet(_("bggy"))
+        self.palette_widget_rhs.setStyleSheet(_("bglg"))
+        #
+        #
+        self.palette_widget_mid_layout = QHBoxLayout()
+        self.palette_widget_mid_tabs   = QTabWidget()
+        self.palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        #######
+        addDesignerTabs(self.palette_widget_mid_tabs)
+        
+        self.palette_widget_mid_layout.addWidget(self.palette_widget_mid_tabs)
+        #
+        self.palette_layout.addWidget(self.palette_widget_lhs)
+        self.palette_layout.addLayout(self.palette_widget_mid_layout)
+        self.palette_layout.addWidget(self.palette_widget_rhs)
+        #
+        self.designs_palette.setLayout(self.palette_layout)
+        ####
+        
+        self.designs_viewer  = myGridViewer(self.parent)
+        self.designs_viewer.setStyleSheet(_("bgwh"))
+        
+        self.designs_layout.addWidget(self.designs_palette)
+        self.designs_layout.addWidget(self.designs_viewer)
+        #
+        
+        self.tabs_designs_widget.setLayout(self.designs_layout)
+        ####
+        self.main_layout.addWidget(self.tabs)
+        #################
+        font = QFont(genv.v__app__font, 12)
+        self.btn1 = myMoveButton(" move me A ", self.designs_viewer.content)
+        self.btn2 = myMoveButton(" move me B ", self.designs_viewer.content)
+        self.btn3 = myMoveButton(" move me C ", self.designs_viewer.content)
+        #
+        self.btn1.move(20,20)
+        self.btn2.move(40,40)
+        self.btn3.move(60,60)
+        #
+        self.btn1.setFont(font)
+        self.btn2.setFont(font)
+        self.btn3.setFont(font)
+        #
+        self.btn1.setStyleSheet("background-color:red;color:yellow;")
+        self.btn2.setStyleSheet("background-color:yellow;color:black;")
+        self.btn3.setStyleSheet("background-color:blue;color:white;")
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -9504,81 +9588,11 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_builder_widget.setLayout(self.dbase_builder_layout)
         
         ####
-        self.dbase_designs_layout  = QVBoxLayout()
-        self.dbase_designs_layout.setContentsMargins(2,2,2,2)
-        self.dbase_designs_palette = QWidget()
-        self.dbase_designs_palette.setStyleSheet(_("bggy"))
-        self.dbase_designs_palette.setMinimumHeight(85)
-        self.dbase_designs_palette.setMaximumHeight(85)
-        #
-        self.dbase_palette_layout  = QHBoxLayout()
-        self.dbase_palette_layout.setContentsMargins(2,2,2,2)
-        self.dbase_palette_widget_lhs  = QLabel ()
-        self.dbase_palette_widget_mid  = QWidget()
-        self.dbase_palette_widget_rhs  = QLabel ()
-        #
-        self.dbase_palette_widget_lhs.setMaximumWidth(20)
-        self.dbase_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.dbase_palette_widget_lhs.setFont(font)
-        self.dbase_palette_widget_rhs.setFont(font)
-        #
-        self.dbase_palette_widget_lhs.setText(chr1)
-        self.dbase_palette_widget_rhs.setText(chr2)
-        #
-        self.dbase_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.dbase_palette_widget_mid.setStyleSheet(_("bggy"))
-        self.dbase_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.dbase_palette_widget_mid_layout = QHBoxLayout()
-        self.dbase_palette_widget_mid_tabs   = QTabWidget()
-        self.dbase_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.dbase_palette_widget_mid_tabs)
-        
-        self.dbase_palette_widget_mid_layout.addWidget(self.dbase_palette_widget_mid_tabs)
-        #
-        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_lhs)
-        self.dbase_palette_layout.addLayout(self.dbase_palette_widget_mid_layout)
-        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_rhs)
-        #
-        self.dbase_designs_palette.setLayout(self.dbase_palette_layout)
-        ####
-        
-        self.dbase_designs_viewer  = myGridViewer(self)
-        self.dbase_designs_viewer.setStyleSheet(_("bgwh"))
-        
-        self.dbase_designs_layout.addWidget(self.dbase_designs_palette)
-        self.dbase_designs_layout.addWidget(self.dbase_designs_viewer)
-        #
-        self.dbase_tabs_designs_widget.setLayout(self.dbase_designs_layout)
-        ####
-        self.main_layout.addWidget(self.dbase_tabs)
-        #################
-        font = QFont(genv.v__app__font, 12)
-        self.dbase_btn1 = myMoveButton(" move me A ", self.dbase_designs_viewer.content)
-        self.dbase_btn2 = myMoveButton(" move me B ", self.dbase_designs_viewer.content)
-        self.dbase_btn3 = myMoveButton(" move me C ", self.dbase_designs_viewer.content)
-        #
-        self.dbase_btn1.move(20,20)
-        self.dbase_btn2.move(40,40)
-        self.dbase_btn3.move(60,60)
-        #
-        self.dbase_btn1.setFont(font)
-        self.dbase_btn2.setFont(font)
-        self.dbase_btn3.setFont(font)
-        #
-        self.dbase_btn1.setStyleSheet("background-color:red;color:yellow;")
-        self.dbase_btn2.setStyleSheet("background-color:yellow;color:black;")
-        self.dbase_btn3.setStyleSheet("background-color:blue;color:white;")
+        self.dbase_designer = designerWindow(
+            self,
+            self.main_layout,
+            self.dbase_tabs_designs_widget,
+            self.dbase_tabs)
     
     def dbase_builder_btn1_clicked(self):
         tableDialog = myAddTableDialog(self)
@@ -9644,84 +9658,12 @@ class FileWatcherGUI(QDialog):
         self.pascal_tabs_editors_widget.setLayout(self.pascal_tabs_editors_layout)
         #
         ####
-        
-        self.pascal_designs_layout  = QVBoxLayout()
-        self.pascal_designs_layout.setContentsMargins(2,2,2,2)
-        self.pascal_designs_palette = QWidget()
-        self.pascal_designs_palette.setStyleSheet(_("bggy"))
-        self.pascal_designs_palette.setMaximumHeight(80)
-        #
-        self.pascal_palette_layout  = QHBoxLayout()
-        self.pascal_palette_layout.setContentsMargins(2,2,2,2)
-        self.pascal_palette_widget_lhs  = QLabel ()
-        self.pascal_palette_widget_mid  = QWidget()
-        self.pascal_palette_widget_rhs  = QLabel ()
-        #
-        self.pascal_palette_widget_lhs.setMaximumWidth(20)
-        self.pascal_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.pascal_palette_widget_lhs.setFont(font)
-        self.pascal_palette_widget_rhs.setFont(font)
-        #
-        self.pascal_palette_widget_lhs.setText(chr1)
-        self.pascal_palette_widget_rhs.setText(chr2)
-        #
-        self.pascal_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.pascal_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.pascal_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.pascal_palette_widget_mid_layout = QHBoxLayout()
-        self.pascal_palette_widget_mid_tabs   = QTabWidget()
-        self.pascal_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.pascal_palette_widget_mid_tabs)
-        
-        self.pascal_palette_widget_mid_layout.addWidget(self.pascal_palette_widget_mid_tabs)
-        #
-        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_lhs)
-        self.pascal_palette_layout.addLayout(self.pascal_palette_widget_mid_layout)
-        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_rhs)
-        #
-        self.pascal_designs_palette.setLayout(self.pascal_palette_layout)
-        ####
-        
-        self.pascal_designs_viewer  = myGridViewer(self)
-        self.pascal_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.pascal_designs_layout.addWidget(self.pascal_designs_palette)
-        self.pascal_designs_layout.addWidget(self.pascal_designs_viewer)
-        #
-        self.pascal_tabs_designs_widget.setLayout(self.pascal_designs_layout)
-        ####
-        self.main_layout.addWidget(self.pascal_tabs)
-        #################
-        
-        self.pascal_tabs_editors_layout = QVBoxLayout()
-        self.pascal_tabs_editors_layout.setContentsMargins(2,2,2,2)
-        
-        self.pascal_tabs_editor_menu = QWidget()
-        self.pascal_tabs_editor_menu.setStyleSheet("background-color:gray;")
-        self.pascal_tabs_editor_menu.setMinimumHeight(64)
-        self.pascal_tabs_editor_menu.setMaximumHeight(64)
-        
-        
-        
-        self.pascal_btn1 = myMoveButton("move me D", self.pascal_designs_viewer)
-        self.pascal_btn2 = myMoveButton("move me E", self.pascal_designs_viewer)
-        self.pascal_btn3 = myMoveButton("move me F", self.pascal_designs_viewer)
-        #
-        self.pascal_btn1.move(120,20)
-        self.pascal_btn2.move(140,40)
-        self.pascal_btn3.move(160,60)
-        
+        self.pascal_designer = designerWindow(
+            self,
+            self.main_layout,
+            self.pascal_tabs_designs_widget,
+            self.pascal_tabs)
+    
     # isoc
     def handleIsoC(self):
         self.isoc_tabs = QTabWidget()
@@ -9777,67 +9719,12 @@ class FileWatcherGUI(QDialog):
         self.isoc_tabs_editors_layout.addStretch()
         self.isoc_tabs_editors_widget.setLayout(self.isoc_tabs_editors_layout)
         #
-        ####
-        
-        
-        self.isoc_designs_layout  = QVBoxLayout()
-        self.isoc_designs_layout.setContentsMargins(2,2,2,2)
-        self.isoc_designs_palette = QWidget()
-        self.isoc_designs_palette.setStyleSheet(_("bggy"))
-        self.isoc_designs_palette.setMaximumHeight(80)
-        #
-        self.isoc_palette_layout  = QHBoxLayout()
-        self.isoc_palette_layout.setContentsMargins(2,2,2,2)
-        self.isoc_palette_widget_lhs  = QLabel ()
-        self.isoc_palette_widget_mid  = QWidget()
-        self.isoc_palette_widget_rhs  = QLabel ()
-        #
-        self.isoc_palette_widget_lhs.setMaximumWidth(20)
-        self.isoc_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.isoc_palette_widget_lhs.setFont(font)
-        self.isoc_palette_widget_rhs.setFont(font)
-        #
-        self.isoc_palette_widget_lhs.setText(chr1)
-        self.isoc_palette_widget_rhs.setText(chr2)
-        #
-        self.isoc_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.isoc_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.isoc_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.isoc_palette_widget_mid_layout = QHBoxLayout()
-        self.isoc_palette_widget_mid_tabs   = QTabWidget()
-        self.isoc_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
         #######
-        addDesignerTabs(self.isoc_palette_widget_mid_tabs)
-        
-        
-        self.isoc_palette_widget_mid_layout.addWidget(self.isoc_palette_widget_mid_tabs)
-        #
-        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_lhs)
-        self.isoc_palette_layout.addLayout(self.isoc_palette_widget_mid_layout)
-        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_rhs)
-        #
-        self.isoc_designs_palette.setLayout(self.isoc_palette_layout)
-        ####
-        
-        self.isoc_designs_viewer  = myGridViewer(self)
-        self.isoc_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.isoc_designs_layout.addWidget(self.isoc_designs_palette)
-        self.isoc_designs_layout.addWidget(self.isoc_designs_viewer)
-        #
-        self.isoc_tabs_designs_widget.setLayout(self.isoc_designs_layout)
-        ####
-        self.main_layout.addWidget(self.isoc_tabs)
+        self.isoc_designer = designerWindow(
+            self,
+            self.main_layout,
+            self.isoc_tabs_designs_widget,
+            self.isoc_tabs)
     
     # java
     def handleJava(self):
@@ -9896,66 +9783,11 @@ class FileWatcherGUI(QDialog):
         self.java_tabs_editors_widget.setLayout(self.java_tabs_editors_layout)
         #
         ####
-        
-        
-        self.java_designs_layout  = QVBoxLayout()
-        self.java_designs_layout.setContentsMargins(2,2,2,2)
-        self.java_designs_palette = QWidget()
-        self.java_designs_palette.setStyleSheet(_("bggy"))
-        self.java_designs_palette.setMaximumHeight(80)
-        #
-        self.java_palette_layout  = QHBoxLayout()
-        self.java_palette_layout.setContentsMargins(2,2,2,2)
-        self.java_palette_widget_lhs  = QLabel ()
-        self.java_palette_widget_mid  = QWidget()
-        self.java_palette_widget_rhs  = QLabel ()
-        #
-        self.java_palette_widget_lhs.setMaximumWidth(20)
-        self.java_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.java_palette_widget_lhs.setFont(font)
-        self.java_palette_widget_rhs.setFont(font)
-        #
-        self.java_palette_widget_lhs.setText(chr1)
-        self.java_palette_widget_rhs.setText(chr2)
-        #
-        self.java_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.java_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.java_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.java_palette_widget_mid_layout = QHBoxLayout()
-        self.java_palette_widget_mid_tabs   = QTabWidget()
-        self.java_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.java_palette_widget_mid_tabs)
-        
-        
-        self.java_palette_widget_mid_layout.addWidget(self.java_palette_widget_mid_tabs)
-        #
-        self.java_palette_layout.addWidget(self.java_palette_widget_lhs)
-        self.java_palette_layout.addLayout(self.java_palette_widget_mid_layout)
-        self.java_palette_layout.addWidget(self.java_palette_widget_rhs)
-        #
-        self.java_designs_palette.setLayout(self.java_palette_layout)
-        ####
-        
-        self.java_designs_viewer  = myGridViewer(self)
-        self.java_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.java_designs_layout.addWidget(self.java_designs_palette)
-        self.java_designs_layout.addWidget(self.java_designs_viewer)
-        #
-        self.java_tabs_designs_widget.setLayout(self.java_designs_layout)
-        ####
-        self.main_layout.addWidget(self.java_tabs)
+        self.java_designer = designerWindow(
+            self,
+            self.main_layout,
+            self.java_tabs_designs_widget,
+            self.java_tabs)
     
     # python
     def handlePython(self):
@@ -10013,64 +9845,11 @@ class FileWatcherGUI(QDialog):
         self.python_tabs_editors_widget.setLayout(self.python_tabs_editors_layout)
         #
         ####
-        
-        self.python_designs_layout  = QVBoxLayout()
-        self.python_designs_layout.setContentsMargins(2,2,2,2)
-        self.python_designs_palette = QWidget()
-        self.python_designs_palette.setStyleSheet(_("bggy"))
-        self.python_designs_palette.setMaximumHeight(80)
-        #
-        self.python_palette_layout  = QHBoxLayout()
-        self.python_palette_layout.setContentsMargins(2,2,2,2)
-        self.python_palette_widget_lhs  = QLabel ()
-        self.python_palette_widget_mid  = QWidget()
-        self.python_palette_widget_rhs  = QLabel ()
-        #
-        self.python_palette_widget_lhs.setMaximumWidth(20)
-        self.python_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.python_palette_widget_lhs.setFont(font)
-        self.python_palette_widget_rhs.setFont(font)
-        #
-        self.python_palette_widget_lhs.setText(chr1)
-        self.python_palette_widget_rhs.setText(chr2)
-        #
-        self.python_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.python_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.python_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.python_palette_widget_mid_layout = QHBoxLayout()
-        self.python_palette_widget_mid_tabs   = QTabWidget()
-        self.python_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.python_palette_widget_mid_tabs)
-        
-        self.python_palette_widget_mid_layout.addWidget(self.python_palette_widget_mid_tabs)
-        #
-        self.python_palette_layout.addWidget(self.python_palette_widget_lhs)
-        self.python_palette_layout.addLayout(self.python_palette_widget_mid_layout)
-        self.python_palette_layout.addWidget(self.python_palette_widget_rhs)
-        #
-        self.python_designs_palette.setLayout(self.python_palette_layout)
-        ####
-        
-        self.python_designs_viewer  = myGridViewer(self)
-        self.python_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.python_designs_layout.addWidget(self.python_designs_palette)
-        self.python_designs_layout.addWidget(self.python_designs_viewer)
-        #
-        self.python_tabs_designs_widget.setLayout(self.python_designs_layout)
-        ####
-        self.main_layout.addWidget(self.python_tabs)
+        self.python_designer = designerWindow(
+            self,
+            self.main_layout,
+            self.python_tabs_designs_widget,
+            self.python_tabs)
     
     # lisp
     def handleLISP(self):
@@ -10128,64 +9907,11 @@ class FileWatcherGUI(QDialog):
         self.lisp_tabs_editors_widget.setLayout(self.lisp_tabs_editors_layout)
         #
         ####
-        
-        self.lisp_designs_layout  = QVBoxLayout()
-        self.lisp_designs_layout.setContentsMargins(2,2,2,2)
-        self.lisp_designs_palette = QWidget()
-        self.lisp_designs_palette.setStyleSheet(_("bggy"))
-        self.lisp_designs_palette.setMaximumHeight(80)
-        #
-        self.lisp_palette_layout  = QHBoxLayout()
-        self.lisp_palette_layout.setContentsMargins(2,2,2,2)
-        self.lisp_palette_widget_lhs  = QLabel ()
-        self.lisp_palette_widget_mid  = QWidget()
-        self.lisp_palette_widget_rhs  = QLabel ()
-        #
-        self.lisp_palette_widget_lhs.setMaximumWidth(20)
-        self.lisp_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.lisp_palette_widget_lhs.setFont(font)
-        self.lisp_palette_widget_rhs.setFont(font)
-        #
-        self.lisp_palette_widget_lhs.setText(chr1)
-        self.lisp_palette_widget_rhs.setText(chr2)
-        #
-        self.lisp_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.lisp_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.lisp_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.lisp_palette_widget_mid_layout = QHBoxLayout()
-        self.lisp_palette_widget_mid_tabs   = QTabWidget()
-        self.lisp_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.lisp_palette_widget_mid_tabs)
-        
-        self.lisp_palette_widget_mid_layout.addWidget(self.lisp_palette_widget_mid_tabs)
-        #
-        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_lhs)
-        self.lisp_palette_layout.addLayout(self.lisp_palette_widget_mid_layout)
-        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_rhs)
-        #
-        self.lisp_designs_palette.setLayout(self.lisp_palette_layout)
-        ####
-        
-        self.lisp_designs_viewer  = myGridViewer(self)
-        self.lisp_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.lisp_designs_layout.addWidget(self.lisp_designs_palette)
-        self.lisp_designs_layout.addWidget(self.lisp_designs_viewer)
-        #
-        self.lisp_tabs_designs_widget.setLayout(self.lisp_designs_layout)
-        ####
-        self.main_layout.addWidget(self.lisp_tabs)
+        self.lisp_designer = designerWindow(
+            self,
+            self.main_layout,
+            self.lisp_tabs_designs_widget,
+            self.lisp_tabs)
     
     # locale
     def handleLocales(self):
