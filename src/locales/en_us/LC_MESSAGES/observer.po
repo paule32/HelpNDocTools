@@ -3827,156 +3827,162 @@ msgid "A0101"
 msgstr "DOXYFILE_ENCODING"
 
 msgid "A0102"
-msgstr "PROJECT_NAME"
+msgstr "INPUT_ENCODING"
 
 msgid "A0103"
-msgstr "PROJECT_NUMBER"
+msgstr "INPUT_FILE_ENCODING"
 
 msgid "A0104"
-msgstr "PROJECT_BRIEF"
+msgstr "PROJECT_NAME"
 
 msgid "A0105"
-msgstr "PROJECT_LOGO"
+msgstr "PROJECT_NUMBER"
 
 msgid "A0106"
-msgstr "PROJECT_ICON"
+msgstr "PROJECT_BRIEF"
 
 msgid "A0107"
-msgstr "OUTPUT_DIRECTORY"
+msgstr "PROJECT_LOGO"
 
 msgid "A0108"
-msgstr "CREATE_SUBDIRS"
+msgstr "PROJECT_ICON"
 
 msgid "A0109"
-msgstr "CREATE_SUBDIRS_LEVEL"
+msgstr "OUTPUT_DIRECTORY"
 
 msgid "A010A"
-msgstr "ALLOW_UNICODE_NAMES"
+msgstr "CREATE_SUBDIRS"
 
 msgid "A010B"
-msgstr "OUTPUT_LANGUAGE"
+msgstr "CREATE_SUBDIRS_LEVEL"
 
 msgid "A010C"
-msgstr "BRIEF_MEMBER_DESC"
+msgstr "ALLOW_UNICODE_NAMES"
 
 msgid "A010D"
-msgstr "REPEAT_BRIEF"
+msgstr "OUTPUT_LANGUAGE"
 
 msgid "A010E"
-msgstr "ABBREVIATE_BRIEF"
+msgstr "BRIEF_MEMBER_DESC"
 
 msgid "A010F"
-msgstr "ALWAYS_DETAILED_SEC"
+msgstr "REPEAT_BRIEF"
 
 msgid "A0110"
-msgstr "INLINE_INHERITED_MEMB"
+msgstr "ABBREVIATE_BRIEF"
 
 msgid "A0111"
-msgstr "FULL_PATH_NAMES"
+msgstr "ALWAYS_DETAILED_SEC"
 
 msgid "A0112"
-msgstr "STRIP_FROM_PATH"
+msgstr "INLINE_INHERITED_MEMB"
 
 msgid "A0113"
-msgstr "STRIP_FROM_INC_PATH"
+msgstr "FULL_PATH_NAMES"
 
 msgid "A0114"
-msgstr "SHORT_NAMES"
+msgstr "STRIP_FROM_PATH"
 
 msgid "A0115"
-msgstr "JAVADOC_AUTOBRIEF"
+msgstr "STRIP_FROM_INC_PATH"
 
 msgid "A0116"
-msgstr "JAVADOC_BANNER"
+msgstr "SHORT_NAMES"
 
 msgid "A0117"
-msgstr "QT_AUTOBRIEF"
+msgstr "JAVADOC_AUTOBRIEF"
 
 msgid "A0118"
-msgstr "MULTILINE_CPP_IS_BRIEF"
+msgstr "JAVADOC_BANNER"
 
 msgid "A0119"
-msgstr "PYTHON_DOCSTRING"
+msgstr "QT_AUTOBRIEF"
 
 msgid "A011A"
-msgstr "INHERITED_DOCS"
+msgstr "MULTILINE_CPP_IS_BRIEF"
 
 msgid "A011B"
-msgstr "SEPERATE_MEMBER_PAGES"
+msgstr "PYTHON_DOCSTRING"
 
 msgid "A011C"
-msgstr "TAB_SIZE"
+msgstr "INHERITED_DOCS"
 
 msgid "A011D"
-msgstr "ALIASES"
+msgstr "SEPERATE_MEMBER_PAGES"
 
 msgid "A011E"
-msgstr "OPTIMIZE_OUTPUT_FOR_C"
+msgstr "TAB_SIZE"
 
 msgid "A011F"
-msgstr "OPTIMIZE_OUTPUT_JAVA"
+msgstr "ALIASES"
 
 msgid "A0120"
-msgstr "OPTIMIZE_FOR_FORTRAN"
+msgstr "OPTIMIZE_OUTPUT_FOR_C"
 
 msgid "A0121"
-msgstr "OPTIMIZE_OUTPUT_VHCL"
+msgstr "OPTIMIZE_OUTPUT_JAVA"
 
 msgid "A0122"
-msgstr "OPTIMIZE_OUTPUT_SLICE"
+msgstr "OPTIMIZE_FOR_FORTRAN"
 
 msgid "A0123"
-msgstr "EXTERNAL_MAPPING"
+msgstr "OPTIMIZE_OUTPUT_VHCL"
 
 msgid "A0124"
-msgstr "MARKDOWN_SUPPORT"
+msgstr "OPTIMIZE_OUTPUT_SLICE"
 
 msgid "A0125"
-msgstr "TOC_INCLUDE_HEADINGS"
+msgstr "EXTERNAL_MAPPING"
 
 msgid "A0126"
-msgstr "MARKDOWN_ID_STYLE"
+msgstr "MARKDOWN_SUPPORT"
 
 msgid "A0127"
-msgstr "AUTOLINK_SUPPORT"
+msgstr "TOC_INCLUDE_HEADINGS"
 
 msgid "A0128"
-msgstr "BUILTIN_STL_SUPPORT"
+msgstr "MARKDOWN_ID_STYLE"
 
 msgid "A0129"
-msgstr "CPP_CLI_SUPPORT"
+msgstr "AUTOLINK_SUPPORT"
 
 msgid "A012A"
-msgstr "SIP_SUPPORT"
+msgstr "BUILTIN_STL_SUPPORT"
 
 msgid "A012B"
-msgstr "IDL_PROPERTY_SUPPORT"
+msgstr "CPP_CLI_SUPPORT"
 
 msgid "A012C"
-msgstr "DESTRIBUTE_GROUP_DOC"
+msgstr "SIP_SUPPORT"
 
 msgid "A012D"
-msgstr "GROUP_NESTED_COMPOUNDS"
+msgstr "IDL_PROPERTY_SUPPORT"
 
 msgid "A012E"
-msgstr "SUBGROUPING"
+msgstr "DESTRIBUTE_GROUP_DOC"
 
 msgid "A012F"
-msgstr "INLINE_GROUPED_CLASSES"
+msgstr "GROUP_NESTED_COMPOUNDS"
 
 msgid "A0130"
-msgstr "INLINE_SIMPLE_STRUCTS"
+msgstr "SUBGROUPING"
 
 msgid "A0131"
-msgstr "TYPEDEF_HIDES_STRUCT"
+msgstr "INLINE_GROUPED_CLASSES"
 
 msgid "A0132"
-msgstr "LOOKUP_CACHE_SIZE"
+msgstr "INLINE_SIMPLE_STRUCTS"
 
 msgid "A0133"
-msgstr "NUM_PROC_THREADS"
+msgstr "TYPEDEF_HIDES_STRUCT"
 
 msgid "A0134"
+msgstr "LOOKUP_CACHE_SIZE"
+
+msgid "A0135"
+msgstr "NUM_PROC_THREADS"
+
+msgid "A0136"
 msgstr "TIMESTAMP"
 
 msgid "A0201"
@@ -4766,7 +4772,8 @@ msgstr ""
     "\"INCLUDE_GRAPH\",\"INCLUDED_BY_GRAPH\",\"CALL_GRAPH\",\"CALLER_GRAPH\",\"GRAPHICAL_HIERARCHY\",\"DIRECTORY_GRAPH\","
     "\"DIR_GRAPH_MAX_DEPTH\",\"DOT_IMAGE_FORMAT\",\"INTERACTIVE_SVG\",\"DOT_PATH\",\"DOTFILE_DIRS\",\"DIA_PATH\","
     "\"DIAFILE_DIRS\",\"PLANTUML_JAR_PATH\",\"PLANTUML_CFG_FILE\",\"PLANTUML_INCLUDE_PATH\",\"DOT_GRAPH_MAX_NODES\","
-    "\"MAX_DOT_GRAPH_DEPTH\",\"DOT_MULTI_TARGETS\",\"GENERATE_LEGEND\",\"DOT_CLEANUP\",\"MSCGEN_TOOL\",\"MSCFILE_DIRS\"]"
+    "\"MAX_DOT_GRAPH_DEPTH\",\"DOT_MULTI_TARGETS\",\"GENERATE_LEGEND\",\"DOT_CLEANUP\",\"MSCGEN_TOOL\",\"MSCFILE_DIRS\","
+    "\"DISTRIBUTE_GROUP_DOC\",\"RESOLVE_UNUSED_PARAMS\",\"GENERATE_TODO_LIST\"]"
 
 msgid "doxyfile_content"
 msgstr ""
@@ -4775,7 +4782,7 @@ msgstr ""
     "[\"PROJECT_LOGO\", \"\" ],"
     "[\"\",\"\"],"
     "[\"DOXYFILE_ENCODING\", \"UTF-8\"],"
-    "[\"INPUT_ECODING\", \"UTF-8\"],"
+    "[\"INPUT_ENCODING\", \"UTF-8\"],"
     "[\"INPUT_FILE_ENCODING\", \"UTF-8\"],"
     "[\"\",\"\"],"
     "[\"ALLOW_UNICODE_NAMES\", \"YES\"],"
@@ -4858,7 +4865,7 @@ msgstr ""
     "[\"\",\"\"],"
     "[\"EXTRACT_ALL\", \"YES\"],"
     "[\"EXTRACT_PRIVATE\", \"NO\"],"
-    "[\"EXTRAVT_PRIV_VIRTUAL\", \"NO\"],"
+    "[\"EXTRACT_PRIV_VIRTUAL\", \"NO\"],"
     "[\"EXTRACT_PACKAGE\", \"NO\"],"
     "[\"EXTRACT_STATIC\", \"YES\"],"
     "[\"EXTRACT_LOCAL_CLASSES\", \"YES\"],"
@@ -4888,7 +4895,7 @@ msgstr ""
     "[\"\",\"\"],"
     "[\"SORT_MEMBER_DOCS\", \"YES\"],"
     "[\"SORT_BRIEF_DOCS\", \"YES\"],"
-    "[\"SORT_MEMBERS_CTORS_IST\", \"NO\"],"
+    "[\"SORT_MEMBERS_CTORS_1ST\", \"NO\"],"
     "[\"SORT_GROUP_NAMES\", \"NO\"],"
     "[\"SORT_BY_SCOPE_NAME\", \"YES\"],"
     "[\"\",\"\"],"
