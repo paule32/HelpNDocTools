@@ -4,10 +4,16 @@
 # All rights reserved
 # ---------------------------------------------------------------------------
 
-# -----------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
 global doxygen_project_file; doxygen_project_file = " "
+
+global DoxyGenElementLayoutList
+DoxyGenElementLayoutList = []
+
+# Dictionary to store the mapping from object instances to variable names
+instance_names = {}
 
 import importlib
 import subprocess
@@ -88,6 +94,14 @@ class globalEnv:
         self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
         
         im_path = self.v__app__img__int__ + "/"
+
+        # ---------------------------------------------------------------------------
+        # \brief currently onle two converters are supported:
+        #        0 - not sprecified => unknown
+        #        1 - doxygen
+        #        2 - helpndoc.com
+        # ---------------------------------------------------------------------------
+        self.HelpAuthoringConverterMode = 0
         
         self.v__app__doxygen__    = im_path + "doxygen"
         self.v__app__hlpndoc__    = im_path + "helpndoc"
@@ -327,11 +341,10 @@ except configparser.NoOptionError as e:
     print("abort.")
     sys.exit(1)
 except configparser.NoSectionError as e:
-    pass
-    #print("Exception: section not found.\n")
-    #print(e)
-    #print("abort.")
-    #sys.exit(1)
+    print("Exception: section not found.\n")
+    print(e)
+    print("abort.")
+    sys.exit(1)
 except configparser.Error as e:
     print("Exception: config error occur.")
     print("abort.")
@@ -403,6 +416,14 @@ def StrToList(string):
         list_item = [ col1, col2 ]
         liste.append(list_item)
     return liste
+
+# Custom function to register instances
+def register_instance(name, instance):
+    instance_names[id(instance)] = name
+
+# Custom function to get instance name
+def get_instance_name(instance):
+    return instance_names.get(id(instance), None)
 
 # ------------------------------------------------------------------------------
 # \brief  This definition displays a exception dialog if some exception is raise
@@ -2136,17 +2157,33 @@ class interpreter_DoxyGen:
             if c == "\t" or c == " ":
                 self.line_col += 1
                 continue
-            elif c == "\n" or c == "\r":
+            elif c == "\r":
+                c = self.getChar()
+                if not c == "\n":
+                    self.__unexpectedChar(c)
+                self.line_col  = 1
+                self.line_row += 1
+                continue
+            elif c == '\n':
                 self.line_col  = 1
                 self.line_row += 1
                 continue
             elif c == '#':
                 while True:
                     c = self.getChar()
-                    if c == "\n":
+                    if c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            self.__unexpectedToken("newline")
+                            return 0
                         self.line_col  = 1
                         self.line_row += 1
                         break
+                    elif c == "\n":
+                        self.line_col  = 1
+                        self.line_row += 1
+                        break
+                continue
             else:
                 return c
     
@@ -2170,33 +2207,112 @@ class interpreter_DoxyGen:
             c = self.skip_white_spaces()
             self.token_str = c
             self.getIdent()
+            print("token: ", self.token_str)
             if self.check_token():
                 print("OK")
+    
+    def getConfigLine(self):
+        self.token_str = ""
+        self.close_str = False
+        while True:
+            c = self.getChar()
+            if c == '"':
+                while True:
+                    c = self.getChar()
+                    if c == '"':
+                        self.close_str = True
+                        break
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            self.__unexpectedToken("newline")
+                            return 0
+                        else:
+                            if self.close_str == False:
+                                self.__unexpectedToken(_("string not terminated."))
+                                return 0
+                            self.line_col  = 1
+                            self.line_row += 1
+                            break
+                    elif c == '\n':
+                        if self.close_str == False:
+                            self.__unexpectedToken(_("string not terminated."))
+                            return 0
+                        self.line_col  = 1
+                        self.line_row += 1
+                        break
+                    else:
+                        self.token_str += c
+                if self.close_str:
+                    continue
+                else:
+                    self.__unexpectedToken(_("string not terminated."))
+                    return 0
+            elif c == '\t' or c == ' ':
+                self.line_col += 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.__unexpectedToken("newline")
+                    return 0
+                self.line_col  = 1
+                self.line_row += 1
+                break
+            elif c == '\n':
+                self.line_col  = 1
+                self.line_row += 1
+                break
+            elif (c >= '0' and c <= '9'):
+                self.token_str += c
+                continue
+            elif (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z'):
+                self.token_str += c
+                continue
+            else:
+                self.__unexpectedToken("qoute")
+                return 0
     
     def check_token(self):
         res = json.loads(_("doxytoken"))
         result = False
         if self.token_str in res:
+            print(f"token: {self.token_str} is okay.")
             result = True
             c = self.skip_white_spaces()
+            if c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                c = self.skip_white_spaces()
+                if c == '=':
+                    self.getConfigLine()
             if c == '=':
-                print(self.token_str)
+                self.getConfigLine()
+                
                 self.token_prop = self.token_str
                 self.token_str = ""
                 c = self.skip_white_spaces()
                 while True:
-                    if c == '\n':
-                        break;
-                    self.token_str += c
-                    c = self.getChar()
+                    if c == '\r':
+                        c = self.getChar()   # win/dos ?
+                        if not c == '\n':
+                            self.__unexpectedChar(c)
+                        break
+                    elif c == '\n':
+                        break
+                    else:
+                        self.token_str += c
+                        c = self.getChar()
+                
                 print(self.token_str)
                 
                 object = findWidgetHelper(
                     self.parent_gui,
-                    self.token_prop, False, [
+                    self.token_prop,
+                    self.token_str , False, [
                     f"Error: no control for: {self.token_prop}.",
                     f"Error: no content given for: {self.token_prop}."
-                    ])
+                ])
                 
                 if isinstance(object, QLineEdit):
                     onject.setText(self.token_str)
@@ -2207,9 +2323,9 @@ class interpreter_DoxyGen:
             raise EInvalidParserError(self.token_str, self.line_row)
             return False
     
-    def __unexpectedToken(self):
-        __msg = "unexpected token: '" + self.token_str + "'"
-        self__unexpectedError(__msg)
+    def __unexpectedToken(self, text):
+        __msg = "unexpected token: '" + text + "'"
+        self.__unexpectedError(__msg)
     
     def __unexpectedChar(self, chr):
         __msg = "unexpected character: '" + chr + "'"
@@ -2227,8 +2343,7 @@ class interpreter_DoxyGen:
         msg = msg % (
             self.line_row,
             self.script_name)
-        print(msg)
-        sys.exit(1)
+        systemExceptionDialog(self.parent_gui, msg)
 
 class doxygenDSL:
     def __init__(self, script_name, parent_gui):
@@ -2481,46 +2596,28 @@ class widgetTypeHelper():
         self.object_widget = object_widget
 
 class findWidgetHelper():
-    def __init__(self, parent, name, verify, messages):
-        self.parent = parent
-        
-        f_object = self.find_widget_by_name(name)
-        if not f_object:
-            return
-            #raise Exception(messages[0])
-        if verify == True:
-            if isinstance(f_object.object_widget, QLineEdit):
-                if len(f_object.text().split()) < 1:
-                    raise Exception(messages[1])
-        else:
-            if isinstance(f_object.object_widget, QLineEdit):
-                print("line edit")
-                f_object.object_widget.setText("wwww")
-            elif isinstance(f_object.object_widget, QCheckBox):
-                print("check box")
-    
-    # ------------------------------------------------
-    # Durchsuche die gesamte Anwendung nach dem Widget
-    # ------------------------------------------------
-    def find_widget_by_name(self, name):
-        app = QApplication.instance()
-        all_widgets = app.allWidgets()
+    def __init__(self, parent, key, value, verify, messages):
         try:
-            for widget in all_widgets:
-                object_name = widget.objectName().split(':')
-                print("1111")
-                print(object_name[0])
-                if widget.objectName() == object_name[0]:
-                    print("--> ", object_name[0])
-                    object_type = widgetTypeHelper(
-                        object_name[0],
-                        object_name[1], widget)
-                    return object_type
-            return None
-        except IndexError as e:
-            #dialog = systemExceptionDialog(self.parent,traceback.format_exc())
-            pass
-        
+            res = json.loads(_("doxytoken"))
+            for item in DoxyGenElementLayoutList:
+                text = item.objectName().split(':')
+                if not text[0] in res:
+                    msg = QMessageBox()
+                    msg.setWindowTitle("Error")
+                    msg.setText(_(f"No supported Tag: {text[0]}.\n"))
+                    msg.setIcon(QMessageBox.Warning)
+                    msg.setStyleSheet(_("msgbox_css"))
+                    
+                    btn_ok = msg.addButton(QMessageBox.Ok)
+                    result = msg.exec_()            
+                    break
+                if text[0] == key:
+                    if isinstance(item, QLineEdit):
+                        item.setText(value)
+            
+            return
+        except Exception as e:
+            print(e)
 
 # ------------------------------------------------------------------------
 #
@@ -2528,7 +2625,12 @@ class findWidgetHelper():
 class myLineEdit(QLineEdit):
     def __init__(self, name="", name_object=""):
         super().__init__()
-        self.setObjectName(name_object + ':QLineEdit')
+        
+        if name_object:
+            self.setObjectName(name_object)
+            #register_instance(self, name_object)
+            #print(">> " + self.objectName())
+        
         self.name = name
         self.init_ui()
     
@@ -2538,42 +2640,6 @@ class myLineEdit(QLineEdit):
         self.setText(self.name)
         self.cssColor = _("edit_css")
         self.setStyleSheet(self.cssColor)
-
-class myDBaseTextEditor(QTextEdit):
-    def __init__(self, name=None):
-        super().__init__()
-        font = QFont("Courier New", 10)
-        self.setFont(font)
-        self.setMaximumHeight(545)
-        self.setMinimumHeight(545)
-        self.setLineWrapMode(QTextEdit.NoWrap)
-        
-        #try:
-        #    #if not name == None:
-        #    #    self.script_name = genv.v__app__scriptname__
-        #    #    with open(self.script_name, "r") as file:
-        #    #        text = file.read()
-        #    #        self.setText(text)
-        #    #        file.close()
-        #except Exception as e:
-        #    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-        #    tb = traceback.extract_tb(e.__traceback__)[-1]
-        #    
-        #    print(f"Exception occur during file load:")
-        #    print(f"type : {exc_type.__name__}")
-        #    print(f"value: {exc_value}")
-        #    print(StringRepeat("-",40))
-        #    #
-        #    print(f"file : {tb.filename}")
-        #    print(f"line : {tb.lineno}")
-        #    #
-        #    print(StringRepeat("-",40))
-        #    print("file not found.")
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_F2:
-            print("\a")
-        else:
-            super().keyPressEvent(event)
 
 # ------------------------------------------------------------------------
 #
@@ -2837,7 +2903,8 @@ class myCustomLabel(QLabel):
         self.helpID     = helpID
         self.helpText   = helpText
         
-        self.helpAnchor = "pupu"
+        self.helpToken  = _("A" + f"{helpID:04X}")
+        self.helpAnchor = 'https://doxygen.nl/manual/config.html#cfg_' + self.helpToken.lower()
     
     def enterEvent(self, event):
         sv_help.setText(self.helpText)
@@ -2852,11 +2919,13 @@ class myCustomLabel(QLabel):
         return
 
 class myCustomScrollArea(QScrollArea):
-    def __init__(self, name):
+    def __init__(self, parent, number, name):
         super().__init__()
+        print(name)
         
-        self.name = name
-        self.font = QFont(genv.v__app__font)
+        self.number = number
+        self.name   = name
+        self.font   = QFont(genv.v__app__font)
         self.font.setPointSize(10)
         
         self.type_label        = 1
@@ -2986,7 +3055,7 @@ class myCustomScrollArea(QScrollArea):
             self.layout.addWidget(w)
         return w
     
-    def addElements(self, elements, hid):
+    def addElements(self, number, elements, hid):
         for i in range(0, len(elements)):
             lv_0 = QVBoxLayout()
             lh_0 = QHBoxLayout()
@@ -3007,11 +3076,13 @@ class myCustomScrollArea(QScrollArea):
             vw_1.setMinimumWidth(200)
             
             if elements[i][1] == self.type_edit:
-                self.addLineEdit(tokennum, "",lh_0)
-                                    
+                w = self.addLineEdit(tokennum, "",lh_0)
+                w.setObjectName(tokennum + ':' + str(number))
+                DoxyGenElementLayoutList.append(w)
+                
                 if elements[i][2] == 1:
                     self.addPushButton("+",lh_0)
-                    
+                
                 elif elements[i][2] == 3:
                     self.addPushButton("+",lh_0)
                     self.addPushButton("-",lh_0)
@@ -3067,13 +3138,14 @@ class myCustomScrollArea(QScrollArea):
             
             lv_0.addLayout(lh_0)
             self.layout.addLayout(lv_0)
+            
 
 # ------------------------------------------------------------------------
 # create a scroll view for the project tab on left side of application ...
 # ------------------------------------------------------------------------
 class customScrollView_1(myCustomScrollArea):
     def __init__(self, parent, name="uuuu"):
-        super().__init__(name)
+        super(customScrollView_1, self).__init__(parent, 1, name)
         
         self.parent = parent
         self.name   = name
@@ -3116,9 +3188,9 @@ class customScrollView_1(myCustomScrollArea):
         v_layout_2 = QVBoxLayout()
         v_widget_2 = QWidget()
         
-        e_field_1 = self.addLineEdit("PROJECT_NAME"  , "", v_layout_2)
-        e_field_2 = self.addLineEdit("PROJECT_AUTHOR", "", v_layout_2)
-        e_field_3 = self.addLineEdit("PROJECT_NUMBER", "", v_layout_2)
+        e_field_1 = self.addLineEdit("PROJECT_NAME:1"  , "", v_layout_2)
+        e_field_2 = self.addLineEdit("PROJECT_AUTHOR:1", "", v_layout_2)
+        e_field_3 = self.addLineEdit("PROJECT_NUMBER:1", "", v_layout_2)
         
         ##
         h_layout_1.addLayout(v_layout_1)
@@ -3144,7 +3216,7 @@ class customScrollView_1(myCustomScrollArea):
         widget_4_licon_1.setPixmap(QIcon(os.path.join(
             genv.v__app__img__int__,
             "floppy-disk" + genv.v__app__img_ext__)).pixmap(42,42))
-        widget_4_licon_1.setObjectName("PROJECT_LOGO")
+        widget_4_licon_1.setObjectName("PROJECT_LOGO:1")
         #
         layout.addLayout(layout_4)
         
@@ -3165,7 +3237,9 @@ class customScrollView_1(myCustomScrollArea):
         widget_6_label_1.setMaximumWidth(100)
         widget_6_label_1.setFont(font)
         #
-        widget_6_edit_1  = self.addLineEdit("","E:/temp/src", layout_6)
+        widget_6_edit_1  = self.addLineEdit("SOURCE_DIR:1",
+            os.path.join(genv.v__app__app_dir__, "/examples/doxygen/"),
+            layout_6)
         widget_6_edit_1.setMinimumWidth(280)
         widget_6_edit_1.setMaximumWidth(280)
         widget_6_edit_1.setFont(font)
@@ -3186,7 +3260,7 @@ class customScrollView_1(myCustomScrollArea):
         widget_7_label_1.setMaximumWidth(100)
         widget_7_label_1.setFont(font)
         #
-        widget_7_edit_1  = self.addLineEdit("","E:/temp/src/html", layout_7)
+        widget_7_edit_1  = self.addLineEdit("DEST_DIR:1","E:/temp/src/html", layout_7)
         widget_7_edit_1.setMinimumWidth(280)
         widget_7_edit_1.setMaximumWidth(280)
         widget_7_edit_1.setFont(font)
@@ -3232,8 +3306,19 @@ class customScrollView_1(myCustomScrollArea):
         
         #self.setWidgetResizable(False)
         self.setWidget(content_widget)
-    
+            
     def widget_10_button_1_click(self):
+        if genv.HelpAuthoringConverterMode == 0:
+            msg = QMessageBox()
+            msg.setWindowTitle("Error")
+            msg.setText(_("no project type given.\n"
+            + "currently only DOXYGEN and HELPNDOC"))
+            msg.setIcon(QMessageBox.Warning)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()            
+            return
         if len(doxygen_project_file) < 2:
             msg = QMessageBox()
             msg.setWindowTitle("Error")
@@ -3269,9 +3354,10 @@ class customScrollView_1(myCustomScrollArea):
             return
 
 class customScrollView_2(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_2, self).__init__(parent, 2, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         
@@ -3294,9 +3380,10 @@ class customScrollView_2(myCustomScrollArea):
 # create a scroll view for the output tab on left side of application ...
 # ------------------------------------------------------------------------
 class customScrollView_3(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_3, self).__init__(parent, 3, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         
@@ -3331,9 +3418,10 @@ class customScrollView_3(myCustomScrollArea):
 # create a scroll view for the diagrams tab on left side of application ...
 # ------------------------------------------------------------------------
 class customScrollView_4(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_4, self).__init__(parent, 4, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         
@@ -3357,9 +3445,10 @@ class customScrollView_4(myCustomScrollArea):
         self.addCheckBox(" ",_("Called-by graphs"))
 
 class customScrollView_5(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super().__init__(parent, 5, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(2000)
@@ -3440,7 +3529,7 @@ class customScrollView_5(myCustomScrollArea):
             
             [0xA0136, self.type_combo_box,   2, ["NO","YES"]]
         ]
-        self.addElements(label_5_elements, 0x100)
+        self.addElements(5, label_5_elements, 0x100)
     
     # ----------------------------------------------
     # show help text when mouse move over the label
@@ -3449,9 +3538,10 @@ class customScrollView_5(myCustomScrollArea):
         sv_help.setText(text)
 
 class customScrollView_6(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_6, self).__init__(parent, 6, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1400)
@@ -3508,12 +3598,13 @@ class customScrollView_6(myCustomScrollArea):
             [0xA0227, self.type_edit,      1 ],
             [0xA0228, self.type_edit,      3 ]
         ]
-        self.addElements(label_6_elements, 0x200)
+        self.addElements(6, label_6_elements, 0x200)
 
 class customScrollView_7(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_7, self).__init__(parent, 7, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3536,12 +3627,13 @@ class customScrollView_7(myCustomScrollArea):
             [0xA030A, self.type_edit,      0 ],
             [0xA030B, self.type_edit,      1 ]
         ]
-        self.addElements(label_7_elements, 0x0300)
+        self.addElements(7, label_7_elements, 0x0300)
 
 class customScrollView_8(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_8, self).__init__(parent, 8, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1700)
@@ -3568,12 +3660,13 @@ class customScrollView_8(myCustomScrollArea):
             [0xA0401, self.type_edit,      0],
             [0xA0401, self.type_spin,      0]
         ]
-        self.addElements(label_8_elements, 0x0400)
+        self.addElements(8, label_8_elements, 0x0400)
 
 class customScrollView_9(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_9, self).__init__(parent, 9, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(560)
@@ -3597,12 +3690,13 @@ class customScrollView_9(myCustomScrollArea):
             [0xA050C, self.type_edit     , 3 ],
             [0xA050D, self.type_edit     , 1 ]
         ]
-        self.addElements(label_9_elements, 0x0500)
+        self.addElements(9, label_9_elements, 0x0500)
 
 class customScrollView_10(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_10, self).__init__(parent, 10, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3612,12 +3706,13 @@ class customScrollView_10(myCustomScrollArea):
             [0xA0601, self.type_check_box, 0, True ],
             [0xA0602, self.type_edit,      3 ]
         ]
-        self.addElements(label_10_elements, 0x0600)
+        self.addElements(10, label_10_elements, 0x0600)
 
 class customScrollView_11(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_11, self).__init__(parent, 11, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(2380)
@@ -3704,12 +3799,13 @@ class customScrollView_11(myCustomScrollArea):
             [0xA073F, self.type_edit,      0 ],
             [0xA0740, self.type_edit,      3 ]
         ]
-        self.addElements(label_11_elements, 0x0700)
+        self.addElements(11, label_11_elements, 0x0700)
 
 class customScrollView_12(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_12, self).__init__(parent, 12, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1000)
@@ -3734,12 +3830,13 @@ class customScrollView_12(myCustomScrollArea):
             [0xA0810, self.type_edit,      0 ],
             [0xA0811, self.type_edit,      1 ]
         ]
-        self.addElements(label_12_elements, 0x0800)
+        self.addElements(12, label_12_elements, 0x0800)
 
 class customScrollView_13(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_13, self).__init__(parent, 13, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3753,12 +3850,13 @@ class customScrollView_13(myCustomScrollArea):
             [0xA0905, self.type_edit,      1 ],
             [0xA0906, self.type_edit,      1 ]
         ]
-        self.addElements(label_13_elements, 0x0900)
+        self.addElements(13, label_13_elements, 0x0900)
 
 class customScrollView_14(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_14, self).__init__(parent, 14, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3771,12 +3869,13 @@ class customScrollView_14(myCustomScrollArea):
             [0xA1004, self.type_edit,      0 ],
             [0xA1005, self.type_check_box, 0, False ],
         ]
-        self.addElements(label_14_elements, 0x1000)
+        self.addElements(14, label_14_elements, 0x1000)
 
 class customScrollView_15(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_15, self).__init__(parent, 15, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3788,12 +3887,13 @@ class customScrollView_15(myCustomScrollArea):
             [0xA1103, self.type_check_box, 0, False ],
             [0xA1104, self.type_check_box, 0, False ]
         ]
-        self.addElements(label_15_elements, 0x1100)
+        self.addElements(15, label_15_elements, 0x1100)
 
 class customScrollView_16(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_16, self).__init__(parent, 16, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1400)
@@ -3803,12 +3903,13 @@ class customScrollView_16(myCustomScrollArea):
             [0xA1201, self.type_check_box, 0, False ],
             [0xA1202, self.type_edit,      1 ],
         ]
-        self.addElements(label_16_elements, 0x1200)
+        self.addElements(16, label_16_elements, 0x1200)
 
 class customScrollView_17(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_17, self).__init__(parent, 17, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3817,12 +3918,13 @@ class customScrollView_17(myCustomScrollArea):
         label_17_elements = [
             [0xA1301,  self.type_check_box, 0, False ]
         ]
-        self.addElements(label_17_elements, 0x1300)
+        self.addElements(17, label_17_elements, 0x1300)
 
 class customScrollView_18(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_18, self).__init__(parent, 18, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3833,12 +3935,13 @@ class customScrollView_18(myCustomScrollArea):
             [0xA1402, self.type_edit,      1 ],
             [0xA1403, self.type_check_box, 0, True  ],
         ]
-        self.addElements(label_18_elements, 0x1400)
+        self.addElements(18, label_18_elements, 0x1400)
 
 class customScrollView_19(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_19, self).__init__(parent, 19, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3850,18 +3953,19 @@ class customScrollView_19(myCustomScrollArea):
             [0xA1503, self.type_check_box, 0, False ],
             [0xA1504, self.type_edit,      1 ]
         ]
-        self.addElements(label_19_elements, 0x1500)
+        self.addElements(19, label_19_elements, 0x1500)
 
 class customScrollView_20(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_20, self).__init__(parent, 20, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(800)
         
         ## 0xA1600
-        label_19_elements = [
+        label_20_elements = [
             [0xA1601, self.type_check_box, 0, True  ],
             [0xA1602, self.type_check_box, 0, True  ],
             [0xA1603, self.type_check_box, 0, False ],
@@ -3872,12 +3976,13 @@ class customScrollView_20(myCustomScrollArea):
             [0xA1608, self.type_edit,      3 ],
             [0xA1609, self.type_check_box, 0, True  ]
         ]
-        self.addElements(label_19_elements, 0x1600)
+        self.addElements(20, label_20_elements, 0x1600)
 
 class customScrollView_21(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_21, self).__init__(parent, 21, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
@@ -3890,12 +3995,13 @@ class customScrollView_21(myCustomScrollArea):
             [0xA1704, self.type_check_box, 0, True  ],
             [0xA1705, self.type_check_box, 0, True  ]
         ]
-        self.addElements(label_21_elements, 0x1700)
+        self.addElements(21, label_21_elements, 0x1700)
 
 class customScrollView_22(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_22, self).__init__(parent, 22, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1800)
@@ -3951,7 +4057,7 @@ class customScrollView_22(myCustomScrollArea):
             [0xA1825, self.type_edit     , 1 ],
             [0xA1826, self.type_edit     , 3 ]
         ]
-        self.addElements(label_22_elements, 0x1800)
+        self.addElements(22, label_22_elements, 0x1800)
 
 class customScrollView_help(QTextEdit):
     def __init__(self):
@@ -4152,6 +4258,7 @@ class doxygenImageTracker(QWidget):
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
+            genv.HelpAuthoringConverterMode = 1
             print("doxygen")
     
     def enterEvent(self, event):
@@ -4212,6 +4319,7 @@ class helpNDocImageTracker(QWidget):
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
+            genv.HelpAuthoringConverterMode = 2
             print("helpNDoc")
     
     def enterEvent(self, event):
@@ -7063,6 +7171,7 @@ class applicationProjectWidget(QWidget):
         css_linestyle = _("editfield_css")
         
         main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(0,0,0,0)
                 
         font3 = QFont(genv.v__app__font, 10)
         font3.setBold(True)
@@ -8328,6 +8437,7 @@ class FileWatcherGUI(QDialog):
         self.windowtitle = 'HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32'
         
         self.my_list = MyItemRecord(0, QStandardItem(""))
+        
         self.init_ui()
         
     # --------------------
@@ -8503,7 +8613,7 @@ class FileWatcherGUI(QDialog):
         self.layout.setContentsMargins(0,0,0,0)
         
         layout = QVBoxLayout()
-        
+                
         self.title_bar = CustomTitleBar(self.windowtitle, self)
         self.title_bar.minimize_button.clicked.connect(self.showMinimized)
         self.title_bar.maximize_button.clicked.connect(self.showMaximized)
@@ -8511,6 +8621,7 @@ class FileWatcherGUI(QDialog):
         
         content = QWidget()
         content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(0,0,0,0)
         content.setLayout(content_layout)
         
         # menu bar
@@ -8585,9 +8696,7 @@ class FileWatcherGUI(QDialog):
         self.main_layout = QHBoxLayout()
         self.main_widget = QWidget()
         
-        self.main_widget.setContentsMargins(0,0,0,0)
         self.main_widget.setStyleSheet("padding:0px;margin:0px;")
-        
         
         self.side_scroll = QScrollArea()
         self.side_widget = QWidget()
@@ -8653,25 +8762,15 @@ class FileWatcherGUI(QDialog):
         # add tabs
         self.help_tabs.addTab(self.tab0_0, "Help Project")
         self.help_tabs.addTab(self.tab1_0, "Pre-/Post Actions")
-        self.help_tabs.addTab(self.tab2, "Topics")
-        self.help_tabs.addTab(self.tab3, "DoxyGen")
+        self.help_tabs.addTab(self.tab3, "HelpNDoc")
         self.help_tabs.addTab(self.tab4, "Content")
         
         self.tab_widget_tabs = QTabWidget(self.tab4)
         self.tab_widget_tabs.setMinimumWidth(830)
         self.tab_widget_tabs.setMinimumHeight(650)
-        self.tab_dbase  = QWidget()
-        self.tab_pascal = QWidget()
         self.tab_html   = QWidget()
-        self.tab_widget_tabs.addTab(self.tab_dbase , "dBase" )
-        self.tab_widget_tabs.addTab(self.tab_pascal, "Pascal")
+        self.tab_widget_tabs.addTab(self.tab2, "Topics")
         self.tab_widget_tabs.addTab(self.tab_html  , "HTML"  )
-        
-        
-        self.tab_dbase_layout = QVBoxLayout(self.tab_dbase)
-        self.tab_dbase_layout.setAlignment(Qt.AlignTop)
-        self.tab_dbase_editor = myDBaseTextEditor(self)
-        self.tab_dbase_layout.addWidget(self.tab_dbase_editor)
         
         #
         self.main_layout.addWidget(self.help_tabs)
@@ -8829,9 +8928,9 @@ class FileWatcherGUI(QDialog):
         list_layout_1.addWidget(list_widget_1)
         
         self.sv_1_1 = customScrollView_1(self, "Project")
-        self.sv_1_2 = customScrollView_2("Mode");     self.sv_1_2.hide()
-        self.sv_1_3 = customScrollView_3("Output");   self.sv_1_3.hide()
-        self.sv_1_4 = customScrollView_4("Diagrams"); self.sv_1_4.hide()
+        self.sv_1_2 = customScrollView_2(self, "Mode");     self.sv_1_2.hide()
+        self.sv_1_3 = customScrollView_3(self, "Output");   self.sv_1_3.hide()
+        self.sv_1_4 = customScrollView_4(self, "Diagrams"); self.sv_1_4.hide()
         
         for i in range(1, 5):
             s = "sv_1_" + str(i)
@@ -8866,6 +8965,7 @@ class FileWatcherGUI(QDialog):
         list_widget_2.setStyleSheet(_(genv.css__widget_item))
         list_widget_2.setMinimumHeight(300)
         list_widget_2.setMaximumWidth(200)
+        
         self.list_widget_2_elements = [                                     \
             "Project", "Build", "Messages", "Input", "Source Browser",      \
             "Index", "HTML", "LaTeX", "RTF", "Man", "XML", "DocBook",       \
@@ -8891,8 +8991,10 @@ class FileWatcherGUI(QDialog):
         i    = 0
         for item in tab1_classes:
             s = "sv_2_" + str(i+1)
-            v1 = eval(item+"('')")
+            #print("sv_2: ", item)
+            v1 = eval(item + "(self,'')")
             v1.setName(self.list_widget_2_elements[i])
+            v1.setObjectName(self.list_widget_2_elements[i])
             objs.append(v1)
             setattr(self, s, v1)
             list_layout_2.addWidget(v1)
@@ -10873,7 +10975,7 @@ class licenseWindow(QDialog):
         self.setWindowTitle("LICENSE - Please read, before you start.")
         self.setMinimumWidth(820)
         
-        font = QFont("Courier New", 10)
+        font = QFont("Arial", 10)
         self.setFont(font)
         
         layout = QVBoxLayout()
