@@ -2128,15 +2128,31 @@ class interpreter_DoxyGen:
     def getIdent(self):
         while True:
             c = self.getChar()
-            if c.isspace():
-                return self.token_str
-            elif c.isspace():
-                return self.token_str
-            elif c.isalnum() or c == '_':
+            if (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or (c == '_') or (c >= '0' and c <= '9'):
                 self.token_str += c
+                continue
+            elif c == '\t' or c == ' ':
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.__unexpectedToken("newline")
+                    return 0
+                self.line_col  = 1
+                self.line_row += 1
+                break
+            elif c == '\n':
+                self.line_col  = 1
+                self.line_row += 1
+                break
+            elif c == '=':
+                print("===========> ", self.token_str)
+                self.ungetChar(1)
+                break
             else:
-                self.pos -= 1
-                return self.token_str
+                self.__unexpectedChar(c)
+                return 0
+        return self.token_str
     
     def getNumber(self):
         while True:
@@ -2154,7 +2170,9 @@ class interpreter_DoxyGen:
     def skip_white_spaces(self):
         while True:
             c = self.getChar()
-            if c == "\t" or c == " ":
+            if c == 0:
+                return 0
+            elif c == "\t" or c == " ":
                 self.line_col += 1
                 continue
             elif c == "\r":
@@ -2193,6 +2211,14 @@ class interpreter_DoxyGen:
     def handle_oneline_comment(self):
         while True:
             c = self.getChar()
+            if c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.__unexpectedToken("newline")
+                    return 0
+                self.line_row += 1
+                self.line_col  = 1
+                break
             if c == "\n":
                 self.line_row += 1
                 self.line_col  = 1
@@ -2204,12 +2230,29 @@ class interpreter_DoxyGen:
             return
         
         while True:
-            c = self.skip_white_spaces()
-            self.token_str = c
-            self.getIdent()
-            print("token: ", self.token_str)
-            if self.check_token():
-                print("OK")
+            c = self.getChar()
+            if (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or c == '_':
+                self.token_str = c
+                self.getIdent()
+                print("token: ", self.token_str)
+                if self.check_token():
+                    print("OK")
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.__unexpectedToken("newline")
+                    return 0
+                self.line_row += 1
+                self.line_col  = 1
+                continue
+            elif c == '\n':
+                self.line_row += 1
+                self.line_col  = 1
+                continue
+            elif c == '\t' or c == ' ':
+                continue
+            elif c == '#':
+                self.handle_oneline_comment()
     
     def getConfigLine(self):
         self.token_str = ""
@@ -2268,7 +2311,30 @@ class interpreter_DoxyGen:
                 continue
             elif (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z'):
                 self.token_str += c
-                continue
+                while True:
+                    c = self.getChar()
+                    if (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z'):
+                        self.token_str += c
+                        continue
+                    elif (c >= '0' and c <= '9'):
+                        self.token_str += c
+                        continue
+                    elif c == '\t' or c == ' ':
+                        continue
+                    elif c == '\r':
+                        c = self,getChar()
+                        if not c == '\n':
+                            self.__unexpectedToken("newline")
+                            return 0
+                        self.line_col  = 1
+                        self.line_row += 1
+                        break
+                    elif c == '\n':
+                        self.line_col  = 1
+                        self.line_row += 1
+                        break
+                if c == '\n':
+                    break
             else:
                 self.__unexpectedToken("qoute")
                 return 0
@@ -2279,43 +2345,25 @@ class interpreter_DoxyGen:
         if self.token_str in res:
             print(f"token: {self.token_str} is okay.")
             result = True
-            c = self.skip_white_spaces()
-            if c.isalpha():
-                self.token_str = c
-                self.getIdent()
-                c = self.skip_white_spaces()
-                if c == '=':
-                    self.getConfigLine()
+            c = self.getChar()
             if c == '=':
-                self.getConfigLine()
-                
                 self.token_prop = self.token_str
                 self.token_str = ""
-                c = self.skip_white_spaces()
-                while True:
-                    if c == '\r':
-                        c = self.getChar()   # win/dos ?
-                        if not c == '\n':
-                            self.__unexpectedChar(c)
-                        break
-                    elif c == '\n':
-                        break
-                    else:
-                        self.token_str += c
-                        c = self.getChar()
                 
-                print(self.token_str)
+                self.getConfigLine()
                 
-                object = findWidgetHelper(
+                print("----> ", self.token_str)
+                
+                myobject = findWidgetHelper(
                     self.parent_gui,
                     self.token_prop,
                     self.token_str , False, [
                     f"Error: no control for: {self.token_prop}.",
                     f"Error: no content given for: {self.token_prop}."
                 ])
-                
-                if isinstance(object, QLineEdit):
-                    onject.setText(self.token_str)
+                print("----------------------ooo------")
+                if isinstance(myobject, QLineEdit):
+                    myobject.setText(self.token_str)
                 return
             else:
                 self.__unexpectedChar(c)
@@ -2598,23 +2646,11 @@ class widgetTypeHelper():
 class findWidgetHelper():
     def __init__(self, parent, key, value, verify, messages):
         try:
-            res = json.loads(_("doxytoken"))
             for item in DoxyGenElementLayoutList:
                 text = item.objectName().split(':')
-                if not text[0] in res:
-                    msg = QMessageBox()
-                    msg.setWindowTitle("Error")
-                    msg.setText(_(f"No supported Tag: {text[0]}.\n"))
-                    msg.setIcon(QMessageBox.Warning)
-                    msg.setStyleSheet(_("msgbox_css"))
-                    
-                    btn_ok = msg.addButton(QMessageBox.Ok)
-                    result = msg.exec_()            
-                    break
                 if text[0] == key:
                     if isinstance(item, QLineEdit):
                         item.setText(value)
-            
             return
         except Exception as e:
             print(e)
