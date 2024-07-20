@@ -162,7 +162,7 @@ class globalEnv:
         self.toolbar_css      = "toolbar_css"
         
         self.css__widget_item = "listview_css"
-        self.css_model_header = ""
+        self.css_model_header = "model_hadr"
         self.css_tabs         = "tabs_css"
         self.css_button_style = "button_style_css"
         
@@ -397,7 +397,6 @@ __error__locales_error = "" \
 # ------------------------------------------------------------------------
 # style sheet definition's:
 # ------------------------------------------------------------------------
-css_model_header   = "model_hadr"
 css_combobox_style = "combo_actn"
 
 # ------------------------------------------------------------------------------
@@ -2146,7 +2145,6 @@ class interpreter_DoxyGen:
                 self.line_row += 1
                 break
             elif c == '=':
-                print("===========> ", self.token_str)
                 self.ungetChar(1)
                 break
             else:
@@ -2349,10 +2347,7 @@ class interpreter_DoxyGen:
             if c == '=':
                 self.token_prop = self.token_str
                 self.token_str = ""
-                
                 self.getConfigLine()
-                
-                print("----> ", self.token_str)
                 
                 myobject = findWidgetHelper(
                     self.parent_gui,
@@ -2361,7 +2356,14 @@ class interpreter_DoxyGen:
                     f"Error: no control for: {self.token_prop}.",
                     f"Error: no content given for: {self.token_prop}."
                 ])
-                print("----------------------ooo------")
+                if isinstance(myobject, QCheckBox):
+                    if self.token_str.lower() == "yes":
+                        myobject.setChecked(True)
+                    elif self.token_str.lower() == "no":
+                        myobject.setChecked(False)
+                    else:
+                        self.__unexpectedToken("for checkbox")
+                        return 0
                 if isinstance(myobject, QLineEdit):
                     myobject.setText(self.token_str)
                 return
@@ -2524,7 +2526,7 @@ def showError(text):
     
     infoWindow = QMessageBox()
     infoWindow.setIcon(QMessageBox.Critical)
-    infoWindow.setWindowTitle("Error")
+    infoWindow.setWindowTitle(_("Error"))
     infoWindow.setText(text)
     infoWindow.show()
     infoWindow.exec_()
@@ -2943,7 +2945,7 @@ class myCustomLabel(QLabel):
         self.helpAnchor = 'https://doxygen.nl/manual/config.html#cfg_' + self.helpToken.lower()
     
     def enterEvent(self, event):
-        sv_help.setText(self.helpText)
+        genv.sv_help.setText(self.helpText)
     
     def mousePressEvent(self, event):
         QApplication.setOverrideCursor(Qt.PointingHandCursor)
@@ -3200,7 +3202,7 @@ class customScrollView_1(myCustomScrollArea):
         
         w_layout_0 = QHBoxLayout()
         w_layout_0.setAlignment(Qt.AlignLeft)
-        widget_1_label_1 = self.addLabel("Provide some informations about the Project you are documenting", True)
+        widget_1_label_1 = self.addLabel(_("Provide some informations about the Project you are documenting"), True)
         widget_1_label_1.setMinimumWidth(250)
         widget_1_label_1.setMaximumWidth(450)
         w_layout_0.addWidget(widget_1_label_1)
@@ -3213,9 +3215,9 @@ class customScrollView_1(myCustomScrollArea):
         v_layout_1 = QVBoxLayout()
         v_widget_1 = QWidget()
         
-        l_label_1 = self.addLabel("Project name:"           , False, v_layout_1)
-        l_label_2 = self.addLabel("Project author:"         , False, v_layout_1)
-        l_label_3 = self.addLabel("Project version or id:  ", False, v_layout_1)
+        l_label_1 = self.addLabel(_("Project name:")          , False, v_layout_1)
+        l_label_2 = self.addLabel(_("Project author:")        , False, v_layout_1)
+        l_label_3 = self.addLabel(_("Project version or id: "), False, v_layout_1)
         
         l_label_1.setFont(font)
         l_label_2.setFont(font)
@@ -3237,12 +3239,12 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_4 = QHBoxLayout()
         layout_4.setAlignment(Qt.AlignLeft)
-        widget_4_label_1 = self.addLabel("Project logo:", False, layout_4)
+        widget_4_label_1 = self.addLabel(_("Project logo:"), False, layout_4)
         widget_4_label_1.setFont(font)
         widget_4_label_1.setMaximumWidth(160)
         layout_4.addWidget(widget_4_label_1)
         #
-        widget_4_pushb_1 = self.addPushButton("Select", layout_4)
+        widget_4_pushb_1 = self.addPushButton(_("Select"), layout_4)
         widget_4_pushb_1.setMinimumHeight(32)
         widget_4_pushb_1.setMinimumWidth(84)
         widget_4_pushb_1.setMaximumWidth(84)  ; font.setBold(True)
@@ -3268,7 +3270,7 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_6 = QHBoxLayout()
         layout_6.setAlignment(Qt.AlignLeft)
-        widget_6_label_1 = self.addLabel("Source dir:", False, layout_6)
+        widget_6_label_1 = self.addLabel(_("Source dir:"), False, layout_6)
         widget_6_label_1.setMinimumWidth(100)
         widget_6_label_1.setMaximumWidth(100)
         widget_6_label_1.setFont(font)
@@ -3280,7 +3282,7 @@ class customScrollView_1(myCustomScrollArea):
         widget_6_edit_1.setMaximumWidth(280)
         widget_6_edit_1.setFont(font)
         #
-        widget_6_pushb_1 = self.addPushButton("Select", layout_6)
+        widget_6_pushb_1 = self.addPushButton(_("Select"), layout_6)
         widget_6_pushb_1.setMinimumHeight(40)
         widget_6_pushb_1.setMaximumHeight(40)
         widget_6_pushb_1.setMinimumWidth(84)
@@ -3291,7 +3293,7 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_7 = QHBoxLayout()
         layout_7.setAlignment(Qt.AlignLeft)
-        widget_7_label_1 = self.addLabel("Destination dir:", False, layout_7)
+        widget_7_label_1 = self.addLabel(_("Destination dir:"), False, layout_7)
         widget_7_label_1.setMinimumWidth(100)
         widget_7_label_1.setMaximumWidth(100)
         widget_7_label_1.setFont(font)
@@ -3301,7 +3303,7 @@ class customScrollView_1(myCustomScrollArea):
         widget_7_edit_1.setMaximumWidth(280)
         widget_7_edit_1.setFont(font)
         #
-        widget_7_pushb_1 = self.addPushButton("Select", layout_7)
+        widget_7_pushb_1 = self.addPushButton(_("Select"), layout_7)
         widget_7_pushb_1.setMinimumHeight(40)
         widget_7_pushb_1.setMaximumHeight(40)
         widget_7_pushb_1.setMinimumWidth(84)
@@ -3323,15 +3325,15 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_9 = QHBoxLayout()
         layout_9.setAlignment(Qt.AlignLeft)
-        widget_9_checkbutton_1 = self.addCheckBox(" ","Scan recursive")
+        widget_9_checkbutton_1 = self.addCheckBox(" ",_("Scan recursive"))
         widget_9_checkbutton_1.setMaximumWidth(300)
         widget_9_checkbutton_1.setFont(font)
         layout_9.addWidget(widget_9_checkbutton_1)
         layout.addLayout(layout_9)
         
         layout_10 = QVBoxLayout()
-        widget_10_button_1 = QPushButton("Convert" ,self); widget_10_button_1.setStyleSheet(_(genv.css_button_style))
-        widget_10_button_2 = QPushButton("HelpNDoc",self); widget_10_button_2.setStyleSheet(_(genv.css_button_style))
+        widget_10_button_1 = QPushButton(_("Convert") ,self); widget_10_button_1.setStyleSheet(_(genv.css_button_style))
+        widget_10_button_2 = QPushButton(_("HelpNDoc"),self); widget_10_button_2.setStyleSheet(_(genv.css_button_style))
         
         widget_10_button_1.clicked.connect(self.widget_10_button_1_click)
         #
@@ -3346,7 +3348,7 @@ class customScrollView_1(myCustomScrollArea):
     def widget_10_button_1_click(self):
         if genv.HelpAuthoringConverterMode == 0:
             msg = QMessageBox()
-            msg.setWindowTitle("Error")
+            msg.setWindowTitle(_("Error"))
             msg.setText(_("no project type given.\n"
             + "currently only DOXYGEN and HELPNDOC"))
             msg.setIcon(QMessageBox.Warning)
@@ -3358,7 +3360,7 @@ class customScrollView_1(myCustomScrollArea):
         if len(doxygen_project_file) < 2:
             msg = QMessageBox()
             msg.setWindowTitle("Error")
-            msg.setText(_("no project file given.\n"))
+            msg.setText(_("no project file given."))
             msg.setIcon(QMessageBox.Warning)
             msg.setStyleSheet(_("msgbox_css"))
             
@@ -3372,10 +3374,10 @@ class customScrollView_1(myCustomScrollArea):
                 doxyfile = genv.v__app__config['doxygen']['config']
                 if not os.path.exists(doxyfile):
                     msg = QMessageBox()
-                    msg.setWindowTitle("Error")
-                    msg.setText(""
+                    msg.setWindowTitle(_("Error"))
+                    msg.setText(_(
                     + "Error: Doxyfile configuration does not exists.\n"
-                    + "Command aborted.")
+                    + "Command aborted."))
                     msg.setIcon(QMessageBox.Warning)
                     msg.setStyleSheet(_("msgbox_css"))
                     
@@ -3423,7 +3425,7 @@ class customScrollView_3(myCustomScrollArea):
     def init_ui(self):
         self.label_1.hide()
         
-        self.addLabel("Select the output format(s) to generate:", True)
+        self.addLabel(_("Select the output format(s) to generate:"), True)
         
         # HTML
         self.addCheckBox(" ","HTML", True)
@@ -3461,7 +3463,7 @@ class customScrollView_4(myCustomScrollArea):
     def init_ui(self):
         self.label_1.hide()
         
-        self.addLabel("Diagrams to generate:", True)
+        self.addLabel(_("Diagrams to generate:"), True)
         
         self.addRadioButton(_("No diagrams"))
         self.addRadioButton(_("Text only"))
@@ -3483,6 +3485,7 @@ class customScrollView_4(myCustomScrollArea):
 class customScrollView_5(myCustomScrollArea):
     def __init__(self, parent, name):
         super().__init__(parent, 5, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3490,92 +3493,19 @@ class customScrollView_5(myCustomScrollArea):
         self.content_widget.setMinimumHeight(2000)
         
         ## 0xA0100
-        label_5_elements = [
-            # <text>,                  <type 1>,             <help>, <type 2>,  <list 1>
-            [0xA0101, self.type_edit,       0],
-            [0xA0102, self.type_edit,       0],
-            [0xA0103, self.type_edit,       0],
-            
-            [0xA0104, self.type_edit,       0, _("My Project")],
-            [0xA0105, self.type_edit,       0],
-            [0xA0106, self.type_edit,       0],
-            [0xA0107, self.type_edit,       1],
-            [0xA0108, self.type_edit,       1],
-            
-            [0xA0109, self.type_edit,       1],
-            [0xA010A, self.type_check_box,  0, True],
-            [0xA010B, self.type_spin,       0],
-            
-            [0xA010C, self.type_check_box,  0, False],
-            [0xA010D, self.type_combo_box,  4, [] ],
-            
-            [0xA010E, self.type_check_box,   0, True],
-            [0xA010F, self.type_check_box,   0, True],
-            [0xA0110, self.type_edit,       3],
-            [0xA0111, self.type_check_box,   0, True],
-            [0xA0112, self.type_check_box,   0, True],
-            
-            [0xA0113, self.type_check_box,   0, True],
-            [0xA0114, self.type_edit,        3],
-            [0xA0115, self.type_edit,        3],
-            
-            [0xA0116, self.type_check_box,   0, False],
-            
-            [0xA0117, self.type_check_box,   0, True ],
-            [0xA0118, self.type_check_box,   0, False],
-            
-            [0xA0119, self.type_check_box,   0, False],
-            
-            [0xA011A, self.type_check_box,   0, False],
-            [0xA011B, self.type_check_box,   0, True ],
-            [0xA011C, self.type_check_box,   0, True ],
-            [0xA011D, self.type_check_box,   0, False],
-            
-            [0xA011E, self.type_spin,        0],
-            [0xA011F, self.type_edit,        3],
-            
-            [0xA0120, self.type_check_box,   0, True ],
-            [0xA0121, self.type_check_box,   0, False],
-            [0xA0122, self.type_check_box,   0, False],
-            [0xA0123, self.type_check_box,   0, False],
-            [0xA0124, self.type_check_box,   0, False],
-            
-            [0xA0125, self.type_edit,        3],
-            
-            [0xA0126, self.type_check_box,   0, True ],
-            [0xA0127, self.type_spin,        0],
-            [0xA0128, self.type_combo_box,   2, ["DOXYGEN", "CIT"]],
-            [0xA0129, self.type_check_box,   0, True ],
-            
-            [0xA012A, self.type_check_box,   0, True ],
-            [0xA012B, self.type_check_box,   0, True ],
-            [0xA012C, self.type_check_box,   0, False],
-            [0xA012D, self.type_check_box,   0, True ],
-            
-            [0xA012E, self.type_check_box,   0, False],
-            [0xA012F, self.type_check_box,   0, False],
-            [0xA0130, self.type_check_box,   0, True ],
-            
-            [0xA0131, self.type_check_box,   0, False],
-            [0xA0132, self.type_check_box,   0, False],
-            [0xA0133, self.type_check_box,   0, False],
-            
-            [0xA0134, self.type_spin,        0],
-            [0xA0135, self.type_spin,        0],
-            
-            [0xA0136, self.type_combo_box,   2, ["NO","YES"]]
-        ]
+        label_5_elements = eval(_("label_5_elements"))
         self.addElements(5, label_5_elements, 0x100)
     
     # ----------------------------------------------
     # show help text when mouse move over the label
     # ----------------------------------------------
     def label_enter_event(self, text):
-        sv_help.setText(text)
+        genv.sv_help.setText(text)
 
 class customScrollView_6(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_6, self).__init__(parent, 6, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3583,62 +3513,13 @@ class customScrollView_6(myCustomScrollArea):
         self.content_widget.setMinimumHeight(1400)
         
         ## 0xA0200
-        label_6_elements = [
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0202, self.type_check_box, 0, False ],
-            [0xA0203, self.type_check_box, 0, False ],
-            [0xA0204, self.type_check_box, 0, False ],
-            [0xA0205, self.type_check_box, 0, True  ],
-            [0xA0206, self.type_check_box, 0, True  ],
-            [0xA0207, self.type_check_box, 0, True  ],
-            [0xA0208, self.type_check_box, 0, True  ],
-            [0xA0209, self.type_check_box, 0, True  ],
-            [0xA020A, self.type_check_box, 0, False ],
-            [0xA020B, self.type_check_box, 0, False ],
-            [0xA020C, self.type_check_box, 0, False ],
-            [0xA020D, self.type_check_box, 0, False ],
-            [0xA020E, self.type_check_box, 0, True  ],
-            
-            [0xA020F, self.type_combo_box, 2, ["SYSTEM", "NO", "YES"] ],
-            
-            [0xA0210, self.type_check_box, 0, False ],
-            [0xA0211, self.type_check_box, 0, False ],
-            
-            [0xA0212, self.type_check_box, 0, True  ],
-            [0xA0213, self.type_check_box, 0, True  ],
-            
-            [0xA0214, self.type_check_box, 0, False ],
-            [0xA0215, self.type_check_box, 0, False ],
-            [0xA0216, self.type_check_box, 0, False ],
-            [0xA0217, self.type_check_box, 0, False ],
-            [0xA0218, self.type_check_box, 0, False ],
-            [0xA0219, self.type_check_box, 0, False ],
-            
-            [0xA021A, self.type_check_box, 0, False ],
-            [0xA021B, self.type_check_box, 0, False ],
-            [0xA021C, self.type_check_box, 0, False ],
-            
-            [0xA021D, self.type_check_box, 0, False ],
-            [0xA021E, self.type_check_box, 0, False ],
-            [0xA021F, self.type_check_box, 0, False ],
-            [0xA0220, self.type_check_box, 0, False ],
-            
-            [0xA0221, self.type_edit,      3 ],
-            [0xA0222, self.type_spin,      0 ],
-            
-            [0xA0223, self.type_check_box, 0, True  ],
-            [0xA0224, self.type_check_box, 0, True  ],
-            [0xA0225, self.type_check_box, 0, True  ],
-            
-            [0xA0226, self.type_edit,      1 ],
-            [0xA0227, self.type_edit,      1 ],
-            [0xA0228, self.type_edit,      3 ]
-        ]
+        label_6_elements = eval(_("label_6_elements"))
         self.addElements(6, label_6_elements, 0x200)
 
 class customScrollView_7(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_7, self).__init__(parent, 7, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3646,28 +3527,13 @@ class customScrollView_7(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA0300
-        label_7_elements = [
-            [0xA0301, self.type_check_box, 0, True  ],
-            [0xA0302, self.type_check_box, 0, True  ],
-            
-            [0xA0303, self.type_check_box, 0, False ],
-            [0xA0304, self.type_check_box, 0, True  ],
-            [0xA0305, self.type_check_box, 0, True  ],
-            
-            [0xA0306, self.type_check_box, 0, False ],
-            [0xA0307, self.type_check_box, 0, False ],
-            
-            [0xA0308, self.type_spin,      0 ],
-            
-            [0xA0309, self.type_edit,      0 ],
-            [0xA030A, self.type_edit,      0 ],
-            [0xA030B, self.type_edit,      1 ]
-        ]
+        label_7_elements = eval(_("label_7_elements"))
         self.addElements(7, label_7_elements, 0x0300)
 
 class customScrollView_8(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_8, self).__init__(parent, 8, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3675,32 +3541,13 @@ class customScrollView_8(myCustomScrollArea):
         self.content_widget.setMinimumHeight(1700)
         
         ## 0xA0400
-        label_8_elements = [
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      0],
-            [0xA0401, self.type_edit,      1],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_check_box, 0, True  ],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_check_box, 0, False ],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      0, False ],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      1],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_check_box, 0, False ],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      0],
-            [0xA0401, self.type_spin,      0]
-        ]
+        label_8_elements = eval(_("label_8_elements"))
         self.addElements(8, label_8_elements, 0x0400)
 
 class customScrollView_9(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_9, self).__init__(parent, 9, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3708,29 +3555,13 @@ class customScrollView_9(myCustomScrollArea):
         self.content_widget.setMinimumHeight(560)
         
         ## 0xA0500
-        label_9_elements = [
-            [0xA0501, self.type_check_box, 0, True  ],
-            [0xA0502, self.type_check_box, 0, False ],
-            [0xA0503, self.type_check_box, 0, False ],
-            
-            [0xA0504, self.type_check_box, 0, True  ],
-            [0xA0505, self.type_check_box, 0, True  ],
-            [0xA0506, self.type_check_box, 0, True  ],
-            
-            [0xA0507, self.type_check_box, 0, True  ],
-            [0xA0508, self.type_check_box, 0, False ],
-            [0xA0509, self.type_check_box, 0, True  ],
-            
-            [0xA050A, self.type_check_box, 0, False ],
-            [0xA050B, self.type_check_box, 0, False ],
-            [0xA050C, self.type_edit     , 3 ],
-            [0xA050D, self.type_edit     , 1 ]
-        ]
+        label_9_elements = eval(_("label_9_elements"))
         self.addElements(9, label_9_elements, 0x0500)
 
 class customScrollView_10(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_10, self).__init__(parent, 10, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3747,6 +3578,7 @@ class customScrollView_10(myCustomScrollArea):
 class customScrollView_11(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_11, self).__init__(parent, 11, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3754,92 +3586,13 @@ class customScrollView_11(myCustomScrollArea):
         self.content_widget.setMinimumHeight(2380)
         
         ## 0xA0700
-        label_11_elements = [
-            [0xA0701, self.type_check_box, 0, True  ],
-            [0xA0702, self.type_edit,      1 ],
-            [0xA0703, self.type_edit,      0 ],
-            
-            [0xA0704, self.type_edit,      1 ],
-            [0xA0705, self.type_edit,      1 ],
-            
-            [0xA0706, self.type_edit,      1 ],
-            [0xA0707, self.type_edit,      3 ],
-            [0xA0708, self.type_edit,      3 ],
-            
-            [0xA0709, self.type_combo_box, 2, [ "LIGHT", "DARK", "AUTO_LIGHT", "AUTO_DARK", "TOOGLE" ] ],
-            [0xA070A, self.type_spin,      0 ],
-            [0xA070B, self.type_spin,      0 ],
-            [0xA070C, self.type_spin,      0 ],
-            [0xA070D, self.type_check_box, 0, True  ],
-            [0xA070E, self.type_check_box, 0, False ],
-            
-            [0xA070F, self.type_check_box, 0, True  ],
-            [0xA0710, self.type_check_box, 0, True  ],
-            [0xA0711, self.type_edit,      0 ],
-            [0xA0712, self.type_spin,      0 ],
-            
-            [0xA0713, self.type_check_box, 0, False ],
-            [0xA0714, self.type_edit,      0 ],
-            [0xA0715, self.type_edit,      0 ],
-            [0xA0716, self.type_edit,      0 ],
-            [0xA0717, self.type_edit,      0 ],
-            [0xA0718, self.type_edit,      0 ],
-            
-            [0xA0719, self.type_check_box, 0, True  ],
-            [0xA071A, self.type_edit,      1 ],
-            [0xA071B, self.type_edit,      1 ],
-            [0xA071C, self.type_check_box, 0, False ],
-            [0xA071D, self.type_edit,      0 ],
-            [0xA071E, self.type_check_box, 0, False ],
-            [0xA071F, self.type_check_box, 0, False ],
-            [0xA0720, self.type_edit,      0 ],
-            
-            [0xA0721, self.type_check_box, 0, False ],
-            [0xA0722, self.type_edit,      1 ],
-            [0xA0723, self.type_edit,      0 ],
-            [0xA0724, self.type_edit,      0 ],
-            [0xA0725, self.type_edit,      0 ],
-            [0xA0726, self.type_edit,      0 ],
-            [0xA0727, self.type_edit,      1 ],
-            
-            [0xA0728, self.type_check_box, 0, False ],
-            [0xA0729, self.type_edit,      0 ],
-            [0xA072A, self.type_check_box, 0, False ],
-            
-            [0xA072B, self.type_check_box, 0, True  ],
-            [0xA072C, self.type_check_box, 0, False ],
-            
-            [0xA072D, self.type_spin,      0 ],
-            [0xA072E, self.type_spin,      0 ],
-            
-            [0xA072F, self.type_check_box, 0, False ],
-            [0xA0730, self.type_check_box, 0, True  ],
-            
-            [0xA0731, self.type_combo_box, 2, [ "png", "svg" ] ],
-            [0xA0732, self.type_spin,      0 ],
-            [0xA0733, self.type_edit,      1 ],
-            
-            [0xA0734, self.type_check_box, 0, False ],
-            [0xA0735, self.type_combo_box, 2, [ "MathJax_2", "MathJax_3" ] ],
-            [0xA0736, self.type_combo_box, 2, [ "HTML + CSS", "NativeXML", "chtml", "SVG" ] ],
-            
-            [0xA0737, self.type_edit,      1 ],
-            [0xA0738, self.type_edit,      3 ],
-            [0xA0739, self.type_edit,      0 ],
-            
-            [0xA073A, self.type_check_box, 0, False ],
-            [0xA073B, self.type_check_box, 0, False ],
-            [0xA073C, self.type_check_box, 0, False ],
-            [0xA073D, self.type_edit,      0 ],
-            [0xA073E, self.type_edit,      1 ],
-            [0xA073F, self.type_edit,      0 ],
-            [0xA0740, self.type_edit,      3 ]
-        ]
+        label_11_elements = eval(_("label_11_elements"))
         self.addElements(11, label_11_elements, 0x0700)
 
 class customScrollView_12(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_12, self).__init__(parent, 12, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3847,30 +3600,13 @@ class customScrollView_12(myCustomScrollArea):
         self.content_widget.setMinimumHeight(1000)
         
         ## 0xA0800
-        label_12_elements = [
-            [0xA0801, self.type_check_box, 0, False ],
-            [0xA0802, self.type_edit,      1 ],
-            [0xA0803, self.type_edit,      1 ],
-            [0xA0804, self.type_edit,      0 ],
-            [0xA0805, self.type_check_box, 0, False ],
-            [0xA0806, self.type_combo_box, 2, [ "a4", "letter", "executive" ] ],
-            [0xA0807, self.type_edit,      3 ],
-            [0xA0808, self.type_edit,      1 ],
-            [0xA0809, self.type_edit,      1 ],
-            [0xA080A, self.type_edit,      3 ],
-            [0xA080B, self.type_edit,      3 ],
-            [0xA080C, self.type_check_box, 0, True  ],
-            [0xA080D, self.type_check_box, 0, True  ],
-            [0xA080E, self.type_combo_box, 2, [ "NO", "YWS", "BATCH", "NON-STOP", "SCROLL", "ERROR_STOP" ] ],
-            [0xA080F, self.type_check_box, 0, False ],
-            [0xA0810, self.type_edit,      0 ],
-            [0xA0811, self.type_edit,      1 ]
-        ]
+        label_12_elements = eval(_("label_12_elements"))
         self.addElements(12, label_12_elements, 0x0800)
 
 class customScrollView_13(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_13, self).__init__(parent, 13, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3878,19 +3614,13 @@ class customScrollView_13(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA0900
-        label_13_elements = [
-            [0xA0901, self.type_check_box, 0, False ],
-            [0xA0902, self.type_edit,      1 ],
-            [0xA0903, self.type_check_box, 0, False ],
-            [0xA0904, self.type_check_box, 0, False ],
-            [0xA0905, self.type_edit,      1 ],
-            [0xA0906, self.type_edit,      1 ]
-        ]
+        label_13_elements = eval(_("label_13_elements"))
         self.addElements(13, label_13_elements, 0x0900)
 
 class customScrollView_14(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_14, self).__init__(parent, 14, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3898,18 +3628,13 @@ class customScrollView_14(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1000
-        label_14_elements = [
-            [0xA1001, self.type_check_box, 0, False ],
-            [0xA1002, self.type_edit,      1 ],
-            [0xA1003, self.type_edit,      0 ],
-            [0xA1004, self.type_edit,      0 ],
-            [0xA1005, self.type_check_box, 0, False ],
-        ]
+        label_14_elements = eval(_("label_14_elements"))
         self.addElements(14, label_14_elements, 0x1000)
 
 class customScrollView_15(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_15, self).__init__(parent, 15, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3917,17 +3642,13 @@ class customScrollView_15(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1100
-        label_15_elements = [
-            [0xA1101, self.type_check_box, 0, False ],
-            [0xA1102, self.type_edit,      1 ],
-            [0xA1103, self.type_check_box, 0, False ],
-            [0xA1104, self.type_check_box, 0, False ]
-        ]
+        label_15_elements = eval(_("label_15_elements"))
         self.addElements(15, label_15_elements, 0x1100)
 
 class customScrollView_16(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_16, self).__init__(parent, 16, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3944,6 +3665,7 @@ class customScrollView_16(myCustomScrollArea):
 class customScrollView_17(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_17, self).__init__(parent, 17, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3959,6 +3681,7 @@ class customScrollView_17(myCustomScrollArea):
 class customScrollView_18(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_18, self).__init__(parent, 18, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3976,6 +3699,7 @@ class customScrollView_18(myCustomScrollArea):
 class customScrollView_19(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_19, self).__init__(parent, 19, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -3983,17 +3707,13 @@ class customScrollView_19(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1500
-        label_19_elements = [
-            [0xA1501, self.type_check_box, 0, False ],
-            [0xA1502, self.type_check_box, 0, False ],
-            [0xA1503, self.type_check_box, 0, False ],
-            [0xA1504, self.type_edit,      1 ]
-        ]
+        label_19_elements = eval(_("label_19_elements"))
         self.addElements(19, label_19_elements, 0x1500)
 
 class customScrollView_20(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_20, self).__init__(parent, 20, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -4001,22 +3721,13 @@ class customScrollView_20(myCustomScrollArea):
         self.content_widget.setMinimumHeight(800)
         
         ## 0xA1600
-        label_20_elements = [
-            [0xA1601, self.type_check_box, 0, True  ],
-            [0xA1602, self.type_check_box, 0, True  ],
-            [0xA1603, self.type_check_box, 0, False ],
-            [0xA1604, self.type_check_box, 0, False ],
-            [0xA1605, self.type_edit,      3 ],
-            [0xA1606, self.type_edit,      3 ],
-            [0xA1607, self.type_edit,      3 ],
-            [0xA1608, self.type_edit,      3 ],
-            [0xA1609, self.type_check_box, 0, True  ]
-        ]
+        label_20_elements = eval(_("label_20_elements"))
         self.addElements(20, label_20_elements, 0x1600)
 
 class customScrollView_21(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_21, self).__init__(parent, 21, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -4024,18 +3735,13 @@ class customScrollView_21(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1700
-        label_21_elements = [
-            [0xA1701, self.type_edit,  3 ],
-            [0xA1702, self.type_edit,  1 ],
-            [0xA1703, self.type_check_box, 0, False ],
-            [0xA1704, self.type_check_box, 0, True  ],
-            [0xA1705, self.type_check_box, 0, True  ]
-        ]
+        label_21_elements = eval(_("label_21_elements"))
         self.addElements(21, label_21_elements, 0x1700)
 
 class customScrollView_22(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_22, self).__init__(parent, 22, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -4043,56 +3749,7 @@ class customScrollView_22(myCustomScrollArea):
         self.content_widget.setMinimumHeight(1800)
         
         ## 0xA1800
-        label_22_elements = [
-            [0xA1801, self.type_check_box, 0, False ],
-            [0xA1802, self.type_check_box, 0, False ],
-            [0xA1803, self.type_spin     , 0 ],
-            
-            [0xA1804, self.type_edit, 0 ],
-            [0xA1805, self.type_edit, 0 ],
-            [0xA1806, self.type_edit, 0 ],
-            [0xA1807, self.type_edit, 1 ],
-            
-            [0xA1808, self.type_combo_box, 2, [ "YES", "NO" ] ],
-            [0xA1809, self.type_check_box, 0, True  ],
-            [0xA180A, self.type_check_box, 0, True  ],
-            [0xA180B, self.type_check_box, 0, False ],
-            [0xA180C, self.type_spin     , 0 ],
-            [0xA180D, self.type_combo_box, 2, [ "NO", "YES" ] ],
-            [0xA180E, self.type_spin     , 0 ],
-            
-            [0xA180F, self.type_check_box, 0, False ],
-            [0xA1810, self.type_check_box, 0, False ],
-            [0xA1811, self.type_check_box, 0, False ],
-            [0xA1812, self.type_check_box, 0, False ],
-            [0xA1813, self.type_check_box, 0, False ],
-            [0xA1814, self.type_check_box, 0, False ],
-            [0xA1815, self.type_check_box, 0, False ],
-            
-            [0xA1816, self.type_spin     , 0 ],
-            [0xA1817, self.type_combo_box, 2, [ "png", "svg" ] ],
-            
-            [0xA1818, self.type_check_box, 0, False ],
-            
-            [0xA1819, self.type_edit     , 1 ],
-            [0xA181A, self.type_edit     , 3 ],
-            
-            [0xA181B, self.type_edit     , 1 ],
-            [0xA181C, self.type_edit     , 3 ],
-            
-            [0xA181D, self.type_edit     , 1 ],
-            [0xA181E, self.type_edit     , 1 ],
-            [0xA181F, self.type_edit     , 3 ],
-            
-            [0xA1820, self.type_spin     , 0 ],
-            [0xA1821, self.type_spin     , 0 ],
-            
-            [0xA1822, self.type_check_box, 0, False ],
-            [0xA1823, self.type_check_box, 0, False ],
-            [0xA1824, self.type_check_box, 0, True  ],
-            [0xA1825, self.type_edit     , 1 ],
-            [0xA1826, self.type_edit     , 3 ]
-        ]
+        label_22_elements = eval(_("label_22_elements"))
         self.addElements(22, label_22_elements, 0x1800)
 
 class customScrollView_help(QTextEdit):
@@ -5659,9 +5316,9 @@ class myAddTableDialog(QDialog):
         self.layout_top3 = QVBoxLayout()
         self.btn_move_add_1 = QPushButton(">>")
         self.btn_move_del_1 = QPushButton("<<")
-        self.btn_move_add_2 = QPushButton("Add")
-        self.btn_move_clr_1 = QPushButton("Remove")
-        self.btn_move_clr_2 = QPushButton("Clear")
+        self.btn_move_add_2 = QPushButton(_("Add"))
+        self.btn_move_clr_1 = QPushButton(_("Remove"))
+        self.btn_move_clr_2 = QPushButton(_("Clear"))
         #
         self.layout_top3.addWidget(self.btn_move_add_1)
         self.layout_top3.addWidget(self.btn_move_del_1)
@@ -7165,6 +6822,8 @@ class applicationProjectWidget(QWidget):
     def __init__(self, parent=None):
         super(applicationProjectWidget, self).__init__(parent)
         
+        self.setStyleSheet(_("ScrollBarCSS"))
+        
         self.font   = QFont(genv.v__app__font, 11)
         self.model  = QStandardItemModel()
         self.result = QMessageBox.No        # default: no overwrite .pro file
@@ -7208,7 +6867,7 @@ class applicationProjectWidget(QWidget):
         
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0,0,0,0)
-                
+        
         font3 = QFont(genv.v__app__font, 10)
         font3.setBold(True)
         
@@ -7338,9 +6997,9 @@ class applicationProjectWidget(QWidget):
         self.list_view.setFont(QFont(genv.v__app__font,11))
         
         self.lay_push = QHBoxLayout()
-        self.add_push = QPushButton("Add")
-        self.clr_push = QPushButton("Clear All")
-        self.del_push = QPushButton("Remove")
+        self.add_push = QPushButton(_("Add"))
+        self.clr_push = QPushButton(_("Clear All"))
+        self.del_push = QPushButton(_("Remove"))
         #
         self.add_push.setMinimumHeight(36)
         self.clr_push.setMinimumHeight(36)
@@ -8666,25 +8325,25 @@ class FileWatcherGUI(QDialog):
         
         self.menu_style_bg = "background-color:navy;"
         menu_list = [
-            ["&File",
+            [_("&File"),
                 [
-                    ["New"       , "Ctrl+N", self.menu_file_clicked_new   ],
-                    ["Open"      , "Ctrl+O", self.menu_file_clicked_open  ],
-                    ["Save"      , "Ctrl+S", self.menu_file_clicked_save  ],
-                    ["Save As...", ""      , self.menu_file_clicked_saveas],
-                    ["Exit"      , "Ctrl+X", self.menu_file_clicked_exit  ]
+                    [_("New...")    , "Ctrl+N", self.menu_file_clicked_new   ],
+                    [_("Open")      , "Ctrl+O", self.menu_file_clicked_open  ],
+                    [_("Save")      , "Ctrl+S", self.menu_file_clicked_save  ],
+                    [_("Save as..."), ""      , self.menu_file_clicked_saveas],
+                    [_("Exit")      , "Ctrl+X", self.menu_file_clicked_exit  ]
                 ]
             ],
-            ["&Edit",
+            [_("&Edit"),
                 [
-                    ["Undo"     , ""      , self.menu_edit_clicked_undo     ],
-                    ["Redo"     , ""      , self.menu_edit_clicked_redo     ],
-                    ["Clear All", "Ctrl+0", self.menu_edit_clicked_clearall ]
+                    [_("Undo")     , ""      , self.menu_edit_clicked_undo     ],
+                    [_("Redo")     , ""      , self.menu_edit_clicked_redo     ],
+                    [_("Clear All"), "Ctrl+0", self.menu_edit_clicked_clearall ]
                 ]
             ],
-            ["&Help",
+            [_("&Help"),
                 [
-                    ["About...", "F1", self.menu_help_clicked_about ]
+                    [_("About..."), "F1", self.menu_help_clicked_about ]
                 ]
             ]
         ]
@@ -8768,6 +8427,7 @@ class FileWatcherGUI(QDialog):
         self.side_scroll.setWidgetResizable(True)
         self.side_scroll.setMinimumWidth(130)
         self.side_scroll.setMaximumWidth(130)
+        self.side_scroll.setStyleSheet(_("ScrollBarCSS"))
         self.side_scroll.setWidget(self.side_widget)
         
         ####
@@ -8796,10 +8456,10 @@ class FileWatcherGUI(QDialog):
         self.tab4   = QWidget()
         
         # add tabs
-        self.help_tabs.addTab(self.tab0_0, "Help Project")
-        self.help_tabs.addTab(self.tab1_0, "Pre-/Post Actions")
-        self.help_tabs.addTab(self.tab3, "HelpNDoc")
-        self.help_tabs.addTab(self.tab4, "Content")
+        self.help_tabs.addTab(self.tab0_0, _("Help Project"))
+        self.help_tabs.addTab(self.tab1_0, _("Pre-/Post Actions"))
+        self.help_tabs.addTab(self.tab3,   _("HelpNDoc"))
+        self.help_tabs.addTab(self.tab4,   _("Content"))
         
         self.tab_widget_tabs = QTabWidget(self.tab4)
         self.tab_widget_tabs.setMinimumWidth(830)
@@ -8953,7 +8613,7 @@ class FileWatcherGUI(QDialog):
         list_widget_1.setStyleSheet(_(genv.css__widget_item))
         list_widget_1.setMinimumHeight(300)
         list_widget_1.setMaximumWidth(200)
-        self.list_widget_1_elements = ["Project", "Mode", "Output", "Diagrams" ]
+        self.list_widget_1_elements = [_("Project"), _("Mode"), _("Output"), _("Diagrams") ]
         #
         #
         for element in self.list_widget_1_elements:
@@ -8963,10 +8623,10 @@ class FileWatcherGUI(QDialog):
         list_widget_1.itemClicked.connect(self.handle_item_click)
         list_layout_1.addWidget(list_widget_1)
         
-        self.sv_1_1 = customScrollView_1(self, "Project")
-        self.sv_1_2 = customScrollView_2(self, "Mode");     self.sv_1_2.hide()
-        self.sv_1_3 = customScrollView_3(self, "Output");   self.sv_1_3.hide()
-        self.sv_1_4 = customScrollView_4(self, "Diagrams"); self.sv_1_4.hide()
+        self.sv_1_1 = customScrollView_1(self, _("Project"))
+        self.sv_1_2 = customScrollView_2(self, _("Mode"));     self.sv_1_2.hide()
+        self.sv_1_3 = customScrollView_3(self, _("Output"));   self.sv_1_3.hide()
+        self.sv_1_4 = customScrollView_4(self, _("Diagrams")); self.sv_1_4.hide()
         
         for i in range(1, 5):
             s = "sv_1_" + str(i)
@@ -9003,9 +8663,9 @@ class FileWatcherGUI(QDialog):
         list_widget_2.setMaximumWidth(200)
         
         self.list_widget_2_elements = [                                     \
-            "Project", "Build", "Messages", "Input", "Source Browser",      \
+            _("Project"), _("Build"), _("Messages"), _("Input"), _("Source Browser"),      \
             "Index", "HTML", "LaTeX", "RTF", "Man", "XML", "DocBook",       \
-            "AutoGen", "SQLite3", "PerlMod", "Preprocessor", "External",    \
+            "AutoGen", "SQLite3", "PerlMod", "Preprocessor", _("External"),    \
             "Dot" ]
         #
         #
@@ -9040,7 +8700,7 @@ class FileWatcherGUI(QDialog):
         self.sv_2_1.show()
         self.hw_2 = QWidget()
         
-        list_layout_b.addWidget(sv_help)
+        list_layout_b.addWidget(genv.sv_help)
         ########################
         self.tab3_top_layout.addWidget(self.tab_widget_1)
         
@@ -9052,9 +8712,9 @@ class FileWatcherGUI(QDialog):
         print("---> " + self.tab2_file_path)
         global tab2_tree_view
         tab2_tree_view = QTreeView()
-        tab2_tree_view.setStyleSheet(_(css_model_header))
+        tab2_tree_view.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
         self.tab2_tree_model = QStandardItemModel()
-        self.tab2_tree_model.setHorizontalHeaderLabels(["Topic name", "ID", "Status", "Help icon", "In Build"])
+        self.tab2_tree_model.setHorizontalHeaderLabels([_("Topic name"), "ID", "Status", "Help icon", "In Build"])
         tab2_tree_view.setModel(self.tab2_tree_model)
         
         self.tab2_top_layout.addWidget(tab2_tree_view)
@@ -9109,7 +8769,7 @@ class FileWatcherGUI(QDialog):
         font = QFont(genv.v__app__font, 11)
         font.setPointSize(11)
         #
-        self.tab0_fold_text1 = QLabel("Directory:")
+        self.tab0_fold_text1 = QLabel(_("Directory:"))
         self.tab0_fold_text1.setMaximumWidth(84)
         self.tab0_fold_text1.setFont(font)
         
@@ -9254,7 +8914,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_file_tree = QTreeView()
         self.tab0_file_list = QListView()
         
-        self.tab0_file_tree.setStyleSheet(_(css_model_header))
+        self.tab0_file_tree.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
         
         self.tab0_file_tree.setModel(self.tab0_dir_model)
         self.tab0_file_list.setModel(self.tab0_file_model)
@@ -9336,7 +8996,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_file_tree = QTreeView()
         self.tab1_file_list = QListView()
         
-        self.tab1_file_tree.setStyleSheet(_(css_model_header))
+        self.tab1_file_tree.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
         
         self.tab1_file_tree.setModel(self.tab1_dir_model)
         self.tab1_file_list.setModel(self.tab1_file_model)
@@ -9390,8 +9050,10 @@ class FileWatcherGUI(QDialog):
         
         # mitte Seite
         self.tab1_preActionList = QListWidget(self.tab1_0)
-        self.tab1_preActionList_Label  = QLabel("Content:", self.tab1_0)
+        self.tab1_preActionList.setStyleSheet(_("ScrollBarCSS"))
+        self.tab1_preActionList_Label  = QLabel(_("Content:"), self.tab1_0)
         self.tab1_preActionList_Editor = QPlainTextEdit()
+        self.tab1_preActionList_Editor.setStyleSheet(_("ScrollBarCSS"))
         #
         self.tab1_middle_layout.addWidget(self.tab1_preActionList)
         self.tab1_middle_layout.addWidget(self.tab1_preActionList_Label)
@@ -9439,8 +9101,10 @@ class FileWatcherGUI(QDialog):
         
         # rechte Seite
         self.tab1_postActionList = QListWidget(self.tab1_0)
+        self.tab1_postActionList.setStyleSheet(_("ScrollBarCSS"))
         self.tab1_postActionList_Label  = QLabel(_("Content:"), self.tab1_0)
         self.tab1_postActionList_Editor = QPlainTextEdit()
+        self.tab1_postActionList_Editor.setStyleSheet(_("ScrollBarCSS"))
         #
         self.tab1_right_layout.addWidget(self.tab1_postActionList)
         self.tab1_right_layout.addWidget(self.tab1_postActionList_Label)
@@ -9462,10 +9126,10 @@ class FileWatcherGUI(QDialog):
         self.tab1_post_layout.addWidget(self.tab1_postEditLineText)
         self.tab1_right_layout.addLayout(self.tab1_post_layout)
         
-        self.tab1_postAddButton = QPushButton("Add")
+        self.tab1_postAddButton = QPushButton(_("Add"))
         self.tab1_postAddButton.setStyleSheet(_(genv.css_button_style))
         #
-        self.tab1_postDelButton = QPushButton("Delete")
+        self.tab1_postDelButton = QPushButton(_("Delete"))
         self.tab1_postDelButton.setStyleSheet(_(genv.css_button_style))
         #
         self.tab1_postClrButton = QPushButton(_("Clear All"))
@@ -9528,10 +9192,10 @@ class FileWatcherGUI(QDialog):
             menu.setStyleSheet(_("menu_css"))
             
             # Aktionen zum Menü hinzufügen
-            enters_action = QAction("Enter Directory", self)
-            create_action = QAction("Create", self)
-            delete_action = QAction("Delete", self)
-            rename_action = QAction("Rename", self)
+            enters_action = QAction(_("Enter Directory"), self)
+            create_action = QAction(_("Create"), self)
+            delete_action = QAction(_("Delete"), self)
+            rename_action = QAction(_("Rename"), self)
             
             menu.addAction(enters_action)
             menu.addAction(create_action)
@@ -10729,8 +10393,8 @@ class FileWatcherGUI(QDialog):
     
     def closeEvent(self, event):
         msg = QMessageBox()
-        msg.setWindowTitle("Confirmation")
-        msg.setText(_("Would you close the Application ?"))
+        msg.setWindowTitle(_("Confirmation"))
+        msg.setText(_("Would you close the Application?"))
         msg.setIcon(QMessageBox.Question)
         
         btn_yes = msg.addButton(QMessageBox.Yes)
@@ -11267,8 +10931,8 @@ def EntryPoint(arg1=None):
             
             file.close()
     
-    global sv_help
-    sv_help = customScrollView_help()
+    genv.sv_help = customScrollView_help()
+    genv.sv_help.setStyleSheet(_("ScrollBarCSS"))
     
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     time_str = datetime.datetime.now().strftime("%H:%M:%S")
