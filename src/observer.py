@@ -42,7 +42,7 @@ required_modules = [
     "platform", "gzip", "base64", "shutil", "datetime", "pkgutil", "ast",
     "csv", "gettext", "locale", "io", "random", "string", "ctypes", "sqlite3",
     "configparser", "traceback", "marshal", "inspect", "logging", "PyQt5",
-    "pathlib", "colorama" ]
+    "pathlib", "rich" ]
 
 for module in required_modules:
     check_and_install_module(module)
@@ -116,6 +116,7 @@ class globalEnv:
         self.v__app__freepas__    = im_path + "freepas"
         self.v__app__locales__    = im_path + "locales"
         self.v__app__com_c64__    = im_path + "c64"
+        self.v__app__com_set__    = im_path + "settings"
         self.v__app__keybc64__    = im_path + "c64keyboard.png"
         self.v__app__discc64__    = im_path + "disk2.png"
         self.v__app__datmc64__    = im_path + "mc2.png"
@@ -273,10 +274,8 @@ try:
     from pathlib import Path
     
     # ------------------------------------------------------------------------
-    # developers own modules ...
+    # developers modules ...
     # ------------------------------------------------------------------------
-    #from collection import *     # exception: templates
-    from colorama   import init, deinit, Fore, Back, Style  # ANSI escape
     
     # -------------------------------------------------------------------
     # for debuging, we use python logging library ...
@@ -760,108 +759,51 @@ def convertPath(text):
 # ---------------------------------------------------------------------------
 # \brief A dos-console Qt5 Dialog - used by dBase console Applications.
 # ---------------------------------------------------------------------------
-class DOSConsoleScreen(QPlainTextEdit):
+class DOSConsole(QDialog):
     def __init__(self, parent=None):
-        super(DOSConsoleScreen, self).__init__(parent)
-        self.overwrite_mode = False
+        super(DOSConsole, self).__init__(parent)
         
-        self.xpos = 0   # cursor: x
-        self.ypos = 0   # cursor: y
+        dlg_layout = QHBoxLayout()
+        lhs_layout = QVBoxLayout()
+        rhs_layout = QVBoxLayout()
         
-        font_name    = "Consolas"
-        font_size    = 10
+        printer_box = QListWidget()
+        printer_box.setMaximumWidth(100)
         
-        font_object  = QFont(font_name, font_size)
-        font_metrics = QFontMetrics(font_object)
-        
-        font_width   = font_metrics.width ('W')
-        font_height  = font_metrics.height()
-        
-        self.setFont(font_object)
-        
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy  (Qt.ScrollBarAlwaysOff)
-        self.setStyleSheet("""
-        DOSConsoleScreen {
+        self.console = QTextEdit()
+        self.console.setReadOnly(True)
+        self.console.setStyleSheet("""
         background-color: black;
-        color: lightgray;
-        line-height:0.2;
-        }""")
+        font-family: 'Courier New';
+        font-size: 10pt;
+        color: gray;
+        """)
         
-        self.setMinimumHeight(font_height * 26)
-        self.setMinimumWidth (font_width  * 82)
+        self.cols   = 80
+        self.rows   = 25
+        self.buffer = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
+        line_value  = "010014"
         
-        self.setMaximumHeight(font_height * 26)
-        self.setMaximumWidth (font_width  * 82)
+        for row in range(self.rows):
+            for col in range(self.cols):
+                self.buffer[row][col] = line_value
         
-        self.cursor_thickness = 3
-        self.cursor_color = QColor('yellow')
-        self.cursor_visible = True
-        self.blinking = True
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.toggle_cursor_visibility)
-        self.timer.start(500)
+        btn_close  = QPushButton(_("Close"))
+        btn_close.setMinimumHeight(32)
+        btn_close.setFont(QFont(genv.v__app__font_edit,10))
+        btn_close.clicked.connect(self.btn_close_clicked)
+        
+        lhs_layout.addWidget(printer_box)
+        rhs_layout.addWidget(self.console)
+        rhs_layout.addWidget(btn_close)
+        
+        dlg_layout.addLayout(lhs_layout)
+        dlg_layout.addLayout(rhs_layout)
+        
+        self.setLayout(dlg_layout)
     
-    def setLineSpacing(self, line_spacing):
-        cursor = self.textCursor()
-        cursor.select(QTextCursor.Document)
-        
-        # Create a new text block format
-        block_format = QTextBlockFormat()
-        
-        # Set the line height using the line spacing factor
-        block_format.setLineHeight(line_spacing, QTextBlockFormat.FixedHeight)
-        
-        # Apply the new block format to each block in the document
-        cursor.beginEditBlock()
-        while not cursor.atEnd():
-            cursor.movePosition(QTextCursor.Down, QTextCursor.MoveAnchor, 1)
-            cursor.setBlockFormat(block_format)
-        cursor.endEditBlock()
-        
-        self.setTextCursor(cursor)
-    
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Insert:
-            self.overwrite_mode = not self.overwrite_mode
-        
-        if self.overwrite_mode and event.text() and not event.modifiers():
-            cursor = self.textCursor()
-            if cursor.hasSelection():
-                cursor.removeSelectedText()
-            cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, 1)
-            cursor.removeSelectedText()
-            cursor.insertText(event.text())
-        else:
-            super(DOSConsoleScreen, self).keyPressEvent(event)
-    
-    def toggle_cursor_visibility(self):
-        self.cursor_visible = not self.cursor_visible
-        self.viewport().update()
-    
-    def paintEvent(self, event):
-        super().paintEvent(event)
-        if self.cursor_visible:
-            cursor = self.textCursor()
-            cursor_rect = self.cursorRect(cursor)
-            painter = QPainter(self.viewport())
-            painter.setPen(QPen(self.cursor_color, self.cursor_thickness))
-            painter.drawLine(cursor_rect.topLeft(), cursor_rect.bottomLeft())
-    
-    # ---------------------------------------------------------
-    # \brief  Emulate a clear screen, to swipe the text data
-    #         from the console.
-    #
-    # \param  nothing
-    # \return nothing
-    # ---------------------------------------------------------
-    def clear_con_screen(self):
-        try:
-            if self.toPlainText():
-                self.document().setPlainText(" ")
-            self.gotoxy(1,1)
-        except Exception as e:
-            print(e)
+    def btn_close_clicked(self):
+        self.close()
     
     # ---------------------------------------------------------
     # \brief  Set the cursor position to column (xpos), and the
@@ -873,85 +815,40 @@ class DOSConsoleScreen(QPlainTextEdit):
     # \return nothing
     # ---------------------------------------------------------
     def gotoxy(self, xpos, ypos):
-        self.xpos = xpos
-        self.ypos = ypos
+        self.current_x = xpos - 1
+        self.current_y = ypos - 1
     
     # ---------------------------------------------------------
     # \brief  Print the text, given by the first parameter.
     #
     # \param  text - string
+    # \param  fg   - string  foreground color for text
+    # \param  bg   - string  background color for text
     # \return nothing
     # ---------------------------------------------------------
-    def print_line(self, text):
+    def print_line(self, text, fg_color="yellow", bg_color="black"):
         try:
-            cursor    = self.textCursor()
-            document  = self.document()
+            text_html = ""
+            for row in range(self.rows):
+                for col in range(self.cols):
+                    field_value = self.buffer[row][col]
+                    
+                    text_ch = int(field_value[:2 ], 10)
+                    text_bg = int(field_value[2:4], 10)
+                    text_fg = int(field_value[4: ], 10)
+                    
+                if row >= 5 and row <= 10:
+                    text_html += f'<span style="color:\'{fg_color}\';background-color:\'{bg_color}\'>'
+                    text_html += 'O'
+                    text_html += '</span>'
+                else:
+                    text_html += f'<span style="color:\'{fg_color}\';background-color:\'{bg_color}\'>'
+                    text_html += ' '
+                    text_html += '</span>'
             
-            while document.blockCount() <= self.ypos:
-                self.appendPlainText("")
-            
-            cursor.movePosition(QTextCursor.Start)
-            cursor.movePosition(QTextCursor.Down , QTextCursor.MoveAnchor, self.ypos)
-            cursor.movePosition(QTextCursor.Right, QTextCursor.MoveAnchor, self.xpos)
-            
-            cursor.movePosition(QTextCursor.EndOfLine, QTextCursor.KeepAnchor)
-            cursor.removeSelectedText()
-            
-            cursor.insertText(text)
+            self.console.setHtml(text_html)
         except Exception as e:
             print(e)
-
-    def print_date(self):
-        dat = datetime.datetime.now()
-        self.print_line(dat.strftime("%Y-%m-%d"))
-    
-    def set_color(self):
-        self.text_format = QTextCharFormat()
-        self.text_format.setBackground(QColor("red"))
-        self.text_format.setForeground(QColor("yellow"))
-        #cursor.insertText(text, text_format)
-
-class DOSConsole(QDialog):
-    def __init__(self):
-        super().__init__()
-        
-        dlg_layout = QHBoxLayout()
-        lhs_layout = QVBoxLayout()
-        rhs_layout = QVBoxLayout()
-        
-        printer_box = QListWidget()
-        printer_box.setMaximumWidth(100)
-        
-        try:
-            self.screen = DOSConsoleScreen()
-        except Exception as e:
-            msg = QMessageBox()
-            msg.setWindowTitle('Warning')
-            msg.setText("e")
-            msg.setIcon(QMessageBox.Warning)
-            
-            btn_nok = msg.addButton(QMessageBox.Ok)
-            
-            self.result = msg.exec_() 
-                
-        btn_close  = QPushButton(_("Close"))
-        btn_close.setMinimumHeight(32)
-        btn_close.setFont(QFont(genv.v__app__font_edit,10))
-        btn_close.clicked.connect(self.btn_close_clicked)
-        
-        
-        lhs_layout.addWidget(printer_box)
-        
-        rhs_layout.addWidget(self.screen)
-        rhs_layout.addWidget(btn_close)
-        
-        dlg_layout.addLayout(lhs_layout)
-        dlg_layout.addLayout(rhs_layout)
-        
-        self.setLayout(dlg_layout)
-        
-    def btn_close_clicked(self):
-        self.close()
 
 # ---------------------------------------------------------------------------
 # \brief A parser generator class to create a DSL (domain source language)
@@ -1582,9 +1479,23 @@ import builtins
 print = builtins.print
 
 if __name__ == '__main__':
-    global con
-    con = DOSConsole()
-    con.screen.setPlainText(textertext)
+    global console
+    console = DOSConsole()
+    
+    console.console.clear()
+    #console.init_placeholder_text()
+    
+    console.gotoxy(8,4)
+    console.print_line('Dies ist Text', 'white', 'black')
+    
+    #console.gotoxy(3,2)
+    #console.print_line('Dummy Dies', 'yellow', 'black')
+    
+    #console.gotoxy(32, 4)
+    #console.print_line('dada dudu', 'white', 'blue')
+    
+    #console.gotoxy(10, 8)
+    #console.print_line('mapf mapf', 'red', 'black')
 """
         
         genv.v__app__logging.info("start parse: " + self.script_name)
@@ -1643,7 +1554,7 @@ if __name__ == '__main__':
         self.finalize()
         
         #self.text_code += "    con.reset()\n"
-        #self.text_code += "    con.exec_()\n"
+        self.text_code += "    console.exec_()\n"
         
         #if application_mode == 1:
         #global con_dialog
@@ -1683,16 +1594,7 @@ if __name__ == '__main__':
             bytecode = marshal.loads(self.byte_code)
             exec(bytecode)
         except Exception as e:
-            msg = QMessageBox()
-            msg.setWindowTitle('Warning')
-            #msg.setFont(self.font)
-            msg.setText("Error in script")
-            msg.setIcon(QMessageBox.Warning)
-            
-            btn_nok = msg.addButton(QMessageBox.Ok)
-            #btn_nok.setFont(self.font)
-            
-            self.result = msg.exec_() 
+            dialog = systemExceptionDialog(application_window,traceback.format_exc())
     
     # -----------------------------------------------------------------------
     # \brief  get one char from the input stream/source line.
@@ -1825,9 +1727,10 @@ if __name__ == '__main__':
                 c = self.skip_white_spaces()
                 if c == ')':
                     print("dater")
-                    self.text_code   += ("    con.screen.gotoxy(" +
-                    self.xpos + ","   +
-                    self.ypos + ")\n" +  "    con.screen.print_date()\n")
+                    #self.text_code   += ("    con.screen.gotoxy(" +
+                    #str(self.xpos) + ","   +
+                    #str(self.ypos) + ")\n" +  "    con.screen.print_date()\n")
+                    #self.xpos = int(int(self.xpos) + 10)
                     
                     self.command_ok = True
                 else:
@@ -1935,7 +1838,9 @@ if __name__ == '__main__':
                                 print("ssss")
                                 self.token_str = ""
                                 self.handle_string()
-                                self.text_code += "    con.screen.print_line(\"" + self.token_str + "\")\n"
+                                #self.text_code += f"    con.screen.gotoxy({self.xpos},{self.ypos})\n"
+                                #self.text_code += f"    con.screen.print_line(\"" + self.token_str + "\")\n"
+                                #self.xpos = int(int(self.xpos) + len(self.token_str))
                         else:
                             raise Exception("say expected.")
                     else:
@@ -1989,7 +1894,7 @@ if __name__ == '__main__':
                         self.getIdent()
                         if self.token_str == "screen":
                             print("screen")
-                            self.text_code += "    con.screen.clear_con_screen()\n";
+                            self.text_code += "    #con.screen.clear_con_screen()\n";
                         elif self.token_str == "memory":
                             print("mem")
                         else:
@@ -2773,6 +2678,8 @@ class myIconLabel(QLabel):
                 self.btn_clicked(self.parent,parent.locale_tabs)
             elif self.mode == 11:
                 self.btn_clicked(self.parent,parent.c64_tabs)
+            elif self.mode == 12:
+                self.btn_clicked(self.parent,parent.settings_tabs)
     
     def enterEvent(self, event):
         self.show_overlay()
@@ -2792,6 +2699,7 @@ class myIconLabel(QLabel):
         parent.lisp_tabs.hide()
         parent.locale_tabs.hide()
         parent.c64_tabs.hide()
+        parent.settings_tabs.hide()
     
     def btn_clicked(self,btn,tabs):
         if not self.parent.parent.c64_screen.worker_thread == None:
@@ -2817,6 +2725,7 @@ class myIconLabel(QLabel):
             parent.side_btn7,
             parent.side_btn8,
             parent.side_btn9,
+            parent.side_btnA
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -2897,6 +2806,9 @@ class myIconButton(QWidget):
         elif mode == 11:
             self.image_fg = ptx + genv.v__app__com_c64__ + fg
             self.image_bg = ptx + genv.v__app__com_c64__ + bg
+        elif mode == 12:
+            self.image_fg = ptx + genv.v__app__com_set__ + fg
+            self.image_bg = ptx + genv.v__app__com_set__ + bg
         
         self.set_style()
     
@@ -4737,6 +4649,8 @@ class EditorTextEdit(QPlainTextEdit):
     def __init__(self, parent, file_name):
         super().__init__()
         
+        self.setObjectName(file_name)
+        
         self.parent = parent
         self.move(0,0)
         self.setLineWrapMode(QPlainTextEdit.NoWrap)
@@ -6413,20 +6327,29 @@ class CustomWidget1(QWidget):
             result = msg.exec_()
             
             if result == QMessageBox.Yes:
-                if self.parent_class.dbase_tabs_editor1.hasFocus():
-                    file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example1.prg")
-                    file_path = file_path.replace("\\", "/")
-                    #
-                    with open(file_path, "w") as file:
-                        file.write(self.parent_class.dbase_tabs_editor1.toPlainText())
-                        file.close()
-                elif self.parent_class.dbase_tabs_editor2.hasFocus():
-                    file_path = os.path.join(genv.v__app__app_dir__, "examples/dbase/example2.prg")
-                    file_path = file_path.replace("\\", "/")
-                    #
-                    with open(file_path) as file:
-                        file.write(self.parent_class.dbase_tabs_editor2.toPlainText())
-                        file.close()
+                focused_widget = QApplication.focusWidget()
+                if focused_widget:
+                    print("focus")
+                    if isinstance(focused_widget, QPlainTextEdit):
+                        print("plain text")
+                        script_name = focused_widget.objectName()
+                        if not os.path.exists(script_name):
+                            msg = None
+                            msg = QMessageBox()
+                            msg.setWindowTitle("Warning")
+                            msg.setText(_("Error: file could not be saved:") + f"\n{script_name}.")
+                            msg.setIcon(QMessageBox.Warning)
+                            btn_ok = msg.addButton(QMessageBox.Ok)
+                            
+                            msg.setStyleSheet(_("msgbox_css"))
+                            result = msg.exec_()
+                            print(f"Error: file does not exists: {script_name}.")
+                            return
+                        file_path = script_name.replace("\\", "/")
+                        #
+                        with open(file_path, "w") as file:
+                            file.write(focused_widget.toPlainText())
+                            file.close()
                 event.accept()
             else:
                 event.ignore()
@@ -6535,6 +6458,7 @@ class CustomWidget0(QWidget):
         self.parent_class.lisp_tabs.hide()
         self.parent_class.locale_tabs.hide()
         self.parent_class.c64_tabs.hide()
+        self.parent_class.settings_tabs.hide()
         #
         tabser.show()
         
@@ -6554,6 +6478,7 @@ class CustomWidget0(QWidget):
             parent.side_btn7,
             parent.side_btn8,
             parent.side_btn9,
+            parent.side_btnA
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -6660,41 +6585,31 @@ class CustomWidget2(QWidget):
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if self.parent_class.dbase_tabs_editor1.hasFocus():
-                script_name = "./examples/dbase/example1.prg"
-                if not os.path.exists(script_name):
-                    print(f"Error: file does not exists: {script_name}.")
-                    return
-                
-                global application_mode
-                application_mode = 1
-                                
-                prg = None
-                prg = dBaseDSL(script_name)
-                #prg.parser.parse()
-                print("\nend of data\n")
-                
-                prg.parser.text_code += "    con.exec_()\n"
-                print(prg.parser.text_code)
-                
-                try:
-                    prg.parser.run()
-                except Exception as e:
-                    print(e)
-                
-            elif self.parent_class.dbase_tabs_editor2.hasFocus():
-                script_name = "./examples/dbase/example2.prg"
-                if not os.path.exists(script_name):
-                    print(f"Error: file does not exists: {script_name}.")
-                    return
-                
-                prg = None
-                prg = dBaseDSL(script_name)
-                #prg.parser.parse()
-                print("\nend of data")
-                
-                #prg.parser.run()
-                #prg.parser.finalize()
+            focused_widget = QApplication.focusWidget()
+            if focused_widget:
+                print("focus")
+                if isinstance(focused_widget, QPlainTextEdit):
+                    print("plain text")
+                    script_name = focused_widget.objectName()
+                    if not os.path.exists(script_name):
+                        print(f"Error: file does not exists: {script_name}.")
+                        return
+                    
+                    global application_mode
+                    application_mode = 1
+                    
+                    prg = None
+                    prg = dBaseDSL(script_name)
+                    #prg.parser.parse()
+                    print("\nend of data\n")
+                    
+                    #prg.parser.text_code += "    con.exec_()\n"
+                    print(prg.parser.text_code)
+                    
+                    try:
+                        prg.parser.run()
+                    except Exception as e:
+                        print(e)
             else:
                 print("no editor selected.")
     
@@ -8414,6 +8329,7 @@ class FileWatcherGUI(QDialog):
             + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
         #
         self.side_btn9 = myIconButton(self,  11, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btnA = myIconButton(self,  12, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn1.bordercolor = "lime"
         self.side_btn1.state       = 2
@@ -8442,6 +8358,7 @@ class FileWatcherGUI(QDialog):
         self.handleLISP()
         self.handleLocales()
         self.handleCommodoreC64()
+        self.handleSettings()
         
         
         # first register card - action's ...
@@ -9900,7 +9817,45 @@ class FileWatcherGUI(QDialog):
         
         self.locale_tabs_editors_widget.setLayout(vbox)
         return
+    
+    def downloadCHMTool(self):
+        QDesktopServices.openUrl(QUrl("https://learn.microsoft.com/en-us/previous-versions/windows/desktop/htmlhelp/microsoft-html-help-downloads"))
+    
+    def handleSettings(self):
+        self.settings_tabs = QTabWidget()
+        self.settings_tabs.setStyleSheet(_(genv.css_tabs))
+        self.settings_tabs.hide()
         
+        self.settings_tabs_chm_widget = QWidget()
+        #
+        self.settings_tabs.addTab(self.settings_tabs_chm_widget, _("Settings"))
+        ###
+        self.main_layout.addWidget(self.settings_tabs)
+        
+        vlay = QVBoxLayout()
+        chm_fnt1 = QFont("Arial"   , 10)
+        chm_fnt2 = QFont("Consolas", 10)
+        
+        chm_down = QPushButton("download HTML-Workshop...")
+        chm_down.setFont(chm_fnt1)
+        chm_down.setMinimumHeight(32)
+        chm_down.clicked.connect(self.downloadCHMTool)
+        
+        chm_edit = QLineEdit()
+        chm_edit.setFont(chm_fnt2)
+        chm_edit.setMinimumHeight(32)
+        
+        chm_seld = QPushButton("Select Directory")
+        chm_seld.setFont(chm_fnt1)
+        chm_seld.setMinimumHeight(32)
+        
+        vlay.addWidget(chm_down)
+        vlay.addWidget(chm_edit)
+        vlay.addWidget(chm_seld)
+        vlay.addStretch()
+        
+        self.settings_tabs_chm_widget.setLayout(vlay)
+    
     def load_mo_file(self):
         file_name, _ = QFileDialog.getOpenFileName(self, _("Open .mo file"), '', 'MO Files (*.mo)')
         if file_name:

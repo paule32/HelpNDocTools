@@ -5897,6 +5897,9 @@ msgstr "&Hilfe"
 msgid "Remove"
 msgstr "Bereinigen"
 
+msgid "Error: file could not be saved:"
+msgstr "Fehler: Datei konnte nicht gespeichert werden:"
+
 msgid "label_5_elements"
 msgstr ""
     "["
