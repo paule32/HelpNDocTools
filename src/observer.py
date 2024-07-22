@@ -778,16 +778,35 @@ class DOSConsole(QDialog):
         font-size: 10pt;
         color: gray;
         """)
+        #
+        self.console.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.console.setVerticalScrollBarPolicy  (Qt.ScrollBarAlwaysOff)
+        
+        char_width, char_height = self.get_char_dimensions('A')
+        #
+        self.console.setMinimumWidth ((char_width  * 96) - 10)
+        self.console.setMaximumWidth ((char_width  * 96) - 10)
+        #
+        self.console.setMinimumHeight((char_height * 33) - 5)
+        self.console.setMaximumHeight((char_height * 33) - 5)
         
         self.cols   = 80
         self.rows   = 25
+        
+        self.current_x = 0
+        self.current_y = 0
+        
+        # ------------------------------------------------
+        # initial create/fill the buffer with a empty char
+        # ------------------------------------------------
         self.buffer = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
-        line_value  = "010014"
+        line_value  = '&nbsp;'
         
         for row in range(self.rows):
             for col in range(self.cols):
                 self.buffer[row][col] = line_value
         
+        # close button, to close the QDialog
         btn_close  = QPushButton(_("Close"))
         btn_close.setMinimumHeight(32)
         btn_close.setFont(QFont(genv.v__app__font_edit,10))
@@ -801,6 +820,15 @@ class DOSConsole(QDialog):
         dlg_layout.addLayout(rhs_layout)
         
         self.setLayout(dlg_layout)
+    
+    def get_char_dimensions(self, char):
+        font         = self.console.font()
+        font_metrics = QFontMetrics(font)
+        
+        char_width   = font_metrics.horizontalAdvance(char)
+        char_height  = font_metrics.height()
+        
+        return char_width, char_height
     
     def btn_close_clicked(self):
         self.close()
@@ -826,29 +854,101 @@ class DOSConsole(QDialog):
     # \param  bg   - string  background color for text
     # \return nothing
     # ---------------------------------------------------------
-    def print_line(self, text, fg_color="yellow", bg_color="black"):
+    def print_line(self, text, fg_color="#ffff00", bg_color="#0000ff"):
         try:
             text_html = ""
+            
+            # ----------------------------
+            # set text cursor ...
+            # ----------------------------
+            x = self.current_x
+            y = self.current_y
+            
+            # ----------------------------
+            # get/handle color string's
+            # ----------------------------
+            fg = self.getColor(fg_color)
+            bg = self.getColor(bg_color)
+            
+            print("fg: ", fg)
+            self.xpos = 8
+            self.ypos = 4
+            
+            i = 0
+            for row in range(self.rows):
+                if i >= len(text):
+                    break
+                if row > self.ypos:
+                    break
+                for col in range(self.cols):
+                    if i >= len(text):
+                        break
+                    if (col >= self.xpos) and (col <= (self.xpos + i)):
+                        if text[i] == ' ':
+                            self.buffer[self.ypos][col] = '&nbsp;'
+                        else:
+                            self.buffer[self.ypos][col] = text[i]
+                        i += 1
+            
             for row in range(self.rows):
                 for col in range(self.cols):
                     field_value = self.buffer[row][col]
-                    
-                    text_ch = int(field_value[:2 ], 10)
-                    text_bg = int(field_value[2:4], 10)
-                    text_fg = int(field_value[4: ], 10)
-                    
-                if row >= 5 and row <= 10:
-                    text_html += f'<span style="color:\'{fg_color}\';background-color:\'{bg_color}\'>'
-                    text_html += 'O'
-                    text_html += '</span>'
-                else:
-                    text_html += f'<span style="color:\'{fg_color}\';background-color:\'{bg_color}\'>'
-                    text_html += ' '
-                    text_html += '</span>'
-            
+                    if not field_value == '&nbsp;':
+                        text_html += f'<span style="color: \'white\';background-color:\'blue\';">'
+                        text_html += field_value
+                        text_html += '</span>'
+                    else:
+                        text_html += f'<span style="color:\'white\';background-color:\'black\';">'
+                        text_html += field_value
+                        text_html += '</span>'
+                text_html += "<br>"
             self.console.setHtml(text_html)
         except Exception as e:
             print(e)
+    
+    # ---------------------------------------------------------
+    # \brief  This definition try to get the color value by the
+    #         given color string.
+    #
+    # \param  color - string => the color to parse
+    #
+    # \return html formated color sting: #rrggbb
+    # ---------------------------------------------------------
+    def getColor(self, color):
+        if color:
+            pos = 0
+            value = ""
+            while True:
+                if pos > len(color):
+                    break;
+                c = color[pos]
+                if c == '#':
+                    if len(value) < 1:
+                        value += c
+                        continue
+                    else:
+                        return "#000000"
+                elif (c >= '0' and c <= '9'):
+                    if len(value) >= 6:
+                        if value[0] == '#':
+                            return value
+                    value += c
+                    continue
+                elif (c >= 'a' and c <= 'f') or (c >= 'A' and c <= 'F'):
+                    if len(value) >= 6:
+                        if value[0] == '#':
+                            return value
+                    value += c
+                    continue
+                elif (c >= 'g' and c <= 'z') or (c >= 'G' and c <= 'Z'):
+                    if len(value) > 1:
+                        if value[0] == '#':
+                            return "#000000"
+                    value += c
+                    continue
+                pos += 1
+        else:
+            return "#000000"
 
 # ---------------------------------------------------------------------------
 # \brief A parser generator class to create a DSL (domain source language)
@@ -1486,7 +1586,7 @@ if __name__ == '__main__':
     #console.init_placeholder_text()
     
     console.gotoxy(8,4)
-    console.print_line('Dies ist Text', 'white', 'black')
+    console.print_line('Dies ist Text', '#ffffff', '#0000ff')
     
     #console.gotoxy(3,2)
     #console.print_line('Dummy Dies', 'yellow', 'black')
