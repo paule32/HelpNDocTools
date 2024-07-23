@@ -118,6 +118,7 @@ class globalEnv:
         self.v__app__console__  = im_path + "console"
         self.v__app__todopro__  = im_path + "todo"
         self.v__app__setupro__  = im_path + "setup"
+        self.v__app__certssl__  = im_path + "ssl"
         self.v__app__githubp__  = im_path + "github"
         self.v__app__apache2__  = im_path + "apache"
         self.v__app__mysqlcf__  = im_path + "mysql"
@@ -2790,16 +2791,18 @@ class myIconLabel(QLabel):
             elif self.mode == 13:
                 self.btn_clicked(self.parent,parent.setup_tabs)
             elif self.mode == 14:
-                self.btn_clicked(self.parent,parent.github_tabs)
+                self.btn_clicked(self.parent,parent.certssl_tabs)
             elif self.mode == 15:
-                self.btn_clicked(self.parent,parent.apache_tabs)
+                self.btn_clicked(self.parent,parent.github_tabs)
             elif self.mode == 16:
-                self.btn_clicked(self.parent,parent.mysql_tabs)
+                self.btn_clicked(self.parent,parent.apache_tabs)
             elif self.mode == 17:
-                self.btn_clicked(self.parent,parent.squid_tabs)
+                self.btn_clicked(self.parent,parent.mysql_tabs)
             elif self.mode == 18:
-                self.btn_clicked(self.parent,parent.c64_tabs)
+                self.btn_clicked(self.parent,parent.squid_tabs)
             elif self.mode == 19:
+                self.btn_clicked(self.parent,parent.c64_tabs)
+            elif self.mode == 20:
                 self.btn_clicked(self.parent,parent.settings_tabs)
     
     def enterEvent(self, event):
@@ -2822,6 +2825,7 @@ class myIconLabel(QLabel):
         parent.console_tabs.hide()
         parent.todo_tabs.hide()
         parent.setup_tabs.hide()
+        parent.certssl_tabs.hide()
         parent.github_tabs.hide()
         parent.apache_tabs.hide()
         parent.mysql_tabs.hide()
@@ -2859,7 +2863,9 @@ class myIconLabel(QLabel):
             parent.side_btnD,
             parent.side_btnE,
             parent.side_btnF,
-            parent.side_btnG
+            parent.side_btnG,
+            parent.side_btnH,
+            parent.side_btnI,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -2947,21 +2953,24 @@ class myIconButton(QWidget):
             self.image_fg = ptx + genv.v__app__setupro__ + fg
             self.image_bg = ptx + genv.v__app__setupro__ + bg
         elif mode == 14:
+            self.image_fg = ptx + genv.v__app__certssl__ + fg
+            self.image_bg = ptx + genv.v__app__certssl__ + bg
+        elif mode == 15:
             self.image_fg = ptx + genv.v__app__githubp__ + fg
             self.image_bg = ptx + genv.v__app__githubp__ + bg
-        elif mode == 15:
+        elif mode == 16:
             self.image_fg = ptx + genv.v__app__apache2__ + fg
             self.image_bg = ptx + genv.v__app__apache2__ + bg
-        elif mode == 16:
+        elif mode == 17:
             self.image_fg = ptx + genv.v__app__mysqlcf__ + fg
             self.image_bg = ptx + genv.v__app__mysqlcf__ + bg
-        elif mode == 17:
+        elif mode == 18:
             self.image_fg = ptx + genv.v__app__squidwp__ + fg
             self.image_bg = ptx + genv.v__app__squidwp__ + bg
-        elif mode == 18:
+        elif mode == 19:
             self.image_fg = ptx + genv.v__app__com_c64__ + fg
             self.image_bg = ptx + genv.v__app__com_c64__ + bg
-        elif mode == 19:
+        elif mode == 20:
             self.image_fg = ptx + genv.v__app__com_set__ + fg
             self.image_bg = ptx + genv.v__app__com_set__ + bg
         
@@ -4803,7 +4812,7 @@ class EditorTranslate(QWidget):
 class EditorTextEdit(QPlainTextEdit):
     def __init__(self, parent, file_name):
         super().__init__()
-        
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.setObjectName(file_name)
         
         self.parent = parent
@@ -4946,8 +4955,8 @@ class EditorTextEdit(QPlainTextEdit):
                     self.bookmarks.add(block_number)
                 self.lineNumberArea.update()
         
-        self.parent.parent_class.dbase_tabs_files.move(0,70)
-        self.parent.parent_class.dbase_tabs_files.setMinimumHeight(510)
+        #self.parent.parent_class.dbase_tabs_files.move(0,70)
+        #self.parent.parent_class.dbase_tabs_files.setMinimumHeight(510)
         super().mousePressEvent(event)
 
 class LineNumberArea(QWidget):
@@ -6613,6 +6622,7 @@ class CustomWidget0(QWidget):
         self.parent_class.lisp_tabs.hide()
         self.parent_class.locale_tabs.hide()
         self.parent_class.setup_tabs.hide()
+        self.parent_class.certssl_tabs.hide()
         self.parent_class.github_tabs.hide()
         self.parent_class.apache_tabs.hide()
         self.parent_class.mysql_tabs.hide()
@@ -6644,7 +6654,9 @@ class CustomWidget0(QWidget):
             parent.side_btnD,
             parent.side_btnE,
             parent.side_btnF,
-            parent.side_btnG
+            parent.side_btnG,
+            parent.side_btnH,
+            parent.side_btnI,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -6672,11 +6684,10 @@ class CustomWidget0(QWidget):
         dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
         dialog.setNameFilters(["Program Files (*.prg)", "Text Files (*.txt)", "All Files (*)"])
         
-        list_views = dialog.findChildren(QListView)
-        tree_views = dialog.findChildren(QTreeView)
-        
-        for view in list_views + tree_views:
-            view.setIconSize(QSize(icon_size, icon_size))
+        #list_views = dialog.findChildren(QListView)
+        #tree_views = dialog.findChildren(QTreeView)
+        #for view in list_views + tree_views:
+        #    view.setIconSize(QSize(icon_size, icon_size))
     
         if dialog.exec_() == QFileDialog.Accepted:
             file_path = dialog.selectedFiles()[0]
@@ -6708,9 +6719,6 @@ class CustomWidget0(QWidget):
         
         filename = os.path.basename(file_path)
         
-        self.file_vlayout  = QVBoxLayout()
-        self.file_vlayout.setAlignment(Qt.AlignTop)
-        
         self.file_layout   = QHBoxLayout()
         self.file_layout.setAlignment(Qt.AlignTop)
         
@@ -6719,18 +6727,16 @@ class CustomWidget0(QWidget):
         #
         self.file_layout.addWidget(self.tabs_editor)
         self.file_layout.addWidget(self.tabs_rightBox)
-        #
-        self.file_vlayout.addLayout(self.file_layout)
-        #
-        self.file_widget = QWidget()
-        self.file_widget.setLayout(self.file_vlayout)
         
-        self.parent_tabs  .addTab   (self.file_widget, filename)
+        self.file_layout_widget = QWidget()
+        self.file_layout_widget.setLayout(self.file_layout)
+        
+        self.parent_tabs.addTab(self.file_layout_widget, filename)
+        
         #self.parent_tabs.setMinimumHeight(460)
-        
         #self.parent_layout.addWidget(self.file_widget)
-        self.parent_layout.addWidget(self.parent_tabs)
-        self.parent_layout.setAlignment(Qt.AlignTop)
+        #self.parent_layout.addWidget(self.parent_tabs)
+        #self.parent_layout.setAlignment(Qt.AlignTop)
         #
         ####
     
@@ -8190,6 +8196,35 @@ class designerWindow():
         self.btn2.setStyleSheet("background-color:yellow;color:black;")
         self.btn3.setStyleSheet("background-color:blue;color:white;")
 
+class ButtonWidget(QWidget):
+    def __init__(self, text, parent=None):
+        super(ButtonWidget, self).__init__(parent)
+        self.setContentsMargins(0,0,0,0)
+        
+        self.layout = QVBoxLayout()
+        self.label  = QLabel(text)
+        
+        text = text.split(':')
+        
+        if text[0] == "label 1":
+            self.label_pixmap = QPixmap("./_internal/img/open-folder.png")
+        elif text[0] == "label 2":
+            self.label_pixmap = QPixmap("./_internal/img/floppy-disk.png")
+        elif text[0] == "label 3":
+            self.label_pixmap = QPixmap("./_internal/img/play.png")
+        
+        self.label.setMinimumWidth (32)
+        self.label.setMaximumWidth (32)
+        
+        self.label.setMinimumHeight(32)
+        self.label.setMaximumHeight(32)
+        
+        self.label.setPixmap(self.label_pixmap)
+        self.setObjectName(text[0] + ':' + text[1])
+        
+        self.layout.addWidget(self.label)
+        self.setLayout(self.layout)
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -8498,12 +8533,13 @@ class FileWatcherGUI(QDialog):
         self.side_btn9 = myIconButton(self,  11, "Console", "Your classical style of commands")
         self.side_btnA = myIconButton(self,  12, "Todo / Tasks", "Your todo's")
         self.side_btnB = myIconButton(self,  13, "Setup", "Setup your Project")
-        self.side_btnC = myIconButton(self,  14, "GitHub.com", "Publish Project")
-        self.side_btnD = myIconButton(self,  15, "Apache", "Configure Apache 2")
-        self.side_btnE = myIconButton(self,  16, "MySQL", "Configure MySQL")
-        self.side_btnF = myIconButton(self,  17, "Squid", "Configure Squid")
-        self.side_btnG = myIconButton(self,  18, "C-64", "The most popular Commodore C-64\from int the 1980er")
-        self.side_btnH = myIconButton(self,  19, _("Settings")   , _("Settings for this Application\n\n"))
+        self.side_btnC = myIconButton(self,  14, "SSL Certs", "Setup SSL")
+        self.side_btnD = myIconButton(self,  15, "GitHub.com", "Publish Project")
+        self.side_btnE = myIconButton(self,  16, "Apache", "Configure Apache 2")
+        self.side_btnF = myIconButton(self,  17, "MySQL", "Configure MySQL")
+        self.side_btnG = myIconButton(self,  18, "Squid", "Configure Squid")
+        self.side_btnH = myIconButton(self,  19, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btnI = myIconButton(self,  20, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn1.bordercolor = "lime"
         self.side_btn1.state       = 2
@@ -8534,6 +8570,7 @@ class FileWatcherGUI(QDialog):
         self.handleConsole()
         self.handleTodo()
         self.handleSetup()
+        self.handleCertSSL()
         self.handleGitHub()
         self.handleApache()
         self.handleMySQL()
@@ -9466,6 +9503,122 @@ class FileWatcherGUI(QDialog):
             file.close()
         return file_content
     
+    def open_dialog(self):
+        dialog  = QFileDialog()
+        file_path = ""
+        icon_size = 20
+        
+        dialog.setWindowTitle(_("Open File"))
+        dialog.setStyleSheet (_("QFileDlog"))
+        
+        dialog.setFileMode(QFileDialog.AnyFile)
+        dialog.setViewMode(QFileDialog.Detail)
+        
+        dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
+        dialog.setNameFilters(["Program Files (*.prg)", "Text Files (*.txt)", "All Files (*)"])
+        
+        if dialog.exec_() == QFileDialog.Accepted:
+            file_path = dialog.selectedFiles()[0]
+        
+        if not file_path:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(_("no source file given.\n"))
+            msg.setIcon(QMessageBox.Question)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()            
+            return ""
+        
+        if not os.path.isfile(file_path):
+            msg = None
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(_(
+                "You selected a file, that can not be open.\n"
+                "no file will be open."))
+            msg.setIcon(QMessageBox.Question)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()
+            return ""
+        return file_path
+    
+    def checkBeforeSave(self):
+        msg = None
+        msg = QMessageBox()
+        msg.setWindowTitle("Confirmation")
+        msg.setText(
+            "The source file content will be overwrite if you choose YES !\n"
+            "Would you save the current content ?")
+        msg.setIcon(QMessageBox.Question)
+        
+        btn_yes = msg.addButton(QMessageBox.Yes)
+        btn_no  = msg.addButton(QMessageBox.No)
+        
+        msg.setStyleSheet(_("msgbox_css"))
+        result = msg.exec_()
+        
+        if result == QMessageBox.Yes:
+            #self.focused_widget = QApplication.focusWidget()
+            if self.focused_widget:
+                print("focus")
+                print(self.focused_widget)
+                if isinstance(self.focused_widget, QPlainTextEdit):
+                    print("plain text")
+                    script_name = self.focused_widget.objectName()
+                    print(script_name)
+                    if not os.path.exists(script_name):
+                        msg = None
+                        msg = QMessageBox()
+                        msg.setWindowTitle("Warning")
+                        msg.setText(_("Error: file could not be saved:") + f"\n{script_name}.")
+                        msg.setIcon(QMessageBox.Warning)
+                        btn_ok = msg.addButton(QMessageBox.Ok)
+                        
+                        msg.setStyleSheet(_("msgbox_css"))
+                        result = msg.exec_()
+                        print(f"Error: file does not exists: {script_name}.")
+                        return
+                    file_path = script_name.replace("\\", "/")
+                    #
+                    with open(file_path, "w") as file:
+                        file.write(self.focused_widget.toPlainText())
+                        file.close()
+    
+    def on_dbase_menu_item_clicked(self, item):
+        widget = self.dbase_tabs_editor_menu.itemWidget(item)
+        if widget:
+            text = widget.objectName()
+            text = text.split(':')
+            if text[0] == "label 1":
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
+                if len(filename) < 1:
+                    return
+                widget.setObjectName('label 1:' + file_path)
+                
+                self.dbase_tabs_editor_widget = QWidget()
+                
+                self.dbase_tabs_editor_file_layout   = QHBoxLayout()
+                self.dbase_tabs_editor_tabs_editor   = EditorTextEdit(self, file_path)
+                self.dbase_tabs_editor_tabs_rightBox = EditorTranslate(self)
+                #
+                self.dbase_tabs_editor_file_layout.addWidget(self.dbase_tabs_editor_tabs_editor)
+                self.dbase_tabs_editor_file_layout.addWidget(self.dbase_tabs_editor_tabs_rightBox)
+                
+                self.dbase_tabs_editor_file_layout_widget = QWidget()
+                self.dbase_tabs_editor_file_layout_widget.setLayout(self.dbase_tabs_editor_file_layout)
+                
+                self.dbase_tabs_editor.addTab(self.dbase_tabs_editor_file_layout_widget, filename)
+                
+                self.focused_widget = self.dbase_tabs_editor_tabs_editor
+                
+            elif text[0] == "label 2":
+                self.checkBeforeSave()
+    
     def handleDBase(self):
         self.dbase_tabs = QTabWidget()
         self.dbase_tabs.setStyleSheet(_(genv.css_tabs))
@@ -9497,13 +9650,38 @@ class FileWatcherGUI(QDialog):
         except Exception as e:
             print(e)
         ####
-        self.dbase_tabs_editors_layout = QVBoxLayout()
-        self.dbase_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        self.dbase_tabs_editor_vlayout = QVBoxLayout(self.dbase_tabs_editors_widget)
+        self.dbase_tabs_editor = QTabWidget()
+        self.dbase_tabs_editor.setStyleSheet(_(genv.css_tabs))
         
-        self.dbase_tabs_editor_menu = QWidget()
+        self.dbase_tabs_editor_menu = QListWidget()
+        self.dbase_tabs_editor_menu.setContentsMargins(0,0,0,0)
+        self.dbase_tabs_editor_menu.setFlow(QListWidget.LeftToRight)
         self.dbase_tabs_editor_menu.setStyleSheet("background-color:gray;")
         self.dbase_tabs_editor_menu.setMinimumHeight(64)
         self.dbase_tabs_editor_menu.setMaximumHeight(64)
+        
+        self.dbase_custom_widget0 = ButtonWidget("label 1:")
+        self.dbase_custom_widget1 = ButtonWidget("label 2:")
+        self.dbase_custom_widget2 = ButtonWidget("label 3:")
+        
+        self.dbase_widget0_list_item = QListWidgetItem(self.dbase_tabs_editor_menu)
+        self.dbase_widget0_list_item.setSizeHint(self.dbase_custom_widget0.sizeHint())
+        
+        self.dbase_widget1_list_item = QListWidgetItem(self.dbase_tabs_editor_menu)
+        self.dbase_widget1_list_item.setSizeHint(self.dbase_custom_widget1.sizeHint())
+        
+        self.dbase_widget2_list_item = QListWidgetItem(self.dbase_tabs_editor_menu)
+        self.dbase_widget2_list_item.setSizeHint(self.dbase_custom_widget2.sizeHint())
+        
+        self.dbase_tabs_editor_menu.setItemWidget(self.dbase_widget0_list_item, self.dbase_custom_widget0)
+        self.dbase_tabs_editor_menu.setItemWidget(self.dbase_widget1_list_item, self.dbase_custom_widget1)
+        self.dbase_tabs_editor_menu.setItemWidget(self.dbase_widget2_list_item, self.dbase_custom_widget2)
+        
+        self.dbase_tabs_editor_menu.itemClicked.connect(self.on_dbase_menu_item_clicked)
+        
+        self.dbase_tabs_editor_vlayout.addWidget(self.dbase_tabs_editor_menu)
+        self.dbase_tabs_editor_vlayout.addWidget(self.dbase_tabs_editor)
         #
         ####
         self.dbase_tabs_data_tables_layout = QVBoxLayout()
@@ -9521,29 +9699,6 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_reports_menu.setStyleSheet("background-color:gray;")
         self.dbase_tabs_reports_menu.setMinimumHeight(64)
         #
-        
-        self.dbase_tabs_files   = QTabWidget()
-        self.dbase_tabs_files.setStyleSheet(_(genv.css_tabs))
-        
-        self.dbase_file_hlay = QHBoxLayout()
-        
-        custom_widget0 = CustomWidget0(self, self.dbase_tabs_files, self.dbase_tabs_editors_layout)
-        custom_widget1 = CustomWidget1(self)
-        custom_widget2 = CustomWidget2(self)
-        
-        self.dbase_file_hlay.addWidget(custom_widget0)
-        self.dbase_file_hlay.addWidget(custom_widget1)
-        self.dbase_file_hlay.addWidget(custom_widget2)
-        self.dbase_file_hlay.addStretch()
-        #
-        self.dbase_tabs_editor_menu.setLayout(self.dbase_file_hlay)
-        #
-        self.dbase_tabs_dummy = QWidget()
-        
-        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_editor_menu)
-        #self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_dummy)
-        self.dbase_tabs_editors_layout.addStretch()
-        self.dbase_tabs_editors_widget.setLayout(self.dbase_tabs_editors_layout)
         #
         ####
         self.dbase_builder_layout = QVBoxLayout()
@@ -9631,6 +9786,34 @@ class FileWatcherGUI(QDialog):
         sourceDialog.exec_()
     
     # pascal
+    def on_pascal_menu_item_clicked(self, item):
+        widget = self.pascal_tabs_editor_menu.itemWidget(item)
+        if widget:
+            text = widget.objectName()
+            text = text.split(':')
+            if text[0] == "label 1":
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
+                if len(filename) < 1:
+                    return
+                widget.setObjectName('label 1:' + file_path)
+                
+                self.pascal_tabs_editor_widget = QWidget()
+                
+                self.pascal_tabs_editor_file_layout   = QHBoxLayout()
+                self.pascal_tabs_editor_tabs_editor   = EditorTextEdit(self, file_path)
+                self.pascal_tabs_editor_tabs_rightBox = EditorTranslate(self)
+                #
+                self.pascal_tabs_editor_file_layout.addWidget(self.pascal_tabs_editor_tabs_editor)
+                self.pascal_tabs_editor_file_layout.addWidget(self.pascal_tabs_editor_tabs_rightBox)
+                
+                self.pascal_tabs_editor_file_layout_widget = QWidget()
+                self.pascal_tabs_editor_file_layout_widget.setLayout(self.pascal_tabs_editor_file_layout)
+                
+                self.pascal_tabs_editor.addTab(self.pascal_tabs_editor_file_layout_widget, filename)
+                
+                self.focused_widget = self.pascal_tabs_editor_tabs_editor
+    
     def handlePascal(self):
         self.pascal_tabs = QTabWidget()
         self.pascal_tabs.setStyleSheet(_(genv.css_tabs))
@@ -9656,34 +9839,38 @@ class FileWatcherGUI(QDialog):
         except Exception as e:
             print(e)
         ####
-        self.pascal_tabs_editors_layout = QVBoxLayout()
-        self.pascal_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        self.pascal_tabs_editor_vlayout = QVBoxLayout(self.pascal_tabs_editors_widget)
+        self.pascal_tabs_editor = QTabWidget()
+        self.pascal_tabs_editor.setStyleSheet(_(genv.css_tabs))
         
-        self.pascal_tabs_editor_menu = QWidget()
+        self.pascal_tabs_editor_menu = QListWidget()
+        self.pascal_tabs_editor_menu.setContentsMargins(0,0,0,0)
+        self.pascal_tabs_editor_menu.setFlow(QListWidget.LeftToRight)
         self.pascal_tabs_editor_menu.setStyleSheet("background-color:gray;")
         self.pascal_tabs_editor_menu.setMinimumHeight(64)
         self.pascal_tabs_editor_menu.setMaximumHeight(64)
-        #
-        ####
-        self.pascal_tabs_files   = QTabWidget()
-        self.pascal_tabs_files.setStyleSheet(_(genv.css_tabs))
         
-        self.pascal_file_hlay = QHBoxLayout()
+        self.pascal_custom_widget0 = ButtonWidget("label 1:")
+        self.pascal_custom_widget1 = ButtonWidget("label 2:")
+        self.pascal_custom_widget2 = ButtonWidget("label 3:")
         
-        custom_widget0 = CustomWidget0(self, self.pascal_tabs_files, self.pascal_tabs_editors_layout)
-        custom_widget1 = CustomWidget1(self)
-        custom_widget2 = CustomWidget2(self)
+        self.pascal_widget0_list_item = QListWidgetItem(self.pascal_tabs_editor_menu)
+        self.pascal_widget0_list_item.setSizeHint(self.pascal_custom_widget0.sizeHint())
         
-        self.pascal_file_hlay.addWidget(custom_widget0)
-        self.pascal_file_hlay.addWidget(custom_widget1)
-        self.pascal_file_hlay.addWidget(custom_widget2)
-        self.pascal_file_hlay.addStretch()
-        #
-        self.pascal_tabs_editor_menu.setLayout(self.pascal_file_hlay)
-        #
-        self.pascal_tabs_editors_layout.addWidget(self.pascal_tabs_editor_menu)
-        self.pascal_tabs_editors_layout.addStretch()
-        self.pascal_tabs_editors_widget.setLayout(self.pascal_tabs_editors_layout)
+        self.pascal_widget1_list_item = QListWidgetItem(self.pascal_tabs_editor_menu)
+        self.pascal_widget1_list_item.setSizeHint(self.pascal_custom_widget1.sizeHint())
+        
+        self.pascal_widget2_list_item = QListWidgetItem(self.pascal_tabs_editor_menu)
+        self.pascal_widget2_list_item.setSizeHint(self.pascal_custom_widget2.sizeHint())
+        
+        self.pascal_tabs_editor_menu.setItemWidget(self.pascal_widget0_list_item, self.pascal_custom_widget0)
+        self.pascal_tabs_editor_menu.setItemWidget(self.pascal_widget1_list_item, self.pascal_custom_widget1)
+        self.pascal_tabs_editor_menu.setItemWidget(self.pascal_widget2_list_item, self.pascal_custom_widget2)
+        
+        self.pascal_tabs_editor_menu.itemClicked.connect(self.on_pascal_menu_item_clicked)
+        
+        self.pascal_tabs_editor_vlayout.addWidget(self.pascal_tabs_editor_menu)
+        self.pascal_tabs_editor_vlayout.addWidget(self.pascal_tabs_editor)
         #
         ####
         self.pascal_designer = designerWindow(
@@ -9693,6 +9880,34 @@ class FileWatcherGUI(QDialog):
             self.pascal_tabs)
     
     # isoc
+    def on_isoc_menu_item_clicked(self, item):
+        widget = self.isoc_tabs_editor_menu.itemWidget(item)
+        if widget:
+            text = widget.objectName()
+            text = text.split(':')
+            if text[0] == "label 1":
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
+                if len(filename) < 1:
+                    return
+                widget.setObjectName('label 1:' + file_path)
+                
+                self.isoc_tabs_editor_widget = QWidget()
+                
+                self.isoc_tabs_editor_file_layout   = QHBoxLayout()
+                self.isoc_tabs_editor_tabs_editor   = EditorTextEdit(self, file_path)
+                self.isoc_tabs_editor_tabs_rightBox = EditorTranslate(self)
+                #
+                self.isoc_tabs_editor_file_layout.addWidget(self.isoc_tabs_editor_tabs_editor)
+                self.isoc_tabs_editor_file_layout.addWidget(self.isoc_tabs_editor_tabs_rightBox)
+                
+                self.isoc_tabs_editor_file_layout_widget = QWidget()
+                self.isoc_tabs_editor_file_layout_widget.setLayout(self.isoc_tabs_editor_file_layout)
+                
+                self.isoc_tabs_editor.addTab(self.isoc_tabs_editor_file_layout_widget, filename)
+                
+                self.focused_widget = self.isoc_tabs_editor_tabs_editor
+    
     def handleIsoC(self):
         self.isoc_tabs = QTabWidget()
         self.isoc_tabs.setStyleSheet(_(genv.css_tabs))
@@ -9718,34 +9933,38 @@ class FileWatcherGUI(QDialog):
         except Exception as e:
             print(e)
         ####
-        self.isoc_tabs_editors_layout = QVBoxLayout()
-        self.isoc_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        self.isoc_tabs_editor_vlayout = QVBoxLayout(self.isoc_tabs_editors_widget)
+        self.isoc_tabs_editor = QTabWidget()
+        self.isoc_tabs_editor.setStyleSheet(_(genv.css_tabs))
         
-        self.isoc_tabs_editor_menu = QWidget()
+        self.isoc_tabs_editor_menu = QListWidget()
+        self.isoc_tabs_editor_menu.setContentsMargins(0,0,0,0)
+        self.isoc_tabs_editor_menu.setFlow(QListWidget.LeftToRight)
         self.isoc_tabs_editor_menu.setStyleSheet("background-color:gray;")
         self.isoc_tabs_editor_menu.setMinimumHeight(64)
         self.isoc_tabs_editor_menu.setMaximumHeight(64)
-        #
-        ####
-        self.isoc_tabs_files   = QTabWidget()
-        self.isoc_tabs_files.setStyleSheet(_(genv.css_tabs))
         
-        self.isoc_file_hlay = QHBoxLayout()
+        self.isoc_custom_widget0 = ButtonWidget("label 1:")
+        self.isoc_custom_widget1 = ButtonWidget("label 2:")
+        self.isoc_custom_widget2 = ButtonWidget("label 3:")
         
-        custom_widget0 = CustomWidget0(self, self.isoc_tabs_files, self.isoc_tabs_editors_layout)
-        custom_widget1 = CustomWidget1(self)
-        custom_widget2 = CustomWidget2(self)
+        self.isoc_widget0_list_item = QListWidgetItem(self.isoc_tabs_editor_menu)
+        self.isoc_widget0_list_item.setSizeHint(self.isoc_custom_widget0.sizeHint())
         
-        self.isoc_file_hlay.addWidget(custom_widget0)
-        self.isoc_file_hlay.addWidget(custom_widget1)
-        self.isoc_file_hlay.addWidget(custom_widget2)
-        self.isoc_file_hlay.addStretch()
-        #
-        self.isoc_tabs_editor_menu.setLayout(self.isoc_file_hlay)
-        #
-        self.isoc_tabs_editors_layout.addWidget(self.isoc_tabs_editor_menu)
-        self.isoc_tabs_editors_layout.addStretch()
-        self.isoc_tabs_editors_widget.setLayout(self.isoc_tabs_editors_layout)
+        self.isoc_widget1_list_item = QListWidgetItem(self.isoc_tabs_editor_menu)
+        self.isoc_widget1_list_item.setSizeHint(self.isoc_custom_widget1.sizeHint())
+        
+        self.isoc_widget2_list_item = QListWidgetItem(self.isoc_tabs_editor_menu)
+        self.isoc_widget2_list_item.setSizeHint(self.isoc_custom_widget2.sizeHint())
+        
+        self.isoc_tabs_editor_menu.setItemWidget(self.isoc_widget0_list_item, self.isoc_custom_widget0)
+        self.isoc_tabs_editor_menu.setItemWidget(self.isoc_widget1_list_item, self.isoc_custom_widget1)
+        self.isoc_tabs_editor_menu.setItemWidget(self.isoc_widget2_list_item, self.isoc_custom_widget2)
+        
+        self.isoc_tabs_editor_menu.itemClicked.connect(self.on_isoc_menu_item_clicked)
+        
+        self.isoc_tabs_editor_vlayout.addWidget(self.isoc_tabs_editor_menu)
+        self.isoc_tabs_editor_vlayout.addWidget(self.isoc_tabs_editor)
         #
         #######
         self.isoc_designer = designerWindow(
@@ -9755,6 +9974,34 @@ class FileWatcherGUI(QDialog):
             self.isoc_tabs)
     
     # java
+    def on_java_menu_item_clicked(self, item):
+        widget = self.java_tabs_editor_menu.itemWidget(item)
+        if widget:
+            text = widget.objectName()
+            text = text.split(':')
+            if text[0] == "label 1":
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
+                if len(filename) < 1:
+                    return
+                widget.setObjectName('label 1:' + file_path)
+                
+                self.java_tabs_editor_widget = QWidget()
+                
+                self.java_tabs_editor_file_layout   = QHBoxLayout()
+                self.java_tabs_editor_tabs_editor   = EditorTextEdit(self, file_path)
+                self.java_tabs_editor_tabs_rightBox = EditorTranslate(self)
+                #
+                self.java_tabs_editor_file_layout.addWidget(self.java_tabs_editor_tabs_editor)
+                self.java_tabs_editor_file_layout.addWidget(self.java_tabs_editor_tabs_rightBox)
+                
+                self.java_tabs_editor_file_layout_widget = QWidget()
+                self.java_tabs_editor_file_layout_widget.setLayout(self.java_tabs_editor_file_layout)
+                
+                self.java_tabs_editor.addTab(self.java_tabs_editor_file_layout_widget, filename)
+                
+                self.focused_widget = self.java_tabs_editor_tabs_editor
+    
     def handleJava(self):
         # java
         self.java_tabs = QTabWidget()
@@ -9781,34 +10028,38 @@ class FileWatcherGUI(QDialog):
         except Exception as e:
             print(e)
         ####
-        self.java_tabs_editors_layout = QVBoxLayout()
-        self.java_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        self.java_tabs_editor_vlayout = QVBoxLayout(self.java_tabs_editors_widget)
+        self.java_tabs_editor = QTabWidget()
+        self.java_tabs_editor.setStyleSheet(_(genv.css_tabs))
         
-        self.java_tabs_editor_menu = QWidget()
+        self.java_tabs_editor_menu = QListWidget()
+        self.java_tabs_editor_menu.setContentsMargins(0,0,0,0)
+        self.java_tabs_editor_menu.setFlow(QListWidget.LeftToRight)
         self.java_tabs_editor_menu.setStyleSheet("background-color:gray;")
         self.java_tabs_editor_menu.setMinimumHeight(64)
         self.java_tabs_editor_menu.setMaximumHeight(64)
-        #
-        ####
-        self.java_tabs_files   = QTabWidget()
-        self.java_tabs_files.setStyleSheet(_(genv.css_tabs))
         
-        self.java_file_hlay = QHBoxLayout()
+        self.java_custom_widget0 = ButtonWidget("label 1:")
+        self.java_custom_widget1 = ButtonWidget("label 2:")
+        self.java_custom_widget2 = ButtonWidget("label 3:")
         
-        custom_widget0 = CustomWidget0(self, self.java_tabs_files, self.java_tabs_editors_layout)
-        custom_widget1 = CustomWidget1(self)
-        custom_widget2 = CustomWidget2(self)
+        self.java_widget0_list_item = QListWidgetItem(self.java_tabs_editor_menu)
+        self.java_widget0_list_item.setSizeHint(self.java_custom_widget0.sizeHint())
         
-        self.java_file_hlay.addWidget(custom_widget0)
-        self.java_file_hlay.addWidget(custom_widget1)
-        self.java_file_hlay.addWidget(custom_widget2)
-        self.java_file_hlay.addStretch()
-        #
-        self.java_tabs_editor_menu.setLayout(self.java_file_hlay)
-        #
-        self.java_tabs_editors_layout.addWidget(self.java_tabs_editor_menu)
-        self.java_tabs_editors_layout.addStretch()
-        self.java_tabs_editors_widget.setLayout(self.java_tabs_editors_layout)
+        self.java_widget1_list_item = QListWidgetItem(self.java_tabs_editor_menu)
+        self.java_widget1_list_item.setSizeHint(self.java_custom_widget1.sizeHint())
+        
+        self.java_widget2_list_item = QListWidgetItem(self.java_tabs_editor_menu)
+        self.java_widget2_list_item.setSizeHint(self.java_custom_widget2.sizeHint())
+        
+        self.java_tabs_editor_menu.setItemWidget(self.java_widget0_list_item, self.java_custom_widget0)
+        self.java_tabs_editor_menu.setItemWidget(self.java_widget1_list_item, self.java_custom_widget1)
+        self.java_tabs_editor_menu.setItemWidget(self.java_widget2_list_item, self.java_custom_widget2)
+        
+        self.java_tabs_editor_menu.itemClicked.connect(self.on_java_menu_item_clicked)
+        
+        self.java_tabs_editor_vlayout.addWidget(self.java_tabs_editor_menu)
+        self.java_tabs_editor_vlayout.addWidget(self.java_tabs_editor)
         #
         ####
         self.java_designer = designerWindow(
@@ -9818,6 +10069,34 @@ class FileWatcherGUI(QDialog):
             self.java_tabs)
     
     # python
+    def on_python_menu_item_clicked(self, item):
+        widget = self.python_tabs_editor_menu.itemWidget(item)
+        if widget:
+            text = widget.objectName()
+            text = text.split(':')
+            if text[0] == "label 1":
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
+                if len(filename) < 1:
+                    return
+                widget.setObjectName('label 1:' + file_path)
+                
+                self.python_tabs_editor_widget = QWidget()
+                
+                self.python_tabs_editor_file_layout   = QHBoxLayout()
+                self.python_tabs_editor_tabs_editor   = EditorTextEdit(self, file_path)
+                self.python_tabs_editor_tabs_rightBox = EditorTranslate(self)
+                #
+                self.python_tabs_editor_file_layout.addWidget(self.python_tabs_editor_tabs_editor)
+                self.python_tabs_editor_file_layout.addWidget(self.python_tabs_editor_tabs_rightBox)
+                
+                self.python_tabs_editor_file_layout_widget = QWidget()
+                self.python_tabs_editor_file_layout_widget.setLayout(self.python_tabs_editor_file_layout)
+                
+                self.python_tabs_editor.addTab(self.python_tabs_editor_file_layout_widget, filename)
+                
+                self.focused_widget = self.python_tabs_editor_tabs_editor
+    
     def handlePython(self):
         self.python_tabs = QTabWidget()
         self.python_tabs.setStyleSheet(_(genv.css_tabs))
@@ -9843,34 +10122,38 @@ class FileWatcherGUI(QDialog):
         except Exception as e:
             print(e)
         ####
-        self.python_tabs_editors_layout = QVBoxLayout()
-        self.python_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        self.python_tabs_editor_vlayout = QVBoxLayout(self.python_tabs_editors_widget)
+        self.python_tabs_editor = QTabWidget()
+        self.python_tabs_editor.setStyleSheet(_(genv.css_tabs))
         
-        self.python_tabs_editor_menu = QWidget()
+        self.python_tabs_editor_menu = QListWidget()
+        self.python_tabs_editor_menu.setContentsMargins(0,0,0,0)
+        self.python_tabs_editor_menu.setFlow(QListWidget.LeftToRight)
         self.python_tabs_editor_menu.setStyleSheet("background-color:gray;")
         self.python_tabs_editor_menu.setMinimumHeight(64)
         self.python_tabs_editor_menu.setMaximumHeight(64)
-        #
-        ####
-        self.python_tabs_files   = QTabWidget()
-        self.python_tabs_files.setStyleSheet(_(genv.css_tabs))
         
-        self.python_file_hlay = QHBoxLayout()
+        self.python_custom_widget0 = ButtonWidget("label 1:")
+        self.python_custom_widget1 = ButtonWidget("label 2:")
+        self.python_custom_widget2 = ButtonWidget("label 3:")
         
-        custom_widget0 = CustomWidget0(self, self.python_tabs_files, self.python_tabs_editors_layout)
-        custom_widget1 = CustomWidget1(self)
-        custom_widget2 = CustomWidget2(self)
+        self.python_widget0_list_item = QListWidgetItem(self.python_tabs_editor_menu)
+        self.python_widget0_list_item.setSizeHint(self.python_custom_widget0.sizeHint())
         
-        self.python_file_hlay.addWidget(custom_widget0)
-        self.python_file_hlay.addWidget(custom_widget1)
-        self.python_file_hlay.addWidget(custom_widget2)
-        self.python_file_hlay.addStretch()
-        #
-        self.python_tabs_editor_menu.setLayout(self.python_file_hlay)
-        #
-        self.python_tabs_editors_layout.addWidget(self.python_tabs_editor_menu)
-        self.python_tabs_editors_layout.addStretch()
-        self.python_tabs_editors_widget.setLayout(self.python_tabs_editors_layout)
+        self.python_widget1_list_item = QListWidgetItem(self.python_tabs_editor_menu)
+        self.python_widget1_list_item.setSizeHint(self.python_custom_widget1.sizeHint())
+        
+        self.python_widget2_list_item = QListWidgetItem(self.python_tabs_editor_menu)
+        self.python_widget2_list_item.setSizeHint(self.python_custom_widget2.sizeHint())
+        
+        self.python_tabs_editor_menu.setItemWidget(self.python_widget0_list_item, self.python_custom_widget0)
+        self.python_tabs_editor_menu.setItemWidget(self.python_widget1_list_item, self.python_custom_widget1)
+        self.python_tabs_editor_menu.setItemWidget(self.python_widget2_list_item, self.python_custom_widget2)
+        
+        self.python_tabs_editor_menu.itemClicked.connect(self.on_python_menu_item_clicked)
+        
+        self.python_tabs_editor_vlayout.addWidget(self.python_tabs_editor_menu)
+        self.python_tabs_editor_vlayout.addWidget(self.python_tabs_editor)
         #
         ####
         self.python_designer = designerWindow(
@@ -9880,6 +10163,34 @@ class FileWatcherGUI(QDialog):
             self.python_tabs)
     
     # lisp
+    def on_lisp_menu_item_clicked(self, item):
+        widget = self.lisp_tabs_editor_menu.itemWidget(item)
+        if widget:
+            text = widget.objectName()
+            text = text.split(':')
+            if text[0] == "label 1":
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
+                if len(filename) < 1:
+                    return
+                widget.setObjectName('label 1:' + file_path)
+                
+                self.lisp_tabs_editor_widget = QWidget()
+                
+                self.lisp_tabs_editor_file_layout   = QHBoxLayout()
+                self.lisp_tabs_editor_tabs_editor   = EditorTextEdit(self, file_path)
+                self.lisp_tabs_editor_tabs_rightBox = EditorTranslate(self)
+                #
+                self.lisp_tabs_editor_file_layout.addWidget(self.lisp_tabs_editor_tabs_editor)
+                self.lisp_tabs_editor_file_layout.addWidget(self.lisp_tabs_editor_tabs_rightBox)
+                
+                self.lisp_tabs_editor_file_layout_widget = QWidget()
+                self.lisp_tabs_editor_file_layout_widget.setLayout(self.lisp_tabs_editor_file_layout)
+                
+                self.lisp_tabs_editor.addTab(self.lisp_tabs_editor_file_layout_widget, filename)
+                
+                self.focused_widget = self.lisp_tabs_editor_tabs_editor
+    
     def handleLISP(self):
         self.lisp_tabs = QTabWidget()
         self.lisp_tabs.setStyleSheet(_(genv.css_tabs))
@@ -9905,34 +10216,38 @@ class FileWatcherGUI(QDialog):
         except Exception as e:
             print(e)
         ####
-        self.lisp_tabs_editors_layout = QVBoxLayout()
-        self.lisp_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        self.lisp_tabs_editor_vlayout = QVBoxLayout(self.lisp_tabs_editors_widget)
+        self.lisp_tabs_editor = QTabWidget()
+        self.lisp_tabs_editor.setStyleSheet(_(genv.css_tabs))
         
-        self.lisp_tabs_editor_menu = QWidget()
+        self.lisp_tabs_editor_menu = QListWidget()
+        self.lisp_tabs_editor_menu.setContentsMargins(0,0,0,0)
+        self.lisp_tabs_editor_menu.setFlow(QListWidget.LeftToRight)
         self.lisp_tabs_editor_menu.setStyleSheet("background-color:gray;")
         self.lisp_tabs_editor_menu.setMinimumHeight(64)
         self.lisp_tabs_editor_menu.setMaximumHeight(64)
-        #
-        ####
-        self.lisp_tabs_files   = QTabWidget()
-        self.lisp_tabs_files.setStyleSheet(_(genv.css_tabs))
         
-        self.lisp_file_hlay = QHBoxLayout()
+        self.lisp_custom_widget0 = ButtonWidget("label 1:")
+        self.lisp_custom_widget1 = ButtonWidget("label 2:")
+        self.lisp_custom_widget2 = ButtonWidget("label 3:")
         
-        custom_widget0 = CustomWidget0(self, self.lisp_tabs_files, self.lisp_tabs_editors_layout)
-        custom_widget1 = CustomWidget1(self)
-        custom_widget2 = CustomWidget2(self)
+        self.lisp_widget0_list_item = QListWidgetItem(self.lisp_tabs_editor_menu)
+        self.lisp_widget0_list_item.setSizeHint(self.lisp_custom_widget0.sizeHint())
         
-        self.lisp_file_hlay.addWidget(custom_widget0)
-        self.lisp_file_hlay.addWidget(custom_widget1)
-        self.lisp_file_hlay.addWidget(custom_widget2)
-        self.lisp_file_hlay.addStretch()
-        #
-        self.lisp_tabs_editor_menu.setLayout(self.lisp_file_hlay)
-        #
-        self.lisp_tabs_editors_layout.addWidget(self.lisp_tabs_editor_menu)
-        self.lisp_tabs_editors_layout.addStretch()
-        self.lisp_tabs_editors_widget.setLayout(self.lisp_tabs_editors_layout)
+        self.lisp_widget1_list_item = QListWidgetItem(self.lisp_tabs_editor_menu)
+        self.lisp_widget1_list_item.setSizeHint(self.lisp_custom_widget1.sizeHint())
+        
+        self.lisp_widget2_list_item = QListWidgetItem(self.lisp_tabs_editor_menu)
+        self.lisp_widget2_list_item.setSizeHint(self.lisp_custom_widget2.sizeHint())
+        
+        self.lisp_tabs_editor_menu.setItemWidget(self.lisp_widget0_list_item, self.lisp_custom_widget0)
+        self.lisp_tabs_editor_menu.setItemWidget(self.lisp_widget1_list_item, self.lisp_custom_widget1)
+        self.lisp_tabs_editor_menu.setItemWidget(self.lisp_widget2_list_item, self.lisp_custom_widget2)
+        
+        self.lisp_tabs_editor_menu.itemClicked.connect(self.on_lisp_menu_item_clicked)
+        
+        self.lisp_tabs_editor_vlayout.addWidget(self.lisp_tabs_editor_menu)
+        self.lisp_tabs_editor_vlayout.addWidget(self.lisp_tabs_editor)
         #
         ####
         self.lisp_designer = designerWindow(
@@ -10033,6 +10348,17 @@ class FileWatcherGUI(QDialog):
         self.setup_tabs.addTab(self.setup_tabs_chm_widget, _("Setup"))
         ###
         self.main_layout.addWidget(self.setup_tabs)
+        return
+    
+    def handleCertSSL(self):
+        self.certssl_tabs = QTabWidget()
+        self.certssl_tabs.setStyleSheet(_(genv.css_tabs))
+        self.certssl_tabs.hide()
+        
+        self.certssl_tabs_chm_widget = QWidget()
+        self.certssl_tabs.addTab(self.certssl_tabs_chm_widget, _("SSL Cert"))
+        ###
+        self.main_layout.addWidget(self.certssl_tabs)
         return
     
     def handleGitHub(self):
