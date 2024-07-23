@@ -118,6 +118,7 @@ class globalEnv:
         self.v__app__console__  = im_path + "console"
         self.v__app__todopro__  = im_path + "todo"
         self.v__app__setupro__  = im_path + "setup"
+        self.v__app__githubp__  = im_path + "github"
         self.v__app__apache2__  = im_path + "apache"
         self.v__app__mysqlcf__  = im_path + "mysql"
         self.v__app__squidwp__  = im_path + "squid"
@@ -2789,14 +2790,16 @@ class myIconLabel(QLabel):
             elif self.mode == 13:
                 self.btn_clicked(self.parent,parent.setup_tabs)
             elif self.mode == 14:
-                self.btn_clicked(self.parent,parent.apache_tabs)
+                self.btn_clicked(self.parent,parent.github_tabs)
             elif self.mode == 15:
-                self.btn_clicked(self.parent,parent.mysql_tabs)
+                self.btn_clicked(self.parent,parent.apache_tabs)
             elif self.mode == 16:
-                self.btn_clicked(self.parent,parent.squid_tabs)
+                self.btn_clicked(self.parent,parent.mysql_tabs)
             elif self.mode == 17:
-                self.btn_clicked(self.parent,parent.c64_tabs)
+                self.btn_clicked(self.parent,parent.squid_tabs)
             elif self.mode == 18:
+                self.btn_clicked(self.parent,parent.c64_tabs)
+            elif self.mode == 19:
                 self.btn_clicked(self.parent,parent.settings_tabs)
     
     def enterEvent(self, event):
@@ -2819,6 +2822,7 @@ class myIconLabel(QLabel):
         parent.console_tabs.hide()
         parent.todo_tabs.hide()
         parent.setup_tabs.hide()
+        parent.github_tabs.hide()
         parent.apache_tabs.hide()
         parent.mysql_tabs.hide()
         parent.squid_tabs.hide()
@@ -2854,7 +2858,8 @@ class myIconLabel(QLabel):
             parent.side_btnC,
             parent.side_btnD,
             parent.side_btnE,
-            parent.side_btnF
+            parent.side_btnF,
+            parent.side_btnG
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -2942,18 +2947,21 @@ class myIconButton(QWidget):
             self.image_fg = ptx + genv.v__app__setupro__ + fg
             self.image_bg = ptx + genv.v__app__setupro__ + bg
         elif mode == 14:
+            self.image_fg = ptx + genv.v__app__githubp__ + fg
+            self.image_bg = ptx + genv.v__app__githubp__ + bg
+        elif mode == 15:
             self.image_fg = ptx + genv.v__app__apache2__ + fg
             self.image_bg = ptx + genv.v__app__apache2__ + bg
-        elif mode == 15:
+        elif mode == 16:
             self.image_fg = ptx + genv.v__app__mysqlcf__ + fg
             self.image_bg = ptx + genv.v__app__mysqlcf__ + bg
-        elif mode == 16:
+        elif mode == 17:
             self.image_fg = ptx + genv.v__app__squidwp__ + fg
             self.image_bg = ptx + genv.v__app__squidwp__ + bg
-        elif mode == 17:
+        elif mode == 18:
             self.image_fg = ptx + genv.v__app__com_c64__ + fg
             self.image_bg = ptx + genv.v__app__com_c64__ + bg
-        elif mode == 18:
+        elif mode == 19:
             self.image_fg = ptx + genv.v__app__com_set__ + fg
             self.image_bg = ptx + genv.v__app__com_set__ + bg
         
@@ -6604,6 +6612,8 @@ class CustomWidget0(QWidget):
         self.parent_class.python_tabs.hide()
         self.parent_class.lisp_tabs.hide()
         self.parent_class.locale_tabs.hide()
+        self.parent_class.setup_tabs.hide()
+        self.parent_class.github_tabs.hide()
         self.parent_class.apache_tabs.hide()
         self.parent_class.mysql_tabs.hide()
         self.parent_class.squid_tabs.hide()
@@ -6633,7 +6643,8 @@ class CustomWidget0(QWidget):
             parent.side_btnC,
             parent.side_btnD,
             parent.side_btnE,
-            parent.side_btnF
+            parent.side_btnF,
+            parent.side_btnG
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -8487,11 +8498,12 @@ class FileWatcherGUI(QDialog):
         self.side_btn9 = myIconButton(self,  11, "Console", "Your classical style of commands")
         self.side_btnA = myIconButton(self,  12, "Todo / Tasks", "Your todo's")
         self.side_btnB = myIconButton(self,  13, "Setup", "Setup your Project")
-        self.side_btnC = myIconButton(self,  14, "Apache", "Configure Apache 2")
-        self.side_btnD = myIconButton(self,  15, "MySQL", "Configure MySQL")
-        self.side_btnE = myIconButton(self,  16, "Squid", "Configure Squid")
-        self.side_btnF = myIconButton(self,  17, "C-64", "The most popular Commodore C-64\from int the 1980er")
-        self.side_btnG = myIconButton(self,  18, _("Settings")   , _("Settings for this Application\n\n"))
+        self.side_btnC = myIconButton(self,  14, "GitHub.com", "Publish Project")
+        self.side_btnD = myIconButton(self,  15, "Apache", "Configure Apache 2")
+        self.side_btnE = myIconButton(self,  16, "MySQL", "Configure MySQL")
+        self.side_btnF = myIconButton(self,  17, "Squid", "Configure Squid")
+        self.side_btnG = myIconButton(self,  18, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btnH = myIconButton(self,  19, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn1.bordercolor = "lime"
         self.side_btn1.state       = 2
@@ -8522,6 +8534,7 @@ class FileWatcherGUI(QDialog):
         self.handleConsole()
         self.handleTodo()
         self.handleSetup()
+        self.handleGitHub()
         self.handleApache()
         self.handleMySQL()
         self.handleSquid()
@@ -10020,6 +10033,17 @@ class FileWatcherGUI(QDialog):
         self.setup_tabs.addTab(self.setup_tabs_chm_widget, _("Setup"))
         ###
         self.main_layout.addWidget(self.setup_tabs)
+        return
+    
+    def handleGitHub(self):
+        self.github_tabs = QTabWidget()
+        self.github_tabs.setStyleSheet(_(genv.css_tabs))
+        self.github_tabs.hide()
+        
+        self.github_tabs_chm_widget = QWidget()
+        self.github_tabs.addTab(self.github_tabs_chm_widget, _("GitHub"))
+        ###
+        self.main_layout.addWidget(self.github_tabs)
         return
     
     def handleApache(self):
