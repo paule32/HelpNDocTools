@@ -103,24 +103,30 @@ class globalEnv:
         # ---------------------------------------------------------------------------
         self.HelpAuthoringConverterMode = 0
         
-        self.v__app__doxygen__    = im_path + "doxygen"
-        self.v__app__hlpndoc__    = im_path + "helpndoc"
-        self.v__app__helpdev__    = im_path + "help"
-        self.v__app__pythonc__    = im_path + "python"
-        self.v__app__lispmod__    = im_path + "lisp"
-        self.v__app__ccpplus__    = im_path + "cpp"
-        self.v__app__cpp1dev__    = im_path + "c"
-        self.v__app__dbasedb__    = im_path + "dbase"
-        self.v__app__javadev__    = im_path + "java"
-        self.v__app__javadoc__    = im_path + "javadoc"
-        self.v__app__freepas__    = im_path + "freepas"
-        self.v__app__locales__    = im_path + "locales"
-        self.v__app__com_c64__    = im_path + "c64"
-        self.v__app__com_set__    = im_path + "settings"
-        self.v__app__keybc64__    = im_path + "c64keyboard.png"
-        self.v__app__discc64__    = im_path + "disk2.png"
-        self.v__app__datmc64__    = im_path + "mc2.png"
-        self.v__app__logoc64__    = im_path + "logo2.png"
+        self.v__app__doxygen__  = im_path + "doxygen"
+        self.v__app__hlpndoc__  = im_path + "helpndoc"
+        self.v__app__helpdev__  = im_path + "help"
+        self.v__app__pythonc__  = im_path + "python"
+        self.v__app__lispmod__  = im_path + "lisp"
+        self.v__app__ccpplus__  = im_path + "cpp"
+        self.v__app__cpp1dev__  = im_path + "c"
+        self.v__app__dbasedb__  = im_path + "dbase"
+        self.v__app__javadev__  = im_path + "java"
+        self.v__app__javadoc__  = im_path + "javadoc"
+        self.v__app__freepas__  = im_path + "freepas"
+        self.v__app__locales__  = im_path + "locales"
+        self.v__app__console__  = im_path + "console"
+        self.v__app__todopro__  = im_path + "todo"
+        self.v__app__setupro__  = im_path + "setup"
+        self.v__app__apache2__  = im_path + "apache"
+        self.v__app__mysqlcf__  = im_path + "mysql"
+        self.v__app__squidwp__  = im_path + "squid"
+        self.v__app__com_c64__  = im_path + "c64"
+        self.v__app__com_set__  = im_path + "settings"
+        self.v__app__keybc64__  = im_path + "c64keyboard.png"
+        self.v__app__discc64__  = im_path + "disk2.png"
+        self.v__app__datmc64__  = im_path + "mc2.png"
+        self.v__app__logoc64__  = im_path + "logo2.png"
         
         # ------------------------------------------------------------------------
         # some state flags ...
@@ -2777,8 +2783,20 @@ class myIconLabel(QLabel):
             elif self.mode == 10:
                 self.btn_clicked(self.parent,parent.locale_tabs)
             elif self.mode == 11:
-                self.btn_clicked(self.parent,parent.c64_tabs)
+                self.btn_clicked(self.parent,parent.console_tabs)
             elif self.mode == 12:
+                self.btn_clicked(self.parent,parent.todo_tabs)
+            elif self.mode == 13:
+                self.btn_clicked(self.parent,parent.setup_tabs)
+            elif self.mode == 14:
+                self.btn_clicked(self.parent,parent.apache_tabs)
+            elif self.mode == 15:
+                self.btn_clicked(self.parent,parent.mysql_tabs)
+            elif self.mode == 16:
+                self.btn_clicked(self.parent,parent.squid_tabs)
+            elif self.mode == 17:
+                self.btn_clicked(self.parent,parent.c64_tabs)
+            elif self.mode == 18:
                 self.btn_clicked(self.parent,parent.settings_tabs)
     
     def enterEvent(self, event):
@@ -2798,6 +2816,12 @@ class myIconLabel(QLabel):
         parent.python_tabs.hide()
         parent.lisp_tabs.hide()
         parent.locale_tabs.hide()
+        parent.console_tabs.hide()
+        parent.todo_tabs.hide()
+        parent.setup_tabs.hide()
+        parent.apache_tabs.hide()
+        parent.mysql_tabs.hide()
+        parent.squid_tabs.hide()
         parent.c64_tabs.hide()
         parent.settings_tabs.hide()
     
@@ -2825,7 +2849,12 @@ class myIconLabel(QLabel):
             parent.side_btn7,
             parent.side_btn8,
             parent.side_btn9,
-            parent.side_btnA
+            parent.side_btnA,
+            parent.side_btnB,
+            parent.side_btnC,
+            parent.side_btnD,
+            parent.side_btnE,
+            parent.side_btnF
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -2904,9 +2933,27 @@ class myIconButton(QWidget):
             self.image_fg = ptx + genv.v__app__locales__ + fg
             self.image_bg = ptx + genv.v__app__locales__ + bg
         elif mode == 11:
+            self.image_fg = ptx + genv.v__app__console__ + fg
+            self.image_bg = ptx + genv.v__app__console__ + bg
+        elif mode == 12:
+            self.image_fg = ptx + genv.v__app__todopro__ + fg
+            self.image_bg = ptx + genv.v__app__todopro__ + bg
+        elif mode == 13:
+            self.image_fg = ptx + genv.v__app__setupro__ + fg
+            self.image_bg = ptx + genv.v__app__setupro__ + bg
+        elif mode == 14:
+            self.image_fg = ptx + genv.v__app__apache2__ + fg
+            self.image_bg = ptx + genv.v__app__apache2__ + bg
+        elif mode == 15:
+            self.image_fg = ptx + genv.v__app__mysqlcf__ + fg
+            self.image_bg = ptx + genv.v__app__mysqlcf__ + bg
+        elif mode == 16:
+            self.image_fg = ptx + genv.v__app__squidwp__ + fg
+            self.image_bg = ptx + genv.v__app__squidwp__ + bg
+        elif mode == 17:
             self.image_fg = ptx + genv.v__app__com_c64__ + fg
             self.image_bg = ptx + genv.v__app__com_c64__ + bg
-        elif mode == 12:
+        elif mode == 18:
             self.image_fg = ptx + genv.v__app__com_set__ + fg
             self.image_bg = ptx + genv.v__app__com_set__ + bg
         
@@ -6557,6 +6604,9 @@ class CustomWidget0(QWidget):
         self.parent_class.python_tabs.hide()
         self.parent_class.lisp_tabs.hide()
         self.parent_class.locale_tabs.hide()
+        self.parent_class.apache_tabs.hide()
+        self.parent_class.mysql_tabs.hide()
+        self.parent_class.squid_tabs.hide()
         self.parent_class.c64_tabs.hide()
         self.parent_class.settings_tabs.hide()
         #
@@ -6578,7 +6628,12 @@ class CustomWidget0(QWidget):
             parent.side_btn7,
             parent.side_btn8,
             parent.side_btn9,
-            parent.side_btnA
+            parent.side_btnA,
+            parent.side_btnB,
+            parent.side_btnC,
+            parent.side_btnD,
+            parent.side_btnE,
+            parent.side_btnF
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -6660,8 +6715,9 @@ class CustomWidget0(QWidget):
         self.file_widget.setLayout(self.file_vlayout)
         
         self.parent_tabs  .addTab   (self.file_widget, filename)
-        self.parent_tabs.setMinimumHeight(460)
+        #self.parent_tabs.setMinimumHeight(460)
         
+        #self.parent_layout.addWidget(self.file_widget)
         self.parent_layout.addWidget(self.parent_tabs)
         self.parent_layout.setAlignment(Qt.AlignTop)
         #
@@ -8428,8 +8484,14 @@ class FileWatcherGUI(QDialog):
             + "around the World.\n"
             + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
         #
-        self.side_btn9 = myIconButton(self,  11, "C-64", "The most popular Commodore C-64\from int the 1980er")
-        self.side_btnA = myIconButton(self,  12, _("Settings")   , _("Settings for this Application\n\n"))
+        self.side_btn9 = myIconButton(self,  11, "Console", "Your classical style of commands")
+        self.side_btnA = myIconButton(self,  12, "Todo / Tasks", "Your todo's")
+        self.side_btnB = myIconButton(self,  13, "Setup", "Setup your Project")
+        self.side_btnC = myIconButton(self,  14, "Apache", "Configure Apache 2")
+        self.side_btnD = myIconButton(self,  15, "MySQL", "Configure MySQL")
+        self.side_btnE = myIconButton(self,  16, "Squid", "Configure Squid")
+        self.side_btnF = myIconButton(self,  17, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btnG = myIconButton(self,  18, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn1.bordercolor = "lime"
         self.side_btn1.state       = 2
@@ -8457,6 +8519,12 @@ class FileWatcherGUI(QDialog):
         self.handlePython()
         self.handleLISP()
         self.handleLocales()
+        self.handleConsole()
+        self.handleTodo()
+        self.handleSetup()
+        self.handleApache()
+        self.handleMySQL()
+        self.handleSquid()
         self.handleCommodoreC64()
         self.handleSettings()
         
@@ -9460,7 +9528,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_dummy = QWidget()
         
         self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_editor_menu)
-        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_dummy)
+        #self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_dummy)
         self.dbase_tabs_editors_layout.addStretch()
         self.dbase_tabs_editors_widget.setLayout(self.dbase_tabs_editors_layout)
         #
@@ -9920,6 +9988,72 @@ class FileWatcherGUI(QDialog):
     
     def downloadCHMTool(self):
         QDesktopServices.openUrl(QUrl("https://learn.microsoft.com/en-us/previous-versions/windows/desktop/htmlhelp/microsoft-html-help-downloads"))
+    
+    def handleConsole(self):
+        self.console_tabs = QTabWidget()
+        self.console_tabs.setStyleSheet(_(genv.css_tabs))
+        self.console_tabs.hide()
+        
+        self.console_tabs_chm_widget = QWidget()
+        self.console_tabs.addTab(self.console_tabs_chm_widget, _("Console"))
+        ###
+        self.main_layout.addWidget(self.console_tabs)
+        return
+    
+    def handleTodo(self):
+        self.todo_tabs = QTabWidget()
+        self.todo_tabs.setStyleSheet(_(genv.css_tabs))
+        self.todo_tabs.hide()
+        
+        self.todo_tabs_chm_widget = QWidget()
+        self.todo_tabs.addTab(self.todo_tabs_chm_widget, _("Todo"))
+        ###
+        self.main_layout.addWidget(self.todo_tabs)
+        return
+    
+    def handleSetup(self):
+        self.setup_tabs = QTabWidget()
+        self.setup_tabs.setStyleSheet(_(genv.css_tabs))
+        self.setup_tabs.hide()
+        
+        self.setup_tabs_chm_widget = QWidget()
+        self.setup_tabs.addTab(self.setup_tabs_chm_widget, _("Setup"))
+        ###
+        self.main_layout.addWidget(self.setup_tabs)
+        return
+    
+    def handleApache(self):
+        self.apache_tabs = QTabWidget()
+        self.apache_tabs.setStyleSheet(_(genv.css_tabs))
+        self.apache_tabs.hide()
+        
+        self.apache_tabs_chm_widget = QWidget()
+        self.apache_tabs.addTab(self.apache_tabs_chm_widget, _("Apache"))
+        ###
+        self.main_layout.addWidget(self.apache_tabs)
+        return
+    
+    def handleMySQL(self):
+        self.mysql_tabs = QTabWidget()
+        self.mysql_tabs.setStyleSheet(_(genv.css_tabs))
+        self.mysql_tabs.hide()
+        
+        self.mysql_tabs_chm_widget = QWidget()
+        self.mysql_tabs.addTab(self.mysql_tabs_chm_widget, _("MySQL"))
+        ###
+        self.main_layout.addWidget(self.mysql_tabs)
+        return
+    
+    def handleSquid(self):
+        self.squid_tabs = QTabWidget()
+        self.squid_tabs.setStyleSheet(_(genv.css_tabs))
+        self.squid_tabs.hide()
+        
+        self.squid_tabs_chm_widget = QWidget()
+        self.squid_tabs.addTab(self.squid_tabs_chm_widget, _("Squid"))
+        ###
+        self.main_layout.addWidget(self.squid_tabs)
+        return
     
     def handleSettings(self):
         self.settings_tabs = QTabWidget()
