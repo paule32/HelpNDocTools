@@ -168,6 +168,7 @@ class globalEnv:
         
         # ------------------------------------------------------------------------
         self.v__app__config   = None
+        self.v__app__devmode  = -1
         
         self.toolbar_css      = "toolbar_css"
         
@@ -2061,8 +2062,161 @@ class dBaseDSL():
         self.parser.parse()
 
 class interpreter_Pascal:
-    def __init__(self, script_name):
+    def __init__(self, fname):
+        self.script_name = fname
+        
+        self.line_row    = 1
+        self.line_col    = 1
+        
+        self.pos         = -1
+        
+        self.token_id    = ""
+        self.token_prev  = ""
+        self.token_str   = ""
+        
+        self.parse_data  = []
+        
+        self.byte_code = ""
+        self.text_code = ""
+    
+    def parse(self):
+        self.token_str = ""
+    
+    def run(self):
         return
+
+class pascalDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_Pascal(script_name)
+        self.parser.parse()
+
+class interpreter_Python:
+    def __init__(self, fname):
+        self.script_name = fname
+        
+        self.line_row    = 1
+        self.line_col    = 1
+        
+        self.pos         = -1
+        
+        self.token_id    = ""
+        self.token_prev  = ""
+        self.token_str   = ""
+        
+        self.parse_data  = []
+        
+        self.byte_code = ""
+        self.text_code = ""
+    
+    def parse(self):
+        self.token_str = ""
+
+class pythonDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_Python(script_name)
+        self.parser.parse()
+
+class interpreter_Java:
+    def __init__(self, fname):
+        self.script_name = fname
+        
+        self.line_row    = 1
+        self.line_col    = 1
+        
+        self.pos         = -1
+        
+        self.token_id    = ""
+        self.token_prev  = ""
+        self.token_str   = ""
+        
+        self.parse_data  = []
+        
+        self.byte_code = ""
+        self.text_code = ""
+    
+    def parse(self):
+        self.token_str = ""
+    
+    def run(self):
+        return
+
+class javaDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_Java(script_name)
+        self.parser.parse()
+
+class interpreter_JavaScript:
+    def __init__(self, fname):
+        self.script_name = fname
+        
+        self.line_row    = 1
+        self.line_col    = 1
+        
+        self.pos         = -1
+        
+        self.token_id    = ""
+        self.token_prev  = ""
+        self.token_str   = ""
+        
+        self.parse_data  = []
+        
+        self.byte_code = ""
+        self.text_code = ""
+    
+    def parse(self):
+        self.token_str = ""
+    
+    def run(self):
+        return
+
+class javaScriptDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_JavaScript(script_name)
+        self.parser.parse()
+
+class interpreter_Lisp:
+    def __init__(self, fname):
+        self.script_name = fname
+        
+        self.line_row    = 1
+        self.line_col    = 1
+        
+        self.pos         = -1
+        
+        self.token_id    = ""
+        self.token_prev  = ""
+        self.token_str   = ""
+        
+        self.parse_data  = []
+        
+        self.byte_code = ""
+        self.text_code = ""
+    
+    def parse(self):
+        self.token_str = ""
+    
+    def run(self):
+        return
+
+class lispDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_Lisp(script_name)
+        self.parser.parse()
 
 # ---------------------------------------------------------------------------
 # \brief  class for interpreting DoxyGen related stuff ...
@@ -2879,6 +3033,8 @@ class myIconLabel(QLabel):
 class myIconButton(QWidget):
     def __init__(self, parent, mode, label_text, text):
         super().__init__()
+        
+        genv.v__app__devmode = mode
         
         self.parent = parent
         
@@ -9326,6 +9482,14 @@ class FileWatcherGUI(QDialog):
         return file_path
     
     def checkBeforeSave(self):
+        try:
+            if not self.focused_widget:
+                self.showNoEditorMessage()
+                return
+        except AttributeError:
+            self.showNoEditorMessage()
+            return
+
         msg = None
         msg = QMessageBox()
         msg.setWindowTitle("Confirmation")
@@ -9364,6 +9528,17 @@ class FileWatcherGUI(QDialog):
                         file.write(self.focused_widget.toPlainText())
                         file.close()
     
+    def showNoEditorMessage(self):
+        msg = QMessageBox()
+        msg.setWindowTitle(_("Warning"))
+        msg.setText(_("no editor open - do nothing."))
+        msg.setIcon(QMessageBox.Warning)
+        
+        btn_ok = msg.addButton(QMessageBox.Ok)
+        
+        msg.setStyleSheet(_("msgbox_css"))
+        msg.exec_()
+    
     def on_dbase_menu_item_clicked(self, item):
         widget = self.dbase_tabs_editor_menu.itemWidget(item)
         if widget:
@@ -9390,7 +9565,11 @@ class FileWatcherGUI(QDialog):
                 
                 self.dbase_tabs_editor.addTab(self.dbase_tabs_editor_file_layout_widget, filename)
                 
-                self.focused_widget = self.dbase_tabs_editor_tabs_editor
+                try:
+                    self.focused_widget = self.dbase_tabs_editor_tabs_editor
+                except AttributError:
+                    self.showNoEditorMessage()
+                    return
                 
             elif text[0] == "label 2":
                 self.checkBeforeSave()
@@ -9398,9 +9577,13 @@ class FileWatcherGUI(QDialog):
                 global application_mode
                 application_mode = 1
                 
-                script_name = self.dbase_tabs_editor_tabs_editor.objectName()
-                print("script: ", script_name)
-                
+                try:
+                    script_name = self.dbase_tabs_editor_tabs_editor.objectName()
+                    print("script: ", script_name)
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
+                                
                 prg = None
                 prg = dBaseDSL(script_name)
                 #prg.parser.parse()
@@ -9607,7 +9790,11 @@ class FileWatcherGUI(QDialog):
                 
                 self.pascal_tabs_editor.addTab(self.pascal_tabs_editor_file_layout_widget, filename)
                 
-                self.focused_widget = self.pascal_tabs_editor_tabs_editor
+                try:
+                    self.focused_widget = self.pascal_tabs_editor_tabs_editor
+                except AttributError:
+                    self.showNoEditorMessage()
+                    return
             
             elif text[0] == "label 2":
                 self.checkBeforeSave()
@@ -9615,20 +9802,25 @@ class FileWatcherGUI(QDialog):
                 global application_mode
                 application_mode = 1
                 
-                script_name = self.pascal_tabs_editor_tabs_editor.objectName()
+                try:
+                    script_name = self.pascal_tabs_editor_tabs_editor.objectName()
+                    print("script: ", script_name)
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
                 
-                #prg = None
-                #prg = dBaseDSL(script_name)
+                prg = None
+                prg = pascalDSL(script_name)
                 #prg.parser.parse()
                 #print("\nend of data\n")
                 
                 #prg.parser.text_code += "    con.exec_()\n"
-                #print(prg.parser.text_code)
+                print(prg.parser.text_code)
                 
-                #try:
-                #    prg.parser.run()
-                #except Exception as e:
-                #    print(e)
+                try:
+                    prg.parser.run()
+                except Exception as e:
+                    print(e)
     
     def handlePascal(self):
         self.pascal_tabs = QTabWidget()
@@ -9722,7 +9914,11 @@ class FileWatcherGUI(QDialog):
                 
                 self.isoc_tabs_editor.addTab(self.isoc_tabs_editor_file_layout_widget, filename)
                 
-                self.focused_widget = self.isoc_tabs_editor_tabs_editor
+                try:
+                    self.focused_widget = self.isoc_tabs_editor_tabs_editor
+                except AttributError:
+                    self.showNoEditorMessage()
+                    return
             
             elif text[0] == "label 2":
                 self.checkBeforeSave()
@@ -9730,20 +9926,27 @@ class FileWatcherGUI(QDialog):
                 global application_mode
                 application_mode = 1
                 
+                try:
+                    script_name = self.isoc_tabs_editor_tabs_editor.objectName()
+                    print("script: ", script_name)
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
+                
                 script_name = self.isoc_tabs_editor_tabs_editor.objectName()
                 
-                #prg = None
-                #prg = dBaseDSL(script_name)
+                prg = None
+                prg = isocDSL(script_name)
                 #prg.parser.parse()
                 #print("\nend of data\n")
                 
                 #prg.parser.text_code += "    con.exec_()\n"
-                #print(prg.parser.text_code)
+                print(prg.parser.text_code)
                 
-                #try:
-                #    prg.parser.run()
-                #except Exception as e:
-                #    print(e)
+                try:
+                    prg.parser.run()
+                except Exception as e:
+                    print(e)
     
     def handleIsoC(self):
         self.isoc_tabs = QTabWidget()
@@ -9837,7 +10040,11 @@ class FileWatcherGUI(QDialog):
                 
                 self.java_tabs_editor.addTab(self.java_tabs_editor_file_layout_widget, filename)
                 
-                self.focused_widget = self.java_tabs_editor_tabs_editor
+                try:
+                    self.focused_widget = self.java_tabs_editor_tabs_editor
+                except AttributError:
+                    self.showNoEditorMessage()
+                    return
             
             elif text[0] == "label 2":
                 self.checkBeforeSave()
@@ -9845,20 +10052,25 @@ class FileWatcherGUI(QDialog):
                 global application_mode
                 application_mode = 1
                 
-                script_name = self.java_tabs_editor_tabs_editor.objectName()
+                try:
+                    script_name = self.java_tabs_editor_tabs_editor.objectName()
+                    print("script: ", script_name)
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
                 
-                #prg = None
-                #prg = dBaseDSL(script_name)
+                prg = None
+                prg = javaDSL(script_name)
                 #prg.parser.parse()
                 #print("\nend of data\n")
                 
                 #prg.parser.text_code += "    con.exec_()\n"
-                #print(prg.parser.text_code)
+                print(prg.parser.text_code)
                 
-                #try:
-                #    prg.parser.run()
-                #except Exception as e:
-                #    print(e)
+                try:
+                    prg.parser.run()
+                except Exception as e:
+                    print(e)
     
     def handleJava(self):
         # java
@@ -9953,7 +10165,11 @@ class FileWatcherGUI(QDialog):
                 
                 self.python_tabs_editor.addTab(self.python_tabs_editor_file_layout_widget, filename)
                 
-                self.focused_widget = self.python_tabs_editor_tabs_editor
+                try:
+                    self.focused_widget = self.python_tabs_editor_tabs_editor
+                except AttributError:
+                    self.showNoEditorMessage()
+                    return
             
             elif text[0] == "label 2":
                 self.checkBeforeSave()
@@ -9961,20 +10177,25 @@ class FileWatcherGUI(QDialog):
                 global application_mode
                 application_mode = 1
                 
-                script_name = self.python_tabs_editor_tabs_editor.objectName()
+                try:
+                    script_name = self.python_tabs_editor_tabs_editor.objectName()
+                    print("script: ", script_name)
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
                 
-                #prg = None
-                #prg = dBaseDSL(script_name)
-                #prg.parser.parse()
-                #print("\nend of data\n")
+                prg = None
+                prg = pythonDSL(script_name)
+                
+                print("\nend of data\n")
                 
                 #prg.parser.text_code += "    con.exec_()\n"
-                #print(prg.parser.text_code)
+                print(prg.parser.text_code)
                 
-                #try:
-                #    prg.parser.run()
-                #except Exception as e:
-                #    print(e)
+                try:
+                    prg.parser.run()
+                except Exception as e:
+                    print(e)
     
     def handlePython(self):
         self.python_tabs = QTabWidget()
@@ -10068,7 +10289,11 @@ class FileWatcherGUI(QDialog):
                 
                 self.lisp_tabs_editor.addTab(self.lisp_tabs_editor_file_layout_widget, filename)
                 
-                self.focused_widget = self.lisp_tabs_editor_tabs_editor
+                try:
+                    self.focused_widget = self.lisp_tabs_editor_tabs_editor
+                except AttributError:
+                    self.showNoEditorMessage()
+                    return
             
             elif text[0] == "label 2":
                 self.checkBeforeSave()
@@ -10076,20 +10301,25 @@ class FileWatcherGUI(QDialog):
                 global application_mode
                 application_mode = 1
                 
-                script_name = self.lisp_tabs_editor_tabs_editor.objectName()
+                try:
+                    script_name = self.lisp_tabs_editor_tabs_editor.objectName()
+                    print("script: ", script_name)
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
                 
-                #prg = None
-                #prg = dBaseDSL(script_name)
-                #prg.parser.parse()
-                #print("\nend of data\n")
+                prg = None
+                prg = lispDSL(script_name)
+                
+                print("\nend of data\n")
                 
                 #prg.parser.text_code += "    con.exec_()\n"
-                #print(prg.parser.text_code)
+                print(prg.parser.text_code)
                 
-                #try:
-                #    prg.parser.run()
-                #except Exception as e:
-                #    print(e)
+                try:
+                    prg.parser.run()
+                except Exception as e:
+                    print(e)
     
     def handleLISP(self):
         self.lisp_tabs = QTabWidget()
@@ -10183,7 +10413,11 @@ class FileWatcherGUI(QDialog):
                 
                 self.javascript_tabs_editor.addTab(self.javascript_tabs_editor_file_layout_widget, filename)
                 
-                self.focused_widget = self.javascript_tabs_editor_tabs_editor
+                try:
+                    self.focused_widget = self.javascript_tabs_editor_tabs_editor
+                except AttributError:
+                    self.showNoEditorMessage()
+                    return
             
             elif text[0] == "label 2":
                 self.checkBeforeSave()
@@ -10191,20 +10425,25 @@ class FileWatcherGUI(QDialog):
                 global application_mode
                 application_mode = 1
                 
-                script_name = self.javascript_tabs_editor_tabs_editor.objectName()
+                try:
+                    script_name = self.javascript_tabs_editor_tabs_editor.objectName()
+                    print("script: ", script_name)
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
                 
-                #prg = None
-                #prg = dBaseDSL(script_name)
-                #prg.parser.parse()
-                #print("\nend of data\n")
+                prg = None
+                prg = javaScriptDSL(script_name)
+                
+                print("\nend of data\n")
                 
                 #prg.parser.text_code += "    con.exec_()\n"
-                #print(prg.parser.text_code)
+                print(prg.parser.text_code)
                 
-                #try:
-                #    prg.parser.run()
-                #except Exception as e:
-                #    print(e)
+                try:
+                    prg.parser.run()
+                except Exception as e:
+                    print(e)
     
     def handleJavaScript(self):
         self.javascript_tabs = QTabWidget()
