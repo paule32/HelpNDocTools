@@ -112,6 +112,7 @@ class globalEnv:
         self.v__app__cpp1dev__  = im_path + "c"
         self.v__app__dbasedb__  = im_path + "dbase"
         self.v__app__javadev__  = im_path + "java"
+        self.v__app__javascr__  = im_path + "javascript"
         self.v__app__javadoc__  = im_path + "javadoc"
         self.v__app__freepas__  = im_path + "freepas"
         self.v__app__locales__  = im_path + "locales"
@@ -2781,28 +2782,30 @@ class myIconLabel(QLabel):
             elif self.mode == 5:
                 self.btn_clicked(self.parent,parent.python_tabs)
             elif self.mode == 6:
+                self.btn_clicked(self.parent,parent.javascript_tabs)
+            elif self.mode == 7:
                 self.btn_clicked(self.parent,parent.lisp_tabs)
-            elif self.mode == 10:
+            elif self.mode == 8:
                 self.btn_clicked(self.parent,parent.locale_tabs)
-            elif self.mode == 11:
+            elif self.mode == 9:
                 self.btn_clicked(self.parent,parent.console_tabs)
-            elif self.mode == 12:
+            elif self.mode == 10:
                 self.btn_clicked(self.parent,parent.todo_tabs)
-            elif self.mode == 13:
+            elif self.mode == 11:
                 self.btn_clicked(self.parent,parent.setup_tabs)
-            elif self.mode == 14:
+            elif self.mode == 12:
                 self.btn_clicked(self.parent,parent.certssl_tabs)
-            elif self.mode == 15:
+            elif self.mode == 13:
                 self.btn_clicked(self.parent,parent.github_tabs)
-            elif self.mode == 16:
+            elif self.mode == 14:
                 self.btn_clicked(self.parent,parent.apache_tabs)
-            elif self.mode == 17:
+            elif self.mode == 15:
                 self.btn_clicked(self.parent,parent.mysql_tabs)
-            elif self.mode == 18:
+            elif self.mode == 16:
                 self.btn_clicked(self.parent,parent.squid_tabs)
-            elif self.mode == 19:
+            elif self.mode == 17:
                 self.btn_clicked(self.parent,parent.c64_tabs)
-            elif self.mode == 20:
+            elif self.mode == 18:
                 self.btn_clicked(self.parent,parent.settings_tabs)
     
     def enterEvent(self, event):
@@ -2820,6 +2823,7 @@ class myIconLabel(QLabel):
         parent.isoc_tabs.hide()
         parent.java_tabs.hide()
         parent.python_tabs.hide()
+        parent.javascript_tabs.hide()
         parent.lisp_tabs.hide()
         parent.locale_tabs.hide()
         parent.console_tabs.hide()
@@ -2866,6 +2870,7 @@ class myIconLabel(QLabel):
             parent.side_btnG,
             parent.side_btnH,
             parent.side_btnI,
+            parent.side_btnJ,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -2938,39 +2943,42 @@ class myIconButton(QWidget):
             self.image_fg = ptx + genv.v__app__pythonc__ + fg
             self.image_bg = ptx + genv.v__app__pythonc__ + bg
         elif mode == 6:
+            self.image_fg = ptx + genv.v__app__javascr__ + fg
+            self.image_bg = ptx + genv.v__app__javascr__ + bg
+        elif mode == 7:
             self.image_fg = ptx + genv.v__app__lispmod__ + fg
             self.image_bg = ptx + genv.v__app__lispmod__ + bg
-        elif mode == 10:
+        elif mode == 8:
             self.image_fg = ptx + genv.v__app__locales__ + fg
             self.image_bg = ptx + genv.v__app__locales__ + bg
-        elif mode == 11:
+        elif mode == 9:
             self.image_fg = ptx + genv.v__app__console__ + fg
             self.image_bg = ptx + genv.v__app__console__ + bg
-        elif mode == 12:
+        elif mode == 10:
             self.image_fg = ptx + genv.v__app__todopro__ + fg
             self.image_bg = ptx + genv.v__app__todopro__ + bg
-        elif mode == 13:
+        elif mode == 11:
             self.image_fg = ptx + genv.v__app__setupro__ + fg
             self.image_bg = ptx + genv.v__app__setupro__ + bg
-        elif mode == 14:
+        elif mode == 12:
             self.image_fg = ptx + genv.v__app__certssl__ + fg
             self.image_bg = ptx + genv.v__app__certssl__ + bg
-        elif mode == 15:
+        elif mode == 13:
             self.image_fg = ptx + genv.v__app__githubp__ + fg
             self.image_bg = ptx + genv.v__app__githubp__ + bg
-        elif mode == 16:
+        elif mode == 14:
             self.image_fg = ptx + genv.v__app__apache2__ + fg
             self.image_bg = ptx + genv.v__app__apache2__ + bg
-        elif mode == 17:
+        elif mode == 15:
             self.image_fg = ptx + genv.v__app__mysqlcf__ + fg
             self.image_bg = ptx + genv.v__app__mysqlcf__ + bg
-        elif mode == 18:
+        elif mode == 16:
             self.image_fg = ptx + genv.v__app__squidwp__ + fg
             self.image_bg = ptx + genv.v__app__squidwp__ + bg
-        elif mode == 19:
+        elif mode == 17:
             self.image_fg = ptx + genv.v__app__com_c64__ + fg
             self.image_bg = ptx + genv.v__app__com_c64__ + bg
-        elif mode == 20:
+        elif mode == 18:
             self.image_fg = ptx + genv.v__app__com_set__ + fg
             self.image_bg = ptx + genv.v__app__com_set__ + bg
         
@@ -6454,16 +6462,6 @@ class doubleClickLocalesLineEdit(QLineEdit):
         dialog.exec_()
         return
 
-class ClickableLabel(QLabel):
-    clicked = pyqtSignal()
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.clicked.emit()
-
 class CustomWidget0(QWidget):
     def __init__(self, parent_class, parent_tabs, parent_layout):
         super().__init__()
@@ -6507,18 +6505,6 @@ class CustomWidget0(QWidget):
         self.context_menu.addSeparator()
         self.context_menu.addAction(self.action21)
         self.context_menu.addAction(self.action22)
-                
-        pict = os.path.join(genv.v__app__img__int__, "arrowsmall.png")
-        pixmpa = None
-        pixmap = QPixmap(pict)
-        
-        self.arrow_button = None
-        self.arrow_button = ClickableLabel(self)
-        self.arrow_button.setPixmap(pixmap)
-        self.arrow_button.resize(15, 42)
-        self.arrow_button.setStyleSheet("background-color: transparent; border: none;")
-        self.arrow_button.move(self.width() - 15, 0)
-        self.arrow_button.clicked.connect(self.show_context_menu)
     
     def action01_triggered(self):
         self.interpreter = self.action01.text()[-6:]
@@ -6555,6 +6541,7 @@ class CustomWidget0(QWidget):
         self.parent_class.isoc_tabs.hide()
         self.parent_class.java_tabs.hide()
         self.parent_class.python_tabs.hide()
+        self.parent_class.javascript.hide()
         self.parent_class.lisp_tabs.hide()
         self.parent_class.locale_tabs.hide()
         self.parent_class.setup_tabs.hide()
@@ -6593,6 +6580,7 @@ class CustomWidget0(QWidget):
             parent.side_btnG,
             parent.side_btnH,
             parent.side_btnI,
+            parent.side_btnJ
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -8326,29 +8314,30 @@ class FileWatcherGUI(QDialog):
         self.side_widget.setContentsMargins(0,0,0,0)
         self.side_scroll.setContentsMargins(0,0,0,0)
         
-        self.side_btn1 = myIconButton(self,  0, _("Help")   , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
-        self.side_btn2 = myIconButton(self,  1, _("dBASE")  , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
-        self.side_btn3 = myIconButton(self,  2, _("Pascal") , _("Pascal old school programming\no Delphi\no FPC"))
-        self.side_btn4 = myIconButton(self,  3, _("ISO C")  , _("C / C++ embeded programming\nor cross platform"))
-        self.side_btn5 = myIconButton(self,  4, _("Java")   , _("Java modern cross programming\nfor any device"))
-        self.side_btn6 = myIconButton(self,  5, _("Python") , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
-        self.side_btn7 = myIconButton(self,  6, _("LISP")   , _("LISP traditional programming\nultimate old school"))
+        self.side_btn1 = myIconButton(self,  0, _("Help")      , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
+        self.side_btn2 = myIconButton(self,  1, _("dBASE")     , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
+        self.side_btn3 = myIconButton(self,  2, _("Pascal")    , _("Pascal old school programming\no Delphi\no FPC"))
+        self.side_btn4 = myIconButton(self,  3, _("ISO C")     , _("C / C++ embeded programming\nor cross platform"))
+        self.side_btn5 = myIconButton(self,  4, _("Java")      , _("Java modern cross programming\nfor any device"))
+        self.side_btn6 = myIconButton(self,  5, _("Python")    , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
+        self.side_btn7 = myIconButton(self,  6, _("JavaScript"), _("JavaScript programming"))
+        self.side_btn8 = myIconButton(self,  7, _("LISP")      , _("LISP traditional programming\nultimate old school"))
         #
-        self.side_btn8 = myIconButton(self, 10, "Locales", _(""
+        self.side_btn9 = myIconButton(self,  8, _("Locales"), _(""
             + "Localization your Application with different supported languages\n"
             + "around the World.\n"
             + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
         #
-        self.side_btn9 = myIconButton(self,  11, "Console", "Your classical style of commands")
-        self.side_btnA = myIconButton(self,  12, "Todo / Tasks", "Your todo's")
-        self.side_btnB = myIconButton(self,  13, "Setup", "Setup your Project")
-        self.side_btnC = myIconButton(self,  14, "SSL Certs", "Setup SSL")
-        self.side_btnD = myIconButton(self,  15, "GitHub.com", "Publish Project")
-        self.side_btnE = myIconButton(self,  16, "Apache", "Configure Apache 2")
-        self.side_btnF = myIconButton(self,  17, "MySQL", "Configure MySQL")
-        self.side_btnG = myIconButton(self,  18, "Squid", "Configure Squid")
-        self.side_btnH = myIconButton(self,  19, "C-64", "The most popular Commodore C-64\from int the 1980er")
-        self.side_btnI = myIconButton(self,  20, _("Settings")   , _("Settings for this Application\n\n"))
+        self.side_btnA = myIconButton(self,   9, "Console", "Your classical style of commands")
+        self.side_btnB = myIconButton(self,  10, "Todo / Tasks", "Your todo's")
+        self.side_btnC = myIconButton(self,  11, "Setup", "Setup your Project")
+        self.side_btnD = myIconButton(self,  12, "SSL Certs", "Setup SSL")
+        self.side_btnE = myIconButton(self,  13, "GitHub.com", "Publish Project")
+        self.side_btnF = myIconButton(self,  14, "Apache", "Configure Apache 2")
+        self.side_btnG = myIconButton(self,  15, "MySQL", "Configure MySQL")
+        self.side_btnH = myIconButton(self,  16, "Squid", "Configure Squid")
+        self.side_btnI = myIconButton(self,  17, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btnJ = myIconButton(self,  18, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn1.bordercolor = "lime"
         self.side_btn1.state       = 2
@@ -8374,6 +8363,7 @@ class FileWatcherGUI(QDialog):
         self.handleIsoC()
         self.handleJava()
         self.handlePython()
+        self.handleJavaScript()
         self.handleLISP()
         self.handleLocales()
         self.handleConsole()
@@ -9282,27 +9272,7 @@ class FileWatcherGUI(QDialog):
     def renameDirectory(self, index):
         file_path = self.tab0_dir_model.filePath(index)
         print(f"Umbenennen: {file_path}")
-    
-    # dbase
-    def dbase_file_editor0_checkmessage(self, obj, file_path):
-        if obj.hasFocus():
-            msg = QMessageBox()
-            msg.setWindowTitle("Confirmation")
-            msg.setText(
-                _("The file content has been changed on file system.\n"
-                + "Would you reload the new content ?"))
-            msg.setIcon(QMessageBox.Question)
-            
-            btn_yes = msg.addButton(QMessageBox.Yes)
-            btn_no  = msg.addButton(QMessageBox.No)
-            
-            msg.setStyleSheet(_("msgbox_css"))
-            result = msg.exec_()
-            
-            if result == QMessageBox.Yes:
-                new_content = self.readFromFile(file_path)
-                obj.setPlainText(new_content)
-    
+        
     def readFromFile(self, file_path):
         file_content = ""
         file = QFile(file_path)
@@ -9373,10 +9343,7 @@ class FileWatcherGUI(QDialog):
         if result == QMessageBox.Yes:
             #self.focused_widget = QApplication.focusWidget()
             if self.focused_widget:
-                print("focus")
-                print(self.focused_widget)
                 if isinstance(self.focused_widget, QPlainTextEdit):
-                    print("plain text")
                     script_name = self.focused_widget.objectName()
                     print(script_name)
                     if not os.path.exists(script_name):
@@ -9641,6 +9608,27 @@ class FileWatcherGUI(QDialog):
                 self.pascal_tabs_editor.addTab(self.pascal_tabs_editor_file_layout_widget, filename)
                 
                 self.focused_widget = self.pascal_tabs_editor_tabs_editor
+            
+            elif text[0] == "label 2":
+                self.checkBeforeSave()
+            elif text[0] == "label 3":
+                global application_mode
+                application_mode = 1
+                
+                script_name = self.pascal_tabs_editor_tabs_editor.objectName()
+                
+                #prg = None
+                #prg = dBaseDSL(script_name)
+                #prg.parser.parse()
+                #print("\nend of data\n")
+                
+                #prg.parser.text_code += "    con.exec_()\n"
+                #print(prg.parser.text_code)
+                
+                #try:
+                #    prg.parser.run()
+                #except Exception as e:
+                #    print(e)
     
     def handlePascal(self):
         self.pascal_tabs = QTabWidget()
@@ -9735,6 +9723,27 @@ class FileWatcherGUI(QDialog):
                 self.isoc_tabs_editor.addTab(self.isoc_tabs_editor_file_layout_widget, filename)
                 
                 self.focused_widget = self.isoc_tabs_editor_tabs_editor
+            
+            elif text[0] == "label 2":
+                self.checkBeforeSave()
+            elif text[0] == "label 3":
+                global application_mode
+                application_mode = 1
+                
+                script_name = self.isoc_tabs_editor_tabs_editor.objectName()
+                
+                #prg = None
+                #prg = dBaseDSL(script_name)
+                #prg.parser.parse()
+                #print("\nend of data\n")
+                
+                #prg.parser.text_code += "    con.exec_()\n"
+                #print(prg.parser.text_code)
+                
+                #try:
+                #    prg.parser.run()
+                #except Exception as e:
+                #    print(e)
     
     def handleIsoC(self):
         self.isoc_tabs = QTabWidget()
@@ -9829,6 +9838,27 @@ class FileWatcherGUI(QDialog):
                 self.java_tabs_editor.addTab(self.java_tabs_editor_file_layout_widget, filename)
                 
                 self.focused_widget = self.java_tabs_editor_tabs_editor
+            
+            elif text[0] == "label 2":
+                self.checkBeforeSave()
+            elif text[0] == "label 3":
+                global application_mode
+                application_mode = 1
+                
+                script_name = self.java_tabs_editor_tabs_editor.objectName()
+                
+                #prg = None
+                #prg = dBaseDSL(script_name)
+                #prg.parser.parse()
+                #print("\nend of data\n")
+                
+                #prg.parser.text_code += "    con.exec_()\n"
+                #print(prg.parser.text_code)
+                
+                #try:
+                #    prg.parser.run()
+                #except Exception as e:
+                #    print(e)
     
     def handleJava(self):
         # java
@@ -9924,6 +9954,27 @@ class FileWatcherGUI(QDialog):
                 self.python_tabs_editor.addTab(self.python_tabs_editor_file_layout_widget, filename)
                 
                 self.focused_widget = self.python_tabs_editor_tabs_editor
+            
+            elif text[0] == "label 2":
+                self.checkBeforeSave()
+            elif text[0] == "label 3":
+                global application_mode
+                application_mode = 1
+                
+                script_name = self.python_tabs_editor_tabs_editor.objectName()
+                
+                #prg = None
+                #prg = dBaseDSL(script_name)
+                #prg.parser.parse()
+                #print("\nend of data\n")
+                
+                #prg.parser.text_code += "    con.exec_()\n"
+                #print(prg.parser.text_code)
+                
+                #try:
+                #    prg.parser.run()
+                #except Exception as e:
+                #    print(e)
     
     def handlePython(self):
         self.python_tabs = QTabWidget()
@@ -10018,6 +10069,27 @@ class FileWatcherGUI(QDialog):
                 self.lisp_tabs_editor.addTab(self.lisp_tabs_editor_file_layout_widget, filename)
                 
                 self.focused_widget = self.lisp_tabs_editor_tabs_editor
+            
+            elif text[0] == "label 2":
+                self.checkBeforeSave()
+            elif text[0] == "label 3":
+                global application_mode
+                application_mode = 1
+                
+                script_name = self.lisp_tabs_editor_tabs_editor.objectName()
+                
+                #prg = None
+                #prg = dBaseDSL(script_name)
+                #prg.parser.parse()
+                #print("\nend of data\n")
+                
+                #prg.parser.text_code += "    con.exec_()\n"
+                #print(prg.parser.text_code)
+                
+                #try:
+                #    prg.parser.run()
+                #except Exception as e:
+                #    print(e)
     
     def handleLISP(self):
         self.lisp_tabs = QTabWidget()
@@ -10083,6 +10155,121 @@ class FileWatcherGUI(QDialog):
             self.main_layout,
             self.lisp_tabs_designs_widget,
             self.lisp_tabs)
+    
+    # javascript
+    def on_javascript_menu_item_clicked(self, item):
+        widget = self.javascript_tabs_editor_menu.itemWidget(item)
+        if widget:
+            text = widget.objectName()
+            text = text.split(':')
+            if text[0] == "label 1":
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
+                if len(filename) < 1:
+                    return
+                widget.setObjectName('label 1:' + file_path)
+                
+                self.javascript_tabs_editor_widget = QWidget()
+                
+                self.javascript_tabs_editor_file_layout   = QHBoxLayout()
+                self.javascript_tabs_editor_tabs_editor   = EditorTextEdit(self, file_path)
+                self.javascript_tabs_editor_tabs_rightBox = EditorTranslate(self)
+                #
+                self.javascript_tabs_editor_file_layout.addWidget(self.javascript_tabs_editor_tabs_editor)
+                self.javascript_tabs_editor_file_layout.addWidget(self.javascript_tabs_editor_tabs_rightBox)
+                
+                self.javascript_tabs_editor_file_layout_widget = QWidget()
+                self.javascript_tabs_editor_file_layout_widget.setLayout(self.javascript_tabs_editor_file_layout)
+                
+                self.javascript_tabs_editor.addTab(self.javascript_tabs_editor_file_layout_widget, filename)
+                
+                self.focused_widget = self.javascript_tabs_editor_tabs_editor
+            
+            elif text[0] == "label 2":
+                self.checkBeforeSave()
+            elif text[0] == "label 3":
+                global application_mode
+                application_mode = 1
+                
+                script_name = self.javascript_tabs_editor_tabs_editor.objectName()
+                
+                #prg = None
+                #prg = dBaseDSL(script_name)
+                #prg.parser.parse()
+                #print("\nend of data\n")
+                
+                #prg.parser.text_code += "    con.exec_()\n"
+                #print(prg.parser.text_code)
+                
+                #try:
+                #    prg.parser.run()
+                #except Exception as e:
+                #    print(e)
+    
+    def handleJavaScript(self):
+        self.javascript_tabs = QTabWidget()
+        self.javascript_tabs.setStyleSheet(_(genv.css_tabs))
+        self.javascript_tabs.hide()
+        
+        self.javascript_tabs_project_widget = QWidget()
+        self.javascript_tabs_editors_widget = QWidget()
+        self.javascript_tabs_designs_widget = QWidget()
+        #
+        self.javascript_tabs.addTab(self.javascript_tabs_project_widget, _("JavaScript Project"))
+        self.javascript_tabs.addTab(self.javascript_tabs_editors_widget, _("JavaScript Editor"))
+        self.javascript_tabs.addTab(self.javascript_tabs_designs_widget, _("JavaScript Designer"))
+        #
+        #
+        self.javascript_tabs_project_widget.setContentsMargins(1,1,1,1)
+        ####
+        try:
+            self.javascriptProjectVLayout = QVBoxLayout()
+            self.javascriptProjectVLayout.setContentsMargins(0,0,0,0)
+            self.javascriptProjectWidget  = applicationProjectWidget()
+            self.javascriptProjectVLayout.addWidget(self.javascriptProjectWidget)
+            self.javascript_tabs_project_widget.setLayout(self.javascriptProjectVLayout)
+        except Exception as e:
+            print(e)
+        ####
+        self.javascript_tabs_editor_vlayout = QVBoxLayout(self.javascript_tabs_editors_widget)
+        self.javascript_tabs_editor = QTabWidget()
+        self.javascript_tabs_editor.setStyleSheet(_(genv.css_tabs))
+        
+        self.javascript_tabs_editor_menu = QListWidget()
+        self.javascript_tabs_editor_menu.setContentsMargins(0,0,0,0)
+        self.javascript_tabs_editor_menu.setFlow(QListWidget.LeftToRight)
+        self.javascript_tabs_editor_menu.setStyleSheet("background-color:gray;")
+        self.javascript_tabs_editor_menu.setMinimumHeight(64)
+        self.javascript_tabs_editor_menu.setMaximumHeight(64)
+        
+        self.javascript_custom_widget0 = ButtonWidget("label 1:")
+        self.javascript_custom_widget1 = ButtonWidget("label 2:")
+        self.javascript_custom_widget2 = ButtonWidget("label 3:")
+        
+        self.javascript_widget0_list_item = QListWidgetItem(self.javascript_tabs_editor_menu)
+        self.javascript_widget0_list_item.setSizeHint(self.javascript_custom_widget0.sizeHint())
+        
+        self.javascript_widget1_list_item = QListWidgetItem(self.javascript_tabs_editor_menu)
+        self.javascript_widget1_list_item.setSizeHint(self.javascript_custom_widget1.sizeHint())
+        
+        self.javascript_widget2_list_item = QListWidgetItem(self.javascript_tabs_editor_menu)
+        self.javascript_widget2_list_item.setSizeHint(self.javascript_custom_widget2.sizeHint())
+        
+        self.javascript_tabs_editor_menu.setItemWidget(self.javascript_widget0_list_item, self.javascript_custom_widget0)
+        self.javascript_tabs_editor_menu.setItemWidget(self.javascript_widget1_list_item, self.javascript_custom_widget1)
+        self.javascript_tabs_editor_menu.setItemWidget(self.javascript_widget2_list_item, self.javascript_custom_widget2)
+        
+        self.javascript_tabs_editor_menu.itemClicked.connect(self.on_javascript_menu_item_clicked)
+        
+        self.javascript_tabs_editor_vlayout.addWidget(self.javascript_tabs_editor_menu)
+        self.javascript_tabs_editor_vlayout.addWidget(self.javascript_tabs_editor)
+        #
+        ####
+        self.javascript_designer = designerWindow(
+            self,
+            self.main_layout,
+            self.javascript_tabs_designs_widget,
+            self.javascript_tabs)
     
     # locale
     def handleLocales(self):
