@@ -6464,70 +6464,6 @@ class ClickableLabel(QLabel):
         if event.button() == Qt.LeftButton:
             self.clicked.emit()
 
-class CustomWidget1(QWidget):
-    def __init__(self, parent_class):
-        super().__init__()
-        self.parent_class = parent_class
-        self.initUI()
-    
-    def initUI(self):
-        self.setFixedSize(42, 42)  # Set fixed size for the widget
-    
-    def mousePressEvent(self, event):
-        file_path = ""
-        if event.button() == Qt.LeftButton:
-            msg = None
-            msg = QMessageBox()
-            msg.setWindowTitle("Confirmation")
-            msg.setText(
-                "The source file content will be overwrite if you choose YES !\n"
-                "Would you save the current content ?")
-            msg.setIcon(QMessageBox.Question)
-            
-            btn_yes = msg.addButton(QMessageBox.Yes)
-            btn_no  = msg.addButton(QMessageBox.No)
-            
-            msg.setStyleSheet(_("msgbox_css"))
-            result = msg.exec_()
-            
-            if result == QMessageBox.Yes:
-                focused_widget = QApplication.focusWidget()
-                if focused_widget:
-                    print("focus")
-                    if isinstance(focused_widget, QPlainTextEdit):
-                        print("plain text")
-                        script_name = focused_widget.objectName()
-                        if not os.path.exists(script_name):
-                            msg = None
-                            msg = QMessageBox()
-                            msg.setWindowTitle("Warning")
-                            msg.setText(_("Error: file could not be saved:") + f"\n{script_name}.")
-                            msg.setIcon(QMessageBox.Warning)
-                            btn_ok = msg.addButton(QMessageBox.Ok)
-                            
-                            msg.setStyleSheet(_("msgbox_css"))
-                            result = msg.exec_()
-                            print(f"Error: file does not exists: {script_name}.")
-                            return
-                        file_path = script_name.replace("\\", "/")
-                        #
-                        with open(file_path, "w") as file:
-                            file.write(focused_widget.toPlainText())
-                            file.close()
-                event.accept()
-            else:
-                event.ignore()
-    
-    def paintEvent(self, event):
-        painter = None
-        pixmap  = None
-        
-        painter = QPainter(self)
-        pixmap  = QPixmap(os.path.join(genv.v__app__img__int__, "floppy-disk.png"))
-        
-        painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
-        painter.end()
-
 class CustomWidget0(QWidget):
     def __init__(self, parent_class, parent_tabs, parent_layout):
         super().__init__()
@@ -6665,133 +6601,6 @@ class CustomWidget0(QWidget):
         
     def show_context_menu(self):
         self.context_menu.exec_(self.mapToGlobal(self.arrow_button.pos()))
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.open_dialog()
-    
-    def open_dialog(self):
-        dialog  = QFileDialog()
-        file_path = ""
-        icon_size = 20
-        
-        dialog.setWindowTitle(_("Open File"))
-        dialog.setStyleSheet (_("QFileDlog"))
-        
-        dialog.setFileMode(QFileDialog.AnyFile)
-        dialog.setViewMode(QFileDialog.Detail)
-        
-        dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
-        dialog.setNameFilters(["Program Files (*.prg)", "Text Files (*.txt)", "All Files (*)"])
-        
-        #list_views = dialog.findChildren(QListView)
-        #tree_views = dialog.findChildren(QTreeView)
-        #for view in list_views + tree_views:
-        #    view.setIconSize(QSize(icon_size, icon_size))
-    
-        if dialog.exec_() == QFileDialog.Accepted:
-            file_path = dialog.selectedFiles()[0]
-        
-        if not file_path:
-            msg = QMessageBox()
-            msg.setWindowTitle("Information")
-            msg.setText(_("no source file given.\n"))
-            msg.setIcon(QMessageBox.Question)
-            msg.setStyleSheet(_("msgbox_css"))
-            
-            btn_ok = msg.addButton(QMessageBox.Ok)
-            result = msg.exec_()            
-            return
-        
-        if not os.path.isfile(file_path):
-            msg = None
-            msg = QMessageBox()
-            msg.setWindowTitle("Information")
-            msg.setText(_(
-                "You selected a file, that can not be open.\n"
-                "no file will be open."))
-            msg.setIcon(QMessageBox.Question)
-            msg.setStyleSheet(_("msgbox_css"))
-            
-            btn_ok = msg.addButton(QMessageBox.Ok)
-            result = msg.exec_()
-            return
-        
-        filename = os.path.basename(file_path)
-        
-        self.file_layout   = QHBoxLayout()
-        self.file_layout.setAlignment(Qt.AlignTop)
-        
-        self.tabs_editor   = EditorTextEdit(self, file_path)
-        self.tabs_rightBox = EditorTranslate(self)
-        #
-        self.file_layout.addWidget(self.tabs_editor)
-        self.file_layout.addWidget(self.tabs_rightBox)
-        
-        self.file_layout_widget = QWidget()
-        self.file_layout_widget.setLayout(self.file_layout)
-        
-        self.parent_tabs.addTab(self.file_layout_widget, filename)
-        
-        #self.parent_tabs.setMinimumHeight(460)
-        #self.parent_layout.addWidget(self.file_widget)
-        #self.parent_layout.addWidget(self.parent_tabs)
-        #self.parent_layout.setAlignment(Qt.AlignTop)
-        #
-        ####
-    
-    def paintEvent(self, event):
-        painter = None
-        painter = QPainter(self)
-        pixmap  = QPixmap(os.path.join(genv.v__app__img__int__, "open-folder.png"))
-        painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
-        painter.end()
-
-class CustomWidget2(QWidget):
-    def __init__(self, parent_class):
-        super().__init__()
-        self.parent_class = parent_class
-        self.initUI()
-    
-    def initUI(self):
-        self.setFixedSize(42, 42)
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            focused_widget = QApplication.focusWidget()
-            if focused_widget:
-                print("focus")
-                if isinstance(focused_widget, QPlainTextEdit):
-                    print("plain text")
-                    script_name = focused_widget.objectName()
-                    if not os.path.exists(script_name):
-                        print(f"Error: file does not exists: {script_name}.")
-                        return
-                    
-                    global application_mode
-                    application_mode = 1
-                    
-                    prg = None
-                    prg = dBaseDSL(script_name)
-                    #prg.parser.parse()
-                    print("\nend of data\n")
-                    
-                    #prg.parser.text_code += "    con.exec_()\n"
-                    print(prg.parser.text_code)
-                    
-                    try:
-                        prg.parser.run()
-                    except Exception as e:
-                        print(e)
-            else:
-                print("no editor selected.")
-    
-    def paintEvent(self, event):
-        painter = None
-        painter = QPainter(self)
-        pixmap  = QPixmap(os.path.join(genv.v__app__img__int__, "play.png"))
-        painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
-        painter.end()
 
 class scrollBoxTabser(QWidget):
     def __init__(self):
@@ -9618,6 +9427,25 @@ class FileWatcherGUI(QDialog):
                 
             elif text[0] == "label 2":
                 self.checkBeforeSave()
+            elif text[0] == "label 3":
+                global application_mode
+                application_mode = 1
+                
+                script_name = self.dbase_tabs_editor_tabs_editor.objectName()
+                print("script: ", script_name)
+                
+                prg = None
+                prg = dBaseDSL(script_name)
+                #prg.parser.parse()
+                print("\nend of data\n")
+                
+                #prg.parser.text_code += "    con.exec_()\n"
+                print(prg.parser.text_code)
+                
+                try:
+                    prg.parser.run()
+                except Exception as e:
+                    print(e)
     
     def handleDBase(self):
         self.dbase_tabs = QTabWidget()
