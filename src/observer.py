@@ -42,7 +42,7 @@ required_modules = [
     "platform", "gzip", "base64", "shutil", "datetime", "pkgutil", "ast",
     "csv", "gettext", "locale", "io", "random", "string", "ctypes", "sqlite3",
     "configparser", "traceback", "marshal", "inspect", "logging", "PyQt5",
-    "pathlib", "rich" ]
+    "pathlib", "rich", "string", "codecs", "pywin32", "pywintypes" ]
 
 for module in required_modules:
     check_and_install_module(module)
@@ -177,6 +177,8 @@ class globalEnv:
         self.css_tabs         = "tabs_css"
         self.css_button_style = "button_style_css"
         
+        self.hhc_compiler     = "E:/doxygen/hhc/hhc.exe"    # todo: .ini
+        
         self.html_content = "html_content"
         # ------------------------------------------------------------------------
         # branding water marks ...
@@ -286,6 +288,7 @@ try:
     # ------------------------------------------------------------------------
     # developers modules ...
     # ------------------------------------------------------------------------
+    import string, codecs, win32com.client
     
     # -------------------------------------------------------------------
     # for debuging, we use python logging library ...
@@ -358,6 +361,18 @@ except configparser.Error as e:
     print("Exception: config error occur.")
     print("abort.")
     sys.exit(1)
+except SyntaxError as e:
+    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+    tb = traceback.extract_tb(e.__traceback__)[-1]
+    
+    print(f"Exception occur at module import:")
+    print(f"type : {exc_type.__name__}")
+    print(f"value: {exc_value}")
+    print(StringRepeat("-",40))
+    #
+    print(f"file : {tb.filename}")
+    print(f"line : {tb.lineno}")
+    sys.exit(1)
 except Exception as e:
     exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     tb = traceback.extract_tb(e.__traceback__)[-1]
@@ -402,11 +417,613 @@ __error__os__error = (""
 __error__locales_error = "" \
     + "no locales file for this application."
 
-
 # ------------------------------------------------------------------------
 # style sheet definition's:
 # ------------------------------------------------------------------------
 css_combobox_style = "combo_actn"
+
+TARGET_DIRECTORY      = genv.v__app__internal__ + "/temp"
+PROJECT_NAME          = "A Temporary Project"
+PROJECT_SOURCE        = genv.v__app__internal__ + "/temp/test.html"
+GENERATE_DOC          = 0
+ADD_LINKS_TO_INDEX    = 1
+PAGE_FORMAT_LANDSCAPE = 0
+USE_TOPLEVEL_PROJECT  = 1
+DEFAULT_TOPIC         = "test.html"
+USE_DOC_TEMPLATE      = "pydocgen.dot"
+DOC_PAGE_BREAKS       = 0
+
+# needed for converting Unicode->Ansi (in local system codepage)
+DecodeUnicodeString = lambda x: codecs.latin_1_encode(x)[0]
+
+if GENERATE_DOC:
+    word = win32com.client.Dispatch("Word.Application")
+    doc = word.Documents.Add(USE_DOC_TEMPLATE)
+    if PAGE_FORMAT_LANDSCAPE:
+        doc.PageSetup.Orientation = win32com.client.constants.wdOrientLandscape
+    else:
+        doc.PageSetup.Orientation = win32com.client.constants.wdOrientPortrait
+
+HTML_FILE_START = """<html>
+<meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'>
+<link rel='stylesheet' type='text/css' href='formate.css'>
+<body>"""
+HTML_FILE_STOP = """</body></html>"""
+
+LINKS = {}
+REVERSE_LINK_MAP = {}
+
+class HTMLHelpSubject:
+    "a help subject consists of a topic, and a filename"
+    def __init__( self, topic, filename, keywords = [] ):
+        self.topic, self.filename = topic, filename
+        self.keywords = keywords + [topic]
+        self.subjects = []
+    
+    def AsHHCString(self,tab):
+        return f"""{tab}<LI> <OBJECT type='text/sitemap'>
+{tab}    <param name='Name'  value='{self.topic}'>
+{tab}    <param name='Local' value='{self.filename}'>
+{tab}</OBJECT>"""
+    
+    def AsHHKString(self):
+        result = ""
+        for keyword in self.keywords:
+            result += f"""    <LI> <OBJECT type='text/sitemap'>
+        <param name='Name'  value='{keyword}'>
+        <param name='Local' value='{self.filename}'>
+    </OBJECT>"""
+        return result
+
+class HTMLHelpProject:
+    """a help project is a collection of topics and options that will be compiled
+    to a HTMLHelp file (.chm)"""
+    def __init__(self,subject,filename="default.html",title=None):
+        
+        if title is None:
+            title = subject
+        
+        # this is the root node for the help project. add subprojects here.
+        if filename is not None:
+            self.root = HTMLHelpSubject(subject, filename)
+        else:
+            self.root = HTMLHelpSubject(None, None)
+        
+        self.language      = "0x407 German (Germany)"
+        self.index_file    = subject + ".hhk"
+        self.default_topic = filename
+        self.toc_file      = subject + ".hhc"
+        self.compiled_file = subject + ".chm"
+        self.project_file  = subject + ".hhp"
+        self.title = title
+        self.index = {}
+        self.use_toplevel_project = 0
+    
+    def Generate(self,directory):
+        # make sure, target directory exists
+        try:
+            os.makedirs(directory)
+        except:
+            pass
+        
+        # generate files
+        self.GenerateHHP( os.path.join( directory, self.project_file ) )
+        self.GenerateHHK( os.path.join( directory, self.index_file ) )
+        self.GenerateTOC( os.path.join( directory, self.toc_file ) )
+    
+    def GenerateHHP(self,filename):
+        "Helper function: Generate HtmlHelp Project."
+        assert(self.root is not None)
+        
+        with open(filename,"w") as self.file:
+            self.file.write(f"""[OPTIONS]
+Compatibility=1.1 or later
+Compiled file={self.compiled_file}
+Contents file={self.toc_file}
+Default topic={self.default_topic}
+Display compile progress=No
+Full-text search=Yes
+Index file={self.index_file}
+Language={self.language}
+Title={self.title}
+
+[FILES]
+
+[INFOTYPES]\n\n
+""")
+    
+    def GenerateTOCRecursive(self,file,subject,indent):
+        tab = "\t" * indent
+        for item in subject.subjects:
+            self.file.write(item.AsHHCString(tab))
+            if item.subjects:
+                self.file.write(tab + "<UL>\n")
+                self.GenerateTOCRecursive(file, item, indent+1)
+                self.file.write(tab + "</UL>\n")
+    
+    def GenerateTOC(self,filename):
+        "Helper function: Generate Table-of-contents."
+        assert(self.root is not None)
+        
+        with open(filename,"w") as self.toc_file:
+            self.toc_file.write("""<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+  <HEAD>
+    <meta name="GENERATOR" content="python">
+  </HEAD>
+<BODY>
+  <OBJECT type="text/site properties">
+    <param name="FrameName" value="right">
+  </OBJECT>
+""")
+            #if not self.use_toplevel_project:
+            
+            self.toc_file.write("  <UL>\n")
+            #
+            self.toc_file.write("    <LI><OBJECT type=\"text/sitemap\">\n")
+            self.toc_file.write("\t<param name=\"Local\" value=\"default.html\">\n")
+            self.toc_file.write("\t<param name=\"Name\" value=\"Index\">\n")
+            self.toc_file.write("    </OBJECT></LI>\n")
+            #
+            self.toc_file.write("  </UL>\n")
+            
+            #self.toc_file.write(self.root.AsHHCString("\t"))
+            #self.GenerateTOCRecursive(self.file,self.root,2)
+            #self.toc_file.write("  </UL>")
+            #else:
+            #    self.toc_file.write("  <UL>")
+            #    self.GenerateTOCRecursive(self.file,self.root,1)
+            #    self.toc_file.write("  </UL>")
+            
+            self.toc_file.write("</BODY>\n</HTML>\n")
+            self.toc_file.close()
+    
+    def GenerateHHKRecursive(self,file,subject):
+        for item in subject.subjects:
+            self.file.write(item.AsHHKString())
+            if item.subjects:
+                self.GenerateHHKRecursive(file, item)
+    
+    def GenerateHHK(self,filename):
+        "Helper function: Generate Index file."
+        assert(self.root is not None)
+        
+        try:
+            with open(filename,"w") as self.file:
+                self.file.write("""<!DOCTYPE HTML PUBLIC '-//IETF//DTD HTML//EN'>
+<HTML>
+<HEAD>
+<meta name='GENERATOR' content='Python'>
+<!-- Sitemap 1.0 -->
+</HEAD><BODY>
+<UL>""")
+                if self.root.topic:
+                    self.file.write(self.root.AsHHKString())
+                    
+                self.GenerateHHKRecursive(self.file,self.root)
+                self.file.write("</UL>\n</BODY></HTML>")
+                self.file.close()
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            
+            err_message = (f""
+            + f"Exception occur at module import:\n"
+            + f"type : {exc_type.__name__}\n"
+            + f"value: {exc_value}\n"
+            + f"{StringRepeat("-",40)}\n"
+            #
+            + f"file : {tb.filename}\n"
+            + f"line : {tb.lineno}")
+            
+            msg = QMessageBox()
+            msg.setWindowTitle(_("Error"))
+            msg.setText(err_message)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()
+            pass
+
+class Table():
+    def __init__(self):
+        self.rows = []
+    
+    def Generate(self):
+        global doc, doc_index, doc_index_list
+        
+        doc_index = doc.Range().End-1
+        doc_index_list.append(doc_index)
+        
+        table = self.rows
+        
+        # eine Tabelle ans Textende einfügen 
+        doc_table = doc.Tables.Add(doc.Range(doc_index, doc_index),len(table),len(table[0]))
+        
+        # Zeile 0 ist die Überschriftszeile
+        doc_table.Rows(1).HeadingFormat = ~0
+        
+        # Alle Zellen mit Text füllen
+        for sri in xrange(len(table)):
+            row = table[sri]
+            for sci in xrange(len(row)):
+                cell = row[sci]
+                r = doc_table.Cell(sri+1,sci+1).Range
+                r.Style = cell.style
+                r.InsertAfter(cell.text)
+                if cell.texture:
+                    doc_table.Cell(sri+1,sci+1).Shading.Texture = cell.texture
+        
+        doc_table.Columns.AutoFit()
+        
+        doc_index = doc.Range().End-1
+        doc_index_list.append(doc_index)        
+
+class TC:
+    def __init__(self,text,style="TAB"):
+        self.text = text
+        self.style = style.upper()
+        self.texture = None
+        if self.style == "TABHEAD":
+            self.texture = win32com.client.constants.wdTexture10Percent
+
+doc_index_list = []
+doc_index = 0
+last_body = ""
+output = None    
+data = ""
+
+def isnumeric(token):
+    try:
+        int(token)
+        return 1
+    except:
+        return 0
+
+current_table = None
+is_recording_preformatted = 0
+
+# this function gets called for all tokens the parser finds
+def Pass1_OnToken(token):
+    global FILENAMES, project, output, last_body, file_index, is_recording_preformatted
+    global doc_index_list, doc_index, GENERATE_DOC, current_table, DOC_PAGE_BREAKS
+    
+    token_string = token
+    token = map(string.lower,token.split())
+    
+    # end of header token -------------------------------------------------------------
+    if token[0][:2] == '/h' and isnumeric(token[0][2:]):
+        
+        project.last_subject.topic = last_body
+        project.last_subject.keywords[0] = last_body
+        
+        if GENERATE_DOC:
+            doc.Content.InsertAfter("\n")
+            doc_index += 1
+            doc.Range(doc_index_list[-1],doc_index).Style = getattr(win32com.client.constants,"wdStyleHeading%d" % project.last_subject.level)
+            doc_index_list.append(doc_index)       
+    
+    elif token[0] == "a" and token[1][:5] == "href=":
+        link_to = token[1]
+        x = link_to.find('"')
+        if x >= 0:
+            link_to = link_to[x+1:]
+        x = link_to.rfind('"')
+        if x >= 0:
+            link_to = link_to[:x]        
+        if output:
+            try:
+                output.write('<a href="%s%s">' % (LINKS[link_to],link_to))
+            except:
+                print(f"Warning, link '{link_to}' invalid or external.")
+            return
+    
+    # table handling BEGIN ----------------------------------
+    elif token[0] == "table" and GENERATE_DOC:
+        current_table = Table()
+    
+    elif token[0] == "tr" and GENERATE_DOC and current_table:
+        if len(current_table.rows) > 1:
+            for item in current_table.rows[-1][:-1]:
+                item.style = "TABC"
+        
+        current_table.rows.append([])
+    
+    elif token[0] == "/td" and GENERATE_DOC and current_table:
+        style = "TAB"
+        if len(current_table.rows) == 1:
+            style = "TABHEAD"
+        
+        current_table.rows[-1].append(TC(last_body,style))
+    
+    elif token[0] == "/table" and GENERATE_DOC and current_table:
+        if len(current_table.rows) > 1:
+            for item in current_table.rows[-1][:-1]:
+                item.style = "TABC"
+        
+        current_table.Generate()
+        current_table = None
+    
+    # table handling END ----------------------------------    
+    elif token[0] == "pre":
+        is_recording_preformatted = 1
+    
+    # preprocessor define
+    elif token[0] == '/pre':
+        is_recording_preformatted = 0
+        if GENERATE_DOC:
+            doc.Content.InsertAfter("\n")
+            doc_index += 1
+            doc.Range(doc_index_list[-1],doc_index).Style = "sourcecode"
+            doc_index_list.append(doc_index)          
+    
+    # bullet-style list entry
+    elif token[0] == '/li':
+        if GENERATE_DOC:
+            doc.Content.InsertAfter("\n")
+            doc_index += 1
+            doc.Range(doc_index_list[-1],doc_index).Style = win32com.client.constants.wdStyleListBullet
+            doc_index_list.append(doc_index)        
+    
+    # end of paragraph
+    elif token[0] == '/p':
+        if GENERATE_DOC and not current_table:
+            doc.Content.InsertAfter("\n")
+            doc_index += 1
+            doc_index_list.append(doc_index)
+    
+    # font-style BOLD
+    elif token[0] == '/b':
+        if GENERATE_DOC:
+            doc.Content.InsertAfter(" ")
+            doc.Range(doc_index_list[-1],doc_index).Bold = 1
+            doc_index += 1
+            doc_index_list = doc_index_list[:-1]
+    
+    # font-style ITALIC
+    elif token[0] == '/i':
+        if GENERATE_DOC:
+            doc.Content.InsertAfter(" ")
+            doc.Range(doc_index_list[-1],doc_index).Italic = 1
+            doc_index += 1
+            doc_index_list = doc_index_list[:-1]
+    
+    elif token[0] == "img":
+        filename = token[1]
+        x = filename.find('"')
+        if x > 0:
+            filename = filename[x+1:]
+        x = filename.rfind('"')
+        if x > 0:
+            filename = filename[:x]
+        filename = os.path.join(TARGET_DIRECTORY,filename)
+        if GENERATE_DOC:
+            doc.Content.InsertAfter("\n")
+            print("DATEINAME=" + filename)
+            picture = doc.InlineShapes.AddPicture( filename, 1, 0,Range=doc.Range(doc_index,doc_index) )
+            doc.Content.InsertAfter("\n")
+            doc_index = doc.Range().End-1
+            doc_index_list.append(doc_index)
+    
+    # start of header token
+    elif token[0][:1] == 'h' and isnumeric(token[0][1:]):
+        
+        token = token[0]        
+        
+        # close old topic        
+        if output:
+            output.write(HTML_FILE_STOP)
+            output.close()
+        
+        # generate new topic      
+        filename = "file%d.htm" % file_index
+        
+        output = open( os.path.join(TARGET_DIRECTORY,filename), "w" )
+        file_index += 1
+        output.write(HTML_FILE_START)
+        
+        subject = HTMLHelpSubject(filename, filename)
+        project.last_subject = subject
+        
+        if ADD_LINKS_TO_INDEX:
+            try:
+                for keyword in REVERSE_LINK_MAP[filename]:
+                    subject.keywords.append(keyword[1:])
+            except:
+                pass
+        
+        subject.level = topic_level = int(token[1:])
+        
+        if topic_level == 1:
+            # this is a root project
+            project.root.subjects.append(subject)
+            project.levels[1] = subject
+        else:
+            parent_topic_level = topic_level-1
+            while (parent_topic_level > 0) and not project.levels.has_key(parent_topic_level):
+                parent_topic_level = parent_topic_level-1
+            
+            if parent_topic_level == 0:
+                project.root.subjects.append(subject)
+                project.levels[1] = subject
+            else:
+                project.levels[parent_topic_level].subjects.append(subject)
+            
+            project.levels[topic_level] = subject
+        
+        if GENERATE_DOC and DOC_PAGE_BREAKS:
+            doc.Range(doc_index,doc_index).InsertBreak(win32com.client.constants.wdPageBreak)
+            doc_index = doc.Range().End-1
+            doc_index_list.append(doc_index)
+    
+    if output:
+        output.write("<"+token_string+">")
+
+# this function gets called for all text bodies the parser finds. the default is to write the token to a file
+def Pass1_OnBody(body):
+    global output, last_body, doc, doc_index, current_table, is_recording_preformatted
+    
+    last_body = body
+    if output:
+        output.write(body)
+    if GENERATE_DOC and not current_table:
+        if not is_recording_preformatted:
+            body = body.replace("\n"," ")
+        body = body.replace("&lt;","<")
+        body = body.replace("&gt;",">").strip()
+        if body:
+            doc_index_list.append(doc_index)
+            doc.Content.InsertAfter(body)
+            doc_index += len(body)
+
+# this function gets called for all tokens the parser finds
+def Pass0_OnToken(token):
+    global last_filename, LINKS, file_index
+    
+    if token[:7] == "a name=":
+        x = token.find('"')
+        if x >= 0:
+            token = token[x+1:]
+        x = token.rfind('"')
+        if x >= 0:
+            token = token[:x]
+        if LINKS.has_key(token):
+            print(f"Warning, link '{token}' is used more than once.")
+            
+        LINKS[token] = last_filename
+    
+    elif token[:1] == 'h' and isnumeric(token[1:]):
+        
+        # generate new topic      
+        last_filename = "file%d.htm" % file_index
+        file_index += 1
+
+# this function gets called for all text bodies the parser finds. the default is to write the token to a file
+def Pass0_OnBody(body):
+    pass
+
+def ParseData(onbody,ontoken):
+    global output, output_index
+    output, output_index = None, 0
+    
+    current_token, current_body = None, None
+    
+    for i in range(len(data)):
+        c = data[i]
+        if c == '<':
+            if current_body is not None:
+                onbody(data[current_body:i])
+                current_body = None
+            current_token = i+1
+        elif c == '>':
+            if current_token is not None:
+                ontoken(data[current_token:i])
+            current_token = None
+        elif current_body is None and current_token is None:
+            current_body = i
+    
+    if current_body:
+        onbody(data[current_body:i])
+
+class createHTMLproject():
+    def __init__(self):
+        project = HTMLHelpProject( PROJECT_NAME, DEFAULT_TOPIC )
+        project.levels = {}
+        project.last_subject = None
+        project.use_toplevel_project = USE_TOPLEVEL_PROJECT
+        
+        with open(PROJECT_SOURCE,"r") as file:
+            data = file.read()
+        
+        file_index = 0
+        ParseData(Pass0_OnBody,Pass0_OnToken)
+        
+        if ADD_LINKS_TO_INDEX:
+            for key in LINKS:
+                file = LINKS[key]
+                try:
+                    REVERSE_LINK_MAP[file].append(key)
+                except:
+                    REVERSE_LINK_MAP[file] = [key]
+        
+        file_index = 0
+        ParseData(Pass1_OnBody,Pass1_OnToken)
+        
+        if output:
+            output.write(HTML_FILE_STOP)
+            output.close()
+        
+        try:
+            # -----------------------------------------
+            # save stdout to restore later ...
+            # -----------------------------------------
+            self.console_old = sys.stdout
+            self.console_new = DOSConsole(application_window)
+            self.console_new.console.setWordWrapMode(QTextOption.WordWrap)
+            
+            # -----------------------------------------
+            # non-blocking show dialog ...
+            # -----------------------------------------
+            self.console_new.show()
+            self.console_new.console.append(_("generationg chm file..."))
+            
+            # -----------------------------------------
+            # set redirect of stdout to dialog
+            # -----------------------------------------
+            self.process = QProcess(self.console_new)
+            self.process.readyReadStandardOutput.connect(self.handle_stdout)
+            self.process.readyReadStandardError.connect (self.handle_stderr)
+            self.process.finished.connect(self.process_finished)
+            
+            # -----------------------------------------
+            # generate a chm project file ...
+            # -----------------------------------------
+            project.Generate(TARGET_DIRECTORY)
+            
+            # -----------------------------------------
+            # create chm binary file ...
+            # -----------------------------------------
+            saved_working_dir = os.getcwd()
+            os.chdir(genv.v__app__internal__ + "/temp")
+            
+            # todo: set hhc.exe path !
+            parameter = '"' + genv.v__app__internal__ + "/temp/" + project.project_file + '"'
+            #
+            command   = '"' + genv.hhc_compiler  + '" ' +  parameter
+            command   = command.replace('/', "\\")
+            
+            self.process.start(command)
+            
+            # -----------------------------------------
+            # blocking show dialog - wait for user ...
+            # -----------------------------------------
+            self.console_new.exec_()
+            
+            # ---------------------------------
+            # restore stdout
+            # ---------------------------------
+            sys.stdout = self.console_old
+            os.chdir(saved_working_dir)
+            
+        except Exception as e:
+            print(e)
+    
+    def handle_stdout(self):
+        datas  = self.process.readAllStandardOutput()
+        stdout = bytes(datas).decode("utf8")
+        stdout = stdout.replace('\r','')
+        self.console_new.console.append(stdout)
+    
+    def handle_stderr(self):
+        datas = self.process.readAllStandardError()
+        stderr = bytes(datas).decode("utf8")
+        stderr = stderr.replace('\r','')
+        self.console_new.console.append(stderr)
+    
+    def process_finished(self):
+        self.console_new.console.append(_("Command finished."))
+        return
 
 # ------------------------------------------------------------------------------
 # convert string to list ...
@@ -662,7 +1279,7 @@ class FileSystemWatcher(QObject):
         self.fileContents = {}
     
     def addFile(self, filePath):
-        print("--> " + filePath)
+        #print("--> " + filePath)
         self.watcher.addPath(filePath)
         self.fileContents[filePath] = self.readFromFile(filePath)  # Initialen Inhalt der Datei einlesen
     
@@ -809,13 +1426,9 @@ class DOSConsole(QDialog):
         # ------------------------------------------------
         # initial create/fill the buffer with a empty char
         # ------------------------------------------------
-        self.buffer = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
-        line_value  = '&nbsp;'
-        
-        for row in range(self.rows):
-            for col in range(self.cols):
-                self.buffer[row][col] = line_value
-        
+        self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
+        self.colors = [['#ff0000:#000000' for _ in range(self.cols)] for _ in range(self.rows)]
+
         # close button, to close the QDialog
         btn_close  = QPushButton(_("Close"))
         btn_close.setMinimumHeight(32)
@@ -857,6 +1470,23 @@ class DOSConsole(QDialog):
         self.current_y = ypos - 1
     
     # ---------------------------------------------------------
+    # \brief  Print the current date.
+    # \return string => the actual date as string.
+    # ---------------------------------------------------------
+    def print_date(self):
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        self.print_line(current_date)
+    
+    def clear(self):
+        self.buffer.clear()
+        self.colors.clear()
+        
+        self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
+        self.colors = [['#ff0000:#000000' for _ in range(self.cols)] for _ in range(self.rows)]
+        
+        self.gotoxy(1, 1)
+    
+    # ---------------------------------------------------------
     # \brief  Print the text, given by the first parameter.
     #
     # \param  text - string
@@ -874,41 +1504,36 @@ class DOSConsole(QDialog):
             x = self.current_x
             y = self.current_y
             
-            # ----------------------------
-            # get/handle color string's
-            # ----------------------------
-            fg = self.getColor(fg_color)
-            bg = self.getColor(bg_color)
-            
-            print("fg: ", fg)
-            self.xpos = 8
-            self.ypos = 4
-            
+            color = fg_color + ':' + bg_color
             i = 0
             for row in range(self.rows):
                 if i >= len(text):
                     break
-                if row > self.ypos:
+                if row > y:
                     break
                 for col in range(self.cols):
                     if i >= len(text):
                         break
-                    if (col >= self.xpos) and (col <= (self.xpos + i)):
+                    if (col >= x) and (col <= (x + i)):
                         if text[i] == ' ':
-                            self.buffer[self.ypos][col] = '&nbsp;'
+                            self.buffer[y][col] = '&nbsp;'
+                            self.colors[y][col] = color
                         else:
-                            self.buffer[self.ypos][col] = text[i]
+                            self.buffer[y][col] = text[i]
+                            self.colors[y][col] = color
                         i += 1
             
             for row in range(self.rows):
                 for col in range(self.cols):
                     field_value = self.buffer[row][col]
+                    color       = self.colors[row][col].split(':')
+                    
                     if not field_value == '&nbsp;':
-                        text_html += f'<span style="color: \'white\';background-color:\'blue\';">'
+                        text_html += f'<span style="color:{color[0]};background-color:{color[1]};">'
                         text_html += field_value
                         text_html += '</span>'
                     else:
-                        text_html += f'<span style="color:\'white\';background-color:\'black\';">'
+                        text_html += f'<span style="color:{color[0]};background-color:{color[1]};">'
                         text_html += field_value
                         text_html += '</span>'
                 text_html += "<br>"
@@ -1032,7 +1657,7 @@ class ParserDSL:
             data.append(code)
             
             ParserDSL.files.append(data)
-            print(ParserDSL.files)
+            #print(ParserDSL.files)
         return True
     
     # -------------------------------------------------------------------
@@ -1485,7 +2110,7 @@ class dbase_loop:
 
 class dbase_command:
     def __init__(self, src, name, link=None):
-        print("---> " + name)
+        #print("---> " + name)
         self.what  = "keyword"
         self.owner = src
         self.name  = name
@@ -1567,23 +2192,45 @@ class interpreter_dBase:
         self.token_prev  = ""
         self.token_str   = ""
         
-        self.parse_data  = []
-        
         self.token_macro_counter = 0
         self.token_comment_flag  = 0
         
         self.in_comment = 0
         
-        self.AST = []
+        # ----------------------------------------------
+        # textual color values in RGB format ...
+        # ----------------------------------------------
+        self.token_colors = [
+            [['n']        , '#000000' ], # black
+            [['b']        , '#00008B' ], # dark blue
+            [['g']        , '#006400' ], # green
+            [['gb','bg']  , '#8B008B' ], # dark magenta
+            [['r']        , '#8B0000' ], # dark red
+            [['rb','br']  , '#FF00FF' ], # magenta
+            [['rg','gr']  , '#A52A2A' ], # brown
+            [['w']        , '#D3D3D3' ], # light gray
+            [['n+']       , '#A9A9A9' ], # dark gray
+            [['b+']       , '#0000FF' ], # blue
+            [['g+']       , '#00FF00' ], # light green
+            [['gb+','bg+'], '#ADD8E6' ], # light blue
+            [['r+']       , '#FF0000' ], # red
+            [['rb+','br+'], '#00FFFF' ], # magenta
+            [['rg+','gr+'], '#FFFF00' ], # yellow
+            [['w+']       , '#FFFFFF' ]  # white
+        ]
+        
+        self.err_commentNC = _("comment not closed.")
+        self.err_commandNF = _("command sequence not finished.")
+        self.err_unknownCS = _("unknown command or syntax error.")
         
         global textertext
         textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2024 by Jens Kallup - paule32.'
         self.byte_code = ""
         self.text_code = """
 import os
-import sys           # system specifies
-import time          # thread count
-import datetime      # date, and time routines
+import sys
+import time
+import datetime
 
 import builtins
 print = builtins.print
@@ -1591,28 +2238,13 @@ print = builtins.print
 if __name__ == '__main__':
     global console
     console = DOSConsole()
-    
-    console.console.clear()
-    #console.init_placeholder_text()
-    
-    console.gotoxy(8,4)
-    console.print_line('Dies ist Text', '#ffffff', '#0000ff')
-    
-    #console.gotoxy(3,2)
-    #console.print_line('Dummy Dies', 'yellow', 'black')
-    
-    #console.gotoxy(32, 4)
-    #console.print_line('dada dudu', 'white', 'blue')
-    
-    #console.gotoxy(10, 8)
-    #console.print_line('mapf mapf', 'red', 'black')
+    console.clear()
 """
         
         genv.v__app__logging.info("start parse: " + self.script_name)
         
         self.parser_stop = False
         self.parse_open(self.script_name)
-        self.source = self.parse_data[0]
     
     # -----------------------------------------------------------------------
     # \brief finalize checks and cleaning stuff ...
@@ -1620,13 +2252,7 @@ if __name__ == '__main__':
     def finalize(self):
         genv.v__app__logging.debug("macro   : " + str(self.token_macro_counter))
         genv.v__app__logging.debug("comment : " + str(self.token_comment_flag))
-        
-        #if self.command_ok == False:
-        #    raise EParserErrorEOF("command not finished.")
-        #if self.token_macro_counter < 0:
-        #    genv.v__app__logging.debug("\aerror: unbound macro.")
-        #    sys.exit(1)
-        
+    
     # -----------------------------------------------------------------------
     # \brief open a script file, and append the readed lines to the source
     #        object of this class. step one read the lines (maybe not need
@@ -1643,18 +2269,10 @@ if __name__ == '__main__':
     # \since  1.0.0
     # -----------------------------------------------------------------------
     def parse_open(self, file_name):
-        self.parse_data.clear()
-        with open(self.script_name, 'r', encoding="utf-8") as self.file:
-            self.file.seek(0)
-            lines  = 0
-            lines  = len(self.file.readlines())
-            self.file.seek(0)
-            
-            source = ""
-            source = self.file.read()
-            
-            self.file.close()
-        self.parse_data.append(source)
+        with open(self.script_name, 'r', encoding="utf-8") as file:
+            file.seek(0); self.source = file.read()
+            file.close()
+        print("source: ", self.source)
     
     def add_command(self, name, link):
         self.token_command = dbase_command(self, name, link)
@@ -1665,10 +2283,6 @@ if __name__ == '__main__':
         
         #self.text_code += "    con.reset()\n"
         self.text_code += "    console.exec_()\n"
-        
-        #if application_mode == 1:
-        #global con_dialog
-        #con_dialog = DOSConsole()
         
         try:
             bytecode_text = compile(
@@ -1683,11 +2297,12 @@ if __name__ == '__main__':
             # ---------------------
             cachedir = genv.v__app__internal__ + "/__cache__"
             if not os.path.exists(cachedir):
-                print("oooooo")
                 os.makedirs(cachedir)
+            
             filename = os.path.basename(self.script_name)
             filename = os.path.splitext(filename)[0]
             filename = cachedir+"/"+filename+".bin"
+            
             print("filename: " + filename)
             
             with open(filename,"wb") as bytefile:
@@ -1702,6 +2317,7 @@ if __name__ == '__main__':
             # execute binary code:
             # ---------------------
             bytecode = marshal.loads(self.byte_code)
+            
             exec(bytecode)
         except Exception as e:
             dialog = systemExceptionDialog(application_window,traceback.format_exc())
@@ -1728,11 +2344,11 @@ if __name__ == '__main__':
 
         if self.pos >= len(self.source):
             if self.in_comment > 0:
-                raise EParserErrorEOF("\aunterminated string reached EOF.")
+                raise EParserErrorEOF(_("a unterminated comment reached EOF."))
             else:
                 self.parser_stop = True
                 c = '\0'
-                #raise ENoParserError("\aend of file reached.")
+                return c
         else:
             c = self.source[self.pos]
             return c
@@ -1745,22 +2361,78 @@ if __name__ == '__main__':
     
     def getIdent(self):
         while True:
+            self.line_col += 1
             c = self.getChar()
-            if c.isspace():
+            if c == '\0':
+                self.__unexpectedToken(self.err_commandNF)
+                return c
+            if c == '\r':
+                c = self.getChar()
+                if c == '\0':
+                    self.__unexpectedToken(self.err_commandNF)
+                    return c
+                if not c == '\n':
+                    self.__unexpectedEndOfLine()
+                    return '\0'
+                else:
+                    self.line_col  = 1
+                    self.line_row += 1
+                    return self.token_str
+            if c == '\n':
+                self.line_col  = 1
+                self.line_row += 1
                 return self.token_str
-            elif c.isalnum():
+            if c == '\t' or c == ' ':
+                return self.token_str
+            elif (c >= '0' and c <= '9'):
                 self.token_str += c
+                continue
+            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                self.token_str += c
+                continue
+            elif c == '_':
+                self.token_str += c
+                continue
             else:
-                self.pos -= 1
+                self.ungetChar(1)
                 return self.token_str
     
     def getNumber(self):
+        have_point = False
         while True:
             c = self.getChar()
-            if c.isdigit():
+            self.line_col += 1
+            if c == '\0':
+                self.__unexpectedToken(self.err_commandNF)
+                return c
+            elif c == '\t' or c == ' ':
+                if len(self.token_str) > 0:
+                    return self.token_str
+                else:
+                    continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.__unexpectedEndOfLine()
+                self.line_col  = 1
+                self.line_row += 1
+                return self.token_str
+            elif c == '\n':
+                self.line_col  = 1
+                self.line_row += 1
+                return self.token_str
+            elif c == '.':
+                if have_point == True:
+                    self.__unexpectedChar(c)
+                else:
+                    have_point = True
+                    self.token_str += c
+                    continue
+            elif (c >= '0' and c <= '9'):
                 self.token_str += c
+                continue
             else:
-                self.pos -= 1
+                self.ungetChar(1)
                 return self.token_str
     
     # -----------------------------------------------------------------------
@@ -1772,44 +2444,87 @@ if __name__ == '__main__':
             c = self.getChar()
             if c == '\0' or self.parser_stop == True:
                 return c
-            elif c == "\t" or c == " ":
+            elif c == '\t' or c == ' ':
                 self.line_col += 1
                 continue
-            elif c == "\n" or c == "\r":
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.__unexpectedEndOfLine()
+                else:
+                    self.line_col  = 1
+                    self.line_row += 1
+                    continue
+            elif c == "\n":
                 self.line_col  = 1
                 self.line_row += 1
                 continue
             elif c == '/':
+                self.line_col += 1
                 c = self.getChar()
+                if c == '\0':
+                    self.__unexpectedToken(self.err_commentNC)
+                    return c
                 if c == '*':
+                    self.line_col += 1
                     self.in_comment += 1
                     while True:
                         c = self.getChar()
-                        if c == "\n":
+                        self.line_col += 1
+                        if c == '\0':
+                            self.__unexpectedToken(self.err_commentNC)
+                            return c
+                        elif c == '\t' or c == ' ':
+                            self.line_col += 1
+                            continue
+                        elif c == '\r':
+                            c = self.getChar()
+                            if not c == '\n':
+                                self.__unexpectedEndOfLine()
+                            else:
+                                self.line_col  = 1
+                                self.line_row += 1
+                                continue
+                        elif c == "\n":
                             self.line_col  = 1
                             self.line_row += 1
                             continue
-                        if c == '*':
+                        elif c == '*':
+                            self.line_col += 1
                             c = self.getChar()
                             if c == '/':
+                                self.line_col += 1
                                 self.in_comment -= 1
                                 break
+                        else:
+                            self.line_col += 1
+                            continue
+                    if self.in_comment > 0:
+                        self.__unexpectedToken(self.err_commentNC)
+                    else:
+                        print("comment closed")
                     return self.skip_white_spaces()
                 elif c == '/':
                     self.handle_oneline_comment()
                     continue
                 else:
+                    self.line_col -= 1
                     self.ungetChar(1)
                     c = "/"
                     return c
             elif c == '&':
+                self.line_col += 1
                 c = self.getChar()
+                if c == '\0':
+                    self.__unexpectedEndOfLine()
                 if c == '&':
+                    self.line_col += 1
                     self.handle_oneline_comment()
                     continue
                 else:
                     self.__unexpectedChar('&')
             elif c == '*':
+                self.line_col += 1
                 c = self.getChar()
                 if c == '*':
                     self.handle_oneline_comment()
@@ -1824,8 +2539,21 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------
     def handle_oneline_comment(self):
         while True:
+            self.line_col += 1
             c = self.getChar()
-            if c == "\n":
+            if c == '\0':
+                return c
+            elif c == '\t' or c == ' ':
+                self.line_col += 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.__unexpectedEndOfLine()
+                self.line_row += 1
+                self.line_col  = 1
+                break
+            elif c == "\n":
                 self.line_row += 1
                 self.line_col  = 1
                 break
@@ -1836,11 +2564,9 @@ if __name__ == '__main__':
             if c == '(':
                 c = self.skip_white_spaces()
                 if c == ')':
-                    print("dater")
-                    #self.text_code   += ("    con.screen.gotoxy(" +
-                    #str(self.xpos) + ","   +
-                    #str(self.ypos) + ")\n" +  "    con.screen.print_date()\n")
-                    #self.xpos = int(int(self.xpos) + 10)
+                    self.text_code  += ("    console.gotoxy(" +
+                    str(self.xpos) + ","   +
+                    str(self.ypos) + ")\n" +  (' ' * 4) + "console.print_date()\n")
                     
                     self.command_ok = True
                 else:
@@ -1864,7 +2590,10 @@ if __name__ == '__main__':
     def handle_string(self):
         while True:
             c = self.getChar()
-            if c == '"':
+            if c == '\0':
+                self.__unexpectedError(self.err_commandNF)
+                return c
+            elif c == '"':
                 break
             elif c == '\\':
                 c = self.getChar()
@@ -1889,12 +2618,14 @@ if __name__ == '__main__':
                 self.token_str += c
                 continue
         c = self.skip_white_spaces()
-        if c == '+':
+        if c == '\0':
+            return c
+        elif c == '+':
             c = self.skip_white_spaces()
-            if c == None:
-                print("no type")
-                return
-            if c == '"':
+            if c == '\0':
+                self.__unexpectedError(self.err_commandNF)
+                return c
+            elif c == '"':
                 self.handle_string()
                 #print("---> " + self.token_str)
                 return
@@ -1906,51 +2637,57 @@ if __name__ == '__main__':
                 return
             else:
                 self.__unexpectedChar(c)
-        if c == '@':
+        else:
             self.ungetChar(1)
             return
-        else:
-            self.__unexpectedChar(c)
     
     def handle_say(self):
         self.command_ok = False
         c = self.skip_white_spaces()
-        print("==> " + c)
-        if c.isdigit():
+        if c == '\0':
+            self.__unexpectedError(self.err_commandNF)
+            return c
+        elif (c >= '0') and (c <= '9'):
             self.token_str = c
             self.getNumber()                        # row
             self.ypos = self.token_str
             c = self.skip_white_spaces()
-            if c == ',':
+            if c == '\0':
+                self.__unexpectedError(self.err_commandNF)
+                return c
+            elif c == ',':
+                print("columbnser")
                 c = self.skip_white_spaces()
-                if c.isdigit():
+                if c == '\0':
+                    self.__unexpectedError(self.err_commandNF)
+                    return c
+                elif (c >= '0') and (c <= '9'):
                     self.token_str = c
                     self.getNumber()                # col
                     self.xpos = self.token_str
                     c = self.skip_white_spaces()
-                    if c == None:
-                        print("no type")
-                        return
-                    if c.isalpha():
+                    if c == '\0':
+                        self.__unexpectedError(self.err_commandNF)
+                        return c
+                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                        self.line_col += 1
                         self.token_str = c
                         self.getIdent()
                         if self.token_str.lower() == "say":
                             self.prev = "say"
                             c = self.skip_white_spaces()
-                            if c == None:
-                                print("no type")
-                                return
+                            if c == '\0':
+                                self.__unexpectedError(self.err_commandNF)
+                                return c
                             if c.isalpha():
                                 self.token_str = c
                                 self.getIdent()
                                 self.handle_commands()
                             elif c == '"':
-                                print("ssss")
                                 self.token_str = ""
                                 self.handle_string()
-                                #self.text_code += f"    con.screen.gotoxy({self.xpos},{self.ypos})\n"
-                                #self.text_code += f"    con.screen.print_line(\"" + self.token_str + "\")\n"
-                                #self.xpos = int(int(self.xpos) + len(self.token_str))
+                                self.text_code += (' ' * 4) + f"console.gotoxy({self.ypos},{self.xpos})\n"
+                                self.text_code += (' ' * 4) + f"console.print_line(\"" + self.token_str + "\")\n"
                         else:
                             raise Exception("say expected.")
                     else:
@@ -1961,87 +2698,135 @@ if __name__ == '__main__':
                 raise Exception("comma expected.")
     
     def parse(self):
-        self.token_str = ""
-        
-        with open(self.script_name, 'r', encoding="utf-8") as self.file:
-            self.file.seek(0)
-            self.total_lines = 0
-            self.total_lines = len(self.file.readlines())
-            self.file.seek(0)
+        try:
+            self.token_str = ""
             
-            self.source = ""
-            self.source = self.file.read()
-            
-            genv.v__app__logging.debug("lines: " + str(self.total_lines))
-            self.file.close()
-        
-        if len(self.source) < 1:
-            print("no data available.")
-            return
-        
-        # ------------------------------------
-        # ------------------------------------
-        while True:
-            c = self.skip_white_spaces()
-            if c == None:
-                print("no type")
+            if len(self.source) < 1:
+                self.__unexpectedError(_("no data available."))
                 return
-            if c == '\0' or self.parser_stop == True:
-                break
-            elif c == '@':
-                self.handle_say()
-            elif c.isalpha():
-                self.token_str = c
-                self.getIdent()
-                if self.token_str == "clear":
-                    print("clear")
-                    c = self.skip_white_spaces()
-                    if c == None:
-                        print("no type")
-                        return
-                    if c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
-                        if self.token_str == "screen":
-                            print("screen")
-                            self.text_code += "    #con.screen.clear_con_screen()\n";
-                        elif self.token_str == "memory":
-                            print("mem")
+            
+            while True:
+                c = self.skip_white_spaces()
+                if c == '\0' or self.parser_stop == True:
+                    break
+                elif c == '@':
+                    self.line_col += 1
+                    self.handle_say()
+                elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                    self.token_str = c
+                    self.getIdent()
+                    if self.token_str.lower() == "set":
+                        self.token_str = ""
+                        c = self.skip_white_spaces()
+                        if c == '\0':
+                            self.__unexpectedError(self.err_commandNF)
+                            return c
+                        elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                            self.token_str = c
+                            self.getIdent()
+                            if self.token_str.lower() == "color":
+                                self.token_isok = False
+                                self.token_str  = ""
+                                c = self.skip_white_spaces()
+                                if c == '\0':
+                                    self.__unexpectedError(self.err_commandNF)
+                                    return c
+                                elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                    self.token_str = c
+                                    self.getIdent()
+                                    if self.token_str.lower() == "to":
+                                        self.token_str = ""
+                                        c = self.skip_white_spaces()
+                                        if c == '\0':
+                                            self.__unexpectedError(self.err_commandNF)
+                                            return c
+                                        elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                            self.token_str = c.lower()
+                                            c = self.getChar()
+                                            if c == '\0':
+                                                self.__unexpectedError(self.err_commandNF)
+                                                return c
+                                            elif c == '+':
+                                                self.token_isok = True
+                                                self.token_str += c
+                                            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                                self.token_str += c.lower()
+                                                self.token_isok = True
+                                                c = self.getChar()
+                                                if c == '\0':
+                                                    self.__unexpectedError(self.err_unknownCS)
+                                                    return c
+                                                elif c == '+':
+                                                    self.token_isok = True
+                                                    self.token_str += c
+                                                else:
+                                                    self.token_isok = True
+                                                    self.ungetChar(1)
+                                            else:
+                                                self.token_isok = False
+                                                self.__unexpectedError(self.err_unknownCS)
+                                                return '\0'
+                                        else:
+                                            # todo: variable !!!
+                                            self.token_isok = False
+                                            self.__unexpectedError("todo: variable")
+                                            return c
+                                if self.token_isok == True:
+                                    for index in range(15):
+                                        alias = token_colors[index][0]
+                                        color = tolen_colors[index][1]
+                                        print(color)
+                    elif self.token_str == "clear":
+                        print("clear")
+                        c = self.skip_white_spaces()
+                        if c == None:
+                            print("no type")
+                            return
+                        if c.isalpha():
+                            self.token_str = c
+                            self.getIdent()
+                            if self.token_str == "screen":
+                                print("screen")
+                                self.text_code += "    #con.screen.clear_con_screen()\n";
+                            elif self.token_str == "memory":
+                                print("mem")
+                            else:
+                                print("--> " + self.token_str)
+                                self.ungetChar(len(self.token_str))
                         else:
-                            print("--> " + self.token_str)
-                            self.ungetChar(len(self.token_str))
+                            self.ungetChar(1)
+                            continue
                     else:
-                        self.ungetChar(1)
-                        continue
-                if self.token_str == "show":
-                    print("--> " + self.token_str)
-            else:
-                print("oooo>>> " + self.token_str)
-                return
+                        self.__unexpectedError(self.err_unknownCS)
+                        return '\0'
+                else:
+                    print("oooo>>> " + self.token_str)
+                    return
+        except:
+            dialog = systemExceptionDialog(application_window,traceback.format_exc())
     
     def __unexpectedToken(self):
-        __msg = "unexpected token: '" + self.token_str + "'"
-        __unexpectedError(__msg)
+        self.__msg = "unexpected token: '" + self.token_str + "'"
+        self.__unexpectedError(self.__msg)
     
     def __unexpectedChar(self, chr):
-        __msg = "unexpected character: '" + chr + "'"
-        __unexpectedError(__msg)
+        self.__msg = "unexpected character: '" + chr + "'"
+        self.__unexpectedError(self.__msg)
     
     def __unexpectedEndOfLine(self):
-        __unexpectedError("unexpected end of line")
+        self.__unexpectedError("unexpected end of line")
     
     def __unexpectedEscapeSign(self):
-        __unexpectedError("nunexpected escape sign")
+        self.__unexpectedError("nunexpected escape sign")
     
     def __unexpectedError(self, message):
         calledFrom = inspect.stack()[1][3]
-        msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
-        msg = msg % (
+        self.__msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
+        self.__msg = self.__msg % (
             self.line_row,
             self.script_name)
-        print(msg)
-        sys.exit(1)
-    
+        raise Exception(self.__msg)
+
 # ---------------------------------------------------------------------------
 # \brief  provide dBase DSL (domain source language)- dBL (data base language
 #         class for handling and programming database applications.
@@ -2055,11 +2840,8 @@ if __name__ == '__main__':
 # ---------------------------------------------------------------------------
 class dBaseDSL():
     def __init__(self, script_name):
-        self.script = None
-        
         self.parser = None
         self.parser = interpreter_dBase(script_name)
-        self.parser.parse()
 
 class interpreter_Pascal:
     def __init__(self, fname):
@@ -2573,6 +3355,7 @@ class doxygenDSL:
         except ENoParserError as noerror:
             #prg.finalize()
             print("\nend of data")
+            chm = createHTMLproject()
     
     def parse(self):
         return
@@ -2585,7 +3368,7 @@ class doxygenDSL:
 # ------------------------------------------------------------------------
 def read_gzfile_to_memory(file_path):
     check_file = Path(file_path)
-    print(check_file)
+    #print(check_file)
     if not check_file.exists():
         print("Error: gzfile directory exists, but file could not found.")
         print("abort.")
@@ -3199,7 +3982,7 @@ class myCustomLabel(QLabel):
 class myCustomScrollArea(QScrollArea):
     def __init__(self, parent, number, name):
         super().__init__()
-        print(name)
+        #print(name)
         
         self.number = number
         self.name   = name
@@ -3626,7 +4409,7 @@ class customScrollView_1(myCustomScrollArea):
                     return
                 
                 parser = parserDoxyGen(doxyfile, self.parent)
-                
+        
         except Exception as e:
             dialog = systemExceptionDialog(self,traceback.format_exc())
             return
@@ -4589,22 +5372,31 @@ class myExitDialog(QDialog):
         self.vlayout.addWidget(self.prevButton)
         self.vlayout.addWidget(self.exitButton)
         
-        if not genv.helpButton_connected:
-            genv.helpButton_connected = True
-            genv.prevButton_connected = True
-            genv.exitButton_connected = True
-            
-            self.helpButton.clicked.connect(self.help_click)
-            self.prevButton.clicked.connect(self.prev_click)
-            self.exitButton.clicked.connect(self.exit_click)
+        self.helpButton.clicked.connect(self.help_click)
+        self.prevButton.clicked.connect(self.prev_click)
+        self.exitButton.clicked.connect(self.exit_click)
         
+        self.finished.connect(self.on_finished)
         
-        self.hexitText = QLabel(_("Would you realy exit the Application"))
+        self.hexitText = QLabel(_("Would you realy exit the Application?"))
         
         self.hlayout.addLayout(self.vlayout)
         self.hlayout.addWidget(self.hexitText)
         
         self.setLayout(self.hlayout)
+    
+    def disconnectEvents(self):
+        try:
+            self.helpButton.clicked.disconnect(self.help_click)
+            self.prevButton.clicked.disconnect(self.prev_click)
+            self.exitButton.clicked.disconnect(self.exit_click)
+        except TypeError as e:
+            print(e)
+        except Exception as e:
+            print(e)
+    
+    def on_finished(self):
+        self.disconnectEvents()
     
     def help_click(self):
         print("help button")
@@ -4616,6 +5408,7 @@ class myExitDialog(QDialog):
         return
     def exit_click(self):
         print("exit")
+        self.disconnectEvents()
         sys.exit(0)
 
 class myMoveButton(QPushButton):
@@ -9583,17 +10376,17 @@ class FileWatcherGUI(QDialog):
                 except AttributeError:
                     self.showNoEditorMessage()
                     return
-                                
-                prg = None
-                prg = dBaseDSL(script_name)
-                #prg.parser.parse()
-                print("\nend of data\n")
-                
-                #prg.parser.text_code += "    con.exec_()\n"
-                print(prg.parser.text_code)
-                
+
                 try:
-                    prg.parser.run()
+                    prg = interpreter_dBase(script_name)
+                    prg.parse()
+                    print("\nend of data\n")
+                    
+                    prg.text_code += (' ' * 4) + "console.exec_()\n"
+                    print(prg.text_code)
+                    
+                    prg.run()
+                    prg = None
                 except Exception as e:
                     print(e)
     
@@ -10962,7 +11755,7 @@ class FileWatcherGUI(QDialog):
                         else:
                             print("file: " + file_name + " is not packed.")
                         file.close()
-                    print(self.localeliste[0][0].text())
+                    #print(self.localeliste[0][0].text())
         return
     
     def load_drives(self):
@@ -11683,15 +12476,15 @@ def EntryPoint(arg1=None):
         + f"{genv.doxyfile}" + "' does not exists. I will fix this by create a default file.")
         
         file_content      = json.loads(_("doxyfile_content"))
-        print(file_content)
+        #print(file_content)
         
         try:
             file_content_warn = json.loads(_("doxyfile_content_warn"))
-            print(file_content_warn)
+            #print(file_content_warn)
         except Exception as e:
             print(e)
         print(">>>")
-        print(file_content)
+        #print(file_content)
         print("<<<")
         with open(genv.doxyfile, 'w') as file:
             file.write(genv.v__app__comment_hdr)
@@ -11797,12 +12590,6 @@ class parserDBasePoint:
     def __init__(self, script_name):
         prg = None
         prg = dBaseDSL(script_name)
-        try:
-            prg.parse()
-            #prg.run()
-        except ENoParserError as noerror:
-            prg.finalize()
-            print("\nend of data")
 
 # ---------------------------------------------------------------------------
 # parse Doxyfile script ...
@@ -11856,7 +12643,7 @@ if __name__ == '__main__':
     genv.v__app__tmp3 = "parse..."
     if len(sys.argv) < 2:
         print("no arguments given.")
-        print(genv.v__app__parameter)
+        #print(genv.v__app__parameter)
         sys.exit(1)
     
     if len(sys.argv) >= 1:
