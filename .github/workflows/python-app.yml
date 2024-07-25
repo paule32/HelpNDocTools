@@ -56,6 +56,9 @@ jobs:
             python3 -m pip install PyQt5
             python3 -m pip install PyQt5-sip
             python3 -m pip install PyQtWebEngine
+            python3 -m pip install pywin32
+            python3 -m pip install pywintypes
+            python3 -m pip install codecs
           }
           if ($pyInstallExe) {
             Write-Output "pyInstaller is installed."
