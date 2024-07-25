@@ -607,11 +607,12 @@ Title={self.title}
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
+            dummy = StringRepeat("-",40)
             err_message = (f""
             + f"Exception occur at module import:\n"
             + f"type : {exc_type.__name__}\n"
             + f"value: {exc_value}\n"
-            + f"{StringRepeat("-",40)}\n"
+            + f"{dummy}\n"
             #
             + f"file : {tb.filename}\n"
             + f"line : {tb.lineno}")
