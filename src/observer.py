@@ -613,7 +613,6 @@ Title={self.title}
             + f"type : {exc_type.__name__}\n"
             + f"value: {exc_value}\n"
             + f"{dummy}\n"
-            #
             + f"file : {tb.filename}\n"
             + f"line : {tb.lineno}")
             
