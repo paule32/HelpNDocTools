@@ -9494,10 +9494,11 @@ class imageHelperOverlay(QWidget):
     def __init__(self, image_path, xpos, ypos, parent=None):
         super(QWidget, self).__init__(parent)
         
-        self.xpos  = xpos
-        self.ypos  = ypos
+        self.xpos   = xpos
+        self.ypos   = ypos
         
-        self.image = QPixmap(image_path)
+        self.parent = parent
+        self.image  = QPixmap(image_path)
         
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WA_NoSystemBackground)
@@ -9523,10 +9524,11 @@ class imageHelperOverlay(QWidget):
         painter.drawText(80,26, char1)
     
     def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.drawPixmap(self.xpos, self.ypos, self.image)
-        
-        self.draw_char(painter)
+        if self.parent.tab0_fold_push2.isVisible():
+            painter = QPainter(self)
+            painter.drawPixmap(self.xpos, self.ypos, self.image)
+            
+            self.draw_char(painter)
 
 class FileWatcherGUI(QDialog):
     def __init__(self):
