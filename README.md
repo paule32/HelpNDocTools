@@ -6,6 +6,9 @@ To download the Windows 10 64-Bit Professional based Application, you can visit:
 Here are some out dated screen shoot on running the application:
 For the Commodore C-64 TrueType Font, visit: [C64Font](https://style64.org/release/c64-truetype-v1.2.1-style)
 
+Preview Front-Window B1:
+![Preview](src/_internal/img/screen021.png)
+
 Preview Front-Window A2:
 ![Preview](src/_internal/img/screen010.png)
 

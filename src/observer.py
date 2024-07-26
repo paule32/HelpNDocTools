@@ -15,6 +15,9 @@ DoxyGenElementLayoutList = []
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
 
+global topic_counter
+topic_counter = 1
+
 import importlib
 import subprocess
 import sys
@@ -9712,7 +9715,38 @@ class FileWatcherGUI(QDialog):
         
         menu.addAction(self.menu_action)
         return
-        
+    
+    def open_context_topics_menu(self, position: QPoint):
+        index = self.tab2_tree_view.indexAt(position)
+        if index.isValid():
+            item_text = self.tab2_tree_model.itemFromIndex(index).text()
+            print(f"Item text: {item_text}")
+            # Context menu for tree items
+            menu = QMenu()
+            menu.setStyleSheet(_("css_menu_button"))
+            
+            action1 = QAction(_("Add Topic"), self)
+            action2 = QAction(_("Rename Topic"), self)
+            #
+            action3 = QAction(_("Move Up"), self)
+            action4 = QAction(_("Move Down"), self)
+            action5 = QAction(_("Move Left"), self)
+            action6 = QAction(_("Move Right"), self)
+            #
+            action7 = QAction(_("Delete"), self)
+            
+            menu.addAction(action1)
+            menu.addAction(action2)
+            menu.addSeparator()
+            menu.addAction(action3)
+            menu.addAction(action4)
+            menu.addAction(action5)
+            menu.addAction(action6)
+            menu.addSeparator()
+            menu.addAction(action7)
+            
+            menu.exec_(self.tab2_tree_view.viewport().mapToGlobal(position))
+    
     def init_ui(self):
         # mouse tracking
         self.setMouseTracking(True)
@@ -10152,25 +10186,77 @@ class FileWatcherGUI(QDialog):
             showError("Error: file does not exists:\n" + self.tab2_file_path)
             sys.exit(1)
         print("---> " + self.tab2_file_path)
-        global tab2_tree_view
-        tab2_tree_view = QTreeView()
-        tab2_tree_view.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
+        
+        self.tab2_tree_view = QTreeView()
+        self.tab2_tree_view.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
+        
         self.tab2_tree_model = QStandardItemModel()
         self.tab2_tree_model.setHorizontalHeaderLabels([_("Topic name"), "ID", "Status", "Help icon", "In Build"])
-        tab2_tree_view.setModel(self.tab2_tree_model)
+        self.tab2_tree_view.setModel(self.tab2_tree_model)
         
-        self.tab2_top_layout.addWidget(tab2_tree_view)
+        self.tab2_tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tab2_tree_view.customContextMenuRequested.connect(self.open_context_topics_menu)
+        
+        self.tab2_pushbuttonAdd = QPushButton(_("Add"))
+        self.tab2_pushbuttonAdd.setMinimumHeight(32)
+        self.tab2_pushbuttonAdd.setStyleSheet(_(genv.css_button_style))
+        
+        self.topics_layout = QVBoxLayout()
+        
+        self.tab2_pushbuttonRename    = QPushButton(_("Rename Topic"))
+        self.tab2_pushbuttonRename.setMinimumHeight(32)
+        self.tab2_pushbuttonRename.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveUp    = QPushButton(_("Move Up"))
+        self.tab2_pushbuttonMoveUp.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveUp.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveDown  = QPushButton(_("Move Down"))
+        self.tab2_pushbuttonMoveDown.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveDown.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveLeft  = QPushButton(_("Move Left"))
+        self.tab2_pushbuttonMoveLeft.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveLeft.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveRight = QPushButton(_("Move Right"))
+        self.tab2_pushbuttonMoveRight.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveRight.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonRemove    = QPushButton(_("Delete"))
+        self.tab2_pushbuttonRemove.setMinimumHeight(32)
+        self.tab2_pushbuttonRemove.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveUp   .setMinimumHeight(32)
+        self.tab2_pushbuttonMoveDown .setMinimumHeight(32)
+        self.tab2_pushbuttonMoveLeft .setMinimumHeight(32)
+        self.tab2_pushbuttonMoveRight.setMinimumHeight(32)
+        self.tab2_pushbuttonRemove   .setMinimumHeight(32)
+        
+        self.topics_layout.addWidget(self.tab2_pushbuttonAdd)
+        self.topics_layout.addWidget(self.tab2_pushbuttonRename)
+        self.topics_layout.addWidget(self.tab2_pushbuttonMoveUp)
+        self.topics_layout.addWidget(self.tab2_pushbuttonMoveDown)
+        self.topics_layout.addWidget(self.tab2_pushbuttonMoveLeft)
+        self.topics_layout.addWidget(self.tab2_pushbuttonMoveRight)
+        self.topics_layout.addWidget(self.tab2_pushbuttonRemove)
+        self.topics_layout.addStretch()
+        
+        self.tab2_top_layout.addWidget(self.tab2_tree_view)
+        self.tab2_top_layout.addLayout(self.topics_layout)
+        
         self.populate_tree_view(self.tab2_file_path, os.path.join(genv.v__app__img__int__, "open-folder" + genv.v__app__img_ext__))
         
-        self.delegateID     = SpinEditDelegateID     (tab2_tree_view)
-        self.delegateStatus = ComboBoxDelegateStatus (tab2_tree_view)
-        self.delegateIcon   = ComboBoxDelegateIcon   (tab2_tree_view)
-        self.delegateBuild  = ComboBoxDelegateBuild  (tab2_tree_view)
+                
+        self.delegateID     = SpinEditDelegateID     (self.tab2_tree_view)
+        self.delegateStatus = ComboBoxDelegateStatus (self.tab2_tree_view)
+        self.delegateIcon   = ComboBoxDelegateIcon   (self.tab2_tree_view)
+        self.delegateBuild  = ComboBoxDelegateBuild  (self.tab2_tree_view)
         
-        tab2_tree_view.setItemDelegateForColumn(1, self.delegateID)
-        tab2_tree_view.setItemDelegateForColumn(2, self.delegateStatus)
-        tab2_tree_view.setItemDelegateForColumn(3, self.delegateIcon)
-        tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
+        self.tab2_tree_view.setItemDelegateForColumn(1, self.delegateID)
+        self.tab2_tree_view.setItemDelegateForColumn(2, self.delegateStatus)
+        self.tab2_tree_view.setItemDelegateForColumn(3, self.delegateIcon)
+        self.tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
         
         #self.tab2_top_layout.
         
