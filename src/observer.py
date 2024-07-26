@@ -290,6 +290,20 @@ try:
     # ------------------------------------------------------------------------
     import string, codecs, win32com.client
     
+    # ------------------------------------------------------------------------
+    # determine on which operating the application script runs ...
+    # ------------------------------------------------------------------------
+    genv.os_name = platform.system()
+    print("OS: ", genv.os_name)
+    if genv.os_name == 'Windows':
+        print("The Application runs under Windows.")
+    elif genv.os_name == 'Linux':
+        print("The Application runs under Linux.")
+    elif genv.os_name == 'Darwin':
+        print("The Application runs under macOS.")
+    else:
+        print(f"Unknown Operating System: {genv.os_name}")
+    
     # -------------------------------------------------------------------
     # for debuging, we use python logging library ...
     # -------------------------------------------------------------------
@@ -344,7 +358,7 @@ try:
         #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
         #
         raise IgnoreOuterException
-
+    
 except IgnoreOuterException:
     print(genv.v__app__locales)
     pass
@@ -7565,26 +7579,26 @@ class clearChildTreeItems():
     # with mouse on a favorite item ...
     # --------------------------------------------------
     def remove(self):
-        while self.parent.child_item_form.rowCount() > 0:
-            self.parent.child_item_form.removeRow(0)
+        while self.parent.child_item_forms.rowCount() > 0:
+            self.parent.child_item_forms.removeRow(0)
         
-        while self.parent.child_item_report.rowCount() > 0:
-            self.parent.child_item_report.removeRow(0)
+        while self.parent.child_item_reports.rowCount() > 0:
+            self.parent.child_item_reports.removeRow(0)
         
-        while self.parent.child_item_program.rowCount() > 0:
-            self.parent.child_item_program.removeRow(0)
+        while self.parent.child_item_programs.rowCount() > 0:
+            self.parent.child_item_programs.removeRow(0)
         
-        while self.parent.child_item_image.rowCount() > 0:
-            self.parent.child_item_image.removeRow(0)
+        while self.parent.child_item_images.rowCount() > 0:
+            self.parent.child_item_images.removeRow(0)
         
         while self.parent.child_item_tables.rowCount() > 0:
             self.parent.child_item_tables.removeRow(0)
         
-        while self.parent.child_item_sql.rowCount() > 0:
-            self.parent.child_item_sql.removeRow(0)
+        while self.parent.child_item_queries.rowCount() > 0:
+            self.parent.child_item_queries.removeRow(0)
         
-        while self.parent.child_item_other.rowCount() > 0:
-            self.parent.child_item_other.removeRow(0)
+        while self.parent.child_item_others.rowCount() > 0:
+            self.parent.child_item_others.removeRow(0)
 
 class MiniMap(QFrame):
     def __init__(self, parent=None):
@@ -7652,6 +7666,347 @@ class myProjectLineEdit(QLineEdit):
             
         super(myProjectLineEdit, self).mouseDoubleClickEvent(event)
 
+class TableModelAll(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelAll, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Forms"),
+            _("Programs"),
+            _("Reports"),
+            _("Tables"),
+            _("Images"),
+            _("SQL"),
+            _("Other")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+        self.modelReset.emit()
+
+class TableModelForms(QAbstractTableModel):
+    modelReset = pyqtSignal()
+    
+    def __init__(self, data):
+        super(TableModelForms, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Forms"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+        self.modelReset.emit()
+
+class TableModelPrograms(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelPrograms, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Programs"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelReports(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelReports, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Reports"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelTables(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelTables, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Tables"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelImages(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelImages, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Images"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelQueries(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelQueries, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Query"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelOthers(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelOthers, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Other"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
 class applicationProjectWidget(QWidget):
     def __init__(self, parent=None):
         super(applicationProjectWidget, self).__init__(parent)
@@ -7671,30 +8026,30 @@ class applicationProjectWidget(QWidget):
         
         self.dbase_path    = "./"
         
-        self.pro_files     = "Project Files"
-        self.pro_forms     = "Form"
-        self.pro_reports   = "Report"
-        self.pro_programs  = "Program"
-        self.pro_tables    = "Desktop Tables"
-        self.pro_sql       = "SQL"
-        self.pro_images    = "Image"
-        self.pro_other     = "Other"
+        self.pro_files     = _("Project Files")
+        self.pro_forms     = _("Forms")
+        self.pro_reports   = _("Reports")
+        self.pro_programs  = _("Programs")
+        self.pro_tables    = _("Desktop Tables")
+        self.pro_queries   = _("SQL")
+        self.pro_images    = _("Images")
+        self.pro_others    = _("Others")
         
         self.dbase_path_forms    = ""
         self.dbase_path_reports  = ""
         self.dbase_path_programs = ""
         self.dbase_path_tables   = ""
         self.dbase_path_images   = ""
-        self.dbase_path_sql      = ""
-        self.dbase_path_other    = ""
+        self.dbase_path_queries  = ""
+        self.dbase_path_others   = ""
         
-        self.child_item_form    = None
-        self.child_item_report  = None
-        self.child_item_program = None
-        self.child_item_tables  = None
-        self.child_item_sql     = None
-        self.child_item_image   = None
-        self.child_item_other   = None
+        self.child_item_forms    = None
+        self.child_item_reports  = None
+        self.child_item_programs = None
+        self.child_item_tabless  = None
+        self.child_item_queries  = None
+        self.child_item_images   = None
+        self.child_item_others   = None
         
         self.selected_item = None
         css_linestyle = _("editfield_css")
@@ -7826,7 +8181,31 @@ class applicationProjectWidget(QWidget):
         left_widget.setLayout(left_layout)
         
         
-        self.list_view = QListView()
+        self.data_all = [
+            [1, 'A', 3.0, 'X', 'a', 'add', 'Alpha'],
+            [2, 'B', 4.1, 'Y', 'b', 'sub', 'Beta'],
+            [3, 'C', 5.2, 'Z', 'c', 'mul', 'Gamma'],
+            [4, 'D', 6.3, 'W', 'd', 'div', 'Delta']
+        ]
+        
+        self.data_forms    = [ ['name 1', 'remark 1'] ]
+        self.data_reports  = [ ['name 2', 'remark 2'] ]
+        self.data_programs = [ ['name 3', 'remark 3'] ]
+        self.data_tables   = [ ['name 4', 'remark 4'] ]
+        self.data_queries  = [ ['name 5', 'remark 5'] ]
+        self.data_images   = [ ['name 6', 'remark 6'] ]
+        self.data_others   = [ ['name 7', 'remark 7'] ]
+                
+        model = TableModelAll(self.data_all)
+        
+        self.list_view = QTableView()
+        self.list_view.setModel(model)
+        
+        # Vertikale Header ausblenden
+        self.list_view.verticalHeader().setVisible(False)
+        self.list_view.setStyleSheet("QHeaderView::section{background-color:lightgreen;}")
+        
+        #self.list_view = QListView()
         self.list_view.setMinimumWidth(470)
         self.list_view.setFont(QFont(genv.v__app__font,11))
         
@@ -7976,8 +8355,8 @@ class applicationProjectWidget(QWidget):
             self.dbase_path_programs = genv.v__app__config[self.db_path]["Programs"]
             self.dbase_path_images   = genv.v__app__config[self.db_path]["Images"]
             self.dbase_path_tables   = genv.v__app__config[self.db_path]["Tables"]
-            self.dbase_path_sql      = genv.v__app__config[self.db_path]["SQL"]
-            self.dbase_path_other    = genv.v__app__config[self.db_path]["Other"]
+            self.dbase_path_queries  = genv.v__app__config[self.db_path]["SQL"]
+            self.dbase_path_others   = genv.v__app__config[self.db_path]["Other"]
             
             self.dbase_forms        = genv.v__app__config[self.db_pro]["Forms"]
             self.dbase_forms_arr    = []
@@ -7991,7 +8370,7 @@ class applicationProjectWidget(QWidget):
                         return
                     child = QStandardItem(file_name)
                     if child:
-                        self.child_item_form.appendRow(child)
+                        self.child_item_forms.appendRow(child)
             
             self.dbase_reports      = genv.v__app__config[self.db_pro]["Reports"]
             self.dbase_reports_arr  = []
@@ -8005,7 +8384,7 @@ class applicationProjectWidget(QWidget):
                         return
                     child = QStandardItem(file_name)
                     if child:
-                        self.child_item_report.appendRow(child)
+                        self.child_item_reports.appendRow(child)
             
             self.dbase_programs     = genv.v__app__config[self.db_pro]["Programs"]
             self.dbase_programs_arr = []
@@ -8019,7 +8398,7 @@ class applicationProjectWidget(QWidget):
                         return
                     child = QStandardItem(file_name)
                     if child:
-                        self.child_item_program.appendRow(child)
+                        self.child_item_programs.appendRow(child)
             
             self.dbase_tables       = genv.v__app__config[self.db_pro]["Tables"]
             self.dbase_tables_arr   = []
@@ -8047,35 +8426,35 @@ class applicationProjectWidget(QWidget):
                         return
                     child = QStandardItem(file_name)
                     if child:
-                        self.child_item_image.appendRow(child)
+                        self.child_item_images.appendRow(child)
             
-            self.dbase_sql          = genv.v__app__config[self.db_pro]["SQL"]
-            self.dbase_sql_arr      = []
-            self.dbase_sql_arr.append(self.dbase_sql)
-            self.dbase_sql_arr      = self.dbase_sql_arr[0].replace("'","").split(", ")
+            self.dbase_queries          = genv.v__app__config[self.db_pro]["SQL"]
+            self.dbase_queries_arr      = []
+            self.dbase_queries_arr.append(self.dbase_queries)
+            self.dbase_queries_arr      = self.dbase_queries_arr[0].replace("'","").split(", ")
             
-            if len(self.dbase_sql_arr) > 0:
-                for file_name in self.dbase_sql_arr:
+            if len(self.dbase_queries_arr) > 0:
+                for file_name in self.dbase_queries_arr:
                     file_name = file_name.replace("\"","")
                     if len(file_name.strip()) < 1:
                         return
                     child = QStandardItem(file_name)
                     if child:
-                        self.child_item_sql.appendRow(child)
+                        self.child_item_queries.appendRow(child)
             
-            self.dbase_other        = genv.v__app__config[self.db_pro]["Other"]
-            self.dbase_other_arr    = []
-            self.dbase_other_arr.append(self.dbase_other)
-            self.dbase_other_arr    = self.dbase_other_arr[0].replace("'","").split(", ")
+            self.dbase_others        = genv.v__app__config[self.db_pro]["Other"]
+            self.dbase_others_arr    = []
+            self.dbase_others_arr.append(self.dbase_others)
+            self.dbase_others_arr    = self.dbase_others_arr[0].replace("'","").split(", ")
             
-            if len(self.dbase_other_arr) > 0:
-                for file_name in self.dbase_other_arr:
+            if len(self.dbase_others_arr) > 0:
+                for file_name in self.dbase_others_arr:
                     file_name = file_name.replace("\"","")
                     if len(file_name.strip()) < 1:
                         return
                     child = QStandardItem(file_name)
                     if child:
-                        self.child_item_other.appendRow(child)
+                        self.child_item_others.appendRow(child)
             
         except Exception as e:
             print(e)
@@ -8532,7 +8911,7 @@ class applicationProjectWidget(QWidget):
                 return
         # 5
         try:
-            if self.selected_item.text() == _(self.pro_sql):
+            if self.selected_item.text() == _(self.pro_queries):
                 genv.v__app__config[self.db_pro]["SQL"] = path_name
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
@@ -8625,45 +9004,45 @@ class applicationProjectWidget(QWidget):
         icon1 = QIcon(os.path.join(genv.v__app__img__int__, "open-folder-blue.png"))
         icon2 = QIcon(os.path.join(genv.v__app__img__int__, "open-folder-yellow.png"))
         
-        parent_item = QStandardItem(_(self.pro_files))
+        parent_item = QStandardItem(self.pro_files)
         parent_item.setFont(font1)
         parent_item.setIcon(icon1)
         
-        self.child_item_form = QStandardItem(_(self.pro_forms))
-        self.child_item_form.setFont(font2)
-        self.child_item_form.setIcon(icon2)
+        self.child_item_forms = QStandardItem(self.pro_forms)
+        self.child_item_forms.setFont(font2)
+        self.child_item_forms.setIcon(icon2)
         
-        self.child_item_report = QStandardItem(_(self.pro_reports))
-        self.child_item_report.setFont(font2)
-        self.child_item_report.setIcon(icon2)
+        self.child_item_reports = QStandardItem(self.pro_reports)
+        self.child_item_reports.setFont(font2)
+        self.child_item_reports.setIcon(icon2)
         
-        self.child_item_program = QStandardItem(_(self.pro_programs))
-        self.child_item_program.setFont(font2)
-        self.child_item_program.setIcon(icon2)
+        self.child_item_programs = QStandardItem(self.pro_programs)
+        self.child_item_programs.setFont(font2)
+        self.child_item_programs.setIcon(icon2)
         
-        self.child_item_tables = QStandardItem(_(self.pro_tables))
+        self.child_item_tables = QStandardItem(self.pro_tables)
         self.child_item_tables.setFont(font2)
         self.child_item_tables.setIcon(icon2)
         
-        self.child_item_sql = QStandardItem(_("SQL"))
-        self.child_item_sql.setFont(font2)
-        self.child_item_sql.setIcon(icon2)
+        self.child_item_queries = QStandardItem(self.pro_queries)
+        self.child_item_queries.setFont(font2)
+        self.child_item_queries.setIcon(icon2)
         
-        self.child_item_image = QStandardItem(_(self.pro_images))
-        self.child_item_image.setFont(font2)
-        self.child_item_image.setIcon(icon2)
+        self.child_item_images = QStandardItem(self.pro_images)
+        self.child_item_images.setFont(font2)
+        self.child_item_images.setIcon(icon2)
         
-        self.child_item_other = QStandardItem(_(self.pro_other))
-        self.child_item_other.setFont(font2)
-        self.child_item_other.setIcon(icon2)
+        self.child_item_others = QStandardItem(self.pro_others)
+        self.child_item_others.setFont(font2)
+        self.child_item_others.setIcon(icon2)
         #
-        parent_item.appendRow(self.child_item_form)
-        parent_item.appendRow(self.child_item_report)
-        parent_item.appendRow(self.child_item_program)
+        parent_item.appendRow(self.child_item_forms)
+        parent_item.appendRow(self.child_item_reports)
+        parent_item.appendRow(self.child_item_programs)
         parent_item.appendRow(self.child_item_tables)
-        parent_item.appendRow(self.child_item_sql)
-        parent_item.appendRow(self.child_item_image)
-        parent_item.appendRow(self.child_item_other)
+        parent_item.appendRow(self.child_item_queries)
+        parent_item.appendRow(self.child_item_images)
+        parent_item.appendRow(self.child_item_others)
         
         root_node.appendRow(parent_item)
         self.tree_view.setModel(self.model)
@@ -8684,79 +9063,178 @@ class applicationProjectWidget(QWidget):
             self.dbase_path_programs,
             self.dbase_path_tables,
             self.dbase_path_images,
-            self.dbase_path_sql,
-            self.dbase_path_other
+            self.dbase_path_queries,
+            self.dbase_path_others
         ]
-        for el in liste:
-            if not el:
-                return
+        #for el in liste:
+        #    if not el:
+        #        return
         
         item = self.model.itemFromIndex(index)
         self.selected_item = item
         if not item == None:
             parent_item = item.parent()
             if not parent_item == None:
-                if parent_item.text() == _(self.pro_files):
-                    if item.text() == _(self.pro_forms):
+                if parent_item.text() == self.pro_files:
+                    if item.text() == self.pro_forms:
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_forms)
+                        
+                        try:
+                            if not hasattr(self, model_forms):
+                                pass
+                        except NameError as e:
+                            self.model_forms = TableModelForms(self.data_forms)
+                            self.list_view.setModel(self.model_forms)
+                        except AttributeError as e:
+                            self.model_forms = TableModelForms(self.data_forms)
+                            self.list_view.setModel(self.model_forms)
+                        
+                        self.model_forms.updateData(self.data_forms)
+                        self.list_view.model().layoutChanged.emit()
                         return
-                    elif item.text() == _(self.pro_reports):
+                    elif item.text() == self.pro_reports:
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_reports)
+                        
+                        try:
+                            if not hasattr(self, model_reports):
+                                pass
+                        except NameError as e:
+                            self.model_reports = TableModelReports(self.data_reports)
+                            self.list_view.setModel(self.model_reports)
+                        except AttributeError as e:
+                            self.model_reports = TableModelReports(self.data_reports)
+                            self.list_view.setModel(self.model_reports)
+                        
+                        self.model_reports.updateData(self.data_reports)
                         return
-                    elif item.text() == _(self.pro_programs):
+                    elif item.text() == self.pro_programs:
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_programs)
+                        
+                        try:
+                            if not hasattr(self, model_programs):
+                                pass
+                        except NameError as e:
+                            self.model_programs = TableModelPrograms(self.data_programs)
+                            self.list_view.setModel(self.model_programs)
+                        except AttributeError as e:
+                            self.model_programs = TableModelPrograms(self.data_programs)
+                            self.list_view.setModel(self.model_programs)
+                        
+                        self.model_programs.updateData(self.data_programs)
                         return
-                    elif item.text() == _(self.pro_tables):
+                    elif item.text() == self.pro_tables:
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_tables)
+                        
+                        try:
+                            if not hasattr(self, model_tables):
+                                pass
+                        except NameError as e:
+                            self.model_tables = TableModelTables(self.data_tables)
+                            self.list_view.setModel(self.model_tables)
+                        except AttributeError as e:
+                            self.model_tables = TableModelTables(self.data_tables)
+                            self.list_view.setModel(self.model_tables)
+                        
+                        self.model_tables.updateData(self.data_tables)
                         return
-                    elif item.text() == _(self.pro_sql):
+                    elif item.text() == self.pro_queries:
                         self.path_edit.clear()
-                        self.path_edit.setText(self.dbase_path_sql)
+                        self.path_edit.setText(self.dbase_path_queries)
+                        
+                        try:
+                            if not hasattr(self, model_queries):
+                                pass
+                        except NameError as e:
+                            self.model_queries = TableModelQueries(self.data_queries)
+                            self.list_view.setModel(self.model_queries)
+                        except AttributeError as e:
+                            self.model_queries = TableModelQueries(self.data_queries)
+                            self.list_view.setModel(self.model_queries)
+                        
+                        self.model_queries.updateData(self.data_queries)
                         return
-                    elif item.text() == _(self.pro_images):
+                    elif item.text() == self.pro_images:
                         self.path_edit.clear()
                         self.path_edit.setText(self.dbase_path_images)
+                        
+                        try:
+                            if not hasattr(self, model_images):
+                                pass
+                        except NameError as e:
+                            self.model_images = TableModelImages(self.data_images)
+                            self.list_view.setModel(self.model_images)
+                        except AttributeError as e:
+                            self.model_images = TableModelImages(self.data_images)
+                            self.list_view.setModel(self.model_images)
+                        
+                        self.model_images.updateData(self.data_images)
                         return
-                    elif item.text() == _(self.pro_other):
+                    elif item.text() == self.pro_others:
                         self.path_edit.clear()
-                        self.path_edit.setText(self.dbase_path_other)
+                        self.path_edit.setText(self.dbase_path_others)
+                        
+                        try:
+                            if not hasattr(self, model_others):
+                                pass
+                        except NameError as e:
+                            self.model_others = TableModelOthers(self.data_others)
+                            self.list_view.setModel(self.model_others)
+                        except AttributeError as e:
+                            self.model_others = TableModelOthers(self.data_others)
+                            self.list_view.setModel(self.model_others)
+                        
+                        self.model_others.updateData(self.data_others)
                         return
                 elif parent_item.text() == _(self.pro_forms):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_forms)
                     return
-                elif parent_item.text() == _(self.pro_reports):
+                elif parent_item.text() == self.pro_reports:
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_reports)
                     return
-                elif parent_item.text() == _(self.pro_programs):
+                elif parent_item.text() == self.pro_programs:
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_programs)
                     return
-                elif parent_item.text() == _(self.pro_tables):
+                elif parent_item.text() == self.pro_tables:
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_tables)
                     return
-                elif parent_item.text() == _(self.pro_sql):
+                elif parent_item.text() == self.pro_queries:
                     self.path_edit.clear()
-                    self.path_edit.setText(self.dbase_path_sql)
+                    self.path_edit.setText(self.dbase_path_queries)
                     return
-                elif parent_item.text() == _(self.pro_images):
+                elif parent_item.text() == self.pro_images:
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path_images)
                     return
-                elif item.text() == _(self.pro_other):
+                elif item.text() == self.pro_others:
                     self.path_edit.clear()
-                    self.path_edit.setText(self.dbase_path_other)
+                    self.path_edit.setText(self.dbase_path_others)
                     return
             else:
                 if item.text() == _(self.pro_files):
                     self.path_edit.clear()
                     self.path_edit.setText(self.dbase_path)
+                    
+                    try:
+                        if not hasattr(self, model_all):
+                            pass
+                    except NameError as e:
+                        self.model_all = TableModelAll(self.data_all)
+                        self.list_view.setModel(self.model_all)
+                    except AttributeError as e:
+                        self.model_all = TableModelAll(self.data_all)
+                        self.list_view.setModel(self.model_all)
+                    
+                    self.model_all.updateData(self.data_all)
+                    self.list_view.model().layoutChanged.emit()
+                    
                     return
     
     # -----------------------------------------------
