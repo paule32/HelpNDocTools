@@ -8071,6 +8071,10 @@ class applicationProjectWidget(QWidget):
         self.tree_view.setFont(QFont(genv.v__app__font,11))
         self.tree_view.clicked.connect(self.on_item_clicked)
         
+        # Enable custom context menu
+        self.tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_view.customContextMenuRequested.connect(self.open_context_menu)
+        
         self.populate_tree()
         
         fav_layout = QHBoxLayout()
@@ -8121,7 +8125,7 @@ class applicationProjectWidget(QWidget):
         self.path_edit.setStyleSheet(css_linestyle)
         self.path_edit.setFont(font3)
         #
-        self.path_push  = QPushButton("...")
+        self.path_push  = QPushButton(".X.")
         self.path_push.setMinimumWidth(30)
         self.path_push.setMinimumHeight(30)
         self.path_push.setFont(font3)
@@ -8155,7 +8159,7 @@ class applicationProjectWidget(QWidget):
         self.hlay_edit = QLineEdit()
         self.hlay_edit.setStyleSheet(css_linestyle)
         
-        hlay_push = QPushButton("...")
+        hlay_push = QPushButton(".A.")
         hlay_push.setMinimumWidth(30)
         hlay_push.setMinimumHeight(30)
         hlay_push.setFont(font3)
@@ -8214,6 +8218,10 @@ class applicationProjectWidget(QWidget):
         self.clr_push = QPushButton(_("Clear All"))
         self.del_push = QPushButton(_("Remove"))
         #
+        self.add_push.setStyleSheet(_(genv.css_button_style))
+        self.clr_push.setStyleSheet(_(genv.css_button_style))
+        self.del_push.setStyleSheet(_(genv.css_button_style))
+        #
         self.add_push.setMinimumHeight(36)
         self.clr_push.setMinimumHeight(36)
         self.del_push.setMinimumHeight(36)
@@ -8260,6 +8268,39 @@ class applicationProjectWidget(QWidget):
             + "Command aborted.")
         
         self.setLayout(main_layout)
+    
+    def open_context_menu(self, position: QPoint):
+        index = self.tree_view.indexAt(position)
+        if index.isValid():
+            item_text = self.model.itemFromIndex(index).text()
+            
+            # Context menu for tree items
+            menu = QMenu()
+            menu.setStyleSheet(_("css_menu_button"))
+            
+            action1 = QAction(_(f"{item_text}") + ":  " + _("Add"), self)
+            action2 = QAction(_(f"{item_text}") + ":  " + _("Clear"), self)
+            action3 = QAction(_(f"{item_text}") + ":  " + _("Clear Items"), self)
+            
+            menu.addAction(action1)
+            menu.addSeparator()
+            menu.addAction(action2)
+            menu.addAction(action3)
+        else:
+            # Context menu for empty space
+            menu = QMenu()
+            menu.setStyleSheet(_("css_menu_button"))
+            
+            action1 = QAction(_("Add"), self)
+            action2 = QAction(_("Clear"), self)
+            action3 = QAction(_("Clear All"), self)
+            
+            menu.addAction(action1)
+            menu.addSeparator()
+            menu.addAction(action2)
+            menu.addAction(action3)
+
+        menu.exec_(self.tree_view.viewport().mapToGlobal(position))
     
     # -----------------------------------------------
     # search for item with <text> in the widget list.
@@ -9449,6 +9490,44 @@ class ButtonWidget(QWidget):
         self.layout.addWidget(self.label)
         self.setLayout(self.layout)
 
+class imageHelperOverlay(QWidget):
+    def __init__(self, image_path, xpos, ypos, parent=None):
+        super(QWidget, self).__init__(parent)
+        
+        self.xpos  = xpos
+        self.ypos  = ypos
+        
+        self.image = QPixmap(image_path)
+        
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WA_NoSystemBackground)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setGeometry(0, 0, parent.width(), parent.height())
+    
+    def draw_char(self, painter):
+        font1 = QFont("wingdings", 16)
+        font1.setBold(True)
+        
+        font2 = QFont("Arial", 10)
+        
+        char1 = chr(0x81)    # circled 1
+        char2 = chr(0x82)    # circled 2
+        
+        painter.setFont(font2)
+        painter.setPen(QColor(0,0,0))
+        painter.drawText(32,26, _("Step:"))
+        painter.drawText(32,40, _("Select Project"))
+        
+        painter.setFont(font1)
+        painter.setPen(QColor(255,200,0))
+        painter.drawText(80,26, char1)
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.drawPixmap(self.xpos, self.ypos, self.image)
+        
+        self.draw_char(painter)
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -9782,9 +9861,9 @@ class FileWatcherGUI(QDialog):
         self.side_scroll.setWidget(self.side_widget)
         
         ####
+               
         self.main_layout.addWidget(self.side_scroll)
-        
-        
+                
         self.handleDBase()
         self.handlePascal()
         self.handleIsoC()
@@ -10157,7 +10236,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_push13  = MyPushButton("Repro" , 3)
         self.tab0_fold_push14  = MyPushButton("Build" , 4)
         #
-        self.tab0_fold_text2   = QLabel("Project-Name:")
+        self.tab0_fold_text2   = QLabel(_("Project-Name:"))
         self.tab0_fold_text2.setMaximumWidth(84)
         self.tab0_fold_text2.setFont(font)
         self.tab0_fold_edit2   = myLineEdit()
@@ -10526,20 +10605,55 @@ class FileWatcherGUI(QDialog):
         layout.addWidget(self.tool_bar   )
         layout.addLayout(self.main_layout)
         layout.addWidget(self.status_bar )
-
+        
+        #
         #self.layout.addLayout(self.main_layout)
         #self.layout.addWidget(self.status_bar)
         
         self.setLayout(layout)
         self.setWindowTitle(self.windowtitle)
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
+        
+        widget     = self.tab0_fold_push2
+        global_pos = widget.mapToGlobal(QPoint(0, 0))
+        geom       = widget.geometry()
+        
+        self.helper_overlay = imageHelperOverlay(
+            genv.v__app__internal__ + "/img/blub.png",
+            geom.x()+20,
+            geom.y(),
+            self)
+        self.helper_overlay.show()
+
+        
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
         
         self.interval = 0
         self.currentTime = 0
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        QTimer.singleShot(0, self.helper_positions)
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.helper_positions()
+    
+    def helper_positions(self):
+        control_pos  = self.tab0_fold_push2
+        control      = self.helper_overlay
         
+        global_pos   = control_pos.mapToGlobal(QPoint(0, 0))
+        relative_pos = control_pos.pos()
+        
+        xpos = relative_pos.x()+70
+        ypos = relative_pos.y()+50
+        
+        control.setObjectName(f"X{xpos}:Y{ypos}")
+        control.move(xpos, ypos)
+    
     # folder tree
     def openContextMenuTreeView(self, position):
         indexes = self.tab0_file_tree.selectedIndexes()
