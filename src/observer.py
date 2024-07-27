@@ -1405,7 +1405,7 @@ def convertPath(text):
 # ---------------------------------------------------------------------------
 class DOSConsole(QDialog):
     def __init__(self, parent=None):
-        super(DOSConsole, self).__init__(parent)
+        super().__init__()
         
         dlg_layout = QHBoxLayout()
         lhs_layout = QVBoxLayout()
@@ -1439,6 +1439,9 @@ class DOSConsole(QDialog):
         
         self.current_x = 0
         self.current_y = 0
+        
+        self.fg_color  = "#FF0000"
+        self.bg_color  = "#000000"
         
         # ------------------------------------------------
         # initial create/fill the buffer with a empty char
@@ -1485,14 +1488,30 @@ class DOSConsole(QDialog):
     def gotoxy(self, xpos, ypos):
         self.current_x = xpos - 1
         self.current_y = ypos - 1
+        return
+    
+    # ---------------------------------------------------------
+    # \brief  Set the acutal color for text output.
+    #
+    # \param  fg_color   - str => the color for the foreground
+    # \param  bg_color   - str => the color for the background
+    #
+    # \return color_pair - str => '#000000:#000000' => fg:bg
+    # ---------------------------------------------------------
+    def setcolor(self, fg_color, bg_color):
+        self.fg_color = fg_color
+        self.bg_color = bg_color
+        
+        result = self.fg_color + ':' + self.bg_color
+        return result
     
     # ---------------------------------------------------------
     # \brief  Print the current date.
     # \return string => the actual date as string.
     # ---------------------------------------------------------
     def print_date(self):
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        self.print_line(current_date)
+        result = datetime.now().strftime("%Y-%m-%d")
+        return result
     
     def clear(self):
         self.buffer.clear()
@@ -1511,7 +1530,14 @@ class DOSConsole(QDialog):
     # \param  bg   - string  background color for text
     # \return nothing
     # ---------------------------------------------------------
-    def print_line(self, text, fg_color="#ffff00", bg_color="#0000ff"):
+    def print_line(self,
+        text,           # text
+        fg_color=None,  # foreground color
+        bg_color=None): # background color
+        if fg_color == None:
+            fg_color = self.fg_color
+        if bg_color == None:
+            bg_color = self.bg_color
         try:
             text_html = ""
             
@@ -1521,7 +1547,7 @@ class DOSConsole(QDialog):
             x = self.current_x
             y = self.current_y
             
-            color = fg_color + ':' + bg_color
+            color = self.fg_color + ':' + self.bg_color
             i = 0
             for row in range(self.rows):
                 if i >= len(text):
@@ -2236,6 +2262,9 @@ class interpreter_dBase:
             [['w+']       , '#FFFFFF' ]  # white
         ]
         
+        self.fg_color  = "#FF0000"
+        self.bg_color  = "#000000"
+        
         self.err_commentNC = _("comment not closed.")
         self.err_commandNF = _("command sequence not finished.")
         self.err_unknownCS = _("unknown command or syntax error.")
@@ -2752,47 +2781,23 @@ if __name__ == '__main__':
                                     self.token_str = c
                                     self.getIdent()
                                     if self.token_str.lower() == "to":
-                                        self.token_str = ""
-                                        c = self.skip_white_spaces()
-                                        if c == '\0':
-                                            self.__unexpectedError(self.err_commandNF)
-                                            return c
-                                        elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                                            self.token_str = c.lower()
-                                            c = self.getChar()
-                                            if c == '\0':
-                                                self.__unexpectedError(self.err_commandNF)
-                                                return c
-                                            elif c == '+':
-                                                self.token_isok = True
-                                                self.token_str += c
-                                            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                                                self.token_str += c.lower()
-                                                self.token_isok = True
-                                                c = self.getChar()
-                                                if c == '\0':
-                                                    self.__unexpectedError(self.err_unknownCS)
-                                                    return c
-                                                elif c == '+':
-                                                    self.token_isok = True
-                                                    self.token_str += c
-                                                else:
-                                                    self.token_isok = True
-                                                    self.ungetChar(1)
-                                            else:
-                                                self.token_isok = False
-                                                self.__unexpectedError(self.err_unknownCS)
-                                                return '\0'
-                                        else:
-                                            # todo: variable !!!
-                                            self.token_isok = False
-                                            self.__unexpectedError("todo: variable")
-                                            return c
-                                if self.token_isok == True:
-                                    for index in range(15):
-                                        alias = token_colors[index][0]
-                                        color = tolen_colors[index][1]
-                                        print(color)
+                                        # ------------------------------------
+                                        # fg / bg color: 1 / 2
+                                        # ------------------------------------
+                                        c = self.check_color_token(1)
+                                        if c == '/':
+                                            c = self.check_color_token(2)
+                                        self.ungetChar(1)
+                                        self.text_code += (
+                                        (" " * 4) +
+                                        f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
+                                        continue
+                                    else:
+                                        self.__unexpectedToken(self.token_str)
+                                        return '\0'
+                            else:
+                                self.__unexpectedToken(self.token_str)
+                                return '\0'
                     elif self.token_str == "clear":
                         print("clear")
                         c = self.skip_white_spaces()
@@ -2821,6 +2826,94 @@ if __name__ == '__main__':
                     return
         except:
             dialog = systemExceptionDialog(application_window,traceback.format_exc())
+    
+    def check_color_token(self, flag):
+        self.token_str = ""
+        while True:
+            c = self.skip_white_spaces()
+            print(f"char: {c}")
+            if c == '\0':
+                self.__unexpectedError(self.err_commandNF)
+                return c
+            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                self.token_str = c.lower()
+                print("token:", self.token_str)
+                c = self.getChar()
+                if c == '\0':
+                    self.__unexpectedError(self.err_commandNF)
+                    return c
+                elif c == '\t' or c == ' ':
+                    self.line_col += 1
+                    break
+                elif c == '\n':
+                    self.line_col  = 1
+                    self.line_row += 1
+                    break
+                elif c == '\r':
+                    c = self.getChar()
+                    if not c == '\n':
+                        self.__unexpectedEndOfLine()
+                        return '\0'
+                    else:
+                        self.line_col  = 1
+                        self.line_row += 1
+                        break
+                elif c == '+':
+                    self.token_isok = True
+                    self.token_str += c
+                    c = self.skip_white_spaces()
+                    if c == '\0':
+                        self.__unexpectedError(self.err_unknownCS)
+                        return c
+                    else:
+                        self.token_isok = True
+                        break
+                elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                    self.token_str += c.lower()
+                    self.token_isok = True
+                    c = self.getChar()
+                    if c == '\0':
+                        self.__unexpectedError(self.err_unknownCS)
+                        return c
+                    elif c == '+':
+                        self.token_isok = True
+                        break
+                    else:
+                        self.token_isok = True
+                        self.ungetChar(1)
+                        c = self.skip_white_spaces()
+                        break
+                else:
+                    self.ungetChar(1)
+                    c = self.skip_white_spaces()
+                    break
+            else:
+                # todo: variable !!!
+                self.__unexpectedError("todo: variable")
+                return c
+        
+        found = False
+        color = "#FF0000"
+        for index in range(len(self.token_colors)):
+            alias = self.token_colors[index][0]
+            color = self.token_colors[index][1]
+            for ali in alias:
+                if ali == self.token_str:
+                    found = True
+                    print(alias)
+                    print(color)
+                    break
+            if found:
+                break
+        if not found:
+            self.__unexpectedError(_("color setting not found."))
+            return
+        else:
+            if flag == 1:
+                self.fg_color = color
+            else:
+                self.bg_color = color
+        return c
     
     def __unexpectedToken(self):
         self.__msg = "unexpected token: '" + self.token_str + "'"
@@ -4926,17 +5019,6 @@ class SpinEditDelegateID(QStyledItemDelegate):
         editor.setValue(self.topic_counter)
         self.topic_counter = self.topic_counter + 1
         return editor
-
-class CustomItem(QStandardItem):
-    def __init__(self, text, icon):
-        super().__init__(text)
-        self.icon = icon
-        
-    def paint(self, painter, option, index):
-        super().paint(painter, option, index)
-        
-        icon_rect = option.rect.adjusted(4, 4, 20, -4)
-        painter.drawPixmap(icon_rect, self.icon.pixmap(16, 16))
 
 class MyItemRecord:
     def __init__(self, item_attr1, item_attr2):
@@ -9533,6 +9615,31 @@ class imageHelperOverlay(QWidget):
             
             self.draw_char(painter)
 
+def add_item(parent, text):
+    item = QStandardItem(text)
+    parent.appendRow([item, QStandardItem(), QStandardItem()])
+    return item
+
+class IconDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        if index.column() == 2:
+            text = index.sibling(index.row(), 0).data()
+            if text == "Complete":
+                icon_path = os.path.join(genv.v__app__img__int__, "icon_white"  + genv.v__app__img_ext__)
+            elif text == "Needs Review":
+                icon_path = os.path.join(genv.v__app__img__int__, "icon_blue"   + genv.v__app__img_ext__)
+            elif text == "In Progress":
+                icon_path = os.path.join(genv.v__app__img__int__, "icon_yellow" + genv.v__app__img_ext__)
+            elif text == "Out of Date":
+                icon_path = os.path.join(genv.v__app__img__int__, "icon_red"    + genv.v__app__img_ext__)
+            else:
+                icon_path = os.path.join(genv.v__app__img__int__, "edit"        + genv.v__app__img_ext__)
+            
+            icon = QIcon(icon_path)
+            icon.paint(painter, option.rect, Qt.AlignCenter)
+        else:
+            super().paint(painter, option, index)
+
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -9622,6 +9729,34 @@ class FileWatcherGUI(QDialog):
         self.tab1_path_lineEdit.setText(f"{self.tab1_path_file}")
         return
     
+    def on_treeview_clicked(self, index):
+        row  = index.row()
+        col  = index.column()
+        item = self.tab2_tree_model.itemFromIndex(index)
+        text = item.text()
+        print(f"Clicked row: {row}, col: {col}, text: {text}")
+    
+    def on_data_changed(self, top_left, bottom_right, roles):
+        if Qt.EditRole in roles:
+            for row in range(top_left.row(), bottom_right.row() + 1):
+                for column in range(top_left.column(), bottom_right.column() + 1):
+                    index = self.tab2_tree_model.index(row, column)
+                    item  = self.tab2_tree_model.itemFromIndex(index)
+                    text  = item.text()
+                    
+                    if text == "Complete":
+                        icon_path = os.path.join(genv.v__app__img__int__, "icon_white"  + genv.v__app__img_ext__)
+                    elif text == "Needs Review":
+                        icon_path = os.path.join(genv.v__app__img__int__, "icon_blue"   + genv.v__app__img_ext__)
+                    elif text == "In Progress":
+                        icon_path = os.path.join(genv.v__app__img__int__, "icon_yellow" + genv.v__app__img_ext__)
+                    elif text == "Out of Date":
+                        icon_path = os.path.join(genv.v__app__img__int__, "icon_red"    + genv.v__app__img_ext__)
+                    else:
+                        icon_path = os.path.join(genv.v__app__img__int__, "edit"        + genv.v__app__img_ext__)
+                    
+                    item.setIcon(QIcon(icon_path))
+    
     def populate_tree_view(self, file_path, icon):
         with open(file_path, 'r') as file:
             roots = []
@@ -9638,13 +9773,15 @@ class FileWatcherGUI(QDialog):
                 item_name = line.strip('+').strip()
                 
                 new_item = QStandardItem(item_name)
-                new_item.setIcon(QIcon(icon))
+                new_item.setIcon(QIcon(os.path.join(genv.v__app__img__int__, "open-folder" + genv.v__app__img_ext__)))
                 
-                global item2
-                item1 = QStandardItem(str(self.topic_counter))
-                item2 = QStandardItem(" ") #item2.setIcon(QIcon(icon))
-                item3 = QStandardItem(" ")
-                item4 = QStandardItem(" ")
+                try:
+                    item1 = QStandardItem(str(self.topic_counter))
+                    item2 = QStandardItem(" ") #; item2.setIcon(QIcon(icon))
+                    item3 = QStandardItem(" ") #; item3.setIcon(QIcon(icon))
+                    item4 = QStandardItem(" ") #; item4.setIcon(QIcon(icon))
+                except Exception as e:
+                    print(e)
                 
                 self.my_list.add(self.topic_counter, item1)
                 
@@ -9726,26 +9863,35 @@ class FileWatcherGUI(QDialog):
             menu.setStyleSheet(_("css_menu_button"))
             
             action1 = QAction(_("Add Topic"), self)
-            action2 = QAction(_("Rename Topic"), self)
+            action2 = QAction(_("Add Sub Topic"), self)
+            action3 = QAction(_("Rename Topic"), self)
             #
-            action3 = QAction(_("Move Up"), self)
-            action4 = QAction(_("Move Down"), self)
-            action5 = QAction(_("Move Left"), self)
-            action6 = QAction(_("Move Right"), self)
+            action4 = QAction(_("Move Up"), self)
+            action5 = QAction(_("Move Down"), self)
+            action6 = QAction(_("Move Left"), self)
+            action7 = QAction(_("Move Right"), self)
             #
-            action7 = QAction(_("Delete"), self)
+            action8 = QAction(_("Delete"), self)
             
             menu.addAction(action1)
             menu.addAction(action2)
             menu.addSeparator()
             menu.addAction(action3)
+            menu.addSeparator()
             menu.addAction(action4)
             menu.addAction(action5)
             menu.addAction(action6)
-            menu.addSeparator()
             menu.addAction(action7)
+            menu.addSeparator()
+            menu.addAction(action8)
             
             menu.exec_(self.tab2_tree_view.viewport().mapToGlobal(position))
+            
+    def add_item_with_icon(self, parent, text, icon_path):
+        item = QStandardItem(text)
+        item.setIcon(QIcon(icon_path))
+        parent.appendRow(item)
+        return item
     
     def init_ui(self):
         # mouse tracking
@@ -10189,10 +10335,16 @@ class FileWatcherGUI(QDialog):
         
         self.tab2_tree_view = QTreeView()
         self.tab2_tree_view.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
+        self.tab2_tree_view.clicked.connect(self.on_treeview_clicked)
         
         self.tab2_tree_model = QStandardItemModel()
         self.tab2_tree_model.setHorizontalHeaderLabels([_("Topic name"), "ID", "Status", "Help icon", "In Build"])
+        self.tab2_tree_model.dataChanged.connect(self.on_data_changed)
         self.tab2_tree_view.setModel(self.tab2_tree_model)
+        
+        
+        root_node = self.tab2_tree_model.invisibleRootItem()
+        self.fold_icon = genv.v__app__internal__ + "/img/floppy-disk.png"
         
         self.tab2_tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tab2_tree_view.customContextMenuRequested.connect(self.open_context_topics_menu)
@@ -10200,6 +10352,10 @@ class FileWatcherGUI(QDialog):
         self.tab2_pushbuttonAdd = QPushButton(_("Add"))
         self.tab2_pushbuttonAdd.setMinimumHeight(32)
         self.tab2_pushbuttonAdd.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonAddSub = QPushButton(_("Add Sub Topic"))
+        self.tab2_pushbuttonAddSub.setMinimumHeight(32)
+        self.tab2_pushbuttonAddSub.setStyleSheet(_(genv.css_button_style))
         
         self.topics_layout = QVBoxLayout()
         
@@ -10227,13 +10383,8 @@ class FileWatcherGUI(QDialog):
         self.tab2_pushbuttonRemove.setMinimumHeight(32)
         self.tab2_pushbuttonRemove.setStyleSheet(_(genv.css_button_style))
         
-        self.tab2_pushbuttonMoveUp   .setMinimumHeight(32)
-        self.tab2_pushbuttonMoveDown .setMinimumHeight(32)
-        self.tab2_pushbuttonMoveLeft .setMinimumHeight(32)
-        self.tab2_pushbuttonMoveRight.setMinimumHeight(32)
-        self.tab2_pushbuttonRemove   .setMinimumHeight(32)
-        
         self.topics_layout.addWidget(self.tab2_pushbuttonAdd)
+        self.topics_layout.addWidget(self.tab2_pushbuttonAddSub)
         self.topics_layout.addWidget(self.tab2_pushbuttonRename)
         self.topics_layout.addWidget(self.tab2_pushbuttonMoveUp)
         self.topics_layout.addWidget(self.tab2_pushbuttonMoveDown)
@@ -10245,9 +10396,9 @@ class FileWatcherGUI(QDialog):
         self.tab2_top_layout.addWidget(self.tab2_tree_view)
         self.tab2_top_layout.addLayout(self.topics_layout)
         
-        self.populate_tree_view(self.tab2_file_path, os.path.join(genv.v__app__img__int__, "open-folder" + genv.v__app__img_ext__))
+        self.populate_tree_view(self.tab2_file_path,os.path.join(genv.v__app__img__int__, "edit" + genv.v__app__img_ext__))
         
-                
+        
         self.delegateID     = SpinEditDelegateID     (self.tab2_tree_view)
         self.delegateStatus = ComboBoxDelegateStatus (self.tab2_tree_view)
         self.delegateIcon   = ComboBoxDelegateIcon   (self.tab2_tree_view)
@@ -10713,7 +10864,6 @@ class FileWatcherGUI(QDialog):
             self)
         self.helper_overlay.show()
 
-        
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)

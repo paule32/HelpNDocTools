@@ -9,6 +9,9 @@ For the Commodore C-64 TrueType Font, visit: [C64Font](https://style64.org/relea
 Preview Front-Window B1:
 ![Preview](src/_internal/img/screen021.png)
 
+Preview Front-Window B2 - The dBase-Interpreter in Action:
+![Preview](src/_internal/img/screen022.png)
+
 Preview Front-Window A2:
 ![Preview](src/_internal/img/screen010.png)
 
