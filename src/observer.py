@@ -279,6 +279,33 @@ try:
     import logging
     
     # ------------------------------------------------------------------------
+    # Unter Windows können wir versuchen zu prüfen, ob eine GUI-basierte
+    # Anwendung läuft,indem wir den Windows-GUI-Thread verwenden.
+    # ------------------------------------------------------------------------
+    try:
+        # Check if sys.stdin is a tty (terminal)
+        if sys.stdin.isatty():
+            genv.run_in_console = True
+        else:
+            genv.run_in_console = False
+    except AttributeError:
+        genv.run_in_console = False
+    
+    try:
+        user32 = ctypes.windll.user32
+        if user32.GetForegroundWindow() != 0:
+            genv.run_in_gui = True
+        else:
+            genv.run_in_gui = False
+    except Exception:
+        genv.run_in_gui = False
+    
+    if genv.run_in_console:
+        print("run in terminal")
+    if genv.run_in_gui:
+        print("run in gui")
+    
+    # ------------------------------------------------------------------------
     # Qt5 gui framework
     # ------------------------------------------------------------------------
     from PyQt5.QtWidgets          import *
@@ -2176,9 +2203,9 @@ class dbase_command:
 # \author paule32
 # \since  1.0.0
 # ---------------------------------------------------------------------------
-class interpreter_dBase:
-    def __init__(self, fname):
-        self.script_name = fname
+class interpreter_base():
+    def __init__(self, file_name):
+        self.script_name = file_name
         
         self.line_row    = 1
         self.line_col    = 1
@@ -2194,38 +2221,8 @@ class interpreter_dBase:
         
         self.in_comment = 0
         
-        # ----------------------------------------------
-        # textual color values in RGB format ...
-        # ----------------------------------------------
-        self.token_colors = [
-            [['n']        , '#000000' ], # black
-            [['b']        , '#00008B' ], # dark blue
-            [['g']        , '#006400' ], # green
-            [['gb','bg']  , '#8B008B' ], # dark magenta
-            [['r']        , '#8B0000' ], # dark red
-            [['rb','br']  , '#FF00FF' ], # magenta
-            [['rg','gr']  , '#A52A2A' ], # brown
-            [['w']        , '#D3D3D3' ], # light gray
-            [['n+']       , '#A9A9A9' ], # dark gray
-            [['b+']       , '#0000FF' ], # blue
-            [['g+']       , '#00FF00' ], # light green
-            [['gb+','bg+'], '#ADD8E6' ], # light blue
-            [['r+']       , '#FF0000' ], # red
-            [['rb+','br+'], '#00FFFF' ], # magenta
-            [['rg+','gr+'], '#FFFF00' ], # yellow
-            [['w+']       , '#FFFFFF' ]  # white
-        ]
+        genv.v__app__logging.info("start parse: " + self.script_name)
         
-        self.fg_color  = "#FF0000"
-        self.bg_color  = "#000000"
-        
-        self.err_commentNC = _("comment not closed.")
-        self.err_commandNF = _("command sequence not finished.")
-        self.err_unknownCS = _("unknown command or syntax error.")
-        
-        global textertext
-        textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2024 by Jens Kallup - paule32.'
-        self.byte_code = ""
         self.text_code = """
 import os
 import sys
@@ -2240,9 +2237,7 @@ if __name__ == '__main__':
     console = DOSConsole()
     console.clear()
 """
-        
-        genv.v__app__logging.info("start parse: " + self.script_name)
-        
+
         self.parser_stop = False
         self.parse_open(self.script_name)
     
@@ -2273,10 +2268,6 @@ if __name__ == '__main__':
             file.seek(0); self.source = file.read()
             file.close()
         print("source: ", self.source)
-    
-    def add_command(self, name, link):
-        self.token_command = dbase_command(self, name, link)
-        return self.token_command
     
     def run(self):
         self.finalize()
@@ -2321,6 +2312,70 @@ if __name__ == '__main__':
             exec(bytecode)
         except Exception as e:
             dialog = systemExceptionDialog(application_window,traceback.format_exc())
+    
+    def __unexpectedToken(self):
+        self.__msg = "unexpected token: '" + self.token_str + "'"
+        self.__unexpectedError(self.__msg)
+    
+    def __unexpectedChar(self, chr):
+        self.__msg = "unexpected character: '" + chr + "'"
+        self.__unexpectedError(self.__msg)
+    
+    def __unexpectedEndOfLine(self):
+        self.__unexpectedError("unexpected end of line")
+    
+    def __unexpectedEscapeSign(self):
+        self.__unexpectedError("nunexpected escape sign")
+    
+    def __unexpectedError(self, message):
+        calledFrom = inspect.stack()[1][3]
+        self.__msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
+        self.__msg = self.__msg % (
+            self.line_row,
+            self.script_name)
+        raise Exception(self.__msg)
+
+class interpreter_dBase(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_dBase, self).__init__(file_name)
+        
+        # ----------------------------------------------
+        # textual color values in RGB format ...
+        # ----------------------------------------------
+        self.token_colors = [
+            [['n']        , '#000000' ], # black
+            [['b']        , '#00008B' ], # dark blue
+            [['g']        , '#006400' ], # green
+            [['gb','bg']  , '#8B008B' ], # dark magenta
+            [['r']        , '#8B0000' ], # dark red
+            [['rb','br']  , '#FF00FF' ], # magenta
+            [['rg','gr']  , '#A52A2A' ], # brown
+            [['w']        , '#D3D3D3' ], # light gray
+            [['n+']       , '#A9A9A9' ], # dark gray
+            [['b+']       , '#0000FF' ], # blue
+            [['g+']       , '#00FF00' ], # light green
+            [['gb+','bg+'], '#ADD8E6' ], # light blue
+            [['r+']       , '#FF0000' ], # red
+            [['rb+','br+'], '#00FFFF' ], # magenta
+            [['rg+','gr+'], '#FFFF00' ], # yellow
+            [['w+']       , '#FFFFFF' ]  # white
+        ]
+        
+        self.fg_color  = "#FF0000"
+        self.bg_color  = "#000000"
+        
+        self.err_commentNC = _("comment not closed.")
+        self.err_commandNF = _("command sequence not finished.")
+        self.err_unknownCS = _("unknown command or syntax error.")
+        
+        global textertext
+        textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2024 by Jens Kallup - paule32.'
+        self.byte_code = ""
+    
+    def add_command(self, name, link):
+        self.token_command = dbase_command(self, name, link)
+        return self.token_command
+    
     
     # -----------------------------------------------------------------------
     # \brief  get one char from the input stream/source line.
@@ -2868,28 +2923,6 @@ if __name__ == '__main__':
             else:
                 self.bg_color = color
         return c
-    
-    def __unexpectedToken(self):
-        self.__msg = "unexpected token: '" + self.token_str + "'"
-        self.__unexpectedError(self.__msg)
-    
-    def __unexpectedChar(self, chr):
-        self.__msg = "unexpected character: '" + chr + "'"
-        self.__unexpectedError(self.__msg)
-    
-    def __unexpectedEndOfLine(self):
-        self.__unexpectedError("unexpected end of line")
-    
-    def __unexpectedEscapeSign(self):
-        self.__unexpectedError("nunexpected escape sign")
-    
-    def __unexpectedError(self, message):
-        calledFrom = inspect.stack()[1][3]
-        self.__msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
-        self.__msg = self.__msg % (
-            self.line_row,
-            self.script_name)
-        raise Exception(self.__msg)
 
 # ---------------------------------------------------------------------------
 # \brief  provide dBase DSL (domain source language)- dBL (data base language
@@ -2907,29 +2940,12 @@ class dBaseDSL():
         self.parser = None
         self.parser = interpreter_dBase(script_name)
 
-class interpreter_Pascal:
-    def __init__(self, fname):
-        self.script_name = fname
-        
-        self.line_row    = 1
-        self.line_col    = 1
-        
-        self.pos         = -1
-        
-        self.token_id    = ""
-        self.token_prev  = ""
-        self.token_str   = ""
-        
-        self.parse_data  = []
-        
-        self.byte_code = ""
-        self.text_code = ""
+class interpreter_Pascal(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Pascal, self).__init__(file_name)
     
     def parse(self):
         self.token_str = ""
-    
-    def run(self):
-        return
 
 class pascalDSL():
     def __init__(self, script_name):
@@ -2939,24 +2955,10 @@ class pascalDSL():
         self.parser = interpreter_Pascal(script_name)
         self.parser.parse()
 
-class interpreter_Python:
-    def __init__(self, fname):
-        self.script_name = fname
+class interpreter_Python(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Pascal, self).__init__(file_name)
         
-        self.line_row    = 1
-        self.line_col    = 1
-        
-        self.pos         = -1
-        
-        self.token_id    = ""
-        self.token_prev  = ""
-        self.token_str   = ""
-        
-        self.parse_data  = []
-        
-        self.byte_code = ""
-        self.text_code = ""
-    
     def parse(self):
         self.token_str = ""
 
@@ -2968,29 +2970,12 @@ class pythonDSL():
         self.parser = interpreter_Python(script_name)
         self.parser.parse()
 
-class interpreter_Java:
-    def __init__(self, fname):
-        self.script_name = fname
+class interpreter_Java(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Java, self).__init__(file_name)
         
-        self.line_row    = 1
-        self.line_col    = 1
-        
-        self.pos         = -1
-        
-        self.token_id    = ""
-        self.token_prev  = ""
-        self.token_str   = ""
-        
-        self.parse_data  = []
-        
-        self.byte_code = ""
-        self.text_code = ""
-    
     def parse(self):
         self.token_str = ""
-    
-    def run(self):
-        return
 
 class javaDSL():
     def __init__(self, script_name):
@@ -3000,29 +2985,12 @@ class javaDSL():
         self.parser = interpreter_Java(script_name)
         self.parser.parse()
 
-class interpreter_JavaScript:
-    def __init__(self, fname):
-        self.script_name = fname
+class interpreter_JavaScript(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_JavaScript, self).__init__(file_name)
         
-        self.line_row    = 1
-        self.line_col    = 1
-        
-        self.pos         = -1
-        
-        self.token_id    = ""
-        self.token_prev  = ""
-        self.token_str   = ""
-        
-        self.parse_data  = []
-        
-        self.byte_code = ""
-        self.text_code = ""
-    
     def parse(self):
         self.token_str = ""
-    
-    def run(self):
-        return
 
 class javaScriptDSL():
     def __init__(self, script_name):
@@ -3032,29 +3000,19 @@ class javaScriptDSL():
         self.parser = interpreter_JavaScript(script_name)
         self.parser.parse()
 
-class interpreter_Lisp:
-    def __init__(self, fname):
-        self.script_name = fname
+class interpreter_ISOC(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_ISOC, self).__init__(file_name)
         
-        self.line_row    = 1
-        self.line_col    = 1
-        
-        self.pos         = -1
-        
-        self.token_id    = ""
-        self.token_prev  = ""
-        self.token_str   = ""
-        
-        self.parse_data  = []
-        
-        self.byte_code = ""
-        self.text_code = ""
-    
     def parse(self):
         self.token_str = ""
-    
-    def run(self):
-        return
+
+class interpreter_Lisp(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Lisp, self).__init__(file_name)
+        
+    def parse(self):
+        self.token_str = ""
 
 class lispDSL():
     def __init__(self, script_name):
@@ -3063,6 +3021,13 @@ class lispDSL():
         self.parser = None
         self.parser = interpreter_Lisp(script_name)
         self.parser.parse()
+
+class interpreter_C64(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_C64, self).__init__(file_name)
+        
+    def parse(self):
+        self.token_str = ""
 
 # ---------------------------------------------------------------------------
 # \brief  class for interpreting DoxyGen related stuff ...
@@ -3076,36 +3041,12 @@ class lispDSL():
 # \author paule32
 # \since  1.0.0
 # ---------------------------------------------------------------------------
-class interpreter_DoxyGen:
-    def __init__(self, filename, parent_gui=None):
-        self.script_name = filename
+class interpreter_DoxyGen(interpreter_base):
+    def __init__(self, file_name, parent_gui=None):
+        super(interpreter_ISOC, self).__init__(file_name)
+        self.script_name = file_name
         self.parent_gui  = parent_gui
-        
-        self.line_row    = 1
-        self.line_col    = 1
-        
-        self.pos         = -1
-        
-        self.token_id    = ""
-        self.token_prev  = ""
-        self.token_str   = ""
-        
-        self.parse_data  = []
-        
-        self.parse_open(self.script_name)
-        self.source = self.parse_data[0]
-        
-    def parse_open(self, file_name):
-        with open(self.script_name, 'r', encoding="utf-8") as self.file:
-            self.file.seek(0)
-            lines  = len(self.file.readlines())
-            self.total_lines = lines
-            self.file.seek(0)
-            self.source = self.file.read()
-            self.file.close()
-        
-        self.parse_data.append(self.source)
-    
+            
     # -----------------------------------------------------------------------
     # \brief  get one char from the input stream/source line.
     #         the internal position cursor self.pos for the self.source will
@@ -3386,28 +3327,6 @@ class interpreter_DoxyGen:
         else:
             raise EInvalidParserError(self.token_str, self.line_row)
             return False
-    
-    def __unexpectedToken(self, text):
-        __msg = "unexpected token: '" + text + "'"
-        self.__unexpectedError(__msg)
-    
-    def __unexpectedChar(self, chr):
-        __msg = "unexpected character: '" + chr + "'"
-        self.__unexpectedError(__msg)
-    
-    def __unexpectedEndOfLine(self):
-        self.__unexpectedError("unexpected end of line")
-    
-    def __unexpectedEscapeSign(self):
-        self.__unexpectedError("nunexpected escape sign")
-    
-    def __unexpectedError(self, message):
-        calledFrom = inspect.stack()[1][3]
-        msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
-        msg = msg % (
-            self.line_row,
-            self.script_name)
-        systemExceptionDialog(self.parent_gui, msg)
 
 class doxygenDSL:
     def __init__(self, script_name, parent_gui):
@@ -9563,22 +9482,48 @@ class IconDelegate(QStyledItemDelegate):
         else:
             super().paint(painter, option, index)
 
-class ApplicationProjectPage():
-    def __init__(self, parent, tabs):
+# ---------------------------------------------------------------------------
+# \brief Constructs a project page to create or modified projects.
+#
+# \param parent - ptr => the corresponding parent
+# \param tabs   - ptr => the "tabs" component
+# \param text   - str => for the object name, to gather information of obj.
+# ---------------------------------------------------------------------------
+class ApplicationProjectPage(QObject):
+    def __init__(self, parent, tabs, text):
+        super(ApplicationProjectPage, self).__init__(parent)
         self.parent = parent
+        self.text   = text
         try:
+            self.setObjectName(self.text)
+            
             self.ProjectVLayout = QVBoxLayout()
             self.ProjectVLayout.setContentsMargins(0,0,0,0)
             self.ProjectWidget  = applicationProjectWidget()
             self.ProjectVLayout.addWidget(self.ProjectWidget)
             tabs.setLayout(self.ProjectVLayout)
         except Exception as e:
-            print(e)
+            dialog = systemExceptionDialog(
+            application_window,
+            traceback.format_exc())
 
-class ApplicationEditorsPage():
-    def __init__(self, parent, tabs):
+# ---------------------------------------------------------------------------
+# \brief Constructs a editor page for open, and write source code text's.
+#
+# \param parent - ptr => the corresponding parent
+# \param tabs   - ptr => the "tabs" component
+# \param text   - str => for the object name, to gather information of obj.
+#
+# \return ptr => the class object
+# ---------------------------------------------------------------------------
+class ApplicationEditorsPage(QObject):
+    def __init__(self, parent, tabs, text):
+        super(ApplicationEditorsPage, self).__init__(parent)
         self.parent = parent
+        self.text   = text
         try:
+            self.setObjectName(self.text)
+            
             self.tabs_editor_vlayout = QVBoxLayout(tabs)
             self.tabs_editor = QTabWidget()
             self.tabs_editor.setStyleSheet(_(genv.css_tabs))
@@ -9612,9 +9557,12 @@ class ApplicationEditorsPage():
             self.tabs_editor_vlayout.addWidget(self.tabs_editor_menu)
             self.tabs_editor_vlayout.addWidget(self.tabs_editor)
         except Exception as e:
-            print(e)
+            dialog = systemExceptionDialog(
+            application_window,
+            traceback.format_exc())
     
     def on_editor_menu_item_clicked(self, item):
+        print("self: ", self.objectName())
         widget = self.tabs_editor_menu.itemWidget(item)
         if widget:
             text = widget.objectName()
@@ -9660,15 +9608,37 @@ class ApplicationEditorsPage():
                     return
 
                 try:
-                    prg = interpreter_dBase(script_name)
-                    prg.parse()
-                    print("\nend of data\n")
+                    prg = None
+                    if self.objectName() == "dbase":
+                        prg = interpreter_dBase(script_name)
+                        prg.parse()
+                    elif self.objectName() == "pascal":
+                        prg = interpreter_Pascal(script_name)
+                        prg.parse()
+                    elif self.objectName() == "java":
+                        prg = interpreter_Java(script_name)
+                        prg.parse()
+                    elif self.objectName() == "isoc":
+                        prg = interpreter_ISOC(script_name)
+                        prg.parse()
+                    elif self.objectName() == "python":
+                        prg = interpreter_Python(script_name)
+                        prg.parse()
+                    elif self.objectName() == "javascript":
+                        prg = interpreter_JavaScript(script_name)
+                        prg.parse()
+                    elif self.objectName() == "lisp":
+                        prg = interpreter_Lisp(script_name)
+                        prg.parse()
+                    elif self.objectName() == "c64":
+                        prg = interpreter_C64(script_name)
+                        prg.parse()
                     
+                    print("\nend of data\n")
                     prg.text_code += (' ' * 4) + "console.exec_()\n"
                     print(prg.text_code)
-                    
                     prg.run()
-                    prg = None
+                    
                 except Exception as e:
                     print(e)
     
@@ -9742,8 +9712,54 @@ class ApplicationEditorsPage():
         dialog.setViewMode(QFileDialog.Detail)
         
         dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
-        dialog.setNameFilters(["Program Files (*.prg)", "Text Files (*.txt)", "All Files (*)"])
         
+        if self.objectName() == "dbase":
+            dialog.setNameFilters([
+                _("Program Files")  + " (*.prg)",
+                _("Database Files") + " (*.dbf, *.db)",
+                _("Query Files")    + " (*.sql)",
+                _("Text Files")     + " (*.txt *.md)",
+                _("All Files")      + " (*)"])
+        elif self.objectName() == "pascal":
+            dialog.setNameFilters([
+                _("Pascal Files")  + " (*.pas *.pp)",
+                _("Include Files") + " (*.inc)",
+                _("Text Files")    + " (*.txt *.md)",
+                _("All Files")     + " (*)"])
+        elif self.objectName() == "isoc":
+            dialog.setNameFilters([
+                _("C++ Program Files") + " (*.c *.cc *.cpp *.c++)",
+                _("C++ Header Files")  + " (*.h *.hh *.hpp *.h++)",
+                _("C++ Include Files") + " (*.inc)",
+                _("Text Files")        + " (*.txt *.md)",
+                _("All Files")         + " (*)"])
+        elif self.objectName() == "python":
+            dialog.setNameFilters([
+                _("Python Files") + " (*.py *.pyw)",
+                _("Text Files")   + " (*.txt *.md)",
+                _("All Files")    + " (*)"])
+        elif self.objectName() == "lisp":
+            dialog.setNameFilters([
+                _("Lisp Files") + " (*.lisp *.lsü *.l *.el)",
+                _("Text Files")   + " (*.txt *.md)",
+                _("All Files")    + " (*)"])
+        elif self.objectName() == "java":
+            dialog.setNameFilters([
+                _("Java Files")   + " (*.java)",
+                _("Text Files")   + " (*.txt *.md)",
+                _("All Files")    + " (*)"])
+        elif self.objectName() == "javascript":
+            dialog.setNameFilters([
+                _("JavaScript Files") + " (*.js)",
+                _("HTML Files")       + " (*.html *.htm)",
+                _("CSS Files")        + " (*.css)",
+                _("XML Files")        + " (*.xml)",
+                _("Text Files")       + " (*.txt *.md)",
+                _("All Files")        + " (*)"])
+        else:
+            dialog.setNameFilters([
+                _("All Files") + " (*)"])
+                
         if dialog.exec_() == QFileDialog.Accepted:
             file_path = dialog.selectedFiles()[0]
         
@@ -9776,10 +9792,10 @@ class ApplicationEditorsPage():
 class ApplicationTabWidget(QTabWidget):
     def __init__(self, tabs, parent=None):
         super(ApplicationTabWidget, self).__init__(parent)
-        print("sssss")
+        
         self.setStyleSheet(_(genv.css_tabs))
         self.hide()
-        print("eeeeee")
+        
         self.tabs = []
         
         if len(tabs) < 1:
@@ -9793,6 +9809,11 @@ class ApplicationTabWidget(QTabWidget):
     def getTab(self, index:int):
         return self.tabs[index]
 
+# ---------------------------------------------------------------------------
+# \brief  This is the GUI-Entry point for our application.
+# \param  nothing
+# \return ptr => the class object pointer
+# ---------------------------------------------------------------------------
 class FileWatcherGUI(QDialog):
     def __init__(self):
         super().__init__()
@@ -9808,7 +9829,7 @@ class FileWatcherGUI(QDialog):
         self.setFont(self.font)
         self.setContentsMargins(0,0,0,0)
         self.setStyleSheet("padding:0px;margin:0px;")
-        #self.setStyleSheet("font-family:'Arial';font-size:12pt;")
+        self.setWindowIcon(QIcon(genv.v__app__img__int__ + "/winico.png"))
         
         self.worker_hasFocus = False
         self.is_maximized    = False
@@ -10063,7 +10084,7 @@ class FileWatcherGUI(QDialog):
         self.layout.setContentsMargins(0,0,0,0)
         
         layout = QVBoxLayout()
-                
+                        
         self.title_bar = CustomTitleBar(self.windowtitle, self)
         self.title_bar.minimize_button.clicked.connect(self.showMinimized)
         self.title_bar.maximize_button.clicked.connect(self.showMaximized)
@@ -11237,8 +11258,8 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, _("dBASE Data Tables"))
         self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, _("dBASE Reports"))
         ####
-        self.dbase_project = ApplicationProjectPage(self, self.dbase_tabs_project_widget)
-        self.dbase_editors = ApplicationEditorsPage(self, self.dbase_tabs_editors_widget)
+        self.dbase_project = ApplicationProjectPage(self, self.dbase_tabs_project_widget, "dbase")
+        self.dbase_editors = ApplicationEditorsPage(self, self.dbase_tabs_editors_widget, "dbase")
         ####
         
         self.dbase_tabs_data_tables_layout = QVBoxLayout()
@@ -11347,8 +11368,8 @@ class FileWatcherGUI(QDialog):
             _("Pascal Project"),
             _("Pascal Editor"),
             _("Pascal Designer")])
-        self.pascal_project  = ApplicationProjectPage(self, self.pascal_tabs.getTab(0))
-        self.pascal_editors  = ApplicationEditorsPage(self, self.pascal_tabs.getTab(1))
+        self.pascal_project  = ApplicationProjectPage(self, self.pascal_tabs.getTab(0), "pascal")
+        self.pascal_editors  = ApplicationEditorsPage(self, self.pascal_tabs.getTab(1), "pascal")
         self.pascal_designer = ApplicationDesignPage(
             self,
             self.pascal_tabs.getTab(2),
@@ -11360,8 +11381,8 @@ class FileWatcherGUI(QDialog):
             _("ISO-C Project"),
             _("ISO-C Editor"),
             _("ISO-C Designer")])
-        self.isoc_project  = ApplicationProjectPage(self, self.isoc_tabs.getTab(0))
-        self.isoc_editors  = ApplicationEditorsPage(self, self.isoc_tabs.getTab(1))
+        self.isoc_project  = ApplicationProjectPage(self, self.isoc_tabs.getTab(0), "isoc")
+        self.isoc_editors  = ApplicationEditorsPage(self, self.isoc_tabs.getTab(1), "isoc")
         self.isoc_designer = ApplicationDesignPage(
             self,
             self.isoc_tabs.getTab(2),
@@ -11373,8 +11394,8 @@ class FileWatcherGUI(QDialog):
             _("Java Project"),
             _("Java Editor"),
             _("Java Designer")])
-        self.java_project  = ApplicationProjectPage(self, self.java_tabs.getTab(0))
-        self.java_editors  = ApplicationEditorsPage(self, self.java_tabs.getTab(1))
+        self.java_project  = ApplicationProjectPage(self, self.java_tabs.getTab(0), "java")
+        self.java_editors  = ApplicationEditorsPage(self, self.java_tabs.getTab(1), "java")
         self.java_designer = ApplicationDesignPage(
             self,
             self.java_tabs.getTab(2),
@@ -11386,8 +11407,8 @@ class FileWatcherGUI(QDialog):
             _("Python Project"),
             _("Python Editor"),
             _("Python Designer")])
-        self.python_project  = ApplicationProjectPage(self, self.python_tabs.getTab(0))
-        self.python_editors  = ApplicationEditorsPage(self, self.python_tabs.getTab(1))
+        self.python_project  = ApplicationProjectPage(self, self.python_tabs.getTab(0), "python")
+        self.python_editors  = ApplicationEditorsPage(self, self.python_tabs.getTab(1), "python")
         self.python_designer = ApplicationDesignPage(
             self,
             self.python_tabs.getTab(2),
@@ -11399,8 +11420,8 @@ class FileWatcherGUI(QDialog):
             _("LISP Project"),
             _("LISP Editor"),
             _("LISP Designer")])
-        self.lisp_project  = ApplicationProjectPage(self, self.lisp_tabs.getTab(0))
-        self.lisp_editors  = ApplicationEditorsPage(self, self.lisp_tabs.getTab(1))
+        self.lisp_project  = ApplicationProjectPage(self, self.lisp_tabs.getTab(0), "lisp")
+        self.lisp_editors  = ApplicationEditorsPage(self, self.lisp_tabs.getTab(1), "lisp")
         self.lisp_designer = ApplicationDesignPage(
             self,
             self.lisp_tabs.getTab(2),
@@ -11412,8 +11433,8 @@ class FileWatcherGUI(QDialog):
             _("JavaScript Project"),
             _("JavaScript Editor"),
             _("JavaScript Designer")])
-        self.javascript_project  = ApplicationProjectPage(self, self.javascript_tabs.getTab(0))
-        self.javascript_editors  = ApplicationEditorsPage(self, self.javascript_tabs.getTab(1))
+        self.javascript_project  = ApplicationProjectPage(self, self.javascript_tabs.getTab(0), "javascript")
+        self.javascript_editors  = ApplicationEditorsPage(self, self.javascript_tabs.getTab(1), "javascript")
         self.javascript_designer = ApplicationDesignPage(
             self,
             self.javascript_tabs.getTab(2),
@@ -11503,67 +11524,61 @@ class FileWatcherGUI(QDialog):
         return
     
     def handleSetup(self):
-        self.setup_tabs = QTabWidget()
-        self.setup_tabs.setStyleSheet(_(genv.css_tabs))
-        self.setup_tabs.hide()
-        
-        self.setup_tabs_chm_widget = QWidget()
-        self.setup_tabs.addTab(self.setup_tabs_chm_widget, _("Setup"))
+        self.setup_tabs = ApplicationTabWidget([
+            _("Setup Project"),
+            _("Setup Editor")])
+        self.setup_project  = ApplicationProjectPage(self, self.setup_tabs.getTab(0), "setup")
+        self.setup_editors  = ApplicationEditorsPage(self, self.setup_tabs.getTab(1), "setup")
         ###
         self.main_layout.addWidget(self.setup_tabs)
         return
     
     def handleCertSSL(self):
-        self.certssl_tabs = QTabWidget()
-        self.certssl_tabs.setStyleSheet(_(genv.css_tabs))
-        self.certssl_tabs.hide()
-        
-        self.certssl_tabs_chm_widget = QWidget()
-        self.certssl_tabs.addTab(self.certssl_tabs_chm_widget, _("SSL Cert"))
+        self.certssl_tabs = ApplicationTabWidget([
+            _("SSL Cert Project"),
+            _("SSL Cert Editor")])
+        self.certssl_project  = ApplicationProjectPage(self, self.certssl_tabs.getTab(0), "ssl")
+        self.certssl_editors  = ApplicationEditorsPage(self, self.certssl_tabs.getTab(1), "ssl")
         ###
         self.main_layout.addWidget(self.certssl_tabs)
         return
     
     def handleGitHub(self):
-        self.github_tabs = QTabWidget()
-        self.github_tabs.setStyleSheet(_(genv.css_tabs))
-        self.github_tabs.hide()
-        
-        self.github_tabs_chm_widget = QWidget()
-        self.github_tabs.addTab(self.github_tabs_chm_widget, _("GitHub"))
+        self.github_tabs = ApplicationTabWidget([
+            _("GitHub Project"),
+            _("GitHub Editor")])
+        self.github_project  = ApplicationProjectPage(self, self.github_tabs.getTab(0), "github")
+        self.github_editors  = ApplicationEditorsPage(self, self.github_tabs.getTab(1), "github")
         ###
         self.main_layout.addWidget(self.github_tabs)
         return
     
     def handleApache(self):
-        self.apache_tabs = QTabWidget()
-        self.apache_tabs.setStyleSheet(_(genv.css_tabs))
-        self.apache_tabs.hide()
-        
-        self.apache_tabs_chm_widget = QWidget()
-        self.apache_tabs.addTab(self.apache_tabs_chm_widget, _("Apache"))
+        self.apache_tabs = ApplicationTabWidget([
+            _("Apache Project"),
+            _("Apache Editor")])
+        self.apache_project  = ApplicationProjectPage(self, self.apache_tabs.getTab(0), "apache")
+        self.apache_editors  = ApplicationEditorsPage(self, self.apache_tabs.getTab(1), "apache")
         ###
         self.main_layout.addWidget(self.apache_tabs)
         return
     
     def handleMySQL(self):
-        self.mysql_tabs = QTabWidget()
-        self.mysql_tabs.setStyleSheet(_(genv.css_tabs))
-        self.mysql_tabs.hide()
-        
-        self.mysql_tabs_chm_widget = QWidget()
-        self.mysql_tabs.addTab(self.mysql_tabs_chm_widget, _("MySQL"))
+        self.mysql_tabs = ApplicationTabWidget([
+            _("MySQL Project"),
+            _("MySQL Editor")])
+        self.mysql_project  = ApplicationProjectPage(self, self.mysql_tabs.getTab(0), "mysql")
+        self.mysql_editors  = ApplicationEditorsPage(self, self.mysql_tabs.getTab(1), "mysql")
         ###
         self.main_layout.addWidget(self.mysql_tabs)
         return
     
     def handleSquid(self):
-        self.squid_tabs = QTabWidget()
-        self.squid_tabs.setStyleSheet(_(genv.css_tabs))
-        self.squid_tabs.hide()
-        
-        self.squid_tabs_chm_widget = QWidget()
-        self.squid_tabs.addTab(self.squid_tabs_chm_widget, _("Squid"))
+        self.squid_tabs = ApplicationTabWidget([
+            _("Squid Project"),
+            _("Squid Editor")])
+        self.squid_project  = ApplicationProjectPage(self, self.squid_tabs.getTab(0), "squid")
+        self.squid_editors  = ApplicationEditorsPage(self, self.squid_tabs.getTab(1), "squid")
         ###
         self.main_layout.addWidget(self.squid_tabs)
         return
@@ -12019,8 +12034,8 @@ class FileWatcherGUI(QDialog):
         self.c64_tabs.addTab(self.c64_tabs_editors_widget, _("C-64 Editor (Sceen)"))
         self.c64_tabs.addTab(self.c64_tabs_designs_widget, _("C-64 Designer"))
         ####
-        self.c64_project = ApplicationProjectPage(self, self.c64_tabs_project_widget)
-        self.c64_editors = ApplicationEditorsPage(self, self.c64_tabs_basic___widget)
+        self.c64_project = ApplicationProjectPage(self, self.c64_tabs_project_widget, "c64")
+        self.c64_editors = ApplicationEditorsPage(self, self.c64_tabs_basic___widget, "c64")
         ####
         
         
@@ -12382,6 +12397,7 @@ class licenseWindow(QDialog):
         self.returnCode = 0
         
         self.setWindowTitle("LICENSE - Please read, before you start.")
+        self.setWindowIcon(QIcon(genv.v__app__img__int__ + "/winico.png"))
         self.setMinimumWidth(820)
         
         font = QFont("Arial", 10)
@@ -12741,11 +12757,11 @@ class parserPascalPoint:
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
     
-    # The Python 2.7+ or 3.3+ is required.
+    # The Python 3+ or 3.12+ is required.
     major = sys.version_info[0]
     minor = sys.version_info[1]
-    if (major == 2 and minor < 7) or (major == 3 and minor < 0):
-        print("Python 2.7+ or Python 3.0+ are required for the script")
+    if (major == 3 and minor < 12):
+        print("Python 3.12+ are required for the script")
         sys.exit(1)
     
     # Determine the path to the script and its name.
