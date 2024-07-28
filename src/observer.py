@@ -2221,8 +2221,20 @@ class interpreter_base():
         
         self.in_comment = 0
         
+        self.dbase_parser      = 1
+        self.pascal_parser     = 2
+        self.java_parser       = 3
+        self.isoc_parser       = 4
+        self.lisp_parser       = 5
+        self.javascript_parser = 6
+        
         genv.v__app__logging.info("start parse: " + self.script_name)
         
+        self.err_commentNC = _("comment not closed.")
+        self.err_commandNF = _("command sequence not finished.")
+        self.err_unknownCS = _("unknown command or syntax error.")
+        
+        self.source    = ""
         self.text_code = """
 import os
 import sys
@@ -2269,6 +2281,265 @@ if __name__ == '__main__':
             file.close()
         print("source: ", self.source)
     
+    # -----------------------------------------------------------------------
+    # \brief  get one char from the input stream/source line.
+    #         the internal position cursor self.pos for the self.source will
+    #         be incdrement by 1 character. for statistics, the line column
+    #         position wull be updated.
+    #         if the sel.pos cursor is greater as self.source codem then the
+    #         end of data is marked, and python raise a silent "no errpr"
+    #         exception to stop the processing of data (to prevent data/buffer
+    #         overflow.
+    #
+    # \param  nothing
+    # \return char - The "non" whitespace character that was found between
+    #                existing comment types.
+    # \author paule32
+    # \since  1.0.0
+    # -----------------------------------------------------------------------
+    def getChar(self):
+        self.line_col += 1
+        self.pos += 1
+
+        if self.pos >= len(self.source):
+            if self.in_comment > 0:
+                raise EParserErrorEOF(_("a unterminated comment reached EOF."))
+            else:
+                self.parser_stop = True
+                c = '\0'
+                return c
+        else:
+            c = self.source[self.pos]
+            return c
+    
+    def ungetChar(self, num):
+        self.line_col -= num;
+        self.pos -= num;
+        c = self.source[self.pos]
+        return c
+    
+    def getIdent(self):
+        while True:
+            self.line_col += 1
+            c = self.getChar()
+            if c == '\0':
+                self.unexpectedError(self.err_commandNF)
+                return c
+            if c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.unexpectedEndOfLine()
+                    return '\0'
+                self.line_col  = 1
+                self.line_row += 1
+                return self.token_str
+            if c == '\n':
+                self.line_col  = 1
+                self.line_row += 1
+                return self.token_str
+            if c == '\t' or c == ' ':
+                return self.token_str
+            elif (c >= '0' and c <= '9'):
+                self.token_str += c
+                continue
+            elif (c >= 'A' and c <= 'Z'):
+                self.token_str += c.lower()
+                continue
+            elif (c >= 'a' and c <= 'z'):
+                self.token_str += c
+                continue
+            elif c == '_':
+                self.token_str += c
+                continue
+            else:
+                self.ungetChar(1)
+                return self.token_str
+    
+    def getNumber(self):
+        have_point = False
+        while True:
+            c = self.getChar()
+            self.line_col += 1
+            if c == '\0':
+                self.unexpectedToken(self.err_commandNF)
+                return c
+            elif c == '\t' or c == ' ':
+                if len(self.token_str) > 0:
+                    return self.token_str
+                else:
+                    continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.unexpectedEndOfLine()
+                self.line_col  = 1
+                self.line_row += 1
+                return self.token_str
+            elif c == '\n':
+                self.line_col  = 1
+                self.line_row += 1
+                return self.token_str
+            elif c == '.':
+                if have_point == True:
+                    self.unexpectedChar(c)
+                else:
+                    have_point = True
+                    self.token_str += c
+                    continue
+            elif (c >= '0' and c <= '9'):
+                self.token_str += c
+                continue
+            else:
+                self.ungetChar(1)
+                return self.token_str
+    
+    # -----------------------------------------------------------------------
+    # \brief skip all whitespaces. whitespaces are empty lines, lines with
+    #        one or more spaces (0x20): " ", \t, "\n".
+    # -----------------------------------------------------------------------
+    def skip_white_spaces(self, parser_type):
+        self.pascal_comment_open = False
+        while True:
+            c = self.getChar()
+            if c == '\0':
+                return c
+            elif c == '\t' or c == ' ':
+                self.line_col += 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.unexpectedEndOfLine()
+                    return '\0'
+                else:
+                    self.line_col  = 1
+                    self.line_row += 1
+                    continue
+            elif c == "\n":
+                self.line_col  = 1
+                self.line_row += 1
+                continue
+            elif c == '/':
+                self.line_col += 1
+                c = self.getChar()
+                if c == '\0':
+                    self.unexpectedToken(self.err_commentNC)
+                    return c
+                if c == '*':
+                    if parser_type == self.dbase_parser:
+                        self.unexpectedError(_("unknown command sequence."))
+                        return '\0'
+                    self.line_col += 1
+                    self.in_comment += 1
+                    while True:
+                        c = self.getChar()
+                        self.line_col += 1
+                        if c == '\0':
+                            self.unexpectedToken(self.err_commentNC)
+                            return c
+                        elif c == '\t' or c == ' ':
+                            self.line_col += 1
+                            continue
+                        elif c == '\r':
+                            c = self.getChar()
+                            if not c == '\n':
+                                self.unexpectedEndOfLine()
+                            else:
+                                self.line_col  = 1
+                                self.line_row += 1
+                                continue
+                        elif c == "\n":
+                            self.line_col  = 1
+                            self.line_row += 1
+                            continue
+                        elif c == '*':
+                            self.line_col += 1
+                            c = self.getChar()
+                            if c == '/':
+                                self.line_col += 1
+                                self.in_comment -= 1
+                                break
+                        else:
+                            self.line_col += 1
+                            continue
+                    if self.in_comment > 0:
+                        self.unexpectedToken(self.err_commentNC)
+                    else:
+                        print("comment closed")
+                    return self.skip_white_spaces(parser_type)
+                elif c == '/':
+                    self.handle_oneline_comment()
+                    continue
+                else:
+                    self.line_col -= 1
+                    self.ungetChar(1)
+                    c = "/"
+                    return c
+            elif c == '(':
+                c = self.getChar()
+                if parser_type == self.pascal_parser:
+                    if c == '*':
+                        self.pascal_comment_open = True
+                        continue
+            elif c == '&':
+                if parser_type == self.dbase_parser:
+                    self.line_col += 1
+                    c = self.getChar()
+                    if c == '\0':
+                        self.unexpectedEndOfLine()
+                    if c == '&':
+                        self.line_col += 1
+                        self.handle_oneline_comment()
+                        continue
+                    else:
+                        self.unexpectedChar('&')
+            elif c == '*':
+                if parser_type == self.dbase_parser:
+                    self.line_col += 1
+                    c = self.getChar()
+                    if c == '*':
+                        self.handle_oneline_comment()
+                        continue
+                    else:
+                        self.unexpectedChar('*')
+                elif parser_type == self.pascal_parser:
+                    self.line_col += 1
+                    c = self.getChar()
+                    if c == ')':
+                        if self.pascal_comment_open == True:
+                            self.pascal_comment_open = False
+                            continue
+                        else:
+                            self.unexpectedError(_("comment end found, but no start"))
+                            return '\0'
+                    continue
+            else:
+                return c
+    
+    # -----------------------------------------------------------------------
+    # \brief parse a one line comment: // for c++, ** and && for dBase ...
+    # -----------------------------------------------------------------------
+    def handle_oneline_comment(self):
+        while True:
+            self.line_col += 1
+            c = self.getChar()
+            if c == '\0':
+                return c
+            elif c == '\t' or c == ' ':
+                self.line_col += 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.unexpectedEndOfLine()
+                self.line_row += 1
+                self.line_col  = 1
+                break
+            elif c == "\n":
+                self.line_row += 1
+                self.line_col  = 1
+                break
+    
     def run(self):
         self.finalize()
         
@@ -2313,27 +2584,27 @@ if __name__ == '__main__':
         except Exception as e:
             dialog = systemExceptionDialog(application_window,traceback.format_exc())
     
-    def __unexpectedToken(self):
-        self.__msg = "unexpected token: '" + self.token_str + "'"
-        self.__unexpectedError(self.__msg)
+    def unexpectedToken(self):
+        self.msg = "unexpected token: '" + self.token_str + "'"
+        self.unexpectedError(self.msg)
     
-    def __unexpectedChar(self, chr):
-        self.__msg = "unexpected character: '" + chr + "'"
-        self.__unexpectedError(self.__msg)
+    def unexpectedChar(self, chr):
+        self.msg = "unexpected character: '" + chr + "'"
+        self.unexpectedError(self.msg)
     
-    def __unexpectedEndOfLine(self):
-        self.__unexpectedError("unexpected end of line")
+    def unexpectedEndOfLine(self):
+        self.unexpectedError("unexpected end of line")
     
-    def __unexpectedEscapeSign(self):
-        self.__unexpectedError("nunexpected escape sign")
+    def unexpectedEscapeSign(self):
+        self.unexpectedError("nunexpected escape sign")
     
-    def __unexpectedError(self, message):
+    def unexpectedError(self, message):
         calledFrom = inspect.stack()[1][3]
-        self.__msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
-        self.__msg = self.__msg % (
+        self.msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
+        self.msg = self.msg % (
             self.line_row,
             self.script_name)
-        raise Exception(self.__msg)
+        raise Exception(self.msg)
 
 class interpreter_dBase(interpreter_base):
     def __init__(self, file_name):
@@ -2364,10 +2635,6 @@ class interpreter_dBase(interpreter_base):
         self.fg_color  = "#FF0000"
         self.bg_color  = "#000000"
         
-        self.err_commentNC = _("comment not closed.")
-        self.err_commandNF = _("command sequence not finished.")
-        self.err_unknownCS = _("unknown command or syntax error.")
-        
         global textertext
         textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2024 by Jens Kallup - paule32.'
         self.byte_code = ""
@@ -2376,248 +2643,11 @@ class interpreter_dBase(interpreter_base):
         self.token_command = dbase_command(self, name, link)
         return self.token_command
     
-    
-    # -----------------------------------------------------------------------
-    # \brief  get one char from the input stream/source line.
-    #         the internal position cursor self.pos for the self.source will
-    #         be incdrement by 1 character. for statistics, the line column
-    #         position wull be updated.
-    #         if the sel.pos cursor is greater as self.source codem then the
-    #         end of data is marked, and python raise a silent "no errpr"
-    #         exception to stop the processing of data (to prevent data/buffer
-    #         overflow.
-    #
-    # \param  nothing
-    # \return char - The "non" whitespace character that was found between
-    #                existing comment types.
-    # \author paule32
-    # \since  1.0.0
-    # -----------------------------------------------------------------------
-    def getChar(self):
-        self.line_col += 1
-        self.pos += 1
-
-        if self.pos >= len(self.source):
-            if self.in_comment > 0:
-                raise EParserErrorEOF(_("a unterminated comment reached EOF."))
-            else:
-                self.parser_stop = True
-                c = '\0'
-                return c
-        else:
-            c = self.source[self.pos]
-            return c
-    
-    def ungetChar(self, num):
-        self.line_col -= num;
-        self.pos -= num;
-        c = self.source[self.pos]
-        return c
-    
-    def getIdent(self):
-        while True:
-            self.line_col += 1
-            c = self.getChar()
-            if c == '\0':
-                self.__unexpectedToken(self.err_commandNF)
-                return c
-            if c == '\r':
-                c = self.getChar()
-                if c == '\0':
-                    self.__unexpectedToken(self.err_commandNF)
-                    return c
-                if not c == '\n':
-                    self.__unexpectedEndOfLine()
-                    return '\0'
-                else:
-                    self.line_col  = 1
-                    self.line_row += 1
-                    return self.token_str
-            if c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
-                return self.token_str
-            if c == '\t' or c == ' ':
-                return self.token_str
-            elif (c >= '0' and c <= '9'):
-                self.token_str += c
-                continue
-            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                self.token_str += c
-                continue
-            elif c == '_':
-                self.token_str += c
-                continue
-            else:
-                self.ungetChar(1)
-                return self.token_str
-    
-    def getNumber(self):
-        have_point = False
-        while True:
-            c = self.getChar()
-            self.line_col += 1
-            if c == '\0':
-                self.__unexpectedToken(self.err_commandNF)
-                return c
-            elif c == '\t' or c == ' ':
-                if len(self.token_str) > 0:
-                    return self.token_str
-                else:
-                    continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.__unexpectedEndOfLine()
-                self.line_col  = 1
-                self.line_row += 1
-                return self.token_str
-            elif c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
-                return self.token_str
-            elif c == '.':
-                if have_point == True:
-                    self.__unexpectedChar(c)
-                else:
-                    have_point = True
-                    self.token_str += c
-                    continue
-            elif (c >= '0' and c <= '9'):
-                self.token_str += c
-                continue
-            else:
-                self.ungetChar(1)
-                return self.token_str
-    
-    # -----------------------------------------------------------------------
-    # \brief skip all whitespaces. whitespaces are empty lines, lines with
-    #        one or more spaces (0x20): " ", \t, "\n".
-    # -----------------------------------------------------------------------
-    def skip_white_spaces(self):
-        while True:
-            c = self.getChar()
-            if c == '\0' or self.parser_stop == True:
-                return c
-            elif c == '\t' or c == ' ':
-                self.line_col += 1
-                continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.__unexpectedEndOfLine()
-                else:
-                    self.line_col  = 1
-                    self.line_row += 1
-                    continue
-            elif c == "\n":
-                self.line_col  = 1
-                self.line_row += 1
-                continue
-            elif c == '/':
-                self.line_col += 1
-                c = self.getChar()
-                if c == '\0':
-                    self.__unexpectedToken(self.err_commentNC)
-                    return c
-                if c == '*':
-                    self.line_col += 1
-                    self.in_comment += 1
-                    while True:
-                        c = self.getChar()
-                        self.line_col += 1
-                        if c == '\0':
-                            self.__unexpectedToken(self.err_commentNC)
-                            return c
-                        elif c == '\t' or c == ' ':
-                            self.line_col += 1
-                            continue
-                        elif c == '\r':
-                            c = self.getChar()
-                            if not c == '\n':
-                                self.__unexpectedEndOfLine()
-                            else:
-                                self.line_col  = 1
-                                self.line_row += 1
-                                continue
-                        elif c == "\n":
-                            self.line_col  = 1
-                            self.line_row += 1
-                            continue
-                        elif c == '*':
-                            self.line_col += 1
-                            c = self.getChar()
-                            if c == '/':
-                                self.line_col += 1
-                                self.in_comment -= 1
-                                break
-                        else:
-                            self.line_col += 1
-                            continue
-                    if self.in_comment > 0:
-                        self.__unexpectedToken(self.err_commentNC)
-                    else:
-                        print("comment closed")
-                    return self.skip_white_spaces()
-                elif c == '/':
-                    self.handle_oneline_comment()
-                    continue
-                else:
-                    self.line_col -= 1
-                    self.ungetChar(1)
-                    c = "/"
-                    return c
-            elif c == '&':
-                self.line_col += 1
-                c = self.getChar()
-                if c == '\0':
-                    self.__unexpectedEndOfLine()
-                if c == '&':
-                    self.line_col += 1
-                    self.handle_oneline_comment()
-                    continue
-                else:
-                    self.__unexpectedChar('&')
-            elif c == '*':
-                self.line_col += 1
-                c = self.getChar()
-                if c == '*':
-                    self.handle_oneline_comment()
-                    continue
-                else:
-                    self.__unexpectedChar('*')
-            else:
-                return c
-    
-    # -----------------------------------------------------------------------
-    # \brief parse a one line comment: // for c++, ** and && for dBase ...
-    # -----------------------------------------------------------------------
-    def handle_oneline_comment(self):
-        while True:
-            self.line_col += 1
-            c = self.getChar()
-            if c == '\0':
-                return c
-            elif c == '\t' or c == ' ':
-                self.line_col += 1
-                continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.__unexpectedEndOfLine()
-                self.line_row += 1
-                self.line_col  = 1
-                break
-            elif c == "\n":
-                self.line_row += 1
-                self.line_col  = 1
-                break
-    
     def handle_commands(self):
         if self.token_str.lower() == "date":
-            c = self.skip_white_spaces()
+            c = self.skip_white_spaces(self.dbase_parser)
             if c == '(':
-                c = self.skip_white_spaces()
+                c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
                     self.text_code  += ("    console.gotoxy(" +
                     str(self.xpos) + ","   +
@@ -2625,37 +2655,37 @@ class interpreter_dBase(interpreter_base):
                     
                     self.command_ok = True
                 else:
-                    self.__unexpectedChar(c)
+                    self.unexpectedChar(c)
             else:
-                self.__unexpectedChar(c)
+                self.unexpectedChar(c)
         elif self.token_str.lower() == "str":
-            c = self.skip_white_spaces()
+            c = self.skip_white_spaces(self.dbase_parser)
             if c == '(':
-                c = self.skip_white_spaces()
+                c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
                     print("strrr")
                     self.command_ok = True
                 else:
-                    self.__unexpectedChar(c)
+                    self.unexpectedChar(c)
             else:
-                self.__unexpectedChar(c)
+                self.unexpectedChar(c)
         else:
-            self.__unexpectedToken()
+            self.unexpectedToken()
     
     def handle_string(self):
         while True:
             c = self.getChar()
             if c == '\0':
-                self.__unexpectedError(self.err_commandNF)
+                self.unexpectedError(self.err_commandNF)
                 return c
             elif c == '"':
                 break
             elif c == '\\':
                 c = self.getChar()
                 if c == "\n" or c == "\r":
-                    self.__unexpectedEndOfLine()
+                    self.unexpectedEndOfLine()
                 elif c == " ":
-                    self.__unexpectedEscapeSign()
+                    self.unexpectedEscapeSign()
                 elif c == '\\':
                     self.token_str += "\\"
                 elif c == 't':
@@ -2672,13 +2702,13 @@ class interpreter_dBase(interpreter_base):
             else:
                 self.token_str += c
                 continue
-        c = self.skip_white_spaces()
+        c = self.skip_white_spaces(self.dbase_parser)
         if c == '\0':
             return c
         elif c == '+':
-            c = self.skip_white_spaces()
+            c = self.skip_white_spaces(self.dbase_parser)
             if c == '\0':
-                self.__unexpectedError(self.err_commandNF)
+                self.unexpectedError(self.err_commandNF)
                 return c
             elif c == '"':
                 self.handle_string()
@@ -2691,38 +2721,37 @@ class interpreter_dBase(interpreter_base):
                 #print("---> " + self.token_str)
                 return
             else:
-                self.__unexpectedChar(c)
+                self.unexpectedChar(c)
         else:
             self.ungetChar(1)
             return
     
     def handle_say(self):
         self.command_ok = False
-        c = self.skip_white_spaces()
+        c = self.skip_white_spaces(self.dbase_parser)
         if c == '\0':
-            self.__unexpectedError(self.err_commandNF)
+            self.unexpectedError(self.err_commandNF)
             return c
         elif (c >= '0') and (c <= '9'):
             self.token_str = c
             self.getNumber()                        # row
             self.ypos = self.token_str
-            c = self.skip_white_spaces()
+            c = self.skip_white_spaces(self.dbase_parser)
             if c == '\0':
-                self.__unexpectedError(self.err_commandNF)
+                self.unexpectedError(self.err_commandNF)
                 return c
             elif c == ',':
-                print("columbnser")
-                c = self.skip_white_spaces()
+                c = self.skip_white_spaces(self.dbase_parser)
                 if c == '\0':
-                    self.__unexpectedError(self.err_commandNF)
+                    self.unexpectedError(self.err_commandNF)
                     return c
                 elif (c >= '0') and (c <= '9'):
                     self.token_str = c
                     self.getNumber()                # col
                     self.xpos = self.token_str
-                    c = self.skip_white_spaces()
+                    c = self.skip_white_spaces(self.dbase_parser)
                     if c == '\0':
-                        self.__unexpectedError(self.err_commandNF)
+                        self.unexpectedError(self.err_commandNF)
                         return c
                     elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                         self.line_col += 1
@@ -2730,9 +2759,9 @@ class interpreter_dBase(interpreter_base):
                         self.getIdent()
                         if self.token_str.lower() == "say":
                             self.prev = "say"
-                            c = self.skip_white_spaces()
+                            c = self.skip_white_spaces(self.dbase_parser)
                             if c == '\0':
-                                self.__unexpectedError(self.err_commandNF)
+                                self.unexpectedError(self.err_commandNF)
                                 return c
                             if c.isalpha():
                                 self.token_str = c
@@ -2757,11 +2786,11 @@ class interpreter_dBase(interpreter_base):
             self.token_str = ""
             
             if len(self.source) < 1:
-                self.__unexpectedError(_("no data available."))
+                self.unexpectedError(_("no data available."))
                 return
             
             while True:
-                c = self.skip_white_spaces()
+                c = self.skip_white_spaces(self.dbase_parser)
                 if c == '\0' or self.parser_stop == True:
                     break
                 elif c == '@':
@@ -2772,9 +2801,9 @@ class interpreter_dBase(interpreter_base):
                     self.getIdent()
                     if self.token_str.lower() == "set":
                         self.token_str = ""
-                        c = self.skip_white_spaces()
+                        c = self.skip_white_spaces(self.dbase_parser)
                         if c == '\0':
-                            self.__unexpectedError(self.err_commandNF)
+                            self.unexpectedError(self.err_commandNF)
                             return c
                         elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                             self.token_str = c
@@ -2782,9 +2811,9 @@ class interpreter_dBase(interpreter_base):
                             if self.token_str.lower() == "color":
                                 self.token_isok = False
                                 self.token_str  = ""
-                                c = self.skip_white_spaces()
+                                c = self.skip_white_spaces(self.dbase_parser)
                                 if c == '\0':
-                                    self.__unexpectedError(self.err_commandNF)
+                                    self.unexpectedError(self.err_commandNF)
                                     return c
                                 elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                                     self.token_str = c
@@ -2802,14 +2831,14 @@ class interpreter_dBase(interpreter_base):
                                         f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
                                         continue
                                     else:
-                                        self.__unexpectedToken(self.token_str)
+                                        self.unexpectedToken(self.token_str)
                                         return '\0'
                             else:
-                                self.__unexpectedToken(self.token_str)
+                                self.unexpectedToken(self.token_str)
                                 return '\0'
                     elif self.token_str == "clear":
                         print("clear")
-                        c = self.skip_white_spaces()
+                        c = self.skip_white_spaces(self.dbase_parser)
                         if c == None:
                             print("no type")
                             return
@@ -2828,7 +2857,7 @@ class interpreter_dBase(interpreter_base):
                             self.ungetChar(1)
                             continue
                     else:
-                        self.__unexpectedError(self.err_unknownCS)
+                        self.unexpectedError(self.err_unknownCS)
                         return '\0'
                 else:
                     print("oooo>>> " + self.token_str)
@@ -2839,17 +2868,17 @@ class interpreter_dBase(interpreter_base):
     def check_color_token(self, flag):
         self.token_str = ""
         while True:
-            c = self.skip_white_spaces()
+            c = self.skip_white_spaces(self.dbase_parser)
             print(f"char: {c}")
             if c == '\0':
-                self.__unexpectedError(self.err_commandNF)
+                self.unexpectedError(self.err_commandNF)
                 return c
             elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                 self.token_str = c.lower()
                 print("token:", self.token_str)
                 c = self.getChar()
                 if c == '\0':
-                    self.__unexpectedError(self.err_commandNF)
+                    self.unexpectedError(self.err_commandNF)
                     return c
                 elif c == '\t' or c == ' ':
                     self.line_col += 1
@@ -2861,7 +2890,7 @@ class interpreter_dBase(interpreter_base):
                 elif c == '\r':
                     c = self.getChar()
                     if not c == '\n':
-                        self.__unexpectedEndOfLine()
+                        self.unexpectedEndOfLine()
                         return '\0'
                     else:
                         self.line_col  = 1
@@ -2870,9 +2899,9 @@ class interpreter_dBase(interpreter_base):
                 elif c == '+':
                     self.token_isok = True
                     self.token_str += c
-                    c = self.skip_white_spaces()
+                    c = self.skip_white_spaces(self.dbase_parser)
                     if c == '\0':
-                        self.__unexpectedError(self.err_unknownCS)
+                        self.unexpectedError(self.err_unknownCS)
                         return c
                     else:
                         self.token_isok = True
@@ -2882,7 +2911,7 @@ class interpreter_dBase(interpreter_base):
                     self.token_isok = True
                     c = self.getChar()
                     if c == '\0':
-                        self.__unexpectedError(self.err_unknownCS)
+                        self.unexpectedError(self.err_unknownCS)
                         return c
                     elif c == '+':
                         self.token_isok = True
@@ -2890,15 +2919,15 @@ class interpreter_dBase(interpreter_base):
                     else:
                         self.token_isok = True
                         self.ungetChar(1)
-                        c = self.skip_white_spaces()
+                        c = self.skip_white_spaces(self.dbase_parser)
                         break
                 else:
                     self.ungetChar(1)
-                    c = self.skip_white_spaces()
+                    c = self.skip_white_spaces(self.dbase_parser)
                     break
             else:
                 # todo: variable !!!
-                self.__unexpectedError("todo: variable")
+                self.unexpectedError("todo: variable")
                 return c
         
         found = False
@@ -2915,7 +2944,7 @@ class interpreter_dBase(interpreter_base):
             if found:
                 break
         if not found:
-            self.__unexpectedError(_("color setting not found."))
+            self.unexpectedError(_("color setting not found."))
             return
         else:
             if flag == 1:
@@ -2944,8 +2973,264 @@ class interpreter_Pascal(interpreter_base):
     def __init__(self, file_name):
         super(interpreter_Pascal, self).__init__(file_name)
     
+    def handle_pascal_comment_1(self):
+        while True:
+            c = self.getChar()
+            if c == '\0':
+                self.unexpectedError(_("comment not closed"))
+                return c
+            elif c == '\n':
+                self.line_col  = 1
+                self.line_row += 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.unexpectedEndOfLine()
+                    return '\0'
+                self.line_col  = 1
+                self.line_row += 1
+                continue
+            elif c == '*':
+                c = self.getChar()
+                if c == '\0':
+                    self.unexpectedError(_("comment not closed"))
+                    return c
+                elif c == ')':
+                    break
+                else:
+                    self.ungetChar(1)
+                    continue
+        if not c == ')':
+            self.unexpectedError(_("comment not closed"))
+            return
+    
+    def handle_pascal_comment_2(self):
+        while True:
+            c = self.getChar()
+            if c == '\0':
+                self.unexpectedError(_("comment not closed"))
+                return 0
+            elif c == '\n':
+                self.line_col  = 1
+                self.line_row += 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    self.unexpectedEndOfLine()
+                    return '\0'
+                self.line_col  = 1
+                self.line_row += 1
+            elif c == '}':
+                self.line_col += 1
+                break
+            elif c == '$':
+                c = self.getChar()
+                if c == '\0':
+                    self.unexpectedError(_("comment not closed"))
+                    return c
+                elif (c >= 'A' and c <= 'Z'):
+                    self.token_str = c.lower()
+                elif (c >= 'a' and c <= 'z'):
+                    self.token_str = c
+                else:
+                    self.unexpectedChar(c)
+                    return '\0'
+                while True:
+                    c = self.getChar()
+                    if c == '\0':
+                        self.unexpectedError(_("comment not closed"))
+                        return c
+                    elif c =='\t' or c == ' ':
+                        break
+                    elif c == '\n':
+                        self.line_col  = 1
+                        self.line_row += 1
+                        break
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            self.unexpectedEndOfLine()
+                            return '\0'
+                        self.line_col  = 1
+                        self.line_row += 1
+                        continue
+                    elif (c >= 'A' and c <= 'Z'):
+                        self.token_str += c.lower()
+                    elif (c >= 'a' and c <= 'z'):
+                        self.token_str += c
+                    elif (c >= '0' and c <= '9'):
+                        self.token_str += c
+                    elif c == '_':
+                        self.token_str += c
+                    else:
+                        self.unexpectedChar(c)
+                        return '\0'
+                    if len(self.token_str) > 64:
+                        self.unexpectedError(_("macro name too long"))
+                        return '\0'
+                    continue
+                if self.token_str == "define":
+                    print("define macro")
+                elif self.token_str == "ifdef":
+                    print("ifdef macro")
+                elif self.token_str == "ifndef":
+                    print("if not def")
+                elif self.token_str == "else":
+                    print("else macro")
+                elif self.token_str == "endif":
+                    print("endif macro")
+                else:
+                    self.unexpectedError(_("unknown macro symbol"))
+                    return '\0'
+            else:
+                self.line_col += 1
+                continue
+        if not c == '}':
+            self.unexpectedError(_("comment not closed"))
+            return
+    
     def parse(self):
-        self.token_str = ""
+        self.found = False
+        try:
+            if len(self.source) < 1:
+                self.unexpectedError(_("no data available."))
+                return
+            # header
+            self.token_str = ""
+            while True:
+                c = self.skip_white_spaces(self.pascal_parser)
+                if c == '\0':
+                    break
+                elif c == '\r':
+                    c = self.getChar()
+                    if not c == '\n':
+                        self.unexpectedEndOfLine()
+                        return '\0'
+                    self.line_col  = 1
+                    self.line_row += 1
+                elif c == '\n':
+                    self.line_col  = 1
+                    self.line_row += 1
+                    continue
+                elif c == '\t' or c == ' ':
+                    self.line_col += 1
+                    continue
+                elif c == '/':
+                    c = self.getChar()
+                    if c == '\0':
+                        self.unexpectedError(self.err_commandNF)
+                        return c
+                    elif c == '/':
+                        handle_oneline_comment()
+                        continue
+                    elif c == '\n':
+                        self.line_col  = 1
+                        self.line_row += 1
+                        self.unexpectedError("must implement: //")
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            self.unexpectedEndOfLine()
+                            return '\9'
+                        self.line_col  = 1
+                        self.line_row += 1
+                        self.unexpectedError("must implement: //")
+                    else:
+                        self.unexpectedError("todo abc")
+                elif c == '(':
+                    c = self.getChar()
+                    if not c == '*':
+                        self.unexpectedError(_("must be implemented: ("))
+                        return '\0'
+                    self.handle_pascal_comment_1()
+                elif c == '{':
+                    self.handle_pascal_comment_2()
+                    continue
+                elif (c >= 'A' and c <= 'Z'):
+                    self.token_str = c.lower()
+                elif (c >= 'a' and c <= 'z'):
+                    self.token_str = c
+                else:
+                    self.unexpectedChar(c)
+                    return '\0'
+                self.found = False
+                self.token_str = self.getIdent()
+                if len(self.token_str) > 64:
+                    self.unexpectedError(_("symbol name too long"))
+                    return '\0'
+                if self.token_str == "program":
+                    self.found = True
+                    print("program")
+                    break
+                elif self.token_str == "unit":
+                    self.found = True
+                    print("unit")
+                    break
+                elif self.token_str == "library":
+                    self.found = True
+                    print("library")
+                    break
+                else:
+                    self.found = False
+                    break
+            if len(self.token_str) > 0:
+                if not self.found:
+                    self.unexpectedError(_(f"token not found: {self.token_str}"))
+                    return '\0'
+            # body
+            self.token_str = ""
+            while True:
+                c = self.skip_white_spaces(self.pascal_parser)
+                if c == '\0':
+                    if self.pos >= len(self.source):
+                        break
+                    self.unexpectedError(self.err_commandNF)
+                    return '\0'
+                elif c == '\t' or c == ' ':
+                    self.line_col += 1
+                    continue
+                elif c == '\n':
+                    self.line_col  = 1
+                    seöf.line_row += 1
+                    continue
+                elif c == '\r':
+                    c = self.getChar()
+                    if not c == '\n':
+                        self.unexpectedEndOfLine()
+                        return '\0'
+                    self.line_col  = 1
+                    self.line_row += 1
+                    continue
+                elif (c >= 'A' and c <= 'Z'):
+                    self.token_str = c.lower()
+                    self.getIdent()
+                elif (c >= 'a' and c <= 'z'):
+                    self.token_str = c
+                    self.getIdent()
+                elif (c == '_'):
+                    self.token_str = c
+                    self.getIdent()
+                
+                if len(self.token_str) > 64:
+                    self.unexpectedError(_("symbol name too long"))
+                    return '\0'
+                
+                if self.token_str == "begin":
+                    print("begin <---")
+                    break
+                elif self.token_str == "interface":
+                    print("interface")
+                    break
+                else:
+                    if len(self.token_str) > 0:
+                        print("token; ", self.token_str)
+                        break
+        except:
+            dialog = systemExceptionDialog(
+            application_window,
+            traceback.format_exc())
 
 class pascalDSL():
     def __init__(self, script_name):
@@ -3090,7 +3375,7 @@ class interpreter_DoxyGen(interpreter_base):
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    self.__unexpectedToken("newline")
+                    self.unexpectedToken("newline")
                     return 0
                 self.line_col  = 1
                 self.line_row += 1
@@ -3103,7 +3388,7 @@ class interpreter_DoxyGen(interpreter_base):
                 self.ungetChar(1)
                 break
             else:
-                self.__unexpectedChar(c)
+                self.unexpectedChar(c)
                 return 0
         return self.token_str
     
@@ -3123,15 +3408,15 @@ class interpreter_DoxyGen(interpreter_base):
     def skip_white_spaces(self):
         while True:
             c = self.getChar()
-            if c == 0:
-                return 0
+            if c == '\0':
+                return '\0'
             elif c == "\t" or c == " ":
                 self.line_col += 1
                 continue
             elif c == "\r":
                 c = self.getChar()
                 if not c == "\n":
-                    self.__unexpectedChar(c)
+                    self.unexpectedEndOfLine()
                 self.line_col  = 1
                 self.line_row += 1
                 continue
@@ -3145,7 +3430,7 @@ class interpreter_DoxyGen(interpreter_base):
                     if c == '\r':
                         c = self.getChar()
                         if not c == '\n':
-                            self.__unexpectedToken("newline")
+                            self.unexpectedToken("newline")
                             return 0
                         self.line_col  = 1
                         self.line_row += 1
@@ -3167,7 +3452,7 @@ class interpreter_DoxyGen(interpreter_base):
             if c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    self.__unexpectedToken("newline")
+                    self.unexpectedToken("newline")
                     return 0
                 self.line_row += 1
                 self.line_col  = 1
@@ -3193,7 +3478,7 @@ class interpreter_DoxyGen(interpreter_base):
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    self.__unexpectedToken("newline")
+                    self.unexpectedToken("newline")
                     return 0
                 self.line_row += 1
                 self.line_col  = 1
@@ -3221,18 +3506,18 @@ class interpreter_DoxyGen(interpreter_base):
                     elif c == '\r':
                         c = self.getChar()
                         if not c == '\n':
-                            self.__unexpectedToken("newline")
+                            self.unexpectedToken("newline")
                             return 0
                         else:
                             if self.close_str == False:
-                                self.__unexpectedToken(_("string not terminated."))
+                                self.unexpectedToken(_("string not terminated."))
                                 return 0
                             self.line_col  = 1
                             self.line_row += 1
                             break
                     elif c == '\n':
                         if self.close_str == False:
-                            self.__unexpectedToken(_("string not terminated."))
+                            self.unexpectedToken(_("string not terminated."))
                             return 0
                         self.line_col  = 1
                         self.line_row += 1
@@ -3242,7 +3527,7 @@ class interpreter_DoxyGen(interpreter_base):
                 if self.close_str:
                     continue
                 else:
-                    self.__unexpectedToken(_("string not terminated."))
+                    self.unexpectedToken(_("string not terminated."))
                     return 0
             elif c == '\t' or c == ' ':
                 self.line_col += 1
@@ -3250,7 +3535,7 @@ class interpreter_DoxyGen(interpreter_base):
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    self.__unexpectedToken("newline")
+                    self.unexpectedToken("newline")
                     return 0
                 self.line_col  = 1
                 self.line_row += 1
@@ -3277,7 +3562,7 @@ class interpreter_DoxyGen(interpreter_base):
                     elif c == '\r':
                         c = self,getChar()
                         if not c == '\n':
-                            self.__unexpectedToken("newline")
+                            self.unexpectedToken("newline")
                             return 0
                         self.line_col  = 1
                         self.line_row += 1
@@ -3289,7 +3574,7 @@ class interpreter_DoxyGen(interpreter_base):
                 if c == '\n':
                     break
             else:
-                self.__unexpectedToken("qoute")
+                self.unexpectedToken("qoute")
                 return 0
     
     def check_token(self):
@@ -3317,13 +3602,13 @@ class interpreter_DoxyGen(interpreter_base):
                     elif self.token_str.lower() == "no":
                         myobject.setChecked(False)
                     else:
-                        self.__unexpectedToken("for checkbox")
+                        self.unexpectedToken("for checkbox")
                         return 0
                 if isinstance(myobject, QLineEdit):
                     myobject.setText(self.token_str)
                 return
             else:
-                self.__unexpectedChar(c)
+                self.unexpectedChar(c)
         else:
             raise EInvalidParserError(self.token_str, self.line_row)
             return False
@@ -9595,7 +9880,7 @@ class ApplicationEditorsPage(QObject):
                     return
                 
             elif text[0] == "label 2":
-                self.parent.checkBeforeSave()
+                self.checkBeforeSave()
             elif text[0] == "label 3":
                 global application_mode
                 application_mode = 1
