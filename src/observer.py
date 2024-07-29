@@ -2325,17 +2325,7 @@ if __name__ == '__main__':
             if c == '\0':
                 self.unexpectedError(self.err_commandNF)
                 return c
-            if c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.unexpectedEndOfLine()
-                    return '\0'
-                self.line_col  = 1
-                self.line_row += 1
-                return self.token_str
-            if c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
+            if self.check_newline(c):
                 return self.token_str
             if c == '\t' or c == ' ':
                 return self.token_str
@@ -2360,26 +2350,15 @@ if __name__ == '__main__':
         while True:
             c = self.getChar()
             self.line_col += 1
-            if c == '\0':
-                self.unexpectedToken(self.err_commandNF)
-                return c
-            elif c == '\t' or c == ' ':
+            self.check_null(c)
+            if c == '\t' or c == ' ':
                 if len(self.token_str) > 0:
                     return self.token_str
                 else:
                     continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.unexpectedEndOfLine()
-                self.line_col  = 1
-                self.line_row += 1
+            if self.check_newline(c):
                 return self.token_str
-            elif c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
-                return self.token_str
-            elif c == '.':
+            if c == '.':
                 if have_point == True:
                     self.unexpectedChar(c)
                 else:
@@ -2393,6 +2372,100 @@ if __name__ == '__main__':
                 self.ungetChar(1)
                 return self.token_str
     
+    def check_null(self, c):
+        if c == '\0':
+            if self.pos >= len(self.source):
+                return '\0'
+            else:
+                self.unexpectedError(self.err_commandNF)
+                return '\0'
+    
+    def check_newline(self, c):
+        if c == '\n':
+            self.line_col  = 1
+            self.line_row += 1
+            return True
+        elif c == '\r':
+            c = self.getChar()
+            if not c == '\n':
+                self.unexpectedEndOfLine()
+                return '\0'
+            self.line_col  = 1
+            self.line_row += 1
+            return True
+        return False
+    
+    def check_alpha(self, c):
+        if (c >= 'A' and c <= 'Z'):
+            self.token_str = c.lower()
+            return True
+        elif (c >= 'a' and c <= 'z'):
+            self.token_str = c
+            return True
+        else:
+            self.unexpectedChar(c)
+            return '\0'
+        return False
+    
+    def handle_pascal_comment_1(self):
+        while True:
+            c = self.getChar()
+            self.check_null(c)
+            if self.check_newline(c):
+                continue
+            if c == '*':
+                c = self.getChar()
+                self.check_null(c)
+                if c == ')':
+                    return True
+                elif self.check_newline(c):
+                    continue
+                continue
+        if not c == ')':
+            self.unexpectedError(_("comment not closed"))
+            return False
+        return False
+    
+    def handle_pascal_comment_2(self):
+        while True:
+            c = self.getChar()
+            self.check_null(c)
+            if self.check_newline(c):
+                continue
+            if c == '}':
+                self.line_col += 1
+                self.in_comment -= 1
+                break
+            elif c == '$':
+                c = self.getChar()
+                self.check_null(c)
+                if self.check_alpha(c):
+                    self.getIdent()
+                else:
+                    self.unexpectedError(_("unknown macro symbol"))
+                    return '\0'
+                
+                if len(self.token_str) > 64:
+                    self.unexpectedError(_("macro name too long"))
+                    return '\0'
+                if self.token_str == "define":
+                    print("define macro")
+                elif self.token_str == "ifdef":
+                    print("ifdef macro")
+                elif self.token_str == "ifndef":
+                    print("if not def")
+                elif self.token_str == "else":
+                    print("else macro")
+                elif self.token_str == "endif":
+                    print("endif macro")
+                
+            else:
+                self.line_col += 1
+                continue
+        if not c == '}':
+            self.unexpectedError(_("comment not closed"))
+            return
+    
     # -----------------------------------------------------------------------
     # \brief skip all whitespaces. whitespaces are empty lines, lines with
     #        one or more spaces (0x20): " ", \t, "\n".
@@ -2401,32 +2474,23 @@ if __name__ == '__main__':
         self.pascal_comment_open = False
         while True:
             c = self.getChar()
-            if c == '\0':
-                return c
-            elif c == '\t' or c == ' ':
+            self.check_null(c)
+            if c == '\t' or c == ' ':
                 self.line_col += 1
                 continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.unexpectedEndOfLine()
-                    return '\0'
-                else:
-                    self.line_col  = 1
-                    self.line_row += 1
-                    continue
-            elif c == "\n":
-                self.line_col  = 1
-                self.line_row += 1
+            if self.check_newline(c):
                 continue
-            elif c == '/':
+            if c == '/':
                 self.line_col += 1
                 c = self.getChar()
                 if c == '\0':
                     self.unexpectedToken(self.err_commentNC)
                     return c
                 if c == '*':
-                    if parser_type == self.dbase_parser:
+                    if parser_type == self.lisp_parser:
+                        self.unexpectedError(_("unknown command sequence."))
+                        return '\0'
+                    elif parser_type == self.pascal_parser:
                         self.unexpectedError(_("unknown command sequence."))
                         return '\0'
                     self.line_col += 1
@@ -2434,25 +2498,14 @@ if __name__ == '__main__':
                     while True:
                         c = self.getChar()
                         self.line_col += 1
-                        if c == '\0':
-                            self.unexpectedToken(self.err_commentNC)
-                            return c
-                        elif c == '\t' or c == ' ':
+                        self.check_null(c)
+                        
+                        if c == '\t' or c == ' ':
                             self.line_col += 1
                             continue
-                        elif c == '\r':
-                            c = self.getChar()
-                            if not c == '\n':
-                                self.unexpectedEndOfLine()
-                            else:
-                                self.line_col  = 1
-                                self.line_row += 1
-                                continue
-                        elif c == "\n":
-                            self.line_col  = 1
-                            self.line_row += 1
+                        if self.check_newline(c):
                             continue
-                        elif c == '*':
+                        if c == '*':
                             self.line_col += 1
                             c = self.getChar()
                             if c == '/':
@@ -2479,20 +2532,37 @@ if __name__ == '__main__':
                 c = self.getChar()
                 if parser_type == self.pascal_parser:
                     if c == '*':
+                        self.in_comment += 1
                         self.pascal_comment_open = True
-                        continue
+                        self.handle_pascal_comment_1()
+                    else:
+                        self.unexpectedError("to implement: (*")
+                        return '\0'
+                else:
+                    self.unexpectedError("to implement: ((")
+                    return '\0'
+            elif c == '{':
+                if parser_type == self.pascal_parser:
+                    self.in_comment += 1
+                    self.handle_pascal_comment_2()
+                else:
+                    self.unexpectedChar('{')
+                    return '\0'
             elif c == '&':
                 if parser_type == self.dbase_parser:
                     self.line_col += 1
                     c = self.getChar()
-                    if c == '\0':
-                        self.unexpectedEndOfLine()
+                    self.check_null(c)
                     if c == '&':
                         self.line_col += 1
                         self.handle_oneline_comment()
                         continue
                     else:
                         self.unexpectedChar('&')
+                        return '\0'
+                else:
+                    self.unexpectedChar('&')
+                    return '\0'
             elif c == '*':
                 if parser_type == self.dbase_parser:
                     self.line_col += 1
@@ -2502,17 +2572,7 @@ if __name__ == '__main__':
                         continue
                     else:
                         self.unexpectedChar('*')
-                elif parser_type == self.pascal_parser:
-                    self.line_col += 1
-                    c = self.getChar()
-                    if c == ')':
-                        if self.pascal_comment_open == True:
-                            self.pascal_comment_open = False
-                            continue
-                        else:
-                            self.unexpectedError(_("comment end found, but no start"))
-                            return '\0'
-                    continue
+                return c
             else:
                 return c
     
@@ -2528,16 +2588,7 @@ if __name__ == '__main__':
             elif c == '\t' or c == ' ':
                 self.line_col += 1
                 continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.unexpectedEndOfLine()
-                self.line_row += 1
-                self.line_col  = 1
-                break
-            elif c == "\n":
-                self.line_row += 1
-                self.line_col  = 1
+            if self.check_newline(c):
                 break
     
     def run(self):
@@ -2883,20 +2934,9 @@ class interpreter_dBase(interpreter_base):
                 elif c == '\t' or c == ' ':
                     self.line_col += 1
                     break
-                elif c == '\n':
-                    self.line_col  = 1
-                    self.line_row += 1
+                if self.check_newline(c):
                     break
-                elif c == '\r':
-                    c = self.getChar()
-                    if not c == '\n':
-                        self.unexpectedEndOfLine()
-                        return '\0'
-                    else:
-                        self.line_col  = 1
-                        self.line_row += 1
-                        break
-                elif c == '+':
+                if c == '+':
                     self.token_isok = True
                     self.token_str += c
                     c = self.skip_white_spaces(self.dbase_parser)
@@ -2973,124 +3013,6 @@ class interpreter_Pascal(interpreter_base):
     def __init__(self, file_name):
         super(interpreter_Pascal, self).__init__(file_name)
     
-    def handle_pascal_comment_1(self):
-        while True:
-            c = self.getChar()
-            if c == '\0':
-                self.unexpectedError(_("comment not closed"))
-                return c
-            elif c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
-                continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.unexpectedEndOfLine()
-                    return '\0'
-                self.line_col  = 1
-                self.line_row += 1
-                continue
-            elif c == '*':
-                c = self.getChar()
-                if c == '\0':
-                    self.unexpectedError(_("comment not closed"))
-                    return c
-                elif c == ')':
-                    break
-                else:
-                    self.ungetChar(1)
-                    continue
-        if not c == ')':
-            self.unexpectedError(_("comment not closed"))
-            return
-    
-    def handle_pascal_comment_2(self):
-        while True:
-            c = self.getChar()
-            if c == '\0':
-                self.unexpectedError(_("comment not closed"))
-                return 0
-            elif c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
-                continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    self.unexpectedEndOfLine()
-                    return '\0'
-                self.line_col  = 1
-                self.line_row += 1
-            elif c == '}':
-                self.line_col += 1
-                break
-            elif c == '$':
-                c = self.getChar()
-                if c == '\0':
-                    self.unexpectedError(_("comment not closed"))
-                    return c
-                elif (c >= 'A' and c <= 'Z'):
-                    self.token_str = c.lower()
-                elif (c >= 'a' and c <= 'z'):
-                    self.token_str = c
-                else:
-                    self.unexpectedChar(c)
-                    return '\0'
-                while True:
-                    c = self.getChar()
-                    if c == '\0':
-                        self.unexpectedError(_("comment not closed"))
-                        return c
-                    elif c =='\t' or c == ' ':
-                        break
-                    elif c == '\n':
-                        self.line_col  = 1
-                        self.line_row += 1
-                        break
-                    elif c == '\r':
-                        c = self.getChar()
-                        if not c == '\n':
-                            self.unexpectedEndOfLine()
-                            return '\0'
-                        self.line_col  = 1
-                        self.line_row += 1
-                        continue
-                    elif (c >= 'A' and c <= 'Z'):
-                        self.token_str += c.lower()
-                    elif (c >= 'a' and c <= 'z'):
-                        self.token_str += c
-                    elif (c >= '0' and c <= '9'):
-                        self.token_str += c
-                    elif c == '_':
-                        self.token_str += c
-                    else:
-                        self.unexpectedChar(c)
-                        return '\0'
-                    if len(self.token_str) > 64:
-                        self.unexpectedError(_("macro name too long"))
-                        return '\0'
-                    continue
-                if self.token_str == "define":
-                    print("define macro")
-                elif self.token_str == "ifdef":
-                    print("ifdef macro")
-                elif self.token_str == "ifndef":
-                    print("if not def")
-                elif self.token_str == "else":
-                    print("else macro")
-                elif self.token_str == "endif":
-                    print("endif macro")
-                else:
-                    self.unexpectedError(_("unknown macro symbol"))
-                    return '\0'
-            else:
-                self.line_col += 1
-                continue
-        if not c == '}':
-            self.unexpectedError(_("comment not closed"))
-            return
-    
     def parse(self):
         self.found = False
         try:
@@ -3101,54 +3023,8 @@ class interpreter_Pascal(interpreter_base):
             self.token_str = ""
             while True:
                 c = self.skip_white_spaces(self.pascal_parser)
-                if c == '\0':
-                    break
-                elif c == '\r':
-                    c = self.getChar()
-                    if not c == '\n':
-                        self.unexpectedEndOfLine()
-                        return '\0'
-                    self.line_col  = 1
-                    self.line_row += 1
-                elif c == '\n':
-                    self.line_col  = 1
-                    self.line_row += 1
-                    continue
-                elif c == '\t' or c == ' ':
-                    self.line_col += 1
-                    continue
-                elif c == '/':
-                    c = self.getChar()
-                    if c == '\0':
-                        self.unexpectedError(self.err_commandNF)
-                        return c
-                    elif c == '/':
-                        handle_oneline_comment()
-                        continue
-                    elif c == '\n':
-                        self.line_col  = 1
-                        self.line_row += 1
-                        self.unexpectedError("must implement: //")
-                    elif c == '\r':
-                        c = self.getChar()
-                        if not c == '\n':
-                            self.unexpectedEndOfLine()
-                            return '\9'
-                        self.line_col  = 1
-                        self.line_row += 1
-                        self.unexpectedError("must implement: //")
-                    else:
-                        self.unexpectedError("todo abc")
-                elif c == '(':
-                    c = self.getChar()
-                    if not c == '*':
-                        self.unexpectedError(_("must be implemented: ("))
-                        return '\0'
-                    self.handle_pascal_comment_1()
-                elif c == '{':
-                    self.handle_pascal_comment_2()
-                    continue
-                elif (c >= 'A' and c <= 'Z'):
+                self.check_null(c)
+                if (c >= 'A' and c <= 'Z'):
                     self.token_str = c.lower()
                 elif (c >= 'a' and c <= 'z'):
                     self.token_str = c
@@ -3162,15 +3038,15 @@ class interpreter_Pascal(interpreter_base):
                     return '\0'
                 if self.token_str == "program":
                     self.found = True
-                    print("program")
+                    print("---> program")
                     break
                 elif self.token_str == "unit":
                     self.found = True
-                    print("unit")
+                    print("---> unit")
                     break
                 elif self.token_str == "library":
                     self.found = True
-                    print("library")
+                    print("---> library")
                     break
                 else:
                     self.found = False
@@ -3181,6 +3057,7 @@ class interpreter_Pascal(interpreter_base):
                     return '\0'
             # body
             self.token_str = ""
+            print("C: ", c)
             while True:
                 c = self.skip_white_spaces(self.pascal_parser)
                 if c == '\0':
@@ -3188,21 +3065,6 @@ class interpreter_Pascal(interpreter_base):
                         break
                     self.unexpectedError(self.err_commandNF)
                     return '\0'
-                elif c == '\t' or c == ' ':
-                    self.line_col += 1
-                    continue
-                elif c == '\n':
-                    self.line_col  = 1
-                    seöf.line_row += 1
-                    continue
-                elif c == '\r':
-                    c = self.getChar()
-                    if not c == '\n':
-                        self.unexpectedEndOfLine()
-                        return '\0'
-                    self.line_col  = 1
-                    self.line_row += 1
-                    continue
                 elif (c >= 'A' and c <= 'Z'):
                     self.token_str = c.lower()
                     self.getIdent()
@@ -3225,7 +3087,7 @@ class interpreter_Pascal(interpreter_base):
                     break
                 else:
                     if len(self.token_str) > 0:
-                        print("token; ", self.token_str)
+                        print("token: ", self.token_str)
                         break
         except:
             dialog = systemExceptionDialog(
@@ -5879,20 +5741,77 @@ class addInspectorItem():
         #
         parent.object_inspector.addTopLevelItem(item)
 
-
-class CppSyntaxHighlighter(QSyntaxHighlighter):
+class SourceCodeEditorBase(QSyntaxHighlighter):
     def __init__(self, document):
-        super().__init__(document)
+        super(SourceCodeEditorBase, self).__init__(document)
         
-        dark_green = QColor(0,100,0)
+        self.dark_green = QColor(0,100,0)
         
         self.commentFormat = QTextCharFormat()
-        self.commentFormat.setForeground(dark_green)
+        self.commentFormat.setForeground(self.dark_green)
         self.commentFormat.setFontWeight(QFont.Normal)  # Set the comment font weight to normal
         
         self.boldFormat = QTextCharFormat()
         self.boldFormat.setFont(QFont(genv.v__app__font_edit, 12))  # Set the font for keywords
         self.boldFormat.setFontWeight(QFont.Bold)
+        
+        # Definiere die Muster für mehrzeilige Kommentare
+        self.multiLineCommentFormat = QTextCharFormat()
+        self.multiLineCommentFormat.setForeground(self.dark_green)
+
+class CppSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(CppSyntaxHighlighter, self).__init__(document)
+        
+        self.commentStartExpression = QRegExp(r"/\*")
+        self.commentEndExpression   = QRegExp(r"\*/")
+
+    def highlightBlock(self, text):
+        # Mehrzeilige Kommentare markieren
+        self.setCurrentBlockState(0)
+        
+        startIndex = 0
+        if self.previousBlockState() != 1:
+            startIndex = self.commentStartExpression.indexIn(text)
+        
+        while startIndex >= 0:
+            endIndex = self.commentEndExpression.indexIn(text, startIndex)
+            if endIndex == -1:
+                self.setCurrentBlockState(1)
+                commentLength = len(text) - startIndex
+            else:
+                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
+            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
+            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
+        
+        # Highlight single line comments
+        single_line_comment_patterns = [r"//"]
+        comment_positions = []
+        
+        # Suche nach einzeiligen Kommentaren und markiere sie
+        for pattern in single_line_comment_patterns:
+            for match in re.finditer(pattern, text):
+                start = match.start()
+                self.setFormat(start, len(text) - start, self.commentFormat)
+                comment_positions.append((start, len(text) - start))
+        
+        # Suche nach Keywords und markiere sie
+        for word in self.keywords:
+            pattern = re.compile(re.escape(word), re.IGNORECASE)
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                
+                # Prüfen, ob das Keyword in einem Kommentar steht
+                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
+                
+                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
+                if self.previousBlockState() != 1 and not in_comment:
+                    self.setFormat(start, length, self.boldFormat)
+
+class dBaseSyntaxHighlighter(SourceCodeEditorBase):    
+    def __init__(self, document):
+        super(dBaseSyntaxHighlighter, self).__init__(document)
         
         # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
         self.keywords = [
@@ -5916,9 +5835,6 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
             "WITH"
         ]
         
-        # Definiere die Muster für mehrzeilige Kommentare
-        self.multiLineCommentFormat = QTextCharFormat()
-        self.multiLineCommentFormat.setForeground(dark_green)
         self.commentStartExpression = QRegExp(r"/\*")
         self.commentEndExpression   = QRegExp(r"\*/")
     
@@ -5962,6 +5878,62 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
                 in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
                 
                 # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
+                if self.previousBlockState() != 1 and not in_comment:
+                    self.setFormat(start, length, self.boldFormat)
+
+class PascalSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(PascalSyntaxHighlighter, self).__init__(document)
+        
+        self.commentStartExpressions = [QRegExp(r"\(\*"), QRegExp(r"\{")]
+        self.commentEndExpressions   = [QRegExp(r"\*\)"), QRegExp(r"\}")]
+        
+        self.keywords = [
+            "program", "unit", "library",
+            "begin", "end", "var",
+            "procedure", "function",
+            "while", "with", "do", "else", "for",
+            "case"
+        ]
+    
+    def highlightBlock(self, text):
+        # Mehrzeilige Kommentare markieren
+        self.setCurrentBlockState(0)
+        
+        for startExpr, endExpr in zip(self.commentStartExpressions, self.commentEndExpressions):
+            startIndex = 0
+            if self.previousBlockState() != 1:
+                startIndex = startExpr.indexIn(text)
+            
+            while startIndex >= 0:
+                endIndex = endExpr.indexIn(text, startIndex)
+                if endIndex == -1:
+                    self.setCurrentBlockState(1)
+                    commentLength = len(text) - startIndex
+                else:
+                    commentLength = endIndex - startIndex + endExpr.matchedLength()
+                    self.setCurrentBlockState(0)  # Reset state after ending comment
+                self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
+                startIndex = startExpr.indexIn(text, startIndex + commentLength)
+        
+        # Einzeilige Kommentare markieren
+        single_line_comment_patterns = [r"//"]
+        comment_positions = []
+        
+        for pattern in single_line_comment_patterns:
+            for match in re.finditer(pattern, text):
+                start = match.start()
+                self.setFormat(start, len(text) - start, self.commentFormat)
+                comment_positions.append((start, len(text) - start))
+        
+        # Keywords markieren
+        for word in self.keywords:
+            pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
+                
                 if self.previousBlockState() != 1 and not in_comment:
                     self.setFormat(start, length, self.boldFormat)
 
@@ -6024,7 +5996,7 @@ class EditorTranslate(QWidget):
         self.setLayout(self.layout)
 
 class EditorTextEdit(QPlainTextEdit):
-    def __init__(self, parent, file_name):
+    def __init__(self, parent, file_name, edit_type):
         super().__init__()
         self.setStyleSheet(_("ScrollBarCSS"))
         self.setObjectName(file_name)
@@ -6033,9 +6005,17 @@ class EditorTextEdit(QPlainTextEdit):
         self.move(0,0)
         self.setLineWrapMode(QPlainTextEdit.NoWrap)
         
+        self.edit_type = edit_type
+        
         self.lineNumberArea = LineNumberArea(self)
         self.bookmarks = set()
-        self.highlighter = CppSyntaxHighlighter(self.document())
+        
+        if edit_type == "isoc":
+            self.highlighter = CppSyntaxHighlighter(self.document())
+        elif edit_type == "dbase":
+            self.highlighter = dBaseSyntaxHighlighter(self.document())
+        elif edit_type == "pascal":
+            self.highlighter = PascalSyntaxHighlighter(self.document())
         
         if not genv.blockCountChanged_connected:
             genv.blockCountChanged_connected = True
@@ -6044,7 +6024,7 @@ class EditorTextEdit(QPlainTextEdit):
             self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
             self.updateRequest.connect(self.updateLineNumberArea)
             self.cursorPositionChanged.connect(self.highlightCurrentLine)
-                        
+            
             global main_text_edit
             main_text_edit = self
         
@@ -6057,10 +6037,13 @@ class EditorTextEdit(QPlainTextEdit):
         if not os.path.exists(file_name):
             print(f"Error: file does not exists: {file_name}")
             return
-        with open(file_name, 'r') as file:
-            text = file.read()
-            file.close()
         
+        # Datei einlesen und Text setzen
+        self.load_file(file_name)
+    
+    def load_file(self, file_name):
+        with open(file_name, 'r', encoding='utf-8') as file:
+            text = file.read()
         self.setPlainText(text)
     
     def lineNumberAreaWidth(self):
@@ -6132,7 +6115,7 @@ class EditorTextEdit(QPlainTextEdit):
             top = bottom
             bottom = top + self.blockBoundingRect(block).height()
             blockNumber += 1
-
+    
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             cursor = self.cursorForPosition(event.pos())
@@ -9862,7 +9845,7 @@ class ApplicationEditorsPage(QObject):
                 self.tabs_editor_widget = QWidget()
                 
                 self.tabs_editor_file_layout   = QHBoxLayout()
-                self.tabs_editor_tabs_editor   = EditorTextEdit(self, file_path)
+                self.tabs_editor_tabs_editor   = EditorTextEdit(self, file_path, self.text)
                 self.tabs_editor_tabs_rightBox = EditorTranslate(self)
                 #
                 self.tabs_editor_file_layout.addWidget(self.tabs_editor_tabs_editor)
