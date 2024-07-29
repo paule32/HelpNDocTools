@@ -8202,6 +8202,156 @@ class TableModelOthers(QAbstractTableModel):
         self._data = data
         self.endResetModel()
 
+class RotatedLabel(QLabel):
+    def __init__(self, text, parent=None):
+        super(RotatedLabel, self).__init__(text, parent)
+        self.setMinimumSize(40, 100)  # Adjust the size as needed
+        self.setMaximumWidth(40)
+        self.setFont(QFont("Arial", 15, QFont.Bold))
+        self.setStyleSheet("background: transparent;")  # Make the background transparent
+    
+    def sizeHint(self):
+        fm = QFontMetrics(self.font())
+        return QSize(fm.height(), fm.width(self.text()))
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        
+        # Create the gradient
+        gradient = QLinearGradient(0, 0, 0, self.height())
+        gradient.setColorAt(0, QColor('blue'))
+        gradient.setColorAt(1, QColor('navy'))
+        
+        painter.fillRect(self.rect(), gradient)
+        
+        # Draw the green line at the right edge
+        pen = QPen(QColor('green'), 2)
+        painter.setPen(pen)
+        painter.drawLine(self.width() - 2, 0, self.width() - 2, self.parent().height())
+        
+        # Draw shadow
+        shadow_pen = QPen(QColor(0, 0, 0, 160))
+        shadow_pen.setWidth(3)
+        painter.setPen(shadow_pen)
+        transform = QTransform()
+        transform.rotate(-90)
+        painter.setTransform(transform)
+        painter.drawText(-self.height() + 2, self.fontMetrics().height() + 2, self.text())
+        
+        # Draw text
+        painter.setPen(QColor(Qt.white))
+        painter.drawText(-self.height(), self.fontMetrics().height(), self.text())
+
+class myCustomContextMenu(QMenu):
+    def __init__(self, parent, item_text):
+        super(myCustomContextMenu, self).__init__(parent)
+        
+        # Main horizontal layout for the custom menu
+        self.main_layout = QHBoxLayout()
+        self.main_layout.setContentsMargins(0, 0, 0, 8)  # Add bottom margin to shift the label up
+        self.main_layout.setSpacing(0)
+        
+        # Vertical label
+        self.vertical_label = RotatedLabel(item_text + "..." + (' ' * 20), self)
+        self.vertical_label.setStyleSheet("font: bold 15pt;")
+        self.main_layout.addWidget(self.vertical_label, alignment=Qt.AlignBottom)
+        
+        # Vertical layout for menu actions
+        self.action_layout = QVBoxLayout()
+        self.action_layout.setContentsMargins(0, 0, 0, 0)
+        self.action_layout.setSpacing(0)
+        self.main_layout.addLayout(self.action_layout)
+        
+        # Vertical layout for shortcuts
+        self.shortcut_layout = QVBoxLayout()
+        self.shortcut_layout.setContentsMargins(0, 0, 0, 0)
+        self.shortcut_layout.setSpacing(0)
+        self.main_layout.addLayout(self.shortcut_layout)
+        
+        # Create a widget to hold the layout
+        container_widget = QWidget(self)
+        container_widget.setLayout(self.main_layout)
+        
+        # Add the container widget as a QWidgetAction to the menu
+        action = QWidgetAction(self)
+        action.setDefaultWidget(container_widget)
+        self.addAction(action)
+        
+        self.setStyleSheet("""
+            QMenu {
+                background-color: navy;
+                color: yellow;
+                font-family: Arial;
+                font-size: 11pt;
+                font-style: italic;
+                border: 2px outset gray;  /* Outset border */
+            }
+            QMenu::item {
+                background-color: navy;
+                font-weight: bold;
+                font-style: italic;
+            }
+            QMenu::item:selected {
+                background-color: green;
+                color: yellow;
+            }
+        """)
+        self.setMinimumWidth(232)  # Adjust the width to be 200 + 32
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        super(myCustomContextMenu, self).paintEvent(event)
+    
+    def addMenuAction(self, action, shortcut=None):
+        action_button = QPushButton(action.text(), self)
+        action_button.clicked.connect(action.triggered)
+        action_button.setFlat(True)
+        action_button.setStyleSheet("""
+            QPushButton {
+                text-align: left;
+                padding: 5px;
+                background: transparent;
+                border: none;
+                color: yellow;
+                font-family: Arial;
+                font-size: 11pt;
+                font-style: italic;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: green;
+                color: yellow;
+            }
+        """)
+        self.action_layout.addWidget(action_button)
+        
+        if shortcut:
+            shortcut_label = QLabel(shortcut, self)
+            shortcut_label.setStyleSheet("""
+                QLabel {
+                    text-align: right;
+                    padding: 5px;
+                    background: transparent;
+                    color: yellow;
+                    font-family: Arial;
+                    font-size: 11pt;
+                    font-style: italic;
+                    font-weight: bold;
+                }
+            """)
+            self.shortcut_layout.addWidget(shortcut_label)
+        else:
+            spacer = QWidget(self)
+            self.shortcut_layout.addWidget(spacer)
+    
+    def addMenuSeparator(self):
+        separator = QFrame(self)
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("background-color: lightgray; min-height: 2px; max-height: 2px;")
+        self.action_layout.addWidget(separator)
+
 class applicationProjectWidget(QWidget):
     def __init__(self, parent=None):
         super(applicationProjectWidget, self).__init__(parent)
@@ -8470,17 +8620,44 @@ class applicationProjectWidget(QWidget):
             item_text = self.model.itemFromIndex(index).text()
             
             # Context menu for tree items
-            menu = QMenu()
-            menu.setStyleSheet(_("css_menu_button"))
+            menu = myCustomContextMenu(self, item_text)
             
-            action1 = QAction(_(f"{item_text}") + ":  " + _("Add"), self)
-            action2 = QAction(_(f"{item_text}") + ":  " + _("Clear"), self)
-            action3 = QAction(_(f"{item_text}") + ":  " + _("Clear Items"), self)
+            action1 = QAction(_("Run"), self)
+            action2 = QAction(_("Open in Designer"), self)
+            action3 = QAction(_("Open in Source Editor"), self)
+            action4 = QAction(_("New"), self)
+            action5 = QAction(_("Add Files to Project..."), self)
+            action6 = QAction(_("Delete"), self)
+            action7 = QAction(_("New Folder"), self)
+            action8 = QAction(_("Set as Main"), self)
+            action9 = QAction(_("Exclude from Build"), self)
+            actionA = QAction(_("Include in Target Image"), self)
+            actionB = QAction(_("Project Properties"), self)
+            actionC = QAction(_("File Properties"), self)
+            actionD = QAction(_("Folder Properties"), self)
+            actionE = QAction(_("Clear"), self)
+            actionF = QAction(_("Clear Items"), self)
             
-            menu.addAction(action1)
-            menu.addSeparator()
-            menu.addAction(action2)
-            menu.addAction(action3)
+            menu.addMenuAction(action1, "F2")
+            menu.addMenuAction(action2, "")
+            menu.addMenuAction(action3, "")
+            menu.addMenuSeparator()
+            menu.addMenuAction(action4, "")
+            menu.addMenuAction(action5, "")
+            menu.addMenuAction(action6, "Del")
+            menu.addMenuSeparator()
+            menu.addMenuAction(action7, "")
+            menu.addMenuSeparator()
+            menu.addMenuAction(action8, "")
+            menu.addMenuAction(action9, "")
+            menu.addMenuAction(actionA, "")
+            menu.addMenuSeparator()
+            menu.addMenuAction(actionB, "")
+            menu.addMenuAction(actionC, "")
+            menu.addMenuAction(actionD, "")
+            menu.addMenuSeparator()
+            menu.addMenuAction(actionE, "")
+            menu.addMenuAction(actionF, "")
         else:
             # Context menu for empty space
             menu = QMenu()
