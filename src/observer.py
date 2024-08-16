@@ -2228,6 +2228,9 @@ class interpreter_base():
         self.lisp_parser       = 5
         self.javascript_parser = 6
         
+        self.counter_for  = 0
+        self.indent_count = 1
+        
         genv.v__app__logging.info("start parse: " + self.script_name)
         
         self.err_commentNC = _("comment not closed.")
@@ -2245,9 +2248,9 @@ import builtins
 print = builtins.print
 
 if __name__ == '__main__':
-    global console
-    console = DOSConsole()
-    console.clear()
+\tglobal console
+\tconsole = DOSConsole()
+\tconsole.clear()
 """
 
         self.parser_stop = False
@@ -2327,8 +2330,6 @@ if __name__ == '__main__':
                 return c
             if self.check_newline(c):
                 return self.token_str
-            if c == '\t' or c == ' ':
-                return self.token_str
             elif (c >= '0' and c <= '9'):
                 self.token_str += c
                 continue
@@ -2351,14 +2352,15 @@ if __name__ == '__main__':
             c = self.getChar()
             self.line_col += 1
             self.check_null(c)
-            if c == '\t' or c == ' ':
+            if not (c >= '0' and c <= '9'):
                 if len(self.token_str) > 0:
+                    self.ungetChar(1)
                     return self.token_str
                 else:
                     continue
-            if self.check_newline(c):
+            elif self.check_newline(c):
                 return self.token_str
-            if c == '.':
+            elif c == '.':
                 if have_point == True:
                     self.unexpectedChar(c)
                 else:
@@ -2594,8 +2596,9 @@ if __name__ == '__main__':
     def run(self):
         self.finalize()
         
-        #self.text_code += "    con.reset()\n"
-        self.text_code += "    console.exec_()\n"
+        #self.text_code += "\tcon.reset()\n"
+        self.text_code += ('\t' * self.indent_count)
+        self.text_code += "console.exec_()\n"
         
         try:
             bytecode_text = compile(
@@ -2700,9 +2703,11 @@ class interpreter_dBase(interpreter_base):
             if c == '(':
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
-                    self.text_code  += ("    console.gotoxy(" +
+                    self.text_code += ('\t' * self.indent_count)
+                    self.text_code += ("console.gotoxy(" +
                     str(self.xpos) + ","   +
-                    str(self.ypos) + ")\n" +  (' ' * 4) + "console.print_date()\n")
+                    str(self.ypos) + ")\n" +
+                    ('\t' * self.indent_count) + "console.print_date()\n")
                     
                     self.command_ok = True
                 else:
@@ -2740,7 +2745,7 @@ class interpreter_dBase(interpreter_base):
                 elif c == '\\':
                     self.token_str += "\\"
                 elif c == 't':
-                    self.token_str += "    "
+                    self.token_str += "\t"
                 elif c == 'n':
                     self.token_str += "\n"
                 elif c == 'r':
@@ -2821,8 +2826,10 @@ class interpreter_dBase(interpreter_base):
                             elif c == '"':
                                 self.token_str = ""
                                 self.handle_string()
-                                self.text_code += (' ' * 4) + f"console.gotoxy({self.ypos},{self.xpos})\n"
-                                self.text_code += (' ' * 4) + f"console.print_line(\"" + self.token_str + "\")\n"
+                                self.text_code += ('\t' * self.indent_count)
+                                self.text_code += f"console.gotoxy({self.ypos},{self.xpos})\n"
+                                self.text_code += ('\t' * self.indent_count)
+                                self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
                         else:
                             raise Exception("say expected.")
                     else:
@@ -2832,87 +2839,223 @@ class interpreter_dBase(interpreter_base):
             else:
                 raise Exception("comma expected.")
     
-    def parse(self):
-        try:
-            self.token_str = ""
-            
-            if len(self.source) < 1:
-                self.unexpectedError(_("no data available."))
-                return
-            
-            while True:
-                c = self.skip_white_spaces(self.dbase_parser)
-                if c == '\0' or self.parser_stop == True:
-                    break
-                elif c == '@':
-                    self.line_col += 1
-                    self.handle_say()
-                elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                    self.token_str = c
-                    self.getIdent()
-                    if self.token_str.lower() == "set":
-                        self.token_str = ""
+    def handle_scoped_commands(self):
+        while True:
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c == '\0' or self.parser_stop == True:
+                break
+            elif c == '@':
+                self.line_col += 1
+                self.handle_say()
+            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == 'next':
+                    if self.counter_for > 0:
+                        self.counter_for -= 1
+                        return
+                    else:
+                        self.unexpectedError("not in a for loop")
+                        return '\0'
+                elif self.token_str.lower() == "for":
+                    self.token_str = ""
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '\0':
+                        self.unexpectedError(self.err_commandNF)
+                        return c
+                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                        self.token_str = c
+                        self.getIdent()
+                        #
+                        self.token_ident = self.token_str
+                        self.text_code += ("\t" * self.indent_count) + self.token_ident + "_cnt"
                         c = self.skip_white_spaces(self.dbase_parser)
-                        if c == '\0':
-                            self.unexpectedError(self.err_commandNF)
-                            return c
-                        elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                            self.token_str = c
-                            self.getIdent()
-                            if self.token_str.lower() == "color":
-                                self.token_isok = False
-                                self.token_str  = ""
+                        if c == '=':
+                            self.text_code += " = range("
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if (c >= '0' and c <= '9'):
+                                self.token_str = c
+                                self.getNumber()
+                                #
+                                self.text_code += self.token_str
+                                self.text_code += ", "
                                 c = self.skip_white_spaces(self.dbase_parser)
-                                if c == '\0':
-                                    self.unexpectedError(self.err_commandNF)
-                                    return c
-                                elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                if (c == 't' or c <= 'T'):
                                     self.token_str = c
                                     self.getIdent()
                                     if self.token_str.lower() == "to":
-                                        # ------------------------------------
-                                        # fg / bg color: 1 / 2
-                                        # ------------------------------------
-                                        c = self.check_color_token(1)
-                                        if c == '/':
-                                            c = self.check_color_token(2)
-                                        self.ungetChar(1)
-                                        self.text_code += (
-                                        (" " * 4) +
-                                        f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
-                                        continue
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or (c == '_'):
+                                            self.token_str = c
+                                            self.getIdent()
+                                            #
+                                            self.text_code += self.token_str
+                                            self.text_code += ")\n"
+                                            #
+                                            self.handle_scoped_commands()
+                                        elif (c >= '0' and c <= '9'):
+                                            self.token_str = c
+                                            self.getNumber()
+                                            #
+                                            self.text_code += self.token_str
+                                            self.text_code += ")\n" + ('\t' * self.indent_count)
+                                            self.text_code += "for "
+                                            self.text_code += self.token_ident
+                                            self.text_code += " in "
+                                            self.text_code += self.token_ident + "_cnt:\n"
+                                            #
+                                            self.counter_for += 1
+                                            self.handle_scoped_commands()
+                                            continue
+                                        else:
+                                            self.unexpectedError(self.err_unknownCS)
+                                            return '\0'
                                     else:
-                                        self.unexpectedToken(self.token_str)
+                                        self.unexpectedError(self.err_unknownCS)
                                         return '\0'
+                                else:
+                                    self.unexpectedError(self.err_unknownCS)
+                                    return '\0'
                             else:
-                                self.unexpectedToken(self.token_str)
+                                self.unexpectedError(self.err_unknownCS)
                                 return '\0'
-                    elif self.token_str == "clear":
-                        print("clear")
-                        c = self.skip_white_spaces(self.dbase_parser)
-                        if c == None:
-                            print("no type")
-                            return
-                        if c.isalpha():
-                            self.token_str = c
-                            self.getIdent()
-                            if self.token_str == "screen":
-                                print("screen")
-                                self.text_code += "    #con.screen.clear_con_screen()\n";
-                            elif self.token_str == "memory":
-                                print("mem")
-                            else:
-                                print("--> " + self.token_str)
-                                self.ungetChar(len(self.token_str))
                         else:
-                            self.ungetChar(1)
-                            continue
+                            self.unexpectedError(self.err_unknownCS)
+                            return '\0'
                     else:
                         self.unexpectedError(self.err_unknownCS)
                         return '\0'
+                if self.token_str.lower() == "set":
+                    self.token_str = ""
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '\0':
+                        self.unexpectedError(self.err_commandNF)
+                        return c
+                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str.lower() == "color":
+                            self.token_isok = False
+                            self.token_str  = ""
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == '\0':
+                                self.unexpectedError(self.err_commandNF)
+                                return c
+                            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                self.token_str = c
+                                self.getIdent()
+                                if self.token_str.lower() == "to":
+                                    # ------------------------------------
+                                    # fg / bg color: 1 / 2
+                                    # ------------------------------------
+                                    c = self.check_color_token(1)
+                                    if c == '/':
+                                        c = self.check_color_token(2)
+                                    self.ungetChar(1)
+                                    self.text_code += ('\t' * self.indent_count)
+                                    self.text_code += (
+                                    f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
+                                    continue
+                                else:
+                                    self.unexpectedToken(self.token_str)
+                                    return '\0'
+                        else:
+                            self.unexpectedToken(self.token_str)
+                            return '\0'
+                elif self.token_str == "clear":
+                    print("clear")
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == None:
+                        print("no type")
+                        return
+                    if c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str == "screen":
+                            print("screen")
+                            self.text_code += ('\t' * self.indent_count)
+                            self.text_code += "#con.screen.clear_con_screen()\n";
+                        elif self.token_str == "memory":
+                            print("mem")
+                        else:
+                            print("--> " + self.token_str)
+                            self.ungetChar(len(self.token_str))
+                    else:
+                        self.ungetChar(1)
+                        continue
                 else:
-                    print("oooo>>> " + self.token_str)
-                    return
+                    self.text_code += ('\t' * self.indent_count)
+                    self.text_code += self.token_str
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '=':
+                        self.text_code += " = "
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if (c >= '0' and c <= '9'):
+                            self.token_str = c
+                            self.getNumber()
+                            self.text_code += self.token_str + "\n"
+                            continue
+                        else:
+                            self.unexpectedError(self.err_unknownCS)
+                            return '\0'
+                    else:
+                        self.unexpectedError(self.err_unknownCS)
+                        return '\0'
+            elif c == '?':
+                self.print_countsign = 0
+                self.string_bfound   = False
+                while True:
+                    c = self.getChar()
+                    if c == '?':
+                        if self.print_countsign < 1:
+                            self.print_countsign = 1
+                            continue
+                        else:
+                            self.unexpectedError(self.err_unknownCS)
+                            return '\0'
+                    elif c == '\t' or c == ' ':
+                        self.line_col += 1
+                        continue
+                    elif c == '\n':
+                        self.line_col  = 1
+                        self.line_row += 1
+                        continue
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            self.unexpectedError(self.err_unknownCS)
+                            return '\0'
+                        else:
+                            self.line_col  = 1
+                            self.line_row += 1
+                            continue
+                    elif c == '[':
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c == '\"' or c == '\'':
+                            self.handle_string()
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == ']':
+                                break
+                    elif c == '\"' or c == '\'':
+                        self.string_bfound = True
+                        self.handle_string()
+                        print("STRING: ", self.token_str)
+                    else:
+                        self.unexpectedError(self.err_unknownCS)
+                        return '\0'
+            else:
+                print("oooo>>> " + self.token_str)
+                return
+        return
+    
+    def parse(self):
+        try:
+            self.token_str    = ""
+                        
+            if len(self.source) < 1:
+                self.unexpectedError(_("no data available."))
+                return
+            self.handle_scoped_commands()
         except:
             dialog = systemExceptionDialog(application_window,traceback.format_exc())
     
@@ -10102,7 +10245,8 @@ class ApplicationEditorsPage(QObject):
                         prg.parse()
                     
                     print("\nend of data\n")
-                    prg.text_code += (' ' * 4) + "console.exec_()\n"
+                    prg.text_code += ('\t' * 1)
+                    prg.text_code += "console.exec_()\n"
                     print(prg.text_code)
                     prg.run()
                     
