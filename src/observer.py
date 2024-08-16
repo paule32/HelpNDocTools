@@ -2228,8 +2228,9 @@ class interpreter_base():
         self.lisp_parser       = 5
         self.javascript_parser = 6
         
-        self.counter_for  = 0
-        self.indent_count = 1
+        self.counter_for    = 0
+        self.counter_indent = 1
+        self.counter_parens = 0
         
         genv.v__app__logging.info("start parse: " + self.script_name)
         
@@ -2597,7 +2598,7 @@ if __name__ == '__main__':
         self.finalize()
         
         #self.text_code += "\tcon.reset()\n"
-        self.text_code += ('\t' * self.indent_count)
+        self.text_code += ('\t' * self.counter_indent)
         self.text_code += "console.exec_()\n"
         
         try:
@@ -2703,11 +2704,11 @@ class interpreter_dBase(interpreter_base):
             if c == '(':
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
-                    self.text_code += ('\t' * self.indent_count)
+                    self.text_code += ('\t' * self.counter_indent)
                     self.text_code += ("console.gotoxy(" +
                     str(self.xpos) + ","   +
                     str(self.ypos) + ")\n" +
-                    ('\t' * self.indent_count) + "console.print_date()\n")
+                    ('\t' * self.counter_indent) + "console.print_date()\n")
                     
                     self.command_ok = True
                 else:
@@ -2826,9 +2827,9 @@ class interpreter_dBase(interpreter_base):
                             elif c == '"':
                                 self.token_str = ""
                                 self.handle_string()
-                                self.text_code += ('\t' * self.indent_count)
+                                self.text_code += ('\t' * self.counter_indent)
                                 self.text_code += f"console.gotoxy({self.ypos},{self.xpos})\n"
-                                self.text_code += ('\t' * self.indent_count)
+                                self.text_code += ('\t' * self.counter_indent)
                                 self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
                         else:
                             raise Exception("say expected.")
@@ -2853,6 +2854,7 @@ class interpreter_dBase(interpreter_base):
                 if self.token_str.lower() == 'next':
                     if self.counter_for > 0:
                         self.counter_for -= 1
+                        self.counter_indent -= 1
                         return
                     else:
                         self.unexpectedError("not in a for loop")
@@ -2868,7 +2870,7 @@ class interpreter_dBase(interpreter_base):
                         self.getIdent()
                         #
                         self.token_ident = self.token_str
-                        self.text_code += ("\t" * self.indent_count) + self.token_ident + "_cnt"
+                        self.text_code += ("\t" * self.counter_indent) + self.token_ident + "_cnt"
                         c = self.skip_white_spaces(self.dbase_parser)
                         if c == '=':
                             self.text_code += " = range("
@@ -2885,7 +2887,113 @@ class interpreter_dBase(interpreter_base):
                                     self.getIdent()
                                     if self.token_str.lower() == "to":
                                         c = self.skip_white_spaces(self.dbase_parser)
-                                        if (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or (c == '_'):
+                                        if c == '(':
+                                            self.counter_parens += 1
+                                            self.counter_digits = 0
+                                            while True:
+                                                c = self.getChar()
+                                                if c == '\t' or c == ' ':
+                                                    self.line_col += 1
+                                                    continue
+                                                elif c == '\n':
+                                                    self.line_col  = 1
+                                                    self.line_row += 1
+                                                elif c == '\r':
+                                                    c = self.getChar()
+                                                    if not c == '\n':
+                                                        self.unexpectedError(self.err_unknownCS)
+                                                        return '\0'
+                                                    else:
+                                                        self.line_col  = 1
+                                                        self.line_row += 1
+                                                        continue
+                                                elif c == ')':
+                                                    self.counter_parens -= 1
+                                                    if self.counter_parens < 1:
+                                                        if self.counter_digits == 0:
+                                                            self.unexpectedError("empty list not allowed")
+                                                            return '\0'
+                                                        else:
+                                                            self.counter_digits = 0
+                                                            break
+                                                    else:
+                                                        continue
+                                                elif c == '(':
+                                                    if self.counter_digits > 0:
+                                                        self.unexpectedError("calculus is wrong")
+                                                        return '\0'
+                                                    else:
+                                                        self.counter_parens += 1
+                                                        continue
+                                                elif (c >= '0' and c <= '9'):
+                                                    self.token_str = c
+                                                    self.getNumber()
+                                                    self.counter_digits = len(self.token_str)
+                                                    # todo
+                                                    continue
+                                                elif c == '-':
+                                                    c = self.skip_white_spaces(self.dbase_parser)
+                                                    if c == ')':
+                                                        self.unexpectedError("calculus is wrong")
+                                                        return '\0'
+                                                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                                        self.token_str = a
+                                                        self.getIdent()
+                                                        # todo
+                                                        continue
+                                                    elif (c >= '0' and c <= '9'):
+                                                        self.token_str = c
+                                                        self.getNumber()
+                                                        # todo
+                                                        continue
+                                                    continue
+                                                elif c == '+':
+                                                    c = self.skip_white_spaces(self.dbase_parser)
+                                                    if c == ')':
+                                                        self.unexpectedError("calculus is wrong")
+                                                        return '\0'
+                                                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                                        self.token_str = a
+                                                        self.getIdent()
+                                                        # todo
+                                                        continue
+                                                    elif (c >= '0' and c <= '9'):
+                                                        self.token_str = c
+                                                        self.getNumber()
+                                                        # todo
+                                                        continue
+                                                elif c == '*':
+                                                    c = self.skip_white_spaces(self.dbase_parser)
+                                                    if c == ')':
+                                                        self.unexpectedError("calculus is wrong")
+                                                        return '\0'
+                                                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                                        self.token_str = a
+                                                        self.getIdent()
+                                                        # todo
+                                                        continue
+                                                    elif (c >= '0' and c <= '9'):
+                                                        self.token_str = c
+                                                        self.getNumber()
+                                                        # todo
+                                                        continue
+                                                    continue
+                                                elif c == '/':
+                                                    c = self.skip_white_spaces(self.dbase_parser)
+                                                    if c == ')':
+                                                        self.unexpectedError("calculus is wrong")
+                                                        return '\0'
+                                                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                                                        self.token_str = a
+                                                        self.getIdent()
+                                                        # todo
+                                                        continue
+                                                    elif (c >= '0' and c <= '9'):
+                                                        self.token_str = c
+                                                        self.getNumber()
+                                                        # todo
+                                                        continue
+                                        elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or (c == '_'):
                                             self.token_str = c
                                             self.getIdent()
                                             #
@@ -2898,7 +3006,7 @@ class interpreter_dBase(interpreter_base):
                                             self.getNumber()
                                             #
                                             self.text_code += self.token_str
-                                            self.text_code += ")\n" + ('\t' * self.indent_count)
+                                            self.text_code += ")\n" + ('\t' * self.counter_indent)
                                             self.text_code += "for "
                                             self.text_code += self.token_ident
                                             self.text_code += " in "
@@ -2952,7 +3060,7 @@ class interpreter_dBase(interpreter_base):
                                     if c == '/':
                                         c = self.check_color_token(2)
                                     self.ungetChar(1)
-                                    self.text_code += ('\t' * self.indent_count)
+                                    self.text_code += ('\t' * self.counter_indent)
                                     self.text_code += (
                                     f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
                                     continue
@@ -2973,7 +3081,7 @@ class interpreter_dBase(interpreter_base):
                         self.getIdent()
                         if self.token_str == "screen":
                             print("screen")
-                            self.text_code += ('\t' * self.indent_count)
+                            self.text_code += ('\t' * self.counter_indent)
                             self.text_code += "#con.screen.clear_con_screen()\n";
                         elif self.token_str == "memory":
                             print("mem")
@@ -2984,7 +3092,7 @@ class interpreter_dBase(interpreter_base):
                         self.ungetChar(1)
                         continue
                 else:
-                    self.text_code += ('\t' * self.indent_count)
+                    self.text_code += ('\t' * self.counter_indent)
                     self.text_code += self.token_str
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == '=':
