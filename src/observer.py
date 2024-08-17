@@ -50,6 +50,16 @@ required_modules = [
 for module in required_modules:
     check_and_install_module(module)
 
+# ---------------------------------------------------------------------------
+class unexpectedParserException(Exception):
+    def __init__(self, text, value):
+        self.value    = str(value)
+        self.message  = text
+        super().__init__(value)
+    
+class IgnoreOuterException(Exception):
+    pass
+# ---------------------------------------------------------------------------
 try:
     import os            # operating system stuff
     import sys           # system specifies
@@ -58,6 +68,14 @@ try:
     if getattr(sys, 'frozen', False):
         import pyi_splash
     
+    # ------------------------------------------------------------------------
+    # Qt5 gui framework
+    # ------------------------------------------------------------------------
+    from PyQt5.QtWidgets          import *
+    from PyQt5.QtWebEngineWidgets import *
+    from PyQt5.QtCore             import *
+    from PyQt5.QtGui              import *
+
 except Exception as e:
     exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     tb = traceback.extract_tb(e.__traceback__)[-1]
@@ -70,6 +88,64 @@ except Exception as e:
     print(f"file : {tb.filename}")
     print(f"line : {tb.lineno}")
     sys.exit(1)
+
+# ------------------------------------------------------------------------
+# message box code place holder ...
+# ------------------------------------------------------------------------
+def showMessage(text, msgtype=0):
+    if not isApplicationInit():
+        genv.v__app_object = QApplication(sys.argv)
+    #
+    msgtypes = [
+        [ QMessageBox.Information, "Information" ],
+        [ QMessageBox.Warning,     "Warning" ],
+        [ QMessageBox.Critical,    "Error" ],
+        [ QMessageBox.Critical,    "Exception" ]
+    ]
+    
+    if not application_window == None:
+        dialog = QDialog(application_window)
+    else:
+        dialog = QDialog()
+    
+    dialog.setWindowTitle(msgtypes[msgtype][1])
+    dialog.setMinimumWidth(700)
+    
+    text_lay = QVBoxLayout()
+    text_box = QPlainTextEdit()
+    text_box.setFont(QFont("Consolas", 10))
+    text_box.document().setPlainText(text)
+    
+    text_btn = QPushButton(_("Close"))
+    text_btn.setMinimumHeight(32)
+    text_btn.setStyleSheet(_("msgbox_css"))
+    text_btn.clicked.connect(lambda: dialog.close())
+    
+    text_lay.addWidget(text_box)
+    text_lay.addWidget(text_btn)
+    
+    dialog.setLayout(text_lay)
+    dialog.exec_()
+
+# ------------------------------------------------------------------------
+# code shortner definitions ...
+# ------------------------------------------------------------------------
+def showInfo(text):
+    showMessage(text, 0)
+    return
+def showWarning(text):
+    showMessage(text, 1)
+    return
+def showError(text):
+    showMessage(text, 2)
+    return
+# ------------------------------------------------------------------------------
+# \brief  This definition displays a exception dialog if some exception is raise
+#         by the developer.
+# ------------------------------------------------------------------------------
+def showException(text):
+    showMessage(text, 3)
+    return
 
 # ---------------------------------------------------------------------------
 # to hide global variables from other packages, i use this class for a common
@@ -97,6 +173,21 @@ class globalEnv:
         self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
         
         im_path = self.v__app__img__int__ + "/"
+
+        # ------------------------------------------------------------------------
+        # constants, and varibales that are used multiple times ...
+        # ------------------------------------------------------------------------
+        self.__copy__ = (""
+            + "HelpNDoc.com FileWatcher 0.0.1\n"
+            + "(c) 2024 by paule32\n"
+            + "all rights reserved.\n")
+
+        self.__error__os__error = (""
+            + "can not determine operating system.\n"
+            + "start aborted.")
+
+        self.__error__locales_error = "" \
+            + "no locales file for this application."
 
         # ---------------------------------------------------------------------------
         # \brief currently onle two converters are supported:
@@ -133,6 +224,14 @@ class globalEnv:
         self.v__app__discc64__  = im_path + "disk2.png"
         self.v__app__datmc64__  = im_path + "mc2.png"
         self.v__app__logoc64__  = im_path + "logo2.png"
+        
+        # ------------------------------------------------------------------------
+        # parser generator state flags ...
+        # ------------------------------------------------------------------------
+        self.counter_scoped_commands = [0]
+        self.counter_digits = 0
+        self.counter_indent = 1
+        self.counter_for    = 0
         
         # ------------------------------------------------------------------------
         # some state flags ...
@@ -200,6 +299,9 @@ class globalEnv:
         self.error_result = 0
         self.topic_counter = 1
         
+        self.line_col = 1
+        self.line_row = 1
+        
         self.c64_painter = None
         
         self.tr = None
@@ -216,19 +318,126 @@ class globalEnv:
         self.error_fail = False
         
         self.byte_code = None
+        
+    def unexpectedToken(self, text):
+        self.msg = f"unexpected token: '{text}'"
+        self.unexpectedError(self.msg)
+    
+    def unexpectedChar(self, chr):
+        self.msg = f"unexpected character: '{chr}'"
+        self.unexpectedError(self.msg)
+    
+    def unexpectedEndOfLine(self):
+        self.unexpectedError("unexpected end of line")
+    
+    def unexpectedEscapeSign(self):
+        self.unexpectedError("nunexpected escape sign")
+    
+    def unexpectedError(self, message):
+        try:
+            calledFrom = inspect.stack()[1][3]
+            self.msg = f"{message} at line: '%d' in: '%s'.\n"
+            self.msg = self.msg % (genv.line_row, self.v__app__scriptname__)
+            raise unexpectedParserException(self.msg, 1)
+        except unexpectedParserException as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            tb = traceback.extract_tb(exc_traceback)[-1]
+           
+            msg  = f"Exception occur at parsing:\n"
+            msg += f"type  : {exc_type.__name__}\n"
+            msg += f"value : {exc_value}\n"
+            msg += f"reason: {e.message}\n"
+            msg += StringRepeat("-",40)
+            msg += "\n"
+            #
+            msg += f"file : {tb.filename}\n"
+            msg += f"line : {tb.lineno}"
+            showException(msg)
 
 # ---------------------------------------------------------------------------
 global genv
 genv = globalEnv()
-
-class IgnoreOuterException(Exception):
-    pass
 
 # ------------------------------------------------------------------------------
 # print a string S repeatly NT times...
 # ------------------------------------------------------------------------------
 def StringRepeat(s,nt):
     return (s*nt)
+
+# ------------------------------------------------------------------------
+# read a file into memory ...
+# ------------------------------------------------------------------------
+def read_gzfile_to_memory(file_path):
+    print("--->", file_path)
+    check_file = Path(file_path)
+    print(check_file)
+    if not check_file.exists():
+        print("Error: gzfile directory exists, but file could not found.")
+        print("abort.")
+        sys.exit(1)
+    if not check_file.is_file():
+        print("Error: gzfile is not a file.")
+        print("abort.")
+        sys.exit(1)
+    if check_file.is_file():
+        with open(check_file, "rb") as file:
+            file_header = file.read(3)
+            if file_header == b'\x1f\x8b\x08':
+                print("packed")
+                file.seek(0)
+                file_data = file.read()
+                compressed_data = io.BytesIO(file_data)
+                with gzip.GzipFile(fileobj=compressed_data, mode="rb") as gzip_file:
+                    uncompressed_data = gzip_file.read()
+                file.close()
+                mo_file = io.BytesIO(uncompressed_data)
+                translations = gettext.GNUTranslations(mo_file)
+                translations.install()
+                _ = translations.gettext
+                return _
+            elif file_header == b'\xde\x12\x04':
+                print("not packed")
+                file.seek(0)
+                file_data = file.read()
+                mo_file = io.BytesIO(file_data)
+                translations = gettext.GNUTranslations(mo_file)
+                translations.install()
+                _ = translations.gettext
+                return _
+            else:
+                file.close()
+                print("Error: language mo file could not be load.")
+                print("abort.")
+                sys.exit(1)
+    return None
+
+# ------------------------------------------------------------------------
+# get the locale, based on the system locale settings ...
+# ------------------------------------------------------------------------
+def handle_language(lang):
+    try:
+        # todo: .ini over write
+        # os.path.join(genv.v__locale__,genv.v__locale__sys[0])
+        #
+        #file_path = os.path.join(genv.v__app__locales, genv.v__locale__enu)
+        #file_path = os.path.join(file_path, "LC_MESSAGES")
+        #file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
+        #
+        _ = read_gzfile_to_memory(genv.v__app__locales)
+        return _
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+        tb = traceback.extract_tb(e.__traceback__)[-1]
+        
+        print(f"Exception occur during handle language:")
+        print(f"type : {exc_type.__name__}")
+        print(f"value: {exc_value}")
+        print(StringRepeat("-",40))
+        #
+        print(f"file : {tb.filename}")
+        print(f"llline : {tb.lineno}")
+        #
+        sys.exit(genv.EXIT_FAILURE)
 
 # ---------------------------------------------------------------------------
 # application imports ...
@@ -305,20 +514,71 @@ try:
     if genv.run_in_gui:
         print("run in gui")
     
-    # ------------------------------------------------------------------------
-    # Qt5 gui framework
-    # ------------------------------------------------------------------------
-    from PyQt5.QtWidgets          import *
-    from PyQt5.QtWebEngineWidgets import *
-    from PyQt5.QtCore             import *
-    from PyQt5.QtGui              import *
-    
     from pathlib import Path
     
     # ------------------------------------------------------------------------
     # developers modules ...
     # ------------------------------------------------------------------------
     import string, codecs, win32com.client
+    
+    # ---------------------------------------------------------
+    # when config.ini does not exists, then create a small one:
+    # ---------------------------------------------------------
+    if not os.path.exists(genv.v__app__config_ini):
+        with open(genv.v__app__config_ini, "w", encoding="utf-8") as f:
+            content = (""
+            + "[common]\n"
+            + "language = en_us\n"
+            + "\n"
+            + "[dBaseProject]\n"
+            + "Form = "
+            + "Report = "
+            + "Program = "
+            + "Tables = "
+            + "Images = "
+            + "SQL = "
+            + "Other = ")
+            f.write(content)
+            f.close()
+            ini_lang = "en_us" # default is english; en_us
+    # ------------------------------------------------------------------------
+    # forward initializations ...
+    # ------------------------------------------------------------------------
+    genv.v__app__config = configparser.ConfigParser()
+    genv.v__app__config.read(genv.v__app__config_ini)
+
+    try:
+        genv.v__app__config.read(genv.v__app__config_ini)
+        ini_lang = genv.v__app__config.get("common", "language")
+    except:
+        ini_lang = "en_us"
+        pass
+    
+    # ------------------------------------------------------------------------
+    # global used locales constants ...
+    # ------------------------------------------------------------------------
+    genv.v__locale__    = os.path.join(genv.v__app__internal__, "locales")
+    genv.v__locale__enu = "en_us"            # enu
+    genv.v__locale__deu = "de_de"            # deu
+    genv.v__locale__sys = locale.getlocale() # system locale
+    
+    check_path = Path(genv.v__locale__)
+    if not check_path.is_dir():
+        print("Error: loacles directory not found.")
+        print("abort.")
+        sys.exit(1)
+
+    print(genv.v__app__config["common"]["language"])
+    genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
+    genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
+    genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+    genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo + ".gz")
+    #
+    if len(genv.v__app__locales) < 5:
+        print("Error: locale out of seed.")
+        print("abort.")
+        sys.exit(1)
+    _ = handle_language(ini_lang)
     
     # ------------------------------------------------------------------------
     # determine on which operating the application script runs ...
@@ -338,10 +598,10 @@ try:
     # for debuging, we use python logging library ...
     # -------------------------------------------------------------------
     genv.v__app__logfile = genv.v__app__logfile.replace("\\", "/")
-    
     if not os.path.exists(genv.v__app__logfile):
         Path(genv.v__app__logfile).touch()
     genv.v__app__logging = logging.getLogger(genv.v__app__logfile)
+    
     logging.basicConfig(
         format="%(asctime)s: %(levelname)s: %(message)s",
         filename=genv.v__app__logfile,
@@ -351,44 +611,15 @@ try:
     genv.v__app__logging.info("init ok: session start...")
     
     # ------------------------------------------------------------------------
-    # forward initializations ...
+    # when the user start the application script under Windows 7 and higher:
     # ------------------------------------------------------------------------
-    genv.v__app__config = configparser.ConfigParser()
-    genv.v__app__config.read(genv.v__app__config_ini)
-    
-    # ------------------------------------------------------------------------
-    # global used locales constants ...
-    # ------------------------------------------------------------------------
-    genv.v__locale__    = os.path.join(genv.v__app__internal__, "locales")
-    genv.v__locale__enu = "en_us"            # enu
-    genv.v__locale__deu = "de_de"            # deu
-    genv.v__locale__sys = locale.getlocale() # system locale
-    
-    check_path = Path(genv.v__locale__)
-    if not check_path.is_dir():
-        print("Error: loacles directory not found.")
-        print("abort.")
-        sys.exit(1)
     try:
-        print(genv.v__app__config["common"]["language"])
-        genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
-        genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
-        genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
-        genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo + ".gz")
-        #
-        if len(genv.v__app__locales) < 5:
-            print("Error: locale out of seed.")
-            print("abort.")
-            sys.exit(1)
-        #
-        raise IgnoreOuterException
-    except:
-        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
-        #genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
-        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
-        #
-        raise IgnoreOuterException
-    
+        from ctypes import windll  # Only exists on Windows.
+        myappid = 'kallup-nonprofit.helpndoc.observer.1'
+        windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except ImportError:
+        print("windll error")
+
 except IgnoreOuterException:
     print(genv.v__app__locales)
     pass
@@ -435,31 +666,6 @@ except Exception as e:
         print(f"file : {tb.filename}")
         print(f"line : {tb.lineno}")
         sys.exit(1)
-
-# ------------------------------------------------------------------------
-# when the user start the application script under Windows 7 and higher:
-# ------------------------------------------------------------------------
-try:
-    from ctypes import windll  # Only exists on Windows.
-    myappid = 'kallup-nonprofit.helpndoc.observer.1'
-    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-except ImportError:
-    print("windll error")
-
-# ------------------------------------------------------------------------
-# constants, and varibales that are used multiple times ...
-# ------------------------------------------------------------------------
-__copy__ = (""
-    + "HelpNDoc.com FileWatcher 0.0.1\n"
-    + "(c) 2024 by paule32\n"
-    + "all rights reserved.\n")
-
-__error__os__error = (""
-    + "can not determine operating system.\n"
-    + "start aborted.")
-
-__error__locales_error = "" \
-    + "no locales file for this application."
 
 # ------------------------------------------------------------------------
 # style sheet definition's:
@@ -1093,35 +1299,6 @@ def register_instance(name, instance):
 # Custom function to get instance name
 def get_instance_name(instance):
     return instance_names.get(id(instance), None)
-
-# ------------------------------------------------------------------------------
-# \brief  This definition displays a exception dialog if some exception is raise
-#         by the developer.
-# ------------------------------------------------------------------------------
-class systemExceptionDialog(QDialog):
-    def __init__(self, parent, TraceBackExceptionMessage):
-        super(systemExceptionDialog, self).__init__(parent)
-        self.setWindowTitle("Exception")
-        self.setMinimumWidth(700)
-        
-        text_lay = QVBoxLayout()
-        text_box = QPlainTextEdit()
-        text_box.setFont(QFont("Consolas", 10))
-        text_box.document().setPlainText(TraceBackExceptionMessage)
-        
-        text_btn = QPushButton(_("Close"))
-        text_btn.setMinimumHeight(32)
-        text_btn.setStyleSheet(_("msgbox_css"))
-        text_btn.clicked.connect(self.exceptionButtonDialog_btn_clicked)
-        
-        text_lay.addWidget(text_box)
-        text_lay.addWidget(text_btn)
-        
-        self.setLayout(text_lay)
-        self.exec_()
-    
-    def exceptionButtonDialog_btn_clicked(self):
-        self.close()
 
 class RunTimeLibrary:
     # -----------------------------------------------------------------------
@@ -2206,9 +2383,7 @@ class dbase_command:
 class interpreter_base():
     def __init__(self, file_name):
         self.script_name = file_name
-        
-        self.line_row    = 1
-        self.line_col    = 1
+        genv.v__app__scriptname__ = file_name
         
         self.pos         = -1
         
@@ -2228,10 +2403,11 @@ class interpreter_base():
         self.lisp_parser       = 5
         self.javascript_parser = 6
         
-        self.counter_for    = 0
-        self.counter_indent = 1
-        self.counter_parens = 0
+        genv.counter_for    = 0
+        genv.counter_indent = 1
+        genv.counter_parens = 0
         
+        genv.counter_scoped_commands = [0]
         genv.v__app__logging.info("start parse: " + self.script_name)
         
         self.err_commentNC = _("comment not closed.")
@@ -2302,7 +2478,7 @@ if __name__ == '__main__':
     # \since  1.0.0
     # -----------------------------------------------------------------------
     def getChar(self):
-        self.line_col += 1
+        genv.line_col += 1
         self.pos += 1
 
         if self.pos >= len(self.source):
@@ -2317,17 +2493,17 @@ if __name__ == '__main__':
             return c
     
     def ungetChar(self, num):
-        self.line_col -= num;
+        genv.line_col -= num;
         self.pos -= num;
         c = self.source[self.pos]
         return c
     
     def getIdent(self):
         while True:
-            self.line_col += 1
+            genv.line_col += 1
             c = self.getChar()
             if c == '\0':
-                self.unexpectedError(self.err_commandNF)
+                genv.unexpectedError(self.err_commandNF, genv.line_row)
                 return c
             if self.check_newline(c):
                 return self.token_str
@@ -2351,7 +2527,7 @@ if __name__ == '__main__':
         have_point = False
         while True:
             c = self.getChar()
-            self.line_col += 1
+            genv.line_col += 1
             self.check_null(c)
             if not (c >= '0' and c <= '9'):
                 if len(self.token_str) > 0:
@@ -2363,7 +2539,7 @@ if __name__ == '__main__':
                 return self.token_str
             elif c == '.':
                 if have_point == True:
-                    self.unexpectedChar(c)
+                    genv.unexpectedChar(c, genv.line_row)
                 else:
                     have_point = True
                     self.token_str += c
@@ -2380,21 +2556,21 @@ if __name__ == '__main__':
             if self.pos >= len(self.source):
                 return '\0'
             else:
-                self.unexpectedError(self.err_commandNF)
+                genv.unexpectedError(self.err_commandNF, genv.line_row)
                 return '\0'
     
     def check_newline(self, c):
         if c == '\n':
-            self.line_col  = 1
-            self.line_row += 1
+            genv.line_col  = 1
+            genv.line_row += 1
             return True
         elif c == '\r':
             c = self.getChar()
             if not c == '\n':
-                self.unexpectedEndOfLine()
+                genv.unexpectedEndOfLine(genv.line_row)
                 return '\0'
-            self.line_col  = 1
-            self.line_row += 1
+            genv.line_col  = 1
+            genv.line_row += 1
             return True
         return False
     
@@ -2406,7 +2582,7 @@ if __name__ == '__main__':
             self.token_str = c
             return True
         else:
-            self.unexpectedChar(c)
+            genv.unexpectedChar(c, genv.line_row)
             return '\0'
         return False
     
@@ -2425,7 +2601,7 @@ if __name__ == '__main__':
                     continue
                 continue
         if not c == ')':
-            self.unexpectedError(_("comment not closed"))
+            genv.unexpectedError(_("comment not closed"), genv.line_row)
             return False
         return False
     
@@ -2436,7 +2612,7 @@ if __name__ == '__main__':
             if self.check_newline(c):
                 continue
             if c == '}':
-                self.line_col += 1
+                genv.line_col += 1
                 self.in_comment -= 1
                 break
             elif c == '$':
@@ -2445,11 +2621,11 @@ if __name__ == '__main__':
                 if self.check_alpha(c):
                     self.getIdent()
                 else:
-                    self.unexpectedError(_("unknown macro symbol"))
+                    genv.unexpectedError(_("unknown macro symbol"), genv.line_row)
                     return '\0'
                 
                 if len(self.token_str) > 64:
-                    self.unexpectedError(_("macro name too long"))
+                    genv.unexpectedError(_("macro name too long"), genv.line_row)
                     return '\0'
                 if self.token_str == "define":
                     print("define macro")
@@ -2463,10 +2639,10 @@ if __name__ == '__main__':
                     print("endif macro")
                 
             else:
-                self.line_col += 1
+                genv.line_col += 1
                 continue
         if not c == '}':
-            self.unexpectedError(_("comment not closed"))
+            genv.unexpectedError(_("comment not closed"), genv.line_row)
             return
     
     # -----------------------------------------------------------------------
@@ -2479,47 +2655,47 @@ if __name__ == '__main__':
             c = self.getChar()
             self.check_null(c)
             if c == '\t' or c == ' ':
-                self.line_col += 1
+                genv.line_col += 1
                 continue
             if self.check_newline(c):
                 continue
             if c == '/':
-                self.line_col += 1
+                genv.line_col += 1
                 c = self.getChar()
                 if c == '\0':
-                    self.unexpectedToken(self.err_commentNC)
+                    self.unexpectedToken(self.err_commentNC, genv.line_row)
                     return c
                 if c == '*':
                     if parser_type == self.lisp_parser:
-                        self.unexpectedError(_("unknown command sequence."))
+                        genv.unexpectedError(_("unknown command sequence."), genv.line_row)
                         return '\0'
                     elif parser_type == self.pascal_parser:
-                        self.unexpectedError(_("unknown command sequence."))
+                        genv.unexpectedError(_("unknown command sequence."), genv.line_row)
                         return '\0'
-                    self.line_col += 1
+                    genv.line_col += 1
                     self.in_comment += 1
                     while True:
                         c = self.getChar()
-                        self.line_col += 1
+                        genv.line_col += 1
                         self.check_null(c)
                         
                         if c == '\t' or c == ' ':
-                            self.line_col += 1
+                            genv.line_col += 1
                             continue
                         if self.check_newline(c):
                             continue
                         if c == '*':
-                            self.line_col += 1
+                            genv.line_col += 1
                             c = self.getChar()
                             if c == '/':
-                                self.line_col += 1
+                                genv.line_col += 1
                                 self.in_comment -= 1
                                 break
                         else:
-                            self.line_col += 1
+                            genv.line_col += 1
                             continue
                     if self.in_comment > 0:
-                        self.unexpectedToken(self.err_commentNC)
+                        self.unexpectedToken(self.err_commentNC, genv.line_row)
                     else:
                         print("comment closed")
                     return self.skip_white_spaces(parser_type)
@@ -2527,7 +2703,7 @@ if __name__ == '__main__':
                     self.handle_oneline_comment()
                     continue
                 else:
-                    self.line_col -= 1
+                    genv.line_col -= 1
                     self.ungetChar(1)
                     c = "/"
                     return c
@@ -2539,42 +2715,42 @@ if __name__ == '__main__':
                         self.pascal_comment_open = True
                         self.handle_pascal_comment_1()
                     else:
-                        self.unexpectedError("to implement: (*")
+                        genv.unexpectedError("to implement: (*", genv.line_row)
                         return '\0'
                 else:
-                    self.unexpectedError("to implement: ((")
+                    genv.unexpectedError("to implement: ((", genv.line_row)
                     return '\0'
             elif c == '{':
                 if parser_type == self.pascal_parser:
                     self.in_comment += 1
                     self.handle_pascal_comment_2()
                 else:
-                    self.unexpectedChar('{')
+                    genv.unexpectedChar('{', genv.line_row)
                     return '\0'
             elif c == '&':
                 if parser_type == self.dbase_parser:
-                    self.line_col += 1
+                    genv.line_col += 1
                     c = self.getChar()
                     self.check_null(c)
                     if c == '&':
-                        self.line_col += 1
+                        genv.line_col += 1
                         self.handle_oneline_comment()
                         continue
                     else:
-                        self.unexpectedChar('&')
+                        genv.unexpectedChar('&', genv.line_row)
                         return '\0'
                 else:
-                    self.unexpectedChar('&')
+                    genv.unexpectedChar('&', genv.line_row)
                     return '\0'
             elif c == '*':
                 if parser_type == self.dbase_parser:
-                    self.line_col += 1
+                    genv.line_col += 1
                     c = self.getChar()
                     if c == '*':
                         self.handle_oneline_comment()
                         continue
                     else:
-                        self.unexpectedChar('*')
+                        genv.unexpectedChar('*', genv.line_row)
                 return c
             else:
                 return c
@@ -2584,12 +2760,12 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------
     def handle_oneline_comment(self):
         while True:
-            self.line_col += 1
+            genv.line_col += 1
             c = self.getChar()
             if c == '\0':
                 return c
             elif c == '\t' or c == ' ':
-                self.line_col += 1
+                genv.line_col += 1
                 continue
             if self.check_newline(c):
                 break
@@ -2598,7 +2774,7 @@ if __name__ == '__main__':
         self.finalize()
         
         #self.text_code += "\tcon.reset()\n"
-        self.text_code += ('\t' * self.counter_indent)
+        self.text_code += ('\t' * genv.counter_indent)
         self.text_code += "console.exec_()\n"
         
         try:
@@ -2637,29 +2813,7 @@ if __name__ == '__main__':
             
             exec(bytecode)
         except Exception as e:
-            dialog = systemExceptionDialog(application_window,traceback.format_exc())
-    
-    def unexpectedToken(self):
-        self.msg = "unexpected token: '" + self.token_str + "'"
-        self.unexpectedError(self.msg)
-    
-    def unexpectedChar(self, chr):
-        self.msg = "unexpected character: '" + chr + "'"
-        self.unexpectedError(self.msg)
-    
-    def unexpectedEndOfLine(self):
-        self.unexpectedError("unexpected end of line")
-    
-    def unexpectedEscapeSign(self):
-        self.unexpectedError("nunexpected escape sign")
-    
-    def unexpectedError(self, message):
-        calledFrom = inspect.stack()[1][3]
-        self.msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
-        self.msg = self.msg % (
-            self.line_row,
-            self.script_name)
-        raise Exception(self.msg)
+            showException(traceback.format_exc())
 
 class interpreter_dBase(interpreter_base):
     def __init__(self, file_name):
@@ -2704,17 +2858,17 @@ class interpreter_dBase(interpreter_base):
             if c == '(':
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
-                    self.text_code += ('\t' * self.counter_indent)
+                    self.text_code += ('\t' * genv.counter_indent)
                     self.text_code += ("console.gotoxy(" +
                     str(self.xpos) + ","   +
                     str(self.ypos) + ")\n" +
-                    ('\t' * self.counter_indent) + "console.print_date()\n")
+                    ('\t' * genv.counter_indent) + "console.print_date()\n")
                     
                     self.command_ok = True
                 else:
-                    self.unexpectedChar(c)
+                    genv.unexpectedChar(c, genv.line_row)
             else:
-                self.unexpectedChar(c)
+                genv.unexpectedChar(c, genv.line_row)
         elif self.token_str.lower() == "str":
             c = self.skip_white_spaces(self.dbase_parser)
             if c == '(':
@@ -2723,26 +2877,26 @@ class interpreter_dBase(interpreter_base):
                     print("strrr")
                     self.command_ok = True
                 else:
-                    self.unexpectedChar(c)
+                    genv.unexpectedChar(c, genv.line_row)
             else:
-                self.unexpectedChar(c)
+                genv.unexpectedChar(c, genv.line_row)
         else:
-            self.unexpectedToken()
+            genv.unexpectedToken(self.token_str, genv.line_row)
     
     def handle_string(self):
         while True:
             c = self.getChar()
             if c == '\0':
-                self.unexpectedError(self.err_commandNF)
+                genv.unexpectedError(self.err_commandNF, genv.line_row)
                 return c
             elif c == '"':
                 break
             elif c == '\\':
                 c = self.getChar()
                 if c == "\n" or c == "\r":
-                    self.unexpectedEndOfLine()
+                    genv.unexpectedEndOfLine(genv.line_row)
                 elif c == " ":
-                    self.unexpectedEscapeSign()
+                    genv.unexpectedEscapeSign(genv.line_row)
                 elif c == '\\':
                     self.token_str += "\\"
                 elif c == 't':
@@ -2765,7 +2919,7 @@ class interpreter_dBase(interpreter_base):
         elif c == '+':
             c = self.skip_white_spaces(self.dbase_parser)
             if c == '\0':
-                self.unexpectedError(self.err_commandNF)
+                genv.unexpectedError(self.err_commandNF, genv.line_row)
                 return c
             elif c == '"':
                 self.handle_string()
@@ -2778,7 +2932,7 @@ class interpreter_dBase(interpreter_base):
                 #print("---> " + self.token_str)
                 return
             else:
-                self.unexpectedChar(c)
+                genv.unexpectedChar(c, genv.line_row)
         else:
             self.ungetChar(1)
             return
@@ -2787,7 +2941,7 @@ class interpreter_dBase(interpreter_base):
         self.command_ok = False
         c = self.skip_white_spaces(self.dbase_parser)
         if c == '\0':
-            self.unexpectedError(self.err_commandNF)
+            genv.unexpectedError(self.err_commandNF, genv.line_row)
             return c
         elif (c >= '0') and (c <= '9'):
             self.token_str = c
@@ -2795,12 +2949,12 @@ class interpreter_dBase(interpreter_base):
             self.ypos = self.token_str
             c = self.skip_white_spaces(self.dbase_parser)
             if c == '\0':
-                self.unexpectedError(self.err_commandNF)
+                genv.unexpectedError(self.err_commandNF, genv.line_row)
                 return c
             elif c == ',':
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c == '\0':
-                    self.unexpectedError(self.err_commandNF)
+                    genv.unexpectedError(self.err_commandNF, genv.line_row)
                     return c
                 elif (c >= '0') and (c <= '9'):
                     self.token_str = c
@@ -2808,17 +2962,17 @@ class interpreter_dBase(interpreter_base):
                     self.xpos = self.token_str
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == '\0':
-                        self.unexpectedError(self.err_commandNF)
+                        genv.unexpectedError(self.err_commandNF, genv.line_row)
                         return c
                     elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                        self.line_col += 1
+                        genv.line_col += 1
                         self.token_str = c
                         self.getIdent()
                         if self.token_str.lower() == "say":
                             self.prev = "say"
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == '\0':
-                                self.unexpectedError(self.err_commandNF)
+                                genv.unexpectedError(self.err_commandNF, genv.line_row)
                                 return c
                             if c.isalpha():
                                 self.token_str = c
@@ -2827,9 +2981,9 @@ class interpreter_dBase(interpreter_base):
                             elif c == '"':
                                 self.token_str = ""
                                 self.handle_string()
-                                self.text_code += ('\t' * self.counter_indent)
+                                self.text_code += ('\t' * genv.counter_indent)
                                 self.text_code += f"console.gotoxy({self.ypos},{self.xpos})\n"
-                                self.text_code += ('\t' * self.counter_indent)
+                                self.text_code += ('\t' * genv.counter_indent)
                                 self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
                         else:
                             raise Exception("say expected.")
@@ -2846,31 +3000,43 @@ class interpreter_dBase(interpreter_base):
             if c == '\0' or self.parser_stop == True:
                 break
             elif c == '@':
-                self.line_col += 1
+                genv.line_col += 1
                 self.handle_say()
             elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                 self.token_str = c
                 self.getIdent()
                 if self.token_str.lower() == 'next':
-                    if self.counter_for > 0:
-                        self.counter_for -= 1
-                        self.counter_indent -= 1
+                    if genv.counter_for > 0:
+                        if genv.counter_scoped_commands[genv.counter_for-1] <= 0:
+                            genv.unexpectedError("for next without commands", genv.line_row)
+                            return '\0'
+                        else:
+                            genv.counter_scoped_commands[genv.counter_for-1] = 0
+                        genv.counter_for -= 1
+                        genv.counter_indent -= 1
                         return
                     else:
-                        self.unexpectedError("not in a for loop")
+                        genv.unexpectedError("not in a for loop", genv.line_row)
                         return '\0'
                 elif self.token_str.lower() == "for":
+                    genv.counter_for += 1
+                    if len(genv.counter_scoped_commands) < genv.counter_for:
+                        genv.counter_scoped_commands.append(1)
+                        genv.counter_scoped_commands[genv.counter_for-1]  = 1
+                    else:
+                        genv.counter_scoped_commands[genv.counter_for-1] += 1
+                    #
                     self.token_str = ""
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == '\0':
-                        self.unexpectedError(self.err_commandNF)
+                        genv.unexpectedError(self.err_commandNF, genv.line_row)
                         return c
                     elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                         self.token_str = c
                         self.getIdent()
                         #
                         self.token_ident = self.token_str
-                        self.text_code += ("\t" * self.counter_indent) + self.token_ident + "_cnt"
+                        self.text_code += ("\t" * genv.counter_indent) + self.token_ident + "_cnt"
                         c = self.skip_white_spaces(self.dbase_parser)
                         if c == '=':
                             self.text_code += " = range("
@@ -2888,30 +3054,33 @@ class interpreter_dBase(interpreter_base):
                                     if self.token_str.lower() == "to":
                                         c = self.skip_white_spaces(self.dbase_parser)
                                         if c == '(':
-                                            self.counter_parens += 1
-                                            self.counter_digits = 0
+                                            genv.counter_parens += 1
+                                            genv.counter_digits = 0
                                             while True:
                                                 c = self.getChar()
                                                 if c == '\t' or c == ' ':
-                                                    self.line_col += 1
+                                                    genv.line_col += 1
                                                     continue
                                                 elif c == '\n':
-                                                    self.line_col  = 1
-                                                    self.line_row += 1
+                                                    genv.line_col  = 1
+                                                    genv.line_row += 1
                                                 elif c == '\r':
                                                     c = self.getChar()
                                                     if not c == '\n':
-                                                        self.unexpectedError(self.err_unknownCS)
+                                                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
                                                         return '\0'
                                                     else:
-                                                        self.line_col  = 1
-                                                        self.line_row += 1
+                                                        genv.line_col  = 1
+                                                        genv.line_row += 1
                                                         continue
                                                 elif c == ')':
-                                                    self.counter_parens -= 1
-                                                    if self.counter_parens < 1:
+                                                    genv.counter_parens -= 1
+                                                    if genv.counter_parens == 1:
                                                         if self.counter_digits == 0:
-                                                            self.unexpectedError("empty list not allowed")
+                                                            genv.unexpectedError("empty list not allowed", genv.line_row)
+                                                            return '\0'
+                                                        elif genv.counter_parens < 0:
+                                                            genv.unexpectedError("closed parens before open it", genv.line_row)
                                                             return '\0'
                                                         else:
                                                             self.counter_digits = 0
@@ -2920,10 +3089,10 @@ class interpreter_dBase(interpreter_base):
                                                         continue
                                                 elif c == '(':
                                                     if self.counter_digits > 0:
-                                                        self.unexpectedError("calculus is wrong")
+                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
                                                         return '\0'
                                                     else:
-                                                        self.counter_parens += 1
+                                                        genv.counter_parens += 1
                                                         continue
                                                 elif (c >= '0' and c <= '9'):
                                                     self.token_str = c
@@ -2934,7 +3103,7 @@ class interpreter_dBase(interpreter_base):
                                                 elif c == '-':
                                                     c = self.skip_white_spaces(self.dbase_parser)
                                                     if c == ')':
-                                                        self.unexpectedError("calculus is wrong")
+                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
                                                         return '\0'
                                                     elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                                                         self.token_str = a
@@ -2950,7 +3119,7 @@ class interpreter_dBase(interpreter_base):
                                                 elif c == '+':
                                                     c = self.skip_white_spaces(self.dbase_parser)
                                                     if c == ')':
-                                                        self.unexpectedError("calculus is wrong")
+                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
                                                         return '\0'
                                                     elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                                                         self.token_str = a
@@ -2965,7 +3134,7 @@ class interpreter_dBase(interpreter_base):
                                                 elif c == '*':
                                                     c = self.skip_white_spaces(self.dbase_parser)
                                                     if c == ')':
-                                                        self.unexpectedError("calculus is wrong")
+                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
                                                         return '\0'
                                                     elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                                                         self.token_str = a
@@ -2981,7 +3150,7 @@ class interpreter_dBase(interpreter_base):
                                                 elif c == '/':
                                                     c = self.skip_white_spaces(self.dbase_parser)
                                                     if c == ')':
-                                                        self.unexpectedError("calculus is wrong")
+                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
                                                         return '\0'
                                                     elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                                                         self.token_str = a
@@ -3006,38 +3175,38 @@ class interpreter_dBase(interpreter_base):
                                             self.getNumber()
                                             #
                                             self.text_code += self.token_str
-                                            self.text_code += ")\n" + ('\t' * self.counter_indent)
+                                            self.text_code += ")\n" + ('\t' * genv.counter_indent)
                                             self.text_code += "for "
                                             self.text_code += self.token_ident
                                             self.text_code += " in "
                                             self.text_code += self.token_ident + "_cnt:\n"
                                             #
-                                            self.counter_for += 1
                                             self.handle_scoped_commands()
                                             continue
                                         else:
-                                            self.unexpectedError(self.err_unknownCS)
+                                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
                                             return '\0'
                                     else:
-                                        self.unexpectedError(self.err_unknownCS)
+                                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
                                         return '\0'
                                 else:
-                                    self.unexpectedError(self.err_unknownCS)
+                                    genv.unexpectedError(self.err_unknownCS, genv.line_row)
                                     return '\0'
                             else:
-                                self.unexpectedError(self.err_unknownCS)
+                                genv.unexpectedError(self.err_unknownCS, genv.line_row)
                                 return '\0'
                         else:
-                            self.unexpectedError(self.err_unknownCS)
+                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
                             return '\0'
                     else:
-                        self.unexpectedError(self.err_unknownCS)
+                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
                         return '\0'
                 if self.token_str.lower() == "set":
+                    
                     self.token_str = ""
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == '\0':
-                        self.unexpectedError(self.err_commandNF)
+                        genv.unexpectedError(self.err_commandNF, genv.line_row)
                         return c
                     elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                         self.token_str = c
@@ -3047,7 +3216,7 @@ class interpreter_dBase(interpreter_base):
                             self.token_str  = ""
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == '\0':
-                                self.unexpectedError(self.err_commandNF)
+                                genv.unexpectedError(self.err_commandNF, genv.line_row)
                                 return c
                             elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                                 self.token_str = c
@@ -3060,15 +3229,15 @@ class interpreter_dBase(interpreter_base):
                                     if c == '/':
                                         c = self.check_color_token(2)
                                     self.ungetChar(1)
-                                    self.text_code += ('\t' * self.counter_indent)
+                                    self.text_code += ('\t' * genv.counter_indent)
                                     self.text_code += (
                                     f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
                                     continue
                                 else:
-                                    self.unexpectedToken(self.token_str)
+                                    genv.unexpectedToken(self.token_str, genv.line_row)
                                     return '\0'
                         else:
-                            self.unexpectedToken(self.token_str)
+                            genv.unexpectedToken(self.token_str, genv.line_row)
                             return '\0'
                 elif self.token_str == "clear":
                     print("clear")
@@ -3081,7 +3250,7 @@ class interpreter_dBase(interpreter_base):
                         self.getIdent()
                         if self.token_str == "screen":
                             print("screen")
-                            self.text_code += ('\t' * self.counter_indent)
+                            self.text_code += ('\t' * genv.counter_indent)
                             self.text_code += "#con.screen.clear_con_screen()\n";
                         elif self.token_str == "memory":
                             print("mem")
@@ -3092,7 +3261,7 @@ class interpreter_dBase(interpreter_base):
                         self.ungetChar(1)
                         continue
                 else:
-                    self.text_code += ('\t' * self.counter_indent)
+                    self.text_code += ('\t' * genv.counter_indent)
                     self.text_code += self.token_str
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == '=':
@@ -3104,10 +3273,10 @@ class interpreter_dBase(interpreter_base):
                             self.text_code += self.token_str + "\n"
                             continue
                         else:
-                            self.unexpectedError(self.err_unknownCS)
+                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
                             return '\0'
                     else:
-                        self.unexpectedError(self.err_unknownCS)
+                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
                         return '\0'
             elif c == '?':
                 self.print_countsign = 0
@@ -3119,23 +3288,23 @@ class interpreter_dBase(interpreter_base):
                             self.print_countsign = 1
                             continue
                         else:
-                            self.unexpectedError(self.err_unknownCS)
+                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
                             return '\0'
                     elif c == '\t' or c == ' ':
-                        self.line_col += 1
+                        genv.line_col += 1
                         continue
                     elif c == '\n':
-                        self.line_col  = 1
-                        self.line_row += 1
+                        genv.line_col  = 1
+                        genv.line_row += 1
                         continue
                     elif c == '\r':
                         c = self.getChar()
                         if not c == '\n':
-                            self.unexpectedError(self.err_unknownCS)
+                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
                             return '\0'
                         else:
-                            self.line_col  = 1
-                            self.line_row += 1
+                            genv.line_col  = 1
+                            genv.line_row += 1
                             continue
                     elif c == '[':
                         c = self.skip_white_spaces(self.dbase_parser)
@@ -3149,7 +3318,7 @@ class interpreter_dBase(interpreter_base):
                         self.handle_string()
                         print("STRING: ", self.token_str)
                     else:
-                        self.unexpectedError(self.err_unknownCS)
+                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
                         return '\0'
             else:
                 print("oooo>>> " + self.token_str)
@@ -3158,14 +3327,22 @@ class interpreter_dBase(interpreter_base):
     
     def parse(self):
         try:
-            self.token_str    = ""
+            genv.counter_scoped_commands = [0]
+            genv.counter_digits = 0
+            genv.counter_indent = 1
+            genv.counter_for    = 0
+            
+            genv.line_row  = 0
+            genv.line_col  = 1
+            
+            self.token_str = ""
                         
             if len(self.source) < 1:
-                self.unexpectedError(_("no data available."))
+                genv.unexpectedError(_("no data available."), genv.line_row)
                 return
             self.handle_scoped_commands()
         except:
-            dialog = systemExceptionDialog(application_window,traceback.format_exc())
+            showException(traceback.format_exc())
     
     def check_color_token(self, flag):
         self.token_str = ""
@@ -3173,17 +3350,17 @@ class interpreter_dBase(interpreter_base):
             c = self.skip_white_spaces(self.dbase_parser)
             print(f"char: {c}")
             if c == '\0':
-                self.unexpectedError(self.err_commandNF)
+                genv.unexpectedError(self.err_commandNF, genv.line_row)
                 return c
             elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
                 self.token_str = c.lower()
                 print("token:", self.token_str)
                 c = self.getChar()
                 if c == '\0':
-                    self.unexpectedError(self.err_commandNF)
+                    genv.unexpectedError(self.err_commandNF, genv.line_row)
                     return c
                 elif c == '\t' or c == ' ':
-                    self.line_col += 1
+                    genv.line_col += 1
                     break
                 if self.check_newline(c):
                     break
@@ -3192,7 +3369,7 @@ class interpreter_dBase(interpreter_base):
                     self.token_str += c
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == '\0':
-                        self.unexpectedError(self.err_unknownCS)
+                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
                         return c
                     else:
                         self.token_isok = True
@@ -3202,7 +3379,7 @@ class interpreter_dBase(interpreter_base):
                     self.token_isok = True
                     c = self.getChar()
                     if c == '\0':
-                        self.unexpectedError(self.err_unknownCS)
+                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
                         return c
                     elif c == '+':
                         self.token_isok = True
@@ -3218,7 +3395,7 @@ class interpreter_dBase(interpreter_base):
                     break
             else:
                 # todo: variable !!!
-                self.unexpectedError("todo: variable")
+                genv.unexpectedError("todo: variable", genv.line_row)
                 return c
         
         found = False
@@ -3235,7 +3412,7 @@ class interpreter_dBase(interpreter_base):
             if found:
                 break
         if not found:
-            self.unexpectedError(_("color setting not found."))
+            genv.unexpectedError(_("color setting not found."), genv.line_row)
             return
         else:
             if flag == 1:
@@ -3268,7 +3445,7 @@ class interpreter_Pascal(interpreter_base):
         self.found = False
         try:
             if len(self.source) < 1:
-                self.unexpectedError(_("no data available."))
+                genv.unexpectedError(_("no data available."), genv.line_row)
                 return
             # header
             self.token_str = ""
@@ -3280,12 +3457,12 @@ class interpreter_Pascal(interpreter_base):
                 elif (c >= 'a' and c <= 'z'):
                     self.token_str = c
                 else:
-                    self.unexpectedChar(c)
+                    genv.unexpectedChar(c, genv.line_row)
                     return '\0'
                 self.found = False
                 self.token_str = self.getIdent()
                 if len(self.token_str) > 64:
-                    self.unexpectedError(_("symbol name too long"))
+                    genv.unexpectedError(_("symbol name too long"), genv.line_row)
                     return '\0'
                 if self.token_str == "program":
                     self.found = True
@@ -3304,7 +3481,7 @@ class interpreter_Pascal(interpreter_base):
                     break
             if len(self.token_str) > 0:
                 if not self.found:
-                    self.unexpectedError(_(f"token not found: {self.token_str}"))
+                    genv.unexpectedError(_(f"token not found: {self.token_str}"), genv.line_row)
                     return '\0'
             # body
             self.token_str = ""
@@ -3314,7 +3491,7 @@ class interpreter_Pascal(interpreter_base):
                 if c == '\0':
                     if self.pos >= len(self.source):
                         break
-                    self.unexpectedError(self.err_commandNF)
+                    genv.unexpectedError(self.err_commandNF, genv.line_row)
                     return '\0'
                 elif (c >= 'A' and c <= 'Z'):
                     self.token_str = c.lower()
@@ -3327,7 +3504,7 @@ class interpreter_Pascal(interpreter_base):
                     self.getIdent()
                 
                 if len(self.token_str) > 64:
-                    self.unexpectedError(_("symbol name too long"))
+                    genv.unexpectedError(_("symbol name too long"), genv.line_row)
                     return '\0'
                 
                 if self.token_str == "begin":
@@ -3341,9 +3518,7 @@ class interpreter_Pascal(interpreter_base):
                         print("token: ", self.token_str)
                         break
         except:
-            dialog = systemExceptionDialog(
-            application_window,
-            traceback.format_exc())
+            showException(traceback.format_exc())
 
 class pascalDSL():
     def __init__(self, script_name):
@@ -3462,7 +3637,7 @@ class interpreter_DoxyGen(interpreter_base):
     # \since  1.0.0
     # -----------------------------------------------------------------------
     def getChar(self):
-        self.line_col += 1
+        genv.line_col += 1
         self.pos += 1
         
         if self.pos >= len(self.source):
@@ -3472,7 +3647,7 @@ class interpreter_DoxyGen(interpreter_base):
             return c
     
     def ungetChar(self, num):
-        self.line_col -= num;
+        genv.line_col -= num;
         self.pos -= num;
         c = self.source[self.pos]
         return c
@@ -3488,20 +3663,20 @@ class interpreter_DoxyGen(interpreter_base):
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    self.unexpectedToken("newline")
+                    genv.unexpectedToken("newline", genv.line_row)
                     return 0
-                self.line_col  = 1
-                self.line_row += 1
+                genv.line_col  = 1
+                genv.line_row += 1
                 break
             elif c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
+                genv.line_col  = 1
+                genv.line_row += 1
                 break
             elif c == '=':
                 self.ungetChar(1)
                 break
             else:
-                self.unexpectedChar(c)
+                genv.unexpectedChar(c, genv.line_row)
                 return 0
         return self.token_str
     
@@ -3524,18 +3699,18 @@ class interpreter_DoxyGen(interpreter_base):
             if c == '\0':
                 return '\0'
             elif c == "\t" or c == " ":
-                self.line_col += 1
+                genv.line_col += 1
                 continue
             elif c == "\r":
                 c = self.getChar()
                 if not c == "\n":
-                    self.unexpectedEndOfLine()
-                self.line_col  = 1
-                self.line_row += 1
+                    genv.unexpectedEndOfLine(genv.line_row)
+                genv.line_col  = 1
+                genv.line_row += 1
                 continue
             elif c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
+                genv.line_col  = 1
+                genv.line_row += 1
                 continue
             elif c == '#':
                 while True:
@@ -3543,14 +3718,14 @@ class interpreter_DoxyGen(interpreter_base):
                     if c == '\r':
                         c = self.getChar()
                         if not c == '\n':
-                            self.unexpectedToken("newline")
+                            genv.unexpectedToken("newline", genv.line_row)
                             return 0
-                        self.line_col  = 1
-                        self.line_row += 1
+                        genv.line_col  = 1
+                        genv.line_row += 1
                         break
                     elif c == "\n":
-                        self.line_col  = 1
-                        self.line_row += 1
+                        genv.line_col  = 1
+                        genv.line_row += 1
                         break
                 continue
             else:
@@ -3565,14 +3740,14 @@ class interpreter_DoxyGen(interpreter_base):
             if c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    self.unexpectedToken("newline")
+                    genv.unexpectedToken("newline", genv.line_row)
                     return 0
-                self.line_row += 1
-                self.line_col  = 1
+                genv.line_row += 1
+                genv.line_col  = 1
                 break
             if c == "\n":
-                self.line_row += 1
-                self.line_col  = 1
+                genv.line_row += 1
+                genv.line_col  = 1
                 break
     
     def parse(self):
@@ -3591,14 +3766,14 @@ class interpreter_DoxyGen(interpreter_base):
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    self.unexpectedToken("newline")
+                    genv.unexpectedToken("newline", genv.line_row)
                     return 0
-                self.line_row += 1
-                self.line_col  = 1
+                genv.line_row += 1
+                genv.line_col  = 1
                 continue
             elif c == '\n':
-                self.line_row += 1
-                self.line_col  = 1
+                genv.line_row += 1
+                genv.line_col  = 1
                 continue
             elif c == '\t' or c == ' ':
                 continue
@@ -3619,43 +3794,43 @@ class interpreter_DoxyGen(interpreter_base):
                     elif c == '\r':
                         c = self.getChar()
                         if not c == '\n':
-                            self.unexpectedToken("newline")
+                            genv.unexpectedToken("newline", genv.line_row)
                             return 0
                         else:
                             if self.close_str == False:
-                                self.unexpectedToken(_("string not terminated."))
+                                genv.unexpectedToken(_("string not terminated."), genv.line_row)
                                 return 0
-                            self.line_col  = 1
-                            self.line_row += 1
+                            genv.line_col  = 1
+                            genv.line_row += 1
                             break
                     elif c == '\n':
                         if self.close_str == False:
-                            self.unexpectedToken(_("string not terminated."))
+                            genv.unexpectedToken(_("string not terminated."), genv.line_row)
                             return 0
-                        self.line_col  = 1
-                        self.line_row += 1
+                        genv.line_col  = 1
+                        genv.line_row += 1
                         break
                     else:
                         self.token_str += c
                 if self.close_str:
                     continue
                 else:
-                    self.unexpectedToken(_("string not terminated."))
+                    genv.unexpectedToken(_("string not terminated."), genv.line_row)
                     return 0
             elif c == '\t' or c == ' ':
-                self.line_col += 1
+                genv.line_col += 1
                 continue
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    self.unexpectedToken("newline")
+                    genv.unexpectedToken("newline", genv.line_row)
                     return 0
-                self.line_col  = 1
-                self.line_row += 1
+                genv.line_col  = 1
+                genv.line_row += 1
                 break
             elif c == '\n':
-                self.line_col  = 1
-                self.line_row += 1
+                genv.line_col  = 1
+                genv.line_row += 1
                 break
             elif (c >= '0' and c <= '9'):
                 self.token_str += c
@@ -3675,19 +3850,19 @@ class interpreter_DoxyGen(interpreter_base):
                     elif c == '\r':
                         c = self,getChar()
                         if not c == '\n':
-                            self.unexpectedToken("newline")
+                            genv.unexpectedToken("newline", genv.line_row)
                             return 0
-                        self.line_col  = 1
-                        self.line_row += 1
+                        genv.line_col  = 1
+                        genv.line_row += 1
                         break
                     elif c == '\n':
-                        self.line_col  = 1
-                        self.line_row += 1
+                        genv.line_col  = 1
+                        genv.line_row += 1
                         break
                 if c == '\n':
                     break
             else:
-                self.unexpectedToken("qoute")
+                genv.unexpectedToken("qoute", genv.line_row)
                 return 0
     
     def check_token(self):
@@ -3715,15 +3890,15 @@ class interpreter_DoxyGen(interpreter_base):
                     elif self.token_str.lower() == "no":
                         myobject.setChecked(False)
                     else:
-                        self.unexpectedToken("for checkbox")
+                        genv.unexpectedToken("for checkbox", genv.line_row)
                         return 0
                 if isinstance(myobject, QLineEdit):
                     myobject.setText(self.token_str)
                 return
             else:
-                self.unexpectedChar(c)
+                genv.unexpectedChar(c, genv.line_row)
         else:
-            raise EInvalidParserError(self.token_str, self.line_row)
+            raise EInvalidParserError(self.token_str, genv.line_row)
             return False
 
 class doxygenDSL:
@@ -3745,80 +3920,6 @@ class doxygenDSL:
         return
 
 # ------------------------------------------------------------------------
-# read a file into memory ...
-# ------------------------------------------------------------------------
-def read_gzfile_to_memory(file_path):
-    check_file = Path(file_path)
-    #print(check_file)
-    if not check_file.exists():
-        print("Error: gzfile directory exists, but file could not found.")
-        print("abort.")
-        sys.exit(1)
-    if not check_file.is_file():
-        print("Error: gzfile is not a file.")
-        print("abort.")
-        sys.exit(1)
-    if check_file.is_file():
-        with open(check_file, "rb") as file:
-            file_header = file.read(3)
-            if file_header == b'\x1f\x8b\x08':
-                print("packed")
-                file.seek(0)
-                file_data = file.read()
-                compressed_data = io.BytesIO(file_data)
-                with gzip.GzipFile(fileobj=compressed_data, mode="rb") as gzip_file:
-                    uncompressed_data = gzip_file.read()
-                file.close()
-                mo_file = io.BytesIO(uncompressed_data)
-                translations = gettext.GNUTranslations(mo_file)
-                translations.install()
-                _ = translations.gettext
-                return _
-            elif file_header == b'\xde\x12\x04':
-                print("not packed")
-                file.seek(0)
-                file_data = file.read()
-                mo_file = io.BytesIO(file_data)
-                translations = gettext.GNUTranslations(mo_file)
-                translations.install()
-                _ = translations.gettext
-                return _
-            else:
-                file.close()
-                print("Error: language mo file could not be load.")
-                print("abort.")
-                sys.exit(1)
-    return None
-
-# ------------------------------------------------------------------------
-# get the locale, based on the system locale settings ...
-# ------------------------------------------------------------------------
-def handle_language(lang):
-    try:
-        # todo: .ini over write
-        # os.path.join(genv.v__locale__,genv.v__locale__sys[0])
-        #
-        #file_path = os.path.join(genv.v__app__locales, genv.v__locale__enu)
-        #file_path = os.path.join(file_path, "LC_MESSAGES")
-        #file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
-        #
-        _ = read_gzfile_to_memory(genv.v__app__locales)
-        return _
-    except Exception as e:
-        exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-        tb = traceback.extract_tb(e.__traceback__)[-1]
-        
-        print(f"Exception occur during handle language:")
-        print(f"type : {exc_type.__name__}")
-        print(f"value: {exc_value}")
-        print(StringRepeat("-",40))
-        #
-        print(f"file : {tb.filename}")
-        print(f"llline : {tb.lineno}")
-        #
-        sys.exit(genv.EXIT_FAILURE)
-
-# ------------------------------------------------------------------------
 # check, if the gui application is initialized by an instance of app ...
 # ------------------------------------------------------------------------
 def isApplicationInit():
@@ -3832,16 +3933,6 @@ def isApplicationInit():
 # ------------------------------------------------------------------------
 # methode to show information about this application script ...
 # ------------------------------------------------------------------------
-def showInfo(text):
-    if not genv.v__app_object:
-        genv.v__app_object = QApplication(sys.argv)
-    
-    infoWindow = QMessageBox()
-    infoWindow.setIcon(QMessageBox.Information)
-    infoWindow.setWindowTitle("Information")
-    infoWindow.setText(text)
-    infoWindow.exec_()
-
 def showApplicationInformation(text):
     if isApplicationInit() == False:
         genv.v__app_object = QApplication(sys.argv)
@@ -3852,17 +3943,6 @@ def showApplicationInformation(text):
 # ------------------------------------------------------------------------
 # methode to show error about this application script ...
 # ------------------------------------------------------------------------
-def showError(text):
-    if not isApplicationInit():
-        genv.v__app_object = QApplication(sys.argv)
-    
-    infoWindow = QMessageBox()
-    infoWindow.setIcon(QMessageBox.Critical)
-    infoWindow.setWindowTitle(_("Error"))
-    infoWindow.setText(text)
-    infoWindow.show()
-    infoWindow.exec_()
-
 def showApplicationError(text):
     if isApplicationInit() == False:
         genv.v__app_object = QApplication(sys.argv)
@@ -4792,7 +4872,7 @@ class customScrollView_1(myCustomScrollArea):
                 parser = parserDoxyGen(doxyfile, self.parent)
         
         except Exception as e:
-            dialog = systemExceptionDialog(self,traceback.format_exc())
+            showException(traceback.format_exc())
             return
 
 class customScrollView_2(myCustomScrollArea):
@@ -10221,9 +10301,7 @@ class ApplicationProjectPage(QObject):
             self.ProjectVLayout.addWidget(self.ProjectWidget)
             tabs.setLayout(self.ProjectVLayout)
         except Exception as e:
-            dialog = systemExceptionDialog(
-            application_window,
-            traceback.format_exc())
+            showException(traceback.format_exc())
 
 # ---------------------------------------------------------------------------
 # \brief Constructs a editor page for open, and write source code text's.
@@ -10275,9 +10353,7 @@ class ApplicationEditorsPage(QObject):
             self.tabs_editor_vlayout.addWidget(self.tabs_editor_menu)
             self.tabs_editor_vlayout.addWidget(self.tabs_editor)
         except Exception as e:
-            dialog = systemExceptionDialog(
-            application_window,
-            traceback.format_exc())
+            showException(traceback.format_exc())
     
     def on_editor_menu_item_clicked(self, item):
         print("self: ", self.objectName())
@@ -10353,6 +10429,15 @@ class ApplicationEditorsPage(QObject):
                         prg.parse()
                     
                     print("\nend of data\n")
+                    
+                    # --------------------------------------
+                    # sanity checks ...
+                    # --------------------------------------
+                    if len(genv.counter_scoped_commands) == 1:
+                        genv.line_row -= 1
+                        genv.unexpectedError(_("empty for loop found."))
+                        return '\0'
+                        
                     prg.text_code += ('\t' * 1)
                     prg.text_code += "console.exec_()\n"
                     print(prg.text_code)
@@ -13270,36 +13355,6 @@ def EntryPoint(arg1=None):
     # -----------------------------------------------------
     genv.v__app_object = QApplication(sys.argv)
     
-    # ---------------------------------------------------------
-    # when config.ini does not exists, then create a small one:
-    # ---------------------------------------------------------
-    if not os.path.exists(genv.v__app__config_ini):
-        with open(genv.v__app__config_ini, "w", encoding="utf-8") as output_file:
-            content = (""
-            + "[common]\n"
-            + "language = en_us\n"
-            + "\n"
-            + "[dBaseProject]\n"
-            + "Form = "
-            + "Report = "
-            + "Program = "
-            + "Tables = "
-            + "Images = "
-            + "SQL = "
-            + "Other = ")
-            output_file.write(content)
-            output_file.close()
-            ini_lang = "en_us" # default is english; en_us
-    else:
-        try:
-            genv.v__app__config.read(genv.v__app__config_ini)
-            ini_lang = genv.v__app__config.get("common", "language")
-        except:
-            ini_lang = "en_us"
-            pass
-    
-    _ = handle_language(ini_lang)
-    
     license_window = licenseWindow()
     # -------------------------------
     # close tje splash screen ...
@@ -13479,7 +13534,7 @@ if __name__ == '__main__':
     # The Python 3+ or 3.12+ is required.
     major = sys.version_info[0]
     minor = sys.version_info[1]
-    if (major == 3 and minor < 12):
+    if (major < 3 and minor < 12):
         print("Python 3.12+ are required for the script")
         sys.exit(1)
     
