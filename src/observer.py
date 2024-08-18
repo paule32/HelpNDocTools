@@ -228,10 +228,10 @@ class globalEnv:
         # ------------------------------------------------------------------------
         # parser generator state flags ...
         # ------------------------------------------------------------------------
-        self.counter_scoped_commands = [0]
         self.counter_digits = 0
         self.counter_indent = 1
         self.counter_for    = 0
+        self.counter_brace  = 0
         
         # ------------------------------------------------------------------------
         # some state flags ...
@@ -342,11 +342,18 @@ class globalEnv:
         except unexpectedParserException as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             tb = traceback.extract_tb(exc_traceback)[-1]
-           
-            msg  = f"Exception occur at parsing:\n"
-            msg += f"type  : {exc_type.__name__}\n"
-            msg += f"value : {exc_value}\n"
-            msg += f"reason: {e.message}\n"
+            
+            padding = 10
+            
+            txt1 = _("Exception occur at parsing:\n")
+            txt2 = _("type"  ).ljust( padding )
+            txt3 = _("value" ).ljust( padding )
+            txt4 = _("reason").ljust( padding )
+            
+            msg  = f"{txt1}"
+            msg += f"{txt2}: {exc_type.__name__}\n"
+            msg += f"{txt3}: {exc_value}\n"
+            msg += f"{txt4}: {e.message}\n"
             msg += StringRepeat("-",40)
             msg += "\n"
             #
@@ -2407,7 +2414,6 @@ class interpreter_base():
         genv.counter_indent = 1
         genv.counter_parens = 0
         
-        genv.counter_scoped_commands = [0]
         genv.v__app__logging.info("start parse: " + self.script_name)
         
         self.err_commentNC = _("comment not closed.")
@@ -2503,20 +2509,13 @@ if __name__ == '__main__':
             genv.line_col += 1
             c = self.getChar()
             if c == '\0':
-                genv.unexpectedError(self.err_commandNF, genv.line_row)
+                genv.unexpectedError(self.err_commandNF)
                 return c
             if self.check_newline(c):
                 return self.token_str
-            elif (c >= '0' and c <= '9'):
-                self.token_str += c
-                continue
-            elif (c >= 'A' and c <= 'Z'):
-                self.token_str += c.lower()
-                continue
-            elif (c >= 'a' and c <= 'z'):
-                self.token_str += c
-                continue
-            elif c == '_':
+            if self.check_spaces(c):
+                return self.token_str
+            if c.isdigit() or c.isalpha() or c == '_':
                 self.token_str += c
                 continue
             else:
@@ -2525,66 +2524,85 @@ if __name__ == '__main__':
     
     def getNumber(self):
         have_point = False
+        self.counter_digit = 0
+        self.temp_code = ""
         while True:
             c = self.getChar()
             genv.line_col += 1
             self.check_null(c)
-            if not (c >= '0' and c <= '9'):
-                if len(self.token_str) > 0:
-                    self.ungetChar(1)
-                    return self.token_str
-                else:
-                    continue
+            if c.isdigit():
+                self.token_str += c
+                self.temp_code += c
+                continue
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                self.temp_code += self.token_str
+                return self.temp_code
             elif self.check_newline(c):
                 return self.token_str
             elif c == '.':
                 if have_point == True:
-                    genv.unexpectedChar(c, genv.line_row)
+                    genv.unexpectedChar(c)
                 else:
                     have_point = True
-                    self.token_str += c
+                    self.temp_code += c
                     continue
-            elif (c >= '0' and c <= '9'):
-                self.token_str += c
-                continue
             else:
                 self.ungetChar(1)
-                return self.token_str
+                return self.temp_code
     
     def check_null(self, c):
         if c == '\0':
             if self.pos >= len(self.source):
                 return '\0'
             else:
-                genv.unexpectedError(self.err_commandNF, genv.line_row)
+                genv.unexpectedError(self.err_commandNF)
                 return '\0'
     
+    def check_spaces(self, c):
+        result = False
+        if c == '\t' or c  == ' ':
+            result = True
+        return result
+    
     def check_newline(self, c):
+        result = False
         if c == '\n':
             genv.line_col  = 1
             genv.line_row += 1
-            return True
+            result = True
         elif c == '\r':
             c = self.getChar()
             if not c == '\n':
                 genv.unexpectedEndOfLine(genv.line_row)
-                return '\0'
+                return result
             genv.line_col  = 1
             genv.line_row += 1
-            return True
-        return False
+            result = True
+        return result
     
-    def check_alpha(self, c):
-        if (c >= 'A' and c <= 'Z'):
-            self.token_str = c.lower()
-            return True
-        elif (c >= 'a' and c <= 'z'):
-            self.token_str = c
-            return True
+    def check_digit(self, c):
+        result = False
+        if c.isdigit():
+            self.ungetChar(1)
+            self.getNumber()
+            result = True
         else:
-            genv.unexpectedChar(c, genv.line_row)
-            return '\0'
-        return False
+            self.unexpectedError(_("expect a digit"))
+            result = False
+        return result
+        
+    def check_alpha(self, c):
+        result = False
+        if c.isalpha():
+            self.token_str = c
+            self.getIdent()
+            result = True
+        else:
+            genv.unexpectedChar(c)
+            result = False
+        return result
     
     def handle_pascal_comment_1(self):
         while True:
@@ -2601,7 +2619,7 @@ if __name__ == '__main__':
                     continue
                 continue
         if not c == ')':
-            genv.unexpectedError(_("comment not closed"), genv.line_row)
+            genv.unexpectedError(_("comment not closed"))
             return False
         return False
     
@@ -2621,11 +2639,11 @@ if __name__ == '__main__':
                 if self.check_alpha(c):
                     self.getIdent()
                 else:
-                    genv.unexpectedError(_("unknown macro symbol"), genv.line_row)
+                    genv.unexpectedError(_("unknown macro symbol"))
                     return '\0'
                 
                 if len(self.token_str) > 64:
-                    genv.unexpectedError(_("macro name too long"), genv.line_row)
+                    genv.unexpectedError(_("macro name too long"))
                     return '\0'
                 if self.token_str == "define":
                     print("define macro")
@@ -2642,7 +2660,7 @@ if __name__ == '__main__':
                 genv.line_col += 1
                 continue
         if not c == '}':
-            genv.unexpectedError(_("comment not closed"), genv.line_row)
+            genv.unexpectedError(_("comment not closed"))
             return
     
     # -----------------------------------------------------------------------
@@ -2663,14 +2681,14 @@ if __name__ == '__main__':
                 genv.line_col += 1
                 c = self.getChar()
                 if c == '\0':
-                    self.unexpectedToken(self.err_commentNC, genv.line_row)
+                    self.unexpectedToken(self.err_commentNC)
                     return c
                 if c == '*':
                     if parser_type == self.lisp_parser:
-                        genv.unexpectedError(_("unknown command sequence."), genv.line_row)
+                        genv.unexpectedError(_("unknown command sequence."))
                         return '\0'
                     elif parser_type == self.pascal_parser:
-                        genv.unexpectedError(_("unknown command sequence."), genv.line_row)
+                        genv.unexpectedError(_("unknown command sequence."))
                         return '\0'
                     genv.line_col += 1
                     self.in_comment += 1
@@ -2695,7 +2713,7 @@ if __name__ == '__main__':
                             genv.line_col += 1
                             continue
                     if self.in_comment > 0:
-                        self.unexpectedToken(self.err_commentNC, genv.line_row)
+                        self.unexpectedToken(self.err_commentNC)
                     else:
                         print("comment closed")
                     return self.skip_white_spaces(parser_type)
@@ -2708,24 +2726,25 @@ if __name__ == '__main__':
                     c = "/"
                     return c
             elif c == '(':
-                c = self.getChar()
                 if parser_type == self.pascal_parser:
                     if c == '*':
                         self.in_comment += 1
                         self.pascal_comment_open = True
                         self.handle_pascal_comment_1()
                     else:
-                        genv.unexpectedError("to implement: (*", genv.line_row)
+                        genv.unexpectedError("to implement: (*")
                         return '\0'
+                elif parser_type == self.dbase_parser:
+                    return c
                 else:
-                    genv.unexpectedError("to implement: ((", genv.line_row)
+                    genv.unexpectedError("to implement: ((")
                     return '\0'
             elif c == '{':
                 if parser_type == self.pascal_parser:
                     self.in_comment += 1
                     self.handle_pascal_comment_2()
                 else:
-                    genv.unexpectedChar('{', genv.line_row)
+                    genv.unexpectedChar('{')
                     return '\0'
             elif c == '&':
                 if parser_type == self.dbase_parser:
@@ -2737,10 +2756,10 @@ if __name__ == '__main__':
                         self.handle_oneline_comment()
                         continue
                     else:
-                        genv.unexpectedChar('&', genv.line_row)
+                        genv.unexpectedChar('&')
                         return '\0'
                 else:
-                    genv.unexpectedChar('&', genv.line_row)
+                    genv.unexpectedChar('&')
                     return '\0'
             elif c == '*':
                 if parser_type == self.dbase_parser:
@@ -2750,7 +2769,7 @@ if __name__ == '__main__':
                         self.handle_oneline_comment()
                         continue
                     else:
-                        genv.unexpectedChar('*', genv.line_row)
+                        genv.unexpectedChar('*')
                 return c
             else:
                 return c
@@ -2866,9 +2885,9 @@ class interpreter_dBase(interpreter_base):
                     
                     self.command_ok = True
                 else:
-                    genv.unexpectedChar(c, genv.line_row)
+                    genv.unexpectedChar(c)
             else:
-                genv.unexpectedChar(c, genv.line_row)
+                genv.unexpectedChar(c)
         elif self.token_str.lower() == "str":
             c = self.skip_white_spaces(self.dbase_parser)
             if c == '(':
@@ -2877,17 +2896,17 @@ class interpreter_dBase(interpreter_base):
                     print("strrr")
                     self.command_ok = True
                 else:
-                    genv.unexpectedChar(c, genv.line_row)
+                    genv.unexpectedChar(c)
             else:
-                genv.unexpectedChar(c, genv.line_row)
+                genv.unexpectedChar(c)
         else:
-            genv.unexpectedToken(self.token_str, genv.line_row)
+            genv.unexpectedToken(self.token_str)
     
     def handle_string(self):
         while True:
             c = self.getChar()
             if c == '\0':
-                genv.unexpectedError(self.err_commandNF, genv.line_row)
+                genv.unexpectedError(self.err_commandNF)
                 return c
             elif c == '"':
                 break
@@ -2914,12 +2933,10 @@ class interpreter_dBase(interpreter_base):
                 self.token_str += c
                 continue
         c = self.skip_white_spaces(self.dbase_parser)
-        if c == '\0':
-            return c
-        elif c == '+':
+        if c == '+':
             c = self.skip_white_spaces(self.dbase_parser)
             if c == '\0':
-                genv.unexpectedError(self.err_commandNF, genv.line_row)
+                genv.unexpectedError(self.err_commandNF)
                 return c
             elif c == '"':
                 self.handle_string()
@@ -2932,293 +2949,265 @@ class interpreter_dBase(interpreter_base):
                 #print("---> " + self.token_str)
                 return
             else:
-                genv.unexpectedChar(c, genv.line_row)
+                genv.unexpectedChar(c)
         else:
             self.ungetChar(1)
             return
     
+    def get_brace_code(self):
+        while True:
+            c = self.getChar()
+            if c == '\t' or c == ' ':
+                self.text_code += c
+                continue
+            elif c == '\n':
+                genv.line_row  += 1
+                genv.line_col   = 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    raise unexpectedParserException(_("error on code line"))
+                    return '\0'
+                else:
+                    genv.line_row += 1
+                    genv.line_col  = 1
+                    continue
+            elif c == '(':
+                genv.counter_brace += 1
+                self.text_code += c
+                continue
+            elif c == ')':
+                genv.counter_brace -= 1
+                self.text_code += c
+                if genv.counter_brace < 1:
+                    break
+                continue
+            elif c.isdigit():
+                self.text_code += c
+                continue
+            elif c.isalpha():
+                self.text_code += c
+                continue
+            elif c == '+':
+                self.text_code += c
+                continue
+            elif c == ',':
+                return True
+            else:
+                break
+        if genv.counter_brace > 0:
+            raise unexpectedParserException(_("missing closed parens"))
+            return '\0'
+        return False
+    
     def handle_say(self):
         self.command_ok = False
         c = self.skip_white_spaces(self.dbase_parser)
-        if c == '\0':
-            genv.unexpectedError(self.err_commandNF, genv.line_row)
-            return c
-        elif (c >= '0') and (c <= '9'):
-            self.token_str = c
-            self.getNumber()                        # row
-            self.ypos = self.token_str
+        if c == '(':
+            genv.counter_brace += 1
+            self.text_code += ('\t' * genv.counter_indent)
+            self.text_code += 'console.gotoxy( ('
             c = self.skip_white_spaces(self.dbase_parser)
-            if c == '\0':
-                genv.unexpectedError(self.err_commandNF, genv.line_row)
-                return c
-            elif c == ',':
+            if c.isdigit():
+                self.text_code += c
+            genv.counter_brace = 0
+            self.get_brace_code()
+            self.first_part = True
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c == ',':
                 c = self.skip_white_spaces(self.dbase_parser)
-                if c == '\0':
-                    genv.unexpectedError(self.err_commandNF, genv.line_row)
-                    return c
-                elif (c >= '0') and (c <= '9'):
+                if c.isalpha() or c == '_':
+                    self.text_code += ", "
                     self.token_str = c
-                    self.getNumber()                # col
-                    self.xpos = self.token_str
-                    c = self.skip_white_spaces(self.dbase_parser)
-                    if c == '\0':
-                        genv.unexpectedError(self.err_commandNF, genv.line_row)
-                        return c
-                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                        genv.line_col += 1
-                        self.token_str = c
-                        self.getIdent()
-                        if self.token_str.lower() == "say":
-                            self.prev = "say"
-                            c = self.skip_white_spaces(self.dbase_parser)
-                            if c == '\0':
-                                genv.unexpectedError(self.err_commandNF, genv.line_row)
-                                return c
-                            if c.isalpha():
-                                self.token_str = c
-                                self.getIdent()
-                                self.handle_commands()
-                            elif c == '"':
-                                self.token_str = ""
-                                self.handle_string()
-                                self.text_code += ('\t' * genv.counter_indent)
-                                self.text_code += f"console.gotoxy({self.ypos},{self.xpos})\n"
-                                self.text_code += ('\t' * genv.counter_indent)
-                                self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
-                        else:
-                            raise Exception("say expected.")
+                    self.getIdent()
+                    self.text_code += self.token_str
+                    self.text_code += ")\n"
+                    self.text_code += ('\t' * genv.counter_indent)
+                elif c.isdigit():
+                    self.text_code += ", "
+                    self.token_str = c
+                    self.getNumber()
+                    self.text_code += self.token_str
+                elif c == '(':
+                    self.text_code += ", ("
+                    genv.counter_brace += 1
+                    self.get_brace_code()
+                    self.text_code += ")\n"
+                    self.second_part = True
+                showInfo("teeeeee\n" + self.text_code)
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c.isalpha() or c == '_':
+                    self.token_str = c
+                    self.getIdent()
+                    if self.token_str.lower() == "say":
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c == '\"':
+                            self.token_str = ""
+                            self.handle_string()
+                            self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
                     else:
-                        raise Exception("say expected.")
+                        genv.unexpectedError(_("expected SAY"))
+        elif c.isalpha() or c == '_':
+            if not self.first_part:
+                self.text_code += ('\t' * genv.counter_indent)
+                self.first_part = True
+                self.token_str = c
+                self.getIdent()
+                self.text_code += self.token_str
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c == ',':
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    #if c == '
                 else:
-                    raise Exception("number expected.")
+                    genv.unexpectedError(self.err_commandNF)
+                    return '\0'
             else:
-                raise Exception("comma expected.")
+                c = self.skip_white_spaces(self.dbase_parser)
+                # todo
+        elif c.isdigit():
+            self.text_code += ('\t' * genv.counter_indent)
+            self.text_code += 'console.gotoxy('
+            self.token_str = c
+            self.getNumber()
+            self.text_code += self.token_str
+            self.first_part = True
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c == ',':
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c.isalpha() or c == '_':
+                    self.text_code += ", "
+                    self.token_str = c
+                    self.getIdent()
+                    self.text_code += self.token_str
+                elif c.isdigit():
+                    self.text_code += ", "
+                    self.token_str = c
+                    self.getNumber()
+                    self.text_code += self.token_str
+                    self.text_code += ")\n"
+                    self.text_code += ('\t' * genv.counter_indent)
+                elif c == '(':
+                    self.text_code += ", ("
+                    genv.counter_brace += 1
+                    self.get_brace_code()
+                    self.text_code += ")\n"
+                    self.second_part = True
+                #
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c.isalpha() or c == '_':
+                    self.token_str = c
+                    self.getIdent()
+                    if self.token_str.lower() == "say":
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c == '\"':
+                            self.token_str = ""
+                            self.handle_string()
+                            self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
+                    else:
+                        genv.unexpectedError(_("expected SAY"))
+            else:
+                genv.unexpectedError(_("comma expected"))
+                return '\0'
+        else:
+            genv.unexpectedError(_("say command not okay."))
+            return '\0'
     
     def handle_scoped_commands(self):
         while True:
             c = self.skip_white_spaces(self.dbase_parser)
-            if c == '\0' or self.parser_stop == True:
-                break
-            elif c == '@':
+            if c == '@':
                 genv.line_col += 1
+                #
+                self.first_part  = False
+                self.second_part = False
                 self.handle_say()
-            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                continue
+            elif c.isalpha():
                 self.token_str = c
                 self.getIdent()
                 if self.token_str.lower() == 'next':
-                    if genv.counter_for > 0:
-                        if genv.counter_scoped_commands[genv.counter_for-1] <= 0:
-                            genv.unexpectedError("for next without commands", genv.line_row)
-                            return '\0'
-                        else:
-                            genv.counter_scoped_commands[genv.counter_for-1] = 0
-                        genv.counter_for -= 1
-                        genv.counter_indent -= 1
-                        return
-                    else:
-                        genv.unexpectedError("not in a for loop", genv.line_row)
-                        return '\0'
+                    genv.counter_for    -= 1
+                    genv.counter_indent -= 1
+                    continue
                 elif self.token_str.lower() == "for":
                     genv.counter_for += 1
-                    if len(genv.counter_scoped_commands) < genv.counter_for:
-                        genv.counter_scoped_commands.append(1)
-                        genv.counter_scoped_commands[genv.counter_for-1]  = 1
-                    else:
-                        genv.counter_scoped_commands[genv.counter_for-1] += 1
                     #
                     self.token_str = ""
                     c = self.skip_white_spaces(self.dbase_parser)
-                    if c == '\0':
-                        genv.unexpectedError(self.err_commandNF, genv.line_row)
-                        return c
-                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                    if c.isalpha():
                         self.token_str = c
                         self.getIdent()
-                        #
                         self.token_ident = self.token_str
-                        self.text_code += ("\t" * genv.counter_indent) + self.token_ident + "_cnt"
+                        #
+                        self.text_code += ("\t" * genv.counter_indent)
+                        self.text_code += self.token_ident
+                        self.text_code += "_cnt"
                         c = self.skip_white_spaces(self.dbase_parser)
                         if c == '=':
                             self.text_code += " = range("
                             c = self.skip_white_spaces(self.dbase_parser)
-                            if (c >= '0' and c <= '9'):
+                            showInfo("----> " + c)
+                            
+                            self.ungetChar(1)
+                            self.getNumber()
+                            #
+                            self.text_code += self.temp_code
+                            self.text_code += ", "
+                            
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if (c == 't' or c <= 'T'):
                                 self.token_str = c
-                                self.getNumber()
-                                #
-                                self.text_code += self.token_str
-                                self.text_code += ", "
+                                self.getIdent()
+                                showInfo("token: " + self.token_str)
+                                if not self.token_str.lower() == "to":
+                                    genv.unexpectedError(_("TO expected"))
+                                    return '\0'
                                 c = self.skip_white_spaces(self.dbase_parser)
-                                if (c == 't' or c <= 'T'):
+                                if c.isalpha() or (c == '_'):
                                     self.token_str = c
                                     self.getIdent()
-                                    if self.token_str.lower() == "to":
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c == '(':
-                                            genv.counter_parens += 1
-                                            genv.counter_digits = 0
-                                            while True:
-                                                c = self.getChar()
-                                                if c == '\t' or c == ' ':
-                                                    genv.line_col += 1
-                                                    continue
-                                                elif c == '\n':
-                                                    genv.line_col  = 1
-                                                    genv.line_row += 1
-                                                elif c == '\r':
-                                                    c = self.getChar()
-                                                    if not c == '\n':
-                                                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
-                                                        return '\0'
-                                                    else:
-                                                        genv.line_col  = 1
-                                                        genv.line_row += 1
-                                                        continue
-                                                elif c == ')':
-                                                    genv.counter_parens -= 1
-                                                    if genv.counter_parens == 1:
-                                                        if self.counter_digits == 0:
-                                                            genv.unexpectedError("empty list not allowed", genv.line_row)
-                                                            return '\0'
-                                                        elif genv.counter_parens < 0:
-                                                            genv.unexpectedError("closed parens before open it", genv.line_row)
-                                                            return '\0'
-                                                        else:
-                                                            self.counter_digits = 0
-                                                            break
-                                                    else:
-                                                        continue
-                                                elif c == '(':
-                                                    if self.counter_digits > 0:
-                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
-                                                        return '\0'
-                                                    else:
-                                                        genv.counter_parens += 1
-                                                        continue
-                                                elif (c >= '0' and c <= '9'):
-                                                    self.token_str = c
-                                                    self.getNumber()
-                                                    self.counter_digits = len(self.token_str)
-                                                    # todo
-                                                    continue
-                                                elif c == '-':
-                                                    c = self.skip_white_spaces(self.dbase_parser)
-                                                    if c == ')':
-                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
-                                                        return '\0'
-                                                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                                                        self.token_str = a
-                                                        self.getIdent()
-                                                        # todo
-                                                        continue
-                                                    elif (c >= '0' and c <= '9'):
-                                                        self.token_str = c
-                                                        self.getNumber()
-                                                        # todo
-                                                        continue
-                                                    continue
-                                                elif c == '+':
-                                                    c = self.skip_white_spaces(self.dbase_parser)
-                                                    if c == ')':
-                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
-                                                        return '\0'
-                                                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                                                        self.token_str = a
-                                                        self.getIdent()
-                                                        # todo
-                                                        continue
-                                                    elif (c >= '0' and c <= '9'):
-                                                        self.token_str = c
-                                                        self.getNumber()
-                                                        # todo
-                                                        continue
-                                                elif c == '*':
-                                                    c = self.skip_white_spaces(self.dbase_parser)
-                                                    if c == ')':
-                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
-                                                        return '\0'
-                                                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                                                        self.token_str = a
-                                                        self.getIdent()
-                                                        # todo
-                                                        continue
-                                                    elif (c >= '0' and c <= '9'):
-                                                        self.token_str = c
-                                                        self.getNumber()
-                                                        # todo
-                                                        continue
-                                                    continue
-                                                elif c == '/':
-                                                    c = self.skip_white_spaces(self.dbase_parser)
-                                                    if c == ')':
-                                                        genv.unexpectedError("calculus is wrong", genv.line_row)
-                                                        return '\0'
-                                                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
-                                                        self.token_str = a
-                                                        self.getIdent()
-                                                        # todo
-                                                        continue
-                                                    elif (c >= '0' and c <= '9'):
-                                                        self.token_str = c
-                                                        self.getNumber()
-                                                        # todo
-                                                        continue
-                                        elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or (c == '_'):
-                                            self.token_str = c
-                                            self.getIdent()
-                                            #
-                                            self.text_code += self.token_str
-                                            self.text_code += ")\n"
-                                            #
-                                            self.handle_scoped_commands()
-                                        elif (c >= '0' and c <= '9'):
-                                            self.token_str = c
-                                            self.getNumber()
-                                            #
-                                            self.text_code += self.token_str
-                                            self.text_code += ")\n" + ('\t' * genv.counter_indent)
-                                            self.text_code += "for "
-                                            self.text_code += self.token_ident
-                                            self.text_code += " in "
-                                            self.text_code += self.token_ident + "_cnt:\n"
-                                            #
-                                            self.handle_scoped_commands()
-                                            continue
-                                        else:
-                                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
-                                            return '\0'
-                                    else:
-                                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
-                                        return '\0'
+                                    #
+                                    self.text_code += self.token_str
+                                    self.text_code += ")\n"
+                                    #
+                                    self.handle_scoped_commands()
+                                    continue
+                                elif c.isdigit():
+                                    self.token_str = c
+                                    self.getNumber()
+                                    #
+                                    self.text_code += self.token_str
+                                    self.text_code += ")\n" + ('\t' * genv.counter_indent)
+                                    self.text_code += "for "
+                                    self.text_code += self.token_ident
+                                    self.text_code += " in "
+                                    self.text_code += self.token_ident + "_cnt:\n"
+                                    #
+                                    genv.counter_indent += 1
+                                    self.handle_scoped_commands()
+                                    continue
                                 else:
-                                    genv.unexpectedError(self.err_unknownCS, genv.line_row)
+                                    genv.unexpectedError(self.err_unknownCS)
                                     return '\0'
-                            else:
-                                genv.unexpectedError(self.err_unknownCS, genv.line_row)
-                                return '\0'
                         else:
-                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
+                            genv.unexpectedError(_("assign sign expected"))
                             return '\0'
                     else:
-                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
+                        genv.unexpectedError(self.err_unknownCS)
                         return '\0'
                 if self.token_str.lower() == "set":
                     
                     self.token_str = ""
                     c = self.skip_white_spaces(self.dbase_parser)
-                    if c == '\0':
-                        genv.unexpectedError(self.err_commandNF, genv.line_row)
-                        return c
-                    elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                    if c.isalpha():
                         self.token_str = c
                         self.getIdent()
                         if self.token_str.lower() == "color":
                             self.token_isok = False
                             self.token_str  = ""
                             c = self.skip_white_spaces(self.dbase_parser)
-                            if c == '\0':
-                                genv.unexpectedError(self.err_commandNF, genv.line_row)
-                                return c
-                            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                            if c.isalpha():
                                 self.token_str = c
                                 self.getIdent()
                                 if self.token_str.lower() == "to":
@@ -3234,10 +3223,10 @@ class interpreter_dBase(interpreter_base):
                                     f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
                                     continue
                                 else:
-                                    genv.unexpectedToken(self.token_str, genv.line_row)
+                                    genv.unexpectedToken(self.token_str)
                                     return '\0'
                         else:
-                            genv.unexpectedToken(self.token_str, genv.line_row)
+                            genv.unexpectedToken(self.token_str)
                             return '\0'
                 elif self.token_str == "clear":
                     print("clear")
@@ -3267,16 +3256,17 @@ class interpreter_dBase(interpreter_base):
                     if c == '=':
                         self.text_code += " = "
                         c = self.skip_white_spaces(self.dbase_parser)
-                        if (c >= '0' and c <= '9'):
+                        if c.isdigit():
                             self.token_str = c
                             self.getNumber()
                             self.text_code += self.token_str + "\n"
+                            pos = 0
                             continue
                         else:
-                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
+                            genv.unexpectedError(self.err_unknownCS)
                             return '\0'
                     else:
-                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
+                        genv.unexpectedError(self.err_unknownCS)
                         return '\0'
             elif c == '?':
                 self.print_countsign = 0
@@ -3288,7 +3278,7 @@ class interpreter_dBase(interpreter_base):
                             self.print_countsign = 1
                             continue
                         else:
-                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
+                            genv.unexpectedError(self.err_unknownCS)
                             return '\0'
                     elif c == '\t' or c == ' ':
                         genv.line_col += 1
@@ -3300,7 +3290,7 @@ class interpreter_dBase(interpreter_base):
                     elif c == '\r':
                         c = self.getChar()
                         if not c == '\n':
-                            genv.unexpectedError(self.err_unknownCS, genv.line_row)
+                            genv.unexpectedError(self.err_unknownCS)
                             return '\0'
                         else:
                             genv.line_col  = 1
@@ -3318,7 +3308,7 @@ class interpreter_dBase(interpreter_base):
                         self.handle_string()
                         print("STRING: ", self.token_str)
                     else:
-                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
+                        genv.unexpectedError(self.err_unknownCS)
                         return '\0'
             else:
                 print("oooo>>> " + self.token_str)
@@ -3327,7 +3317,6 @@ class interpreter_dBase(interpreter_base):
     
     def parse(self):
         try:
-            genv.counter_scoped_commands = [0]
             genv.counter_digits = 0
             genv.counter_indent = 1
             genv.counter_for    = 0
@@ -3338,7 +3327,7 @@ class interpreter_dBase(interpreter_base):
             self.token_str = ""
                         
             if len(self.source) < 1:
-                genv.unexpectedError(_("no data available."), genv.line_row)
+                genv.unexpectedError(_("no data available."))
                 return
             self.handle_scoped_commands()
         except:
@@ -3348,16 +3337,12 @@ class interpreter_dBase(interpreter_base):
         self.token_str = ""
         while True:
             c = self.skip_white_spaces(self.dbase_parser)
-            print(f"char: {c}")
-            if c == '\0':
-                genv.unexpectedError(self.err_commandNF, genv.line_row)
-                return c
-            elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+            if c.isalpha():
                 self.token_str = c.lower()
                 print("token:", self.token_str)
                 c = self.getChar()
                 if c == '\0':
-                    genv.unexpectedError(self.err_commandNF, genv.line_row)
+                    genv.unexpectedError(self.err_commandNF)
                     return c
                 elif c == '\t' or c == ' ':
                     genv.line_col += 1
@@ -3368,20 +3353,13 @@ class interpreter_dBase(interpreter_base):
                     self.token_isok = True
                     self.token_str += c
                     c = self.skip_white_spaces(self.dbase_parser)
-                    if c == '\0':
-                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
-                        return c
-                    else:
-                        self.token_isok = True
-                        break
-                elif (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z'):
+                    self.token_isok = True
+                    break
+                elif c.isalpha():
                     self.token_str += c.lower()
                     self.token_isok = True
                     c = self.getChar()
-                    if c == '\0':
-                        genv.unexpectedError(self.err_unknownCS, genv.line_row)
-                        return c
-                    elif c == '+':
+                    if c == '+':
                         self.token_isok = True
                         break
                     else:
@@ -3395,7 +3373,7 @@ class interpreter_dBase(interpreter_base):
                     break
             else:
                 # todo: variable !!!
-                genv.unexpectedError("todo: variable", genv.line_row)
+                genv.unexpectedError("todo: variable")
                 return c
         
         found = False
@@ -3412,7 +3390,7 @@ class interpreter_dBase(interpreter_base):
             if found:
                 break
         if not found:
-            genv.unexpectedError(_("color setting not found."), genv.line_row)
+            genv.unexpectedError(_("color setting not found."))
             return
         else:
             if flag == 1:
@@ -3445,24 +3423,22 @@ class interpreter_Pascal(interpreter_base):
         self.found = False
         try:
             if len(self.source) < 1:
-                genv.unexpectedError(_("no data available."), genv.line_row)
+                genv.unexpectedError(_("no data available."))
                 return
             # header
             self.token_str = ""
             while True:
                 c = self.skip_white_spaces(self.pascal_parser)
                 self.check_null(c)
-                if (c >= 'A' and c <= 'Z'):
+                if c.isalpha():
                     self.token_str = c.lower()
-                elif (c >= 'a' and c <= 'z'):
-                    self.token_str = c
                 else:
-                    genv.unexpectedChar(c, genv.line_row)
+                    genv.unexpectedChar(c)
                     return '\0'
                 self.found = False
                 self.token_str = self.getIdent()
                 if len(self.token_str) > 64:
-                    genv.unexpectedError(_("symbol name too long"), genv.line_row)
+                    genv.unexpectedError(_("symbol name too long"))
                     return '\0'
                 if self.token_str == "program":
                     self.found = True
@@ -3481,7 +3457,7 @@ class interpreter_Pascal(interpreter_base):
                     break
             if len(self.token_str) > 0:
                 if not self.found:
-                    genv.unexpectedError(_(f"token not found: {self.token_str}"), genv.line_row)
+                    genv.unexpectedError(_(f"token not found: {self.token_str}"))
                     return '\0'
             # body
             self.token_str = ""
@@ -3491,20 +3467,14 @@ class interpreter_Pascal(interpreter_base):
                 if c == '\0':
                     if self.pos >= len(self.source):
                         break
-                    genv.unexpectedError(self.err_commandNF, genv.line_row)
+                    genv.unexpectedError(self.err_commandNF)
                     return '\0'
-                elif (c >= 'A' and c <= 'Z'):
+                elif c.isalpha() or c == '_':
                     self.token_str = c.lower()
-                    self.getIdent()
-                elif (c >= 'a' and c <= 'z'):
-                    self.token_str = c
-                    self.getIdent()
-                elif (c == '_'):
-                    self.token_str = c
                     self.getIdent()
                 
                 if len(self.token_str) > 64:
-                    genv.unexpectedError(_("symbol name too long"), genv.line_row)
+                    genv.unexpectedError(_("symbol name too long"))
                     return '\0'
                 
                 if self.token_str == "begin":
@@ -3655,7 +3625,7 @@ class interpreter_DoxyGen(interpreter_base):
     def getIdent(self):
         while True:
             c = self.getChar()
-            if (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or (c == '_') or (c >= '0' and c <= '9'):
+            if c.isalnum() or c == '_':    # 0-9 todo
                 self.token_str += c
                 continue
             elif c == '\t' or c == ' ':
@@ -3663,7 +3633,7 @@ class interpreter_DoxyGen(interpreter_base):
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    genv.unexpectedToken("newline", genv.line_row)
+                    genv.unexpectedToken("newline")
                     return 0
                 genv.line_col  = 1
                 genv.line_row += 1
@@ -3676,7 +3646,7 @@ class interpreter_DoxyGen(interpreter_base):
                 self.ungetChar(1)
                 break
             else:
-                genv.unexpectedChar(c, genv.line_row)
+                genv.unexpectedChar(c)
                 return 0
         return self.token_str
     
@@ -3718,7 +3688,7 @@ class interpreter_DoxyGen(interpreter_base):
                     if c == '\r':
                         c = self.getChar()
                         if not c == '\n':
-                            genv.unexpectedToken("newline", genv.line_row)
+                            genv.unexpectedToken("newline")
                             return 0
                         genv.line_col  = 1
                         genv.line_row += 1
@@ -3740,7 +3710,7 @@ class interpreter_DoxyGen(interpreter_base):
             if c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    genv.unexpectedToken("newline", genv.line_row)
+                    genv.unexpectedToken("newline")
                     return 0
                 genv.line_row += 1
                 genv.line_col  = 1
@@ -3757,7 +3727,7 @@ class interpreter_DoxyGen(interpreter_base):
         
         while True:
             c = self.getChar()
-            if (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or c == '_':
+            if c.isalpha() or c == '_':
                 self.token_str = c
                 self.getIdent()
                 print("token: ", self.token_str)
@@ -3766,7 +3736,7 @@ class interpreter_DoxyGen(interpreter_base):
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    genv.unexpectedToken("newline", genv.line_row)
+                    genv.unexpectedToken("newline")
                     return 0
                 genv.line_row += 1
                 genv.line_col  = 1
@@ -3794,18 +3764,18 @@ class interpreter_DoxyGen(interpreter_base):
                     elif c == '\r':
                         c = self.getChar()
                         if not c == '\n':
-                            genv.unexpectedToken("newline", genv.line_row)
+                            genv.unexpectedToken("newline")
                             return 0
                         else:
                             if self.close_str == False:
-                                genv.unexpectedToken(_("string not terminated."), genv.line_row)
+                                genv.unexpectedToken(_("string not terminated."))
                                 return 0
                             genv.line_col  = 1
                             genv.line_row += 1
                             break
                     elif c == '\n':
                         if self.close_str == False:
-                            genv.unexpectedToken(_("string not terminated."), genv.line_row)
+                            genv.unexpectedToken(_("string not terminated."))
                             return 0
                         genv.line_col  = 1
                         genv.line_row += 1
@@ -3815,7 +3785,7 @@ class interpreter_DoxyGen(interpreter_base):
                 if self.close_str:
                     continue
                 else:
-                    genv.unexpectedToken(_("string not terminated."), genv.line_row)
+                    genv.unexpectedToken(_("string not terminated."))
                     return 0
             elif c == '\t' or c == ' ':
                 genv.line_col += 1
@@ -3823,7 +3793,7 @@ class interpreter_DoxyGen(interpreter_base):
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
-                    genv.unexpectedToken("newline", genv.line_row)
+                    genv.unexpectedToken("newline")
                     return 0
                 genv.line_col  = 1
                 genv.line_row += 1
@@ -3832,17 +3802,17 @@ class interpreter_DoxyGen(interpreter_base):
                 genv.line_col  = 1
                 genv.line_row += 1
                 break
-            elif (c >= '0' and c <= '9'):
+            elif c.isdigit():
                 self.token_str += c
                 continue
-            elif (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z'):
+            elif c.isalpha():
                 self.token_str += c
                 while True:
                     c = self.getChar()
-                    if (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z'):
+                    if c.isalpha():
                         self.token_str += c
                         continue
-                    elif (c >= '0' and c <= '9'):
+                    elif c.isdigit():
                         self.token_str += c
                         continue
                     elif c == '\t' or c == ' ':
@@ -3850,7 +3820,7 @@ class interpreter_DoxyGen(interpreter_base):
                     elif c == '\r':
                         c = self,getChar()
                         if not c == '\n':
-                            genv.unexpectedToken("newline", genv.line_row)
+                            genv.unexpectedToken("newline")
                             return 0
                         genv.line_col  = 1
                         genv.line_row += 1
@@ -3862,7 +3832,7 @@ class interpreter_DoxyGen(interpreter_base):
                 if c == '\n':
                     break
             else:
-                genv.unexpectedToken("qoute", genv.line_row)
+                genv.unexpectedToken("qoute")
                 return 0
     
     def check_token(self):
@@ -3890,15 +3860,15 @@ class interpreter_DoxyGen(interpreter_base):
                     elif self.token_str.lower() == "no":
                         myobject.setChecked(False)
                     else:
-                        genv.unexpectedToken("for checkbox", genv.line_row)
+                        genv.unexpectedToken("for checkbox")
                         return 0
                 if isinstance(myobject, QLineEdit):
                     myobject.setText(self.token_str)
                 return
             else:
-                genv.unexpectedChar(c, genv.line_row)
+                genv.unexpectedChar(c)
         else:
-            raise EInvalidParserError(self.token_str, genv.line_row)
+            raise EInvalidParserError(self.token_str)
             return False
 
 class doxygenDSL:
@@ -10429,14 +10399,6 @@ class ApplicationEditorsPage(QObject):
                         prg.parse()
                     
                     print("\nend of data\n")
-                    
-                    # --------------------------------------
-                    # sanity checks ...
-                    # --------------------------------------
-                    if len(genv.counter_scoped_commands) == 1:
-                        genv.line_row -= 1
-                        genv.unexpectedError(_("empty for loop found."))
-                        return '\0'
                         
                     prg.text_code += ('\t' * 1)
                     prg.text_code += "console.exec_()\n"
