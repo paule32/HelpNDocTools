@@ -2980,7 +2980,7 @@ class interpreter_dBase(interpreter_base):
             elif c == ')':
                 genv.counter_brace -= 1
                 self.text_code += c
-                if genv.counter_brace < 1:
+                if genv.counter_brace < 0:
                     break
                 continue
             elif c.isdigit():
@@ -2989,7 +2989,7 @@ class interpreter_dBase(interpreter_base):
             elif c.isalpha():
                 self.text_code += c
                 continue
-            elif c == '+':
+            elif c == '+' or c == '-':
                 self.text_code += c
                 continue
             elif c == ',':
@@ -3035,7 +3035,7 @@ class interpreter_dBase(interpreter_base):
                     self.get_brace_code()
                     self.text_code += ")\n"
                     self.second_part = True
-                showInfo("teeeeee\n" + self.text_code)
+                    self.text_code += ('\t' * genv.counter_indent)
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c.isalpha() or c == '_':
                     self.token_str = c
@@ -3080,6 +3080,7 @@ class interpreter_dBase(interpreter_base):
                     self.token_str = c
                     self.getIdent()
                     self.text_code += self.token_str
+                    self.text_code += ('\t' * genv.counter_indent)
                 elif c.isdigit():
                     self.text_code += ", "
                     self.token_str = c
@@ -3092,6 +3093,7 @@ class interpreter_dBase(interpreter_base):
                     genv.counter_brace += 1
                     self.get_brace_code()
                     self.text_code += ")\n"
+                    self.text_code += ('\t' * genv.counter_indent)
                     self.second_part = True
                 #
                 c = self.skip_white_spaces(self.dbase_parser)
