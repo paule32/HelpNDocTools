@@ -233,6 +233,9 @@ class globalEnv:
         self.counter_for    = 0
         self.counter_brace  = 0
         
+        self.parser_op = ['-','+','*','/']
+        self.parser_token = False
+        
         # ------------------------------------------------------------------------
         # some state flags ...
         # ------------------------------------------------------------------------
@@ -2954,100 +2957,172 @@ class interpreter_dBase(interpreter_base):
             self.ungetChar(1)
             return
     
-    def get_brace_code(self):
+    def get_brace_code(self, flag = 0):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c == '(':
+            genv.counter_brace += 1
+            self.text_code += c
+            return self.get_brace_code()
+        elif c == ')':
+            genv.counter_brace -= 1
+            self.text_code += c
+            if genv.counter_brace <= 1:
+                genv.counter_brace -= 1
+                self.text_code += ")"
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c == ')':
+                    if self.second_part:
+                        self.text_code += ")\n"
+                        self.text_code += ('\t' * genv.counter_indent)
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c in genv.parser_op:
+                        self.text_code += c
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c.isdigit():
+                            self.token_str = c
+                            self.getNumber()
+                            self.text_code += self.token_str
+                            return
+                        elif c.isalpha():
+                            self.token_str = c
+                            self.getIdent()
+                            self.text_code += self.token_str
+                            return
+                    else:
+                        self.ungetChar(1)
+                        return
+        elif c.isdigit():
+            self.token_str = c
+            self.getNumber()
+            self.text_code += self.token_str
+            return self.get_brace_code()
+        elif c.isalpha():
+            self.token_str = c
+            self.getIdent()
+            self.text_code += self.token_str
+            return self.get_brace_code()
+        elif c in genv.parser_op:
+            self.text_code += c
+            return self.get_brace_code()
+        elif c == ',':
+            return c
+        else:
+            if genv.counter_brace > 0:
+                raise unexpectedParserException(_("missing closed parens"), genv.line_row)
+                return '\0'
+        return False
+    
+    def handle_numalpha(self):
         while True:
-            c = self.getChar()
-            if c == '\t' or c == ' ':
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c.isdigit():
+                self.token_str = c
+                self.getNumber()
+                self.text_code += self.token_str
+                continue
+            elif c.isalpha() or c == '_':
+                self.token_str = c
+                self.getIdent()
+                self.text_code += self.token_str
+                continue
+            elif c in genv.parser_op:
                 self.text_code += c
                 continue
-            elif c == '\n':
-                genv.line_row  += 1
-                genv.line_col   = 1
-                continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    raise unexpectedParserException(_("error on code line"))
-                    return '\0'
-                else:
-                    genv.line_row += 1
-                    genv.line_col  = 1
-                    continue
             elif c == '(':
                 genv.counter_brace += 1
                 self.text_code += c
                 continue
             elif c == ')':
                 genv.counter_brace -= 1
-                self.text_code += c
-                if genv.counter_brace < 0:
-                    break
-                continue
-            elif c.isdigit():
-                self.text_code += c
-                continue
-            elif c.isalpha():
-                self.text_code += c
-                continue
-            elif c == '+' or c == '-':
-                self.text_code += c
+                if self.second_part:
+                    return c
                 continue
             elif c == ',':
-                return True
-            else:
-                break
-        if genv.counter_brace > 0:
-            raise unexpectedParserException(_("missing closed parens"))
-            return '\0'
-        return False
+                return c
+        return '\0'
     
     def handle_say(self):
-        self.command_ok = False
+        self.command_ok  = False
+        self.second_part = False
         c = self.skip_white_spaces(self.dbase_parser)
         if c == '(':
             genv.counter_brace += 1
             self.text_code += ('\t' * genv.counter_indent)
             self.text_code += 'console.gotoxy( ('
-            c = self.skip_white_spaces(self.dbase_parser)
-            if c.isdigit():
-                self.text_code += c
-            genv.counter_brace = 0
-            self.get_brace_code()
-            self.first_part = True
-            c = self.skip_white_spaces(self.dbase_parser)
-            if c == ',':
+            while True:
                 c = self.skip_white_spaces(self.dbase_parser)
-                if c.isalpha() or c == '_':
-                    self.text_code += ", "
-                    self.token_str = c
-                    self.getIdent()
-                    self.text_code += self.token_str
-                    self.text_code += ")\n"
-                    self.text_code += ('\t' * genv.counter_indent)
-                elif c.isdigit():
-                    self.text_code += ", "
+                if c.isdigit():
                     self.token_str = c
                     self.getNumber()
                     self.text_code += self.token_str
+                    continue
+                elif c.isalpha() or c == '_':
+                    self.token_str = c
+                    self.getIdent()
+                    self.text_code += self.token_str
+                    continue
+                elif c in genv.parser_op:
+                    self.text_code += c
+                    continue
                 elif c == '(':
-                    self.text_code += ", ("
                     genv.counter_brace += 1
-                    self.get_brace_code()
-                    self.text_code += ")\n"
-                    self.second_part = True
-                    self.text_code += ('\t' * genv.counter_indent)
+                    self.text_code += c
+                    continue
+                elif c == ')':
+                    genv.counter_brace -= 1
+                    self.text_code += c
+                    continue
+                elif c == ',':
+                    self.text_code += c
+                    break
+            while True:
                 c = self.skip_white_spaces(self.dbase_parser)
-                if c.isalpha() or c == '_':
+                if c.isdigit():
+                    self.token_str = c
+                    self.getNumber()
+                    self.text_code += self.token_str
+                    continue
+                elif c.isalpha() or c == '_':
                     self.token_str = c
                     self.getIdent()
                     if self.token_str.lower() == "say":
-                        c = self.skip_white_spaces(self.dbase_parser)
-                        if c == '\"':
-                            self.token_str = ""
-                            self.handle_string()
-                            self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
+                        self.text_code += ")\n"
+                        self.text_code += ('\t' * genv.counter_indent)
                     else:
-                        genv.unexpectedError(_("expected SAY"))
+                        self.text_code += self.token_str
+                    continue
+                elif c in genv.parser_op:
+                    self.text_code += c
+                    continue
+                elif c == '(':
+                    genv.counter_brace += 1
+                    self.text_code += c
+                    continue
+                elif c == ')':
+                    genv.counter_brace -= 1
+                    self.text_code += c
+                    if genv.counter_brace < 1:
+                        self.text_code += c
+                        break
+                    else:
+                        continue
+            self.text_code += ")----\n"
+            self.text_code += ('\t' * genv.counter_indent)
+            self.text_code += "------>>>)\n"
+            
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c.isalpha() or c == '_':
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == "say":
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '\"':
+                        self.token_str = ""
+                        self.handle_string()
+                        self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
+                        return
+                else:
+                    genv.unexpectedError(_("expected SAY"))
         elif c.isalpha() or c == '_':
             if not self.first_part:
                 self.text_code += ('\t' * genv.counter_indent)
@@ -3149,7 +3224,6 @@ class interpreter_dBase(interpreter_base):
                         if c == '=':
                             self.text_code += " = range("
                             c = self.skip_white_spaces(self.dbase_parser)
-                            showInfo("----> " + c)
                             
                             self.ungetChar(1)
                             self.getNumber()
@@ -3161,7 +3235,6 @@ class interpreter_dBase(interpreter_base):
                             if (c == 't' or c <= 'T'):
                                 self.token_str = c
                                 self.getIdent()
-                                showInfo("token: " + self.token_str)
                                 if not self.token_str.lower() == "to":
                                     genv.unexpectedError(_("TO expected"))
                                     return '\0'
@@ -3199,7 +3272,6 @@ class interpreter_dBase(interpreter_base):
                         genv.unexpectedError(self.err_unknownCS)
                         return '\0'
                 if self.token_str.lower() == "set":
-                    
                     self.token_str = ""
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c.isalpha():
@@ -3262,8 +3334,18 @@ class interpreter_dBase(interpreter_base):
                             self.token_str = c
                             self.getNumber()
                             self.text_code += self.token_str + "\n"
-                            pos = 0
+                            #pos = 0
                             continue
+                        elif c.isalpha():
+                            self.token_str = c
+                            self.getIdent()
+                            self.text_code += self.token_str + "\n"
+                            continue
+                        elif c == '(':
+                            genv.counter_brace += 1
+                            self.text_code += '('
+                            self.get_brace_code()
+                            self.text_code += '\n'
                         else:
                             genv.unexpectedError(self.err_unknownCS)
                             return '\0'
