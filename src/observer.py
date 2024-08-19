@@ -3088,6 +3088,12 @@ class interpreter_dBase(interpreter_base):
                     if self.token_str.lower() == "say":
                         self.text_code += ")\n"
                         self.text_code += ('\t' * genv.counter_indent)
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c == '\"':
+                            self.token_str = ""
+                            self.handle_string()
+                            self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
+                            return
                     else:
                         self.text_code += self.token_str
                     continue
@@ -3106,9 +3112,8 @@ class interpreter_dBase(interpreter_base):
                         break
                     else:
                         continue
-            self.text_code += ")----\n"
+            self.text_code += "\n"
             self.text_code += ('\t' * genv.counter_indent)
-            self.text_code += "------>>>)\n"
             
             c = self.skip_white_spaces(self.dbase_parser)
             if c.isalpha() or c == '_':
@@ -3141,10 +3146,10 @@ class interpreter_dBase(interpreter_base):
                 c = self.skip_white_spaces(self.dbase_parser)
                 # todo
         elif c.isdigit():
-            self.text_code += ('\t' * genv.counter_indent)
-            self.text_code += 'console.gotoxy('
             self.token_str = c
             self.getNumber()
+            self.text_code += ('\t' * genv.counter_indent)
+            self.text_code += 'console.gotoxy('
             self.text_code += self.token_str
             self.first_part = True
             c = self.skip_white_spaces(self.dbase_parser)
@@ -3155,6 +3160,7 @@ class interpreter_dBase(interpreter_base):
                     self.token_str = c
                     self.getIdent()
                     self.text_code += self.token_str
+                    self.text_code += ")\n"  # todo 
                     self.text_code += ('\t' * genv.counter_indent)
                 elif c.isdigit():
                     self.text_code += ", "
@@ -3404,6 +3410,10 @@ class interpreter_dBase(interpreter_base):
             genv.counter_digits = 0
             genv.counter_indent = 1
             genv.counter_for    = 0
+            genv.counter_brace  = 0
+            
+            genv.first_part  = False
+            genv.second_part = False
             
             genv.line_row  = 0
             genv.line_col  = 1
