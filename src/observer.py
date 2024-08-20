@@ -2528,32 +2528,82 @@ if __name__ == '__main__':
     def getNumber(self):
         have_point = False
         self.counter_digit = 0
-        self.temp_code = ""
         while True:
             c = self.getChar()
-            genv.line_col += 1
-            self.check_null(c)
             if c.isdigit():
                 self.token_str += c
-                self.temp_code += c
                 continue
-            elif c.isalpha():
-                self.token_str = c
-                self.getIdent()
-                self.temp_code += self.token_str
-                return self.temp_code
-            elif self.check_newline(c):
-                return self.token_str
             elif c == '.':
                 if have_point == True:
                     genv.unexpectedChar(c)
                 else:
                     have_point = True
-                    self.temp_code += c
                     continue
             else:
                 self.ungetChar(1)
-                return self.temp_code
+                return self.token_str
+    
+    def expect_ident(self, token=""):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c.isalpha():
+            self.token_str = c
+            self.getIdent()
+            if len(token) > 0:
+                if self.token_str == token.lower():
+                    return True
+                else:
+                    self.ungetChar(len(token))
+                    return False
+            else:
+                return False
+        else:
+            genv.unexpectedError(_("ident expected"))
+            return False
+    
+    def expect_op(self):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c in genv.parser_op:
+            self.temp_code += c
+            return True
+        else:
+            self.ungetChar(1)
+            return False
+    
+    def expect_expr(self):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c.isdigit():
+            self.token_str = c
+            self.getNumber()
+            self.temp_code += self.token_str
+            if self.expect_op():
+                return self.expect_expr()
+            else:
+                return True
+        elif c.isalpha() or c == '_':
+            self.token_str = c
+            self.getIdent()
+            self.temp_code += self.token_str
+            if self.expect_op():
+                return self.expect_expr()
+            else:
+                return True
+        elif self.expect_op():
+            return self.expect_expr()
+        elif c == '(':
+            self.temp_code += '('
+            return self.expect_expr()
+        elif c == ')':
+            self.temp_code += ')'
+            return True
+        else:
+            return False
+    
+    def expect_assign(self):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if not c == '=':
+            genv.unexpectedError(_("assign sign expected."))
+            return '\0'
+        return True
     
     def check_null(self, c):
         if c == '\0':
@@ -2564,10 +2614,9 @@ if __name__ == '__main__':
                 return '\0'
     
     def check_spaces(self, c):
-        result = False
         if c == '\t' or c  == ' ':
             result = True
-        return result
+        return False
     
     def check_newline(self, c):
         result = False
@@ -2586,15 +2635,13 @@ if __name__ == '__main__':
         return result
     
     def check_digit(self, c):
-        result = False
         if c.isdigit():
             self.ungetChar(1)
             self.getNumber()
-            result = True
+            return = True
         else:
             self.unexpectedError(_("expect a digit"))
-            result = False
-        return result
+        return False
         
     def check_alpha(self, c):
         result = False
@@ -3044,38 +3091,9 @@ class interpreter_dBase(interpreter_base):
     def handle_say(self):
         self.command_ok  = False
         self.second_part = False
-        c = self.skip_white_spaces(self.dbase_parser)
-        if c == '(':
-            genv.counter_brace += 1
-            self.text_code += ('\t' * genv.counter_indent)
-            self.text_code += 'console.gotoxy( ('
-            while True:
-                c = self.skip_white_spaces(self.dbase_parser)
-                if c.isdigit():
-                    self.token_str = c
-                    self.getNumber()
-                    self.text_code += self.token_str
-                    continue
-                elif c.isalpha() or c == '_':
-                    self.token_str = c
-                    self.getIdent()
-                    self.text_code += self.token_str
-                    continue
-                elif c in genv.parser_op:
-                    self.text_code += c
-                    continue
-                elif c == '(':
-                    genv.counter_brace += 1
-                    self.text_code += c
-                    continue
-                elif c == ')':
-                    genv.counter_brace -= 1
-                    self.text_code += c
-                    continue
-                elif c == ',':
-                    self.text_code += c
-                    break
-            while True:
+        if self.expect_expr():
+            self.text_code += self.temp_code
+        while True:
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c.isdigit():
                     self.token_str = c
@@ -3197,168 +3215,70 @@ class interpreter_dBase(interpreter_base):
             return '\0'
     
     def handle_scoped_commands(self):
+        self.ident = ""
         while True:
-            c = self.skip_white_spaces(self.dbase_parser)
-            if c == '@':
-                genv.line_col += 1
-                #
-                self.first_part  = False
-                self.second_part = False
+            if self.expect_ident('@'):
                 self.handle_say()
                 continue
-            elif c.isalpha():
-                self.token_str = c
-                self.getIdent()
-                if self.token_str.lower() == 'next':
-                    genv.counter_for    -= 1
-                    genv.counter_indent -= 1
-                    continue
-                elif self.token_str.lower() == "for":
-                    genv.counter_for += 1
-                    #
-                    self.token_str = ""
-                    c = self.skip_white_spaces(self.dbase_parser)
-                    if c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
-                        self.token_ident = self.token_str
-                        #
-                        self.text_code += ("\t" * genv.counter_indent)
-                        self.text_code += self.token_ident
-                        self.text_code += "_cnt"
-                        c = self.skip_white_spaces(self.dbase_parser)
-                        if c == '=':
-                            self.text_code += " = range("
-                            c = self.skip_white_spaces(self.dbase_parser)
-                            
-                            self.ungetChar(1)
-                            self.getNumber()
-                            #
-                            self.text_code += self.temp_code
-                            self.text_code += ", "
-                            
-                            c = self.skip_white_spaces(self.dbase_parser)
-                            if (c == 't' or c <= 'T'):
-                                self.token_str = c
-                                self.getIdent()
-                                if not self.token_str.lower() == "to":
-                                    genv.unexpectedError(_("TO expected"))
-                                    return '\0'
-                                c = self.skip_white_spaces(self.dbase_parser)
-                                if c.isalpha() or (c == '_'):
-                                    self.token_str = c
-                                    self.getIdent()
-                                    #
-                                    self.text_code += self.token_str
-                                    self.text_code += ")\n"
-                                    #
-                                    self.handle_scoped_commands()
-                                    continue
-                                elif c.isdigit():
-                                    self.token_str = c
-                                    self.getNumber()
-                                    #
-                                    self.text_code += self.token_str
-                                    self.text_code += ")\n" + ('\t' * genv.counter_indent)
-                                    self.text_code += "for "
-                                    self.text_code += self.token_ident
-                                    self.text_code += " in "
-                                    self.text_code += self.token_ident + "_cnt:\n"
-                                    #
-                                    genv.counter_indent += 1
-                                    self.handle_scoped_commands()
-                                    continue
-                                else:
-                                    genv.unexpectedError(self.err_unknownCS)
-                                    return '\0'
-                        else:
-                            genv.unexpectedError(_("assign sign expected"))
-                            return '\0'
-                    else:
-                        genv.unexpectedError(self.err_unknownCS)
-                        return '\0'
-                if self.token_str.lower() == "set":
-                    self.token_str = ""
-                    c = self.skip_white_spaces(self.dbase_parser)
-                    if c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
-                        if self.token_str.lower() == "color":
-                            self.token_isok = False
-                            self.token_str  = ""
-                            c = self.skip_white_spaces(self.dbase_parser)
-                            if c.isalpha():
-                                self.token_str = c
-                                self.getIdent()
-                                if self.token_str.lower() == "to":
-                                    # ------------------------------------
-                                    # fg / bg color: 1 / 2
-                                    # ------------------------------------
-                                    c = self.check_color_token(1)
-                                    if c == '/':
-                                        c = self.check_color_token(2)
-                                    self.ungetChar(1)
-                                    self.text_code += ('\t' * genv.counter_indent)
-                                    self.text_code += (
-                                    f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
-                                    continue
-                                else:
-                                    genv.unexpectedToken(self.token_str)
-                                    return '\0'
-                        else:
-                            genv.unexpectedToken(self.token_str)
-                            return '\0'
-                elif self.token_str == "clear":
-                    print("clear")
-                    c = self.skip_white_spaces(self.dbase_parser)
-                    if c == None:
-                        print("no type")
-                        return
-                    if c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
-                        if self.token_str == "screen":
-                            print("screen")
-                            self.text_code += ('\t' * genv.counter_indent)
-                            self.text_code += "#con.screen.clear_con_screen()\n";
-                        elif self.token_str == "memory":
-                            print("mem")
-                        else:
-                            print("--> " + self.token_str)
-                            self.ungetChar(len(self.token_str))
-                    else:
+            elif self.expect_ident("for")
+                genv.counter_for += 1
+                if not self.expect_ident():
+                    genv.unexpectedError(_("expected ident."))
+                self.ident = self.token_str
+                self.temp_code = self.token_str
+                self.text_code += ("\t" * genv.counter_indent)
+                self.text_code += self.token_str
+                if not self.expect_assign():
+                    genv.unexpectedError(_("assign sign expected."))
+                self.text_code += self.token_str
+                self.text_code += "_cnt = range("
+                if not self.expect_expr():
+                    genv.unexpectedError(_("expr expected."))
+                self.text_code += self.temp_code
+                if not self.expect_ident("to"):
+                    genv.unexpectedError(_("expect TO"))
+                self.text_code += ", "
+                if not self.expect_expr():
+                    genv.unexpectedError(_("expr2 expected."))
+                self.text_code += self.temp_code
+                self.text_code += ")\n"
+                self.text_code += ('\t' * genv.counter_indent)
+                self.text_code += "for "
+                self.text_code += self.ident
+                self.text_code += " in "
+                self.text_code += self.ident + "_cnt:\n"
+                continue
+            elif self.expect_ident("next"):
+                genv.counter_for -= 1
+                continue
+            elif self.expect_ident("set"):
+                if self.expect_ident("color"):
+                    if self.expect_ident("to"):
+                        # ------------------------------------
+                        # fg / bg color: 1 / 2
+                        # ------------------------------------
+                        c = self.check_color_token(1)
+                        if c == '/':
+                            c = self.check_color_token(2)
                         self.ungetChar(1)
+                        self.text_code += ('\t' * genv.counter_indent)
+                        self.text_code += (
+                        f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
                         continue
-                else:
-                    self.text_code += ('\t' * genv.counter_indent)
-                    self.text_code += self.token_str
-                    c = self.skip_white_spaces(self.dbase_parser)
-                    if c == '=':
-                        self.text_code += " = "
-                        c = self.skip_white_spaces(self.dbase_parser)
-                        if c.isdigit():
-                            self.token_str = c
-                            self.getNumber()
-                            self.text_code += self.token_str + "\n"
-                            #pos = 0
-                            continue
-                        elif c.isalpha():
-                            self.token_str = c
-                            self.getIdent()
-                            self.text_code += self.token_str + "\n"
-                            continue
-                        elif c == '(':
-                            genv.counter_brace += 1
-                            self.text_code += '('
-                            self.get_brace_code()
-                            self.text_code += '\n'
-                        else:
-                            genv.unexpectedError(self.err_unknownCS)
-                            return '\0'
                     else:
-                        genv.unexpectedError(self.err_unknownCS)
+                        genv.unexpectedToken(self.token_str)
                         return '\0'
-            elif c == '?':
+                elif self.expect_ident("clear"):
+                    if self.expect_ident("screen"):
+                        self.text_code += ('\t' * genv.counter_indent)
+                        self.text_code += "#con.screen.clear_con_screen()\n";
+                    elif self.expect_ident("memory"):
+                            print("mem")
+                    else:
+                        print("--> " + self.token_str)
+                        self.ungetChar(len(self.token_str))
+                        continue
+            elif self.expect_ident('?'):
                 self.print_countsign = 0
                 self.string_bfound   = False
                 while True:
@@ -3401,8 +3321,14 @@ class interpreter_dBase(interpreter_base):
                         genv.unexpectedError(self.err_unknownCS)
                         return '\0'
             else:
-                print("oooo>>> " + self.token_str)
-                return
+                self.text_code += ('\t' * genv.counter_indent)
+                self.text_code += self.token_str
+                if self.expect_ident('='):
+                    if self.expect_expr():
+                        self.text_code += self.temp_code
+                    else:
+                        genv.unexpectedError(self.err_unknownCS)
+                        return '\0'
         return
     
     def parse(self):
