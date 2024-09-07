@@ -56,7 +56,12 @@ class unexpectedParserException(Exception):
         self.value    = str(value)
         self.message  = text
         super().__init__(value)
-    
+
+class noDataNoError(Exception):
+    def __init__(self, text):
+        self.message = text
+        super().__init__(0)
+        
 class IgnoreOuterException(Exception):
     pass
 # ---------------------------------------------------------------------------
@@ -2357,7 +2362,7 @@ class dbase_symbol:
 class dbase_loop:
     def __init__(self, src, start, end):
         self.what  = "loop"
-        seöf.owner = src
+        self.owner = src
         self.start = start
         self.end   = end
         self.add(src)
@@ -2606,15 +2611,15 @@ if __name__ == '__main__':
         return True
     
     def check_null(self, c):
+        if self.pos >= len(self.source):
+            return True
         if c == '\0':
-            if self.pos >= len(self.source):
-                return '\0'
-            else:
-                genv.unexpectedError(self.err_commandNF)
-                return '\0'
+            return True
+        return False
     
     def check_spaces(self, c):
         if c == '\t' or c  == ' ':
+            genv.line_col += 1
             result = True
         return False
     
@@ -2721,60 +2726,94 @@ if __name__ == '__main__':
         self.pascal_comment_open = False
         while True:
             c = self.getChar()
-            self.check_null(c)
-            if c == '\t' or c == ' ':
+            if c == '\0':
+                if self.pos >= len(self.source):
+                    showInfo('cxxxxxxCCC')
+                    raise noDataNoError(_("out of data"))
+                else:
+                    genv.unexpectedChar(c)
+                    return '\0'
+            elif c == '\n':
+                genv.line_col  = 1
+                genv.line_row += 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    genv.unexpectedEndOfLine(genv.line_row)
+                    return '\0'
+                genv.line_col  = 1
+                genv.line_row += 1
+                continue
+            elif (c == '\t') or (c == ' '):
                 genv.line_col += 1
                 continue
-            if self.check_newline(c):
-                continue
-            if c == '/':
-                genv.line_col += 1
+            elif c == '/':
                 c = self.getChar()
                 if c == '\0':
-                    self.unexpectedToken(self.err_commentNC)
-                    return c
-                if c == '*':
-                    if parser_type == self.lisp_parser:
-                        genv.unexpectedError(_("unknown command sequence."))
+                    if self.pos >= len(self.source):
+                        raise noDataNoError(_("out of data"))
+                    else:
+                        genv.unexpectedChar(c)
                         return '\0'
-                    elif parser_type == self.pascal_parser:
-                        genv.unexpectedError(_("unknown command sequence."))
+                elif c == '\n':
+                    genv.line_col  = 1
+                    genv.line_row += 1
+                    return '/'
+                elif c == '\r':
+                    c = self.getChar()
+                    if not c == '\n':
+                        genv.unexpectedEndOfLine(genv.line_row)
                         return '\0'
+                    genv.line_col  = 1
+                    genv.line_row += 1
+                    return '/'
+                elif (c == '\t') or (c == ' '):
                     genv.line_col += 1
-                    self.in_comment += 1
+                    return '/'
+                elif c == '*':
+                    #showInfo("open C comment: "  + str(genv.line_row))
                     while True:
                         c = self.getChar()
-                        genv.line_col += 1
-                        self.check_null(c)
-                        
-                        if c == '\t' or c == ' ':
+                        if c == '\0':
+                            genv.unexpectedError(_("unterminated comment."))
+                            return '\0'
+                        elif c == '\n':
+                            genv.line_col  = 1
+                            genv.line_row += 1
+                            continue
+                        elif c == '\r':
+                            c = self.getChar()
+                            if not c == '\n':
+                                genv.unexpectedEndOfLine(genv.line_row)
+                                return '\0'
+                            genv.line_col  = 1
+                            genv.line_row += 1
+                            continue
+                        elif (c == '\t') or (c == ' '):
                             genv.line_col += 1
                             continue
-                        if self.check_newline(c):
-                            continue
-                        if c == '*':
-                            genv.line_col += 1
+                        elif c == '*':
                             c = self.getChar()
                             if c == '/':
-                                genv.line_col += 1
+                                #showInfo("closed C Comment: "  + str(genv.line_row))
                                 self.in_comment -= 1
                                 break
+                            else:
+                                continue
                         else:
-                            genv.line_col += 1
                             continue
                     if self.in_comment > 0:
-                        self.unexpectedToken(self.err_commentNC)
+                        #showInfo("comment großer")
+                        self.unexpectedError(_("self.err_commentNC"))
+                        return '\0'
                     else:
-                        print("comment closed")
-                    return self.skip_white_spaces(parser_type)
+                        continue
                 elif c == '/':
+                    #showInfo("C++ comment: "  + str(genv.line_row))
                     self.handle_oneline_comment()
+                    #showInfo("closed C++ comment: " + str(genv.line_row))
                     continue
-                else:
-                    genv.line_col -= 1
-                    self.ungetChar(1)
-                    c = "/"
-                    return c
             elif c == '(':
                 if parser_type == self.pascal_parser:
                     if c == '*':
@@ -2791,6 +2830,7 @@ if __name__ == '__main__':
                     return '\0'
             elif c == '{':
                 if parser_type == self.pascal_parser:
+                    #showInfo('pascal comment ein')
                     self.in_comment += 1
                     self.handle_pascal_comment_2()
                 else:
@@ -2800,27 +2840,53 @@ if __name__ == '__main__':
                 if parser_type == self.dbase_parser:
                     genv.line_col += 1
                     c = self.getChar()
-                    self.check_null(c)
-                    if c == '&':
+                    if c == '\0':
+                        if self.pos >= len(self.source):
+                            raise noDataNoError(_("out of data"))
+                        else:
+                            genv.unexpectedChar(c)
+                            return '\0'
+                    elif c == '\n':
+                        genv.line_col  = 1
+                        genv.line_row += 1
+                        return '/'
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            genv.unexpectedEndOfLine(genv.line_row)
+                            return '\0'
+                        genv.line_col  = 1
+                        genv.line_row += 1
+                        return '&'
+                    elif (c == '\t') or (c == ' '):
                         genv.line_col += 1
+                        return '&'
+                    if self.check_null(c):
+                        genv.unexpectedError(_("&& comment line exceeds: "  + str(genv.line_row)))
+                        return '\0'
+                    if c == '&':
+                        #showInfo('DBASE comment ein: '  + str(genv.line_row))
                         self.handle_oneline_comment()
+                        #showInfo('DBASE comment aus: '  + str(genv.line_row))
                         continue
                     else:
+                        showInfo("&&&&&&&&&&&&&&&&&&&&&")
                         genv.unexpectedChar('&')
                         return '\0'
                 else:
-                    genv.unexpectedChar('&')
-                    return '\0'
+                    showInfo("&&&----&&")
+                    return '&'
             elif c == '*':
-                if parser_type == self.dbase_parser:
-                    genv.line_col += 1
-                    c = self.getChar()
-                    if c == '*':
-                        self.handle_oneline_comment()
-                        continue
-                    else:
-                        genv.unexpectedChar('*')
-                return c
+                #if parser_type == self.dbase_parser:
+                c = self.getChar()
+                if c == '*':
+                    #showInfo('dbase comment: ' + str(genv.line_row))
+                    self.handle_oneline_comment()
+                    #showInfo("dbase comment aisg: "  + str(genv.line_row))
+                    continue
+                else:
+                    self.ungetChar(1)
+                    return '*'
             else:
                 return c
     
@@ -2831,10 +2897,9 @@ if __name__ == '__main__':
         while True:
             genv.line_col += 1
             c = self.getChar()
-            if c == '\0':
-                return c
-            elif c == '\t' or c == ' ':
-                genv.line_col += 1
+            if self.check_null(c):
+                return '\0'
+            if self.check_spaces(c):
                 continue
             if self.check_newline(c):
                 break
@@ -3093,21 +3158,26 @@ class interpreter_dBase(interpreter_base):
         self.second_part = False
         if self.expect_expr():
             self.text_code += self.temp_code
-            if not self.expect_ident(','):
+            c = self.skip_white_spaces(self.dbase_parser)
+            if not c == ',':
                 genv.unexpectedError(_("comma expected"))
                 return '\0'
-            if not self.expect_ident("say"):
-                genv.unexpectedError(_("expected SAY"))
-                return '\0'
             c = self.skip_white_spaces(self.dbase_parser)
-            if c == '\"':
-                self.token_str = ""
-                self.handle_string()
-                self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
-                return
-            else:
-                genv.unexpectedError(_("qoute expected"))
-                return '\0'
+            if c.isalpha():
+                self.token_str = c;
+                self.getIdent()
+                if not self.token_str == "say":
+                    genv.unexpectedError(_("expected SAY"))
+                    return '\0'
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '\"':
+                        self.token_str = ""
+                        self.handle_string()
+                        self.text_code += f"console.print_line(\"" + self.token_str + "\")\n"
+                        return
+                    else:
+                        genv.unexpectedError(_("qoute expected"))
+                        return '\0'
         else:
             genv.unexpectedError(_("say command not okay."))
             return '\0'
@@ -3117,74 +3187,130 @@ class interpreter_dBase(interpreter_base):
         while True:
             c = self.skip_white_spaces(self.dbase_parser)
             if c == '\0':
-                genv.unexpectedError(_("noo data"))
+                noDataNoError(_("noo data"))
                 return '\0'
-            elif c == '@':
-                self.handle_say()
-                continue
             elif c.isalpha() or c == '_':
                 self.token_str = c
                 self.getIdent()
                 if self.token_str.lower() == "set":
-                    if self.expect_ident("color"):
-                        if self.expect_ident("to"):
-                            # ------------------------------------
-                            # fg / bg color: 1 / 2
-                            # ------------------------------------
-                            c = self.check_color_token(1)
-                            if c == 1000:
-                                self.text_code += ('\t' * genv.counter_indent)
-                                self.text_code += (
-                                f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
-                                showInfo("connnnn:  " + self.text_code)
-                                continue
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c.isalpha() or c == '_':
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str.lower() == "color":
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c.isalpha() or c == '_':
+                                self.token_str = c
+                                self.getIdent()
+                                if self.token_str.lower() == "to":
+                                    #showInfo("TTOOOOO")
+                                    # ------------------------------------
+                                    # fg / bg color: 1 / 2
+                                    # ------------------------------------
+                                    c = self.check_color_token(1)
+                                    if c == 1000:
+                                        self.text_code += ('\t' * genv.counter_indent)
+                                        self.text_code += (
+                                        f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
+                                        #showInfo("connnnn:  " + self.text_code)
+                                        continue
+                                    else:
+                                        #showInfo('121212-------')
+                                        break
+                                        #sys.exit(1)
+                                else:
+                                    genv.unexpectedError(_("TO expected"))
+                                    return '\0'
                             else:
-                                sys.exit(1)
+                                genv.unexpectedError(_("TO expected"))
+                                return '\0'
                         else:
-                            genv.unexpectedToken(self.token_str)
+                            genv.unexpectedToken(_("COLOR expected"))
                             return '\0'
-                    elif self.expect_ident("clear"):
-                        if self.expect_ident("screen"):
-                            self.text_code += ('\t' * genv.counter_indent)
-                            self.text_code += "#con.screen.clear_con_screen()\n";
-                        elif self.expect_ident("memory"):
-                                print("mem")
+                elif self.token_str.lower() == "clear":
+                    showInfo("cleeeeeeeee")
+                    continue
+                    #    if self.expect_ident("screen"):
+                    #        self.text_code += ('\t' * genv.counter_indent)
+                    #        self.text_code += "#con.screen.clear_con_screen()\n";
+                    #    elif self.expect_ident("memory"):
+                    #        print("mem")
+                    #else:
+                    #    showInfo("--> " + self.token_str)
+                    #    #self.ungetChar(len(self.token_str))
+                    #    continue
+                #elif self.token_str.lower() == "for":
+                #    genv.counter_for += 1
+                #    if not self.expect_ident():
+                #        genv.unexpectedError(_("expected ident."))
+                #    self.ident = self.token_str
+                #    self.temp_code = self.token_str
+                #    self.text_code += ("\t" * genv.counter_indent)
+                #    self.text_code += self.token_str
+                #    if not self.expect_assign():
+                #        genv.unexpectedError(_("assign sign expected."))
+                #    self.text_code += self.token_str
+                #    self.text_code += "_cnt = range("
+                #    if not self.expect_expr():
+                #        genv.unexpectedError(_("expr expected."))
+                #    self.text_code += self.temp_code
+                #    if not self.expect_ident("to"):
+                #        genv.unexpectedError(_("expect TO"))
+                #    self.text_code += ", "
+                #    if not self.expect_expr():
+                #        genv.unexpectedError(_("expr2 expected."))
+                #    self.text_code += self.temp_code
+                #    self.text_code += ")\n"
+                #    self.text_code += ('\t' * genv.counter_indent)
+                #    self.text_code += "for "
+                #    self.text_code += self.ident
+                #    self.text_code += " in "
+                #    self.text_code += self.ident + "_cnt:\n"
+                #    continue
+                #elif self.token_str.lower() == "next"
+                #    genv.counter_for -= 1
+                #    continue
+                else:
+                    showInfo("sssssss" + "\n" + self.token_str)
+                    str_closed = False
+                    self.token_str = ""
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '=':
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c == '"':
+                            while True:
+                                c = self.getChar()
+                                if c == '\0':
+                                    genv.unexpectedError(_("unterminated string"))
+                                elif c == '\n':
+                                    if str_closed == False:
+                                        genv.unexpectedError(_("unterminated string"))
+                                    else:
+                                        genv.line_row += 1
+                                        genv.line_col  = 1
+                                        break
+                                elif c == '\r':
+                                    if str_closed == False:
+                                        genv.unexüectedError(_("unterminated string"))
+                                    else:
+                                        c = self.getChar()
+                                        if not c == '\n':
+                                            genv.unexpectedError(_("end line error."))
+                                        genv.line_row += 1
+                                        genv.line_col  = 1
+                                        break
+                                elif c == '"':
+                                    str_closed = True
+                                    break
+                                else:
+                                    self.token_str += c
+                            showInfo(self.token_str)
                     else:
-                        showInfo("--> " + self.token_str)
-                        self.ungetChar(len(self.token_str))
-                        continue
-                elif self.token_str.lower() == "for":
-                    genv.counter_for += 1
-                    if not self.expect_ident():
-                        genv.unexpectedError(_("expected ident."))
-                    self.ident = self.token_str
-                    self.temp_code = self.token_str
-                    self.text_code += ("\t" * genv.counter_indent)
-                    self.text_code += self.token_str
-                    if not self.expect_assign():
-                        genv.unexpectedError(_("assign sign expected."))
-                    self.text_code += self.token_str
-                    self.text_code += "_cnt = range("
-                    if not self.expect_expr():
-                        genv.unexpectedError(_("expr expected."))
-                    self.text_code += self.temp_code
-                    if not self.expect_ident("to"):
-                        genv.unexpectedError(_("expect TO"))
-                    self.text_code += ", "
-                    if not self.expect_expr():
-                        genv.unexpectedError(_("expr2 expected."))
-                    self.text_code += self.temp_code
-                    self.text_code += ")\n"
-                    self.text_code += ('\t' * genv.counter_indent)
-                    self.text_code += "for "
-                    self.text_code += self.ident
-                    self.text_code += " in "
-                    self.text_code += self.ident + "_cnt:\n"
-                    continue
-                elif self.expect_ident("next"):
-                    genv.counter_for -= 1
-                    continue
-            elif self.expect_ident('?'):
+                        genv.unexpectedError(_("variable can not assign."))
+            elif c == '@':
+                self.handle_say()
+                continue
+            elif c == '?':
                 self.print_countsign = 0
                 self.string_bfound   = False
                 while True:
@@ -3226,15 +3352,15 @@ class interpreter_dBase(interpreter_base):
                     else:
                         genv.unexpectedError(self.err_unknownCS)
                         return '\0'
-            else:
-                self.text_code += ('\t' * genv.counter_indent)
-                self.text_code += self.token_str
-                if self.expect_ident('='):
-                    if self.expect_expr():
-                        self.text_code += self.temp_code
-                    else:
-                        genv.unexpectedError(self.err_unknownCS)
-                        return '\0'
+            #else:
+            #    self.text_code += ('\t' * genv.counter_indent)
+            #    self.text_code += self.token_str
+            #    if self.expect_ident('='):
+            #        if self.expect_expr():
+            #            self.text_code += self.temp_code
+            #        else:
+            #            genv.unexpectedError(self.err_unknownCS)
+            #            return '\0'
         return
     
     def parse(self):
@@ -3247,7 +3373,7 @@ class interpreter_dBase(interpreter_base):
             genv.first_part  = False
             genv.second_part = False
             
-            genv.line_row  = 0
+            genv.line_row  = 1
             genv.line_col  = 1
             
             self.token_str = ""
@@ -3256,6 +3382,8 @@ class interpreter_dBase(interpreter_base):
                 genv.unexpectedError(_("no data available."))
                 return
             self.handle_scoped_commands()
+        except noDataNoError:
+            pass
         except:
             showException(traceback.format_exc())
     
@@ -3341,7 +3469,7 @@ class interpreter_dBase(interpreter_base):
                                 self.fg_color = fg_color
                                 self.bg_color = bg_color
 
-                                showInfo("FG_color:  \n" + self.fg_color + "\n" + self.bg_color)
+                                #showInfo("FG_color:  \n" + self.fg_color + "\n" + self.bg_color)
                                 return 1000
                             else:
                                 self.ungetChar(1)
