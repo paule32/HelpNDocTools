@@ -119,7 +119,7 @@ echo Create Byte-Code...
 ::cd ..
 %PY%\python.exe -m compileall %BASEDIR%\observer.py
 if errorlevel 1 ( goto error_bytecode )
-pyinstaller --noconfirm --console  ^
+pyinstaller --noupx --noconfirm --console  ^
     --icon="%PRJ%/_internal/img/floppy-disk.ico"  ^
     --clean       ^
     --log-level="WARN"   ^

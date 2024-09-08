@@ -129,3 +129,5 @@ src/packed.zip
 src/test.html
 /src/bak
 doc/Commodore C64/BASIC/Programmers Desk Reference/eBook.lck
+*.gz
+*.gz
