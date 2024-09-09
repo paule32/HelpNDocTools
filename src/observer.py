@@ -2613,7 +2613,7 @@ if __name__ == '__main__':
         if c.isdigit():
             self.token_str = c
             self.getNumber()
-            showInfo("token: " + self.token_str)
+            #showInfo("token: " + self.token_str)
             genv.temp_code += self.token_str
             if self.expect_op():
                 return self.expect_expr()
@@ -2763,10 +2763,10 @@ if __name__ == '__main__':
             c = self.getChar()
             if c == '\0':
                 if self.pos >= len(self.source):
-                    showInfo('cxxxxxxCCC')
+                    #showInfo('cxxxxxxCCC')
                     raise noDataNoError(_("out of data"))
                 else:
-                    showInfo('cxxx  xxxCCC')
+                    #showInfo('cxxx  xxxCCC')
                     genv.unexpectedChar(c)
                     return '\0'
             elif c == '\n':
@@ -2912,7 +2912,7 @@ if __name__ == '__main__':
                         genv.unexpectedChar('&')
                         return '\0'
                 else:
-                    showInfo("&&&----&&")
+                    #showInfo("&&&----&&")
                     return '&'
             elif c == '-':
                 return c
@@ -2953,7 +2953,7 @@ if __name__ == '__main__':
         genv.text_code += ('\t' * genv.counter_indent)
         genv.text_code += "console.exec_()\n"
         
-        showInfo(genv.text_code)
+        #showInfo(genv.text_code)
         try:
             bytecode_text = compile(
                 genv.text_code,
@@ -3191,6 +3191,35 @@ class interpreter_dBase(interpreter_base):
                 return c
         return '\0'
     
+    def getToken(self, token):
+        result = False
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c.isalpha():
+            self.token_str = c;
+            self.getIdent()
+            if self.token_str.lower() == token:
+                result = True
+        return  result
+    
+    def tokenString(self):
+        self.token_str = ""
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c == '\"':
+            genv.temp_code  = ('\t' * genv.counter_indent)
+            genv.temp_code += 'console.print_line('
+            genv.text_code += genv.temp_code
+            genv.temp_code  = ""
+            genv.last_command = False
+            #
+            self.ungetChar(1)
+            self.handle_string()
+            genv.text_code += ')\n'
+            genv.last_command = True
+            return True
+        else:
+            genv.unexpectedError(_("qoute expected"))
+            return '\0'
+    
     def handle_say(self):
         self.command_ok  = False
         self.second_part = False
@@ -3215,32 +3244,24 @@ class interpreter_dBase(interpreter_base):
             if c.isdigit():
                 self.token_str = c;
                 self.getNumber()
+                #
                 genv.temp_code += ", " + self.token_str
                 genv.temp_code += ")\n"
                 genv.text_code += genv.temp_code
-                c = self.skip_white_spaces(self.dbase_parser)
-                if c.isalpha():
-                    self.token_str = c;
-                    self.getIdent()
-                    if self.token_str.lower() == "say":
-                        self.token_str = ""
-                        c = self.skip_white_spaces(self.dbase_parser)
-                        if c == '\"':
-                            genv.temp_code  = ('\t' * genv.counter_indent)
-                            genv.temp_code += 'console.print_line('
-                            genv.text_code += genv.temp_code
-                            genv.temp_code  = ""
-                            genv.last_command = False
-                            showInfo(genv.text_code)
-                            #
-                            self.ungetChar(1)
-                            self.handle_string()
-                            genv.text_code += ')\n'
-                            genv.last_command = True
-                            return
-                        else:
-                            genv.unexpectedError(_("qoute expected"))
-                            return '\0'
+                #
+                if self.getToken("say"):
+                    return self.tokenString()
+            elif c.isalpha() or c == '_':
+                self.token_str = c
+                self.getIdent()
+                #
+                genv.temp_code += ", " + self.token_str
+                genv.temp_code += ")\n"
+                genv.text_code += genv.temp_code
+                showInfo(genv.text_code)
+                #
+                if self.getToken("say"):
+                    return self.tokenString()
         else:
             genv.unexpectedError(_("say command not okay."))
             return '\0'
@@ -3280,7 +3301,7 @@ class interpreter_dBase(interpreter_base):
                                         #showInfo("connnnn:  " + genv.text_code)
                                         continue
                                     else:
-                                        #showInfo('121212-------')
+                                        showInfo('121212-------')
                                         break
                                         #sys.exit(1)
                                 else:
@@ -3293,6 +3314,7 @@ class interpreter_dBase(interpreter_base):
                             genv.unexpectedToken(_("COLOR expected"))
                             return '\0'
                 elif self.token_str.lower() == "for":
+                    showInfo("foooor")
                     genv.counter_for += 1
                     if not self.expect_ident():
                         genv.unexpectedError(_("expected ident."))
@@ -3327,6 +3349,7 @@ class interpreter_dBase(interpreter_base):
                     str_closed = False
                     genv.text_code += ('\t' * genv.counter_indent)
                     genv.text_code += self.token_str
+                    showInfo(genv.text_code)
                     #
                     self.token_str = ""
                     #
@@ -3346,6 +3369,7 @@ class interpreter_dBase(interpreter_base):
                             while True:
                                 c = self.skip_white_spaces(self.dbase_parser)
                                 if c == '\0':
+                                    showInfo(_("no more datas"))
                                     raise noDataNoError(_("no more data"))
                                 if c == '(':
                                     genv.open_paren += 1
@@ -3354,16 +3378,17 @@ class interpreter_dBase(interpreter_base):
                                 elif c == ')':
                                     genv.open_paren -= 1
                                     genv.text_paren += ')'
-                                    #showInfo("--->  " + genv.text_paren)
+                                    showInfo("pp--->  " + genv.text_paren)
                                     if genv.open_paren < 1:
-                                        showInfo("nono")
+                                        #showInfo("nono")
                                         c = self.skip_white_spaces(self.dbase_parser)
-                                        if not c in ['-','+','*','/']:
-                                            genv.text_code += genv.text_paren
-                                            showInfo(genv.text_code + '  ######')
+                                        if c in ['-','+','*','/']:
+                                            genv.text_paren += c
+                                            continue
+                                        else:
+                                            showInfo("breaker --->  " + genv.text_paren)
+                                            self.ungetChar(1)
                                             break
-                                        genv.text_paren += c
-                                        continue
                                 elif c in ['-','+','*','/']:
                                     genv.text_paren += c
                                     continue
@@ -3379,14 +3404,18 @@ class interpreter_dBase(interpreter_base):
                                     genv.text_paren += self.token_str
                                     next_token = False
                                     continue
+                                elif c == '@':
+                                    genv.text_code += genv.text_paren + '\n'
+                                    self.ungetChar(1)
+                                    break
                                 #else:
-                                #    genv.unexpectedError(_("expr invalid"))
-                            if next_token:
-                                continue
+                                #    showInfo('-==>  ' + c )
+                            continue
                     else:
                         genv.unexpectedError(_("variable can not assign."))
                         return '\0'
             elif c == '@':
+                showInfo('sayer')
                 self.handle_say()
                 continue
             elif c == '?':
@@ -3407,7 +3436,7 @@ class interpreter_dBase(interpreter_base):
                             genv.unexpectedError(_("] expected."))
                         else:
                             break
-                        showInfo("STRING: ", self.token_str)
+                        #showInfo("STRING: ", self.token_str)
                     else:
                         genv.unexpectedError(self.err_unknownCS)
                         return '\0'
@@ -3441,9 +3470,10 @@ class interpreter_dBase(interpreter_base):
             if not genv.last_command:
                 genv.text_code += ")\n"
                 genv.last_command = True
-            if len(genv.text_paren) > 0:
-                genv.text_code += genv.text_paren + "\n"
-                genv.text_paren = ""
+            #if len(genv.text_paren) > 0:
+            #genv.text_code += genv.text_paren + "\n"
+            genv.text_paren = ""
+            showInfo(genv.text_code)
             pass
         except:
             showException(traceback.format_exc())
@@ -3478,7 +3508,7 @@ class interpreter_dBase(interpreter_base):
                     if c.isalpha() or c == '_':
                         self.token_str = c
                         self.getIdent(1)
-                        showInfo('color: ' + self.token_str)
+                        #showInfo('color: ' + self.token_str)
                         if self.token_str in genv.concolors:
                             index    = genv.concolors.index(self.token_str)
                             bg_color = genv.convalues[index]
@@ -3496,7 +3526,7 @@ class interpreter_dBase(interpreter_base):
         self.fg_color = fg_color
         self.bg_color = bg_color
         
-        showInfo("-->FG_color:  \n" + self.fg_color + "\n" + self.bg_color)
+        #showInfo("-->FG_color:  \n" + self.fg_color + "\n" + self.bg_color)
         return 1000
 
 # ---------------------------------------------------------------------------
