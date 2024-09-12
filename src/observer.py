@@ -251,6 +251,8 @@ class globalEnv:
 
         self.tabs_editor_tabs_editor = None
         
+        self.ptNoMoreData = 2000
+        
         # ------------------------------------------------------------------------
         # console standard vga colors ...
         # ------------------------------------------------------------------------
@@ -2519,19 +2521,41 @@ if __name__ == '__main__':
     # \author paule32
     # \since  1.0.0
     # -----------------------------------------------------------------------
+    
+    # -----------------------------------------------------------------------
+    # \brief check the end of line, because windows and linux use differnt
+    #        kind of endings. If there a '\r', and don't followed by a \n,
+    #        then inform the user with a error message, if you under windows.
+    #        #13#10 - Windows
+    #        #10    - Linux
+    # -----------------------------------------------------------------------
     def getChar(self):
         genv.line_col += 1
         self.pos += 1
-
+        
         if self.pos >= len(self.source):
-            if self.in_comment > 0:
-                raise EParserErrorEOF(_("a unterminated comment reached EOF."))
-            else:
-                self.parser_stop = True
-                raise noDataNoError(_("out of datas"))
+            return genv.ptNoMoreData
         else:
             c = self.source[self.pos]
-            return c
+            if c == '\n':
+                genv.line_col  = 1
+                genv.line_row += 1
+                return '\n'
+            elif c == '\r':
+                if self.pos >= len(self.source):
+                    genv.unexpectedError(_("line ending error."))
+                self.pos += 1
+                c = self.source[self.pos]
+                if c == '\n':
+                    genv.line_col  = 1
+                    genv.line_row += 1
+                    return '\n'
+                else:
+                    genv.unexpectedEndOfLine(genv.line_row)
+            elif (c == '\t') or (c == ' '):
+                return self.getChar()
+            else:
+                return c
     
     def ungetChar(self, num):
         genv.line_col -= num;
@@ -2761,74 +2785,47 @@ if __name__ == '__main__':
         self.pascal_comment_open = False
         while True:
             c = self.getChar()
-            if c == '\0':
-                if self.pos >= len(self.source):
-                    #showInfo('cxxxxxxCCC')
-                    raise noDataNoError(_("out of data"))
-                else:
-                    #showInfo('cxxx  xxxCCC')
-                    genv.unexpectedChar(c)
-                    return '\0'
-            elif c == '\n':
-                genv.line_col  = 1
-                genv.line_row += 1
-                continue
-            elif c == '\r':
+            if c == genv.ptNoMoreData:
+                return c
+            elif c == '*':
                 c = self.getChar()
-                if not c == '\n':
-                    genv.unexpectedEndOfLine(genv.line_row)
-                    return '\0'
-                genv.line_col  = 1
-                genv.line_row += 1
-                continue
-            elif (c == '\t') or (c == ' '):
-                genv.line_col += 1
-                continue
-            elif c == '/':
-                c = self.getChar()
-                if c == '\0':
-                    if self.pos >= len(self.source):
-                        raise noDataNoError(_("out of data"))
-                    else:
-                        genv.unexpectedChar(c)
-                        return '\0'
-                elif c == '\n':
-                    genv.line_col  = 1
-                    genv.line_row += 1
-                    return '/'
-                elif c == '\r':
-                    c = self.getChar()
-                    if not c == '\n':
-                        genv.unexpectedEndOfLine(genv.line_row)
-                        return '\0'
-                    genv.line_col  = 1
-                    genv.line_row += 1
-                    return '/'
-                elif (c == '\t') or (c == ' '):
-                    genv.line_col += 1
-                    return '/'
+                if c == genv.ptNoMoreData:
+                    return c
                 elif c == '*':
-                    #showInfo("open C comment: "  + str(genv.line_row))
+                    #showInfo('dbase 11 comment ---> ' + str(genv.line_row))
                     while True:
                         c = self.getChar()
-                        if c == '\0':
-                            genv.unexpectedError(_("unterminated comment."))
-                            return '\0'
+                        if c == genv.ptNoMoreData:
+                            return c
                         elif c == '\n':
-                            genv.line_col  = 1
-                            genv.line_row += 1
-                            continue
-                        elif c == '\r':
-                            c = self.getChar()
-                            if not c == '\n':
-                                genv.unexpectedEndOfLine(genv.line_row)
-                                return '\0'
-                            genv.line_col  = 1
-                            genv.line_row += 1
-                            continue
-                        elif (c == '\t') or (c == ' '):
-                            genv.line_col += 1
-                            continue
+                            break
+                else:
+                    return c
+            elif c == '&':
+                c = self.getChar()
+                if c == genv.ptNoMoreData:
+                    return c
+                elif c == '&':
+                    #showInfo('dbase 2 comment ---> ' + str(genv.line_row))
+                    while True:
+                        c = self.getChar()
+                        if c == genv.ptNoMoreData:
+                            return c
+                        elif c == '\n':
+                            break
+                else:
+                    return c
+            elif c == '/':
+                c = self.getChar()
+                if c == genv.ptNoMoreData:
+                    return genv.ptNoMoreData
+                elif c == '*':
+                    #showInfo("open C comment: "  + str(genv.line_row))
+                    self.in_comment += 1
+                    while True:
+                        c = self.getChar()
+                        if c == genv.ptNoMoreData:
+                            genv.unexpectedError(_("unterminated comment."))
                         elif c == '*':
                             c = self.getChar()
                             if c == '/':
@@ -2841,94 +2838,24 @@ if __name__ == '__main__':
                             continue
                     if self.in_comment > 0:
                         #showInfo("comment großer")
-                        self.unexpectedError(_("self.err_commentNC"))
-                        return '\0'
-                    else:
-                        continue
+                        genv.unexpectedError(_("self.err_commentNC"))
                 elif c == '/':
                     #showInfo("C++ comment: "  + str(genv.line_row))
-                    self.handle_oneline_comment()
+                    while True:
+                        c = self.getChar()
+                        if c == genv.ptNoMoreData:
+                            genv.unexpectedError(_("unterminated comment."))
+                        elif c == '\n':
+                            break
+                        else:
+                            continue
                     #showInfo("closed C++ comment: " + str(genv.line_row))
                     continue
                 else:
                     self.ungetChar(1)
                     return '/'
-            elif c == '(':
-                if parser_type == self.pascal_parser:
-                    if c == '*':
-                        self.in_comment += 1
-                        self.pascal_comment_open = True
-                        self.handle_pascal_comment_1()
-                    else:
-                        genv.unexpectedError("to implement: (*")
-                        return '\0'
-                elif parser_type == self.dbase_parser:
-                    return c
-                else:
-                    genv.unexpectedError("to implement: ((")
-                    return '\0'
-            elif c == '{':
-                if parser_type == self.pascal_parser:
-                    #showInfo('pascal comment ein')
-                    self.in_comment += 1
-                    self.handle_pascal_comment_2()
-                else:
-                    genv.unexpectedChar('{')
-                    return '\0'
-            elif c == '&':
-                if parser_type == self.dbase_parser:
-                    genv.line_col += 1
-                    c = self.getChar()
-                    if c == '\0':
-                        if self.pos >= len(self.source):
-                            raise noDataNoError(_("out of data"))
-                        else:
-                            genv.unexpectedChar(c)
-                            return '\0'
-                    elif c == '\n':
-                        genv.line_col  = 1
-                        genv.line_row += 1
-                        return '/'
-                    elif c == '\r':
-                        c = self.getChar()
-                        if not c == '\n':
-                            genv.unexpectedEndOfLine(genv.line_row)
-                            return '\0'
-                        genv.line_col  = 1
-                        genv.line_row += 1
-                        return '&'
-                    elif (c == '\t') or (c == ' '):
-                        genv.line_col += 1
-                        return '&'
-                    if self.check_null(c):
-                        genv.unexpectedError(_("&& comment line exceeds: "  + str(genv.line_row)))
-                        return '\0'
-                    if c == '&':
-                        #showInfo('DBASE comment ein: '  + str(genv.line_row))
-                        self.handle_oneline_comment()
-                        #showInfo('DBASE comment aus: '  + str(genv.line_row))
-                        continue
-                    else:
-                        genv.unexpectedChar('&')
-                        return '\0'
-                else:
-                    #showInfo("&&&----&&")
-                    return '&'
-            elif c == '-':
-                return c
-            elif c == '+':
-                return c
-            elif c == '*':
-                #if parser_type == self.dbase_parser:
-                c = self.getChar()
-                if c == '*':
-                    #showInfo('dbase comment: ' + str(genv.line_row))
-                    self.handle_oneline_comment()
-                    #showInfo("dbase comment aisg: "  + str(genv.line_row))
-                    continue
-                else:
-                    self.ungetChar(1)
-                    return '*'
+            elif (c == '\n') or (c == '\t') or (c == ' '):
+                continue
             else:
                 return c
     
@@ -3061,34 +2988,24 @@ class interpreter_dBase(interpreter_base):
             genv.unexpectedToken(self.token_str)
     
     def handle_string(self, mode=0):
-        temp_code = ""
         c = self.skip_white_spaces(self.dbase_parser)
         if c == '"':
-            temp_code += '"'
-            #genv.text_code += '"'
+            self.temp_code += '"'
             while True:
                 c = self.getChar()
-                if c == '\0':
-                    genv.unexpectedError(self.err_commandNF)
-                elif c == ')':
-                    temp_code += ")"
-                    #genv.text_code += "))\n"
+                if c == genv.ptNoMoreData:
+                    return c
                 elif c == '"':
-                    temp_code += '"'
-                    #genv.text_code += '"'
-                    #if mode == 1:
-                    #    genv.text_code += '\n'
-                    #else:
+                    self.temp_code += '"'
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == '+':
-                        temp_code += " + "
-                        #genv.text_code += " + "
-                        temp_code += self.handle_string()
-                        showInfo(temp_code)
-                        return temp_code
-                    else:
+                        self.temp_code += " + "
+                        return self.handle_string()
+                    elif chr(c).isalpha() or c == '_':
                         self.ungetChar(1)
-                        return temp_code
+                        return self.temp_code
+                    else:
+                        return c
                 elif c == '\\':
                     c = self.getChar()
                     if c == "\n" or c == "\r":
@@ -3096,22 +3013,22 @@ class interpreter_dBase(interpreter_base):
                     elif c == " ":
                         genv.unexpectedEscapeSign(genv.line_row)
                     elif c == '\\':
-                        temp_code += "\\"
+                        self.temp_code += "\\"
                     elif c == 't':
-                        temp_code += "\t"
+                        self.temp_code += "\t"
                     elif c == 'n':
-                        temp_code += "\n"
+                        self.temp_code += "\n"
                     elif c == 'r':
-                        temp_code += "\r"
+                        self.temp_code += "\r"
                     elif c == 'a':
-                        temp_code += "\a"
+                        self.temp_code += "\a"
                     else:
-                        temp_code += c
+                        self.temp_code += c
                     continue
                 else:
-                    temp_code += c
+                    self.temp_code += c
                     continue
-            return temp_code
+            return self.temp_code
     
     def get_brace_code(self, flag = 0):
         c = self.skip_white_spaces(self.dbase_parser)
@@ -3197,16 +3114,6 @@ class interpreter_dBase(interpreter_base):
                 return c
         return '\0'
     
-    def getToken(self, token):
-        result = False
-        c = self.skip_white_spaces(self.dbase_parser)
-        if c.isalpha() or c == '_':
-            self.token_str = c;
-            self.getIdent()
-            if self.token_str.lower() == token:
-                result = True
-        return  result
-    
     def tokenString(self):
         self.token_str = ""
         c = self.skip_white_spaces(self.dbase_parser)
@@ -3238,6 +3145,7 @@ class interpreter_dBase(interpreter_base):
         #
         #self.xpos = ""
         #self.ypos = ""
+        #showInfo('say---> ' + str(genv.line_row))
         while True:
             c = self.skip_white_spaces(self.dbase_parser)
             if c.isdigit():
@@ -3246,13 +3154,13 @@ class interpreter_dBase(interpreter_base):
                 genv.temp_code += self.token_str
                 #
                 if self.prev_expr:
-                    showInfo("prfffffer")
+                    #showInfo("prfffffer")
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c.isalpha() or c == '_':
                         self.token_str = c
                         self.getIdent()
                         if self.token_str.lower() == "say":
-                            showInfo("saaayyyyer 1 1 000")
+                            #showInfo("saaayyyyer 1 1 000")
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == '"':
                                 showInfo('lalalallala')
@@ -3261,7 +3169,7 @@ class interpreter_dBase(interpreter_base):
                                 showInfo("nachricht:\n\n" + self.token_str)
                             break
                         elif self.token_str.lower() == "get":
-                            showInfo("getter")
+                            #showInfo("getter")
                             break
                     else:
                         genv.unexpectedError(_(" l l k k k "))
@@ -3277,12 +3185,12 @@ class interpreter_dBase(interpreter_base):
                 #
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c in['-','+','*','/']:
-                    showInfo("ppppllllll")
+                    #showInfo("ppppllllll")
                     self.temp_code += c
                     self.prev_sign = True
                     continue
                 elif c == ',':
-                    showInfo("koooooommmm  aaaa")
+                    #showInfo("koooooommmm  aaaa")
                     if self.prev_expr:
                         genv.unexpectedError(_("prev comma"))
                     self.prev_expr = True
@@ -3320,10 +3228,10 @@ class interpreter_dBase(interpreter_base):
                         self.token_str = c
                         self.getIdent()
                         if self.token_str.lower() == "say":
-                            showInfo("saaayyyyer 111")
+                            #showInfo("saaayyyyer 111")
                             break
                         elif self.token_str.lower() == "get":
-                            showInfo("getter")
+                            #showInfo("getter")
                             break
                     elif c.isdigit():
                         self.token_str = c
@@ -3356,9 +3264,11 @@ class interpreter_dBase(interpreter_base):
         self.ident = ""
         while True:
             c = self.skip_white_spaces(self.dbase_parser)
-            if c == '\0':
-                noDataNoError(_("noo data"))
-                return '\0'
+            #showInfo('----> ' + str(c))
+            if c == genv.ptNoMoreData:
+                return genv.ptNoMoreData
+            elif c == '\n':
+                continue
             elif c.isalpha() or c == '_':
                 self.token_str = c
                 self.getIdent()
@@ -3387,7 +3297,7 @@ class interpreter_dBase(interpreter_base):
                                         #showInfo("connnnn:  " + genv.text_code)
                                         continue
                                     else:
-                                        showInfo('121212-------')
+                                        #showInfo('121212-------')
                                         break
                                         #sys.exit(1)
                                 else:
@@ -3578,6 +3488,7 @@ class interpreter_dBase(interpreter_base):
                 return
             self.handle_scoped_commands()
         except noDataNoError:
+            #showInfo("nachricht:\n\n" + self.temp_code)
             if not genv.last_command:
                 genv.text_code += ")\n"
                 genv.last_command = True
