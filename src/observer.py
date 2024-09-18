@@ -229,6 +229,16 @@ class globalEnv:
         self.v__app__discc64__  = im_path + "disk2.png"
         self.v__app__datmc64__  = im_path + "mc2.png"
         self.v__app__logoc64__  = im_path + "logo2.png"
+
+        self.octal_digits      = ['\060','\061','\062','\063','\064','\065','\066','\067','\070','\071']
+        self.octal_alpha_upper = ['\101','\102','\103','\104','\105','\106','\107','\110','\111','\112',
+                                  '\113','\114','\115','\116','\117','\120','\121','\122','\123','\124',
+                                  '\125','\126','\127','\130','\131','\132' ]
+        self.octal_alpha_lower = ['\141','\142','\143','\144','\145','\146','\147','\150','\151','\152',
+                                  '\153','\154','\155','\156','\157','\160','\161','\162','\163','\164',
+                                  '\165','\166','\167','\170','\171','\172' ]
+        #
+        self.octal_alpha = [ self.octal_alpha_upper, self.octal_alpha_lower ]
         
         # ------------------------------------------------------------------------
         # parser generator state flags ...
@@ -1341,6 +1351,11 @@ def register_instance(name, instance):
 # Custom function to get instance name
 def get_instance_name(instance):
     return instance_names.get(id(instance), None)
+
+def octal_to_ascii(octal_string):
+    octal_values = octal_string.split()
+    ascii_string = ''.join([chr(int(octal, 8)) for octal in octal_values])
+    return ascii_string
 
 class RunTimeLibrary:
     # -----------------------------------------------------------------------
@@ -3133,23 +3148,38 @@ class interpreter_dBase(interpreter_base):
             if c.isdigit():
                 self.token_str = c
                 self.getNumber()
-                genv.temp_code += self.token_str
+                genv.text_code += ('\t' * genv.counter_indent)
+                genv.text_code += "console.gotoxy("
+                genv.text_code += self.token_str
                 #
-                if self.prev_expr:
+                showInfo("digit:\n" + genv.text_code)
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c == ',':
+                    genv.text_code += ","
                     c = self.skip_white_spaces(self.dbase_parser)
-                    if c.isalpha() or c == '_':
+                    if c.isdigit():
                         self.token_str = c
-                        self.getIdent()
-                        if self.token_str.lower() == "say":
-                            c = self.skip_white_spaces(self.dbase_parser)
-                            if c == '"':
-                                self.ungetChar(1)
-                                self.token_str = self.handle_string()
-                                showInfo("nachricht:\n\n" + str(self.token_str))
-                            break
-                        elif self.token_str.lower() == "get":
-                            #showInfo("getter")
-                            break
+                        self.getNumber()
+                        genv.text_code += self.token_str
+                        genv.text_code += ")\n"
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c.isalpha() or c == '_':
+                            self.token_str = c
+                            self.getIdent()
+                            if self.token_str.lower() == "say":
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == '"':
+                                    self.ungetChar(1)
+                                    self.token_str  = ('\t' * genv.counter_indent)
+                                    self.token_str += "console.print_line("
+                                    self.token_str += self.handle_string()
+                                    self.token_str += ")\n"
+                                    genv.text_code += self.token_str
+                                    showInfo("nachricht:\n\n" + genv.text_code)
+                                break
+                            elif self.token_str.lower() == "get":
+                                #showInfo("getter")
+                                break
                     else:
                         genv.unexpectedError(_(" l l k k k "))
                 #
@@ -3159,10 +3189,33 @@ class interpreter_dBase(interpreter_base):
                     self.prev_sign = True
                     continue
                 elif c == ',':
-                    if self.prev_expr:
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c.isdigit():
+                        self.token_str = c
+                        self.getNumber()
+                        genv.temp_code += "," + self.token_str + ")\n"
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c.isalpha():
+                            self.token_str = c
+                            self.getIdent()
+                            if self.token_str == "say":
+                                genv.text_code += ('\t' * genv.counter_indent)
+                                genv.text_code += "console.print("
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == '"':
+                                    self.ungetChar(1)
+                                    self.token_str  = self.handle_string()
+                                    genv.text_code += self.token_str
+                                    genv.text_code += "\n"
+                                    showInfo("nachricht 22:\n\n" + genv.text_code)
+                                    break
+                            if self.token_str == "get":
+                                showInfo("get not implemented")
+                                break
+                        else:
+                            genv.unexpectedError(_("say or get expected"))
+                    else:
                         genv.unexpectedError(_("prev comma"))
-                    self.prev_expr = True
-                    continue
                 else:
                     genv.unexpectedError(_("unexpected character found."))
             elif c.isalpha() or c == '_':
@@ -3313,13 +3366,15 @@ class interpreter_dBase(interpreter_base):
                     str_closed = False
                     genv.temp_code  = ('\t' * genv.counter_indent)
                     genv.temp_code += self.token_str
-                    #showInfo(genv.text_code)
                     #
                     self.token_str = ""
                     #
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == '=':
                         genv.temp_code += " = "
+                        genv.text_code += genv.temp_code
+                        genv.temp_code = ""
+                        showInfo(genv.text_code)
                         b = 0
                         while True:
                             c = self.skip_white_spaces(self.dbase_parser)
@@ -3391,26 +3446,72 @@ class interpreter_dBase(interpreter_base):
                                     break
                                 else:
                                     continue
-                            elif chr(c).isdigit():
-                                self.token_str = c
-                                self.getNumber()
-                                c = self.skip_white_spaces(self.dbase_parser)
-                                if c in['-','+','*','/']:
-                                    genv.text_code += '\n' + self.token_str + ' ' + c
-                                    continue
-                                else:
-                                    self.ungetChar(1)
-                                    continue
-                            elif c.isalpha():
-                                self.token_str = c
-                                self.getIdent()
-                                c = self.skip_white_spaces(self.dbase_parser)
-                                if c in['-','+','*','/']:
-                                    genv.text_code += '\n' + self.token_str + ' ' + c
-                                    continue
-                                else:
-                                    self.ungetChar(1)
-                                    continue
+                            else:
+                                try:
+                                    if c in genv.octal_digits:
+                                        #decnum = int(c, 8)
+                                        c = chr(c)
+                                        self.token_str = c
+                                        self.getNumber()
+                                        genv.text_code += self.token_str
+                                        showInfo("get number:  " + self.token_str)
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        showInfo("popl")
+                                        if c == genv.ptNoMoreData:
+                                            return c
+                                        elif c in['-','+','*','/']:
+                                            showInfo("moooppl")
+                                            genv.text_code += '\n' + self.token_str + ' ' + c
+                                            continue
+                                        else:
+                                            self.ungetChar(1)
+                                            continue
+                                except:
+                                    if c.isdigit():
+                                        self.token_str = c
+                                        self.getNumber()
+                                        genv.text_code += genv.temp_code + self.token_str
+                                        showInfo("get number B => " + genv.text_code)
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if c == genv.ptNoMoreData:
+                                            genv.text_code += "\n"
+                                            showInfo("---\n" + genv.text_code)
+                                            return c
+                                        elif c in['-','+','*','/']:
+                                            showInfo("moooppl")
+                                            genv.text_code += '\n' + self.token_str + ' ' + c
+                                            continue
+                                        else:
+                                            genv.text_code += ("\n" + ('\t' * genv.counter_indent))
+                                            showInfo("---\n" + genv.text_code)
+                                            self.ungetChar(1)
+                                            continue
+                                try:
+                                    if (c in genv.octal_alpha_lower) or (c in genv.octal_alpha_upper):
+                                        self.token_str = octal_to_ascii(c)
+                                        showInfo("indenter")
+                                        self.getIdent()
+                                        showInfo("ident:  " + self.token_str)
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if c in['-','+','*','/']:
+                                            genv.text_code += '\n' + self.token_str + ' ' + c
+                                            continue
+                                        else:
+                                            self.ungetChar(1)
+                                            continue
+                                except:
+                                    if c.isalpha():
+                                        self.token_str = c
+                                        showInfo("indenter222")
+                                        self.getIdent()
+                                        showInfo("BBident:  " + self.token_str)
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if c in['-','+','*','/']:
+                                            genv.text_code += '\n' + self.token_str + ' ' + c
+                                            continue
+                                        else:
+                                            self.ungetChar(1)
+                                            continue
                     elif c == '(':
                         # todo: callee
                         pass
@@ -3787,8 +3888,8 @@ class interpreter_DoxyGen(interpreter_base):
     def getNumber(self):
         while True:
             c = self.getChar()
-            if c.isdigit():
-                self.token_str += c
+            if c in genv.octal_digits:
+                self.token_str += octal_to_ascii(c)
             else:
                 self.ungetChar(1)
                 return self.token_str
