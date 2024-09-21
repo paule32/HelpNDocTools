@@ -41,7 +41,7 @@ def check_and_install_module(module_name):
         print(f"{module_name} installed successfully.")
 
 required_modules = [
-    "re", "polib", "requests", "timer", "threading", "glob", "atexit",
+    "re", "dbf", "polib", "requests", "timer", "threading", "glob", "atexit",
     "platform", "gzip", "base64", "shutil", "datetime", "pkgutil", "ast",
     "csv", "gettext", "locale", "io", "random", "string", "ctypes", "sqlite3",
     "configparser", "traceback", "marshal", "inspect", "logging", "PyQt5",
@@ -265,6 +265,25 @@ class globalEnv:
         self.editor.obj_3 = None
         
         self.editor_check = None
+
+        # ------------------------------------------------------------------------
+        # databse stuff ...
+        # ------------------------------------------------------------------------
+        self.f_edit = []  # field name
+        self.t_edit = []  # field type
+        self.l_edit = []  # field length
+        self.p_edit = []  # precesion
+        self.k_edit = []  # primary key
+        #
+        self.d_push = []  # delete button
+
+        self.v_layout_f_edit = None
+        self.v_layout_t_edit = None
+        self.v_layout_l_edit = None
+        self.v_layout_p_edit = None
+        self.v_layout_k_edit = None
+        #
+        self.v_layout_d_push = None
         
         # ------------------------------------------------------------------------
         # parser generator state flags ...
@@ -564,6 +583,7 @@ try:
     import inspect        # stack
     
     import logging
+    import dbf            # good old data base file
     
     # ------------------------------------------------------------------------
     # Unter Windows können wir versuchen zu prüfen, ob eine GUI-basierte
@@ -8395,7 +8415,7 @@ class CustomWidget0(QWidget):
     def show_context_menu(self):
         self.context_menu.exec_(self.mapToGlobal(self.arrow_button.pos()))
 
-class scrollBoxTabser(QWidget):
+class scrollBoxTableCreatorDBF(QWidget):
     def __init__(self):
         super().__init__()
         
@@ -8406,8 +8426,92 @@ class scrollBoxTabser(QWidget):
         
         scroll_content = QWidget()
         scroll_content.setLayout(QVBoxLayout())
+
+        if genv.v_layout_f_edit == None:
+            genv.v_layout_f_edit = QVBoxLayout()
+            genv.v_layout_t_edit = QVBoxLayout()
+            genv.v_layout_l_edit = QVBoxLayout()
+            genv.v_layout_p_edit = QVBoxLayout()
+            genv.v_layout_k_edit = QVBoxLayout()
+            genv.v_layout_d_push = QVBoxLayout()
         
-        scroll_content.layout().addWidget(QLabel("hallo"))
+        hlayout = QHBoxLayout()
+        vlayout = QVBoxLayout()
+        
+        le = QLineEdit(); l1 = QLabel(_("Name:"))
+        cb = QComboBox(); l2 = QLabel(_("Type:"))
+        fl = QLineEdit(); l3 = QLabel(_("Length:"))
+        pr = QLineEdit(); l4 = QLabel(_("Prec:"))
+        pk = QComboBox(); l5 = QLabel(_("Pry.Key:"))
+        #
+        db = QPushButton(_("DEL"))
+        db.setMinimumWidth(32)
+        db.setMinimumHeight(18)
+        
+        cb.addItem(_("C CHAR"))
+        cb.addItem(_("N NUMERIK"))
+        cb.addItem(_("F FLOAT"))
+        cb.addItem(_("D DATE"))
+        cb.addItem(_("L LOGICAL"))
+        cb.addItem(_("M MEMO"))
+        cb.addItem(_("B BINARY"))
+        cb.addItem(_("G GENERAL"))
+        cb.addItem(_("P PICTURE"))
+        cb.addItem(_("I INTEGER"))
+        cb.addItem(_("Y CURRENCY"))
+        
+        pk.addItem(_("TRUE"))
+        pk.addItem(_("FALSE"))
+        
+        genv.f_edit.append(le)
+        genv.t_edit.append(cb)
+        genv.l_edit.append(fl)
+        genv.p_edit.append(pr)
+        genv.k_edit.append(pk)
+        #
+        genv.d_push.append(db)
+        
+        if len(genv.f_edit) < 2:
+            genv.v_layout_f_edit.addWidget(l1)
+        if len(genv.t_edit) < 2:
+            genv.v_layout_t_edit.addWidget(l2)
+        if len(genv.l_edit) < 2:
+            genv.v_layout_l_edit.addWidget(l3)
+        if len(genv.p_edit) < 2:
+            genv.v_layout_p_edit.addWidget(l4)
+        if len(genv.k_edit) < 2:
+            genv.v_layout_k_edit.addWidget(l5)
+        
+        tmp = 1
+        for item in genv.f_edit:
+            genv.v_layout_f_edit.addWidget(item)
+        for item in genv.t_edit:
+            genv.v_layout_t_edit.addWidget(item)
+        for item in genv.l_edit:
+            genv.v_layout_l_edit.addWidget(item)
+        for item in genv.p_edit:
+            genv.v_layout_p_edit.addWidget(item)
+        for item in genv.k_edit:
+            genv.v_layout_k_edit.addWidget(item)
+        for item in genv.d_push:
+            if tmp >= 2:
+                genv.v_layout_d_push.addWidget(item)
+                tmp = 3
+            else:
+                spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+                genv.v_layout_d_push.addItem(spacer)
+                tmp = 2
+        
+        hlayout.addLayout(genv.v_layout_f_edit)
+        hlayout.addLayout(genv.v_layout_t_edit)
+        hlayout.addLayout(genv.v_layout_l_edit)
+        hlayout.addLayout(genv.v_layout_p_edit)
+        hlayout.addLayout(genv.v_layout_k_edit)
+        #
+        hlayout.addLayout(genv.v_layout_d_push)
+        vlayout.addLayout(hlayout)
+        
+        scroll_content.layout().addLayout(vlayout)
         scroll_area.setWidget(scroll_content)
         
         self.layout().addWidget(scroll_area)
@@ -9238,11 +9342,11 @@ class applicationProjectWidget(QWidget):
         self.lay_push.addWidget(self.clr_push)
         self.lay_push.addWidget(self.del_push)
         
-        scroll_box_tab1 = scrollBoxTabser()
+        scroll_box_tab1 = scrollBoxTableCreatorDBF()
         
         self.tab_widget = QTabWidget()
-        self.tab_widget.addTab(scroll_box_tab1, "Tab 1")
-        self.tab_widget.addTab(QWidget(), "Tab 2")
+        self.tab_widget.addTab(scroll_box_tab1, "dBase")
+        self.tab_widget.addTab(QWidget(), "SQLite 3")
         self.tab_widget.addTab(QWidget(), "Tab 3")
         
         right_layout = QVBoxLayout()
@@ -13754,6 +13858,7 @@ def EntryPoint(arg1=None):
     conn_cursor = conn.cursor()
     conn.close()
     
+    #öööö
     try:
         if genv.v__app_object == None:
             genv.v__app_object = QApplication(sys.argv)
