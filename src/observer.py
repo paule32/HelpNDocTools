@@ -229,7 +229,7 @@ class globalEnv:
         self.v__app__discc64__  = im_path + "disk2.png"
         self.v__app__datmc64__  = im_path + "mc2.png"
         self.v__app__logoc64__  = im_path + "logo2.png"
-
+        
         self.octal_digits      = ['\060','\061','\062','\063','\064','\065','\066','\067','\070','\071']
         self.octal_alpha_upper = ['\101','\102','\103','\104','\105','\106','\107','\110','\111','\112',
                                   '\113','\114','\115','\116','\117','\120','\121','\122','\123','\124',
@@ -239,6 +239,32 @@ class globalEnv:
                                   '\165','\166','\167','\170','\171','\172' ]
         #
         self.octal_alpha = [ self.octal_alpha_upper, self.octal_alpha_lower ]
+        self.ascii_charset = ['a','b','c','d','e','f','g','h','i','j','k','l','m',
+                              'n','o','p','q','r','s','t','u','v','w','x','y','z',
+                              '0','9','8','7','6','5','4','3','2','1',
+                              '-','+','*','/',
+                              '(',')',
+                              '[',']',
+                              '{','}','=' ]
+        # ------------------------------------------------------------------------
+        # some place holder variables to shorten and categorgraphic the code ...
+        # ------------------------------------------------------------------------
+        class editor_class:
+            def __init__(self):
+                self.rightBox = None
+                self.obj_1 = None
+                self.obj_2 = None
+                self.obj_3 = None
+                #
+                self.hlayout = None
+                self.vlayout = None
+        #
+        self.editor = editor_class()
+        self.editor.obj_1 = None
+        self.editor.obj_2 = None
+        self.editor.obj_3 = None
+        
+        self.editor_check = None
         
         # ------------------------------------------------------------------------
         # parser generator state flags ...
@@ -251,16 +277,16 @@ class globalEnv:
         self.parser_op = ['-','+','*','/']
         self.parser_token = False
         
-        self.text_code = ""
-        self.temp_code = ""
+        self.text_code  = ""
+        self.temp_code  = ""
+        self.code_code  = ""
+        self.class_code = ""
 
         self.open_paren = 0
         self.text_paren = ""
         
         self.last_command = True
 
-        self.tabs_editor_tabs_editor = None
-        
         self.ptNoMoreData = 2000
         
         # ------------------------------------------------------------------------
@@ -2447,7 +2473,7 @@ class interpreter_base():
         genv.open_paren = 0
         genv.text_paren = ""
         
-        genv.text_code  = """
+        genv.code_code = """
 import os
 import sys
 import time
@@ -2456,11 +2482,24 @@ import datetime
 import builtins
 print = builtins.print
 
-if __name__ == '__main__':
+"""
+        genv.temp_code = ""
+        genv.text_code = """
+import os
+import sys
+import time
+import datetime
+
+import builtins
+print = builtins.print
+
+"""
+        if genv.editor_check.isChecked():
+            genv.text_code += """if __name__ == '__main__':
 \tglobal console
 \tconsole = DOSConsole()
-\tconsole.clear()
 """
+
         self.token_id    = ""
         self.token_prev  = ""
         self.token_str   = ""
@@ -2568,7 +2607,7 @@ if __name__ == '__main__':
                 else:
                     genv.unexpectedEndOfLine(genv.line_row)
             elif (c == '\t') or (c == ' '):
-                return self.getChar()
+                return c
             else:
                 return c
     
@@ -2578,27 +2617,29 @@ if __name__ == '__main__':
         c = self.source[self.pos]
         return c
     
-    def getIdent(self, mode=0):
+    def getIdent(self):
         while True:
-            genv.line_col += 1
             c = self.getChar()
-            if c == '\0':
-                genv.unexpectedError(self.err_commandNF)
-                return c
-            if self.check_newline(c):
+            if c == genv.ptNoMoreData:
                 return self.token_str
-            if self.check_spaces(c):
+            elif c == '\t' or c == ' ':
                 return self.token_str
-            if c.isdigit() or c.isalpha() or c == '_':
+            elif c == '\n':
+                genv.line_row += 1
+                return self.token_str
+            elif c == '\r':
+                genv.line_row += 1
+                c = self.getChar()
+                if not c == '\n':
+                    genv.unexpectedError("line error")
+                else:
+                    return self.token
+            elif c.isdigit():
                 self.token_str += c
                 continue
-            # check if color w+
-            if c == '+':
-                if mode == 1:
-                    self.token_str += c
-                    return self.token_str
-                else:
-                    genv.unexpectedError(_("+ not excepted."))
+            elif c.isalpha() or c == '_':
+                self.token_str += c
+                continue
             else:
                 self.ungetChar(1)
                 return self.token_str
@@ -2686,7 +2727,7 @@ if __name__ == '__main__':
     
     def check_null(self, c):
         if self.pos >= len(self.source):
-            return True
+            return genv.ptNoMoreData
         if c == '\0':
             return True
         return False
@@ -2892,8 +2933,22 @@ if __name__ == '__main__':
         self.finalize()
         
         #genv.text_code += "\tcon.reset()\n"
+
+        if not genv.editor_check.isChecked():
+            genv.text_code += genv.class_code + """pass
+if __name__ == '__main__':
+\tglobal console
+\tconsole = DOSConsole()
+\tconsole.clear()
+"""
+        # reset old code
+        genv.class_code = ""
+        
+        #genv.counter_indent -= 1
         genv.text_code += ('\t' * genv.counter_indent)
         genv.text_code += "console.exec_()\n"
+        
+        showInfo("runner:\n" + genv.text_code)
         
         #showInfo(genv.text_code)
         try:
@@ -3152,7 +3207,7 @@ class interpreter_dBase(interpreter_base):
                 genv.text_code += "console.gotoxy("
                 genv.text_code += self.token_str
                 #
-                showInfo("digit:\n" + genv.text_code)
+                #showInfo("digit:\n" + genv.text_code)
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c == ',':
                     genv.text_code += ","
@@ -3175,11 +3230,11 @@ class interpreter_dBase(interpreter_base):
                                     self.token_str += self.handle_string()
                                     self.token_str += ")\n"
                                     genv.text_code += self.token_str
-                                    showInfo("nachricht:\n\n" + genv.text_code)
-                                break
+                                    #showInfo("nachricht:\n\n" + genv.text_code)
+                                return
                             elif self.token_str.lower() == "get":
                                 #showInfo("getter")
-                                break
+                                return
                     else:
                         genv.unexpectedError(_(" l l k k k "))
                 #
@@ -3207,7 +3262,7 @@ class interpreter_dBase(interpreter_base):
                                     self.token_str  = self.handle_string()
                                     genv.text_code += self.token_str
                                     genv.text_code += "\n"
-                                    showInfo("nachricht 22:\n\n" + genv.text_code)
+                                    #showInfo("nachricht 22:\n\n" + genv.text_code)
                                     break
                             if self.token_str == "get":
                                 showInfo("get not implemented")
@@ -3219,12 +3274,12 @@ class interpreter_dBase(interpreter_base):
                 else:
                     genv.unexpectedError(_("unexpected character found."))
             elif c.isalpha() or c == '_':
-                showInfo("a identerig")
+                #showInfo("a identerig")
                 self.token_str = c
                 self.getIdent()
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c in['-','+','*','/']:
-                    showInfo("alpaha")
+                    #showInfo("alpaha")
                     self.temp_code += c
                     self.prev_sign = True
                     continue
@@ -3272,7 +3327,7 @@ class interpreter_dBase(interpreter_base):
                 else:
                     continue
             elif c == ',':
-                showInfo("mupslochj")
+                #showInfo("mupslochj")
                 if self.prev_expr:
                     genv.unexpectedError(_("comma prevv 22"))
                 self.prev_sign = True
@@ -3281,30 +3336,81 @@ class interpreter_dBase(interpreter_base):
                 genv.unexpectedError(_("say command not okay."))
                 return '\0'
     
+    def handle_class(self):
+        pass
+    
     def handle_scoped_commands(self):
         self.ident = ""
         while True:
             c = self.skip_white_spaces(self.dbase_parser)
             #showInfo('----> ' + str(c))
             if c == genv.ptNoMoreData:
-                return genv.ptNoMoreData
+                return c
             elif c == '\n':
                 continue
             elif c.isalpha() or c == '_':
                 self.token_str = c
                 self.getIdent()
-                if self.token_str.lower() == "set":
+                if self.token_str.lower() == "class":
+                    genv.class_code += "class "
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        genv.class_code += self.token_str
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c.isalpha():
+                            self.token_str = c
+                            self.getIdent()
+                            genv.class_code += "("
+                            if self.token_str.lower() == "of":
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c.isalpha():
+                                    self.token_str = c
+                                    self.getIdent()
+                                    if self.token_str.lower() == "form":
+                                        genv.class_code += "QDialog):\n"
+                                        genv.class_code += ('\t' * genv.counter_indent)
+                                        genv.class_code += "def __init__(self):\n"
+                                        genv.counter_indent += 1
+                                        genv.class_code += ('\t' * genv.counter_indent)
+                                        self.handle_class()
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if c.isalpha():
+                                            self.token_str = c
+                                            self.getIdent()
+                                            if self.token_str.lower() == "endclass":
+                                                showInfo(genv.temp_code)
+                                                continue
+                                            else:
+                                                genv.unexpectedError(_("endclass expected."))
+                                        else:
+                                            genv.unexpectedError(_("alpha value expected"))
+                                    else:
+                                        genv.unexpectedError(_("form expected."))
+                                else:
+                                    genv.unexpectedError(_("alpha value expected"))
+                            else:
+                                genv.unexpectedError(_("OF expected."))
+                        else:
+                            genv.unexpectedError(_("alpha value expected"))
+                    else:
+                        genv.unexpectedError(_("alpha value expected"))
+                elif self.token_str.lower() == "set":
+                    #showInfo("token:  " + self.token_str)
                     self.token_str = ""
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c.isalpha() or c == '_':
                         self.token_str = c
                         self.getIdent()
+                        #showInfo("22 token:  " + self.token_str)
                         if self.token_str.lower() == "color":
                             self.token_str = ""
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c.isalpha() or c == '_':
                                 self.token_str = c
                                 self.getIdent()
+                                #showInfo("33 token:  " + self.token_str)
                                 if self.token_str.lower() == "to":
                                     #showInfo("TTOOOOO")
                                     # ------------------------------------
@@ -3331,7 +3437,7 @@ class interpreter_dBase(interpreter_base):
                             genv.unexpectedToken(_("COLOR expected"))
                             return '\0'
                 elif self.token_str.lower() == "for":
-                    showInfo("foooor")
+                    #showInfo("foooor")
                     genv.counter_for += 1
                     if not self.expect_ident():
                         genv.unexpectedError(_("expected ident."))
@@ -3374,153 +3480,35 @@ class interpreter_dBase(interpreter_base):
                         genv.temp_code += " = "
                         genv.text_code += genv.temp_code
                         genv.temp_code = ""
-                        showInfo(genv.text_code)
-                        b = 0
+                        #showInfo(genv.text_code)
                         while True:
-                            c = self.skip_white_spaces(self.dbase_parser)
-                            if c == '"':
-                                self.ungetChar(1)
-                                genv.tenp_code += self.handle_string()
-                                genv.text_code += genv.temp_code
-                                showInfo("info 1: \n" + genv.text_code)
+                            c = self.getChar()
+                            if c == '\n':
                                 break
-                            elif c == '(':
-                                genv.temp_code += '('
-                                genv.open_paren += 1
-                                while True:
-                                    c = self.skip_white_spaces(self.dbase_parser)
-                                    if c == '\0':
-                                        if open_paren < 1:
-                                            showInfo(_("no more datas"))
-                                            genv.text_code += "\n"
-                                            return
-                                        else:
-                                            showInfo("parens not closed at all.")
-                                            return
-                                    elif c == '(':
-                                        genv.open_paren += 1
-                                        genv.text_paren += '('
-                                        continue
-                                    elif c == ')':
-                                        genv.open_paren -= 1
-                                        genv.text_paren += ')'
-                                        showInfo("pp--->  " + genv.text_paren)
-                                        if genv.open_paren < 1:
-                                            #showInfo("nono")
-                                            c = self.skip_white_spaces(self.dbase_parser)
-                                            if c in['-','+','*','/']:
-                                                genv.text_paren += c
-                                                continue
-                                            else:
-                                                showInfo("breaker --->  " + genv.text_paren)
-                                                genv.text_code += "---\n"
-                                                self.ungetChar(1)
-                                                break
-                                    elif c in ['-','+','*','/']:
-                                        genv.text_paren += c
-                                        continue
-                                    elif c.isdigit():
-                                        self.token_str = c
-                                        self.getNumber()
-                                        genv.text_paren += self.token_str
-                                        next_token = False
-                                        continue
-                                    elif c.isalpha() or c == '_':
-                                        self.token_str = c
-                                        self.getIdent(1)
-                                        genv.text_paren += '\n'
-                                        genv.text_paren += ('\t' * genv.counter_indent)
-                                        genv.text_paren += self.token_str
-                                        genv.text_paren += " = "
-                                        next_token = False
-                                        continue
-                                    elif c == '@':
-                                        genv.text_code += genv.text_paren + '\n'
-                                        self.ungetChar(1)
-                                        b = 1
-                                        break
-                                    #else:
-                                    #    showInfo('-==>  ' + c )
-                                if b == 1:
-                                    b = 0
-                                    break
-                                else:
-                                    continue
-                            else:
-                                try:
-                                    if c in genv.octal_digits:
-                                        #decnum = int(c, 8)
-                                        c = chr(c)
-                                        self.token_str = c
-                                        self.getNumber()
-                                        genv.text_code += self.token_str
-                                        showInfo("get number:  " + self.token_str)
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        showInfo("popl")
-                                        if c == genv.ptNoMoreData:
-                                            return c
-                                        elif c in['-','+','*','/']:
-                                            showInfo("moooppl")
-                                            genv.text_code += '\n' + self.token_str + ' ' + c
-                                            continue
-                                        else:
-                                            self.ungetChar(1)
-                                            continue
-                                except:
-                                    if c.isdigit():
-                                        self.token_str = c
-                                        self.getNumber()
-                                        genv.text_code += genv.temp_code + self.token_str
-                                        showInfo("get number B => " + genv.text_code)
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c == genv.ptNoMoreData:
-                                            genv.text_code += "\n"
-                                            showInfo("---\n" + genv.text_code)
-                                            return c
-                                        elif c in['-','+','*','/']:
-                                            showInfo("moooppl")
-                                            genv.text_code += '\n' + self.token_str + ' ' + c
-                                            continue
-                                        else:
-                                            genv.text_code += ("\n" + ('\t' * genv.counter_indent))
-                                            showInfo("---\n" + genv.text_code)
-                                            self.ungetChar(1)
-                                            continue
-                                try:
-                                    if (c in genv.octal_alpha_lower) or (c in genv.octal_alpha_upper):
-                                        self.token_str = octal_to_ascii(c)
-                                        showInfo("indenter")
-                                        self.getIdent()
-                                        showInfo("ident:  " + self.token_str)
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c in['-','+','*','/']:
-                                            genv.text_code += '\n' + self.token_str + ' ' + c
-                                            continue
-                                        else:
-                                            self.ungetChar(1)
-                                            continue
-                                except:
-                                    if c.isalpha():
-                                        self.token_str = c
-                                        showInfo("indenter222")
-                                        self.getIdent()
-                                        showInfo("BBident:  " + self.token_str)
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c in['-','+','*','/']:
-                                            genv.text_code += '\n' + self.token_str + ' ' + c
-                                            continue
-                                        else:
-                                            self.ungetChar(1)
-                                            continue
+                            elif c in genv.ascii_charset:
+                                self.token_str += c
+                                continue
+                            #else:
+                            #    break
+                        genv.text_code += self.token_str
+                        genv.text_code += '\n'
+                        #showInfo("variable:  " + self.token_str)
+                        #showInfo(genv.text_code)
                     elif c == '(':
                         # todo: callee
+                        #showInfo("todo callee")
                         pass
+                    elif c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        #showInfo('oo\n' + self.token_str)
                     else:
                         genv.unexpectedError(_("variable can not assign."))
                         return '\0'
             elif c == '@':
                 #showInfo('sayer')
                 self.handle_say()
+                #showInfo("next sayer")
                 continue
             elif c == '?':
                 genv.text_code += ('\t' * genv.counter_indent)
@@ -3599,21 +3587,52 @@ class interpreter_dBase(interpreter_base):
         bg_found = False
         #
         c = self.skip_white_spaces(self.dbase_parser)
-        if c.isalpha() or c == '_':
+        if c.isalpha():
             self.token_str = c
-            self.getIdent(1)
-            if self.token_str in genv.concolors:
-                index    = genv.concolors.index(self.token_str)
-                fg_color = genv.convalues[index]
-                fg_found = True
-                
+            c = self.getChar()
+            if c == '+':
+                self.token_str += c
+                fg_color = self.token_str
+                if self.token_str in genv.concolors:
+                    index    = genv.concolors.index(self.token_str)
+                    fg_color = genv.convalues[index]
+                    fg_found = True
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c == '/':
                     c = self.skip_white_spaces(self.dbase_parser)
-                    if c.isalpha() or c == '_':
+                    if c.isalpha():
                         self.token_str = c
-                        self.getIdent(1)
-                        #showInfo('color: ' + self.token_str)
+                        c = self.getChar()
+                        if c == '+':
+                            self.token_str += c
+                        elif c.isalpha():
+                            self.token_str += c
+                        if self.token_str in genv.concolors:
+                            if self.token_str in genv.concolors:
+                                index    = genv.concolors.index(self.token_str)
+                                bg_color = genv.convalues[index]
+                                bg_found = True
+                            else:
+                                genv.unexpectedError(_("invalide bg color"))
+                        else:
+                            genv.unexpectedError(_("bg error"))
+                    else:
+                        self.ungetChar(1)
+            elif c == '/':
+                fg_color = self.token_str
+                if self.token_str in genv.concolors:
+                    index    = genv.concolors.index(self.token_str)
+                    fg_color = genv.convalues[index]
+                    fg_found = True
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c.isalpha():
+                    self.token_str = c
+                    c = self.getChar()
+                    if c == '+':
+                        self.token_str += c
+                    elif c.isalpha():
+                        self.token_str += c
+                    if self.token_str in genv.concolors:
                         if self.token_str in genv.concolors:
                             index    = genv.concolors.index(self.token_str)
                             bg_color = genv.convalues[index]
@@ -3624,10 +3643,36 @@ class interpreter_dBase(interpreter_base):
                         genv.unexpectedError(_("bg error"))
                 else:
                     self.ungetChar(1)
+            elif c.isalpha():
+                self.token_str += c
+                fg_color = self.token_str
+                if self.token_str in genv.concolors:
+                    index    = genv.concolors.index(self.token_str)
+                    fg_color = genv.convalues[index]
+                    fg_found = True
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '/':
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c.isalpha() or c == '_':
+                            self.token_str = c
+                            self.getIdent()
+                            #showInfo('color: ' + self.token_str)
+                            if self.token_str in genv.concolors:
+                                index    = genv.concolors.index(self.token_str)
+                                bg_color = genv.convalues[index]
+                                bg_found = True
+                            else:
+                                genv.unexpectedError(_("invalide bg color"))
+                        else:
+                            genv.unexpectedError(_("bg error"))
+                    else:
+                        self.ungetChar(1)
+                else:
+                    # todo: variable !!!
+                    genv.unexpectedError(_("invalide fg color"))
+                    #
             else:
-                # todo: variable !!!
-                genv.unexpectedError(_("invalide fg color"))
-                #
+                genv.unexpectedError(_("color error"))
         self.fg_color = fg_color
         self.bg_color = bg_color
         
@@ -6355,6 +6400,7 @@ class dBaseSyntaxHighlighter(SourceCodeEditorBase):
             "BREAK",
             "CASE",
             "CLASS",
+            "COLOR",
             "DO",
             "IF",
             "ELSE",
@@ -6365,7 +6411,9 @@ class dBaseSyntaxHighlighter(SourceCodeEditorBase):
             "ENDWHILE",
             "ENDWITH",
             "FOR",
+            "OF",
             "RETURN",
+            "SET",
             "TO",
             "WHILE", 
             "WITH"
@@ -6489,23 +6537,33 @@ class EditorTranslate(QWidget):
         self.group_box = QGroupBox(_(" Choose a Translation: "))
         self.group_box.setFont(font)
         self.group_layout = QVBoxLayout()
-
+        
         self.dummyl = QLabel(" ")
         self.radio1 = QRadioButton(_("Convert to FPC Pascal"))
         self.radio2 = QRadioButton(_("Convert to GNU C++"))
         self.radio3 = QRadioButton(_("Convert to Byte-Code"))
         
+        self.radio1.setObjectName("pascal")
+        self.radio2.setObjectName("gnucpp")
+        self.radio3.setObjectName("bytecode")
+        
         self.dummyl.setFont(font)
         self.radio1.setFont(font)
         self.radio2.setFont(font)
         self.radio3.setFont(font)
-
+        
+        self.radio1.toggled.connect(self.on_radiobutton_clicked)
+        self.radio2.toggled.connect(self.on_radiobutton_clicked)
+        self.radio3.toggled.connect(self.on_radiobutton_clicked)
+        
+        self.radio3.setChecked(True)
+        
         self.group_layout.addWidget(self.dummyl)
         self.group_layout.addWidget(self.radio1)
         self.group_layout.addWidget(self.radio2)
         self.group_layout.addWidget(self.radio3)
         self.group_layout.addStretch()
-
+        
         self.group_box.setLayout(self.group_layout)
         
         # file list
@@ -6530,7 +6588,25 @@ class EditorTranslate(QWidget):
         self.layout.addWidget(self.scroll_area)
         
         self.setLayout(self.layout)
-
+    
+    def on_radiobutton_clicked(self):
+        radio_button = self.sender()
+        radio_name   = radio_button.objectName()
+        print("rad: ", radio_name)
+        if radio_button.isChecked():
+            if radio_name == "gnucpp":
+                genv.editor.obj_2.setVisible(False)  # fpc
+                genv.editor.obj_3.setVisible(True)   # gnu cc
+                genv.editor.obj_3.clear()
+            elif radio_name == "pascal":
+                genv.editor.obj_2.setVisible(True)   # fpc
+                genv.editor.obj_3.setVisible(False)  # gnu c++
+                genv.editor.obj_2.clear()
+            elif radio_name == "bytecode":
+                genv.editor.obj_2.setVisible(False)  # fpc
+                genv.editor.obj_3.setVisible(False)  # gnu c++
+            #showInfo("radio_button:  " + radio_button.text())
+    
 # ----------------------------------------------------------------------------
 # \brief This class stands for the source code input editors like: dBase, C
 # ----------------------------------------------------------------------------
@@ -6604,7 +6680,7 @@ class EditorTextEdit(QPlainTextEdit):
         return space + icon_space
     
     def updateLineNumberAreaWidth(self, _):
-        self.setViewportMargins(self.lineNumberAreaWidth(), 0, 0, 0)
+        self.setViewportMargins(self.lineNumberAreaWidth()+2, 0, 0, 0)
     
     def updateLineNumberArea(self, rect, dy):
         if dy:
@@ -6683,12 +6759,18 @@ class EditorTextEdit(QPlainTextEdit):
     
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_F2:
-            script_name = genv.tabs_editor_tabs_editor.objectName()
+            script_name = genv.editor.obj_1.objectName()
             prg = interpreter_dBase(script_name)
             prg.parse()
             prg.run()
         else:
             super().keyPressEvent(event)
+
+class EditorCheckBox(QCheckBox):
+    def __init__(self, parent):
+        super().__init__()
+        self.setChecked(True)
+        self.setText(_("   Run as DOS Application"))
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
@@ -10595,24 +10677,40 @@ class ApplicationEditorsPage(QObject):
                 
                 self.tabs_editor_widget = QWidget()
                 
-                self.tabs_editor_file_layout   = QHBoxLayout()
-                genv.tabs_editor_tabs_editor   = EditorTextEdit(self, file_path, self.text)
-                self.tabs_editor_tabs_rightBox = EditorTranslate(self)
+                genv.editor.hlayout = QHBoxLayout()
+                genv.editor.vlayout = QVBoxLayout()
                 #
-                self.tabs_editor_file_layout.addWidget(genv.tabs_editor_tabs_editor)
-                self.tabs_editor_file_layout.addWidget(self.tabs_editor_tabs_rightBox)
+                if not genv.editor.obj_1 == None:
+                    self.tabs_editor.removeTab(self.tabs_editor.currentIndex())
+                    genv.editor.obj_1.deleteLater()
+                    genv.editor.obj_1 = None
+                #
+                genv.editor_check = EditorCheckBox(self)
+                genv.editor.obj_1 = EditorTextEdit(self, file_path, self.text)
+                genv.editor.obj_2 = EditorTextEdit(self, file_path, self.text + ".pas")
+                genv.editor.obj_3 = EditorTextEdit(self, file_path, self.text + ".cc")
+                #
+                genv.editor.vlayout.addWidget(genv.editor_check)
+                genv.editor.vlayout.addWidget(genv.editor.obj_1)
+                genv.editor.vlayout.addWidget(genv.editor.obj_2)
+                genv.editor.vlayout.addWidget(genv.editor.obj_3)
+                #
+                genv.editor.rightBox = EditorTranslate(self)
+                #
+                genv.editor.hlayout.addLayout(genv.editor.vlayout)
+                genv.editor.hlayout.addWidget(genv.editor.rightBox)
                 
                 self.tabs_editor_file_layout_widget = QWidget()
-                self.tabs_editor_file_layout_widget.setLayout(self.tabs_editor_file_layout)
+                self.tabs_editor_file_layout_widget.setLayout(genv.editor.hlayout)
                 
                 self.tabs_editor.addTab(self.tabs_editor_file_layout_widget, filename)
                 
                 try:
-                    self.focused_widget = genv.tabs_editor_tabs_editor
+                    self.focused_widget = genv.editor.obj_1
                 except AttributError:
                     self.showNoEditorMessage()
                     return
-                
+            
             elif text[0] == "label 2":
                 self.checkBeforeSave()
             elif text[0] == "label 3":
@@ -10620,12 +10718,11 @@ class ApplicationEditorsPage(QObject):
                 application_mode = 1
                 
                 try:
-                    script_name = genv.tabs_editor_tabs_editor.objectName()
+                    script_name = genv.editor.obj_1.objectName()
                     print("script: ", script_name)
                 except AttributeError:
                     self.showNoEditorMessage()
                     return
-
                 try:
                     prg = None
                     if self.objectName() == "dbase":
