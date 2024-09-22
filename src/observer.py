@@ -265,6 +265,7 @@ class globalEnv:
         self.editor.obj_3 = None
         
         self.editor_check = None
+        self.editor_saveb = None
 
         # ------------------------------------------------------------------------
         # databse stuff ...
@@ -307,6 +308,8 @@ class globalEnv:
         self.last_command = True
 
         self.ptNoMoreData = 2000
+
+        self.have_errors = False
         
         # ------------------------------------------------------------------------
         # console standard vga colors ...
@@ -1642,6 +1645,14 @@ class ListIndexOutOfBoundsError(Exception):
         error_result = 1
         return
 
+class ENoSourceHeader(Exception):
+    def __init__(self, message):
+        self.message = message
+        genv.have_errors = True
+    def __str__(self):
+        error_result = 0
+        return str(self.message)
+
 class ENoParserError(Exception):
     def __init__(self, message=None):
         if message == None:
@@ -2490,6 +2501,9 @@ class interpreter_base():
         
         self.pos        = -1
         
+        # default, no error's at parse time ...
+        genv.have_errors = False
+        
         genv.open_paren = 0
         genv.text_paren = ""
         
@@ -2951,6 +2965,10 @@ print = builtins.print
     
     def run(self):
         self.finalize()
+        
+        if genv.have_errors == True:
+            showError(_("source code has errors."))
+            return
         
         #genv.text_code += "\tcon.reset()\n"
 
@@ -3577,7 +3595,40 @@ class interpreter_dBase(interpreter_base):
             if len(self.source) < 1:
                 genv.unexpectedError(_("no data available."))
                 return
-            self.handle_scoped_commands()
+            
+            # ------------------------------------
+            # dbase plus ?
+            # ------------------------------------
+            if genv.editor_check.isChecked():
+                pattern = re.compile(r"\*\* END HEADER.*?\n(.*?)\nCLASS", re.DOTALL)
+                plus_code   = self.source
+                line_code   = plus_code.splitlines()
+                start_idx   = -1
+                end_idx     = -1
+                header_code = ""
+                
+                # ------------------------------------------
+                # text between ** END OF Header and CLASS
+                # ------------------------------------------
+                for i, line in enumerate(line_code):
+                    if '**' in line:
+                        start_idx = i
+                    if "class" in line.lower():
+                        end_idx = i
+                        break
+                
+                if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
+                    plus_code = line_code[start_idx + 1:end_idx]
+                
+                if plus_code is not None:
+                    for i, line in enumerate(plus_code, start=start_idx + 1):
+                        header_code += f"{line}\n"
+                    showInfo(header_code)
+                else:
+                    raise ENoSourceHeader("Header not found.")
+                    return
+            else:
+                self.handle_scoped_commands()
         except noDataNoError:
             #showInfo("nachricht:\n\n" + self.temp_code)
             if not genv.last_command:
@@ -3712,8 +3763,12 @@ class interpreter_dBase(interpreter_base):
 # ---------------------------------------------------------------------------
 class dBaseDSL():
     def __init__(self, script_name):
-        self.parser = None
-        self.parser = interpreter_dBase(script_name)
+        try:
+            self.parser = None
+            self.parser = interpreter_dBase(script_name)
+        except ENoSourceHeader as e:
+            showError(e.message)
+            self.parser = None
 
 class interpreter_Pascal(interpreter_base):
     def __init__(self, file_name):
@@ -6780,12 +6835,99 @@ class EditorTextEdit(QPlainTextEdit):
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_F2:
             script_name = genv.editor.obj_1.objectName()
+            try:
+                # ---------------------------------------
+                # save source code before exec...
+                # ---------------------------------------
+                if genv.editor_saveb.isChecked() == True:
+                    with open(script_name, 'w', encoding='utf-8') as file:
+                        file.write(genv.editor.obj_1.toPlainText())
+                        file.close()
+            except Exception as e:
+                showException(traceback.format_exc())
+                return
+            
             prg = interpreter_dBase(script_name)
-            prg.parse()
-            prg.run()
+            try:
+                try:
+                    prg.parse()
+                    prg.run()
+                except ENoSourceHeader as e:
+                    showError(_("source missing correct header style."))
+                    prg = None
+                    return
+            finally:
+                prg = None
+        elif event.key() == Qt.Key_S and event.modifiers() == Qt.ControlModifier:
+            options = QFileDialog.Options()
+            file_name, a = QFileDialog.getSaveFileName(self,
+                _("Save Text"), "",
+                _("Text files (*.prg);;All Files (*)"),
+                options=options)
+            if file_name:
+                try:
+                    # --------------------------------------------------
+                    # Text aus QPlainTextEdit erhalten und in
+                    # die Datei schreiben
+                    # --------------------------------------------------
+                    with open(file_name, 'w', encoding='utf-8') as file:
+                        file.write(self.toPlainText())
+                        file.close()
+                    # --------------------------------------------------
+                    # Bestätigung anzeigen
+                    # --------------------------------------------------
+                    QMessageBox.information(self,
+                        _("Success"),
+                        _("File successfully saved."))
+                    return
+                except Exception as e:
+                    QMessageBox.critical(self,
+                        _("Error"),
+                        _("Error during saving file"))
+                    return
+            else:
+                showInfo(_("something went wrong"))
+                return
+        elif event.key() == Qt.Key_O and event.modifiers() == Qt.ControlModifier:
+            options = QFileDialog.Options()
+            file_name, a = QFileDialog.getOpenFileName(self,
+                _("Load Text"), "",
+                _("Text files (*.prg);;All Files (*)"),
+                options=options)
+            if file_name:
+                try:
+                    with open(file_name, 'r', encoding='utf-8') as file:
+                        self.setPlainText(file.read())
+                        file.close()
+                    QMessageBox.information(self,
+                        _("Success"),
+                        _("File successfully loaded."))
+                    return
+                except Exception as e:
+                    QMessageBox.critical(self,
+                        _("Error"),
+                        _("Error during loading file"))
+                    return
+            else:
+                showInfo(_("something went wrong"))
+                return
         else:
             super().keyPressEvent(event)
 
+# ----------------------------------------------------------------------------
+# \brief when checked, then save the text in QPlainTextEdit before the source
+#        will be compiled, interpreted, or transpiled.
+# ----------------------------------------------------------------------------
+class EditorSavebBox(QCheckBox):
+    def __init__(self, parent):
+        super().__init__()
+        self.setChecked(True)
+        self.setText(_("  Save before Run"))
+
+# ----------------------------------------------------------------------------
+# \brief when checked, compile, and run the source code as gui application.
+#        else: run as dos simulated console application.
+# ----------------------------------------------------------------------------
 class EditorCheckBox(QCheckBox):
     def __init__(self, parent):
         super().__init__()
@@ -6803,7 +6945,6 @@ class LineNumberArea(QWidget):
     def paintEvent(self, event):
         self.editor.lineNumberAreaPaintEvent(event)
         self.setFont(QFont(genv.v__app__font_edit, 12))  # Schriftgröße und Schriftart für Zeilennummerbereich setzen
-
 
 class myGridViewer(QWidget):
     def __init__(self, parent=None):
@@ -10789,12 +10930,28 @@ class ApplicationEditorsPage(QObject):
                     genv.editor.obj_1.deleteLater()
                     genv.editor.obj_1 = None
                 #
+                hlayout = QHBoxLayout()
+                
                 genv.editor_check = EditorCheckBox(self)
+                genv.editor_saveb = EditorSavebBox(self)
+                #
+                self.editor_dummy = QLabel("")
+                self.editor_dummy.setMinimumWidth(280)
+                
+                hlayout.addWidget(genv.editor_check)
+                hlayout.addWidget(genv.editor_saveb)
+                hlayout.addWidget(self.editor_dummy)
+                
+                hlayout.setAlignment(genv.editor_check, Qt.AlignLeft)
+                hlayout.setAlignment(genv.editor_saveb, Qt.AlignLeft)
+                hlayout.setAlignment(self.editor_dummy, Qt.AlignLeft)
+                #
                 genv.editor.obj_1 = EditorTextEdit(self, file_path, self.text)
                 genv.editor.obj_2 = EditorTextEdit(self, file_path, self.text + ".pas")
                 genv.editor.obj_3 = EditorTextEdit(self, file_path, self.text + ".cc")
                 #
-                genv.editor.vlayout.addWidget(genv.editor_check)
+                genv.editor.vlayout.addLayout(hlayout)
+                #
                 genv.editor.vlayout.addWidget(genv.editor.obj_1)
                 genv.editor.vlayout.addWidget(genv.editor.obj_2)
                 genv.editor.vlayout.addWidget(genv.editor.obj_3)
@@ -10823,15 +10980,29 @@ class ApplicationEditorsPage(QObject):
                 
                 try:
                     script_name = genv.editor.obj_1.objectName()
+                    file_name   = script_name
                     print("script: ", script_name)
+                    
+                    # ---------------------------------------
+                    # save source code before exec...
+                    # ---------------------------------------
+                    if genv.editor_saveb.isChecked() == True:
+                        with open(file_name, 'w', encoding='utf-8') as file:
+                            file.write(genv.editor.obj_1.toPlainText())
+                            file.close()
                 except AttributeError:
                     self.showNoEditorMessage()
                     return
                 try:
                     prg = None
                     if self.objectName() == "dbase":
-                        prg = interpreter_dBase(script_name)
-                        prg.parse()
+                        try:
+                            prg = interpreter_dBase(script_name)
+                            prg.parse()
+                        except ENoSourceHeader as e:
+                            showError(e.message)
+                            prg = None
+                            return
                     elif self.objectName() == "pascal":
                         prg = interpreter_Pascal(script_name)
                         prg.parse()
@@ -10861,8 +11032,12 @@ class ApplicationEditorsPage(QObject):
                     print(genv.text_code)
                     prg.run()
                     
+                except ENoSourceHeader as e:
+                    showError(e.message)
+                    return
                 except Exception as e:
                     print(e)
+                    return
     
     def showNoEditorMessage(self):
         msg = QMessageBox()
