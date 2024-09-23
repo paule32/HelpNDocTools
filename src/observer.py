@@ -3735,28 +3735,108 @@ class interpreter_dBase(interpreter_base):
                                 if c.isalpha():
                                     self.token_str = c
                                     self.getIdent()
-                                    genv.temp_code += self.token_str
-                                    c = self.skip_white_spaces(self.dbase_parser)
-                                    if c == '.':
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c.isalpha():
-                                            self.token_str = c
-                                            self.getIdent()
-                                            if self.token_str.lower() == "mdi":
+                                    if self.token_str.lower() == "else":
+                                        genv.temp_code += ('\t' * genv.counter_indent)
+                                        genv.temp_code += "else:\n"
+                                        while True:
+                                            c = self.skip_white_spaces(self.dbase_parser)
+                                            if c.isalpha():
+                                                self.token_str = c
+                                                self.getIdent()
+                                                if self.token_str.lower() == "endif":
+                                                    break
+                                                genv.temp_code += ('\t' * genv.counter_indent)
+                                                genv.temp_code += ('\t' * genv.counter_indent)
+                                                genv.temp_code += self.token_str
                                                 c = self.skip_white_spaces(self.dbase_parser)
-                                                if c == '=':
+                                                if c == '.':
+                                                    genv.temp_code += "."
                                                     c = self.skip_white_spaces(self.dbase_parser)
                                                     if c.isalpha():
                                                         self.token_str = c
                                                         self.getIdent()
-                                                        if self.token_str.lower() == "false":
-                                                            continue
-                                            elif self.token_str.lower() == "readmodal":
-                                                c = self.skip_white_spaces(self.dbase_parser)
-                                                if c == '(':
+                                                        if self.token_str.lower() == "open":
+                                                            genv.temp_code += self.token_str
+                                                            c = self.skip_white_spaces(self.dbase_parser)
+                                                            if c == '(':
+                                                                genv.temp_code += "("
+                                                                c = self.skip_white_spaces(self.dbase_parser)
+                                                                if c == ')':
+                                                                    genv.temp_code += ")"
+                                                                    showInfo("pen\n" + genv.temp_code)
+                                                                    continue
+                                                            else:
+                                                                genv.unexpectedError(_("open paren expected."))
+                                                                return
+                                                        else:
+                                                            genv.unexpectedError(_("open expected."))
+                                                            return
+                                                    else:
+                                                        genv.unexpectedError(_("alpha ident expected."))
+                                                        return
+                                                else:
+                                                    genv.unexpectedError(_("11point expected"))
+                                                    return
+                                            else:
+                                                genv.unexpectedError(_("alpha ident expected."))
+                                                return
+                                    else:
+                                        genv.temp_code += ('\t' * genv.counter_indent)
+                                        genv.temp_code += ('\t' * genv.counter_indent)
+                                        genv.temp_code += self.token_str
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if c == '.':
+                                            genv.temp_code += c
+                                            c = self.skip_white_spaces(self.dbase_parser)
+                                            if c.isalpha():
+                                                self.token_str = c
+                                                self.getIdent()
+                                                if self.token_str.lower() == "mdi":
+                                                    genv.temp_code += self.token_str
                                                     c = self.skip_white_spaces(self.dbase_parser)
-                                                    if c == ')':
-                                                        break
+                                                    if c == '=':
+                                                        genv.temp_code += " = "
+                                                        c = self.skip_white_spaces(self.dbase_parser)
+                                                        if c.isalpha():
+                                                            self.token_str = c
+                                                            self.getIdent()
+                                                            if self.token_str.lower() == "false":
+                                                                genv.temp_code += "False\n"
+                                                                continue
+                                                            elif self.token_str.lower() == "true":
+                                                                genv.temp_code += "True\n"
+                                                                continue
+                                                            else:
+                                                                genv.unexpectedError(_("false or true expected."))
+                                                                return
+                                                        else:
+                                                            genv.unexpectedError(_("false or true expected."))
+                                                            return
+                                                    else:
+                                                        genv.unexpectedError(_("false or true expected."))
+                                                        return
+                                                elif self.token_str.lower() == "readmodal":
+                                                    genv.temp_code += "readModal"
+                                                    c = self.skip_white_spaces(self.dbase_parser)
+                                                    if c == '(':
+                                                        genv.temp_code += "("
+                                                        c = self.skip_white_spaces(self.dbase_parser)
+                                                        if c == ')':
+                                                            genv.temp_code += ")\n"
+                                                            showInfo("readmodal\n" + genv.temp_code)
+                                                            continue
+                                                else:
+                                                    genv.unexpectedError(_("wrong token"))
+                                                    return
+                                            else:
+                                                genv.unexpectedError(_("alpha identifier expected"))
+                                                return
+                                        else:
+                                            genv.unexpectedError(_("point expected."))
+                                            return
+                                else:
+                                    genv.unexpectedError(_("alpha ident expected."))
+                                    return
                             continue
                         elif self.token_str.lower() == "else":
                             genv.temp_code += "else:\n"
@@ -3764,18 +3844,25 @@ class interpreter_dBase(interpreter_base):
                             if c.isalpha():
                                 self.token_str = c
                                 self.getIdent()
+                                genv.temp_code += ('\t' * genv.counter_indent)
+                                genv.temp_code += self.token_str
                                 c = self.skip_white_spaces(self.dbase_parser)
                                 if c == '.':
+                                    genv.temp_code += "."
                                     c = self.skip_white_spaces(self.dbase_parser)
                                     if c.isalpha():
                                         self.token_str = c
                                         self.getIdent()
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c == '(':
+                                        if self.token_str.lower() == "open":
+                                            genv.temp_code += "open"
                                             c = self.skip_white_spaces(self.dbase_parser)
-                                            if c == ')':
-                                                continue
-                            continue
+                                            if c == '(':
+                                                genv.temp_code += "("
+                                                c = self.skip_white_spaces(self.dbase_parser)
+                                                if c == ')':
+                                                    genv.temp_code += ")"
+                                                    showInfo("else:\n" + genv.temp_code)
+                                                    continue
                         elif self.token_str.lower() == "endif":
                             showInfo("endif:\n" + genv.temp_code)
                             continue
