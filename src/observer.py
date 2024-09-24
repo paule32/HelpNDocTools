@@ -11486,6 +11486,57 @@ class ApplicationTabWidget(QTabWidget):
         return self.tabs[index]
 
 # ---------------------------------------------------------------------------
+# \brief tree widget delegation: status codes
+# ---------------------------------------------------------------------------
+class ColorComboBoxDelegateTree(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        # Hintergrund zeichnen
+        super().paint(painter, option, index)
+        
+        # Text abrufen
+        column = index.column()
+        text   = index.data()
+        
+        # Rechten Kreis zeichnen
+        right_circle_color = QColor("red")
+        if column == 5 and text == "F":
+            right_circle_color = QColor("red")
+        elif column == 5 and text == "S":
+            right_circle_color = QColor("yellow")
+            
+        painter.setBrush(QBrush(right_circle_color))
+        right_circle_rect = QRect(option.rect.left() + 25, option.rect.top() + 5, 10, 10)
+        painter.drawEllipse(right_circle_rect)
+
+# ---------------------------------------------------------------------------
+# \brief combo box delegation for cert ssl tab ...
+# ---------------------------------------------------------------------------
+class ColorComboBoxDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        # Hintergrund zeichnen
+        super().paint(painter, option, index)
+
+        # Text abrufen
+        text = index.data()
+        
+        # Rechten Kreis zeichnen
+        right_circle_color = QColor("blue")
+        if text == "256":
+            right_circle_color = QColor("blue")
+        if text == "512":
+            right_circle_color = QColor("red")
+        if text == "1024":
+            right_circle_color = QColor("green")
+        if text == "2048":
+            right_circle_color = QColor("lime")
+        if text == "4096":
+            right_circle_color = QColor("yellow")
+            
+        painter.setBrush(QBrush(right_circle_color))
+        right_circle_rect = QRect(option.rect.right() - 25, option.rect.top() + 5, 10, 10)
+        painter.drawEllipse(right_circle_rect)
+
+# ---------------------------------------------------------------------------
 # \brief  This is the GUI-Entry point for our application.
 # \param  nothing
 # \return ptr => the class object pointer
@@ -13218,16 +13269,23 @@ class FileWatcherGUI(QDialog):
         vlayout = QVBoxLayout()
         
         self.tree_widget = QTreeWidget()
-        self.tree_widget.setColumnCount(2)
-        self.tree_widget.setHeaderLabels(["Name", "Desc"])
+        self.tree_widget.setColumnCount(6)
+        self.tree_widget.setHeaderLabels(["Name", "CA-Name", "Owner", "Start Valid.", "End Valid.", "Status"])
         
         root = QTreeWidgetItem(self.tree_widget)
-        root.setText(0, "root")
-        root.setText(1, "bescgh")
+        root.setText(0, "root CA")
+        root.setText(1, "Super Root CA")
+        root.setText(2, "The CA Root Owner")
+        root.setText(3, "01.01.2000")
+        root.setText(4, "31.12.2000")
+        root.setText(5, "S")
         
         child1 = QTreeWidgetItem(root)
         child1.setText(0,"Child1")
         child1.setText(1,"beschre bbb")
+        
+        root_delegate = ColorComboBoxDelegateTree(self.tree_widget)
+        self.tree_widget.setItemDelegateForColumn(5, root_delegate)
         
         self.cert_tab = QTabWidget()
         tab1 = QWidget()
@@ -13269,7 +13327,8 @@ class FileWatcherGUI(QDialog):
             [ _("Valide Date"),             1                          ],      # 7
             [ _("CA key File"),             "ca-key.pem"               ],      # 8
             [ _("CA csr File"),             "ca-csr.pem"               ],      # 9
-            [ _("Password"),                "xyz"                      ]       # 10
+            [ _("Password"),                "xyz"                      ],      # 10
+            [ _("Chiper Bits"),             1                          ]       # 11
         ]
         #
         v_layout = QVBoxLayout()
@@ -13305,6 +13364,34 @@ class FileWatcherGUI(QDialog):
                 h_layout.addWidget(h_edit_end)
                 #
                 h_layout.addStretch()
+            elif i == 8 or i == 9:
+                h_push = QPushButton("  -x-  ")
+                h_push.setMinimumHeight(26)
+                h_push.setMaximumWidth(64)
+                h_push.setFont(font)
+                #
+                h_edit = QLineEdit(linedit[1])
+                h_edit.setFont(font)
+                #
+                h_layout.addWidget(h_label)
+                h_layout.addWidget(h_edit)
+                h_layout.addWidget(h_push)
+            elif i == 11:
+                h_combo = QComboBox()
+                h_combo.setMinimumWidth(64)
+                h_combo.addItem("256")
+                h_combo.addItem("512")
+                h_combo.addItem("1024")
+                h_combo.addItem("2048")
+                h_combo.addItem("4096")
+                h_combo.setFont(font)
+                #
+                delegate = ColorComboBoxDelegate(h_combo)
+                h_combo.setItemDelegate(delegate)
+                #
+                h_layout.addWidget(h_label)
+                h_layout.addWidget(h_combo)
+                h_layout.addStretch()
             else:
                 h_edit = QLineEdit(linedit[1])
                 h_edit.setFont(font)
@@ -13314,21 +13401,36 @@ class FileWatcherGUI(QDialog):
         
         tab2_content_layout.addLayout(v_layout)
         #
+        push_saveca = QPushButton(_("Save CA Data"))
         push_create = QPushButton(_("Create CA"))
         push_delete = QPushButton(_("Delete CA"))
+        push_cleara = QPushButton(_("Clear All"))
         
+        push_saveca.clicked.connect(self.on_click_saveca_ca)
+        push_create.clicked.connect(self.on_click_create_ca)
+        push_delete.clicked.connect(self.on_click_delete_ca)
+        push_cleara.clicked.connect(self.on_click_cleara_ca)
+        
+        push_saveca.setFont(font)
         push_create.setFont(font)
         push_delete.setFont(font)
+        push_cleara.setFont(font)
         
+        push_saveca.setMinimumHeight(32)
         push_create.setMinimumHeight(32)
         push_delete.setMinimumHeight(32)
+        push_cleara.setMinimumHeight(32)
         
-        push_create.setMinimumWidth(210)
-        push_delete.setMinimumWidth(210)
+        push_saveca.setMinimumWidth(180)
+        push_create.setMinimumWidth(180)
+        push_delete.setMinimumWidth(180)
+        push_cleara.setMinimumWidth(180)
         
         btn_layout = QHBoxLayout()
+        btn_layout.addWidget(push_saveca)
         btn_layout.addWidget(push_create)
         btn_layout.addWidget(push_delete)
+        btn_layout.addWidget(push_cleara)
         btn_layout.addStretch()
         
         dummy_layout = QVBoxLayout()
@@ -13339,10 +13441,6 @@ class FileWatcherGUI(QDialog):
         tab2_content_layout.addLayout(btn_layout)
         tab2_content_layout.addLayout(dummy_layout)
         #
-        #tab_vlayout.addLayout(tab2_content_layout)
-        #tab_vlayout.addLayout(tab_hlayout)
-        #tab_vlayout.addStretch()
-        
         tab2_content_widget.setLayout(tab2_content_layout)
         tab2_scroll_area   .setWidget(tab2_content_widget)
         
@@ -13365,6 +13463,18 @@ class FileWatcherGUI(QDialog):
         ###
         self.main_layout.addWidget(self.certssl_tabs)
         return
+    
+    def on_click_saveca_ca(self):
+        print("saveca ca")
+    
+    def on_click_create_ca(self):
+        print("create ca")
+    
+    def on_click_delete_ca(self):
+        print("delete ca")
+    
+    def on_click_cleara_ca(self):
+        print("clear all ca")
     
     def handleGitHub(self):
         self.github_tabs = ApplicationTabWidget([
