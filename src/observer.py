@@ -13213,8 +13213,155 @@ class FileWatcherGUI(QDialog):
         self.certssl_tabs = ApplicationTabWidget([
             _("SSL Cert Project"),
             _("SSL Cert Editor")])
-        self.certssl_project  = ApplicationProjectPage(self, self.certssl_tabs.getTab(0), "ssl")
-        self.certssl_editors  = ApplicationEditorsPage(self, self.certssl_tabs.getTab(1), "ssl")
+        
+        hlayout = QHBoxLayout()
+        vlayout = QVBoxLayout()
+        
+        self.tree_widget = QTreeWidget()
+        self.tree_widget.setColumnCount(2)
+        self.tree_widget.setHeaderLabels(["Name", "Desc"])
+        
+        root = QTreeWidgetItem(self.tree_widget)
+        root.setText(0, "root")
+        root.setText(1, "bescgh")
+        
+        child1 = QTreeWidgetItem(root)
+        child1.setText(0,"Child1")
+        child1.setText(1,"beschre bbb")
+        
+        self.cert_tab = QTabWidget()
+        tab1 = QWidget()
+        tab1_layout = QVBoxLayout()
+        
+        tab1_scroll_area = QScrollArea(tab1)
+        tab1_scroll_area.setWidgetResizable(True)
+        tab1_content_widget = QWidget()
+        tab1_content_layout = QVBoxLayout()
+        
+        tab1_content_widget.setLayout(tab1_content_layout)
+        tab1_scroll_area   .setWidget(tab1_content_widget)
+        
+        tab1_label = QLabel("Inhalt Tab 1")
+        tab1_content_layout.addWidget(tab1_label)
+        tab1_layout.addWidget(tab1_scroll_area)
+        tab1.setLayout(tab1_layout)
+        
+        #
+        tab2 = QWidget()
+        tab2_layout = QVBoxLayout()
+        
+        tab2_scroll_area = QScrollArea(tab1)
+        tab2_scroll_area.setWidgetResizable(True)
+        #
+        tab2_content_widget = QWidget()
+        tab2_content_layout = QVBoxLayout()
+        
+        font = QFont("Arial", 10)
+        #
+        linedits = [
+            [ _("CA Name"),                 "trashserver.net"          ],      # 0
+            [ _("Organization Name"),       "Internet Widgits Pty Ltd" ],      # 1
+            [ _("Unit Name"),               "IT"                       ],      # 2
+            [ _("Localy Name"),             "Landshut"                 ],      # 3
+            [ _("State or Province"),       "BY"                       ],      # 4
+            [ _("Country (2 letter code)"), "DE"                       ],      # 5
+            [ _("E-Mail"),                  "ssl@master@domain.com"    ],      # 6
+            [ _("Valide Date"),             1                          ],      # 7
+            [ _("CA key File"),             "ca-key.pem"               ],      # 8
+            [ _("CA csr File"),             "ca-csr.pem"               ],      # 9
+            [ _("Password"),                "xyz"                      ]       # 10
+        ]
+        #
+        v_layout = QVBoxLayout()
+        #
+        i = -1
+        for linedit in linedits:
+            i = i + 1
+            h_layout = QHBoxLayout()
+            h_label  = QLabel(linedit[0])
+            h_label.setFont(font)
+            h_label.setMinimumWidth(180)
+            if i == 7:
+                h_labl_beg = QLabel(_("Begin: "))
+                h_labl_beg.setFont(font)
+                #
+                h_edit_beg = QDateEdit()
+                h_edit_beg.setCalendarPopup(True)
+                h_edit_beg.setDate(QDate.currentDate())
+                h_edit_beg.setFont(font)
+                #
+                h_labl_end = QLabel(_(" End: "))
+                h_labl_end.setFont(font)
+                #
+                h_edit_end = QDateEdit()
+                h_edit_end.setCalendarPopup(True)
+                h_edit_end.setDate(QDate.currentDate())
+                h_edit_end.setFont(font)
+                #
+                h_layout.addWidget(h_label)
+                h_layout.addWidget(h_labl_beg)
+                h_layout.addWidget(h_edit_beg)
+                h_layout.addWidget(h_labl_end)
+                h_layout.addWidget(h_edit_end)
+                #
+                h_layout.addStretch()
+            else:
+                h_edit = QLineEdit(linedit[1])
+                h_edit.setFont(font)
+                h_layout.addWidget(h_label)
+                h_layout.addWidget(h_edit)
+            v_layout.addLayout(h_layout)
+        
+        tab2_content_layout.addLayout(v_layout)
+        #
+        push_create = QPushButton(_("Create CA"))
+        push_delete = QPushButton(_("Delete CA"))
+        
+        push_create.setFont(font)
+        push_delete.setFont(font)
+        
+        push_create.setMinimumHeight(32)
+        push_delete.setMinimumHeight(32)
+        
+        push_create.setMinimumWidth(210)
+        push_delete.setMinimumWidth(210)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(push_create)
+        btn_layout.addWidget(push_delete)
+        btn_layout.addStretch()
+        
+        dummy_layout = QVBoxLayout()
+        dummy_widget = QWidget()
+        dummy_widget.setMinimumHeight(32)
+        dummy_layout.addWidget(dummy_widget)
+               
+        tab2_content_layout.addLayout(btn_layout)
+        tab2_content_layout.addLayout(dummy_layout)
+        #
+        #tab_vlayout.addLayout(tab2_content_layout)
+        #tab_vlayout.addLayout(tab_hlayout)
+        #tab_vlayout.addStretch()
+        
+        tab2_content_widget.setLayout(tab2_content_layout)
+        tab2_scroll_area   .setWidget(tab2_content_widget)
+        
+        tab2_layout.addWidget(tab2_scroll_area)
+        tab2.setLayout(tab2_layout)
+        
+        self.cert_tab.addTab(tab1, _("Create SSL"))
+        self.cert_tab.addTab(tab2, _("Create CA"))
+        
+        vlayout.addWidget(self.tree_widget)
+        vlayout.addWidget(self.cert_tab)
+        #
+        hlayout.addLayout(vlayout)
+        
+        tab = self.certssl_tabs.getTab(0)
+        tab.setLayout(hlayout)
+        
+        #self.certssl_project  = ApplicationProjectPage(self, self.certssl_tabs.getTab(0), "ssl")
+        #self.certssl_editors  = ApplicationEditorsPage(self, self.certssl_tabs.getTab(1), "ssl")
         ###
         self.main_layout.addWidget(self.certssl_tabs)
         return
