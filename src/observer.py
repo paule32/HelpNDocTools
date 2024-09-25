@@ -1323,13 +1323,13 @@ class createHTMLproject():
             # -----------------------------------------
             self.console_old = sys.stdout
             self.console_new = DOSConsole(application_window)
-            self.console_new.console.setWordWrapMode(QTextOption.WordWrap)
+            self.console_new.win.setWordWrapMode(QTextOption.WordWrap)
             
             # -----------------------------------------
             # non-blocking show dialog ...
             # -----------------------------------------
             self.console_new.show()
-            self.console_new.console.append(_("generationg chm file..."))
+            self.console_new.win.append(_("generationg chm file..."))
             
             # -----------------------------------------
             # set redirect of stdout to dialog
@@ -1376,16 +1376,16 @@ class createHTMLproject():
         datas  = self.process.readAllStandardOutput()
         stdout = bytes(datas).decode("utf8")
         stdout = stdout.replace('\r','')
-        self.console_new.console.append(stdout)
+        self.console_new.append(stdout)
     
     def handle_stderr(self):
         datas = self.process.readAllStandardError()
         stderr = bytes(datas).decode("utf8")
         stderr = stderr.replace('\r','')
-        self.console_new.console.append(stderr)
+        self.console_new.win.append(stderr)
     
     def process_finished(self):
-        self.console_new.console.append(_("Command finished."))
+        self.console_new.win.append(_("Command finished."))
         return
 
 # ------------------------------------------------------------------------------
@@ -1733,36 +1733,28 @@ def convertPath(text):
 # ---------------------------------------------------------------------------
 # \brief A dos-console Qt5 Dialog - used by dBase console Applications.
 # ---------------------------------------------------------------------------
-class DOSConsole(QDialog):
+class DOSConsoleWindow(QTextEdit):
     def __init__(self, parent=None):
         super().__init__()
         
-        dlg_layout = QHBoxLayout()
-        lhs_layout = QVBoxLayout()
-        rhs_layout = QVBoxLayout()
-        
-        printer_box = QListWidget()
-        printer_box.setMaximumWidth(100)
-        
-        self.console = QTextEdit()
-        self.console.setReadOnly(True)
-        self.console.setStyleSheet("""
+        self.setReadOnly(False)
+        self.setStyleSheet("""
         background-color: black;
         font-family: 'Courier New';
         font-size: 10pt;
         color: gray;
         """)
         #
-        self.console.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.console.setVerticalScrollBarPolicy  (Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy  (Qt.ScrollBarAlwaysOff)
         
         char_width, char_height = self.get_char_dimensions('A')
         #
-        self.console.setMinimumWidth ((char_width  * 96) - 10)
-        self.console.setMaximumWidth ((char_width  * 96) - 10)
+        self.setMinimumWidth ((char_width  * 96) - 10)
+        self.setMaximumWidth ((char_width  * 96) - 10)
         #
-        self.console.setMinimumHeight((char_height * 33) - 5)
-        self.console.setMaximumHeight((char_height * 33) - 5)
+        self.setMinimumHeight((char_height * 33) - 5)
+        self.setMaximumHeight((char_height * 33) - 5)
         
         self.cols   = 80
         self.rows   = 25
@@ -1778,24 +1770,9 @@ class DOSConsole(QDialog):
         # ------------------------------------------------
         self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
         self.colors = [['#ff0000:#000000' for _ in range(self.cols)] for _ in range(self.rows)]
-
-        # close button, to close the QDialog
-        btn_close  = QPushButton(_("Close"))
-        btn_close.setMinimumHeight(32)
-        btn_close.setFont(QFont(genv.v__app__font_edit,10))
-        btn_close.clicked.connect(self.btn_close_clicked)
-        
-        lhs_layout.addWidget(printer_box)
-        rhs_layout.addWidget(self.console)
-        rhs_layout.addWidget(btn_close)
-        
-        dlg_layout.addLayout(lhs_layout)
-        dlg_layout.addLayout(rhs_layout)
-        
-        self.setLayout(dlg_layout)
     
     def get_char_dimensions(self, char):
-        font         = self.console.font()
+        font         = self.font()
         font_metrics = QFontMetrics(font)
         
         char_width   = font_metrics.horizontalAdvance(char)
@@ -1803,37 +1780,17 @@ class DOSConsole(QDialog):
         
         return char_width, char_height
     
-    def btn_close_clicked(self):
-        self.close()
-    
-    # ---------------------------------------------------------
-    # \brief  Set the cursor position to column (xpos), and the
-    #         row (ypos).
-    #
-    # \param  xpos - int => the column
-    # \param  ypos - int => the row
-    #
-    # \return nothing
-    # ---------------------------------------------------------
-    def gotoxy(self, xpos, ypos):
-        self.current_x = xpos - 1
-        self.current_y = ypos - 1
-        return
-    
-    # ---------------------------------------------------------
-    # \brief  Set the acutal color for text output.
-    #
-    # \param  fg_color   - str => the color for the foreground
-    # \param  bg_color   - str => the color for the background
-    #
-    # \return color_pair - str => '#000000:#000000' => fg:bg
-    # ---------------------------------------------------------
     def setcolor(self, fg_color, bg_color):
         self.fg_color = fg_color
         self.bg_color = bg_color
         
         result = self.fg_color + ':' + self.bg_color
         return result
+    
+    def gotoxy(self, xpos, ypos):
+        self.current_x = xpos - 1
+        self.current_y = ypos - 1
+        return
     
     # ---------------------------------------------------------
     # \brief  Print the current date.
@@ -1843,7 +1800,7 @@ class DOSConsole(QDialog):
         result = datetime.now().strftime("%Y-%m-%d")
         return result
     
-    def clear(self):
+    def clear_screen(self):
         self.buffer.clear()
         self.colors.clear()
         
@@ -1910,7 +1867,7 @@ class DOSConsole(QDialog):
                         text_html += field_value
                         text_html += '</span>'
                 text_html += "<br>"
-            self.console.setHtml(text_html)
+            self.setHtml(text_html)
         except Exception as e:
             print(e)
     
@@ -1957,6 +1914,35 @@ class DOSConsole(QDialog):
                 pos += 1
         else:
             return "#000000"
+
+class DOSConsole(QDialog):
+    def __init__(self, parent=None):
+        super().__init__()
+        
+        dlg_layout = QHBoxLayout()
+        lhs_layout = QVBoxLayout()
+        rhs_layout = QVBoxLayout()
+        
+        printer_box = QListWidget()
+        printer_box.setMaximumWidth(100)
+        
+        self.win = DOSConsoleWindow()
+        self.win.setReadOnly(True)
+        
+        # close button, to close the QDialog
+        btn_close  = QPushButton(_("Close"))
+        btn_close.setMinimumHeight(32)
+        btn_close.setFont(QFont(genv.v__app__font_edit,10))
+        btn_close.clicked.connect(self.btn_close_clicked)
+        
+        lhs_layout.addWidget(printer_box)
+        rhs_layout.addWidget(self.win)
+        rhs_layout.addWidget(btn_close)
+        
+        dlg_layout.addLayout(lhs_layout)
+        dlg_layout.addLayout(rhs_layout)
+        
+        self.setLayout(dlg_layout)
 
 # ---------------------------------------------------------------------------
 # \brief A parser generator class to create a DSL (domain source language)
@@ -3083,10 +3069,10 @@ class interpreter_dBase(interpreter_base):
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
                     genv.text_code += ('\t' * genv.counter_indent)
-                    genv.text_code += ("console.gotoxy(" +
+                    genv.text_code += ("console.win.gotoxy(" +
                     str(self.xpos) + ","   +
                     str(self.ypos) + ")\n" +
-                    ('\t' * genv.counter_indent) + "console.print_date()\n")
+                    ('\t' * genv.counter_indent) + "console.win.print_date()\n")
                     
                     self.command_ok = True
                 else:
@@ -3224,7 +3210,7 @@ class interpreter_dBase(interpreter_base):
         c = self.skip_white_spaces(self.dbase_parser)
         if c == '\"':
             genv.temp_code  = ('\t' * genv.counter_indent)
-            genv.temp_code += 'console.print_line('
+            genv.temp_code += 'console.win.print_line('
             genv.text_code += genv.temp_code
             genv.temp_code  = ""
             genv.last_command = False
@@ -3254,7 +3240,7 @@ class interpreter_dBase(interpreter_base):
                 self.token_str = c
                 self.getNumber()
                 genv.text_code += ('\t' * genv.counter_indent)
-                genv.text_code += "console.gotoxy("
+                genv.text_code += "console.win.gotoxy("
                 genv.text_code += self.token_str
                 #
                 #showInfo("digit:\n" + genv.text_code)
@@ -3276,7 +3262,7 @@ class interpreter_dBase(interpreter_base):
                                 if c == '"':
                                     self.ungetChar(1)
                                     self.token_str  = ('\t' * genv.counter_indent)
-                                    self.token_str += "console.print_line("
+                                    self.token_str += "console.win.print_line("
                                     self.token_str += self.handle_string()
                                     self.token_str += ")\n"
                                     genv.text_code += self.token_str
@@ -3305,7 +3291,7 @@ class interpreter_dBase(interpreter_base):
                             self.getIdent()
                             if self.token_str == "say":
                                 genv.text_code += ('\t' * genv.counter_indent)
-                                genv.text_code += "console.print("
+                                genv.text_code += "console.win.print("
                                 c = self.skip_white_spaces(self.dbase_parser)
                                 if c == '"':
                                     self.ungetChar(1)
@@ -3477,7 +3463,7 @@ class interpreter_dBase(interpreter_base):
                                     if c == 1000:
                                         genv.text_code += ('\t' * genv.counter_indent)
                                         genv.text_code += (
-                                        f"console.setcolor('{self.fg_color}','{self.bg_color}')\n")
+                                        f"console.win.setcolor('{self.fg_color}','{self.bg_color}')\n")
                                         #showInfo("connnnn:  " + genv.text_code)
                                         continue
                                     else:
@@ -3569,7 +3555,7 @@ class interpreter_dBase(interpreter_base):
                 continue
             elif c == '?':
                 genv.text_code += ('\t' * genv.counter_indent)
-                genv.text_code += "console.print_line("
+                genv.text_code += "console.win.print_line("
                 genv.last_command = False
                 #
                 self.token_str = ""
@@ -9762,10 +9748,10 @@ class applicationProjectWidget(QWidget):
         self.lay_push.addWidget(self.clr_push)
         self.lay_push.addWidget(self.del_push)
         
-        scroll_box_tab1 = scrollBoxTableCreatorDBF()
+        self.scroll_box_tab1 = scrollBoxTableCreatorDBF()
         
         self.tab_widget = QTabWidget()
-        self.tab_widget.addTab(scroll_box_tab1, "dBase")
+        self.tab_widget.addTab(self.scroll_box_tab1, "dBase")
         self.tab_widget.addTab(QWidget(), "SQLite 3")
         self.tab_widget.addTab(QWidget(), "Tab 3")
         
@@ -13233,7 +13219,47 @@ class FileWatcherGUI(QDialog):
         self.console_tabs.setStyleSheet(_(genv.css_tabs))
         self.console_tabs.hide()
         
+        vlayout = QVBoxLayout()
+        hlayout = QHBoxLayout()
+        
+        font = QFont("Arial", 10)
+        
+        group_box = QGroupBox(_("Selecte OS: "))
+        group_box.setFont(font)
+        
+        os_radio_button1 = QRadioButton("MS-DOS")
+        os_radio_button2 = QRadioButton("Amiga 500")
+        os_radio_button3 = QRadioButton("C-64")
+        os_radio_button4 = QRadioButton("Linux")
+        
+        os_radio_button1.setFont(font)
+        os_radio_button2.setFont(font)
+        os_radio_button3.setFont(font)
+        os_radio_button4.setFont(font)
+        
+        os_radio_button1.setChecked(True)
+        
+        dummy = QWidget()
+        dummy.setMinimumHeight(32)
+        
+        vlayout.addWidget(dummy)
+        vlayout.addWidget(os_radio_button1)
+        vlayout.addWidget(os_radio_button2)
+        vlayout.addWidget(os_radio_button3)
+        vlayout.addWidget(os_radio_button4)
+        vlayout.addStretch()
+        
+        group_box.setLayout(vlayout)
+        
+        user_console = DOSConsoleWindow(application_window)
+        user_console.show()
+        
+        hlayout.addWidget(group_box)
+        hlayout.addWidget(user_console)
+        hlayout.addStretch()
+        
         self.console_tabs_chm_widget = QWidget()
+        self.console_tabs_chm_widget.setLayout(hlayout)
         self.console_tabs.addTab(self.console_tabs_chm_widget, _("Console"))
         ###
         self.main_layout.addWidget(self.console_tabs)
@@ -13264,6 +13290,8 @@ class FileWatcherGUI(QDialog):
         self.certssl_tabs = ApplicationTabWidget([
             _("SSL Cert Project"),
             _("SSL Cert Editor")])
+        
+        font = QFont("Arial", 10)
         
         hlayout = QHBoxLayout()
         vlayout = QVBoxLayout()
@@ -13299,8 +13327,61 @@ class FileWatcherGUI(QDialog):
         tab1_content_widget.setLayout(tab1_content_layout)
         tab1_scroll_area   .setWidget(tab1_content_widget)
         
-        tab1_label = QLabel("Inhalt Tab 1")
-        tab1_content_layout.addWidget(tab1_label)
+        tab1_hlayout_1 = QHBoxLayout()
+        tab1_label_1 = QLabel(_("Display Name:"))
+        tab1_label_1.setMinimumWidth(120)
+        tab1_label_1.setFont(font)
+        #
+        tab1_edit = QLineEdit()
+        tab1_edit.setFont(font)
+        
+        tab1_hlayout_2 = QHBoxLayout()
+        #
+        tab1_label_2   = QLabel(_("Usage:"))
+        tab1_label_2.setMinimumWidth(120)
+        tab1_label_2.setFont(font)
+        #
+        tab1_combo = QComboBox()
+        tab1_combo.setFont(font)
+        tab1_combo.addItem(_("Personel"))
+        tab1_combo.addItem(_("Web Hosting"))
+        
+        tab1_hlayout_1.addWidget(tab1_label_1)
+        tab1_hlayout_1.addWidget(tab1_edit)
+        tab1_hlayout_1.addStretch()
+        #
+        tab1_hlayout_2.addWidget(tab1_label_2)
+        tab1_hlayout_2.addWidget(tab1_combo)
+        tab1_hlayout_2.addStretch()
+        
+        tab1_button_layout = QHBoxLayout()
+        
+        tab1_button_cert_new = QPushButton(_("Create Cert"))
+        tab1_button_cert_add = QPushButton(_("Append Cert"))
+        tab1_button_cert_del = QPushButton(_("Delete Cert"))
+        
+        tab1_button_cert_new.clicked.connect(self.on_click_cert_new)
+        tab1_button_cert_add.clicked.connect(self.on_click_cert_add)
+        tab1_button_cert_del.clicked.connect(self.on_click_cert_del)
+        
+        tab1_button_cert_new.setMinimumHeight(32)
+        tab1_button_cert_add.setMinimumHeight(32)
+        tab1_button_cert_del.setMinimumHeight(32)
+        
+        tab1_button_cert_new.setMinimumWidth(180)
+        tab1_button_cert_add.setMinimumWidth(180)
+        tab1_button_cert_del.setMinimumWidth(180)
+        
+        tab1_button_layout.addWidget(tab1_button_cert_new)
+        tab1_button_layout.addWidget(tab1_button_cert_add)
+        tab1_button_layout.addWidget(tab1_button_cert_del)
+        tab1_button_layout.addStretch()
+        
+        tab1_content_layout.addLayout(tab1_hlayout_1)
+        tab1_content_layout.addLayout(tab1_hlayout_2)
+        tab1_content_layout.addLayout(tab1_button_layout)
+        tab1_content_layout.addStretch()
+        #
         tab1_layout.addWidget(tab1_scroll_area)
         tab1.setLayout(tab1_layout)
         
@@ -13314,7 +13395,6 @@ class FileWatcherGUI(QDialog):
         tab2_content_widget = QWidget()
         tab2_content_layout = QVBoxLayout()
         
-        font = QFont("Arial", 10)
         #
         linedits = [
             [ _("CA Name"),                 "trashserver.net"          ],      # 0
@@ -13463,6 +13543,13 @@ class FileWatcherGUI(QDialog):
         ###
         self.main_layout.addWidget(self.certssl_tabs)
         return
+    
+    def on_click_cert_new(self):
+        print("cert new")
+    def on_click_cert_add(self):
+        print("cert add")
+    def on_click_cert_del(self):
+        print("cert del")
     
     def on_click_saveca_ca(self):
         print("saveca ca")
