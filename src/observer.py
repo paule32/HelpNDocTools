@@ -11908,7 +11908,7 @@ class FileWatcherGUI(QDialog):
         self.side_btnB = myIconButton(self,  11, "Setup", "Setup your Project")
         self.side_btnC = myIconButton(self,  12, "SSL Certs", "Setup SSL")
         self.side_btnD = myIconButton(self,  13, "GitHub.com", "Publish Project")
-        self.side_btnE = myIconButton(self,  14, "Apache", "Configure Apache 2")
+        self.side_btnE = myIconButton(self,  14, "Web Server", "Configure Web Server")
         self.side_btnF = myIconButton(self,  15, "MySQL", "Configure MySQL")
         self.side_btnG = myIconButton(self,  16, "Squid", "Configure Squid")
         self.side_btnH = myIconButton(self,  17, "C-64", "The most popular Commodore C-64\from int the 1980er")
@@ -13575,10 +13575,89 @@ class FileWatcherGUI(QDialog):
     
     def handleApache(self):
         self.apache_tabs = ApplicationTabWidget([
-            _("Apache Project"),
-            _("Apache Editor")])
-        self.apache_project  = ApplicationProjectPage(self, self.apache_tabs.getTab(0), "apache")
-        self.apache_editors  = ApplicationEditorsPage(self, self.apache_tabs.getTab(1), "apache")
+            _("Web Server Configuration")])
+        
+        main_layout = QHBoxLayout()
+        splitter = QSplitter(Qt.Horizontal)
+        
+        tree_widget  = QTreeWidget()
+        tree_widget.setColumnCount(1)
+        tree_widget.setHeaderLabels(["Server"])
+        
+        root1 = QTreeWidgetItem(tree_widget)
+        root1.setText(0, "Root1")
+        
+        child1 = QTreeWidgetItem(root1)
+        child1.setText(0, "Child 1.1")
+        
+        splitter.addWidget(tree_widget)
+        
+        right_widget = QWidget()
+        right_layout = QVBoxLayout()
+        
+        tab_widget_1 = QTabWidget()
+        
+        tab1_1 = QWidget()
+        tab2_1 = QWidget()
+        tab3_1 = QWidget()
+        
+        tab_layout  = QHBoxLayout()
+        
+        tab1_layout = QVBoxLayout()
+        tab2_layout = QVBoxLayout()
+        tab3_layout = QVBoxLayout()
+        
+        tab1_layout.addWidget(QLabel("zuzu"))
+        tab2_layout.addWidget(QLabel("zaza"))
+        tab3_layout.addWidget(QLabel("fufu"))
+        
+        tab1_1.setLayout(tab1_layout)
+        tab2_1.setLayout(tab2_layout)
+        tab3_1.setLayout(tab3_layout)
+        
+        tab_widget_1.addTab(tab1_1, "IIS")
+        tab_widget_1.addTab(tab2_1, "Apache 2")
+        tab_widget_1.addTab(tab3_1, "Tomcat")
+        
+        tab_layout.addWidget(tab_widget_1)
+        
+        right_layout.addLayout(tab_layout)
+        right_widget.setLayout(right_layout)
+        
+        splitter.addWidget(right_widget)
+        splitter.setSizes([200, 600])
+        
+        main_layout.addWidget(splitter)
+        
+        
+        help_widget = QListWidget()
+        help_widget.setMaximumWidth(180)
+        
+        items = ["Element 1", "Element 2", "Element 3", "Element 4", "Element 5"]
+        for item in items:
+            QListWidgetItem(item, help_widget)
+        
+        
+        icon_list = QListWidget()
+        icon_list.setViewMode(QListWidget.IconMode)
+        icon_list.setIconSize(QSize(42, 42))
+        
+        icon_items = [
+            ("Connection",      genv.v__app__img__int__ + "/earth.ico"),
+            ("SSL Certs",       genv.v__app__img__int__ + "/certmgr.ico"),
+            ("Network Adapter", genv.v__app__img__int__ + "/nic.ico")
+        ]
+        for item_text, item_icon in icon_items:
+            icon = QListWidgetItem(QIcon(item_icon), item_text)
+            icon.setSizeHint(QSize(150, 64))
+            icon_list.addItem(icon)
+        
+        tab1_layout.addWidget(icon_list)
+        main_layout.addWidget(help_widget)
+        
+        tab = self.apache_tabs.getTab(0)
+        tab.setLayout(main_layout)
+        
         ###
         self.main_layout.addWidget(self.apache_tabs)
         return
