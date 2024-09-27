@@ -47,8 +47,9 @@ required_modules = [
     "configparser", "traceback", "marshal", "inspect", "logging", "PyQt5",
     "pathlib", "rich", "string", "codecs", "pywin32", "pywintypes" ]
 
-for module in required_modules:
-    check_and_install_module(module)
+def when_debug_is_on():
+    for module in required_modules:
+        check_and_install_module(module)
 
 # ---------------------------------------------------------------------------
 class unexpectedParserException(Exception):
@@ -371,7 +372,7 @@ class globalEnv:
         self.v__app__error_level  = "0"
         
         self.v__app__scriptname__ = "./examples/dbase/example1.prg"
-        self.v__app__favorites    = os.path.join(self.v__app__internal__, "favorites.ini")
+        self.v__app__favorites    = self.v__app__internal__ + "/favorites.ini"
         
         # ------------------------------------------------------------------------
         self.v__app__config   = None
@@ -1943,6 +1944,9 @@ class DOSConsole(QDialog):
         dlg_layout.addLayout(rhs_layout)
         
         self.setLayout(dlg_layout)
+    
+    def btn_close_clicked(self):
+        self.close()
 
 # ---------------------------------------------------------------------------
 # \brief A parser generator class to create a DSL (domain source language)
@@ -4039,6 +4043,87 @@ class interpreter_Pascal(interpreter_base):
     def __init__(self, file_name):
         super(interpreter_Pascal, self).__init__(file_name)
     
+    def skip_white_spaces(self):
+        while True:
+            c = self.getChar()
+            if c == genv.ptNoMoreData:
+                return c
+            elif c == '/':
+                c = self.getChar()
+                if c == '/':
+                    while True:
+                        c = self.getChar()
+                        if c == genv.ptNoMoreData:
+                            return c
+                        elif c == '\n':
+                            break
+                        elif c == '\r':
+                            c = self.getChar()
+                            if not c == '\n':
+                                genv.have_errors = True
+                                genv.unexpectedError(_("line end error"))
+                            break
+                        else:
+                            continue
+                    continue
+                else:
+                    self.ungetChar(1)
+                    return '/'
+            elif c == '(':
+                c = self.getChar()
+                if c == '*':
+                    while True:
+                        c = self.getChar()
+                        if c == '\n':
+                            break
+                        elif c == '\r':
+                            c = self.getChar()
+                            if not c == '\n':
+                                genv.have_errors = True
+                                genv.unexpectedError(_("line end error"))
+                        elif c == '*':
+                            c = self.getChar()
+                            if c == genv.ptNoMoreData:
+                                genv.have_errors = True
+                                genv.unexpectedError(_("unterminated comment."))
+                            elif c == ')':
+                                break
+                            else:
+                                continue
+                        else:
+                            continue
+                    continue
+                else:
+                    self.ungetChar(1)
+                    return '('
+            elif c == '{':
+                while True:
+                    c = self.getChar()
+                    if c == genv.ptNoMoreData:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("unterminated comment."))
+                    elif c == '\n':
+                        break
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            genv.have_errors = True
+                            genv.unexpectedError(_("line end error"))
+                    elif c == '}':
+                        break
+                    else:
+                        continue
+            elif c == '\n':
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    genv.have_errors = True
+                    genv.unexpectedError(_("line end error"))
+                continue
+            else:
+                return c
+    
     def parse(self):
         self.found = False
         try:
@@ -4047,66 +4132,41 @@ class interpreter_Pascal(interpreter_base):
                 return
             # header
             self.token_str = ""
+            self.found = False
             while True:
-                c = self.skip_white_spaces(self.pascal_parser)
-                self.check_null(c)
-                if c.isalpha():
-                    self.token_str = c.lower()
-                else:
-                    genv.unexpectedChar(c)
-                    return '\0'
-                self.found = False
-                self.token_str = self.getIdent()
-                if len(self.token_str) > 64:
-                    genv.unexpectedError(_("symbol name too long"))
-                    return '\0'
-                if self.token_str == "program":
-                    self.found = True
-                    print("---> program")
-                    break
-                elif self.token_str == "unit":
-                    self.found = True
-                    print("---> unit")
-                    break
-                elif self.token_str == "library":
-                    self.found = True
-                    print("---> library")
-                    break
-                else:
-                    self.found = False
-                    break
-            if len(self.token_str) > 0:
-                if not self.found:
-                    genv.unexpectedError(_(f"token not found: {self.token_str}"))
-                    return '\0'
-            # body
-            self.token_str = ""
-            print("C: ", c)
-            while True:
-                c = self.skip_white_spaces(self.pascal_parser)
-                if c == '\0':
-                    if self.pos >= len(self.source):
-                        break
-                    genv.unexpectedError(self.err_commandNF)
-                    return '\0'
-                elif c.isalpha() or c == '_':
-                    self.token_str = c.lower()
+                c = self.skip_white_spaces()
+                if c == genv.ptNoMoreData:
+                    return c
+                elif c.isalpha():
+                    self.token_str = c
                     self.getIdent()
-                
-                if len(self.token_str) > 64:
-                    genv.unexpectedError(_("symbol name too long"))
-                    return '\0'
-                
-                if self.token_str == "begin":
-                    print("begin <---")
-                    break
-                elif self.token_str == "interface":
-                    print("interface")
-                    break
-                else:
-                    if len(self.token_str) > 0:
-                        print("token: ", self.token_str)
+                    showInfo(self.token_str)
+                    if len(self.token_str) > 64:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("symbol name too long"))
+                    if self.token_str.lower() == "program":
+                        self.found = True
+                        print("---> program")
                         break
+                    elif self.token_str.lower() == "unit":
+                        self.found = True
+                        print("---> unit")
+                        break
+                    elif self.token_str.lower() == "library":
+                        self.found = True
+                        print("---> library")
+                        break
+                    else:
+                        self.found = False
+                    if len(self.token_str) > 0:
+                        if not self.found:
+                            genv.have_errors = True
+                            genv.unexpectedError(_(f"token not found: {self.token_str}"))
+                        else:
+                            showInfo("toko:  " + self.token_str)
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedChar(c)
         except:
             showException(traceback.format_exc())
 
@@ -4173,9 +4233,127 @@ class interpreter_ISOC(interpreter_base):
 class interpreter_Lisp(interpreter_base):
     def __init__(self, file_name):
         super(interpreter_Lisp, self).__init__(file_name)
-        
+    
+    def skip_white_spaces(self):
+        while True:
+            c = self.getChar()
+            if c == genv.ptNoMoreData:
+                return c
+            elif c == '\n':
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    genv.have_errors = True
+                    genv.unexpectedError(_("line end error"))
+                continue
+            elif c == ';':
+                showInfo("lisp comment: " + str(genv.line_row))
+                while True:
+                    c = self.getChar()
+                    if c == '\n':
+                        break
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            genv.have_errors = True
+                            genv.unexpectedError(_("line end error"))
+                        break
+                    else:
+                        continue
+                continue
+            elif c == ' ' or c == '\t':
+                continue
+            else:
+                return c
+    
+    def handle_defun_head(self):
+        while True:
+            c = self.skip_white_spaces()
+            if c == genv.ptNoMoreData:
+                genv.have_errors = True
+                genv.unexpectedError(_("syntax error."))
+                return
+            elif c.isalpha():
+                return c
+            elif c == '(':
+                while True:
+                    c = self.skip_white_spaces()
+                    if c == genv.ptNoMoreData:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("syntax error"))
+                        return
+                    elif c == ')':
+                        break
+                    else:
+                        continue
+                break
+            else:
+                genv.have_errors = True
+                genv.unexpectedError(_("open paren expected at defun."))
+                return
+    
     def parse(self):
-        self.token_str = ""
+        genv.line_col = 1
+        genv.line_row = 1
+        #
+        open_paren    = 0
+        while True:
+            c = self.skip_white_spaces()
+            if c == genv.ptNoMoreData:
+                return c
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == "defun":
+                    showInfo("a defune")
+                    c = self.skip_white_spaces()
+                    if c == genv.ptNoMoreData:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("syntax error."))
+                        return
+                    elif c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        self.handle_defun_head()
+                        continue
+            elif c == '(':
+                open_paren += 1
+                showInfo("((((( 1111")
+                c = self.skip_white_spaces()
+                if c == '(':
+                    showInfo("3333 )))))")
+                    open_paren += 1
+                    continue
+                elif c == ')':
+                    showInfo("2222 )))))")
+                    open_paren -= 1
+                    if open_paren < 1:
+                        break
+                    continue
+                elif c == genv.ptNoMoreData:
+                    if open_paren > 0:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("closed1 paren expected."))
+                        return
+                    return c
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedError(_("closed2 paren expected."))
+                    return
+            elif c == ')':
+                showInfo(")))))) 000")
+                open_paren -= 1
+                if open_paren >= 0:
+                    continue
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedError(_("open paren expected."))
+                    return
+            else:
+                genv.have_errors = True
+                genv.unexpectedError(_("unknown char. found"))
+                return
 
 class lispDSL():
     def __init__(self, script_name):
@@ -6730,7 +6908,7 @@ class CppSyntaxHighlighter(SourceCodeEditorBase):
                 if self.previousBlockState() != 1 and not in_comment:
                     self.setFormat(start, length, self.boldFormat)
 
-class dBaseSyntaxHighlighter(SourceCodeEditorBase):    
+class dBaseSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
         super(dBaseSyntaxHighlighter, self).__init__(document)
         
@@ -6782,6 +6960,61 @@ class dBaseSyntaxHighlighter(SourceCodeEditorBase):
         
         # Highlight single line comments
         single_line_comment_patterns = [r"//", r"\*\*", r"&&"]
+        comment_positions = []
+        
+        # Suche nach einzeiligen Kommentaren und markiere sie
+        for pattern in single_line_comment_patterns:
+            for match in re.finditer(pattern, text):
+                start = match.start()
+                self.setFormat(start, len(text) - start, self.commentFormat)
+                comment_positions.append((start, len(text) - start))
+        
+        # Suche nach Keywords und markiere sie
+        for word in self.keywords:
+            pattern = re.compile(re.escape(word), re.IGNORECASE)
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                
+                # Prüfen, ob das Keyword in einem Kommentar steht
+                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
+                
+                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
+                if self.previousBlockState() != 1 and not in_comment:
+                    self.setFormat(start, length, self.boldFormat)
+
+class LispSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(LispSyntaxHighlighter, self).__init__(document)
+        
+        # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
+        self.keywords = [
+            "DEFUN"
+        ]
+        
+        self.commentStartExpression = QRegExp(r"/\*")
+        self.commentEndExpression   = QRegExp(r"\*/")
+    
+    def highlightBlock(self, text):
+        # Mehrzeilige Kommentare markieren
+        self.setCurrentBlockState(0)
+        
+        startIndex = 0
+        if self.previousBlockState() != 1:
+            startIndex = self.commentStartExpression.indexIn(text)
+        
+        while startIndex >= 0:
+            endIndex = self.commentEndExpression.indexIn(text, startIndex)
+            if endIndex == -1:
+                self.setCurrentBlockState(1)
+                commentLength = len(text) - startIndex
+            else:
+                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
+            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
+            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
+        
+        # Highlight single line comments
+        single_line_comment_patterns = [r"\;"]
         comment_positions = []
         
         # Suche nach einzeiligen Kommentaren und markiere sie
@@ -6971,6 +7204,8 @@ class EditorTextEdit(QPlainTextEdit):
             self.highlighter = dBaseSyntaxHighlighter(self.document())
         elif edit_type == "pascal":
             self.highlighter = PascalSyntaxHighlighter(self.document())
+        elif edit_type == "lisp":
+            self.highlighter = LispSyntaxHighlighter(self.document())
         
         if not genv.blockCountChanged_connected:
             genv.blockCountChanged_connected = True
@@ -7020,7 +7255,7 @@ class EditorTextEdit(QPlainTextEdit):
         return space + icon_space
     
     def updateLineNumberAreaWidth(self, _):
-        self.setViewportMargins(self.lineNumberAreaWidth()+2, 0, 0, 0)
+        self.setViewportMargins(self.lineNumberAreaWidth()+9, 0, 0, 0)
     
     def updateLineNumberArea(self, rect, dy):
         if dy:
@@ -11402,7 +11637,7 @@ class ApplicationEditorsPage(QObject):
                 _("All Files")    + " (*)"])
         elif self.objectName() == "lisp":
             dialog.setNameFilters([
-                _("Lisp Files") + " (*.lisp *.lsü *.l *.el)",
+                _("Lisp Files") + " (*.lisp *.lsp *.l *.el)",
                 _("Text Files")   + " (*.txt *.md)",
                 _("All Files")    + " (*)"])
         elif self.objectName() == "java":
