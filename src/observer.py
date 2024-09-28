@@ -13808,6 +13808,33 @@ class FileWatcherGUI(QDialog):
         self.main_layout.addWidget(self.github_tabs)
         return
     
+    def iis_server_start(self):
+        print("start iis")
+    
+    def apache_server_start(self):
+        print("start apache")
+    
+    def tomcat_server_start(self):
+        print("start tomcat")
+    
+    def iis_server_stop(self):
+        print("stop iis")
+    
+    def apache_server_stop(self):
+        print("stop apache")
+    
+    def tomcat_server_stop(self):
+        print("stop tomcat")
+    
+    def iis_send_clients(self):
+        print("send to iis clients")
+    
+    def apache_send_clients(self):
+        print("send to apache clients")
+    
+    def tomcat_send_clients(self):
+        print("send to tomcat clients")
+    
     def handleApache(self):
         self.apache_tabs = ApplicationTabWidget([
             _("Web Server Configuration")])
@@ -13836,15 +13863,116 @@ class FileWatcherGUI(QDialog):
         tab2_1 = QWidget()
         tab3_1 = QWidget()
         
+        font = QFont("Arial", 10)
         tab_layout  = QHBoxLayout()
         
-        tab1_layout = QVBoxLayout()
-        tab2_layout = QVBoxLayout()
-        tab3_layout = QVBoxLayout()
+        tab1_layout = QVBoxLayout()     # iis
+        tab2_layout = QVBoxLayout()     # apache 2.4
+        tab3_layout = QVBoxLayout()     # tomcat
         
-        tab1_layout.addWidget(QLabel("zuzu"))
-        tab2_layout.addWidget(QLabel("zaza"))
-        tab3_layout.addWidget(QLabel("fufu"))
+        # iis
+        push_layout_iis = QHBoxLayout()
+        push_start_iis  = QPushButton(_("Start Server"))
+        push_stop_iis   = QPushButton(_("Stop Server"))
+        #
+        push_start_iis.clicked.connect(self.iis_server_start)
+        push_stop_iis .clicked.connect(self.iis_server_stop)
+        #
+        push_start_iis.setFont(font)
+        push_stop_iis .setFont(font)
+        #
+        push_start_iis.setMinimumHeight(26)
+        push_stop_iis .setMinimumHeight(26)
+        #
+        push_layout_iis.addWidget(push_start_iis)
+        push_layout_iis.addWidget(push_stop_iis)
+        
+        
+        # apache 2.4
+        push_layout_apache = QHBoxLayout()
+        push_start_apache  = QPushButton(_("Start Server"))
+        push_stop_apache   = QPushButton(_("Stop Server"))
+        #
+        push_start_apache.clicked.connect(self.apache_server_start)
+        push_stop_apache .clicked.connect(self.apache_server_stop)
+        #
+        push_start_apache.setFont(font)
+        push_stop_apache .setFont(font)
+        #
+        push_start_apache.setMinimumHeight(26)
+        push_stop_apache .setMinimumHeight(26)
+        #
+        push_layout_apache.addWidget(push_start_apache)
+        push_layout_apache.addWidget(push_stop_apache)
+        
+        
+        # tomcat
+        push_layout_tomcat = QHBoxLayout()
+        push_start_tomcat  = QPushButton(_("Start Server"))
+        push_stop_tomcat   = QPushButton(_("Stop Server"))
+        #
+        push_start_tomcat.clicked.connect(self.tomcat_server_start)
+        push_stop_tomcat .clicked.connect(self.tomcat_server_stop)
+        #
+        push_start_tomcat.setFont(font)
+        push_stop_tomcat .setFont(font)
+        #
+        push_start_tomcat.setMinimumHeight(26)
+        push_stop_tomcat .setMinimumHeight(26)
+        #
+        push_layout_tomcat.addWidget(push_start_tomcat)
+        push_layout_tomcat.addWidget(push_stop_tomcat)
+        
+        
+        tab1_layout.addLayout(push_layout_iis)
+        tab2_layout.addLayout(push_layout_apache)
+        tab3_layout.addLayout(push_layout_tomcat)
+        
+        
+        # iis
+        label_layout_iis = QHBoxLayout()
+        label_clients_iis = QLabel(_("Client's Connected: 0"))
+        label_clients_iis.setFont(font)
+        pushr_clients_iis = QPushButton(_("Send Repair Message"))
+        pushr_clients_iis.setMinimumHeight(26)
+        pushr_clients_iis.setMinimumWidth(210)
+        pushr_clients_iis.setFont(font)
+        pushr_clients_iis.clicked.connect(self.iis_send_clients)
+        
+        label_layout_iis.addWidget(label_clients_iis)
+        label_layout_iis.addWidget(pushr_clients_iis)
+        label_layout_iis.addStretch()
+        
+        
+        # apache 2.4
+        label_layout_apache = QHBoxLayout()
+        label_clients_apache = QLabel(_("Client's Connected: 0"))
+        label_clients_apache.setFont(font)
+        pushr_clients_apache = QPushButton(_("Send Repair Message"))
+        pushr_clients_apache.setMinimumHeight(26)
+        pushr_clients_apache.setMinimumWidth(210)
+        pushr_clients_apache.setFont(font)
+        pushr_clients_apache.clicked.connect(self.apache_send_clients)
+        
+        label_layout_apache.addWidget(label_clients_apache)
+        label_layout_apache.addWidget(pushr_clients_apache)
+        label_layout_apache.addStretch()
+        
+        
+        # tomcat
+        label_layout_tomcat = QHBoxLayout()
+        label_clients_tomcat = QLabel(_("Client's Connected: 0"))
+        label_clients_tomcat.setFont(font)
+        pushr_clients_tomcat = QPushButton(_("Send Repair Message"))
+        pushr_clients_tomcat.setMinimumHeight(26)
+        pushr_clients_tomcat.setMinimumWidth(210)
+        pushr_clients_tomcat.setFont(font)
+        pushr_clients_tomcat.clicked.connect(self.tomcat_send_clients)
+        
+        label_layout_tomcat.addWidget(label_clients_tomcat)
+        label_layout_tomcat.addWidget(pushr_clients_tomcat)
+        label_layout_tomcat.addStretch()
+        
         
         tab1_1.setLayout(tab1_layout)
         tab2_1.setLayout(tab2_layout)
@@ -13872,22 +14000,86 @@ class FileWatcherGUI(QDialog):
         for item in items:
             QListWidgetItem(item, help_widget)
         
+        # microsoft internet information server
+        icon_list_iis = QListWidget()
+        icon_list_iis.setViewMode(QListWidget.IconMode)
+        icon_list_iis.setIconSize(QSize(32, 32))
         
-        icon_list = QListWidget()
-        icon_list.setViewMode(QListWidget.IconMode)
-        icon_list.setIconSize(QSize(42, 42))
-        
-        icon_items = [
-            ("Connection",      genv.v__app__img__int__ + "/earth.ico"),
-            ("SSL Certs",       genv.v__app__img__int__ + "/certmgr.ico"),
-            ("Network Adapter", genv.v__app__img__int__ + "/nic.ico")
+        icon_items_iis = [
+            [_("Connection"),      genv.v__app__img__int__ + "/earth.ico"],
+            [_("SSL Certs"),       genv.v__app__img__int__ + "/certmgr.ico"],
+            [_("Network Adapter"), genv.v__app__img__int__ + "/nic.ico"]
         ]
-        for item_text, item_icon in icon_items:
+        strings_iss = [_("Connection"), _("SSL Certs"), _("Network Adapter")]
+        max_length_iss = max(len(s)+3 for s in strings_iss)
+        padded_strings_iis = [s.center(max_length_iss) for s in strings_iss]
+        i = 0
+        for s in padded_strings_iis:
+            print(s)
+            icon_items_iis[i][0] = s
+            i = i + 1
+        for item_text, item_icon in icon_items_iis:
             icon = QListWidgetItem(QIcon(item_icon), item_text)
-            icon.setSizeHint(QSize(150, 64))
-            icon_list.addItem(icon)
+            icon.setSizeHint(QSize(120, 64))
+            icon_list_iis.addItem(icon)
         
-        tab1_layout.addWidget(icon_list)
+        tab1_layout.addWidget(icon_list_iis)
+        tab1_layout.addLayout(label_layout_iis)
+        
+        
+        # apache 2.4
+        icon_list_apache = QListWidget()
+        icon_list_apache.setViewMode(QListWidget.IconMode)
+        icon_list_apache.setIconSize(QSize(32, 32))
+        
+        icon_items_apache = [
+            [_("Connection"),      genv.v__app__img__int__ + "/earth.ico"],
+            [_("SSL Certs"),       genv.v__app__img__int__ + "/certmgr.ico"],
+            [_("Network Adapter"), genv.v__app__img__int__ + "/nic.ico"]
+        ]
+        strings_apache = [_("Connection"), _("SSL Certs"), _("Network Adapter")]
+        max_length_apache = max(len(s)+3 for s in strings_apache)
+        padded_strings_apache = [s.center(max_length_apache) for s in strings_apache]
+        i = 0
+        for s in padded_strings_apache:
+            print(s)
+            icon_items_apache[i][0] = s
+            i = i + 1
+        for item_text, item_icon in icon_items_apache:
+            icon = QListWidgetItem(QIcon(item_icon), item_text)
+            icon.setSizeHint(QSize(120, 64))
+            icon_list_apache.addItem(icon)
+        
+        tab2_layout.addWidget(icon_list_apache)
+        tab2_layout.addLayout(label_layout_apache)
+        
+        
+        # tomcat
+        icon_list_tomcat = QListWidget()
+        icon_list_tomcat.setViewMode(QListWidget.IconMode)
+        icon_list_tomcat.setIconSize(QSize(32, 32))
+        
+        icon_items_tomcat = [
+            [_("Connection"),      genv.v__app__img__int__ + "/earth.ico"],
+            [_("SSL Certs"),       genv.v__app__img__int__ + "/certmgr.ico"],
+            [_("Network Adapter"), genv.v__app__img__int__ + "/nic.ico"]
+        ]
+        strings_tomcat = [_("Connection"), _("SSL Certs"), _("Network Adapter")]
+        max_length_tomcat = max(len(s)+3 for s in strings_tomcat)
+        padded_strings_tomcat = [s.center(max_length_tomcat) for s in strings_tomcat]
+        i = 0
+        for s in padded_strings_tomcat:
+            icon_items_tomcat[i][0] = s
+            i = i + 1
+        for item_text, item_icon in icon_items_tomcat:
+            icon = QListWidgetItem(QIcon(item_icon), item_text)
+            icon.setSizeHint(QSize(120, 64))
+            icon_list_tomcat.addItem(icon)
+        
+        tab3_layout.addWidget(icon_list_tomcat)
+        tab3_layout.addLayout(label_layout_tomcat)
+        
+        
         main_layout.addWidget(help_widget)
         
         tab = self.apache_tabs.getTab(0)
