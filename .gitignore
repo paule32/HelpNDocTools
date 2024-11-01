@@ -131,3 +131,4 @@ src/test.html
 doc/Commodore C64/BASIC/Programmers Desk Reference/eBook.lck
 *.gz
 *.gz
+/src/lexpr
