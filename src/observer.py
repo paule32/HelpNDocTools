@@ -189,6 +189,8 @@ class globalEnv:
         
         self.start_idx = 1
         self.end_idx   = 1
+        
+        self.header_code = ""
 
         # ------------------------------------------------------------------------
         # constants, and varibales that are used multiple times ...
@@ -2494,9 +2496,17 @@ class dbase_command:
         self.owner.AST.append(self)
         return self
 
-class Form11():
-    def __init__(self):
-        showInfo("in Form1")
+class dbase_TForm(QDialog):
+    def __init__(self, parent=None):
+        super(dbase_TForm, self).__init__(parent)
+        self.setWindowTitle(_("Main Window"))
+        self.setWindowFlags(
+            Qt.Window or
+            Qt.WindowMinimizeButtonHint or
+            Qt.WindowMaximizeButtonHint)
+
+    def readModal(self):
+        self.exec_()
 
 # ---------------------------------------------------------------------------
 # \brief  class for interpreting dBase related stuff ...
@@ -2571,17 +2581,12 @@ print = builtins.print
         self.parse_open(self.script_name)
     
     def update_code(self, text):
-        genv.text_code = (""
-        + text
-        + "\n\n"
-        + "if __name__ == '__main__':\n"
-        + "\tglobal console\n"
-        + "\tconsole = DOSConsole()\n"
-        )
-        if genv.isGuiApplication:
-            genv.text_code += (""
-            "\tpre_EntryPoint(True)\n"
-            )
+        genv.text_code += text
+        
+        #if genv.isGuiApplication:
+            #genv.text_code += (""
+            #"\tpre_EntryPoint(True)\n"
+            #)
     
     # -----------------------------------------------------------------------
     # \brief finalize checks and cleaning stuff ...
@@ -2989,46 +2994,51 @@ print = builtins.print
             return
         
         #genv.text_code += "\tcon.reset()\n"
-
-        if not genv.editor_check.isChecked():
-            genv.text_code += genv.class_code + """pass
-if __name__ == '__main__':
-\tglobal console
-\tconsole = DOSConsole()
-\tconsole.clear()
-"""
-        # reset old code
-        genv.class_code = ""
-        
         #genv.counter_indent -= 1
-        genv.text_code += ('\t' * genv.counter_indent)
-        genv.text_code += "console.exec_()\n"
+        
+        if genv.editor_check.isChecked():
+            genv.text_code += ("\n\n"
+            + "if __name__ == '__main__':\n"
+            + "\tglobal console\n"
+            + "\tconsole = DOSConsole()\n"
+            + "\tpre_EntryPoint(True)\n"
+            + "\tconsole.exec_()\n"
+            )
+        else:
+            genv.text_code = ("def pre_EntryPoint():\n" + genv.text_code)
+            self.update_code("\n\n"
+            + "if __name__ == '__main__':\n"
+            + "\tglobal console\n"
+            + "\tconsole = DOSConsole()\n"
+            + "\tpre_EntryPoint()\n"
+            + "\tconsole.exec_()\n"
+            )
         
         showInfo("runner:\n" + genv.text_code)
         
         #showInfo(genv.text_code)
         try:
+            cachedir = genv.v__app__internal__ + "/__cache__"
+            if not os.path.exists(cachedir):
+                os.makedirs(cachedir)
+            
+            fname = os.path.basename(self.script_name)
+            fname = os.path.splitext(fname)[0]
+            fname = cachedir+"/"+fname+".bin"
+            
             # ---------------------
             # compile text code ...
             # ---------------------
             bytecode = compile(
                 genv.text_code,
-                filename="<string>",
+                filename=fname,
                 mode="exec")
+                
+            filename = fname
             
             # ---------------------
             # save binary code ...
             # ---------------------
-            cachedir = genv.v__app__internal__ + "/__cache__"
-            if not os.path.exists(cachedir):
-                os.makedirs(cachedir)
-            
-            filename = os.path.basename(self.script_name)
-            filename = os.path.splitext(filename)[0]
-            filename = cachedir+"/"+filename+".bin"
-            
-            print("filename: " + filename)
-            
             with open(filename,"wb") as bytefile:
                 marshal.dump(bytecode , bytefile)
                 bytefile.close()
@@ -3041,7 +3051,17 @@ if __name__ == '__main__':
             # execute binary code:
             # ---------------------
             exec(bytecode, globals())
+            
+            # ---------------------
+            # reset old code ...
+            # ---------------------
+            genv.class_code  = ""
+            self.text_code   = ""
+            genv.header_code = ""
         except Exception as e:
+            genv.class_code  = ""
+            self.text_code   = ""
+            genv.header_code = ""
             showException(traceback.format_exc())
 
 class interpreter_dBase(interpreter_base):
@@ -3395,7 +3415,8 @@ class interpreter_dBase(interpreter_base):
     # CLASS ident OF FORM ... ENDCLASS
     # -----------------------------------------------
     def handle_class_commands(self):
-        showInfo("commando: " + str(self.pos));
+        #showInfo("commando: " + str(self.pos));
+        pass
     
     def handle_class(self):
         try:
@@ -3415,8 +3436,9 @@ class interpreter_dBase(interpreter_base):
                         if c.isalpha():
                             self.token_str = c
                             self.getIdent()
+                            ClassName = self.token_str
                             genv.class_code += self.token_str + "("
-                            # class Form1(
+                            # class ClassName(
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == genv.ptNoMoreData:
                                 raise e_no_more_data()
@@ -3432,12 +3454,16 @@ class interpreter_dBase(interpreter_base):
                                         self.getIdent()
                                         if self.token_str.lower() == "form":
                                             genv.class_code += (""
-                                            + "QDialog):\n"
+                                            + "dbase_TForm):\n"
                                             + ('\t' * genv.counter_indent)
-                                            + "def __init__(self):\n")
+                                            + "def __init__(self, parent=None):\n"
+                                            + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
+                                            + "\t\tself.setWindowTitle('Main Dialog')\n"
+                                            + "\t\tself.ClassName = '" + ClassName + "'\n"
+                                            + "\t\tself.ClassType = 'FORM'\n"
+                                            )
                                             genv.counter_indent += 1
-                                            genv.class_code += ('\t' * genv.counter_indent)
-                                            showInfo("KLASSE:\n" + genv.class_code)
+                                            #showInfo("KLASSE:\n" + genv.class_code)
                                             self.handle_class_commands()
                                     
                                             c = self.skip_white_spaces(self.dbase_parser)
@@ -3447,33 +3473,54 @@ class interpreter_dBase(interpreter_base):
                                                 self.token_str = c
                                                 self.getIdent()
                                                 if self.token_str.lower() == "endclass":
-                                                    raise e_no_more_data("classcode:\n") # + genv.temp_code)
+                                                    raise e_no_more_data("classend") # + genv.temp_code)
                                                 else:
                                                     genv.unexpectedError(_("endclass expected."))
                                             else:
                                                 genv.unexpectedError(_("alpha value expected"))
+                                                return
                                         else:
                                             genv.unexpectedError(_("OF expected"))
+                                            return
                                     else:
                                         genv.unexpectedError(_("alpha value expected"))
+                                        return
                                 else:
                                     genv.unexpectedError(_("form expected."))
+                                    return
                             else:
                                 genv.unexpectedError(_("alpha value expected"))
+                                return
                         else:
                             genv.unexpectedError(_("OF expected."))
+                            return
                     else:
                         genv.unexpectedError(_("alpha value expected"))
+                        return
                 else:
                     genv.unexpectedError(_("alpha value expected"))
+                    return
         except e_no_more_data as noerror:
-            showInfo(f"dBase class information:\n{noerror.message}")
+            #showInfo(f"dBase class information:\n{noerror.message}")
+            if noerror.message == "classend":
+                genv.header_code += "\n\n"
+                self.update_code(genv.header_code)
+                self.update_code(genv.class_code)
+                
+                # delete first line:
+                lines = genv.text_code.splitlines()
+                rline = lines[1:]
+                lines = "\n".join(rline)
+                
+                genv.text_code = lines
+                
+                #showInfo("braker:\n" + genv.text_code)
     
     def handle_scoped_commands(self):
         self.ident = ""
         while True:
             c = self.skip_white_spaces(self.dbase_parser)
-            showInfo('----> ' + str(c))
+            #showInfo('----> ' + str(c))
             if c == genv.ptNoMoreData:
                 return c
             elif c == '\n':
@@ -3482,7 +3529,7 @@ class interpreter_dBase(interpreter_base):
                 self.token_str = c
                 self.getIdent()
                 if self.token_str.lower() == "class":
-                    showInfo("---------class------")
+                    #showInfo("---------class------")
                     genv.class_code += "class "
                     self.handle_class()
                     return
@@ -3568,8 +3615,8 @@ class interpreter_dBase(interpreter_base):
                     #
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c == genv.ptNoMoreData:
-                        showInfo(_("temp code"))
-                        showInfo(genv.class_code)
+                        #showInfo(_("temp code"))
+                        #showInfo(genv.class_code)
                         raise e_no_more_data("temp code")
                     if c == '=':
                         genv.temp_code += " = "
@@ -3656,7 +3703,10 @@ class interpreter_dBase(interpreter_base):
             # ------------------------------------
             # dbase plus ?
             # ------------------------------------
-            if genv.editor_check.isChecked():
+            if not genv.editor_check.isChecked():
+                self.handle_scoped_commands()
+                return
+            elif genv.editor_check.isChecked():
                 content = self.source
                 pattern = re.compile(r"\*\* END HEADER.*?\n(.*?)\n*[cC][lL][aA][sS][sS]", re.DOTALL)
                 plus_code = self.source
@@ -3697,7 +3747,7 @@ class interpreter_dBase(interpreter_base):
                     return
                 
                 genv.isGuiApplication = True
-                showInfo(self.source)
+                #showInfo(self.source)
                 self.handle_dbase_header(self.source)
                 
                 # ------------------------------------
@@ -3719,7 +3769,7 @@ class interpreter_dBase(interpreter_base):
                 if match:
                     class_text  = match.group(1).strip()
                     self.source = class_text
-                    showInfo(self.source)
+                    #showInfo(self.source)
                     self.handle_dbase_class(self.source)
                     return
                 else:
@@ -3754,17 +3804,7 @@ class interpreter_dBase(interpreter_base):
                     self.token_str = c
                     self.getIdent()
                     if self.token_str.lower() == "parameter":
-                        genv.temp_code += (""
-                        + "class Form1:\n\t"
-                        + "def op_en(self):\n\t"
-                        + "\tprint('opsen')\n\n\t"
-                        + "def readModal(self):\n\t"
-                        + "\tpass\n\n\t"
-                        + "def __init__(self):\n\t"
-                        + "\tself.mdi = False\n\t"
-                        + "\tprint('gallllo')\n\n"
-                        )
-                        genv.temp_code += "def pre_EntryPoint("
+                        self.temp_code = ""
                         while True:
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == genv.ptNoMoreData:
@@ -3786,11 +3826,12 @@ class interpreter_dBase(interpreter_base):
                                 else:
                                     self.ungetChar(1)
                                     genv.temp_code += "):\n"
+                                    genv.header_code += "def pre_EntryPoint(" + genv.temp_code
                                     break
-                            showInfo("param:\n" + genv.temp_code)
+                            #showInfo("param:\n") # + genv.jeader_code)
                             continue
                     elif self.token_str.lower() == "local":
-                        genv.temp_code += ('\t' * genv.counter_indent)
+                        genv.header_code += ('\t' * genv.counter_indent)
                         while True:
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == genv.ptNoMoreData:
@@ -3802,22 +3843,22 @@ class interpreter_dBase(interpreter_base):
                                     genv.have_errors = True
                                     genv.unexpectedError(_("keywords can not be used as variable"))
                                     return
-                                genv.temp_code += self.token_str
+                                genv.header_code += self.token_str
                                 c = self.skip_white_spaces(self.dbase_parser)
                                 if c == genv.ptNoMoreData:
                                     raise e_no_more_data();
                                 elif c == ',':
-                                    genv.temp_code += ","
+                                    genv.header_code += ","
                                     continue
                                 else:
                                     self.ungetChar(1)
-                                    genv.temp_code += " = None\n"
+                                    genv.header_code += " = None\n"
                                     break
-                        showInfo("local:\n" + genv.temp_code)
+                        #showInfo("local:\n" + genv.header_code)
                         continue
                     elif self.token_str.lower() == "if":
-                        genv.temp_code += ('\t' * genv.counter_indent)
-                        genv.temp_code += "if "
+                        genv.header_code += ('\t' * genv.counter_indent)
+                        genv.header_code += "if "
                         open_paren = False
                         while True:
                             c = self.skip_white_spaces(self.dbase_parser)
@@ -3825,14 +3866,14 @@ class interpreter_dBase(interpreter_base):
                                 raise e_no_more_data();
                             if c == '(':
                                 open_paren = True
-                                genv.temp_code += "("
+                                genv.header_code += "("
                                 c = self.skip_white_spaces(self.dbase_parser)
                                 if c == genv.ptNoMoreData:
                                     raise e_no_more_data();
                                 if c.isalpha():
                                     self.token_str = c
                                     self.getIdent()
-                                    genv.temp_code += self.token_str
+                                    genv.header_code += self.token_str
                                     continue
                                 else:
                                     genv.have_errors = True
@@ -3840,13 +3881,13 @@ class interpreter_dBase(interpreter_base):
                             elif c == ')':
                                 if open_paren == True:
                                     open_paren = False
-                                    genv.temp_code += "):\n"
+                                    genv.header_code += "):\n"
                                     break
                                 else:
                                     genv.have_errors = True
                                     genv.unexpectedError(_("syntax error."))
                                     return
-                        showInfo("if:\n" + genv.temp_code)
+                        #showInfo("if:\n" + genv.header_code)
                         while True:
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == genv.ptNoMoreData:
@@ -3855,8 +3896,8 @@ class interpreter_dBase(interpreter_base):
                                 self.token_str = c
                                 self.getIdent()
                                 if self.token_str.lower() == "else":
-                                    genv.temp_code += ('\t' * genv.counter_indent)
-                                    genv.temp_code += "else:\n"
+                                    genv.header_code += ('\t' * genv.counter_indent)
+                                    genv.header_code += "else:\n"
                                     while True:
                                         c = self.skip_white_spaces(self.dbase_parser)
                                         if c == genv.ptNoMoreData:
@@ -3871,14 +3912,14 @@ class interpreter_dBase(interpreter_base):
                                                 elif c.isalpha():
                                                     showInfo("issss a,kllp")
                                                 break
-                                            genv.temp_code += ('\t' * genv.counter_indent)
-                                            genv.temp_code += ('\t' * genv.counter_indent)
-                                            genv.temp_code += self.token_str
+                                            genv.header_code += ('\t' * genv.counter_indent)
+                                            genv.header_code += ('\t' * genv.counter_indent)
+                                            genv.header_code += self.token_str
                                             c = self.skip_white_spaces(self.dbase_parser)
                                             if c == genv.ptNoMoreData:
                                                 raise e_no_more_data();
                                             if c == '.':
-                                                genv.temp_code += "."
+                                                genv.header_code += "."
                                                 c = self.skip_white_spaces(self.dbase_parser)
                                                 if c == genv.ptNoMoreData:
                                                     raise e_no_more_data();
@@ -3886,18 +3927,18 @@ class interpreter_dBase(interpreter_base):
                                                     self.token_str = c
                                                     self.getIdent()
                                                     if self.token_str.lower() == "op_en":
-                                                        genv.temp_code += self.token_str
+                                                        genv.header_code += self.token_str
                                                         c = self.skip_white_spaces(self.dbase_parser)
                                                         if c == genv.ptNoMoreData:
                                                             raise e_no_more_data();
                                                         if c == '(':
-                                                            genv.temp_code += "("
+                                                            genv.header_code += "("
                                                             c = self.skip_white_spaces(self.dbase_parser)
                                                             if c == genv.ptNoMoreData:
                                                                 raise e_no_more_data();
                                                             if c == ')':
-                                                                genv.temp_code += ")"
-                                                                showInfo("pen\n" + genv.temp_code)
+                                                                genv.header_code += ")"
+                                                                #showInfo("pen\n" + genv.header_code)
                                                                 continue
                                                         else:
                                                             genv.unexpectedError(_("open paren expected."))
@@ -3916,14 +3957,14 @@ class interpreter_dBase(interpreter_base):
                                             return
                                     break
                                 else:
-                                    genv.temp_code += ('\t' * genv.counter_indent)
-                                    genv.temp_code += ('\t' * genv.counter_indent)
-                                    genv.temp_code += self.token_str
+                                    genv.header_code += ('\t' * genv.counter_indent)
+                                    genv.header_code += ('\t' * genv.counter_indent)
+                                    genv.header_code += self.token_str
                                     c = self.skip_white_spaces(self.dbase_parser)
                                     if c == genv.ptNoMoreData:
                                         raise e_no_more_data();
                                     if c == '.':
-                                        genv.temp_code += c
+                                        genv.header_code += c
                                         c = self.skip_white_spaces(self.dbase_parser)
                                         if c == genv.ptNoMoreData:
                                             raise e_no_more_data();
@@ -3931,10 +3972,10 @@ class interpreter_dBase(interpreter_base):
                                             self.token_str = c
                                             self.getIdent()
                                             if self.token_str.lower() == "mdi":
-                                                genv.temp_code += self.token_str
+                                                genv.header_code += self.token_str
                                                 c = self.skip_white_spaces(self.dbase_parser)
                                                 if c == '=':
-                                                    genv.temp_code += " = "
+                                                    genv.header_code += " = "
                                                     c = self.skip_white_spaces(self.dbase_parser)
                                                     if c == genv.ptNoMoreData:
                                                         raise e_no_more_data();
@@ -3942,11 +3983,11 @@ class interpreter_dBase(interpreter_base):
                                                         self.token_str = c
                                                         self.getIdent()
                                                         if self.token_str.lower() == "false":
-                                                            genv.temp_code += "False\n"
+                                                            genv.header_code += "False\n"
                                                             self.token_str = ""
                                                             continue
                                                         elif self.token_str.lower() == "true":
-                                                            genv.temp_code += "True\n"
+                                                            genv.header_code += "True\n"
                                                             self.token_str = ""
                                                             continue
                                                         else:
@@ -3959,16 +4000,16 @@ class interpreter_dBase(interpreter_base):
                                                     genv.unexpectedError(_("false or true expected."))
                                                     return
                                             elif self.token_str.lower() == "readmodal":
-                                                genv.temp_code += "readModal"
+                                                genv.header_code += "readModal"
                                                 c = self.skip_white_spaces(self.dbase_parser)
                                                 if c == genv.ptNoMoreData:
                                                     raise e_no_more_data();
                                                 if c == '(':
-                                                    genv.temp_code += "("
+                                                    genv.header_code += "("
                                                     c = self.skip_white_spaces(self.dbase_parser)
                                                     if c == ')':
-                                                        genv.temp_code += ")\n"
-                                                        showInfo("readmodal\n" + genv.temp_code)
+                                                        genv.header_code += ")\n"
+                                                        #showInfo("readmodal\n" + genv.header_code)
                                                         continue
                                             else:
                                                 genv.unexpectedError(_("wrong token"))
@@ -3984,20 +4025,20 @@ class interpreter_dBase(interpreter_base):
                                 return
                         continue
                     elif self.token_str.lower() == "else":
-                        genv.temp_code += "else:\n"
+                        genv.header_code += "else:\n"
                         c = self.skip_white_spaces(self.dbase_parser)
                         if c == genv.ptNoMoreData:
                             raise e_no_more_data();
                         elif c.isalpha():
                             self.token_str = c
                             self.getIdent()
-                            genv.temp_code += ('\t' * genv.counter_indent)
-                            genv.temp_code += self.token_str
+                            genv.header_code += ('\t' * genv.counter_indent)
+                            genv.header_code += self.token_str
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == genv.ptNoMoreData:
                                 raise e_no_more_data();
                             elif c == '.':
-                                genv.temp_code += "."
+                                genv.header_code += "."
                                 c = self.skip_white_spaces(self.dbase_parser)
                                 if c == genv.ptNoMoreData:
                                     raise e_no_more_data();
@@ -4005,30 +4046,30 @@ class interpreter_dBase(interpreter_base):
                                     self.token_str = c
                                     self.getIdent()
                                     if self.token_str.lower() == "op_en":
-                                        genv.temp_code += "op_en"
+                                        genv.header_code += "op_en"
                                         c = self.skip_white_spaces(self.dbase_parser)
                                         if c == genv.ptNoMoreData:
                                             raise e_no_more_data();
                                         elif c == '(':
-                                            genv.temp_code += "("
+                                            genv.header_code += "("
                                             c = self.skip_white_spaces(self.dbase_parser)
                                             if c == genv.ptNoMoreData:
                                                 raise e_no_more_data();
                                             elif c == ')':
-                                                genv.temp_code += ")"
-                                                showInfo("else:\n" + genv.temp_code)
+                                                genv.header_code += ")"
+                                                #showInfo("else:\n" + genv.header_code)
                                                 continue
                     elif self.token_str.lower() == "endif":
-                        showInfo("endif:\n" + genv.temp_code)
+                        #showInfo("endif:\n" + genv.header_code)
                         continue
                     else:
-                        genv.temp_code += ('\t' * genv.counter_indent)
-                        genv.temp_code += self.token_str
+                        genv.header_code += ('\t' * genv.counter_indent)
+                        genv.header_code += self.token_str
                         c = self.skip_white_spaces(self.dbase_parser)
                         if c == genv.ptNoMoreData:
                             raise e_no_more_data();
                         if c == '=':
-                            genv.temp_code += " = "
+                            genv.header_code += " = "
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c == genv.ptNoMoreData:
                                 raise e_no_more_data();
@@ -4040,46 +4081,46 @@ class interpreter_dBase(interpreter_base):
                                     raise e_no_more_data();
                                 self.token_str = c
                                 self.getIdent()
-                                genv.temp_code += self.token_str
+                                genv.header_code += self.token_str
                                 c = self.skip_white_spaces(self.dbase_parser)
                                 if c == genv.ptNoMoreData:
                                     raise e_no_more_data();
                                 if c == '(':
-                                    genv.temp_code += c
+                                    genv.header_code += c
                                     # todo !!!
                                     c = self.skip_white_spaces(self.dbase_parser)
                                     if c == genv.ptNoMoreData:
                                         raise e_no_more_data();
                                     if c == ')':
-                                        genv.temp_code += c + "\n"
-                                        showInfo("new form:\n" + genv.temp_code)
+                                        genv.header_code += c + "\n"
+                                        #showInfo("new form:\n" + genv.header_code)
                                         continue
                                     else:
-                                        genv.temp_code += self.token_str
+                                        genv.header_code += self.token_str
                                         return
                                 else:
                                     genv.unexpectedError(_("unexpected syntax"))
                                     return
                             else:
-                                genv.temp_code += self.token_str
+                                genv.header_code += self.token_str
                                 return
                         else:
-                            genv.temp_code += self.token_str
+                            genv.header_code += self.token_str
                             return
                 else:
                     genv.unexpectedError(_("unexpected syntax"))
                     return
                 
-                showInfo("Line: " + str(genv.start_idx) + "\n" + self.header_code)
-                showInfo(genv.temp_code)
+                #showInfo("Line: " + str(genv.start_idx) + "\n" + self.header_code)
+                #showInfo(genv.header_code)
+                self.update_code(genv.header_code)
             else:
                 self.handle_scoped_commands()
                 
         except e_no_more_data as noerror:
-            showInfo(f"dBase header information:\n{noerror.message}")
-            self.update_code(genv.class_code)
-            showInfo("oooooooooooooooooooooooooooooooo")
-            showInfo(genv.temp_code)
+            #showInfo(f"dBase header information:\n{noerror.message}")
+            #self.update_code(genv.class_code)
+            pass
     
     def check_token(self, token):
         for token_list in self.token_colors:
@@ -4310,7 +4351,7 @@ class interpreter_Pascal(interpreter_base):
                 elif c.isalpha():
                     self.token_str = c
                     self.getIdent()
-                    showInfo(self.token_str)
+                    #showInfo(self.token_str)
                     if len(self.token_str) > 64:
                         genv.have_errors = True
                         genv.unexpectedError(_("symbol name too long"))
@@ -11938,6 +11979,9 @@ class FileWatcherGUI(QDialog):
         
         global application_window
         application_window = self
+        
+        # Alle Qt-Warnungen stummschalten
+        QLoggingCategory.setFilterRules("*.debug=false\n*.warning=false")
         
         genv.css_menu_item_style  = _("css_menu_item_style")
         genv.css_menu_label_style = _("css_menu_label_style")
