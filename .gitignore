@@ -132,3 +132,8 @@ doc/Commodore C64/BASIC/Programmers Desk Reference/eBook.lck
 *.gz
 *.gz
 /src/lexpr
+src/_internal/temp/4
+src/_internal/temp/3
+src/_internal/temp/2
+src/_internal/temp/1
+src/_internal/temp/test.html
