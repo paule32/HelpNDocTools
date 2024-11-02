@@ -70,10 +70,10 @@ for %%A in (en_us, de_de) do (
         if errorlevel 0 (
             echo|set /p="%%A => "
             mkdir %BASEDIR%\locales\%%A >nul 2>&1
-            dir /A:D locales\%%A\LC_MESSAGES >nul 2>&1
+            dir /A:D %BASEDIR%\locales\%%A\LC_MESSAGES >nul 2>&1
             if errorlevel 0 (
                 echo|set /p="ok, "
-                mkdir locales\%%A\LC_MESSAGES >nul 2>&1
+                mkdir %BASEDIR%\locales\%%A\LC_MESSAGES >nul 2>&1
                 cd %BASEDIR%\locales\%%A\LC_MESSAGES
                 echo|set /p="locales compiled => "
                 msgfmt -o ^
@@ -92,39 +92,42 @@ for %%A in (en_us, de_de) do (
         )
     )
 )
-goto TheEnd
+::goto endstep
 :: ---------------------------------------------------------------------------
 :: Python can produce byte-code, and executable files to speed up the loading
 :: and for information hidding ...
 :: ---------------------------------------------------------------------------
 cd %BASEDIR%
 echo Create Byte-Code...
-cd tools
-python -m compileall tool001.py
-if errorlevel 1 (
-    echo fail tool001.pyc
-    goto error_bytecode)  else ( echo tool001.pyc created )
-python tool001.py
-if errorlevel 1 (
-    echo fail tool001 batch
-    goto error_bytecode ) else ( echo tool001.py exec ok )
-python -m compileall collection.py
-if errorlevel 1 (
-    echo fail collection.pyc
-    goto error_bytecode ) else ( echo collection.pyc created )
-python collection.py
-if errorlevel 1 (
-    echo fail collection batch
-    goto error_bytecode ) else ( echo collection.py exec ok )
-cd ..
+::cd tools
+::python -m compileall tool001.py
+::if errorlevel 1 (
+::    echo fail tool001.pyc
+::    goto error_bytecode)  else ( echo tool001.pyc created )
+::python tool001.py
+::if errorlevel 1 (
+::    echo fail tool001 batch
+::    goto error_bytecode ) else ( echo tool001.py exec ok )
+::python -m compileall collection.py
+::if errorlevel 1 (
+::    echo fail collection.pyc
+::    goto error_bytecode ) else ( echo collection.pyc created )
+::python collection.py
+::if errorlevel 1 (
+::    echo fail collection batch
+::    goto error_bytecode ) else ( echo collection.py exec ok )
+::cd ..
 %PY%\python.exe -m compileall %BASEDIR%\observer.py
 if errorlevel 1 ( goto error_bytecode )
-echo  ok   ]
-pyinstaller --noconfirm --console  ^
-    --icon="%PRJ%/src/img/floppy-disk.ico"  ^
+pyinstaller --noupx --noconfirm --console  ^
+    --icon="%PRJ%/_internal/img/floppy-disk.ico"  ^
     --clean       ^
+    --exclude-module tkinter ^
+    --exclude-module tk      ^
+    --exclude-module tk86t      ^
+    --exclude-module tcl86t      ^
     --log-level="WARN"   ^
-    --splash="%PRJ%/src/img/splash.png"     ^
+    --splash="%PRJ%/_internal/img/splash.png"     ^
     --strip                                 ^
     --hide-console="minimize-late"          ^
     --version-file="%PRJ%/src/version.info" ^
@@ -133,43 +136,9 @@ pyinstaller --noconfirm --console  ^
     --paths="C:/Windows/System32"           ^
     --paths="C:/Windows/SysWOW64"           ^
     ^
-    --paths="%PRJ%/src/interpreter/doxygen" ^
-    --paths="%PRJ%/src/interpreter/pascal"  ^
-    --paths="%PRJ%/src/interpreter/dbase"   ^
-    --paths="%PRJ%/src/interpreter"         ^
-    --paths="%PRJ%/src/tools"               ^
     --paths="%PRJ%/src"                     ^
     ^
-    --add-data="%PRJ%/src/locales;locales/" ^
-    --add-data="%PRJ%/src/img;img/"         ^
-    --add-data="%PRJ%/LICENSE;."            ^
-    --add-data="%PRJ%/README.md;."          ^
-    --add-data="%PRJ%/CONTRIBUTING.md;."    ^
-    --add-data="%PRJ%/CODE_OF_CONDUCT.md;." ^
-    --add-data="%PRJ%/src/topics.txt;."     ^
-    --add-data="%PRJ%/src/test.byte;."      ^
-    --add-data="%PRJ%/src/test.txt;."       ^
-    ^
-    --collect-submodules="%PRJ%/src/exapp.py"            ^
-    --collect-submodules="%PRJ%/src/exclasses.py"        ^
-    --collect-submodules="%PRJ%/src/appcollection.py"    ^
     --collect-submodules="%PRJ%/src/__init__.py"         ^
-    --collect-submodules="%PRJ%/src/tools/collection.py" ^
-    --collect-submodules="%PRJ%/src/tools/data001.py"    ^
-    --collect-submodules="%PRJ%/src/tools/data002.py"    ^
-    --collect-submodules="%PRJ%/src/tools/data003.py"    ^
-    --collect-submodules="%PRJ%/src/tools/data004.py"    ^
-    --collect-submodules="%PRJ%/src/tools/data005.py"    ^
-    --collect-submodules="%PRJ%/src/tools/misc.py"       ^
-    --collect-submodules="%PRJ%/src/tools/__init__.py"   ^
-    --collect-submodules="%PRJ%/src/interpreter/EParserException.py" ^
-    --collect-submodules="%PRJ%/src/interpreter/ParserDSL.py"        ^
-    --collect-submodules="%PRJ%/src/interpreter/RunTimeLibrary.py"   ^
-    --collect-submodules="%PRJ%/src/interpreter/VisualComponentLibrary.py" ^
-    --collect-submodules="%PRJ%/src/interpreter/doxygen/doxygen.py"        ^
-    --collect-submodules="%PRJ%/src/interpreter/dbase/dbaseConsole.py"     ^
-    --collect-submodules="%PRJ%/src/interpreter/dbase/dbase.py"   ^
-    --collect-submodules="%PRJ%/src/interpreter/pascal/pascal.py" ^
     ^
     --hidden-import="shutil"          ^
     --hidden-import="types"           ^
@@ -234,6 +203,20 @@ if exist "dist" (
     cd dist
     if exist "observer" (
         cd observer
+        mkdir _internal\_internal
+        mkdir _internal\_internal\img\flags
+        mkdir _internal\_internal\locales\de_de\LC_MESSAGES
+        mkdir _internal\_internal\locales\en_us\LC_MESSAGES
+        copy ..\..\locales\de_de\LC_MESSAGES\observer.mo.gz _internal\_internal\locales\de_de\LC_MESSAGES\observer.mo.gz
+        copy ..\..\locales\en_us\LC_MESSAGES\observer.mo.gz _internal\_internal\locales\en_us\LC_MESSAGES\observer.mo.gz
+        copy ..\..\observer.ini _internal\_internal\observer.ini
+        copy ..\..\__pycache__\_internal\img\flags\*.gif _internal\_internal\img\flags\
+        copy ..\..\__pycache__\_internal\img\*.gif _internal\_internal\img\
+        copy ..\..\__pycache__\_internal\img\*.png _internal\_internal\img\
+        copy ..\..\__pycache__\_internal\img\*.bmp _internal\_internal\img\
+        copy ..\..\__pycache__\_internal\img\*.ico _internal\_internal\img\
+        copy ..\..\__pycache__\_internal\favorites.ini _internal\_internal\favorites.ini
+        copy ..\..\topics.txt _internal\_internal\topics.txt
         touch test.txt
     )   else (
         echo observer directory does not exists.

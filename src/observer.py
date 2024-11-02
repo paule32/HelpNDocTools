@@ -4,28 +4,27 @@
 # All rights reserved
 # ---------------------------------------------------------------------------
 
-# -----------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
-try:
-    import os            # operating system stuff
-    import sys           # system specifies
-    import traceback
-    
-    if getattr(sys, 'frozen', False):
-        import pyi_splash
-except Exception as e:
-    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-    tb = traceback.extract_tb(e.__traceback__)[-1]
-    
-    print(f"Exception occur:")
-    print(f"type : {exc_type.__name__}")
-    print(f"value: {exc_value}")
-    print(misc.StringRepeat("-",40))
-    #
-    print(f"file : {tb.filename}")
-    print(f"line : {tb.lineno}")
-    sys.exit(1)
+global doxygen_project_file; doxygen_project_file = " "
+
+global DoxyGenElementLayoutList
+DoxyGenElementLayoutList = []
+
+# Dictionary to store the mapping from object instances to variable names
+instance_names = {}
+
+global topic_counter
+topic_counter = 1
+
+import importlib
+import subprocess
+import sys
+import os
+
+import win32api
+import win32con
 
 # ---------------------------------------------------------------------------
 # under the windows console, python paths can make problems ...
@@ -35,6 +34,133 @@ if 'PYTHONHOME' in os.environ:
 if 'PYTHONPATH' in os.environ:
     del os.environ['PYTHONPATH']
 
+def check_and_install_module(module_name):
+    try:
+        importlib.import_module(module_name)
+        print(f"{module_name} is already installed.")
+    except ImportError:
+        print(f"{module_name} not found. Installing...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", module_name])
+        print(f"{module_name} installed successfully.")
+
+required_modules = [
+    "re", "dbf", "polib", "requests", "timer", "threading", "glob", "atexit",
+    "platform", "gzip", "base64", "shutil", "datetime", "pkgutil", "ast",
+    "csv", "gettext", "locale", "io", "random", "string", "ctypes", "sqlite3",
+    "configparser", "traceback", "marshal", "inspect", "logging", "PyQt5",
+    "pathlib", "rich", "string", "codecs", "pywin32", "pywintypes" ]
+
+def when_debug_is_on():
+    for module in required_modules:
+        check_and_install_module(module)
+
+# ---------------------------------------------------------------------------
+class unexpectedParserException(Exception):
+    def __init__(self, text, value):
+        self.value    = str(value)
+        self.message  = text
+        super().__init__(value)
+
+class noDataNoError(Exception):
+    def __init__(self, text="no more data"):
+        self.message = _(text)
+        super().__init__(0)
+        
+class e_no_more_data(Exception):
+    def __init__(self, text="no more data"):
+        self.message = _(text)
+        super().__init__(0)
+
+class IgnoreOuterException(Exception):
+    pass
+# ---------------------------------------------------------------------------
+try:
+    import os            # operating system stuff
+    import sys           # system specifies
+    import traceback
+    
+    if getattr(sys, 'frozen', False):
+        import pyi_splash
+    
+    # ------------------------------------------------------------------------
+    # Qt5 gui framework
+    # ------------------------------------------------------------------------
+    from PyQt5.QtWidgets          import *
+    from PyQt5.QtWebEngineWidgets import *
+    from PyQt5.QtCore             import *
+    from PyQt5.QtGui              import *
+
+except Exception as e:
+    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+    tb = traceback.extract_tb(e.__traceback__)[-1]
+    
+    print(f"Exception occur:")
+    print(f"type : {exc_type.__name__}")
+    print(f"value: {exc_value}")
+    print(StringRepeat("-", 40))
+    #
+    print(f"file : {tb.filename}")
+    print(f"line : {tb.lineno}")
+    sys.exit(1)
+
+# ------------------------------------------------------------------------
+# message box code place holder ...
+# ------------------------------------------------------------------------
+def showMessage(text, msgtype=0):
+    if not isApplicationInit():
+        genv.v__app_object = QApplication(sys.argv)
+    #
+    msgtypes = [
+        [ QMessageBox.Information, "Information" ],
+        [ QMessageBox.Warning,     "Warning" ],
+        [ QMessageBox.Critical,    "Error" ],
+        [ QMessageBox.Critical,    "Exception" ]
+    ]
+    
+    if not application_window == None:
+        dialog = QDialog(application_window)
+    else:
+        dialog = QDialog()
+    
+    dialog.setWindowTitle(msgtypes[msgtype][1])
+    dialog.setMinimumWidth(700)
+    
+    text_lay = QVBoxLayout()
+    text_box = QPlainTextEdit()
+    text_box.setFont(QFont("Consolas", 10))
+    text_box.document().setPlainText(text)
+    
+    text_btn = QPushButton(_("Close"))
+    text_btn.setMinimumHeight(32)
+    text_btn.setStyleSheet(_("msgbox_css"))
+    text_btn.clicked.connect(lambda: dialog.close())
+    
+    text_lay.addWidget(text_box)
+    text_lay.addWidget(text_btn)
+    
+    dialog.setLayout(text_lay)
+    dialog.exec_()
+
+# ------------------------------------------------------------------------
+# code shortner definitions ...
+# ------------------------------------------------------------------------
+def showInfo(text):
+    showMessage(text, 0)
+    return
+def showWarning(text):
+    showMessage(text, 1)
+    return
+def showError(text):
+    showMessage(text, 2)
+    return
+# ------------------------------------------------------------------------------
+# \brief  This definition displays a exception dialog if some exception is raise
+#         by the developer.
+# ------------------------------------------------------------------------------
+def showException(text):
+    showMessage(text, 3)
+    return
+
 # ---------------------------------------------------------------------------
 # to hide global variables from other packages, i use this class for a common
 # container. the reference of this class is declared later in the source.
@@ -43,11 +169,10 @@ if 'PYTHONPATH' in os.environ:
 # ---------------------------------------------------------------------------
 class globalEnv:
     def __init__(self):
-        self.v__app__debug        = True
+        self.v__app__debug        = False
         
         self.v__app__app_dir__    = os.path.dirname(os.path.abspath(__file__))
         self.v__app__modul__      = os.path.join(self.v__app__app_dir__, "")
-        self.v__app__inter__      = os.path.join(self.v__app__app_dir__, "interpreter")
         
         self.v__app__name         = "observer"
         self.v__app__name_mo      = self.v__app__name + ".mo"
@@ -57,27 +182,201 @@ class globalEnv:
         #
         self.v__app__logfile      = os.path.join(self.v__app__internal__, self.v__app__name) + ".log"
         self.v__app__config_ini   = os.path.join(self.v__app__internal__, self.v__app__name) + ".ini"
+        self.v__app__logging      = None
         
         self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
         
-        self.v__app__doxygen__    = os.path.join(self.v__app__img__int__, "doxygen")
-        self.v__app__hlpndoc__    = os.path.join(self.v__app__img__int__, "helpndoc")
-        self.v__app__helpdev__    = os.path.join(self.v__app__img__int__, "help")
-        self.v__app__pythonc__    = os.path.join(self.v__app__img__int__, "python")
-        self.v__app__lispmod__    = os.path.join(self.v__app__img__int__, "lisp")
-        self.v__app__ccpplus__    = os.path.join(self.v__app__img__int__, "cpp")
-        self.v__app__cpp1dev__    = os.path.join(self.v__app__img__int__, "c")
-        self.v__app__dbasedb__    = os.path.join(self.v__app__img__int__, "dbase")
-        self.v__app__javadev__    = os.path.join(self.v__app__img__int__, "java")
-        self.v__app__javadoc__    = os.path.join(self.v__app__img__int__, "javadoc")
-        self.v__app__freepas__    = os.path.join(self.v__app__img__int__, "freepas")
-        self.v__app__locales__    = os.path.join(self.v__app__img__int__, "locales")
-        self.v__app__com_c64__    = os.path.join(self.v__app__img__int__, "c64")
-        self.v__app__keybc64__    = os.path.join(self.v__app__img__int__, "c64keyboard.png")
-        self.v__app__discc64__    = os.path.join(self.v__app__img__int__, "disk2.png")
-        self.v__app__datmc64__    = os.path.join(self.v__app__img__int__, "mc2.png")
-        self.v__app__logoc64__    = os.path.join(self.v__app__img__int__, "logo2.png")
+        im_path = self.v__app__img__int__ + "/"
         
+        self.isGuiApplication = False
+        
+        self.start_idx = 1
+        self.end_idx   = 1
+        
+        self.header_code = ""
+
+        # ------------------------------------------------------------------------
+        # constants, and varibales that are used multiple times ...
+        # ------------------------------------------------------------------------
+        self.__copy__ = (""
+            + "HelpNDoc.com FileWatcher 0.0.1\n"
+            + "(c) 2024 by paule32\n"
+            + "all rights reserved.\n")
+
+        self.__error__os__error = (""
+            + "can not determine operating system.\n"
+            + "start aborted.")
+
+        self.__error__locales_error = "" \
+            + "no locales file for this application."
+
+        # ---------------------------------------------------------------------------
+        # \brief currently onle two converters are supported:
+        #        0 - not sprecified => unknown
+        #        1 - doxygen
+        #        2 - helpndoc.com
+        # ---------------------------------------------------------------------------
+        self.HelpAuthoringConverterMode = 0
+        
+        self.v__app__doxygen__  = im_path + "doxygen"
+        self.v__app__hlpndoc__  = im_path + "helpndoc"
+        self.v__app__helpdev__  = im_path + "help"
+        self.v__app__pythonc__  = im_path + "python"
+        self.v__app__lispmod__  = im_path + "lisp"
+        self.v__app__ccpplus__  = im_path + "cpp"
+        self.v__app__cpp1dev__  = im_path + "c"
+        self.v__app__dbasedb__  = im_path + "dbase"
+        self.v__app__javadev__  = im_path + "java"
+        self.v__app__javascr__  = im_path + "javascript"
+        self.v__app__javadoc__  = im_path + "javadoc"
+        self.v__app__freepas__  = im_path + "freepas"
+        self.v__app__locales__  = im_path + "locales"
+        self.v__app__console__  = im_path + "console"
+        self.v__app__todopro__  = im_path + "todo"
+        self.v__app__setupro__  = im_path + "setup"
+        self.v__app__certssl__  = im_path + "ssl"
+        self.v__app__githubp__  = im_path + "github"
+        self.v__app__apache2__  = im_path + "apache"
+        self.v__app__mysqlcf__  = im_path + "mysql"
+        self.v__app__squidwp__  = im_path + "squid"
+        self.v__app__com_c64__  = im_path + "c64"
+        self.v__app__com_set__  = im_path + "settings"
+        self.v__app__keybc64__  = im_path + "c64keyboard.png"
+        self.v__app__discc64__  = im_path + "disk2.png"
+        self.v__app__datmc64__  = im_path + "mc2.png"
+        self.v__app__logoc64__  = im_path + "logo2.png"
+        
+        # ------------------------------------------------------------------------
+        # string conversation ...
+        # ------------------------------------------------------------------------
+        self.octal_digits      = ['\060','\061','\062','\063','\064','\065','\066','\067','\070','\071']
+        self.octal_alpha_upper = ['\101','\102','\103','\104','\105','\106','\107','\110','\111','\112',
+                                  '\113','\114','\115','\116','\117','\120','\121','\122','\123','\124',
+                                  '\125','\126','\127','\130','\131','\132' ]
+        self.octal_alpha_lower = ['\141','\142','\143','\144','\145','\146','\147','\150','\151','\152',
+                                  '\153','\154','\155','\156','\157','\160','\161','\162','\163','\164',
+                                  '\165','\166','\167','\170','\171','\172' ]
+        #
+        self.octal_alpha = [ self.octal_alpha_upper, self.octal_alpha_lower ]
+        self.ascii_charset = ['a','b','c','d','e','f','g','h','i','j','k','l','m',
+                              'n','o','p','q','r','s','t','u','v','w','x','y','z',
+                              '0','9','8','7','6','5','4','3','2','1',
+                              '-','+','*','/',
+                              '(',')',
+                              '[',']',
+                              '{','}','=' ]
+        # ------------------------------------------------------------------------
+        # some place holder variables to shorten and categorgraphic the code ...
+        # ------------------------------------------------------------------------
+        class editor_class:
+            def __init__(self):
+                self.rightBox = None
+                self.obj_1 = None
+                self.obj_2 = None
+                self.obj_3 = None
+                #
+                self.hlayout = None
+                self.vlayout = None
+        #
+        self.editor = editor_class()
+        self.editor.obj_1 = None
+        self.editor.obj_2 = None
+        self.editor.obj_3 = None
+        
+        self.editor_check = None
+        self.editor_saveb = None
+
+        # ------------------------------------------------------------------------
+        # databse stuff ...
+        # ------------------------------------------------------------------------
+        self.f_edit = []  # field name
+        self.t_edit = []  # field type
+        self.l_edit = []  # field length
+        self.p_edit = []  # precesion
+        self.k_edit = []  # primary key
+        #
+        self.d_push = []  # delete button
+
+        self.v_layout_f_edit = None
+        self.v_layout_t_edit = None
+        self.v_layout_l_edit = None
+        self.v_layout_p_edit = None
+        self.v_layout_k_edit = None
+        #
+        self.v_layout_d_push = None
+        
+        # ------------------------------------------------------------------------
+        # parser generator state flags ...
+        # ------------------------------------------------------------------------
+        self.counter_digits = 0
+        self.counter_indent = 1
+        self.counter_for    = 0
+        self.counter_brace  = 0
+        
+        self.parser_op = ['-','+','*','/']
+        self.parser_token = False
+        
+        # ------------------------------------------------------------------------
+        # dbase reserved keywords ...
+        # ------------------------------------------------------------------------
+        self.dbase_keywords = [
+            'say', 'for', 'do', 'case', 'class', 'of', 'form', 'endclass',
+            'set', 'color', 'to',
+            'get', 'local', 'parameter', 'if', 'else', 'endif'
+        ]
+        
+        self.text_code  = ""
+        self.temp_code  = ""
+        self.code_code  = ""
+        self.class_code = ""
+
+        self.open_paren = 0
+        self.text_paren = ""
+        
+        self.last_command = True
+
+        self.ptNoMoreData = 2000
+
+        self.have_errors = False
+        
+        # ------------------------------------------------------------------------
+        # console standard vga colors ...
+        # ------------------------------------------------------------------------
+        self.concolors = [
+        'n','b','g','gb','bg','r','rb','br','rg','gr',
+        'w','n+','b+','g+','gb+','bg+',
+        'r+','rb+','br+','rg+', 'gr+' ,'w+'] 
+        #
+        self.convalues = [
+        '#000000','#00008B','#006400','#8B008B','#8B008B',
+        '#8B0000','#FF00FF','#FF00FF','#A52A2A','#A52A2A',
+        '#D3D3D3','#A9A9A9','#0000FF','#00FF00','#ADD8E6',
+        '#ADD8E6','#FF0000','#00FFFF','#00FFFF','#FFFF00',
+        '#FFFF00','#FFFFFF']
+        
+        # ------------------------------------------------------------------------
+        # some state flags ...
+        # ------------------------------------------------------------------------
+        self.currentTextChanged_connected  = False
+        self.currentIndexChanged_connected = False
+        
+        self.view_pressed_connected          = False
+        self.rhs_stateChanged_connected      = False
+        self.blockCountChanged_connected     = False
+        self.cursorPositionChanged_connected = False
+        
+        self.btn_add_connected    = False
+        self.btn_addsrc_connected = False
+        self.btn_close_connected  = False
+        
+        self.helpButton_connected = False
+        self.prevButton_connected = False
+        self.exitButton_connected = False
+        
+        self.v__app_object        = None
+        self.v__app_win           = None
+        #
+        self.v__app__locales      = ""
         self.v__app__img_ext__    = ".png"
         self.v__app__font         = "Arial"
         self.v__app__font_edit    = "Consolas"
@@ -87,16 +386,23 @@ class globalEnv:
         
         self.v__app__error_level  = "0"
         
-        self.v__app__scriptname__ = ""
+        self.v__app__scriptname__ = "./examples/dbase/example1.prg"
+        self.v__app__favorites    = self.v__app__internal__ + "/favorites.ini"
         
         # ------------------------------------------------------------------------
         self.v__app__config   = None
+        self.v__app__devmode  = -1
         
-        self.css_model_header = ""
-        self.css_tabs = ""
-        self.css__widget_item = ""
-        self.css_button_style = ""
+        self.toolbar_css      = "toolbar_css"
         
+        self.css__widget_item = "listview_css"
+        self.css_model_header = "model_hadr"
+        self.css_tabs         = "tabs_css"
+        self.css_button_style = "button_style_css"
+        
+        self.hhc_compiler     = "E:/doxygen/hhc/hhc.exe"    # todo: .ini
+        
+        self.html_content = "html_content"
         # ------------------------------------------------------------------------
         # branding water marks ...
         # ------------------------------------------------------------------------
@@ -114,6 +420,9 @@ class globalEnv:
         self.error_result = 0
         self.topic_counter = 1
         
+        self.line_col = 1
+        self.line_row = 1
+        
         self.c64_painter = None
         
         self.tr = None
@@ -128,26 +437,135 @@ class globalEnv:
         self.doxyfile   = os.path.join(self.v__app__internal__, "Doxyfile")
         
         self.error_fail = False
-        self.app = None
-        self.appwin = None
         
         self.byte_code = None
+        
+    def unexpectedToken(self, text):
+        self.msg = f"unexpected token: '{text}'"
+        self.unexpectedError(self.msg)
+    
+    def unexpectedChar(self, chr):
+        self.msg = f"unexpected character: '{chr}'"
+        self.unexpectedError(self.msg)
+    
+    def unexpectedEndOfLine(self):
+        self.unexpectedError("unexpected end of line")
+    
+    def unexpectedEscapeSign(self):
+        self.unexpectedError("nunexpected escape sign")
+    
+    def unexpectedError(self, message):
+        try:
+            calledFrom = inspect.stack()[1][3]
+            self.msg = f"{message} at line: '%d' in: '%s'.\n"
+            self.msg = self.msg % (genv.line_row, self.v__app__scriptname__)
+            raise unexpectedParserException(self.msg, 1)
+        except unexpectedParserException as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            tb = traceback.extract_tb(exc_traceback)[-1]
+            
+            padding = 10
+            
+            txt1 = _("Exception occur at parsing:\n")
+            txt2 = _("type"  ).ljust( padding )
+            txt3 = _("value" ).ljust( padding )
+            txt4 = _("reason").ljust( padding )
+            
+            msg  = f"{txt1}"
+            msg += f"{txt2}: {exc_type.__name__}\n"
+            msg += f"{txt3}: {exc_value}\n"
+            msg += f"{txt4}: {e.message}\n"
+            msg += StringRepeat("-",40)
+            msg += "\n"
+            #
+            msg += f"file : {tb.filename}\n"
+            msg += f"line : {tb.lineno}"
+            showException(msg)
 
 # ---------------------------------------------------------------------------
 global genv
 genv = globalEnv()
 
-# ---------------------------------------------------------------------------
-# extent the search paths for supported interpreters and tools ...
-# ---------------------------------------------------------------------------
-sys.path.append(os.path.join(genv.v__app__inter__, "pascal"))
-sys.path.append(os.path.join(genv.v__app__inter__, "dbase"))
-sys.path.append(os.path.join(genv.v__app__inter__, "doxygen"))
-sys.path.append(os.path.join(genv.v__app__inter__, ""))
-sys.path.append(os.path.join(genv.v__app__modul__, "tools"))
+# ------------------------------------------------------------------------------
+# print a string S repeatly NT times...
+# ------------------------------------------------------------------------------
+def StringRepeat(s,nt):
+    return (s*nt)
 
-class IgnoreOuterException(Exception):
-    pass
+# ------------------------------------------------------------------------
+# read a file into memory ...
+# ------------------------------------------------------------------------
+def read_gzfile_to_memory(file_path):
+    print("--->", file_path)
+    check_file = Path(file_path)
+    print(check_file)
+    if not check_file.exists():
+        print("Error: gzfile directory exists, but file could not found.")
+        print("abort.")
+        sys.exit(1)
+    if not check_file.is_file():
+        print("Error: gzfile is not a file.")
+        print("abort.")
+        sys.exit(1)
+    if check_file.is_file():
+        with open(check_file, "rb") as file:
+            file_header = file.read(3)
+            if file_header == b'\x1f\x8b\x08':
+                print("packed")
+                file.seek(0)
+                file_data = file.read()
+                compressed_data = io.BytesIO(file_data)
+                with gzip.GzipFile(fileobj=compressed_data, mode="rb") as gzip_file:
+                    uncompressed_data = gzip_file.read()
+                file.close()
+                mo_file = io.BytesIO(uncompressed_data)
+                translations = gettext.GNUTranslations(mo_file)
+                translations.install()
+                _ = translations.gettext
+                return _
+            elif file_header == b'\xde\x12\x04':
+                print("not packed")
+                file.seek(0)
+                file_data = file.read()
+                mo_file = io.BytesIO(file_data)
+                translations = gettext.GNUTranslations(mo_file)
+                translations.install()
+                _ = translations.gettext
+                return _
+            else:
+                file.close()
+                print("Error: language mo file could not be load.")
+                print("abort.")
+                sys.exit(1)
+    return None
+
+# ------------------------------------------------------------------------
+# get the locale, based on the system locale settings ...
+# ------------------------------------------------------------------------
+def handle_language(lang):
+    try:
+        # todo: .ini over write
+        # os.path.join(genv.v__locale__,genv.v__locale__sys[0])
+        #
+        #file_path = os.path.join(genv.v__app__locales, genv.v__locale__enu)
+        #file_path = os.path.join(file_path, "LC_MESSAGES")
+        #file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
+        #
+        _ = read_gzfile_to_memory(genv.v__app__locales)
+        return _
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+        tb = traceback.extract_tb(e.__traceback__)[-1]
+        
+        print(f"Exception occur during handle language:")
+        print(f"type : {exc_type.__name__}")
+        print(f"value: {exc_value}")
+        print(StringRepeat("-",40))
+        #
+        print(f"file : {tb.filename}")
+        print(f"llline : {tb.lineno}")
+        #
+        sys.exit(genv.EXIT_FAILURE)
 
 # ---------------------------------------------------------------------------
 # application imports ...
@@ -171,6 +589,7 @@ try:
     import shutil         # shell utils
     
     import pkgutil        # attached binary data utils
+    import ast            # string to list
     import json           # json lists
     import csv            # simplest data format
     
@@ -194,42 +613,75 @@ try:
     import marshal        # bytecode exec
     import inspect        # stack
     
-    # ------------------------------------------------------------------------
-    # Qt5 gui framework
-    # ------------------------------------------------------------------------
-    from PyQt5.QtWidgets          import *
-    from PyQt5.QtWebEngineWidgets import *
-    from PyQt5.QtCore             import *
-    from PyQt5.QtGui              import *
+    import logging
+    import dbf            # good old data base file
     
-    from logging import *
+    # ------------------------------------------------------------------------
+    # Unter Windows können wir versuchen zu prüfen, ob eine GUI-basierte
+    # Anwendung läuft,indem wir den Windows-GUI-Thread verwenden.
+    # ------------------------------------------------------------------------
+    try:
+        # Check if sys.stdin is a tty (terminal)
+        if sys.stdin.isatty():
+            genv.run_in_console = True
+        else:
+            genv.run_in_console = False
+    except AttributeError:
+        genv.run_in_console = False
+    
+    try:
+        user32 = ctypes.windll.user32
+        if user32.GetForegroundWindow() != 0:
+            genv.run_in_gui = True
+        else:
+            genv.run_in_gui = False
+    except Exception:
+        genv.run_in_gui = False
+    
+    if genv.run_in_console:
+        print("run in terminal")
+    if genv.run_in_gui:
+        print("run in gui")
     
     from pathlib import Path
     
     # ------------------------------------------------------------------------
-    # developers own modules ...
+    # developers modules ...
     # ------------------------------------------------------------------------
-    from collection import *     # exception: templates
+    import string, codecs, win32com.client
     
-    from VisualComponentLibrary import *
-    
-    from dbaseConsole     import *
-    from EParserException import *     # exception handling for use with parser
-    from RunTimeLibrary   import *     # rtl functions for parser
-    
-    from ParserDSL        import *
-    
-    from colorama   import init, Fore, Back, Style  # ANSI escape
-    from pascal     import *     # pascal interpreter
-    from dbase      import *     # dbase ...
-    from doxygen    import *     # doxygen script
-    
+    # ---------------------------------------------------------
+    # when config.ini does not exists, then create a small one:
+    # ---------------------------------------------------------
+    if not os.path.exists(genv.v__app__config_ini):
+        with open(genv.v__app__config_ini, "w", encoding="utf-8") as f:
+            content = (""
+            + "[common]\n"
+            + "language = en_us\n"
+            + "\n"
+            + "[dBaseProject]\n"
+            + "Form = "
+            + "Report = "
+            + "Program = "
+            + "Tables = "
+            + "Images = "
+            + "SQL = "
+            + "Other = ")
+            f.write(content)
+            f.close()
+            ini_lang = "en_us" # default is english; en_us
     # ------------------------------------------------------------------------
     # forward initializations ...
     # ------------------------------------------------------------------------
-    print(genv.v__app__config_ini)
     genv.v__app__config = configparser.ConfigParser()
     genv.v__app__config.read(genv.v__app__config_ini)
+
+    try:
+        genv.v__app__config.read(genv.v__app__config_ini)
+        ini_lang = genv.v__app__config.get("common", "language")
+    except:
+        ini_lang = "en_us"
+        pass
     
     # ------------------------------------------------------------------------
     # global used locales constants ...
@@ -239,317 +691,961 @@ try:
     genv.v__locale__deu = "de_de"            # deu
     genv.v__locale__sys = locale.getlocale() # system locale
     
-    # ------------------------------------------------------------------------
-    # selected list of flags for translation localization display ...
-    # ------------------------------------------------------------------------
-    cdn_host = genv.v__app__cdn_host + "/observer/img/flags/"
-    cdn_suff = ".gif"
-    genv.v__app__cdn_flags = [
-        [ "AFG", cdn_host + "AFG" + cdn_suff ],
-        [ "ALB", cdn_host + "ALB" + cdn_suff ],
-        [ "DZA", cdn_host + "DZA" + cdn_suff ],
-        [ "AND", cdn_host + "AND" + cdn_suff ],
-        [ "AGO", cdn_host + "AGO" + cdn_suff ],
-        [ "ATG", cdn_host + "ATG" + cdn_suff ],
-        [ "ARG", cdn_host + "ARG" + cdn_suff ],
-        [ "ARM", cdn_host + "ARM" + cdn_suff ],
-        [ "AUS", cdn_host + "AUS" + cdn_suff ],
-        [ "AUT", cdn_host + "AUT" + cdn_suff ],
-        [ "AZE", cdn_host + "AZE" + cdn_suff ],
-        [ "BHS", cdn_host + "BHS" + cdn_suff ],
-        [ "BHR", cdn_host + "BHR" + cdn_suff ],
-        [ "BGD", cdn_host + "BGD" + cdn_suff ],
-        [ "BRB", cdn_host + "BRB" + cdn_suff ],
-        [ "BLR", cdn_host + "BLR" + cdn_suff ],
-        [ "BEL", cdn_host + "BEL" + cdn_suff ],
-        [ "BLZ", cdn_host + "BLZ" + cdn_suff ],
-        [ "BEN", cdn_host + "BEN" + cdn_suff ],
-        [ "BTN", cdn_host + "BTN" + cdn_suff ],
-        [ "BOL", cdn_host + "BOL" + cdn_suff ],
-        [ "BIH", cdn_host + "BIH" + cdn_suff ],
-        [ "BWA", cdn_host + "BWA" + cdn_suff ],
-        [ "BRA", cdn_host + "BRA" + cdn_suff ],
-        [ "BRN", cdn_host + "BRN" + cdn_suff ],
-        [ "BGR", cdn_host + "BGR" + cdn_suff ],
-        [ "BFA", cdn_host + "BFA" + cdn_suff ],
-        [ "BDI", cdn_host + "BDI" + cdn_suff ],
-        [ "CPV", cdn_host + "CPV" + cdn_suff ],
-        [ "KHM", cdn_host + "KHM" + cdn_suff ],
-        [ "CMR", cdn_host + "CMR" + cdn_suff ],
-        [ "CAN", cdn_host + "CAN" + cdn_suff ],
-        [ "CAF", cdn_host + "CAF" + cdn_suff ],
-        [ "TCD", cdn_host + "TCD" + cdn_suff ],
-        [ "CHL", cdn_host + "CHL" + cdn_suff ],
-        [ "CHN", cdn_host + "CHN" + cdn_suff ],
-        [ "COL", cdn_host + "COL" + cdn_suff ],
-        [ "COM", cdn_host + "COM" + cdn_suff ],
-        [ "COD", cdn_host + "COD" + cdn_suff ],
-        [ "COG", cdn_host + "COG" + cdn_suff ],
-        [ "CRI", cdn_host + "CRI" + cdn_suff ],
-        [ "CIV", cdn_host + "CIV" + cdn_suff ],
-        [ "HRV", cdn_host + "HRV" + cdn_suff ],
-        [ "CUB", cdn_host + "CUB" + cdn_suff ],
-        [ "CYP", cdn_host + "CYP" + cdn_suff ],
-        [ "CZE", cdn_host + "CZE" + cdn_suff ],
-        [ "DNK", cdn_host + "DNK" + cdn_suff ],
-        [ "DJI", cdn_host + "DJI" + cdn_suff ],
-        [ "DMA", cdn_host + "DMA" + cdn_suff ],
-        [ "DOM", cdn_host + "DOM" + cdn_suff ],
-        [ "ECU", cdn_host + "ECU" + cdn_suff ],
-        [ "EGY", cdn_host + "EGY" + cdn_suff ],
-        [ "SLV", cdn_host + "SLV" + cdn_suff ],
-        [ "GNQ", cdn_host + "GNQ" + cdn_suff ],
-        [ "ERI", cdn_host + "ERI" + cdn_suff ],
-        [ "EST", cdn_host + "EST" + cdn_suff ],
-        [ "SWZ", cdn_host + "SWZ" + cdn_suff ],
-        [ "ETH", cdn_host + "ETH" + cdn_suff ],
-        [ "FJI", cdn_host + "FJI" + cdn_suff ],
-        [ "FIN", cdn_host + "FIN" + cdn_suff ],
-        [ "FRA", cdn_host + "FRA" + cdn_suff ],
-        [ "GAB", cdn_host + "GAB" + cdn_suff ],
-        [ "GMB", cdn_host + "GMB" + cdn_suff ],
-        [ "GEO", cdn_host + "GEO" + cdn_suff ],
-        [ "DEU", cdn_host + "DEU" + cdn_suff ],
-        [ "GHA", cdn_host + "GHA" + cdn_suff ],
-        [ "GRC", cdn_host + "GRC" + cdn_suff ],
-        [ "GRD", cdn_host + "GRD" + cdn_suff ],
-        [ "GTM", cdn_host + "GTM" + cdn_suff ],
-        [ "GIN", cdn_host + "GIN" + cdn_suff ],
-        [ "GNB", cdn_host + "GNB" + cdn_suff ],
-        [ "GUY", cdn_host + "GUY" + cdn_suff ],
-        [ "HTI", cdn_host + "HTI" + cdn_suff ],
-        [ "VAT", cdn_host + "VAT" + cdn_suff ],
-        [ "HND", cdn_host + "HND" + cdn_suff ],
-        [ "HUN", cdn_host + "HUN" + cdn_suff ],
-        [ "ISL", cdn_host + "ISL" + cdn_suff ],
-        [ "IND", cdn_host + "IND" + cdn_suff ],
-        [ "IDN", cdn_host + "IDN" + cdn_suff ],
-        [ "IRN", cdn_host + "IRN" + cdn_suff ],
-        [ "IRQ", cdn_host + "IRQ" + cdn_suff ],
-        [ "IRL", cdn_host + "IRL" + cdn_suff ],
-        [ "ISR", cdn_host + "ISR" + cdn_suff ],
-        [ "ITA", cdn_host + "ITA" + cdn_suff ],
-        [ "JAM", cdn_host + "JAM" + cdn_suff ],
-        [ "JPN", cdn_host + "JPN" + cdn_suff ],
-        [ "JOR", cdn_host + "JOR" + cdn_suff ],
-        [ "KAZ", cdn_host + "KAZ" + cdn_suff ],
-        [ "KEN", cdn_host + "KEN" + cdn_suff ],
-        [ "KIR", cdn_host + "KIR" + cdn_suff ],
-        [ "PRK", cdn_host + "PRK" + cdn_suff ],
-        [ "KOR", cdn_host + "KOR" + cdn_suff ],
-        [ "KWT", cdn_host + "KWT" + cdn_suff ],
-        [ "KGZ", cdn_host + "KGZ" + cdn_suff ],
-        [ "LAO", cdn_host + "LAO" + cdn_suff ],
-        [ "LVA", cdn_host + "LVA" + cdn_suff ],
-        [ "LBN", cdn_host + "LBN" + cdn_suff ],
-        [ "LSO", cdn_host + "LSO" + cdn_suff ],
-        [ "LBR", cdn_host + "LBR" + cdn_suff ],
-        [ "LBY", cdn_host + "LBY" + cdn_suff ],
-        [ "LIE", cdn_host + "LIE" + cdn_suff ],
-        [ "LTU", cdn_host + "LTU" + cdn_suff ],
-        [ "LUX", cdn_host + "LUX" + cdn_suff ],
-        [ "MDG", cdn_host + "MDG" + cdn_suff ],
-        [ "MWI", cdn_host + "MWI" + cdn_suff ],
-        [ "MYS", cdn_host + "MYS" + cdn_suff ],
-        [ "MDV", cdn_host + "MDV" + cdn_suff ],
-        [ "MLI", cdn_host + "MLI" + cdn_suff ],
-        [ "MLT", cdn_host + "MLT" + cdn_suff ],
-        [ "MHL", cdn_host + "MHL" + cdn_suff ],
-        [ "MRT", cdn_host + "MRT" + cdn_suff ],
-        [ "MUS", cdn_host + "MUS" + cdn_suff ],
-        [ "MEX", cdn_host + "MEX" + cdn_suff ],
-        [ "FSM", cdn_host + "FSM" + cdn_suff ],
-        [ "MDA", cdn_host + "MDA" + cdn_suff ],
-        [ "MCO", cdn_host + "MCO" + cdn_suff ],
-        [ "MNG", cdn_host + "MNG" + cdn_suff ],
-        [ "MNE", cdn_host + "MNE" + cdn_suff ],
-        [ "MAR", cdn_host + "MAR" + cdn_suff ],
-        [ "MOZ", cdn_host + "MOZ" + cdn_suff ],
-        [ "MMR", cdn_host + "MMR" + cdn_suff ],
-        [ "NAM", cdn_host + "NAM" + cdn_suff ],
-        [ "NRU", cdn_host + "NRU" + cdn_suff ],
-        [ "NPL", cdn_host + "NPL" + cdn_suff ],
-        [ "NLD", cdn_host + "NLD" + cdn_suff ],
-        [ "NZL", cdn_host + "NZL" + cdn_suff ],
-        [ "NIC", cdn_host + "NIC" + cdn_suff ],
-        [ "NER", cdn_host + "NER" + cdn_suff ],
-        [ "NGA", cdn_host + "NGA" + cdn_suff ],
-        [ "NOR", cdn_host + "NOR" + cdn_suff ],
-        [ "OMN", cdn_host + "OMN" + cdn_suff ],
-        [ "PAK", cdn_host + "PAK" + cdn_suff ],
-        [ "PLW", cdn_host + "PLW" + cdn_suff ],
-        [ "PSE", cdn_host + "PSE" + cdn_suff ],
-        [ "PAN", cdn_host + "PAN" + cdn_suff ],
-        [ "PNG", cdn_host + "PNG" + cdn_suff ],
-        [ "PRY", cdn_host + "PRY" + cdn_suff ],
-        [ "PER", cdn_host + "PER" + cdn_suff ],
-        [ "PHL", cdn_host + "PHL" + cdn_suff ],
-        [ "POL", cdn_host + "POL" + cdn_suff ],
-        [ "PRT", cdn_host + "PRT" + cdn_suff ],
-        [ "QAT", cdn_host + "QAT" + cdn_suff ],
-        [ "MKD", cdn_host + "MKD" + cdn_suff ],
-        [ "ROU", cdn_host + "ROU" + cdn_suff ],
-        [ "RUS", cdn_host + "RUS" + cdn_suff ],
-        [ "RWA", cdn_host + "RWA" + cdn_suff ],
-        [ "KNA", cdn_host + "KNA" + cdn_suff ],
-        [ "LCA", cdn_host + "LCA" + cdn_suff ],
-        [ "VCT", cdn_host + "VCT" + cdn_suff ],
-        [ "WSM", cdn_host + "WSM" + cdn_suff ],
-        [ "SMR", cdn_host + "SMR" + cdn_suff ],
-        [ "STP", cdn_host + "STP" + cdn_suff ],
-        [ "SAU", cdn_host + "SAU" + cdn_suff ],
-        [ "SEN", cdn_host + "SEN" + cdn_suff ],
-        [ "SRB", cdn_host + "SRB" + cdn_suff ],
-        [ "SYC", cdn_host + "SYC" + cdn_suff ],
-        [ "SLE", cdn_host + "SLE" + cdn_suff ],
-        [ "SGP", cdn_host + "SGP" + cdn_suff ],
-        [ "SVK", cdn_host + "SVK" + cdn_suff ],
-        [ "SVN", cdn_host + "SVN" + cdn_suff ],
-        [ "SLB", cdn_host + "SLB" + cdn_suff ],
-        [ "SOM", cdn_host + "SOM" + cdn_suff ],
-        [ "ZAF", cdn_host + "ZAF" + cdn_suff ],
-        [ "SSD", cdn_host + "SSD" + cdn_suff ],
-        [ "ESP", cdn_host + "ESP" + cdn_suff ],
-        [ "LKA", cdn_host + "LKA" + cdn_suff ],
-        [ "SDN", cdn_host + "SDN" + cdn_suff ],
-        [ "SUR", cdn_host + "SUR" + cdn_suff ],
-        [ "SWE", cdn_host + "SWE" + cdn_suff ],
-        [ "CHE", cdn_host + "CHE" + cdn_suff ],
-        [ "SYR", cdn_host + "SYR" + cdn_suff ],
-        [ "TJK", cdn_host + "TJK" + cdn_suff ],
-        [ "TZA", cdn_host + "TZA" + cdn_suff ],
-        [ "THA", cdn_host + "THA" + cdn_suff ],
-        [ "TLS", cdn_host + "TLS" + cdn_suff ],
-        [ "TGO", cdn_host + "TGO" + cdn_suff ],
-        [ "TON", cdn_host + "TON" + cdn_suff ],
-        [ "TTO", cdn_host + "TTO" + cdn_suff ],
-        [ "TUN", cdn_host + "TUN" + cdn_suff ],
-        [ "TUR", cdn_host + "TUR" + cdn_suff ],
-        [ "TKM", cdn_host + "TKM" + cdn_suff ],
-        [ "TUV", cdn_host + "TUV" + cdn_suff ],
-        [ "UGA", cdn_host + "UGA" + cdn_suff ],
-        [ "UKR", cdn_host + "UKR" + cdn_suff ],
-        [ "ARE", cdn_host + "ARE" + cdn_suff ],
-        [ "GBR", cdn_host + "GBR" + cdn_suff ],
-        [ "USA", cdn_host + "USA" + cdn_suff ],
-        [ "URY", cdn_host + "URY" + cdn_suff ],
-        [ "UZB", cdn_host + "UZB" + cdn_suff ],
-        [ "VUT", cdn_host + "VUT" + cdn_suff ],
-        [ "VEN", cdn_host + "VEN" + cdn_suff ],
-        [ "VNM", cdn_host + "VNM" + cdn_suff ],
-        [ "YEM", cdn_host + "YEM" + cdn_suff ],
-        [ "ZMB", cdn_host + "ZMB" + cdn_suff ],
-        [ "ZWE", cdn_host + "ZWE" + cdn_suff ],
-    ]
-
     check_path = Path(genv.v__locale__)
     if not check_path.is_dir():
         print("Error: loacles directory not found.")
         print("abort.")
         sys.exit(1)
+
+    print(genv.v__app__config["common"]["language"])
+    genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
+    genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
+    genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+    genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo + ".gz")
+    #
+    if len(genv.v__app__locales) < 5:
+        print("Error: locale out of seed.")
+        print("abort.")
+        sys.exit(1)
+    _ = handle_language(ini_lang)
+    
+    # ------------------------------------------------------------------------
+    # determine on which operating the application script runs ...
+    # ------------------------------------------------------------------------
+    genv.os_name = platform.system()
+    print("OS: ", genv.os_name)
+    if genv.os_name == 'Windows':
+        print("The Application runs under Windows.")
+    elif genv.os_name == 'Linux':
+        print("The Application runs under Linux.")
+    elif genv.os_name == 'Darwin':
+        print("The Application runs under macOS.")
+    else:
+        print(f"Unknown Operating System: {genv.os_name}")
+    
+    # -------------------------------------------------------------------
+    # for debuging, we use python logging library ...
+    # -------------------------------------------------------------------
+    genv.v__app__logfile = genv.v__app__logfile.replace("\\", "/")
+    if not os.path.exists(genv.v__app__logfile):
+        Path(genv.v__app__logfile).touch()
+    genv.v__app__logging = logging.getLogger(genv.v__app__logfile)
+    
+    logging.basicConfig(
+        format="%(asctime)s: %(levelname)s: %(message)s",
+        filename=genv.v__app__logfile,
+        encoding="utf-8",
+        filemode="w",
+        level=logging.DEBUG)
+    genv.v__app__logging.info("init ok: session start...")
+    
+    # ------------------------------------------------------------------------
+    # when the user start the application script under Windows 7 and higher:
+    # ------------------------------------------------------------------------
     try:
-        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__config["common"]["language"])
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
-        #
-        if len(genv.v__app__locale) < 5:
-            print("Error: locale out of seed.")
-            print("abort.")
-            sys.exit(1)
-        #
-        raise IgnoreOuterException
-    except:
-        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
-        #
-        raise IgnoreOuterException
+        from ctypes import windll  # Only exists on Windows.
+        myappid = 'kallup-nonprofit.helpndoc.observer.1'
+        windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except ImportError:
+        print(_("windll error"))
+    except Exception:
+        print(_("common exception occur"))
 
 except IgnoreOuterException:
-    print(genv.v__app__locale)
+    print(genv.v__app__locales)
     pass
 except configparser.NoOptionError as e:
     print("Exception: option 'language' not found.")
     print("abort.")
     sys.exit(1)
 except configparser.NoSectionError as e:
-    print("Exception: section 'kanguage' not found.\n")
+    print("Exception: section not found.\n")
+    print(e)
     print("abort.")
     sys.exit(1)
 except configparser.Error as e:
     print("Exception: config error occur.")
     print("abort.")
     sys.exit(1)
+except SyntaxError as e:
+    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+    tb = traceback.extract_tb(e.__traceback__)[-1]
+    
+    print(f"Exception occur at module import:")
+    print(f"type : {exc_type.__name__}")
+    print(f"value: {exc_value}")
+    print(StringRepeat("-",40))
+    #
+    print(f"file : {tb.filename}")
+    print(f"line : {tb.lineno}")
+    sys.exit(1)
 except Exception as e:
     exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     tb = traceback.extract_tb(e.__traceback__)[-1]
     #
     if exc_type.__name__ == "NoOptionError":
-        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
         pass
     else:
         print(f"Exception occur at module import:")
         print(f"type : {exc_type.__name__}")
         print(f"value: {exc_value}")
-        print(misc.StringRepeat("-",40))
+        print(StringRepeat("-",40))
         #
         print(f"file : {tb.filename}")
         print(f"line : {tb.lineno}")
         sys.exit(1)
 
 # ------------------------------------------------------------------------
-# when the user start the application script under Windows 7 and higher:
-# ------------------------------------------------------------------------
-try:
-    from ctypes import windll  # Only exists on Windows.
-    myappid = 'kallup-nonprofit.helpndoc.observer.1'
-    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-except ImportError:
-    print("windll error")
-
-# ------------------------------------------------------------------------
-# constants, and varibales that are used multiple times ...
-# ------------------------------------------------------------------------
-__copy__ = (""
-    + "HelpNDoc.com FileWatcher 0.0.1\n"
-    + "(c) 2024 by paule32\n"
-    + "all rights reserved.\n")
-
-__error__os__error = (""
-    + "can not determine operating system.\n"
-    + "start aborted.")
-
-__error__locales_error = "" \
-    + "no locales file for this application."
-
-# ------------------------------------------------------------------------
 # style sheet definition's:
 # ------------------------------------------------------------------------
-css_model_header   = "model_hadr"
 css_combobox_style = "combo_actn"
 
-class FileSystemWatcher(QObject):
-    fileContentChanged = pyqtSignal(str, str)  # Signal für geänderten Dateiinhalt
+TARGET_DIRECTORY      = genv.v__app__internal__ + "/temp"
+PROJECT_NAME          = "A Temporary Project"
+PROJECT_SOURCE        = genv.v__app__internal__ + "/temp/test.html"
+GENERATE_DOC          = 0
+ADD_LINKS_TO_INDEX    = 1
+PAGE_FORMAT_LANDSCAPE = 0
+USE_TOPLEVEL_PROJECT  = 1
+DEFAULT_TOPIC         = "test.html"
+USE_DOC_TEMPLATE      = "pydocgen.dot"
+DOC_PAGE_BREAKS       = 0
 
+# needed for converting Unicode->Ansi (in local system codepage)
+DecodeUnicodeString = lambda x: codecs.latin_1_encode(x)[0]
+
+if GENERATE_DOC:
+    word = win32com.client.Dispatch("Word.Application")
+    doc = word.Documents.Add(USE_DOC_TEMPLATE)
+    if PAGE_FORMAT_LANDSCAPE:
+        doc.PageSetup.Orientation = win32com.client.constants.wdOrientLandscape
+    else:
+        doc.PageSetup.Orientation = win32com.client.constants.wdOrientPortrait
+
+HTML_FILE_START = """<html>
+<meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'>
+<link rel='stylesheet' type='text/css' href='formate.css'>
+<body>"""
+HTML_FILE_STOP = """</body></html>"""
+
+LINKS = {}
+REVERSE_LINK_MAP = {}
+print("6666666")
+class HTMLHelpSubject:
+    "a help subject consists of a topic, and a filename"
+    def __init__( self, topic, filename, keywords = [] ):
+        self.topic, self.filename = topic, filename
+        self.keywords = keywords + [topic]
+        self.subjects = []
+    
+    def AsHHCString(self,tab):
+        return f"""{tab}<LI> <OBJECT type='text/sitemap'>
+{tab}    <param name='Name'  value='{self.topic}'>
+{tab}    <param name='Local' value='{self.filename}'>
+{tab}</OBJECT>"""
+    
+    def AsHHKString(self):
+        result = ""
+        for keyword in self.keywords:
+            result += f"""    <LI> <OBJECT type='text/sitemap'>
+        <param name='Name'  value='{keyword}'>
+        <param name='Local' value='{self.filename}'>
+    </OBJECT>"""
+        return result
+
+class HTMLHelpProject:
+    """a help project is a collection of topics and options that will be compiled
+    to a HTMLHelp file (.chm)"""
+    def __init__(self,subject,filename="default.html",title=None):
+        
+        if title is None:
+            title = subject
+        
+        # this is the root node for the help project. add subprojects here.
+        if filename is not None:
+            self.root = HTMLHelpSubject(subject, filename)
+        else:
+            self.root = HTMLHelpSubject(None, None)
+        
+        self.language      = "0x407 German (Germany)"
+        self.index_file    = subject + ".hhk"
+        self.default_topic = filename
+        self.toc_file      = subject + ".hhc"
+        self.compiled_file = subject + ".chm"
+        self.project_file  = subject + ".hhp"
+        self.title = title
+        self.index = {}
+        self.use_toplevel_project = 0
+    
+    def Generate(self,directory):
+        # make sure, target directory exists
+        try:
+            os.makedirs(directory)
+        except:
+            pass
+        
+        # generate files
+        self.GenerateHHP( os.path.join( directory, self.project_file ) )
+        self.GenerateHHK( os.path.join( directory, self.index_file ) )
+        self.GenerateTOC( os.path.join( directory, self.toc_file ) )
+    
+    def GenerateHHP(self,filename):
+        "Helper function: Generate HtmlHelp Project."
+        assert(self.root is not None)
+        
+        with open(filename,"w") as self.file:
+            self.file.write(f"""[OPTIONS]
+Compatibility=1.1 or later
+Compiled file={self.compiled_file}
+Contents file={self.toc_file}
+Default topic={self.default_topic}
+Display compile progress=No
+Full-text search=Yes
+Index file={self.index_file}
+Language={self.language}
+Title={self.title}
+
+[FILES]
+
+[INFOTYPES]\n\n
+""")
+    
+    def GenerateTOCRecursive(self,file,subject,indent):
+        tab = "\t" * indent
+        for item in subject.subjects:
+            self.file.write(item.AsHHCString(tab))
+            if item.subjects:
+                self.file.write(tab + "<UL>\n")
+                self.GenerateTOCRecursive(file, item, indent+1)
+                self.file.write(tab + "</UL>\n")
+    
+    def GenerateTOC(self,filename):
+        "Helper function: Generate Table-of-contents."
+        assert(self.root is not None)
+        
+        with open(filename,"w") as self.toc_file:
+            self.toc_file.write("""<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+  <HEAD>
+    <meta name="GENERATOR" content="python">
+  </HEAD>
+<BODY>
+  <OBJECT type="text/site properties">
+    <param name="FrameName" value="right">
+  </OBJECT>
+""")
+            #if not self.use_toplevel_project:
+            
+            self.toc_file.write("  <UL>\n")
+            #
+            self.toc_file.write("    <LI><OBJECT type=\"text/sitemap\">\n")
+            self.toc_file.write("\t<param name=\"Local\" value=\"default.html\">\n")
+            self.toc_file.write("\t<param name=\"Name\" value=\"Index\">\n")
+            self.toc_file.write("    </OBJECT></LI>\n")
+            #
+            self.toc_file.write("  </UL>\n")
+            
+            #self.toc_file.write(self.root.AsHHCString("\t"))
+            #self.GenerateTOCRecursive(self.file,self.root,2)
+            #self.toc_file.write("  </UL>")
+            #else:
+            #    self.toc_file.write("  <UL>")
+            #    self.GenerateTOCRecursive(self.file,self.root,1)
+            #    self.toc_file.write("  </UL>")
+            
+            self.toc_file.write("</BODY>\n</HTML>\n")
+            self.toc_file.close()
+    
+    def GenerateHHKRecursive(self,file,subject):
+        for item in subject.subjects:
+            self.file.write(item.AsHHKString())
+            if item.subjects:
+                self.GenerateHHKRecursive(file, item)
+    
+    def GenerateHHK(self,filename):
+        "Helper function: Generate Index file."
+        assert(self.root is not None)
+        
+        try:
+            with open(filename,"w") as self.file:
+                self.file.write("""<!DOCTYPE HTML PUBLIC '-//IETF//DTD HTML//EN'>
+<HTML>
+<HEAD>
+<meta name='GENERATOR' content='Python'>
+<!-- Sitemap 1.0 -->
+</HEAD><BODY>
+<UL>""")
+                if self.root.topic:
+                    self.file.write(self.root.AsHHKString())
+                    
+                self.GenerateHHKRecursive(self.file,self.root)
+                self.file.write("</UL>\n</BODY></HTML>")
+                self.file.close()
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            
+            dummy = StringRepeat("-",40)
+            err_message = (f""
+            + f"Exception occur at module import:\n"
+            + f"type : {exc_type.__name__}\n"
+            + f"value: {exc_value}\n"
+            + f"{dummy}\n"
+            + f"file : {tb.filename}\n"
+            + f"line : {tb.lineno}")
+            
+            msg = QMessageBox()
+            msg.setWindowTitle(_("Error"))
+            msg.setText(err_message)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()
+            pass
+
+class Table():
+    def __init__(self):
+        self.rows = []
+    
+    def Generate(self):
+        global doc, doc_index, doc_index_list
+        
+        doc_index = doc.Range().End-1
+        doc_index_list.append(doc_index)
+        
+        table = self.rows
+        
+        # eine Tabelle ans Textende einfügen 
+        doc_table = doc.Tables.Add(doc.Range(doc_index, doc_index),len(table),len(table[0]))
+        
+        # Zeile 0 ist die Überschriftszeile
+        doc_table.Rows(1).HeadingFormat = ~0
+        
+        # Alle Zellen mit Text füllen
+        for sri in xrange(len(table)):
+            row = table[sri]
+            for sci in xrange(len(row)):
+                cell = row[sci]
+                r = doc_table.Cell(sri+1,sci+1).Range
+                r.Style = cell.style
+                r.InsertAfter(cell.text)
+                if cell.texture:
+                    doc_table.Cell(sri+1,sci+1).Shading.Texture = cell.texture
+        
+        doc_table.Columns.AutoFit()
+        
+        doc_index = doc.Range().End-1
+        doc_index_list.append(doc_index)        
+
+class TC:
+    def __init__(self,text,style="TAB"):
+        self.text = text
+        self.style = style.upper()
+        self.texture = None
+        if self.style == "TABHEAD":
+            self.texture = win32com.client.constants.wdTexture10Percent
+
+doc_index_list = []
+doc_index = 0
+last_body = ""
+output = None    
+data = ""
+print("7777777")
+def isnumeric(token):
+    try:
+        int(token)
+        return 1
+    except:
+        return 0
+
+current_table = None
+is_recording_preformatted = 0
+
+# this function gets called for all tokens the parser finds
+def Pass1_OnToken(token):
+    global FILENAMES, project, output, last_body, file_index, is_recording_preformatted
+    global doc_index_list, doc_index, GENERATE_DOC, current_table, DOC_PAGE_BREAKS
+    
+    token_string = token
+    token = map(string.lower,token.split())
+    
+    # end of header token -------------------------------------------------------------
+    if token[0][:2] == '/h' and isnumeric(token[0][2:]):
+        
+        project.last_subject.topic = last_body
+        project.last_subject.keywords[0] = last_body
+        
+        if GENERATE_DOC:
+            doc.Content.InsertAfter("\n")
+            doc_index += 1
+            doc.Range(doc_index_list[-1],doc_index).Style = getattr(win32com.client.constants,"wdStyleHeading%d" % project.last_subject.level)
+            doc_index_list.append(doc_index)       
+    
+    elif token[0] == "a" and token[1][:5] == "href=":
+        link_to = token[1]
+        x = link_to.find('"')
+        if x >= 0:
+            link_to = link_to[x+1:]
+        x = link_to.rfind('"')
+        if x >= 0:
+            link_to = link_to[:x]        
+        if output:
+            try:
+                output.write('<a href="%s%s">' % (LINKS[link_to],link_to))
+            except:
+                print(f"Warning, link '{link_to}' invalid or external.")
+            return
+    
+    # table handling BEGIN ----------------------------------
+    elif token[0] == "table" and GENERATE_DOC:
+        current_table = Table()
+    
+    elif token[0] == "tr" and GENERATE_DOC and current_table:
+        if len(current_table.rows) > 1:
+            for item in current_table.rows[-1][:-1]:
+                item.style = "TABC"
+        
+        current_table.rows.append([])
+    
+    elif token[0] == "/td" and GENERATE_DOC and current_table:
+        style = "TAB"
+        if len(current_table.rows) == 1:
+            style = "TABHEAD"
+        
+        current_table.rows[-1].append(TC(last_body,style))
+    
+    elif token[0] == "/table" and GENERATE_DOC and current_table:
+        if len(current_table.rows) > 1:
+            for item in current_table.rows[-1][:-1]:
+                item.style = "TABC"
+        
+        current_table.Generate()
+        current_table = None
+    
+    # table handling END ----------------------------------    
+    elif token[0] == "pre":
+        is_recording_preformatted = 1
+    
+    # preprocessor define
+    elif token[0] == '/pre':
+        is_recording_preformatted = 0
+        if GENERATE_DOC:
+            doc.Content.InsertAfter("\n")
+            doc_index += 1
+            doc.Range(doc_index_list[-1],doc_index).Style = "sourcecode"
+            doc_index_list.append(doc_index)          
+    
+    # bullet-style list entry
+    elif token[0] == '/li':
+        if GENERATE_DOC:
+            doc.Content.InsertAfter("\n")
+            doc_index += 1
+            doc.Range(doc_index_list[-1],doc_index).Style = win32com.client.constants.wdStyleListBullet
+            doc_index_list.append(doc_index)        
+    
+    # end of paragraph
+    elif token[0] == '/p':
+        if GENERATE_DOC and not current_table:
+            doc.Content.InsertAfter("\n")
+            doc_index += 1
+            doc_index_list.append(doc_index)
+    
+    # font-style BOLD
+    elif token[0] == '/b':
+        if GENERATE_DOC:
+            doc.Content.InsertAfter(" ")
+            doc.Range(doc_index_list[-1],doc_index).Bold = 1
+            doc_index += 1
+            doc_index_list = doc_index_list[:-1]
+    
+    # font-style ITALIC
+    elif token[0] == '/i':
+        if GENERATE_DOC:
+            doc.Content.InsertAfter(" ")
+            doc.Range(doc_index_list[-1],doc_index).Italic = 1
+            doc_index += 1
+            doc_index_list = doc_index_list[:-1]
+    
+    elif token[0] == "img":
+        filename = token[1]
+        x = filename.find('"')
+        if x > 0:
+            filename = filename[x+1:]
+        x = filename.rfind('"')
+        if x > 0:
+            filename = filename[:x]
+        filename = os.path.join(TARGET_DIRECTORY,filename)
+        if GENERATE_DOC:
+            doc.Content.InsertAfter("\n")
+            print("DATEINAME=" + filename)
+            picture = doc.InlineShapes.AddPicture( filename, 1, 0,Range=doc.Range(doc_index,doc_index) )
+            doc.Content.InsertAfter("\n")
+            doc_index = doc.Range().End-1
+            doc_index_list.append(doc_index)
+    
+    # start of header token
+    elif token[0][:1] == 'h' and isnumeric(token[0][1:]):
+        
+        token = token[0]        
+        
+        # close old topic        
+        if output:
+            output.write(HTML_FILE_STOP)
+            output.close()
+        
+        # generate new topic      
+        filename = "file%d.htm" % file_index
+        
+        output = open( os.path.join(TARGET_DIRECTORY,filename), "w" )
+        file_index += 1
+        output.write(HTML_FILE_START)
+        
+        subject = HTMLHelpSubject(filename, filename)
+        project.last_subject = subject
+        
+        if ADD_LINKS_TO_INDEX:
+            try:
+                for keyword in REVERSE_LINK_MAP[filename]:
+                    subject.keywords.append(keyword[1:])
+            except:
+                pass
+        
+        subject.level = topic_level = int(token[1:])
+        
+        if topic_level == 1:
+            # this is a root project
+            project.root.subjects.append(subject)
+            project.levels[1] = subject
+        else:
+            parent_topic_level = topic_level-1
+            while (parent_topic_level > 0) and not project.levels.has_key(parent_topic_level):
+                parent_topic_level = parent_topic_level-1
+            
+            if parent_topic_level == 0:
+                project.root.subjects.append(subject)
+                project.levels[1] = subject
+            else:
+                project.levels[parent_topic_level].subjects.append(subject)
+            
+            project.levels[topic_level] = subject
+        
+        if GENERATE_DOC and DOC_PAGE_BREAKS:
+            doc.Range(doc_index,doc_index).InsertBreak(win32com.client.constants.wdPageBreak)
+            doc_index = doc.Range().End-1
+            doc_index_list.append(doc_index)
+    
+    if output:
+        output.write("<"+token_string+">")
+
+# this function gets called for all text bodies the parser finds. the default is to write the token to a file
+def Pass1_OnBody(body):
+    global output, last_body, doc, doc_index, current_table, is_recording_preformatted
+    
+    last_body = body
+    if output:
+        output.write(body)
+    if GENERATE_DOC and not current_table:
+        if not is_recording_preformatted:
+            body = body.replace("\n"," ")
+        body = body.replace("&lt;","<")
+        body = body.replace("&gt;",">").strip()
+        if body:
+            doc_index_list.append(doc_index)
+            doc.Content.InsertAfter(body)
+            doc_index += len(body)
+
+# this function gets called for all tokens the parser finds
+def Pass0_OnToken(token):
+    global last_filename, LINKS, file_index
+    
+    if token[:7] == "a name=":
+        x = token.find('"')
+        if x >= 0:
+            token = token[x+1:]
+        x = token.rfind('"')
+        if x >= 0:
+            token = token[:x]
+        if LINKS.has_key(token):
+            print(f"Warning, link '{token}' is used more than once.")
+            
+        LINKS[token] = last_filename
+    
+    elif token[:1] == 'h' and isnumeric(token[1:]):
+        
+        # generate new topic      
+        last_filename = "file%d.htm" % file_index
+        file_index += 1
+
+# this function gets called for all text bodies the parser finds. the default is to write the token to a file
+def Pass0_OnBody(body):
+    pass
+
+def ParseData(onbody,ontoken):
+    global output, output_index
+    output, output_index = None, 0
+    
+    current_token, current_body = None, None
+    
+    for i in range(len(data)):
+        c = data[i]
+        if c == '<':
+            if current_body is not None:
+                onbody(data[current_body:i])
+                current_body = None
+            current_token = i+1
+        elif c == '>':
+            if current_token is not None:
+                ontoken(data[current_token:i])
+            current_token = None
+        elif current_body is None and current_token is None:
+            current_body = i
+    
+    if current_body:
+        onbody(data[current_body:i])
+
+class createHTMLproject():
+    def __init__(self):
+        project = HTMLHelpProject( PROJECT_NAME, DEFAULT_TOPIC )
+        project.levels = {}
+        project.last_subject = None
+        project.use_toplevel_project = USE_TOPLEVEL_PROJECT
+        
+        with open(PROJECT_SOURCE,"r") as file:
+            data = file.read()
+        
+        file_index = 0
+        ParseData(Pass0_OnBody,Pass0_OnToken)
+        
+        if ADD_LINKS_TO_INDEX:
+            for key in LINKS:
+                file = LINKS[key]
+                try:
+                    REVERSE_LINK_MAP[file].append(key)
+                except:
+                    REVERSE_LINK_MAP[file] = [key]
+        
+        file_index = 0
+        ParseData(Pass1_OnBody,Pass1_OnToken)
+        
+        if output:
+            output.write(HTML_FILE_STOP)
+            output.close()
+        
+        try:
+            # -----------------------------------------
+            # save stdout to restore later ...
+            # -----------------------------------------
+            self.console_old = sys.stdout
+            self.console_new = DOSConsole(application_window)
+            self.console_new.win.setWordWrapMode(QTextOption.WordWrap)
+            
+            # -----------------------------------------
+            # non-blocking show dialog ...
+            # -----------------------------------------
+            self.console_new.show()
+            self.console_new.win.append(_("generationg chm file..."))
+            
+            # -----------------------------------------
+            # set redirect of stdout to dialog
+            # -----------------------------------------
+            self.process = QProcess(self.console_new)
+            self.process.readyReadStandardOutput.connect(self.handle_stdout)
+            self.process.readyReadStandardError.connect (self.handle_stderr)
+            self.process.finished.connect(self.process_finished)
+            
+            # -----------------------------------------
+            # generate a chm project file ...
+            # -----------------------------------------
+            project.Generate(TARGET_DIRECTORY)
+            
+            # -----------------------------------------
+            # create chm binary file ...
+            # -----------------------------------------
+            saved_working_dir = os.getcwd()
+            os.chdir(genv.v__app__internal__ + "/temp")
+            
+            # todo: set hhc.exe path !
+            parameter = '"' + genv.v__app__internal__ + "/temp/" + project.project_file + '"'
+            #
+            command   = '"' + genv.hhc_compiler  + '" ' +  parameter
+            command   = command.replace('/', "\\")
+            
+            self.process.start(command)
+            
+            # -----------------------------------------
+            # blocking show dialog - wait for user ...
+            # -----------------------------------------
+            self.console_new.exec_()
+            
+            # ---------------------------------
+            # restore stdout
+            # ---------------------------------
+            sys.stdout = self.console_old
+            os.chdir(saved_working_dir)
+            
+        except Exception as e:
+            print(e)
+    
+    def handle_stdout(self):
+        datas  = self.process.readAllStandardOutput()
+        stdout = bytes(datas).decode("utf8")
+        stdout = stdout.replace('\r','')
+        self.console_new.append(stdout)
+    
+    def handle_stderr(self):
+        datas = self.process.readAllStandardError()
+        stderr = bytes(datas).decode("utf8")
+        stderr = stderr.replace('\r','')
+        self.console_new.win.append(stderr)
+    
+    def process_finished(self):
+        self.console_new.win.append(_("Command finished."))
+        return
+
+# ------------------------------------------------------------------------------
+# convert string to list ...
+# ------------------------------------------------------------------------------
+def StrToList(string):
+    liste = []
+    lines = string.split("\r\n")
+    
+    for line in lines:
+        line = re.sub(r"^(\[)|(\],$)|(\]$)", '', line)
+        line = line.split(",")
+        col1 = re.sub(r'^\"|\"$', '', line[0])
+        col2 = re.sub(r'^PROJECT_.*\".*\"$|^\"', '', line[1])
+        col2 = col2.replace("@",",")
+        list_item = [ col1, col2 ]
+        liste.append(list_item)
+    return liste
+
+# Custom function to register instances
+def register_instance(name, instance):
+    instance_names[id(instance)] = name
+
+# Custom function to get instance name
+def get_instance_name(instance):
+    return instance_names.get(id(instance), None)
+
+def octal_to_ascii(octal_string):
+    octal_values = octal_string.split()
+    ascii_string = ''.join([chr(int(octal, 8)) for octal in octal_values])
+    return ascii_string
+
+class RunTimeLibrary:
+    # -----------------------------------------------------------------------
+    # \brief __init__ is the initializator - maybe uneeded, because __new__
+    #        is the constructor ...
+    # -----------------------------------------------------------------------
+    def __init__(self):
+        self.version     = "1.0.0"
+        self.author      = "paule32"
+        self.initialized = False
+    
+    # -----------------------------------------------------------------------
+    # \brief  this is the constructor of class "RunTimeLibrary" ...
+    #         The return value is the created object pointer in memory space.
+    #
+    # \param  nothing
+    # \return Object - a pointer to this class object
+    # -----------------------------------------------------------------------
+    def __new__(self):
+        self.initialized = True
+        return self
+    
+    def __enter__(self):
+        return self
+    
+    # -----------------------------------------------------------------------
+    # \brief  destructor for class "RunTimeLibrary" ...
+    #
+    # \param  nothing
+    # \return nothing - destructors doesnt return values.
+    # -----------------------------------------------------------------------
+    def __del__(self):
+        self.check_initialized(self)
+        self.initialized = False
+    
+    # -----------------------------------------------------------------------
+    # \brief  This function returns True if a file with "name" exists on the
+    #         disk, False otherwise. On Microsoft Windows, the function will
+    #         return False if a directory is passed as "name"
+    #
+    # \param  name  - the script file name to check.
+    # \return False - when the checks fails
+    #         True  - when the file checks success
+    # -----------------------------------------------------------------------
+    def FileExists(name):
+        RunTimeLibrary.check_initialized()
+        if not os.path.exists(name):
+            return False
+        elif os.path.isdir(name):
+            return False
+        elif os.path.isfile(name):
+            return True
+    
+    # -----------------------------------------------------------------------
+    # \brief  This function read the content of a text file, and return the
+    #         readed content.
+    #
+    # \param  name - the file name that content should read
+    # \return encoding text string content that was read from file.
+    # -----------------------------------------------------------------------
+    def ReadFile(name):
+        RunTimeLibrary.check_initialized()
+        if not RunTimeLibrary.FileExists(name):
+            raise EParserError(10000)
+        with open(name, "r", encoding="utf-8") as file:
+            file.seek(0)
+            data = file.read()
+            file.close()
+        return data
+    
+    # -----------------------------------------------------------------------
+    # \brief  StringCompare compare the string "str" with the occurences of
+    #         strings in the list. The string_list can contain multiple
+    #         strings separated by a comma.
+    #
+    # \param  str  - the string to be check
+    # \param  list - the list of strings which can contain "str"
+    # \return True - if check is okay, True is the return value, else False
+    # -----------------------------------------------------------------------
+    def StringCompare(string, string_list):
+        result = False
+        if string in string_list:
+            return True
+        else:
+            return False
+    
+    # -----------------------------------------------------------------------
+    # \brief raise an exception, if the runtime libaray is not initialized...
+    # -----------------------------------------------------------------------
+    def check_initialized():
+        if not RunTimeLibrary.initialized:
+            raise EParserError(1000)
+
+class TMenu:
+    struct = [];
+    def __init__(self,parent):
+        print(parent);
+        return
+    def add(self, menu_list):
+        self.struct.append(menu_list)
+        return
+    def show(self, make_visible=True):
+        if make_visible:
+            print(self.struct);
+        return
+
+# ---------------------------------------------------------------------------
+# \brief this class provides accessible menubar for the application on the
+#        top upper part line.
+# ---------------------------------------------------------------------------
+class TMenuBar(TMenu):
+    def __init__(self,parent):
+        super().__init__(parent)
+        font_name  = "Arial"
+        font_size  = 10
+        
+        font_color = "white"
+        back_color = "navy"
+        back_str   = "background-color"
+        
+        str_font   = "fint"
+        str_size   = "size"
+        str_color  = "color"
+        
+        self.standardMenuBar = {
+        "File": [{
+            "subitem": [{
+                "New" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Open" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Save" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Save As" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Print" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+                "Exit" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color }
+                ],
+            }]
+        }],
+        "Edit": [{
+            "subitem": [{
+                "Undo" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color },
+                ],
+                "Redo" : [
+                    { str_font : font_name  },
+                    { str_size : font_size  },
+                    { back_str : back_color },
+                ],
+            }]
+        }],
+        "Help": [{
+            "subitem": [{
+                "Online" : [
+                    { str_font  : font_name  },
+                    { str_size  : font_size  },
+                    { str_color : font_color },
+                    { back_str  : back_color },
+                ],
+                "About"  : [
+                    { str_font  : font_name  },
+                    { str_size  : font_size  },
+                    { str_color : font_color },
+                    { back_str  : back_color }
+                ]
+            }]
+        }]  }
+        
+        super().add(self.standardMenuBar)
+        super().show(self)
+        return
+
+class FileSystemWatcher(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.watcher = QFileSystemWatcher()
         self.fileContents = {}
-
-        self.watcher.fileChanged.connect(self.fileChangedSlot)
-
+    
     def addFile(self, filePath):
+        #print("--> " + filePath)
         self.watcher.addPath(filePath)
         self.fileContents[filePath] = self.readFromFile(filePath)  # Initialen Inhalt der Datei einlesen
-
+    
     def fileChangedSlot(self, filePath):
         newContent = self.readFromFile(filePath)
         if self.fileContents.get(filePath) != newContent:
             self.fileContents[filePath] = newContent
-            self.fileContentChanged.emit(filePath, newContent)
-
+            return newContent
+    
     def readFromFile(self, filePath):
         fileContent = ""
         file = QFile(filePath)
@@ -578,6 +1674,14 @@ class ListIndexOutOfBoundsError(Exception):
         print("Exception: List index out of bounds.")
         error_result = 1
         return
+
+class ENoSourceHeader(Exception):
+    def __init__(self, message):
+        self.message = message
+        genv.have_errors = True
+    def __str__(self):
+        error_result = 0
+        return str(self.message)
 
 class ENoParserError(Exception):
     def __init__(self, message=None):
@@ -644,6 +1748,693 @@ def convertPath(text):
         sys.exit(genv.EXIT_FAILURE)
     return result
 
+# ---------------------------------------------------------------------------
+# \brief A dos-console Qt5 Dialog - used by dBase console Applications.
+# ---------------------------------------------------------------------------
+class DOSConsoleWindow(QTextEdit):
+    def __init__(self, parent=None):
+        super().__init__()
+        
+        self.setReadOnly(False)
+        self.setStyleSheet("""
+        background-color: black;
+        font-family: 'Courier New';
+        font-size: 10pt;
+        color: gray;
+        """)
+        #
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy  (Qt.ScrollBarAlwaysOff)
+        
+        char_width, char_height = self.get_char_dimensions('A')
+        #
+        self.setMinimumWidth ((char_width  * 96) - 10)
+        self.setMaximumWidth ((char_width  * 96) - 10)
+        #
+        self.setMinimumHeight((char_height * 33) - 5)
+        self.setMaximumHeight((char_height * 33) - 5)
+        
+        self.cols   = 80
+        self.rows   = 25
+        
+        self.current_x = 0
+        self.current_y = 0
+        
+        self.fg_color  = "#FF0000"
+        self.bg_color  = "#000000"
+        
+        # ------------------------------------------------
+        # initial create/fill the buffer with a empty char
+        # ------------------------------------------------
+        self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
+        self.colors = [['#ff0000:#000000' for _ in range(self.cols)] for _ in range(self.rows)]
+    
+    def get_char_dimensions(self, char):
+        font         = self.font()
+        font_metrics = QFontMetrics(font)
+        
+        char_width   = font_metrics.horizontalAdvance(char)
+        char_height  = font_metrics.height()
+        
+        return char_width, char_height
+    
+    def setcolor(self, fg_color, bg_color):
+        self.fg_color = fg_color
+        self.bg_color = bg_color
+        
+        result = self.fg_color + ':' + self.bg_color
+        return result
+    
+    def gotoxy(self, xpos, ypos):
+        self.current_x = xpos - 1
+        self.current_y = ypos - 1
+        return
+    
+    # ---------------------------------------------------------
+    # \brief  Print the current date.
+    # \return string => the actual date as string.
+    # ---------------------------------------------------------
+    def print_date(self):
+        result = datetime.now().strftime("%Y-%m-%d")
+        return result
+    
+    def clear_screen(self):
+        self.buffer.clear()
+        self.colors.clear()
+        
+        self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
+        self.colors = [['#ff0000:#000000' for _ in range(self.cols)] for _ in range(self.rows)]
+        
+        self.gotoxy(1, 1)
+    
+    # ---------------------------------------------------------
+    # \brief  Print the text, given by the first parameter.
+    #
+    # \param  text - string
+    # \param  fg   - string  foreground color for text
+    # \param  bg   - string  background color for text
+    # \return nothing
+    # ---------------------------------------------------------
+    def print_line(self,
+        text,           # text
+        fg_color=None,  # foreground color
+        bg_color=None): # background color
+        if fg_color == None:
+            fg_color = self.fg_color
+        if bg_color == None:
+            bg_color = self.bg_color
+        try:
+            text_html = ""
+            
+            # ----------------------------
+            # set text cursor ...
+            # ----------------------------
+            x = self.current_x
+            y = self.current_y
+            
+            color = self.fg_color + ':' + self.bg_color
+            i = 0
+            for row in range(self.rows):
+                if i >= len(text):
+                    break
+                if row > y:
+                    break
+                for col in range(self.cols):
+                    if i >= len(text):
+                        break
+                    if (col >= x) and (col <= (x + i)):
+                        if text[i] == ' ':
+                            self.buffer[y][col] = '&nbsp;'
+                            self.colors[y][col] = color
+                        else:
+                            self.buffer[y][col] = text[i]
+                            self.colors[y][col] = color
+                        i += 1
+            
+            for row in range(self.rows):
+                for col in range(self.cols):
+                    field_value = self.buffer[row][col]
+                    color       = self.colors[row][col].split(':')
+                    
+                    if not field_value == '&nbsp;':
+                        text_html += f'<span style="color:{color[0]};background-color:{color[1]};">'
+                        text_html += field_value
+                        text_html += '</span>'
+                    else:
+                        text_html += f'<span style="color:{color[0]};background-color:{color[1]};">'
+                        text_html += field_value
+                        text_html += '</span>'
+                text_html += "<br>"
+            self.setHtml(text_html)
+        except Exception as e:
+            print(e)
+    
+    # ---------------------------------------------------------
+    # \brief  This definition try to get the color value by the
+    #         given color string.
+    #
+    # \param  color - string => the color to parse
+    #
+    # \return html formated color sting: #rrggbb
+    # ---------------------------------------------------------
+    def getColor(self, color):
+        if color:
+            pos = 0
+            value = ""
+            while True:
+                if pos > len(color):
+                    break;
+                c = color[pos]
+                if c == '#':
+                    if len(value) < 1:
+                        value += c
+                        continue
+                    else:
+                        return "#000000"
+                elif (c >= '0' and c <= '9'):
+                    if len(value) >= 6:
+                        if value[0] == '#':
+                            return value
+                    value += c
+                    continue
+                elif (c >= 'a' and c <= 'f') or (c >= 'A' and c <= 'F'):
+                    if len(value) >= 6:
+                        if value[0] == '#':
+                            return value
+                    value += c
+                    continue
+                elif (c >= 'g' and c <= 'z') or (c >= 'G' and c <= 'Z'):
+                    if len(value) > 1:
+                        if value[0] == '#':
+                            return "#000000"
+                    value += c
+                    continue
+                pos += 1
+        else:
+            return "#000000"
+
+class DOSConsole(QDialog):
+    def __init__(self, parent=None):
+        super().__init__()
+        
+        dlg_layout = QHBoxLayout()
+        lhs_layout = QVBoxLayout()
+        rhs_layout = QVBoxLayout()
+        
+        printer_box = QListWidget()
+        printer_box.setMaximumWidth(100)
+        
+        self.win = DOSConsoleWindow()
+        self.win.setReadOnly(True)
+        
+        # close button, to close the QDialog
+        btn_close  = QPushButton(_("Close"))
+        btn_close.setMinimumHeight(32)
+        btn_close.setFont(QFont(genv.v__app__font_edit,10))
+        btn_close.clicked.connect(self.btn_close_clicked)
+        
+        lhs_layout.addWidget(printer_box)
+        rhs_layout.addWidget(self.win)
+        rhs_layout.addWidget(btn_close)
+        
+        dlg_layout.addLayout(lhs_layout)
+        dlg_layout.addLayout(rhs_layout)
+        
+        self.setLayout(dlg_layout)
+    
+    def btn_close_clicked(self):
+        self.close()
+
+# ---------------------------------------------------------------------------
+# \brief A parser generator class to create a DSL (domain source language)
+#        parser with Python 3.12.
+#
+# \field files - an array of used script files
+# \field data  - an array of used script files data
+# \field info  - information about the parse processor (encoding, ...)
+# \field stat  - for statistics
+# \field rtl   - a link reference to the runtime library for this class
+# ---------------------------------------------------------------------------
+class ParserDSL:
+    # -----------------------------------------------------------------------
+    # \brief __init__ is the initializator - maybe uneeded, because __new__
+    #        is the constructor ...
+    # -----------------------------------------------------------------------
+    def __init__(self):
+        self.files  = []
+        self.data   = []
+        
+        self.name   = ""
+        
+        self.info   = None
+        self.stat   = None
+        self.this   = None
+        
+        self.rtl    = None
+        
+        self.AST    = []
+        
+        self.initialized = False
+    
+    # -----------------------------------------------------------------------
+    # \brief this is the constructor of class "ParserDSL" ...
+    # -----------------------------------------------------------------------
+    def __new__(self, lang="dbase"):
+        self.name   = lang.lower()
+        self.parser = self
+        self.rtl    = RunTimeLibrary()
+        self.AST    = []
+        self.files  = [
+            [ "root.src", "dbase", "** comment" ]
+        ]
+        self.initialized = True
+        return self
+    
+    def __enter__(self):
+        return self
+    
+    # -----------------------------------------------------------------------
+    # \brief destructor for parser generator class ...
+    # -----------------------------------------------------------------------
+    def __del__(self):
+        self.files.clear()
+        self.data.clear()
+    
+    # -----------------------------------------------------------------------
+    # \brief Add new script file to self.file array [].
+    #
+    # \param name - the file name of the script.
+    # -----------------------------------------------------------------------
+    def addFile(name):
+        if not ParserDSL.rtl.FileExists(name):
+            raise EParserError(10000)
+        else:
+            data = []
+            code = ParserDSL.rtl.ReadFile(name)
+            
+            data.append(name)
+            data.append(name)
+            data.append(code)
+            
+            ParserDSL.files.append(data)
+            #print(ParserDSL.files)
+        return True
+    
+    # -------------------------------------------------------------------
+    # \brief add comment types to the AST of a DSL parser.
+    #        currently the following types are available:
+    #
+    #        dBase:
+    #        ** one liner comment
+    #        && one liner
+    #        // one liner comment
+    #        /* block */ dbase multi line comment block
+    #
+    #        C/C++:
+    #        // C(C++ comment one liner
+    #        /* block */ C++ multi line comment block
+    #
+    #        Bash, misc:
+    #        # comment one liner
+    #
+    #        Assembly, LISP:
+    #        ; one line comment
+    # -------------------------------------------------------------------
+    def add(object_type):
+        if type(object_type) == ParserDSL.comment:
+            self  = ParserDSL()
+            which = ParserDSL.name.lower()
+            
+            # --------------------------
+            # no syntax comments
+            # --------------------------
+            if which == "":
+                comment = [[None,None]]
+                comment_object = self.comment("unknown")
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # dBase 7 syntax comments
+            # --------------------------
+            if which == "dbase":
+                comment = [
+                    [ "**", None ],
+                    [ "&&", None ],
+                    [ "//", None ],
+                    [ "/*", "*/" ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern C syntax comments
+            # --------------------------
+            elif which == "c":
+                comment = [
+                    ["/*", "*/" ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern C++ syntax comments
+            # --------------------------
+            elif self.rtl.StringCompare(which, ["c++","cc","cpp"]):
+                comment = [
+                    ["/*", "*/" ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # modern Pascal comments
+            # --------------------------
+            elif which == "pascal":
+                comment = [
+                    ["(*", "*)" ],
+                    ["{" , "}"  ],
+                    ["//", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # old ASM, and LISP comments
+            # --------------------------
+            elif self.rtl.StringCompare(which, ["asm","lisp"]):
+                comment = [
+                    [";", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            # --------------------------
+            # *nix tool style comments
+            # --------------------------
+            elif which == "bash":
+                comment = [
+                    ["#", None ],
+                ]
+                comment_object = self.comment(which)
+                comment_object.set(comment)
+                self.AST.append(comment_object)
+            else:
+                #"no known comment type"
+                raise EParserError(1100)
+    
+    # -------------------------------------------------------------------
+    # \brief class is used to mark a AST scope using comment type  ...
+    # -------------------------------------------------------------------
+    class comment:
+        def __init__(self, argument=None):
+            self.data   = []
+            self.name   = "s"
+            self.parent = ParserDSL
+            
+            # --------------------------
+            # no argument given.
+            # --------------------------
+            if argument == None:
+                print("info: current scope without "
+                + "comments initialized.")
+            # --------------------------
+            # argument type is a class
+            # --------------------------
+            elif argument == ParserDSL:
+                self.parent = argument
+                if self.parent.name != argument.name:
+                    print("info: current scope with: "
+                    + argument.name
+                    + " comments overwrite.")
+                    self.parent.name = argument.name
+                else:
+                    print("info: current scope not touched, because"
+                    + " comments already initialized with: "
+                    + argument.name
+                    + ".")
+            # --------------------------
+            # argument type is a string
+            # --------------------------
+            elif type(argument) == str:
+                supported_dsl = [
+                    "dbase", "pascal", "c", "c++", "cpp", "cc",
+                    "asm", "bash", "lisp"
+                ]
+                # --------------------------
+                # dsl is in supported list:
+                # --------------------------
+                if argument in supported_dsl:
+                    print("info: current scope with: "
+                    + argument
+                    + " comments initialized.")
+                    self.parent.name = argument
+                # --------------------------
+                # dsl not in supported list
+                # --------------------------
+                else:
+                    print("info: current scope with custom "
+                    + "comments initialized.")
+                    self.parent.name = argument
+        
+        # ---------------------------------------------------------------
+        # \brief  add a comment type to the existing comment scope ...
+        #
+        # \param  name  - the name for the parser DSL
+        # \param  kind  - a list with supported comment styles.
+        #                 the format is: [ <start>, <end> ]; if None set
+        #                 for <end>, then it is a one liner comment.
+        # \return True  - if the kind list is append successfully to the
+        #                 available data list.
+        #         False - when other event was occured.
+        # ---------------------------------------------------------------
+        def add(self, name, kind):
+            self.name = name
+            self.data.append(kind)
+            return True
+        
+        # ---------------------------------------------------------------
+        # \brief set a new comment type to the existing comment scope ...
+        #
+        # \param name - the DSL parser language
+        # \param kind - the comment styles that are available for <name>
+        # ---------------------------------------------------------------
+        def set(self, name, kind):
+            self.name = name
+            self.data = kind
+            return True
+        
+        # ---------------------------------------------------------------
+        # \brief  set the parser name for which the comments are ...
+        #
+        # \param  name - a string for parser name
+        # \return True - boolean if successfully; else False
+        # ---------------------------------------------------------------
+        def set(self, name):
+            self.name = name
+            return True
+        
+        # ---------------------------------------------------------------
+        # \brief  get the comment data list for the given comment scope.
+        #
+        # \param  nothing
+        # \return data - the self.data list
+        # ---------------------------------------------------------------
+        def get(self):
+            return self.data
+        
+        # ---------------------------------------------------------------
+        # \brief  returns the name which comments stands for DSL name
+        #
+        # \param  nothing
+        # \return string - the parser name
+        # ---------------------------------------------------------------
+        def getName(self):
+            return self.name
+    
+    # -----------------------------------------------------------------------
+    # \brief A class that act as record, to hold the informations about a
+    #        decent parser...
+    #
+    # \field name     - a name for the parser
+    # \field encoding - the source encoding of script file
+    # -----------------------------------------------------------------------
+    class parser_info:
+        # -------------------------------------------------------------------
+        # \brief __init__ is the initializator - maybe uneeded, because
+        #        __new__  is the constructor ...
+        # -------------------------------------------------------------------
+        def __init__(self, name=None, encoding="utf-8"):
+            self.name     = name
+            self.encoding = encoding
+        
+        # -------------------------------------------------------------------
+        # \brief this is the constructor of class "parser_info" ...
+        # -------------------------------------------------------------------
+        def __new__(self):
+            return self
+        
+        def __enter__(self):
+            return self
+        
+        # -------------------------------------------------------------------
+        # \brief destructor for class "parser_info" ...
+        # -------------------------------------------------------------------
+        def __del__(self):
+            self.name = ""
+        
+        # -------------------------------------------------------------------
+        # setters for parser informations ...
+        # -------------------------------------------------------------------
+        def setName(self, name):
+            self.name = name
+        
+        # -------------------------------------------------------------------
+        # getters for parser informations ...
+        # -------------------------------------------------------------------
+        def getName(self):
+            return self.name
+    
+    # -----------------------------------------------------------------------
+    # \brief A class that act as record, to hold the statistically infos of a
+    #        parse run...
+    # \field time_start - time of start processing
+    # \field time_end   - time of end   processing
+    # -----------------------------------------------------------------------
+    class parser_stat:
+        # -------------------------------------------------------------------
+        # \brief __init__ is the initializator - maybe uneeded, because
+        #        __new__  is the constructor ...
+        # -------------------------------------------------------------------
+        def __init__(self):
+            self.time_start = None
+            self.time_end   = None
+            self.encoding   = None
+        
+        # -------------------------------------------------------------------
+        # \brief this is the constructor of class "parser_stat" ...
+        # -------------------------------------------------------------------
+        def __new__(self):
+            return self
+        
+        def __enter__(self):
+            return self
+        
+        # -------------------------------------------------------------------
+        # \brief destructor for class "parser_stat" ...
+        # -------------------------------------------------------------------
+        def __del__(self):
+            self.time_start = None
+            self.time_end   = None
+        
+        # -------------------------------------------------------------------
+        # setters for statistically informations ...
+        # -------------------------------------------------------------------
+        def setStart(self, time):
+            self.time_start = time
+        def setEnd(self, time):
+            self.time_end   = time
+        def setEncoding(self, encoding="utf-8"):
+            self.encoding   = encoding
+        
+        # -------------------------------------------------------------------
+        # getters for statistically informations ...
+        # -------------------------------------------------------------------
+        def getStart(self):
+            return self.time_start
+        def getEnd(self):
+            return self.time_end
+        def getEncoding(self):
+            return self.encoding
+    
+    # -----------------------------------------------------------------------
+    # \brief A class that act as record, to hold the script file data infos
+    #        for used files...
+    #
+    # \field name    - the script name
+    # \field size    - the size of the script in bytes
+    # \field date    - the date of creation
+    # \field datemod - the date of last modification
+    # -----------------------------------------------------------------------
+    class parser_file:
+        # -------------------------------------------------------------------
+        # \brief __init__ is the initializator - maybe uneeded, because
+        #        __new__  is the constructor ...
+        # -------------------------------------------------------------------
+        def __init__(self, name):
+            self.name    = name
+            self.size    = 0
+            self.date    = None
+            self.datemod = None
+        
+        # -------------------------------------------------------------------
+        # \brief this is the constructor of class "parser_file" ...
+        # -------------------------------------------------------------------
+        def __new__(self):
+            return self
+        
+        def __enter__(self):
+            return self
+        
+        # -------------------------------------------------------------------
+        # \brief destructor for class "parser_file" ...
+        # -------------------------------------------------------------------
+        def __del__(self):
+            self.name = None
+    
+    # -----------------------------------------------------------------------
+    # \brief A class that act as record, to hold the data of a script file.
+    #
+    # \field name  - the script name
+    # \field data  - the script data/source
+    # \field lines - the lines of the script
+    # -----------------------------------------------------------------------
+    class parser_data:
+        # -------------------------------------------------------------------
+        # \brief __init__ is the initializator - maybe uneeded, because
+        #        __new__  is the constructor ...
+        # -------------------------------------------------------------------
+        def __init__(self, name, data="", lines=0):
+            self.name  = name
+            self.data  = data
+            self.lines = lines
+        
+        # -------------------------------------------------------------------
+        # \brief this is the constructor of class "parser_data" ...
+        # -------------------------------------------------------------------
+        def __new__(self):
+            return self
+        
+        def __enter__(self):
+            return self
+        
+        # -------------------------------------------------------------------
+        # \brief destructor for class "parser_data" ...
+        # -------------------------------------------------------------------
+        def __del__(self):
+            self.name = None
+        
+        # -------------------------------------------------------------------
+        # setters
+        # -------------------------------------------------------------------
+        def setLines(self, lines):
+            self.lines = lines
+        def setName(self, name):
+            self.name  = name
+        def setData(self, data):
+            self.data  = data
+        
+        # -------------------------------------------------------------------
+        # getters
+        # -------------------------------------------------------------------
+        def getLines(self):
+            return self.lines
+        def getName(self):
+            return self.name
+        def getData(self):
+            return self.data
+
 class dbase_function:
     def __init__(self, src, name):
         self.what   = "func"
@@ -689,7 +2480,7 @@ class dbase_symbol:
 class dbase_loop:
     def __init__(self, src, start, end):
         self.what  = "loop"
-        seöf.owner = src
+        self.owner = src
         self.start = start
         self.end   = end
         self.add(src)
@@ -699,7 +2490,7 @@ class dbase_loop:
 
 class dbase_command:
     def __init__(self, src, name, link=None):
-        print("---> " + name)
+        #print("---> " + name)
         self.what  = "keyword"
         self.owner = src
         self.name  = name
@@ -710,51 +2501,17 @@ class dbase_command:
         self.owner.AST.append(self)
         return self
 
-# ---------------------------------------------------------------------------
-# only for testing ...
-# ---------------------------------------------------------------------------
-class dbase_test_array_struct:
-    def __init__(self):
-        test_proc = dbase_function(self, "test")
-        test_loop = dbase_loop(self, 1,5)
-        #
-        test_var1 = dbase_val_variable(self, 1234)
-        test_var2 = dbase_str_variable(self, "fuzzy")
-        #
-        test_sym1 = dbase_symbol(self, "foo", test_var1)
-        test_sym2 = dbase_symbol(self, "bar", test_var2)
-        test_sym3 = dbase_symbol(self, "baz", test_proc)
-        #
-        test_symA = dbase_symbol(self, "L", test_loop)
-        
-        self.AST = [
-            test_sym1,
-            test_sym2,
-            test_sym3,
-            test_symA
-        ]
-        for obj in self.AST:
-            if isinstance(obj, dbase_symbol):
-                print("dbase:")
-                print("\tObject: " + obj.name)
-                #print("--> " + str(obj.what))
-            if isinstance(obj.link, dbase_function):
-                #print("gfun")
-                print("\t\tfunc type  : " + obj.link.what)
-                print("\t\tfunc name  : " + obj.link.name)
-                print("\t\tfunc result: " + obj.link.result)
-            elif isinstance(obj.link, dbase_val_variable):
-                print("\t\tfunc type  : " + obj.link.what)
-                print("\t\tfunc value : " + str(obj.link.value))
-            elif isinstance(obj.link, dbase_str_variable):
-                print("\t\tfunc type  : " + obj.link.what)
-                print("\t\tfunc value : " + obj.link.value)
-            elif isinstance(obj.link, dbase_loop):
-                print("\t\tfunc type  : " + obj.link.what)
-                print("\t\tfunc start : " + str(obj.link.start))
-                print("\t\tfunc end   : " + str(obj.link.end))
-        
-        sys.exit(20)
+class dbase_TForm(QDialog):
+    def __init__(self, parent=None):
+        super(dbase_TForm, self).__init__(parent)
+        self.setWindowTitle(_("Main Window"))
+        self.setWindowFlags(
+            Qt.Window or
+            Qt.WindowMinimizeButtonHint or
+            Qt.WindowMaximizeButtonHint)
+
+    def readModal(self):
+        self.exec_()
 
 # ---------------------------------------------------------------------------
 # \brief  class for interpreting dBase related stuff ...
@@ -768,86 +2525,80 @@ class dbase_test_array_struct:
 # \author paule32
 # \since  1.0.0
 # ---------------------------------------------------------------------------
-class interpreter_dBase:
-    def __init__(self, fname):
-        self.script_name = fname
+class interpreter_base():
+    def __del__(self):
+        showInfo("destructor")
+    
+    def __init__(self, file_name):
+        self.script_name = file_name
+        genv.v__app__scriptname__ = file_name
         
-        global con
-        con = consoleApp()
+        self.pos        = -1
         
-        self.line_row    = 1
-        self.line_col    = 1
+        # default, no error's at parse time ...
+        genv.have_errors = False
         
-        self.pos         = -1
-        self.log         = None
+        genv.open_paren = 0
+        genv.text_paren = ""
         
+        genv.code_code = """
+import os
+import sys
+import time
+import datetime
+
+import builtins
+print = builtins.print
+
+"""
+        genv.temp_code = ""
+        genv.text_code = ""
+
         self.token_id    = ""
         self.token_prev  = ""
         self.token_str   = ""
-        
-        self.parse_data  = []
         
         self.token_macro_counter = 0
         self.token_comment_flag  = 0
         
         self.in_comment = 0
         
-        self.AST = []
+        self.dbase_parser      = 1
+        self.pascal_parser     = 2
+        self.java_parser       = 3
+        self.isoc_parser       = 4
+        self.lisp_parser       = 5
+        self.javascript_parser = 6
         
-        self.byte_code = ""
-        self.text_code = ""
-        self.text_code = """
-import os
-import sys           # system specifies
-import time          # thread count
-import datetime      # date, and time routines
+        genv.counter_for    = 0
+        genv.counter_indent = 1
+        genv.counter_parens = 0
+        
+        genv.v__app__logging.info("start parse: " + self.script_name)
+        
+        self.err_commentNC = _("comment not closed.")
+        self.err_commandNF = _("command sequence not finished.")
+        self.err_unknownCS = _("unknown command or syntax error.")
+        
+        self.source    = ""
 
-import builtins
-print = builtins.print
-
-from dbaseConsole import *
-
-if __name__ == '__main__':
-    global con
-    con = consoleApp()
-"""
-        
-        # -------------------------------------------------------------------
-        # for debuging, we use python logging library ...
-        # -------------------------------------------------------------------
-        try:
-            print(genv.v__app__logfile)
-            if not os.path.exists(genv.v_app__logfile):
-                print("looo noooo")
-                sys.exit(1)
-            self.log = logging.getLogger(genv.v__app__logfile)
-            logging.basicConfig(
-                format="%(asctime)s: %(levelname)s: %(message)s",
-                filename="observer.log",
-                encoding="utf-8",
-                filemode="w",
-                level=logging.DEBUG)
-        except:
-            print("log file could not be open.")
-            return
-        
-        self.log.info("init ok: session start...")
-        self.log.info("start parse: " + self.script_name)
-        
+        self.parser_stop = False
         self.parse_open(self.script_name)
-        self.source = self.parse_data[0]
+    
+    def update_code(self, text):
+        genv.text_code += text
+        
+        #if genv.isGuiApplication:
+            #genv.text_code += (""
+            #"\tpre_EntryPoint(True)\n"
+            #)
     
     # -----------------------------------------------------------------------
     # \brief finalize checks and cleaning stuff ...
     # -----------------------------------------------------------------------
     def finalize(self):
-        self.log.debug("macro   : " + str(self.token_macro_counter))
-        self.log.debug("comment : " + str(self.token_comment_flag))
-        if self.command_ok == False:
-            raise EParserErrorEOF("command not finished.")
-        if self.token_macro_counter < 0:
-            self.log.debug("\aerror: unbound macro.")
-            sys.exit(1)
+        genv.v__app__logging.debug("macro   : " + str(self.token_macro_counter))
+        genv.v__app__logging.debug("comment : " + str(self.token_comment_flag))
     
     # -----------------------------------------------------------------------
     # \brief open a script file, and append the readed lines to the source
@@ -865,66 +2616,10 @@ if __name__ == '__main__':
     # \since  1.0.0
     # -----------------------------------------------------------------------
     def parse_open(self, file_name):
-        with open(self.script_name, 'r', encoding="utf-8") as self.file:
-            self.file.seek(0)
-            lines  = len(self.file.readlines())
-            self.file.seek(0)
-            source = self.file.read()
-            self.file.close()
-        self.parse_data.append(source)
-    
-    def add_command(self, name, link):
-        self.token_command = dbase_command(self, name, link)
-        return self.token_command
-    
-    def run(self):
-        self.finalize()
-        print("----------------------")
-        print(self.text_code)
-        input("press enter to start...")
-        
-        self.text_code += "print('Hello World !')\n"
-        
-        bytecode_text = compile(
-            self.text_code,
-            "<string>",
-            "exec")
-        self.byte_code = marshal.dumps(bytecode_text)
-        
-        # ---------------------
-        # save binary code ...
-        # ---------------------
-        cachedir = "__cache__"
-        if not os.path.exists(cachedir):
-            os.makedirs(cachedir)
-        filename = os.path.basename(self.script_name)
-        filename = os.path.splitext(filename)[0]
-        filename = cachedir+"/"+filename+".bin"
-        print("filename: " + filename)
-        try:
-            with open(filename,"wb") as bytefile:
-                bytefile.write(self.byte_code)
-                bytefile.close()
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                raise
-        
-        # ---------------------
-        # load binary code ...
-        # ---------------------
-        try:
-            with open(filename,"rb") as bytefile:
-                bytecode = bytefile.read()
-                bytefile.close()
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                raise
-        
-        # ---------------------
-        # execute binary code:
-        # ---------------------
-        #bytecode = marshal.loads(self.byte_code)
-        #exec(bytecode)
+        with open(self.script_name, 'r', encoding="utf-8") as file:
+            file.seek(0); self.source = file.read()
+            file.close()
+        print("source: ", self.source)
     
     # -----------------------------------------------------------------------
     # \brief  get one char from the input stream/source line.
@@ -942,21 +2637,44 @@ if __name__ == '__main__':
     # \author paule32
     # \since  1.0.0
     # -----------------------------------------------------------------------
+    
+    # -----------------------------------------------------------------------
+    # \brief check the end of line, because windows and linux use differnt
+    #        kind of endings. If there a '\r', and don't followed by a \n,
+    #        then inform the user with a error message, if you under windows.
+    #        #13#10 - Windows
+    #        #10    - Linux
+    # -----------------------------------------------------------------------
     def getChar(self):
-        self.line_col += 1
+        genv.line_col += 1
         self.pos += 1
-
+        
         if self.pos >= len(self.source):
-            if self.in_comment > 0:
-                raise EParserErrorEOF("\aunterminated string reached EOF.")
-            else:
-                raise ENoParserError("\aend of file reached.")
+            return genv.ptNoMoreData
         else:
             c = self.source[self.pos]
-            return c
+            if c == '\n':
+                genv.line_col  = 1
+                genv.line_row += 1
+                return '\n'
+            elif c == '\r':
+                if self.pos >= len(self.source):
+                    genv.unexpectedError(_("line ending error."))
+                self.pos += 1
+                c = self.source[self.pos]
+                if c == '\n':
+                    genv.line_col  = 1
+                    genv.line_row += 1
+                    return '\n'
+                else:
+                    genv.unexpectedEndOfLine(genv.line_row)
+            elif (c == '\t') or (c == ' '):
+                return c
+            else:
+                return c
     
     def ungetChar(self, num):
-        self.line_col -= num;
+        genv.line_col -= num;
         self.pos -= num;
         c = self.source[self.pos]
         return c
@@ -964,74 +2682,352 @@ if __name__ == '__main__':
     def getIdent(self):
         while True:
             c = self.getChar()
-            if c.isspace():
+            if c == genv.ptNoMoreData:
                 return self.token_str
-            elif c.isalnum():
+            elif c == '\t' or c == ' ':
+                return self.token_str
+            elif c == '\n':
+                genv.line_row += 1
+                return self.token_str
+            elif c == '\r':
+                genv.line_row += 1
+                c = self.getChar()
+                if not c == '\n':
+                    genv.unexpectedError("line error")
+                else:
+                    return self.token
+            elif c.isdigit():
                 self.token_str += c
+                continue
+            elif c.isalpha() or c == '_':
+                self.token_str += c
+                continue
             else:
-                self.pos -= 1
+                self.ungetChar(1)
                 return self.token_str
     
     def getNumber(self):
+        have_point = False
+        self.counter_digit = 0
         while True:
             c = self.getChar()
             if c.isdigit():
                 self.token_str += c
+                continue
+            elif c == '.':
+                if have_point == True:
+                    genv.unexpectedChar(c)
+                else:
+                    have_point = True
+                    continue
             else:
-                self.pos -= 1
+                self.ungetChar(1)
                 return self.token_str
+    
+    def expect_ident(self, token=""):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c.isalpha() or c == '_':
+            self.token_str = c
+            self.getIdent()
+            if len(token) > 0:
+                if self.token_str.lower() == token.lower():
+                    return True
+                else:
+                    self.ungetChar(len(token))
+                    return False
+            else:
+                return False
+        else:
+            genv.unexpectedError(_("ident expected"))
+            return False
+    
+    def expect_op(self):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c in genv.parser_op:
+            genv.temp_code += c
+            return True
+        else:
+            self.ungetChar(1)
+            return False
+    
+    def expect_expr(self):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c.isdigit():
+            self.token_str = c
+            self.getNumber()
+            #showInfo("token: " + self.token_str)
+            genv.temp_code += self.token_str
+            if self.expect_op():
+                return self.expect_expr()
+            else:
+                return True
+        elif c.isalpha() or c == '_':
+            self.token_str = c
+            self.getIdent()
+            genv.temp_code += self.token_str
+            if self.expect_op():
+                return self.expect_expr()
+            else:
+                return True
+        elif self.expect_op():
+            return self.expect_expr()
+        elif c == '(':
+            genv.temp_code += '('
+            return self.expect_expr()
+        elif c == ')':
+            genv.temp_code += ')'
+            return True
+        else:
+            return False
+    
+    def expect_assign(self):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if not c == '=':
+            genv.unexpectedError(_("assign sign expected."))
+            return '\0'
+        return True
+    
+    def check_null(self, c):
+        if self.pos >= len(self.source):
+            return genv.ptNoMoreData
+        if c == '\0':
+            return True
+        return False
+    
+    def check_spaces(self, c):
+        if c == '\t' or c  == ' ':
+            genv.line_col += 1
+            result = True
+        return False
+    
+    def check_newline(self, c):
+        result = False
+        if c == '\n':
+            genv.line_col  = 1
+            genv.line_row += 1
+            result = True
+        elif c == '\r':
+            c = self.getChar()
+            if not c == '\n':
+                genv.unexpectedEndOfLine(genv.line_row)
+                return result
+            genv.line_col  = 1
+            genv.line_row += 1
+            result = True
+        return result
+    
+    def check_digit(self, c):
+        if c.isdigit():
+            self.ungetChar(1)
+            self.getNumber()
+            return True
+        else:
+            self.unexpectedError(_("expect a digit"))
+        return False
+        
+    def check_alpha(self, c):
+        result = False
+        if c.isalpha():
+            self.token_str = c
+            self.getIdent()
+            result = True
+        else:
+            genv.unexpectedChar(c)
+            result = False
+        return result
+    
+    def handle_pascal_comment_1(self):
+        while True:
+            c = self.getChar()
+            self.check_null(c)
+            if self.check_newline(c):
+                continue
+            if c == '*':
+                c = self.getChar()
+                self.check_null(c)
+                if c == ')':
+                    return True
+                elif self.check_newline(c):
+                    continue
+                continue
+        if not c == ')':
+            genv.unexpectedError(_("comment not closed"))
+            return False
+        return False
+    
+    def handle_pascal_comment_2(self):
+        while True:
+            c = self.getChar()
+            self.check_null(c)
+            if self.check_newline(c):
+                continue
+            if c == '}':
+                genv.line_col += 1
+                self.in_comment -= 1
+                break
+            elif c == '$':
+                c = self.getChar()
+                self.check_null(c)
+                if self.check_alpha(c):
+                    self.getIdent()
+                else:
+                    genv.unexpectedError(_("unknown macro symbol"))
+                    return '\0'
+                
+                if len(self.token_str) > 64:
+                    genv.unexpectedError(_("macro name too long"))
+                    return '\0'
+                if self.token_str == "define":
+                    print("define macro")
+                elif self.token_str == "ifdef":
+                    print("ifdef macro")
+                elif self.token_str == "ifndef":
+                    print("if not def")
+                elif self.token_str == "else":
+                    print("else macro")
+                elif self.token_str == "endif":
+                    print("endif macro")
+                
+            else:
+                genv.line_col += 1
+                continue
+        if not c == '}':
+            genv.unexpectedError(_("comment not closed"))
+            return
     
     # -----------------------------------------------------------------------
     # \brief skip all whitespaces. whitespaces are empty lines, lines with
     #        one or more spaces (0x20): " ", \t, "\n".
     # -----------------------------------------------------------------------
-    def skip_white_spaces(self):
+    def skip_white_spaces(self, parser_type):
+        self.pascal_comment_open = False
         while True:
             c = self.getChar()
-            if c == "\t" or c == " ":
-                self.line_col += 1
-                continue
-            elif c == "\n" or c == "\r":
-                self.line_col  = 1
-                self.line_row += 1
-                continue
-            elif c == '/':
+            if c == genv.ptNoMoreData:
+                return c
+            elif c == '(':
                 c = self.getChar()
                 if c == '*':
-                    self.in_comment += 1
-                    while True:
-                        c = self.getChar()
-                        if c == "\n":
-                            self.line_col  = 1
-                            self.line_row += 1
-                            continue
-                        if c == '*':
+                    if parser_type == self.pascal_parser:
+                        while True:
                             c = self.getChar()
-                            if c == '/':
-                                self.in_comment -= 1
-                                break
-                    return self.skip_white_spaces()
-                elif c == '/':
-                    self.handle_oneline_comment()
-                    continue
+                            if c == genv.ptNoMoreData:
+                                genv.have_errors = True
+                                genv.unexpectedError(_("comment not terminated."))
+                                return
+                            elif c == '*':
+                                c = self.getChar()
+                                if c == ')':
+                                    break;
+                            elif c == '\n':
+                                continue
+                            elif c == '\r':
+                                c = self.getChar()
+                                if not c == '\n':
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("line end error"))
+                                    return
+                            else:
+                                continue
+                        continue
+                    else:
+                        genv.unexpectedError(_("pascal comment not allowed"))
+                        return
                 else:
                     self.ungetChar(1)
-                    c = "/"
+                    return '('
+            elif c == '{':
+                if parser_type == self.pascal_parser:
+                    while True:
+                        c = self.getChar()
+                        if c == genv.ptNoMoreData:
+                            genv.have_errors = True
+                            genv.unexpectedError(_("unterminated comment."))
+                            return
+                        elif c == '}':
+                            break
+                        continue
+                else:
+                    genv.unexpectedError(_("pascal comment not allowed"))
+                    return
+            elif c == '*':
+                c = self.getChar()
+                if c == genv.ptNoMoreData:
+                    return c
+                elif c == '*':
+                    if parser_type == self.dbase_parser:
+                        while True:
+                            c = self.getChar()
+                            if c == genv.ptNoMoreData:
+                                return c
+                            elif c == '\n':
+                                break
+                    else:
+                        genv.unexpectedError(_("dbase comment not allowed."))
+                        return
+                else:
                     return c
             elif c == '&':
                 c = self.getChar()
-                if c == '&':
-                    self.handle_oneline_comment()
-                    continue
+                if c == genv.ptNoMoreData:
+                    return c
+                elif c == '&':
+                    if parser_type == self.dbase_parser:
+                        while True:
+                            c = self.getChar()
+                            if c == genv.ptNoMoreData:
+                                return c
+                            elif c == '\n':
+                                break
+                    else:
+                        genv.unexpectedError(_("dbase comment not allowed."))
+                        return
                 else:
-                    self.__unexpectedChar('&')
-            elif c == '*':
+                    return c
+            elif c == '/':
                 c = self.getChar()
-                if c == '*':
-                    self.handle_oneline_comment()
+                if c == genv.ptNoMoreData:
+                    return genv.ptNoMoreData
+                elif c == '*':
+                    if parser_type == dbase_parser:
+                        self.in_comment += 1
+                        while True:
+                            c = self.getChar()
+                            if c == genv.ptNoMoreData:
+                                genv.unexpectedError(_("unterminated comment."))
+                            elif c == '*':
+                                c = self.getChar()
+                                if c == '/':
+                                    #showInfo("closed C Comment: "  + str(genv.line_row))
+                                    self.in_comment -= 1
+                                    break
+                                else:
+                                    continue
+                            else:
+                                continue
+                        if self.in_comment > 0:
+                            #showInfo("comment großer")
+                            genv.unexpectedError(_("self.err_commentNC"))
+                    else:
+                        genv.unexpectedError(_("C comment not allowrd"))
+                        return
+                elif c == '/':
+                    #showInfo("C++ comment: "  + str(genv.line_row))
+                    while True:
+                        c = self.getChar()
+                        if c == genv.ptNoMoreData:
+                            genv.unexpectedError(_("unterminated comment."))
+                        elif c == '\n':
+                            break
+                        else:
+                            continue
+                    #showInfo("closed C++ comment: " + str(genv.line_row))
                     continue
                 else:
-                    self.__unexpectedChar('*')
+                    self.ungetChar(1)
+                    return '/'
+            elif (c == '\n') or (c == '\t') or (c == ' '):
+                continue
             else:
                 return c
     
@@ -1040,195 +3036,1259 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------
     def handle_oneline_comment(self):
         while True:
+            genv.line_col += 1
             c = self.getChar()
-            if c == "\n":
-                self.line_row += 1
-                self.line_col  = 1
+            if self.check_null(c):
+                return '\0'
+            if self.check_spaces(c):
+                continue
+            if self.check_newline(c):
                 break
+    
+    def run(self):
+        self.finalize()
+        
+        if genv.have_errors == True:
+            showError(_("source code has errors."))
+            return
+        
+        #genv.text_code += "\tcon.reset()\n"
+        #genv.counter_indent -= 1
+        
+        if genv.editor_check.isChecked():
+            genv.text_code += ("\n\n"
+            + "if __name__ == '__main__':\n"
+            + "\tglobal console\n"
+            + "\tconsole = DOSConsole()\n"
+            + "\tpre_EntryPoint(True)\n"
+            + "\tconsole.exec_()\n"
+            )
+        else:
+            genv.text_code = ("def pre_EntryPoint():\n" + genv.text_code)
+            self.update_code("\n\n"
+            + "if __name__ == '__main__':\n"
+            + "\tglobal console\n"
+            + "\tconsole = DOSConsole()\n"
+            + "\tpre_EntryPoint()\n"
+            + "\tconsole.exec_()\n"
+            )
+        
+        #showInfo("runner:\n" + genv.text_code)
+        
+        #showInfo(genv.text_code)
+        try:
+            cachedir = genv.v__app__internal__ + "/__cache__"
+            if not os.path.exists(cachedir):
+                os.makedirs(cachedir)
+            
+            fname = os.path.basename(self.script_name)
+            fname = os.path.splitext(fname)[0]
+            fname = cachedir+"/"+fname+".bin"
+            
+            # ---------------------
+            # compile text code ...
+            # ---------------------
+            bytecode = compile(
+                genv.text_code,
+                filename=fname,
+                mode="exec")
+                
+            filename = fname
+            
+            # ---------------------
+            # save binary code ...
+            # ---------------------
+            with open(filename,"wb") as bytefile:
+                marshal.dump(bytecode , bytefile)
+                bytefile.close()
+            
+            with open(filename,"rb") as bytefile:
+                bytecode = marshal.load(bytefile)
+                bytefile.close()
+        
+            # ---------------------
+            # execute binary code:
+            # ---------------------
+            exec(bytecode, globals())
+            
+            # ---------------------
+            # reset old code ...
+            # ---------------------
+            genv.class_code  = ""
+            self.text_code   = ""
+            genv.header_code = ""
+        except Exception as e:
+            genv.class_code  = ""
+            self.text_code   = ""
+            genv.header_code = ""
+            showException(traceback.format_exc())
+
+class interpreter_dBase(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_dBase, self).__init__(file_name)
+        
+        # ----------------------------------------------
+        # textual color values in RGB format ...
+        # ----------------------------------------------
+        self.token_colors = [
+            [['n']         , '#000000' ], # black
+            [['b']         , '#00008B' ], # dark blue
+            [['g']         , '#006400' ], # green
+            [['gb','bg']   , '#8B008B' ], # dark magenta
+            [['r']         , '#8B0000' ], # dark red
+            [['rb','br']   , '#FF00FF' ], # magenta
+            [['rg','gr']   , '#A52A2A' ], # brown
+            [['w']         , '#D3D3D3' ], # light gray
+            [['n+']        , '#A9A9A9' ], # dark gray
+            [['b+']        , '#0000FF' ], # blue
+            [['g+']        , '#00FF00' ], # light green
+            [['gb+','bg+'] , '#ADD8E6' ], # light blue
+            [['r+']        , '#FF0000' ], # red
+            [['rb+','br+'] , '#00FFFF' ], # magenta
+            [['rg+','gr+'] , '#FFFF00' ], # yellow
+            [['w+']        , '#FFFFFF' ]  # white
+        ]
+                
+        self.fg_color  = "#FF0000"
+        self.bg_color  = "#000000"
+        
+        global textertext
+        textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2024 by Jens Kallup - paule32.'
+        self.byte_code = ""
+    
+    def add_command(self, name, link):
+        self.token_command = dbase_command(self, name, link)
+        return self.token_command
     
     def handle_commands(self):
         if self.token_str.lower() == "date":
-            c = self.skip_white_spaces()
+            c = self.skip_white_spaces(self.dbase_parser)
             if c == '(':
-                c = self.skip_white_spaces()
+                c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
-                    print("dater")
-                    self.text_code   += ("    con.gotoxy(" +
-                    self.xpos + ","   +
-                    self.ypos + ")\n" +  "    con.print_date()\n")
+                    genv.text_code += ('\t' * genv.counter_indent)
+                    genv.text_code += ("console.win.gotoxy(" +
+                    str(self.xpos) + ","   +
+                    str(self.ypos) + ")\n" +
+                    ('\t' * genv.counter_indent) + "console.win.print_date()\n")
                     
                     self.command_ok = True
                 else:
-                    self.__unexpectedChar(c)
+                    genv.unexpectedChar(c)
             else:
-                self.__unexpectedChar(c)
+                genv.unexpectedChar(c)
         elif self.token_str.lower() == "str":
-            c = self.skip_white_spaces()
+            c = self.skip_white_spaces(self.dbase_parser)
             if c == '(':
-                c = self.skip_white_spaces()
+                c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
                     print("strrr")
                     self.command_ok = True
                 else:
-                    self.__unexpectedChar(c)
+                    genv.unexpectedChar(c)
             else:
-                self.__unexpectedChar(c)
+                genv.unexpectedChar(c)
         else:
-            self.__unexpectedToken()
+            genv.unexpectedToken(self.token_str)
     
-    def handle_string(self):
-        while True:
-            c = self.getChar()
-            if c == '"':
-                break
-            elif c == '\\':
+    def handle_string(self, mode=0):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c == '"':
+            self.temp_code += '"'
+            while True:
                 c = self.getChar()
-                if c == "\n" or c == "\r":
-                    self.__unexpectedEndOfLine()
-                elif c == " ":
-                    self.__unexpectedEscapeSign()
+                if c == genv.ptNoMoreData:
+                    return c
+                elif c == '"':
+                    self.temp_code += '"'
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '+':
+                        self.temp_code += " + "
+                        return self.handle_string()
+                    else:
+                        self.ungetChar(1)
+                        return self.temp_code
                 elif c == '\\':
-                    self.token_str += "\\"
-                elif c == 't':
-                    self.token_str += "    "
-                elif c == 'n':
-                    self.token_str += "\n"
-                elif c == 'r':
-                    self.token_str += "\r"
-                elif c == 'a':
-                    self.token_str += "\a"
+                    c = self.getChar()
+                    if c == "\n" or c == "\r":
+                        genv.unexpectedEndOfLine(genv.line_row)
+                    elif c == " ":
+                        genv.unexpectedEscapeSign(genv.line_row)
+                    elif c == '\\':
+                        self.temp_code += "\\"
+                    elif c == 't':
+                        self.temp_code += "\t"
+                    elif c == 'n':
+                        self.temp_code += "\n"
+                    elif c == 'r':
+                        self.temp_code += "\r"
+                    elif c == 'a':
+                        self.temp_code += "\a"
+                    else:
+                        self.temp_code += c
+                    continue
                 else:
-                    self.token_str += c
+                    self.temp_code += c
+                    continue
+            return self.temp_code
+    
+    def handle_parens(self):
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c == '(':
+            genv.open_paren += 1
+            genv.temp_code  += c
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c == genv.ptNoMoreData:
+                genv.unexpectedError(_("no more data."))
+            elif c == '(':
+                self.ungetChar(1)
+                self.handle_parens()
+                return self.temp_code # todo !!!
+            return self.get_brace_code()
+        elif c == ')':
+            genv.open_paren -= 1
+            genv.temp_code  += c
+            if genv.open_paren < 1:
+                return genv.temp_code
+        elif c in genv.parser_op:
+            genv.temp_code += c
+            return handle_parens()
+        elif c.isdigit():
+            self.token_str = c
+            self.getNumber()
+            genv.temp_code += self.token_str
+            return self.get_brace_code()
+        elif c.isalpha():
+            self.token_str = c
+            self.getIdent()
+            genv.text_code += self.token_str
+            return self.get_brace_code()
+        elif c in genv.parser_op:
+            genv.text_code += c
+            return self.get_brace_code()
+        elif c == ',':
+            return c
+        else:
+            if genv.counter_brace > 0:
+                raise unexpectedParserException(_("missing closed parens"), genv.line_row)
+                return '\0'
+        return False
+    
+    def handle_numalpha(self):
+        while True:
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c.isdigit():
+                self.token_str = c
+                self.getNumber()
+                genv.text_code += self.token_str
                 continue
-            else:
-                self.token_str += c
-                continue
-        c = self.skip_white_spaces()
-        if c == '+':
-            c = self.skip_white_spaces()
-            if c == '"':
-                self.handle_string()
-                print("---> " + self.token_str)
-                return
-            elif c.isalpha():
+            elif c.isalpha() or c == '_':
                 self.token_str = c
                 self.getIdent()
-                self.handle_commands()
-                print("---> " + self.token_str)
-                return
-            else:
-                self.__unexpectedChar(c)
-        if c == '@':
+                genv.text_code += self.token_str
+                continue
+            elif c in genv.parser_op:
+                genv.text_code += c
+                continue
+            elif c == '(':
+                genv.counter_brace += 1
+                genv.text_code += c
+                continue
+            elif c == ')':
+                genv.counter_brace -= 1
+                if self.second_part:
+                    return c
+                continue
+            elif c == ',':
+                return c
+        return '\0'
+    
+    def tokenString(self):
+        self.token_str = ""
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c == '\"':
+            genv.temp_code  = ('\t' * genv.counter_indent)
+            genv.temp_code += 'console.win.print_line('
+            genv.text_code += genv.temp_code
+            genv.temp_code  = ""
+            genv.last_command = False
+            #
             self.ungetChar(1)
-            return
+            self.handle_string()
+            genv.text_code += ')\n'
+            genv.last_command = True
+            return True
         else:
-            self.__unexpectedChar(c)
+            genv.unexpectedError(_("qoute expected"))
+            return '\0'
     
     def handle_say(self):
-        self.command_ok = False
-        c = self.skip_white_spaces()
-        print("==> " + c)
-        if c.isdigit():
-            self.token_str = c
-            self.getNumber()                        # row
-            self.ypos = self.token_str
-            c = self.skip_white_spaces()
-            if c == ',':
-                c = self.skip_white_spaces()
-                if c.isdigit():
-                    self.token_str = c
-                    self.getNumber()                # col
-                    self.xpos = self.token_str
-                    c = self.skip_white_spaces()
-                    if c.isalpha():
+        self.command_ok  = False
+        self.second_part = False
+        #
+        self.temp_code   = ""
+        self.text_paren  = ""
+        #
+        self.prev_sign   = False
+        self.prev_expr   = False
+        #
+        while True:
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c.isdigit():
+                self.token_str = c
+                self.getNumber()
+                genv.text_code += ('\t' * genv.counter_indent)
+                genv.text_code += "console.win.gotoxy("
+                genv.text_code += self.token_str
+                #
+                #showInfo("digit:\n" + genv.text_code)
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c == ',':
+                    genv.text_code += ","
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c.isdigit():
+                        self.token_str = c
+                        self.getNumber()
+                        genv.text_code += self.token_str
+                        genv.text_code += ")\n"
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c.isalpha() or c == '_':
+                            self.token_str = c
+                            self.getIdent()
+                            if self.token_str.lower() == "say":
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == '"':
+                                    self.ungetChar(1)
+                                    self.token_str  = ('\t' * genv.counter_indent)
+                                    self.token_str += "console.win.print_line("
+                                    self.token_str += self.handle_string()
+                                    self.token_str += ")\n"
+                                    genv.text_code += self.token_str
+                                    #showInfo("nachricht:\n\n" + genv.text_code)
+                                return
+                            elif self.token_str.lower() == "get":
+                                #showInfo("getter")
+                                return
+                    else:
+                        genv.unexpectedError(_(" l l k k k "))
+                #
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c in['-','+','*','/']:
+                    self.temp_code += c
+                    self.prev_sign = True
+                    continue
+                elif c == ',':
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c.isdigit():
+                        self.token_str = c
+                        self.getNumber()
+                        genv.temp_code += "," + self.token_str + ")\n"
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c.isalpha():
+                            self.token_str = c
+                            self.getIdent()
+                            if self.token_str == "say":
+                                genv.text_code += ('\t' * genv.counter_indent)
+                                genv.text_code += "console.win.print("
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == '"':
+                                    self.ungetChar(1)
+                                    self.token_str  = self.handle_string()
+                                    genv.text_code += self.token_str
+                                    genv.text_code += "\n"
+                                    #showInfo("nachricht 22:\n\n" + genv.text_code)
+                                    break
+                            if self.token_str == "get":
+                                showInfo("get not implemented")
+                                break
+                        else:
+                            genv.unexpectedError(_("say or get expected"))
+                    else:
+                        genv.unexpectedError(_("prev comma"))
+                else:
+                    genv.unexpectedError(_("unexpected character found."))
+            elif c.isalpha() or c == '_':
+                #showInfo("a identerig")
+                self.token_str = c
+                self.getIdent()
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c in['-','+','*','/']:
+                    #showInfo("alpaha")
+                    self.temp_code += c
+                    self.prev_sign = True
+                    continue
+                elif c == ',':
+                    if self.prev_expr:
+                        genv.unexpectedError(_("comma prevv"))
+                    self.prev_expr = True
+                    continue
+                else:
+                    genv.unexpectedError(_("unexpected character found 2."))
+            elif c == '(':
+                genv.open_paren += 1
+                genv.temp_code += '('
+                continue
+            elif c == ')':
+                genv.open_paren -= 1
+                if genv.open_paren < 1:
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c in['-','+','*','/']:
+                        continue
+                    elif c.isalpha() or c == '_':
                         self.token_str = c
                         self.getIdent()
                         if self.token_str.lower() == "say":
-                            self.prev = "say"
-                            c = self.skip_white_spaces()
+                            #showInfo("saaayyyyer 111")
+                            break
+                        elif self.token_str.lower() == "get":
+                            #showInfo("getter")
+                            break
+                    elif c.isdigit():
+                        self.token_str = c
+                        self.getNumber()
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c in['-','+','*','/']:
+                            self.temp_code += c
+                            self.prev_sign = True
+                            continue
+                        elif c == ',':
+                            if self.prev_expr:
+                                genv.unexpectedError(_("comma prevv"))
+                            self.prev_expr = True
+                            continue
+                        else:
+                            genv.unexpectedError(_("loliutz"))
+                else:
+                    continue
+            elif c == ',':
+                #showInfo("mupslochj")
+                if self.prev_expr:
+                    genv.unexpectedError(_("comma prevv 22"))
+                self.prev_sign = True
+                continue
+            else:
+                genv.unexpectedError(_("say command not okay."))
+                return '\0'
+    
+    # -----------------------------------------------
+    # CLASS ident OF FORM ... ENDCLASS
+    # -----------------------------------------------
+    def handle_class_commands(self):
+        #showInfo("commando: " + str(self.pos));
+        pass
+    
+    def handle_class(self):
+        try:
+            while True:
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c == genv.ptNoMoreData:
+                    raise e_no_more_data()
+                if c.isalpha():
+                    self.token_str = c
+                    self.getIdent()
+                    if self.token_str.lower() == "class":
+                        genv.class_code += "class ";
+                        self.token_str = ""
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c == genv.ptNoMoreData:
+                            raise e_no_more_data()
+                        if c.isalpha():
+                            self.token_str = c
+                            self.getIdent()
+                            ClassName = self.token_str
+                            genv.class_code += self.token_str + "("
+                            # class ClassName(
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data()
+                            elif c.isalpha():
+                                self.token_str = c
+                                self.getIdent()
+                                if self.token_str.lower() == "of":
+                                    c = self.skip_white_spaces(self.dbase_parser)
+                                    if c == genv.ptNoMoreData:
+                                        raise e_no_more_data()
+                                    elif c.isalpha():
+                                        self.token_str = c
+                                        self.getIdent()
+                                        if self.token_str.lower() == "form":
+                                            genv.class_code += (""
+                                            + "dbase_TForm):\n"
+                                            + ('\t' * genv.counter_indent)
+                                            + "def __init__(self, parent=None):\n"
+                                            + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
+                                            + "\t\tself.setWindowTitle('Main Dialog')\n"
+                                            + "\t\tself.ClassName = '" + ClassName + "'\n"
+                                            + "\t\tself.ClassType = 'FORM'\n"
+                                            )
+                                            genv.counter_indent += 1
+                                            #showInfo("KLASSE:\n" + genv.class_code)
+                                            self.handle_class_commands()
+                                    
+                                            c = self.skip_white_spaces(self.dbase_parser)
+                                            if c == genv.ptNoMoreData:
+                                                raise e_no_more_data(_("endclass expected"))
+                                            if c.isalpha():
+                                                self.token_str = c
+                                                self.getIdent()
+                                                if self.token_str.lower() == "endclass":
+                                                    raise e_no_more_data("classend") # + genv.temp_code)
+                                                else:
+                                                    genv.unexpectedError(_("endclass expected."))
+                                            else:
+                                                genv.unexpectedError(_("alpha value expected"))
+                                                return
+                                        else:
+                                            genv.unexpectedError(_("OF expected"))
+                                            return
+                                    else:
+                                        genv.unexpectedError(_("alpha value expected"))
+                                        return
+                                else:
+                                    genv.unexpectedError(_("form expected."))
+                                    return
+                            else:
+                                genv.unexpectedError(_("alpha value expected"))
+                                return
+                        else:
+                            genv.unexpectedError(_("OF expected."))
+                            return
+                    else:
+                        genv.unexpectedError(_("alpha value expected"))
+                        return
+                else:
+                    genv.unexpectedError(_("alpha value expected"))
+                    return
+        except e_no_more_data as noerror:
+            #showInfo(f"dBase class information:\n{noerror.message}")
+            if noerror.message == "classend":
+                genv.header_code += "\n\n"
+                self.update_code(genv.header_code)
+                self.update_code(genv.class_code)
+                
+                # delete first line:
+                lines = genv.text_code.splitlines()
+                rline = lines[1:]
+                lines = "\n".join(rline)
+                
+                genv.text_code = lines
+                
+                #showInfo("braker:\n" + genv.text_code)
+    
+    def handle_scoped_commands(self):
+        self.ident = ""
+        while True:
+            c = self.skip_white_spaces(self.dbase_parser)
+            #showInfo('----> ' + str(c))
+            if c == genv.ptNoMoreData:
+                return c
+            elif c == '\n':
+                continue
+            elif c.isalpha() or c == '_':
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == "class":
+                    #showInfo("---------class------")
+                    genv.class_code += "class "
+                    self.handle_class()
+                    return
+                    
+                elif self.token_str.lower() == "set":
+                    #showInfo("token:  " + self.token_str)
+                    self.token_str = ""
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c.isalpha() or c == '_':
+                        self.token_str = c
+                        self.getIdent()
+                        #showInfo("22 token:  " + self.token_str)
+                        if self.token_str.lower() == "color":
+                            self.token_str = ""
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c.isalpha() or c == '_':
+                                self.token_str = c
+                                self.getIdent()
+                                #showInfo("33 token:  " + self.token_str)
+                                if self.token_str.lower() == "to":
+                                    #showInfo("TTOOOOO")
+                                    # ------------------------------------
+                                    # fg / bg color: 1 / 2
+                                    # ------------------------------------
+                                    c = self.check_color_token(1)
+                                    if c == 1000:
+                                        genv.text_code += ('\t' * genv.counter_indent)
+                                        genv.text_code += (
+                                        f"console.win.setcolor('{self.fg_color}','{self.bg_color}')\n")
+                                        #showInfo("connnnn:  " + genv.text_code)
+                                        continue
+                                    else:
+                                        #showInfo('121212-------')
+                                        break
+                                        #sys.exit(1)
+                                else:
+                                    genv.unexpectedError(_("TO expected"))
+                                    return '\0'
+                            else:
+                                genv.unexpectedError(_("TO expected"))
+                                return '\0'
+                        else:
+                            genv.unexpectedToken(_("COLOR expected"))
+                            return '\0'
+                elif self.token_str.lower() == "for":
+                    #showInfo("foooor")
+                    genv.counter_for += 1
+                    if not self.expect_ident():
+                        genv.unexpectedError(_("expected ident."))
+                    self.ident = self.token_str
+                    self.temp_code = self.token_str
+                    self.text_code += ("\t" * genv.counter_indent)
+                    self.text_code += self.token_str
+                    if not self.expect_assign():
+                        genv.unexpectedError(_("assign sign expected."))
+                    self.text_code += self.token_str
+                    self.text_code += "_cnt = range("
+                    if not self.expect_expr():
+                        genv.unexpectedError(_("expr expected."))
+                    self.text_code += self.temp_code
+                    if not self.expect_ident("to"):
+                        genv.unexpectedError(_("expect TO"))
+                    self.text_code += ", "
+                    if not self.expect_expr():
+                        genv.unexpectedError(_("expr2 expected."))
+                    self.text_code += self.temp_code
+                    self.text_code += ")\n"
+                    self.text_code += ('\t' * genv.counter_indent)
+                    self.text_code += "for "
+                    self.text_code += self.ident
+                    self.text_code += " in "
+                    self.text_code += self.ident + "_cnt:\n"
+                    continue
+                elif self.token_str.lower() == "next":
+                    genv.counter_for -= 1
+                    continue
+                else:
+                    str_closed = False
+                    genv.temp_code  = ('\t' * genv.counter_indent)
+                    genv.temp_code += self.token_str
+                    #
+                    self.token_str = ""
+                    #
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == genv.ptNoMoreData:
+                        #showInfo(_("temp code"))
+                        #showInfo(genv.class_code)
+                        raise e_no_more_data("temp code")
+                    if c == '=':
+                        genv.temp_code += " = "
+                        genv.text_code += genv.temp_code
+                        genv.temp_code = ""
+                        #showInfo(genv.text_code)
+                        while True:
+                            c = self.getChar()
+                            if c == '\n':
+                                break
+                            elif c in genv.ascii_charset:
+                                self.token_str += c
+                                continue
+                            #else:
+                            #    break
+                        genv.text_code += self.token_str
+                        genv.text_code += '\n'
+                        #showInfo("variable:  " + self.token_str)
+                        #showInfo(genv.text_code)
+                    elif c == '(':
+                        # todo: callee
+                        #showInfo("todo callee")
+                        pass
+                    elif c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        #showInfo('oo\n' + self.token_str)
+                    else:
+                        genv.unexpectedError(_("variable can not assign."))
+                        return '\0'
+            elif c == '@':
+                #showInfo('sayer')
+                self.handle_say()
+                #showInfo("next sayer")
+                continue
+            elif c == '?':
+                genv.text_code += ('\t' * genv.counter_indent)
+                genv.text_code += "console.win.print_line("
+                genv.last_command = False
+                #
+                self.token_str = ""
+                #
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c == '[':
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '\"' or c == '\'':
+                        self.ungetChar(1)
+                        self.handle_string()
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if not c == ']':
+                            genv.unexpectedError(_("] expected."))
+                        else:
+                            break
+                        #showInfo("STRING: ", self.token_str)
+                    else:
+                        genv.unexpectedError(self.err_unknownCS)
+                        return '\0'
+                elif (c == '\"') or (c == '\''):
+                    self.ungetChar(1)
+                    self.handle_string(0)
+            else:
+                genv.unexpectedChar(c)
+        return
+    
+    def parse(self):
+        try:
+            genv.counter_digits = 0
+            genv.counter_indent = 1
+            genv.counter_for    = 0
+            genv.counter_brace  = 0
+            
+            genv.first_part  = False
+            genv.second_part = False
+            
+            genv.line_row  = 1
+            genv.line_col  = 1
+            
+            self.token_str = ""
+                        
+            if len(self.source) < 1:
+                genv.unexpectedError(_("no data available."))
+                return
+            
+            # ------------------------------------
+            # dbase plus ?
+            # ------------------------------------
+            if not genv.editor_check.isChecked():
+                self.handle_scoped_commands()
+                return
+            elif genv.editor_check.isChecked():
+                content = self.source
+                pattern = re.compile(r"\*\* END HEADER.*?\n(.*?)\n*[cC][lL][aA][sS][sS]", re.DOTALL)
+                plus_code = self.source
+                line_code = plus_code.splitlines()
+                
+                for i, line in enumerate(line_code):
+                    if '**' in line:
+                        genv.start_idx = i + 1
+                    if "class" in line.lower():
+                        genv.end_idx = i + 1
+                        break
+                match = pattern.search(plus_code)
+                if not match:
+                    try:
+                        genv.editor_check.setChecked(False)
+                        self.handle_scoped_commands()
+                        return
+                    except:
+                        showError("nor header")
+                        return
+                    
+                    raise ENoSourceHeader("Header not found.")
+                    return
+                
+                # ------------------------------------
+                # handle class header ...
+                # ------------------------------------
+                genv.line_col = 1
+                genv.line_row = genv.start_idx
+                
+                self.pos      = -1
+                
+                self.header_code = match.group(1).strip()
+                self.source = self.header_code
+                
+                if len(self.source) < 1:
+                    showInfo(_("source have no header"))
+                    return
+                
+                genv.isGuiApplication = True
+                #showInfo(self.source)
+                self.handle_dbase_header(self.source)
+                
+                # ------------------------------------
+                # handle class ...
+                # ------------------------------------
+                genv.line_col = 1
+                genv.line_row = genv.end_idx
+                
+                self.pos   = -1
+                
+                class_code = content
+                class_text = re.sub(r"\*\* END HEADER.*?\n.*?\bCLASS\b",
+                    "CLASS",
+                    content,
+                    flags = re.DOTALL or re.IGNORECASE)
+                pattern   = re.compile(r"(CLASS.*ENDCLASS)",
+                            re.DOTALL or re.IGNORECASE)
+                match = pattern.search(class_text)
+                if match:
+                    class_text  = match.group(1).strip()
+                    self.source = class_text
+                    #showInfo(self.source)
+                    self.handle_dbase_class(self.source)
+                    return
+                else:
+                    showInfo(_("no class found"))
+                    return
+                    
+        except noDataNoError:
+            #showInfo("nachricht:\n\n" + self.temp_code)
+            if not genv.last_command:
+                genv.text_code += ")\n"
+                genv.last_command = True
+            #if len(genv.text_paren) > 0:
+            #genv.text_code += genv.text_paren + "\n"
+            genv.text_paren = ""
+            #showInfo(genv.text_code)
+            pass
+        except:
+            showException(traceback.format_exc())
+    
+    def handle_dbase_class(self, code):
+        self.source = code
+        self.handle_class();
+    
+    def handle_dbase_header(self, code):
+        self.source = code
+        try:
+            while True:
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c == genv.ptNoMoreData:
+                    raise e_no_more_data();
+                elif c.isalpha():
+                    self.token_str = c
+                    self.getIdent()
+                    if self.token_str.lower() == "parameter":
+                        self.temp_code = ""
+                        while True:
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data();
+                            elif c.isalpha():
+                                self.token_str = c
+                                self.getIdent()
+                                if self.token_str.lower() in genv.dbase_keywords:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("keywords can not be used as variable"))
+                                    return
+                                genv.temp_code += self.token_str
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data();
+                                elif c == ',':
+                                    genv.temp_code += ","
+                                    continue
+                                else:
+                                    self.ungetChar(1)
+                                    genv.temp_code += "):\n"
+                                    genv.header_code += "def pre_EntryPoint(" + genv.temp_code
+                                    break
+                            #showInfo("param:\n") # + genv.jeader_code)
+                            continue
+                    elif self.token_str.lower() == "local":
+                        genv.header_code += ('\t' * genv.counter_indent)
+                        while True:
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data();
                             if c.isalpha():
                                 self.token_str = c
                                 self.getIdent()
-                                self.handle_commands()
-                            elif c == '"':
-                                print("ssss")
-                                self.token_str = ""
-                                self.handle_string()
-                                print("eeeee")
-                        else:
-                            raise Exception("say expected.")
+                                if self.token_str.lower() in genv.dbase_keywords:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("keywords can not be used as variable"))
+                                    return
+                                genv.header_code += self.token_str
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data();
+                                elif c == ',':
+                                    genv.header_code += ","
+                                    continue
+                                else:
+                                    self.ungetChar(1)
+                                    genv.header_code += " = None\n"
+                                    break
+                        #showInfo("local:\n" + genv.header_code)
+                        continue
+                    elif self.token_str.lower() == "if":
+                        genv.header_code += ('\t' * genv.counter_indent)
+                        genv.header_code += "if "
+                        open_paren = False
+                        while True:
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data();
+                            if c == '(':
+                                open_paren = True
+                                genv.header_code += "("
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data();
+                                if c.isalpha():
+                                    self.token_str = c
+                                    self.getIdent()
+                                    genv.header_code += self.token_str
+                                    continue
+                                else:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("syntax error."))
+                            elif c == ')':
+                                if open_paren == True:
+                                    open_paren = False
+                                    genv.header_code += "):\n"
+                                    break
+                                else:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("syntax error."))
+                                    return
+                        #showInfo("if:\n" + genv.header_code)
+                        while True:
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data();
+                            if c.isalpha():
+                                self.token_str = c
+                                self.getIdent()
+                                if self.token_str.lower() == "else":
+                                    genv.header_code += ('\t' * genv.counter_indent)
+                                    genv.header_code += "else:\n"
+                                    while True:
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if c == genv.ptNoMoreData:
+                                            raise e_no_more_data();
+                                        if c.isalpha():
+                                            self.token_str = c
+                                            self.getIdent()
+                                            if self.token_str.lower() == "endif":
+                                                c = self.skip_white_spaces(self.dbase_parser)
+                                                if c == genv.ptNoMoreData:
+                                                    raise e_no_more_data(1);
+                                                elif c.isalpha():
+                                                    showInfo("issss a,kllp")
+                                                break
+                                            genv.header_code += ('\t' * genv.counter_indent)
+                                            genv.header_code += ('\t' * genv.counter_indent)
+                                            genv.header_code += self.token_str
+                                            c = self.skip_white_spaces(self.dbase_parser)
+                                            if c == genv.ptNoMoreData:
+                                                raise e_no_more_data();
+                                            if c == '.':
+                                                genv.header_code += "."
+                                                c = self.skip_white_spaces(self.dbase_parser)
+                                                if c == genv.ptNoMoreData:
+                                                    raise e_no_more_data();
+                                                if c.isalpha():
+                                                    self.token_str = c
+                                                    self.getIdent()
+                                                    if self.token_str.lower() == "op_en":
+                                                        genv.header_code += self.token_str
+                                                        c = self.skip_white_spaces(self.dbase_parser)
+                                                        if c == genv.ptNoMoreData:
+                                                            raise e_no_more_data();
+                                                        if c == '(':
+                                                            genv.header_code += "("
+                                                            c = self.skip_white_spaces(self.dbase_parser)
+                                                            if c == genv.ptNoMoreData:
+                                                                raise e_no_more_data();
+                                                            if c == ')':
+                                                                genv.header_code += ")"
+                                                                #showInfo("pen\n" + genv.header_code)
+                                                                continue
+                                                        else:
+                                                            genv.unexpectedError(_("open paren expected."))
+                                                            return
+                                                    else:
+                                                        genv.unexpectedError(_("open expected."))
+                                                        return
+                                                else:
+                                                    genv.unexpectedError(_("alpha ident expected."))
+                                                    return
+                                            else:
+                                                genv.unexpectedError(_("11point expected"))
+                                                return
+                                        else:
+                                            genv.unexpectedError(_("alpha ident expected."))
+                                            return
+                                    break
+                                else:
+                                    genv.header_code += ('\t' * genv.counter_indent)
+                                    genv.header_code += ('\t' * genv.counter_indent)
+                                    genv.header_code += self.token_str
+                                    c = self.skip_white_spaces(self.dbase_parser)
+                                    if c == genv.ptNoMoreData:
+                                        raise e_no_more_data();
+                                    if c == '.':
+                                        genv.header_code += c
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if c == genv.ptNoMoreData:
+                                            raise e_no_more_data();
+                                        if c.isalpha():
+                                            self.token_str = c
+                                            self.getIdent()
+                                            if self.token_str.lower() == "mdi":
+                                                genv.header_code += self.token_str
+                                                c = self.skip_white_spaces(self.dbase_parser)
+                                                if c == '=':
+                                                    genv.header_code += " = "
+                                                    c = self.skip_white_spaces(self.dbase_parser)
+                                                    if c == genv.ptNoMoreData:
+                                                        raise e_no_more_data();
+                                                    if c.isalpha():
+                                                        self.token_str = c
+                                                        self.getIdent()
+                                                        if self.token_str.lower() == "false":
+                                                            genv.header_code += "False\n"
+                                                            self.token_str = ""
+                                                            continue
+                                                        elif self.token_str.lower() == "true":
+                                                            genv.header_code += "True\n"
+                                                            self.token_str = ""
+                                                            continue
+                                                        else:
+                                                            genv.unexpectedError(_("false or true expected."))
+                                                            return
+                                                    else:
+                                                        genv.unexpectedError(_("false or true expected."))
+                                                        return
+                                                else:
+                                                    genv.unexpectedError(_("false or true expected."))
+                                                    return
+                                            elif self.token_str.lower() == "readmodal":
+                                                genv.header_code += "readModal"
+                                                c = self.skip_white_spaces(self.dbase_parser)
+                                                if c == genv.ptNoMoreData:
+                                                    raise e_no_more_data();
+                                                if c == '(':
+                                                    genv.header_code += "("
+                                                    c = self.skip_white_spaces(self.dbase_parser)
+                                                    if c == ')':
+                                                        genv.header_code += ")\n"
+                                                        #showInfo("readmodal\n" + genv.header_code)
+                                                        continue
+                                            else:
+                                                genv.unexpectedError(_("wrong token"))
+                                                return
+                                        else:
+                                            genv.unexpectedError(_("alpha identifier expected"))
+                                            return
+                                    else:
+                                        genv.unexpectedError(_("point expected."))
+                                        return
+                            else:
+                                genv.unexpectedError(_("alpha ident expected."))
+                                return
+                        continue
+                    elif self.token_str.lower() == "else":
+                        genv.header_code += "else:\n"
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c == genv.ptNoMoreData:
+                            raise e_no_more_data();
+                        elif c.isalpha():
+                            self.token_str = c
+                            self.getIdent()
+                            genv.header_code += ('\t' * genv.counter_indent)
+                            genv.header_code += self.token_str
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data();
+                            elif c == '.':
+                                genv.header_code += "."
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data();
+                                if c.isalpha():
+                                    self.token_str = c
+                                    self.getIdent()
+                                    if self.token_str.lower() == "op_en":
+                                        genv.header_code += "op_en"
+                                        c = self.skip_white_spaces(self.dbase_parser)
+                                        if c == genv.ptNoMoreData:
+                                            raise e_no_more_data();
+                                        elif c == '(':
+                                            genv.header_code += "("
+                                            c = self.skip_white_spaces(self.dbase_parser)
+                                            if c == genv.ptNoMoreData:
+                                                raise e_no_more_data();
+                                            elif c == ')':
+                                                genv.header_code += ")"
+                                                #showInfo("else:\n" + genv.header_code)
+                                                continue
+                    elif self.token_str.lower() == "endif":
+                        #showInfo("endif:\n" + genv.header_code)
+                        continue
                     else:
-                        raise Exception("say expected.")
+                        genv.header_code += ('\t' * genv.counter_indent)
+                        genv.header_code += self.token_str
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c == genv.ptNoMoreData:
+                            raise e_no_more_data();
+                        if c == '=':
+                            genv.header_code += " = "
+                            c = self.skip_white_spaces(self.dbase_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data();
+                            self.token_str = c
+                            self.getIdent()
+                            if self.token_str.lower() == "new":
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data();
+                                self.token_str = c
+                                self.getIdent()
+                                genv.header_code += self.token_str
+                                c = self.skip_white_spaces(self.dbase_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data();
+                                if c == '(':
+                                    genv.header_code += c
+                                    # todo !!!
+                                    c = self.skip_white_spaces(self.dbase_parser)
+                                    if c == genv.ptNoMoreData:
+                                        raise e_no_more_data();
+                                    if c == ')':
+                                        genv.header_code += c + "\n"
+                                        #showInfo("new form:\n" + genv.header_code)
+                                        continue
+                                    else:
+                                        genv.header_code += self.token_str
+                                        return
+                                else:
+                                    genv.unexpectedError(_("unexpected syntax"))
+                                    return
+                            else:
+                                genv.header_code += self.token_str
+                                return
+                        else:
+                            genv.header_code += self.token_str
+                            return
                 else:
-                    raise Exception("number expected.")
+                    genv.unexpectedError(_("unexpected syntax"))
+                    return
+                
+                #showInfo("Line: " + str(genv.start_idx) + "\n" + self.header_code)
+                #showInfo(genv.header_code)
+                self.update_code(genv.header_code)
             else:
-                raise Exception("comma expected.")
+                self.handle_scoped_commands()
+                
+        except e_no_more_data as noerror:
+            #showInfo(f"dBase header information:\n{noerror.message}")
+            #self.update_code(genv.class_code)
+            pass
     
-    def parse(self):
-        with open(self.script_name, 'r', encoding="utf-8") as self.file:
-            self.file.seek(0)
-            self.total_lines = len(self.file.readlines())
-            self.file.seek(0)
-            self.source = self.file.read()
-            self.log.debug("lines: " + str(self.total_lines))
-            self.file.close()
-        
-        if len(self.source) < 1:
-            print("no data available.")
-            return
-        
-        # ------------------------------------
-        # ------------------------------------
-        while True:
-            c = self.skip_white_spaces()
-            if c == '@':
-                self.handle_say()
-            elif c.isalpha():
-                self.token_str = c
-                self.getIdent()
-                if self.token_str == "clear":
-                    print("clear")
-                    c = self.skip_white_spaces()
+    def check_token(self, token):
+        for token_list in self.token_colors:
+            if token in token_list:
+                return True
+        return False
+    
+    def check_color_token(self, flag):
+        self.token_str = ""
+        #
+        fg_color = "#FF0000"
+        bg_color = "#000000"
+        #
+        fg_found = False
+        bg_found = False
+        #
+        c = self.skip_white_spaces(self.dbase_parser)
+        if c.isalpha():
+            self.token_str = c
+            c = self.getChar()
+            if c == '+':
+                self.token_str += c
+                fg_color = self.token_str
+                if self.token_str in genv.concolors:
+                    index    = genv.concolors.index(self.token_str)
+                    fg_color = genv.convalues[index]
+                    fg_found = True
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c == '/':
+                    c = self.skip_white_spaces(self.dbase_parser)
                     if c.isalpha():
                         self.token_str = c
-                        self.getIdent()
-                        if self.token_str == "screen":
-                            print("scre")
-                            self.text_code += "    con.cls()\n";
-                        elif self.token_str == "memory":
-                            print("mem")
+                        c = self.getChar()
+                        if c == '+':
+                            self.token_str += c
+                        elif c.isalpha():
+                            self.token_str += c
+                        if self.token_str in genv.concolors:
+                            if self.token_str in genv.concolors:
+                                index    = genv.concolors.index(self.token_str)
+                                bg_color = genv.convalues[index]
+                                bg_found = True
+                            else:
+                                genv.unexpectedError(_("invalide bg color"))
                         else:
-                            print("--> " + self.token_str)
-                            self.ungetChar(len(self.token_str))
+                            genv.unexpectedError(_("bg error"))
                     else:
                         self.ungetChar(1)
-                        continue
-                if self.token_str == "show":
-                    print("--> " + self.token_str)
-    
-    def __unexpectedToken(self):
-        __msg = "unexpected token: '" + self.token_str + "'"
-        __unexpectedError(__msg)
-    
-    def __unexpectedChar(self, chr):
-        __msg = "unexpected character: '" + chr + "'"
-        __unexpectedError(__msg)
-    
-    def __unexpectedEndOfLine(self):
-        __unexpectedError("unexpected end of line")
-    
-    def __unexpectedEscapeSign(self):
-        __unexpectedError("nunexpected escape sign")
-    
-    def __unexpectedError(self, message):
-        calledFrom = inspect.stack()[1][3]
-        msg = "\a\n" + message + " at line: '%d' in: '%s'.\n"
-        msg = msg % (
-            self.line_row,
-            self.script_name)
-        print(msg)
-        sys.exit(1)
-    
+            elif c == '/':
+                fg_color = self.token_str
+                if self.token_str in genv.concolors:
+                    index    = genv.concolors.index(self.token_str)
+                    fg_color = genv.convalues[index]
+                    fg_found = True
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c.isalpha():
+                    self.token_str = c
+                    c = self.getChar()
+                    if c == '+':
+                        self.token_str += c
+                    elif c.isalpha():
+                        self.token_str += c
+                    if self.token_str in genv.concolors:
+                        if self.token_str in genv.concolors:
+                            index    = genv.concolors.index(self.token_str)
+                            bg_color = genv.convalues[index]
+                            bg_found = True
+                        else:
+                            genv.unexpectedError(_("invalide bg color"))
+                    else:
+                        genv.unexpectedError(_("bg error"))
+                else:
+                    self.ungetChar(1)
+            elif c.isalpha():
+                self.token_str += c
+                fg_color = self.token_str
+                if self.token_str in genv.concolors:
+                    index    = genv.concolors.index(self.token_str)
+                    fg_color = genv.convalues[index]
+                    fg_found = True
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == '/':
+                        c = self.skip_white_spaces(self.dbase_parser)
+                        if c.isalpha() or c == '_':
+                            self.token_str = c
+                            self.getIdent()
+                            #showInfo('color: ' + self.token_str)
+                            if self.token_str in genv.concolors:
+                                index    = genv.concolors.index(self.token_str)
+                                bg_color = genv.convalues[index]
+                                bg_found = True
+                            else:
+                                genv.unexpectedError(_("invalide bg color"))
+                        else:
+                            genv.unexpectedError(_("bg error"))
+                    else:
+                        self.ungetChar(1)
+                else:
+                    # todo: variable !!!
+                    genv.unexpectedError(_("invalide fg color"))
+                    #
+            else:
+                genv.unexpectedError(_("color error"))
+        self.fg_color = fg_color
+        self.bg_color = bg_color
+        
+        #showInfo("-->FG_color:  \n" + self.fg_color + "\n" + self.bg_color)
+        return 1000
+
 # ---------------------------------------------------------------------------
 # \brief  provide dBase DSL (domain source language)- dBL (data base language
 #         class for handling and programming database applications.
@@ -1240,15 +4300,855 @@ if __name__ == '__main__':
 # \author paule32
 # \since  1.0.0
 # ---------------------------------------------------------------------------
-class dBaseDSL:
+class dBaseDSL():
+    def __init__(self, script_name):
+        try:
+            self.parser = None
+            self.parser = interpreter_dBase(script_name)
+        except ENoSourceHeader as e:
+            showError(e.message)
+            self.parser = None
+
+class interpreter_Pascal(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Pascal, self).__init__(file_name)
+        
+        self.script_name   = file_name
+    
+    
+    def parse(self):
+        try:
+            genv.counter_digits = 0
+            genv.counter_indent = 1
+            genv.counter_for    = 0
+            genv.counter_brace  = 0
+            
+            genv.first_part  = False
+            genv.second_part = False
+            
+            genv.line_row  = 1
+            genv.line_col  = 1
+            
+            self.counter_begin = 0
+            self.counter_end   = 0
+            
+            if len(self.source) < 1:
+                genv.unexpectedError(_("no data available."))
+                return
+            
+            self.token_str = ""            
+            self.found = False
+            
+            ident_name = ""
+            
+            c = self.skip_white_spaces(self.pascal_parser)
+            if c == genv.ptNoMoreData:
+                raise e_no_more_data()
+                return
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == "program":
+                    pass
+                elif self.token_str.lower() == "unit":
+                    pass
+                elif self.token_str.lower() == "library":
+                    pass
+                    
+                c = self.skip_white_spaces(self.pascal_parser)
+                if c == genv.ptNoMoreData:
+                    raise e_no_more_data()
+                    return
+                elif c.isalpha():
+                    self.token_str = c
+                    self.getIdent()
+                    ident_name = self.token_str
+                    self.token_str = ""
+                
+                if len(ident_name) > 0:
+                    c = self.skip_white_spaces(self.pascal_parser)
+                    if c == genv.ptNoMoreData:
+                        raise e_no_more_data()
+                        return
+                    if not c == ';':
+                        genv.have_errors = True
+                        genv.unexpectedError(_("semicolon expected"))
+                        return
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedError(_("module ident name expected."))
+                    return
+                    
+                c = self.skip_white_spaces(self.pascal_parser)
+                if c == genv.ptNoMoreData:
+                    raise e_no_more_data()
+                    return
+                elif c.isalpha():
+                    self.token_str = c
+                    self.getIdent()
+                    
+                    if self.token_str.lower() == "interface":
+                        pass
+                    self.handle_pascal_code(self.token_str.lower())
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedError(_("alpha ident expected"))
+                    return
+            else:
+                genv.have_errors = True
+                genv.unexpectedError(_("alpha ident expected"))
+                return
+        except e_no_more_data as noerr:
+            showInfo("A no Error Exception")
+    
+    def handle_pascal_code(self, token):
+        self.ungetChar(len(self.token_str)+1)
+        while True:
+            c = self.skip_white_spaces(self.pascal_parser)
+            if c == genv.ptNoMoreData:
+                raise e_no_more_data()
+                return
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == "procedure":
+                    c = self.skip_white_spaces(self.pascal_parser)
+                    if c == genv.ptNoMoreData:
+                        raise e_no_more_data()
+                        return
+                    if c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        ident_name = self.token_str
+                        c = self.skip_white_spaces(self.pascal_parser)
+                        if c == genv.ptNoMoreData:
+                            raise e_no_more_data()
+                            return
+                        if c == '(':
+                            c = self.skip_white_spaces(self.pascal_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data()
+                                return
+                            elif c == ')':
+                                c = self.skip_white_spaces(self.pascal_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data()
+                                    return
+                                elif c == ';':
+                                    c = self.skip_white_spaces(self.pascal_parser)
+                                    if c == genv.ptNoMoreData:
+                                        raise e_no_more_data()
+                                        return
+                                    elif c.isalpha():
+                                        self.token_str = c
+                                        self.getIdent()
+                                        if self.token_str == "var":
+                                            pass
+                                        elif self.token_str == "begin":
+                                            c = self.skip_white_spaces(self.pascal_parser)
+                                            if c == genv.ptNoMoreData:
+                                                raise e_no_more_data()
+                                                return
+                                            elif c.isalpha():
+                                                self.token_str = c
+                                                self.getIdent()
+                                                if self.token_str == "end":
+                                                    c = self.skip_white_spaces(self.pascal_parser)
+                                                    if c == genv.ptNoMoreData:
+                                                        raise e_no_more_data()
+                                                        return
+                                                    elif c == ';':
+                                                        continue
+                                                    else:
+                                                        genv.have_errors = True
+                                                        genv.unexpectedError(_("semicolon expected"))
+                                                        return
+                                                else:
+                                                    genv.have_errors = True
+                                                    genv.unexpectedError(_("END expected"))
+                                                    return
+                                            else:
+                                                genv.have_errors = True
+                                                genv.unexpectedError(_("alpha ident expected"))
+                                                return
+                                        else:
+                                            genv.have_errors = True
+                                            genv.unexpectedError(_("BEGIN, VAR expected"))
+                                            return
+                                    else:
+                                        genv.have_errors = True
+                                        genv.unexpectedError(_("alpha ident expected"))
+                                        return
+                                else:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("semicolon expected"))
+                                    return
+                            else:
+                                genv.have_errors = True
+                                genv.unexpectedError(_("closed paren expected"))
+                                return
+                        else:
+                            genv.have_errors = True
+                            genv.unexpectedError(_("open paren expected"))
+                            return
+                    else:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("alpha ident expected"))
+                        return
+                        
+                elif self.token_str.lower() == "function":
+                    c = self.skip_white_spaces(self.pascal_parser)
+                    if c == genv.ptNoMoreData:
+                        raise e_no_more_data()
+                        return
+                    elif c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        ident_name = self.token_str
+                        c = self.skip_white_spaces(self.pascal_parser)
+                        if c == genv.ptNoMoreData:
+                            raise e_no_more_data()
+                            return
+                        elif c == '(':
+                            c = self.skip_white_spaces(self.pascal_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data()
+                                return
+                            elif c == ')':
+                                c = self.skip_white_spaces(self.pascal_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data()
+                                    return
+                                elif c == ':':
+                                    c = self.skip_white_spaces(self.pascal_parser)
+                                    if c == genv.ptNoMoreData:
+                                        raise e_no_more_data()
+                                        return
+                                    elif c.isalpha():
+                                        self.token_str = c
+                                        self.getIdent()
+                                        resultName = self.token_str
+                                        c = self.skip_white_spaces(self.pascal_parser)
+                                        if c == genv.ptNoMoreData:
+                                            raise e_no_more_data()
+                                            return
+                                        elif c == ';':
+                                            c = self.skip_white_spaces(self.pascal_parser)
+                                            if c == genv.ptNoMoreData:
+                                                raise e_no_more_data()
+                                                return
+                                            elif c.isalpha():
+                                                self.token_str = c
+                                                self.getIdent()
+                                                if self.token_str == "var":
+                                                    pass
+                                                elif self.token_str == "begin":
+                                                    c = self.skip_white_spaces(self.pascal_parser)
+                                                    if c == genv.ptNoMoreData:
+                                                        raise e_no_more_data()
+                                                        return
+                                                    elif c.isalpha():
+                                                        self.token_str = c
+                                                        self.getIdent()
+                                                        if self.token_str == "end":
+                                                            c = self.skip_white_spaces(self.pascal_parser)
+                                                            if c == genv.ptNoMoreData:
+                                                                raise e_no_more_data()
+                                                                return
+                                                            elif c == ';':
+                                                                continue
+                                                            else:
+                                                                genv.have_errors = True
+                                                                genv.unexpectedError(_("semicolon expected"))
+                                                                return
+                                                        else:
+                                                            genv.have_errors = True
+                                                            genv.unexpectedError(_("END expected"))
+                                                            return
+                                                    else:
+                                                        genv.have_errors = True
+                                                        genv.unexpectedError(_("alpha ident expected"))
+                                                        return
+                                                else:
+                                                    genv.have_errors = True
+                                                    genv.unexpectedError(_("BEGIN, VAR expected"))
+                                                    return
+                                            else:
+                                                genv.have_errors = True
+                                                genv.unexpectedError(_("alpha ident expected"))
+                                                return
+                                        else:
+                                            genv.have_errors = True
+                                            genv.unexpectedError(_("semicolon expected"))
+                                            return
+                                    else:
+                                        genv.have_errors = True
+                                        genv.unexpectedError(_("alpha ident expected"))
+                                        return
+                                else:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("colom expected"))
+                                    return
+                            else:
+                                genv.have_errors = True
+                                genv.unexpectedError(_("closed paren expected"))
+                                return
+                        else:
+                            genv.have_errors = True
+                            genv.unexpectedError(_("open paren expected"))
+                            return
+                    else:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("alpha ident expected"))
+                        return
+                
+                elif self.token_str.lower() == "begin":
+                    c = self.skip_white_spaces(self.pascal_parser)
+                    if c == genv.ptNoMoreData:
+                        raise e_no_more_data()
+                        return
+                    elif c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str.lower() == "end":
+                            c = self.skip_white_spaces(self.pascal_parser)
+                            if not c == '.':
+                                genv.have_errors = True
+                                genv.unexpectedError(_("end-point expected"))
+                                return
+                            else:
+                                raise e_no_more_data()
+                                return
+                        else:
+                            genv.have_errors = True
+                            genv.unexpectedError(_("END expected"))
+                            return
+                    else:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("alpha ident expected"))
+                        return
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedToken(self.token_str)
+                    return
+            else:
+                genv.have_errors = True
+                genv.unexpectedToken(self.token_str)
+                return
+    
+    def handle_pascal_commands(self):
+        showInfo("---> " + self.token_str)
+
+class pascalDSL():
     def __init__(self, script_name):
         self.script = None
-        parser = interpreter_dBase(script_name)
+        
+        self.parser = None
+        self.parser = interpreter_Pascal(script_name)
+        self.parser.parse()
+
+class interpreter_Python(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Pascal, self).__init__(file_name)
+        
+    def parse(self):
+        self.token_str = ""
+
+class pythonDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_Python(script_name)
+        self.parser.parse()
+
+class interpreter_Java(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Java, self).__init__(file_name)
+        
+    def parse(self):
+        self.token_str = ""
+
+class javaDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_Java(script_name)
+        self.parser.parse()
+
+class interpreter_JavaScript(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_JavaScript, self).__init__(file_name)
+        
+    def parse(self):
+        self.token_str = ""
+
+class javaScriptDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_JavaScript(script_name)
+        self.parser.parse()
+
+class interpreter_ISOC(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_ISOC, self).__init__(file_name)
+        
+    def parse(self):
+        self.token_str = ""
+
+class interpreter_Lisp(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Lisp, self).__init__(file_name)
+    
+    def skip_white_spaces(self):
+        while True:
+            c = self.getChar()
+            if c == genv.ptNoMoreData:
+                return c
+            elif c == '\n':
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    genv.have_errors = True
+                    genv.unexpectedError(_("line end error"))
+                continue
+            elif c == ';':
+                showInfo("lisp comment: " + str(genv.line_row))
+                while True:
+                    c = self.getChar()
+                    if c == '\n':
+                        break
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            genv.have_errors = True
+                            genv.unexpectedError(_("line end error"))
+                        break
+                    else:
+                        continue
+                continue
+            elif c == ' ' or c == '\t':
+                continue
+            else:
+                return c
+    
+    def handle_defun_head(self):
+        while True:
+            c = self.skip_white_spaces()
+            if c == genv.ptNoMoreData:
+                genv.have_errors = True
+                genv.unexpectedError(_("syntax error."))
+                return
+            elif c.isalpha():
+                return c
+            elif c == '(':
+                while True:
+                    c = self.skip_white_spaces()
+                    if c == genv.ptNoMoreData:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("syntax error"))
+                        return
+                    elif c == ')':
+                        break
+                    else:
+                        continue
+                break
+            else:
+                genv.have_errors = True
+                genv.unexpectedError(_("open paren expected at defun."))
+                return
+    
+    def parse(self):
+        genv.line_col = 1
+        genv.line_row = 1
+        #
+        open_paren    = 0
+        while True:
+            c = self.skip_white_spaces()
+            if c == genv.ptNoMoreData:
+                return c
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == "defun":
+                    showInfo("a defune")
+                    c = self.skip_white_spaces()
+                    if c == genv.ptNoMoreData:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("syntax error."))
+                        return
+                    elif c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        self.handle_defun_head()
+                        continue
+            elif c == '(':
+                open_paren += 1
+                showInfo("((((( 1111")
+                c = self.skip_white_spaces()
+                if c == '(':
+                    showInfo("3333 )))))")
+                    open_paren += 1
+                    continue
+                elif c == ')':
+                    showInfo("2222 )))))")
+                    open_paren -= 1
+                    if open_paren < 1:
+                        break
+                    continue
+                elif c == genv.ptNoMoreData:
+                    if open_paren > 0:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("closed1 paren expected."))
+                        return
+                    return c
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedError(_("closed2 paren expected."))
+                    return
+            elif c == ')':
+                showInfo(")))))) 000")
+                open_paren -= 1
+                if open_paren >= 0:
+                    continue
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedError(_("open paren expected."))
+                    return
+            else:
+                genv.have_errors = True
+                genv.unexpectedError(_("unknown char. found"))
+                return
+
+class lispDSL():
+    def __init__(self, script_name):
+        self.script = None
+        
+        self.parser = None
+        self.parser = interpreter_Lisp(script_name)
+        self.parser.parse()
+
+class interpreter_C64(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_C64, self).__init__(file_name)
+        
+    def parse(self):
+        self.token_str = ""
+
+# ---------------------------------------------------------------------------
+# \brief  class for interpreting DoxyGen related stuff ...
+#         the constructor need a string based script name that shall be read
+#         and execute from memory.
+#
+# \param  filename - a named string for the script name
+# \return objref - ctor's return the created object referenz from an memory
+#         internal address that is managed by the operating system logic.
+#
+# \author paule32
+# \since  1.0.0
+# ---------------------------------------------------------------------------
+class interpreter_DoxyGen(interpreter_base):
+    def __init__(self, file_name, parent_gui=None):
+        super(interpreter_ISOC, self).__init__(file_name)
+        self.script_name = file_name
+        self.parent_gui  = parent_gui
+            
+    # -----------------------------------------------------------------------
+    # \brief  get one char from the input stream/source line.
+    #         the internal position cursor self.pos for the self.source will
+    #         be incdrement by 1 character. for statistics, the line column
+    #         position wull be updated.
+    #         if the sel.pos cursor is greater as self.source codem then the
+    #         end of data is marked, and python raise a silent "no errpr"
+    #         exception to stop the processing of data (to prevent data/buffer
+    #         overflow.
+    #
+    # \param  nothing
+    # \return char - The "non" whitespace character that was found between
+    #                existing comment types.
+    # \author paule32
+    # \since  1.0.0
+    # -----------------------------------------------------------------------
+    def getChar(self):
+        genv.line_col += 1
+        self.pos += 1
+        
+        if self.pos >= len(self.source):
+            raise ENoParserError("")
+        else:
+            c = self.source[self.pos]
+            return c
+    
+    def ungetChar(self, num):
+        genv.line_col -= num;
+        self.pos -= num;
+        c = self.source[self.pos]
+        return c
+    
+    def getIdent(self):
+        while True:
+            c = self.getChar()
+            if c.isalnum() or c == '_':    # 0-9 todo
+                self.token_str += c
+                continue
+            elif c == '\t' or c == ' ':
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    genv.unexpectedToken("newline")
+                    return 0
+                genv.line_col  = 1
+                genv.line_row += 1
+                break
+            elif c == '\n':
+                genv.line_col  = 1
+                genv.line_row += 1
+                break
+            elif c == '=':
+                self.ungetChar(1)
+                break
+            else:
+                genv.unexpectedChar(c)
+                return 0
+        return self.token_str
+    
+    def getNumber(self):
+        while True:
+            c = self.getChar()
+            if c in genv.octal_digits:
+                self.token_str += octal_to_ascii(c)
+            else:
+                self.ungetChar(1)
+                return self.token_str
+    
+    # -----------------------------------------------------------------------
+    # \brief skip all whitespaces. whitespaces are empty lines, lines with
+    #        one or more spaces (0x20): " ", \t, "\n".
+    # -----------------------------------------------------------------------
+    def skip_white_spaces(self):
+        while True:
+            c = self.getChar()
+            if c == '\0':
+                return '\0'
+            elif c == "\t" or c == " ":
+                genv.line_col += 1
+                continue
+            elif c == "\r":
+                c = self.getChar()
+                if not c == "\n":
+                    genv.unexpectedEndOfLine(genv.line_row)
+                genv.line_col  = 1
+                genv.line_row += 1
+                continue
+            elif c == '\n':
+                genv.line_col  = 1
+                genv.line_row += 1
+                continue
+            elif c == '#':
+                while True:
+                    c = self.getChar()
+                    if c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            genv.unexpectedToken("newline")
+                            return 0
+                        genv.line_col  = 1
+                        genv.line_row += 1
+                        break
+                    elif c == "\n":
+                        genv.line_col  = 1
+                        genv.line_row += 1
+                        break
+                continue
+            else:
+                return c
+    
+    # -----------------------------------------------------------------------
+    # \brief parse a one line comment: // for c++, ** and && for dBase ...
+    # -----------------------------------------------------------------------
+    def handle_oneline_comment(self):
+        while True:
+            c = self.getChar()
+            if c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    genv.unexpectedToken("newline")
+                    return 0
+                genv.line_row += 1
+                genv.line_col  = 1
+                break
+            if c == "\n":
+                genv.line_row += 1
+                genv.line_col  = 1
+                break
+    
+    def parse(self):
+        if len(self.source) < 1:
+            print("no data available.")
+            return
+        
+        while True:
+            c = self.getChar()
+            if c.isalpha() or c == '_':
+                self.token_str = c
+                self.getIdent()
+                print("token: ", self.token_str)
+                if self.check_token():
+                    print("OK")
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    genv.unexpectedToken("newline")
+                    return 0
+                genv.line_row += 1
+                genv.line_col  = 1
+                continue
+            elif c == '\n':
+                genv.line_row += 1
+                genv.line_col  = 1
+                continue
+            elif c == '\t' or c == ' ':
+                continue
+            elif c == '#':
+                self.handle_oneline_comment()
+    
+    def getConfigLine(self):
+        self.token_str = ""
+        self.close_str = False
+        while True:
+            c = self.getChar()
+            if c == '"':
+                while True:
+                    c = self.getChar()
+                    if c == '"':
+                        self.close_str = True
+                        break
+                    elif c == '\r':
+                        c = self.getChar()
+                        if not c == '\n':
+                            genv.unexpectedToken("newline")
+                            return 0
+                        else:
+                            if self.close_str == False:
+                                genv.unexpectedToken(_("string not terminated."))
+                                return 0
+                            genv.line_col  = 1
+                            genv.line_row += 1
+                            break
+                    elif c == '\n':
+                        if self.close_str == False:
+                            genv.unexpectedToken(_("string not terminated."))
+                            return 0
+                        genv.line_col  = 1
+                        genv.line_row += 1
+                        break
+                    else:
+                        self.token_str += c
+                if self.close_str:
+                    continue
+                else:
+                    genv.unexpectedToken(_("string not terminated."))
+                    return 0
+            elif c == '\t' or c == ' ':
+                genv.line_col += 1
+                continue
+            elif c == '\r':
+                c = self.getChar()
+                if not c == '\n':
+                    genv.unexpectedToken("newline")
+                    return 0
+                genv.line_col  = 1
+                genv.line_row += 1
+                break
+            elif c == '\n':
+                genv.line_col  = 1
+                genv.line_row += 1
+                break
+            elif c.isdigit():
+                self.token_str += c
+                continue
+            elif c.isalpha():
+                self.token_str += c
+                while True:
+                    c = self.getChar()
+                    if c.isalpha():
+                        self.token_str += c
+                        continue
+                    elif c.isdigit():
+                        self.token_str += c
+                        continue
+                    elif c == '\t' or c == ' ':
+                        continue
+                    elif c == '\r':
+                        c = self,getChar()
+                        if not c == '\n':
+                            genv.unexpectedToken("newline")
+                            return 0
+                        genv.line_col  = 1
+                        genv.line_row += 1
+                        break
+                    elif c == '\n':
+                        genv.line_col  = 1
+                        genv.line_row += 1
+                        break
+                if c == '\n':
+                    break
+            else:
+                genv.unexpectedToken("qoute")
+                return 0
+    
+    def check_token(self):
+        res = json.loads(_("doxytoken"))
+        result = False
+        if self.token_str in res:
+            print(f"token: {self.token_str} is okay.")
+            result = True
+            c = self.getChar()
+            if c == '=':
+                self.token_prop = self.token_str
+                self.token_str = ""
+                self.getConfigLine()
+                
+                myobject = findWidgetHelper(
+                    self.parent_gui,
+                    self.token_prop,
+                    self.token_str , False, [
+                    f"Error: no control for: {self.token_prop}.",
+                    f"Error: no content given for: {self.token_prop}."
+                ])
+                if isinstance(myobject, QCheckBox):
+                    if self.token_str.lower() == "yes":
+                        myobject.setChecked(True)
+                    elif self.token_str.lower() == "no":
+                        myobject.setChecked(False)
+                    else:
+                        genv.unexpectedToken("for checkbox")
+                        return 0
+                if isinstance(myobject, QLineEdit):
+                    myobject.setText(self.token_str)
+                return
+            else:
+                genv.unexpectedChar(c)
+        else:
+            raise EInvalidParserError(self.token_str)
+            return False
+
+class doxygenDSL:
+    def __init__(self, script_name, parent_gui):
+        self.parent_gui = parent_gui
         try:
-            parser.parse()
-        except Exception as e:
-            parser.run()
-        return self
+            self.parser = interpreter_DoxyGen(script_name, parent_gui)
+            self.parser.parse()
+            #prg.run()
+        except ENoParserError as noerror:
+            #prg.finalize()
+            print("\nend of data")
+            chm = createHTMLproject()
     
     def parse(self):
         return
@@ -1257,102 +5157,22 @@ class dBaseDSL:
         return
 
 # ------------------------------------------------------------------------
-# read a file into memory ...
-# ------------------------------------------------------------------------
-def read_gzfile_to_memory(file_path):
-    check_file = Path(file_path)
-    print(check_file)
-    if not check_file.exists():
-        print("Error: gzfile directory exists, but file could not found.")
-        print("abort.")
-        sys.exit(1)
-    if check_file.is_dir():
-        print("Error: gzfile is not a file.")
-        print("abort.")
-        sys.exit(1)
-    if check_file.is_file():
-        with open(check_file, "rb") as file:
-            file_header = file.read(3)
-            if file_header == b'\x1f\x8b\x08':
-                print("packed")
-                file.seek(0)
-                file_data = file.read()
-                compressed_data = io.BytesIO(file_data)
-                with gzip.GzipFile(fileobj=compressed_data, mode="rb") as gzip_file:
-                    uncompressed_data = gzip_file.read()
-                file.close()
-                mo_file = io.BytesIO(uncompressed_data)
-                translations = gettext.GNUTranslations(mo_file)
-                translations.install()
-                _ = translations.gettext
-                return _
-            elif file_header == b'\xde\x12\x04':
-                print("not packed")
-                file.seek(0)
-                file_data = file.read()
-                mo_file = io.BytesIO(file_data)
-                translations = gettext.GNUTranslations(mo_file)
-                translations.install()
-                _ = translations.gettext
-                return _
-            else:
-                file.close()
-                print("Error: language mo file could not be load.")
-                print("abort.")
-                sys.exit(1)
-    return None
-
-# ------------------------------------------------------------------------
-# get the locale, based on the system locale settings ...
-# ------------------------------------------------------------------------
-def getLangIDText(text):
-    return _(text)
-
-def handle_language(lang):
-    try:
-        # todo: .ini over write
-        # os.path.join(genv.v__locale__,genv.v__locale__sys[0])
-        #
-        file_path = os.path.join(genv.v__locale__, genv.v__locale__enu)
-        file_path = os.path.join(file_path, "LC_MESSAGES")
-        file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
-        #
-        _ = read_gzfile_to_memory(file_path)
-        return _
-    except Exception as e:
-        exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-        tb = traceback.extract_tb(e.__traceback__)[-1]
-        
-        print(f"Exception occur during handle language:")
-        print(f"type : {exc_type.__name__}")
-        print(f"value: {exc_value}")
-        print(misc.StringRepeat("-",40))
-        #
-        print(f"file : {tb.filename}")
-        print(f"llline : {tb.lineno}")
-        #
-        sys.exit(genv.EXIT_FAILURE)
-
-# ------------------------------------------------------------------------
 # check, if the gui application is initialized by an instance of app ...
 # ------------------------------------------------------------------------
 def isApplicationInit():
-    app_instance = QApplication.instance()
-    return app_instance is not None
+    if genv.v__app_object == None:
+        genv.v__app_object = QApplication(sys.argv)
+    # ----------------------------------------------
+    if genv.v__app_object.instance() == None:
+        genv.v__app_object = QApplication(sys.argv)
+    return True
 
 # ------------------------------------------------------------------------
 # methode to show information about this application script ...
 # ------------------------------------------------------------------------
-def showInfo(text):
-    infoWindow = QMessageBox()
-    infoWindow.setIcon(QMessageBox.Information)
-    infoWindow.setWindowTitle("Information")
-    infoWindow.setText(text)
-    infoWindow.exec_()
-
 def showApplicationInformation(text):
     if isApplicationInit() == False:
-        app = QApplication(sys.argv)
+        genv.v__app_object = QApplication(sys.argv)
         showInfo(text)
     else:
         print(text)
@@ -1360,17 +5180,9 @@ def showApplicationInformation(text):
 # ------------------------------------------------------------------------
 # methode to show error about this application script ...
 # ------------------------------------------------------------------------
-def showError(text):
-    infoWindow = QMessageBox()
-    infoWindow.setIcon(QMessageBox.Critical)
-    infoWindow.setWindowTitle("Error")
-    infoWindow.setText(text)
-    infoWindow.show()
-    infoWindow.exec_()
-
 def showApplicationError(text):
     if isApplicationInit() == False:
-        app = QApplication(sys.argv)
+        genv.v__app_object = QApplication(sys.argv)
         showError(text)
     else:
         print(text)
@@ -1392,10 +5204,9 @@ def handleExceptionApplication(func,arg1=""):
         func(arg1)
     except NoOptionError:
         print("----")
-        genv.v__app__locale = os.path.join(genv.v__locale__, "LC_MESSAGES")
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__locale__sys[0])
-        genv.v__app__locale = os.path.join(genv.v__app__locale, genv.v__app__name_mo)
-        print("==> " + genv.v__app__locale)
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
+        #genv.v__app__locales = os.path.join(genv.v__aoo__locales, "LC_MESSAGES")
+        #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
     except ListInstructionError as ex:
         ex.add_note("Did you miss a parameter ?")
         ex.add_note("Add more information.")
@@ -1418,12 +5229,12 @@ def handleExceptionApplication(func,arg1=""):
         print(f"Exception occur:")
         print(f"type : {exc_type.__name__}")
         print(f"value: {exc_value}")
-        print(misc.StringRepeat("-",40))
+        print(StringRepeat("-",40))
         #
         print(f"file : {tb.filename}")
         print(f"line : {tb.lineno}")
         #
-        print(misc.StringRepeat("-",40))
+        print(StringRepeat("-",40))
         
         s = f"{ex.args}"
         parts = [part.strip() for part in s.split("'") if part.strip()]
@@ -1473,11 +5284,40 @@ class customQListWidgetItem(QListWidgetItem):
         self.setData(0, self.name)
 
 # ------------------------------------------------------------------------
+# \brief  search the application instance for all widgets. If a given
+#         widget is found, then return True; else False
+# ------------------------------------------------------------------------
+class widgetTypeHelper():
+    def __init__(self, object_name, object_type, object_widget):
+        print("aaaaa")
+        self.object_name   = object_name
+        self.object_type   = object_type
+        self.object_widget = object_widget
+
+class findWidgetHelper():
+    def __init__(self, parent, key, value, verify, messages):
+        try:
+            for item in DoxyGenElementLayoutList:
+                text = item.objectName().split(':')
+                if text[0] == key:
+                    if isinstance(item, QLineEdit):
+                        item.setText(value)
+            return
+        except Exception as e:
+            print(e)
+
+# ------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------
 class myLineEdit(QLineEdit):
-    def __init__(self, name=""):
+    def __init__(self, name="", name_object=""):
         super().__init__()
+        
+        if name_object:
+            self.setObjectName(name_object)
+            #register_instance(self, name_object)
+            #print(">> " + self.objectName())
+        
         self.name = name
         self.init_ui()
     
@@ -1487,41 +5327,6 @@ class myLineEdit(QLineEdit):
         self.setText(self.name)
         self.cssColor = _("edit_css")
         self.setStyleSheet(self.cssColor)
-
-class myDBaseTextEditor(QTextEdit):
-    def __init__(self, name=None):
-        super().__init__()
-        font = QFont("Courier New", 10)
-        self.setFont(font)
-        self.setMaximumHeight(545)
-        self.setMinimumHeight(545)
-        self.setLineWrapMode(QTextEdit.NoWrap)
-        try:
-            if not name == None:
-                self.script_name = genv.v__app__scriptname__
-                with open(self.script_name, "r") as file:
-                    text = file.read()
-                    self.setText(text)
-                    file.close()
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-            tb = traceback.extract_tb(e.__traceback__)[-1]
-            
-            print(f"Exception occur during file load:")
-            print(f"type : {exc_type.__name__}")
-            print(f"value: {exc_value}")
-            print(misc.StringRepeat("-",40))
-            #
-            print(f"file : {tb.filename}")
-            print(f"line : {tb.lineno}")
-            #
-            print(misc.StringRepeat("-",40))
-            print("file not found.")
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_F2:
-            print("\a")
-        else:
-            super().keyPressEvent(event)
 
 # ------------------------------------------------------------------------
 #
@@ -1612,11 +5417,31 @@ class myIconLabel(QLabel):
             elif self.mode == 5:
                 self.btn_clicked(self.parent,parent.python_tabs)
             elif self.mode == 6:
+                self.btn_clicked(self.parent,parent.javascript_tabs)
+            elif self.mode == 7:
                 self.btn_clicked(self.parent,parent.lisp_tabs)
-            elif self.mode == 10:
+            elif self.mode == 8:
                 self.btn_clicked(self.parent,parent.locale_tabs)
+            elif self.mode == 9:
+                self.btn_clicked(self.parent,parent.console_tabs)
+            elif self.mode == 10:
+                self.btn_clicked(self.parent,parent.todo_tabs)
             elif self.mode == 11:
+                self.btn_clicked(self.parent,parent.setup_tabs)
+            elif self.mode == 12:
+                self.btn_clicked(self.parent,parent.certssl_tabs)
+            elif self.mode == 13:
+                self.btn_clicked(self.parent,parent.github_tabs)
+            elif self.mode == 14:
+                self.btn_clicked(self.parent,parent.apache_tabs)
+            elif self.mode == 15:
+                self.btn_clicked(self.parent,parent.mysql_tabs)
+            elif self.mode == 16:
+                self.btn_clicked(self.parent,parent.squid_tabs)
+            elif self.mode == 17:
                 self.btn_clicked(self.parent,parent.c64_tabs)
+            elif self.mode == 18:
+                self.btn_clicked(self.parent,parent.settings_tabs)
     
     def enterEvent(self, event):
         self.show_overlay()
@@ -1633,9 +5458,19 @@ class myIconLabel(QLabel):
         parent.isoc_tabs.hide()
         parent.java_tabs.hide()
         parent.python_tabs.hide()
+        parent.javascript_tabs.hide()
         parent.lisp_tabs.hide()
         parent.locale_tabs.hide()
+        parent.console_tabs.hide()
+        parent.todo_tabs.hide()
+        parent.setup_tabs.hide()
+        parent.certssl_tabs.hide()
+        parent.github_tabs.hide()
+        parent.apache_tabs.hide()
+        parent.mysql_tabs.hide()
+        parent.squid_tabs.hide()
         parent.c64_tabs.hide()
+        parent.settings_tabs.hide()
     
     def btn_clicked(self,btn,tabs):
         if not self.parent.parent.c64_screen.worker_thread == None:
@@ -1652,6 +5487,7 @@ class myIconLabel(QLabel):
     def set_null_state(self):
         parent = self.parent.parent
         side_buttons = [
+            parent.side_btn0,
             parent.side_btn1,
             parent.side_btn2,
             parent.side_btn3,
@@ -1661,6 +5497,15 @@ class myIconLabel(QLabel):
             parent.side_btn7,
             parent.side_btn8,
             parent.side_btn9,
+            parent.side_btnA,
+            parent.side_btnB,
+            parent.side_btnC,
+            parent.side_btnD,
+            parent.side_btnE,
+            parent.side_btnF,
+            parent.side_btnG,
+            parent.side_btnH,
+            parent.side_btnI,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -1669,6 +5514,8 @@ class myIconLabel(QLabel):
 class myIconButton(QWidget):
     def __init__(self, parent, mode, label_text, text):
         super().__init__()
+        
+        genv.v__app__devmode = mode
         
         self.parent = parent
         
@@ -1717,38 +5564,60 @@ class myIconButton(QWidget):
         if mode == 0:
             self.image_fg = ptx + genv.v__app__helpdev__ + fg
             self.image_bg = ptx + genv.v__app__helpdev__ + bg
-        
         elif mode == 1:
             self.image_fg = ptx + genv.v__app__dbasedb__ + fg
             self.image_bg = ptx + genv.v__app__dbasedb__ + bg
-        
         elif mode == 2:
             self.image_fg = ptx + genv.v__app__freepas__ + fg
             self.image_bg = ptx + genv.v__app__freepas__ + bg
-        
         elif mode == 3:
             self.image_fg = ptx + genv.v__app__cpp1dev__ + fg
             self.image_bg = ptx + genv.v__app__cpp1dev__ + bg
-        
         elif mode == 4:
             self.image_fg = ptx + genv.v__app__javadev__ + fg
             self.image_bg = ptx + genv.v__app__javadev__ + bg
-        
         elif mode == 5:
             self.image_fg = ptx + genv.v__app__pythonc__ + fg
             self.image_bg = ptx + genv.v__app__pythonc__ + bg
-        
         elif mode == 6:
+            self.image_fg = ptx + genv.v__app__javascr__ + fg
+            self.image_bg = ptx + genv.v__app__javascr__ + bg
+        elif mode == 7:
             self.image_fg = ptx + genv.v__app__lispmod__ + fg
             self.image_bg = ptx + genv.v__app__lispmod__ + bg
-        
-        elif mode == 10:
+        elif mode == 8:
             self.image_fg = ptx + genv.v__app__locales__ + fg
             self.image_bg = ptx + genv.v__app__locales__ + bg
-        
+        elif mode == 9:
+            self.image_fg = ptx + genv.v__app__console__ + fg
+            self.image_bg = ptx + genv.v__app__console__ + bg
+        elif mode == 10:
+            self.image_fg = ptx + genv.v__app__todopro__ + fg
+            self.image_bg = ptx + genv.v__app__todopro__ + bg
         elif mode == 11:
+            self.image_fg = ptx + genv.v__app__setupro__ + fg
+            self.image_bg = ptx + genv.v__app__setupro__ + bg
+        elif mode == 12:
+            self.image_fg = ptx + genv.v__app__certssl__ + fg
+            self.image_bg = ptx + genv.v__app__certssl__ + bg
+        elif mode == 13:
+            self.image_fg = ptx + genv.v__app__githubp__ + fg
+            self.image_bg = ptx + genv.v__app__githubp__ + bg
+        elif mode == 14:
+            self.image_fg = ptx + genv.v__app__apache2__ + fg
+            self.image_bg = ptx + genv.v__app__apache2__ + bg
+        elif mode == 15:
+            self.image_fg = ptx + genv.v__app__mysqlcf__ + fg
+            self.image_bg = ptx + genv.v__app__mysqlcf__ + bg
+        elif mode == 16:
+            self.image_fg = ptx + genv.v__app__squidwp__ + fg
+            self.image_bg = ptx + genv.v__app__squidwp__ + bg
+        elif mode == 17:
             self.image_fg = ptx + genv.v__app__com_c64__ + fg
             self.image_bg = ptx + genv.v__app__com_c64__ + bg
+        elif mode == 18:
+            self.image_fg = ptx + genv.v__app__com_set__ + fg
+            self.image_bg = ptx + genv.v__app__com_set__ + bg
         
         self.set_style()
     
@@ -1758,9 +5627,12 @@ class myIconButton(QWidget):
         else:
             self.bordercolor = "lightgray"
         
+        self.image_fg = self.image_fg.replace("\\", "/")
+        self.image_bg = self.image_bg.replace("\\", "/")
+        
         style = _("labelico_css")        \
-        .replace("{fg}", self.image_fg.replace("\\","/"))  \
-        .replace("{bg}", self.image_bg.replace("\\","/"))  \
+        .replace("{fg}", self.image_fg)  \
+        .replace("{bg}", self.image_bg)  \
         .replace("{bc}", self.bordercolor)
         
         self.pix_label.setStyleSheet(style)
@@ -1790,10 +5662,11 @@ class myCustomLabel(QLabel):
         self.helpID     = helpID
         self.helpText   = helpText
         
-        self.helpAnchor = "pupu"
+        self.helpToken  = _("A" + f"{helpID:04X}")
+        self.helpAnchor = 'https://doxygen.nl/manual/config.html#cfg_' + self.helpToken.lower()
     
     def enterEvent(self, event):
-        sv_help.setText(self.helpText)
+        genv.sv_help.setText(self.helpText)
     
     def mousePressEvent(self, event):
         QApplication.setOverrideCursor(Qt.PointingHandCursor)
@@ -1804,81 +5677,14 @@ class myCustomLabel(QLabel):
         QApplication.setOverrideCursor(Qt.ArrowCursor)
         return
 
-# ------------------------------------------------------------------------
-# create a scroll view for the mode tab on left side of application ...
-# ------------------------------------------------------------------------
-class iconComboBox(QComboBox):
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(event.rect(), Qt.white)
-        
-        for i in range(self.count()):
-            item_rect = self.view().visualRect(
-            self.model().index(i, 0))
-            
-            icon = self.itemIcon(i)
-            text = self.itemText(i)
-            
-            if not item_rect.isNull():
-                if not icon.isNull():
-                    icon_size = icon.actualSize(
-                        QSize(
-                            item_rect.height(),
-                            item_rect.height()))
-                    icon_rect = QRect(
-                        item_rect.left() + 4,
-                        item_rect.top(), 56,
-                        item_rect.height())
-                    icon.paint(painter,
-                        icon_rect,
-                        Qt.AlignCenter,
-                        QIcon.Normal,
-                        QIcon.Off)
-                if not icon.isNull():
-                    right_icon_rect = QRect(
-                        item_rect.right() - item_rect.height(),
-                        item_rect.top(),
-                        icon_size.width(),
-                        icon_size.height())
-                    icon.paint(painter,
-                        right_icon_rect,
-                        Qt.AlignCenter,
-                        QIcon.Normal,
-                        QIcon.Off)
-        
-        arrow_icon = self.style().standardIcon(self.style().SP_ArrowDown)
-        arrow_rect = QRect(
-            self.width() - 20,  0, 20,
-            self.height())
-        arrow_icon.paint(painter,
-            arrow_rect,
-            Qt.AlignCenter,
-            QIcon.Normal,
-            QIcon.Off)
-        
-        boxrect = event.rect()
-        boxrect.setWidth(boxrect.width() - 22)
-        
-        painter.setPen(Qt.black)
-        painter.fillRect(boxrect, Qt.white)
-        painter.drawRect(boxrect)
-        
-        selected_text = self.currentText()
-        if selected_text:
-            selected_text_rect = QRect(14, 0,
-                self.width() - 24,
-                self.height())
-            painter.drawText(
-                selected_text_rect, Qt.AlignLeft | Qt.AlignVCenter,
-                selected_text)
-
 class myCustomScrollArea(QScrollArea):
-    def __init__(self, name):
+    def __init__(self, parent, number, name):
         super().__init__()
+        #print(name)
         
-        self.name = name
-        self.font = QFont(genv.v__app__font)
+        self.number = number
+        self.name   = name
+        self.font   = QFont(genv.v__app__font)
         self.font.setPointSize(10)
         
         self.type_label        = 1
@@ -1942,13 +5748,16 @@ class myCustomScrollArea(QScrollArea):
             self.layout.addWidget(w)
         return w
     
-    def addCheckBox(self, text, bold=False):
+    def addCheckBox(self, object_name = "", text = "", bold=False):
         w = QCheckBox(text)
+        w.setObjectName(object_name + ':QCheckBox')
+        
         if bold == True:
             self.setElementBold(w)
         else:
             w.setFont(self.font)
         self.layout.addWidget(w)
+        
         return w
     
     def addRadioButton(self, text):
@@ -1989,8 +5798,14 @@ class myCustomScrollArea(QScrollArea):
             self.layout.addWidget(w)
         return w
     
-    def addLineEdit(self, text = "", lh = None):
-        w = myLineEdit(text)
+    def addComboBox(self, object_name = ""):
+        w = QComboBox()
+        w.setObjectName(object_name + ':QComboBox')
+        self.layout.addWidget(w)
+        return w
+    
+    def addLineEdit(self, object_name = "", text = "", lh = None):
+        w = myLineEdit(text, object_name)
         w.setMinimumHeight(21)
         w.setFont(self.font_a)
         if not lh == None:
@@ -1999,7 +5814,7 @@ class myCustomScrollArea(QScrollArea):
             self.layout.addWidget(w)
         return w
     
-    def addElements(self, elements, hid):
+    def addElements(self, number, elements, hid):
         for i in range(0, len(elements)):
             lv_0 = QVBoxLayout()
             lh_0 = QHBoxLayout()
@@ -2020,11 +5835,13 @@ class myCustomScrollArea(QScrollArea):
             vw_1.setMinimumWidth(200)
             
             if elements[i][1] == self.type_edit:
-                self.addLineEdit("",lh_0)
-                                    
+                w = self.addLineEdit(tokennum, "",lh_0)
+                w.setObjectName(tokennum + ':' + str(number))
+                DoxyGenElementLayoutList.append(w)
+                
                 if elements[i][2] == 1:
                     self.addPushButton("+",lh_0)
-                    
+                
                 elif elements[i][2] == 3:
                     self.addPushButton("+",lh_0)
                     self.addPushButton("-",lh_0)
@@ -2037,14 +5854,14 @@ class myCustomScrollArea(QScrollArea):
                     lv_0.addWidget(vw_3)
             
             elif elements[i][1] == self.type_check_box:
-                vw_2 = QCheckBox()
+                vw_2 = self.addCheckBox(tokennum, "", False)
                 vw_2.setMinimumHeight(21)
                 vw_2.setFont(self.font_a)
                 vw_2.setChecked(elements[i][3])
                 lh_0.addWidget(vw_2)
             
             elif elements[i][1] == self.type_combo_box:
-                vw_2 = iconComboBox(self)
+                vw_2 = self.addComboBox(tokennum)
                 vw_2.setMinimumHeight(26)
                 vw_2.setFont(self.font)
                 vw_2.font().setPointSize(14)
@@ -2080,15 +5897,18 @@ class myCustomScrollArea(QScrollArea):
             
             lv_0.addLayout(lh_0)
             self.layout.addLayout(lv_0)
+            
 
 # ------------------------------------------------------------------------
 # create a scroll view for the project tab on left side of application ...
 # ------------------------------------------------------------------------
 class customScrollView_1(myCustomScrollArea):
-    def __init__(self, name="uuuu"):
-        super().__init__(name)
+    def __init__(self, parent, name="uuuu"):
+        super(customScrollView_1, self).__init__(parent, 1, name)
         
-        self.name = name
+        self.parent = parent
+        self.name   = name
+        
         self.init_ui()
     
     def init_ui(self):
@@ -2103,7 +5923,7 @@ class customScrollView_1(myCustomScrollArea):
         
         w_layout_0 = QHBoxLayout()
         w_layout_0.setAlignment(Qt.AlignLeft)
-        widget_1_label_1 = self.addLabel("Provide some informations about the Project you are documenting", True)
+        widget_1_label_1 = self.addLabel(_("Provide some informations about the Project you are documenting"), True)
         widget_1_label_1.setMinimumWidth(250)
         widget_1_label_1.setMaximumWidth(450)
         w_layout_0.addWidget(widget_1_label_1)
@@ -2116,9 +5936,9 @@ class customScrollView_1(myCustomScrollArea):
         v_layout_1 = QVBoxLayout()
         v_widget_1 = QWidget()
         
-        l_label_1 = self.addLabel("Project name:"           , False, v_layout_1)
-        l_label_2 = self.addLabel("Project author:"         , False, v_layout_1)
-        l_label_3 = self.addLabel("Project version or id:  ", False, v_layout_1)
+        l_label_1 = self.addLabel(_("Project name:")          , False, v_layout_1)
+        l_label_2 = self.addLabel(_("Project author:")        , False, v_layout_1)
+        l_label_3 = self.addLabel(_("Project version or id: "), False, v_layout_1)
         
         l_label_1.setFont(font)
         l_label_2.setFont(font)
@@ -2127,9 +5947,9 @@ class customScrollView_1(myCustomScrollArea):
         v_layout_2 = QVBoxLayout()
         v_widget_2 = QWidget()
         
-        e_field_1 = self.addLineEdit("", v_layout_2)
-        e_field_2 = self.addLineEdit("", v_layout_2)
-        e_field_3 = self.addLineEdit("", v_layout_2)
+        e_field_1 = self.addLineEdit("PROJECT_NAME:1"  , "", v_layout_2)
+        e_field_2 = self.addLineEdit("PROJECT_AUTHOR:1", "", v_layout_2)
+        e_field_3 = self.addLineEdit("PROJECT_NUMBER:1", "", v_layout_2)
         
         ##
         h_layout_1.addLayout(v_layout_1)
@@ -2138,23 +5958,24 @@ class customScrollView_1(myCustomScrollArea):
         layout.addLayout(h_layout_1)
         
         
-        
         layout_4 = QHBoxLayout()
         layout_4.setAlignment(Qt.AlignLeft)
-        widget_4_label_1 = self.addLabel("Project logo:", False, layout_4)
+        widget_4_label_1 = self.addLabel(_("Project logo:"), False, layout_4)
         widget_4_label_1.setFont(font)
         widget_4_label_1.setMaximumWidth(160)
         layout_4.addWidget(widget_4_label_1)
         #
-        widget_4_pushb_1 = self.addPushButton("Select", layout_4)
+        widget_4_pushb_1 = self.addPushButton(_("Select"), layout_4)
         widget_4_pushb_1.setMinimumHeight(32)
         widget_4_pushb_1.setMinimumWidth(84)
         widget_4_pushb_1.setMaximumWidth(84)  ; font.setBold(True)
         widget_4_pushb_1.setFont(font)        ; font.setBold(False)
         #
         widget_4_licon_1 = self.addLabel("", False, layout_4)
-        widget_4_licon_1.setPixmap(QIcon(
-            os.path.join(genv.v__app__img__int__, "floppy-disk" + genv.v__app__img_ext__)).pixmap(42,42))
+        widget_4_licon_1.setPixmap(QIcon(os.path.join(
+            genv.v__app__img__int__,
+            "floppy-disk" + genv.v__app__img_ext__)).pixmap(42,42))
+        widget_4_licon_1.setObjectName("PROJECT_LOGO:1")
         #
         layout.addLayout(layout_4)
         
@@ -2170,17 +5991,19 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_6 = QHBoxLayout()
         layout_6.setAlignment(Qt.AlignLeft)
-        widget_6_label_1 = self.addLabel("Source dir:", False, layout_6)
+        widget_6_label_1 = self.addLabel(_("Source dir:"), False, layout_6)
         widget_6_label_1.setMinimumWidth(100)
         widget_6_label_1.setMaximumWidth(100)
         widget_6_label_1.setFont(font)
         #
-        widget_6_edit_1  = self.addLineEdit("E:\\temp\\src", layout_6)
+        widget_6_edit_1  = self.addLineEdit("SOURCE_DIR:1",
+            os.path.join(genv.v__app__app_dir__, "/examples/doxygen/"),
+            layout_6)
         widget_6_edit_1.setMinimumWidth(280)
         widget_6_edit_1.setMaximumWidth(280)
         widget_6_edit_1.setFont(font)
         #
-        widget_6_pushb_1 = self.addPushButton("Select", layout_6)
+        widget_6_pushb_1 = self.addPushButton(_("Select"), layout_6)
         widget_6_pushb_1.setMinimumHeight(40)
         widget_6_pushb_1.setMaximumHeight(40)
         widget_6_pushb_1.setMinimumWidth(84)
@@ -2191,17 +6014,17 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_7 = QHBoxLayout()
         layout_7.setAlignment(Qt.AlignLeft)
-        widget_7_label_1 = self.addLabel("Destination dir:", False, layout_7)
+        widget_7_label_1 = self.addLabel(_("Destination dir:"), False, layout_7)
         widget_7_label_1.setMinimumWidth(100)
         widget_7_label_1.setMaximumWidth(100)
         widget_7_label_1.setFont(font)
         #
-        widget_7_edit_1  = self.addLineEdit("E:\\temp\\src\\html", layout_7)
+        widget_7_edit_1  = self.addLineEdit("DEST_DIR:1","E:/temp/src/html", layout_7)
         widget_7_edit_1.setMinimumWidth(280)
         widget_7_edit_1.setMaximumWidth(280)
         widget_7_edit_1.setFont(font)
         #
-        widget_7_pushb_1 = self.addPushButton("Select", layout_7)
+        widget_7_pushb_1 = self.addPushButton(_("Select"), layout_7)
         widget_7_pushb_1.setMinimumHeight(40)
         widget_7_pushb_1.setMaximumHeight(40)
         widget_7_pushb_1.setMinimumWidth(84)
@@ -2223,15 +6046,17 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_9 = QHBoxLayout()
         layout_9.setAlignment(Qt.AlignLeft)
-        widget_9_checkbutton_1 = self.addCheckBox("Scan recursive")
+        widget_9_checkbutton_1 = self.addCheckBox(" ",_("Scan recursive"))
         widget_9_checkbutton_1.setMaximumWidth(300)
         widget_9_checkbutton_1.setFont(font)
         layout_9.addWidget(widget_9_checkbutton_1)
         layout.addLayout(layout_9)
         
         layout_10 = QVBoxLayout()
-        widget_10_button_1 = QPushButton("Convert" ,self); widget_10_button_1.setStyleSheet(css_button_style)
-        widget_10_button_2 = QPushButton("HelpNDoc",self); widget_10_button_2.setStyleSheet(css_button_style)
+        widget_10_button_1 = QPushButton(_("Convert") ,self); widget_10_button_1.setStyleSheet(_(genv.css_button_style))
+        widget_10_button_2 = QPushButton(_("HelpNDoc"),self); widget_10_button_2.setStyleSheet(_(genv.css_button_style))
+        
+        widget_10_button_1.clicked.connect(self.widget_10_button_1_click)
         #
         layout_10.addWidget(widget_10_button_1)
         layout_10.addWidget(widget_10_button_2)
@@ -2240,14 +6065,58 @@ class customScrollView_1(myCustomScrollArea):
         
         #self.setWidgetResizable(False)
         self.setWidget(content_widget)
-    
-    def btn_clicked_3(self):
-        print("HelpNDoc")
+            
+    def widget_10_button_1_click(self):
+        if genv.HelpAuthoringConverterMode == 0:
+            msg = QMessageBox()
+            msg.setWindowTitle(_("Error"))
+            msg.setText(_("no project type given.\n"
+            + "currently only DOXYGEN and HELPNDOC"))
+            msg.setIcon(QMessageBox.Warning)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()            
+            return
+        if len(doxygen_project_file) < 2:
+            msg = QMessageBox()
+            msg.setWindowTitle("Error")
+            msg.setText(_("no project file given."))
+            msg.setIcon(QMessageBox.Warning)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()            
+            return
+        
+        try:
+            genv.v__app__config.read(doxygen_project_file)
+            if 'doxygen' in genv.v__app__config:
+                doxyfile = genv.v__app__config['doxygen']['config']
+                if not os.path.exists(doxyfile):
+                    msg = QMessageBox()
+                    msg.setWindowTitle(_("Error"))
+                    msg.setText(_(
+                    + "Error: Doxyfile configuration does not exists.\n"
+                    + "Command aborted."))
+                    msg.setIcon(QMessageBox.Warning)
+                    msg.setStyleSheet(_("msgbox_css"))
+                    
+                    btn_ok = msg.addButton(QMessageBox.Ok)
+                    result = msg.exec_()            
+                    return
+                
+                parser = parserDoxyGen(doxyfile, self.parent)
+        
+        except Exception as e:
+            showException(traceback.format_exc())
+            return
 
 class customScrollView_2(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_2, self).__init__(parent, 2, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         
@@ -2257,7 +6126,7 @@ class customScrollView_2(myCustomScrollArea):
         
         self.addRadioButton(_("opti01"))
         self.addRadioButton(_("opti02"))
-        self.addCheckBox   (_("opti03"))
+        self.addCheckBox   (" ",_("opti03"))
         
         self.addFrame()
         
@@ -2270,662 +6139,339 @@ class customScrollView_2(myCustomScrollArea):
 # create a scroll view for the output tab on left side of application ...
 # ------------------------------------------------------------------------
 class customScrollView_3(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_3, self).__init__(parent, 3, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         
-        self.addLabel("Select the output format(s) to generate:", True)
+        self.addLabel(_("Select the output format(s) to generate:"), True)
         
         # HTML
-        self.addCheckBox("HTML", True)
+        self.addCheckBox(" ","HTML", True)
         #
-        self.addRadioButton("plain HTML")
-        self.addRadioButton("with navigation Panel")
-        self.addRadioButton("prepare for compressed HTML .chm")
-        self.addCheckBox("with search function")
+        self.addRadioButton(_("plain HTML"))
+        self.addRadioButton(_("with navigation Panel"))
+        self.addRadioButton(_("prepare for compressed HTML .chm"))
+        self.addCheckBox(" ",_("with search function"))
         
         self.addFrame()
         
         # LaTeX
-        self.addCheckBox("LaTeX", True)
+        self.addCheckBox(" ","LaTeX", True)
         #
-        self.addRadioButton("an intermediate format for hypter-linked PDF")
-        self.addRadioButton("an intermediate format for PDF")
-        self.addRadioButton("an intermediate format for PostScript")
+        self.addRadioButton(_("an intermediate format for hyper-linked PDF"))
+        self.addRadioButton(_("an intermediate format for PDF"))
+        self.addRadioButton(_("an intermediate format for PostScript"))
         
         self.addFrame()
         
         # misc
-        self.addCheckBox("Man pages")
-        self.addCheckBox("Rich Text Format - RTF")
-        self.addCheckBox("XML")
-        self.addCheckBox("DocBook")
+        self.addCheckBox(" ","Man pages")
+        self.addCheckBox(" ","Rich Text Format - RTF")
+        self.addCheckBox(" ","XML")
+        self.addCheckBox(" ","DocBook")
 
 # ------------------------------------------------------------------------
 # create a scroll view for the diagrams tab on left side of application ...
 # ------------------------------------------------------------------------
 class customScrollView_4(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_4, self).__init__(parent, 4, name)
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         
-        self.addLabel("Diagrams to generate:", True)
+        self.addLabel(_("Diagrams to generate:"), True)
         
-        self.addRadioButton("No diagrams")
-        self.addRadioButton("Text only")
-        self.addRadioButton("Use built-in diagram generator")
-        self.addRadioButton("Use Dot-Tool from the GrappVz package")
+        self.addRadioButton(_("No diagrams"))
+        self.addRadioButton(_("Text only"))
+        self.addRadioButton(_("Use built-in diagram generator"))
+        self.addRadioButton(_("Use Dot-Tool from the GrappVz package"))
         
         self.addFrame()
         
-        self.addLabel("Dot graphs to generate:", True)
+        self.addLabel(_("Dot graphs to generate:"), True)
         
-        self.addCheckBox("Class graph")
-        self.addCheckBox("Colaboration diagram")
-        self.addCheckBox("Overall Class hiearchy")
-        self.addCheckBox("Include dependcy graphs")
-        self.addCheckBox("Included by dependcy graphs")
-        self.addCheckBox("Call graphs")
-        self.addCheckBox("Called-by graphs")
+        self.addCheckBox(" ",_("Class graph"))
+        self.addCheckBox(" ",_("Colaboration diagram"))
+        self.addCheckBox(" ",_("Overall Class hiearchy"))
+        self.addCheckBox(" ",_("Include dependcy graphs"))
+        self.addCheckBox(" ",_("Included by dependcy graphs"))
+        self.addCheckBox(" ",_("Call graphs"))
+        self.addCheckBox(" ",_("Called-by graphs"))
 
 class customScrollView_5(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super().__init__(parent, 5, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(2000)
         
         ## 0xA0100
-        label_1_elements = [
-            # <text>,                  <type 1>,             <help>, <type 2>,  <list 1>
-            [0xA0101, self.type_edit,       0],
-            
-            [0xA0102, self.type_edit,       0, "My Project"],
-            [0xA0103, self.type_edit,       0],
-            [0xA0104, self.type_edit,       0],
-            [0xA0105, self.type_edit,       1],
-            [0xA0106, self.type_edit,       1],
-            
-            [0xA0107, self.type_edit,       1],
-            [0xA0108, self.type_check_box,  0, True],
-            [0xA0109, self.type_spin,       0],
-            
-            [0xA010A, self.type_check_box,  0, False],
-            [0xA010B, self.type_combo_box,  4, [] ],
-            
-            [0xA010C, self.type_check_box,   0, True],
-            [0xA010D, self.type_check_box,   0, True],
-            [0xA010E, self.type_edit,       3],
-            [0xA010F, self.type_check_box,   0, True],
-            [0xA0110, self.type_check_box,   0, True],
-            
-            [0xA0111, self.type_check_box,   0, True],
-            [0xA0112, self.type_edit,        3],
-            [0xA0113, self.type_edit,        3],
-            
-            [0xA0114, self.type_check_box,   0, False],
-            
-            [0xA0115, self.type_check_box,   0, True ],
-            [0xA0116, self.type_check_box,   0, False],
-            
-            [0xA0117, self.type_check_box,   0, False],
-            
-            [0xA0118, self.type_check_box,   0, False],
-            [0xA0119, self.type_check_box,   0, True ],
-            [0xA011A, self.type_check_box,   0, True ],
-            [0xA011B, self.type_check_box,   0, False],
-            
-            [0xA011C, self.type_spin,        0],
-            [0xA011D, self.type_edit,        3],
-            
-            [0xA011E, self.type_check_box,   0, True ],
-            [0xA011F, self.type_check_box,   0, False],
-            [0xA0120, self.type_check_box,   0, False],
-            [0xA0121, self.type_check_box,   0, False],
-            [0xA0122, self.type_check_box,   0, False],
-            
-            [0xA0123, self.type_edit,        3],
-            
-            [0xA0124, self.type_check_box,   0, True ],
-            [0xA0125, self.type_spin,        0],
-            [0xA0126, self.type_combo_box,   2, ["DOXYGEN", "CIT"]],
-            [0xA0127, self.type_check_box,   0, True ],
-            
-            [0xA0128, self.type_check_box,   0, True ],
-            [0xA0129, self.type_check_box,   0, True ],
-            [0xA012A, self.type_check_box,   0, False],
-            [0xA012B, self.type_check_box,   0, True ],
-            
-            [0xA012C, self.type_check_box,   0, False],
-            [0xA012D, self.type_check_box,   0, False],
-            [0xA012E, self.type_check_box,   0, True ],
-            
-            [0xA012F, self.type_check_box,   0, False],
-            [0xA0130, self.type_check_box,   0, False],
-            [0xA0131, self.type_check_box,   0, False],
-            
-            [0xA0132, self.type_spin,        0],
-            [0xA0133, self.type_spin,        0],
-            
-            [0xA0134, self.type_combo_box,   2, ["NO","YES"]]
-        ]
-        self.addElements(label_1_elements, 0x100)
+        label_5_elements = eval(_("label_5_elements"))
+        self.addElements(5, label_5_elements, 0x100)
     
     # ----------------------------------------------
     # show help text when mouse move over the label
     # ----------------------------------------------
     def label_enter_event(self, text):
-        sv_help.setText(text)
+        genv.sv_help.setText(text)
 
 class customScrollView_6(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_6, self).__init__(parent, 6, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1400)
         
         ## 0xA0200
-        label_1_elements = [
-            [0xA0201, self.type_check_box, 0, False ],
-            [0xA0202, self.type_check_box, 0, False ],
-            [0xA0203, self.type_check_box, 0, False ],
-            [0xA0204, self.type_check_box, 0, False ],
-            [0xA0205, self.type_check_box, 0, True  ],
-            [0xA0206, self.type_check_box, 0, True  ],
-            [0xA0207, self.type_check_box, 0, True  ],
-            [0xA0208, self.type_check_box, 0, True  ],
-            [0xA0209, self.type_check_box, 0, True  ],
-            [0xA020A, self.type_check_box, 0, False ],
-            [0xA020B, self.type_check_box, 0, False ],
-            [0xA020C, self.type_check_box, 0, False ],
-            [0xA020D, self.type_check_box, 0, False ],
-            [0xA020E, self.type_check_box, 0, True  ],
-            
-            [0xA020F, self.type_combo_box, 2, ["SYSTEM", "NO", "YES"] ],
-            
-            [0xA0210, self.type_check_box, 0, False ],
-            [0xA0211, self.type_check_box, 0, False ],
-            
-            [0xA0212, self.type_check_box, 0, True  ],
-            [0xA0213, self.type_check_box, 0, True  ],
-            
-            [0xA0214, self.type_check_box, 0, False ],
-            [0xA0215, self.type_check_box, 0, False ],
-            [0xA0216, self.type_check_box, 0, False ],
-            [0xA0217, self.type_check_box, 0, False ],
-            [0xA0218, self.type_check_box, 0, False ],
-            [0xA0219, self.type_check_box, 0, False ],
-            
-            [0xA021A, self.type_check_box, 0, False ],
-            [0xA021B, self.type_check_box, 0, False ],
-            [0xA021C, self.type_check_box, 0, False ],
-            
-            [0xA021D, self.type_check_box, 0, False ],
-            [0xA021E, self.type_check_box, 0, False ],
-            [0xA021F, self.type_check_box, 0, False ],
-            [0xA0220, self.type_check_box, 0, False ],
-            
-            [0xA0221, self.type_edit,      3 ],
-            [0xA0222, self.type_spin,      0 ],
-            
-            [0xA0223, self.type_check_box, 0, True  ],
-            [0xA0224, self.type_check_box, 0, True  ],
-            [0xA0225, self.type_check_box, 0, True  ],
-            
-            [0xA0226, self.type_edit,      1 ],
-            [0xA0227, self.type_edit,      1 ],
-            [0xA0228, self.type_edit,      3 ]
-        ]
-        self.addElements(label_1_elements, 0x200)
+        label_6_elements = eval(_("label_6_elements"))
+        self.addElements(6, label_6_elements, 0x200)
 
 class customScrollView_7(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_7, self).__init__(parent, 7, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA0300
-        label_1_elements = [
-            [0xA0301, self.type_check_box, 0, True  ],
-            [0xA0302, self.type_check_box, 0, True  ],
-            
-            [0xA0303, self.type_check_box, 0, False ],
-            [0xA0304, self.type_check_box, 0, True  ],
-            [0xA0305, self.type_check_box, 0, True  ],
-            
-            [0xA0306, self.type_check_box, 0, False ],
-            [0xA0307, self.type_check_box, 0, False ],
-            
-            [0xA0308, self.type_spin,      0 ],
-            
-            [0xA0309, self.type_edit,      0 ],
-            [0xA030A, self.type_edit,      0 ],
-            [0xA030B, self.type_edit,      1 ]
-        ]
-        self.addElements(label_1_elements, 0x0300)
+        label_7_elements = eval(_("label_7_elements"))
+        self.addElements(7, label_7_elements, 0x0300)
 
 class customScrollView_8(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_8, self).__init__(parent, 8, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1700)
         
         ## 0xA0400
-        label_1_elements = [
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      0],
-            [0xA0401, self.type_edit,      1],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_check_box, 0, True  ],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_check_box, 0, False ],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      0, False ],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      1],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_check_box, 0, False ],
-            [0xA0401, self.type_edit,      3],
-            [0xA0401, self.type_edit,      0],
-            [0xA0401, self.type_spin,      0]
-        ]
-        self.addElements(label_1_elements, 0x0400)
+        label_8_elements = eval(_("label_8_elements"))
+        self.addElements(8, label_8_elements, 0x0400)
 
 class customScrollView_9(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_9, self).__init__(parent, 9, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(560)
         
         ## 0xA0500
-        label_1_elements = [
-            [0xA0501, self.type_check_box, 0, True  ],
-            [0xA0502, self.type_check_box, 0, False ],
-            [0xA0503, self.type_check_box, 0, False ],
-            
-            [0xA0504, self.type_check_box, 0, True  ],
-            [0xA0505, self.type_check_box, 0, True  ],
-            [0xA0506, self.type_check_box, 0, True  ],
-            
-            [0xA0507, self.type_check_box, 0, True  ],
-            [0xA0508, self.type_check_box, 0, False ],
-            [0xA0509, self.type_check_box, 0, True  ],
-            
-            [0xA050A, self.type_check_box, 0, False ],
-            [0xA050B, self.type_check_box, 0, False ],
-            [0xA050C, self.type_edit     , 3 ],
-            [0xA050D, self.type_edit     , 1 ]
-        ]
-        self.addElements(label_1_elements, 0x0500)
+        label_9_elements = eval(_("label_9_elements"))
+        self.addElements(9, label_9_elements, 0x0500)
 
 class customScrollView_10(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_10, self).__init__(parent, 10, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA0600
-        label_1_elements = [
+        label_10_elements = [
             [0xA0601, self.type_check_box, 0, True ],
             [0xA0602, self.type_edit,      3 ]
         ]
-        self.addElements(label_1_elements, 0x0600)
+        self.addElements(10, label_10_elements, 0x0600)
 
 class customScrollView_11(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_11, self).__init__(parent, 11, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(2380)
         
         ## 0xA0700
-        label_1_elements = [
-            [0xA0701, self.type_check_box, 0, True  ],
-            [0xA0702, self.type_edit,      1 ],
-            [0xA0703, self.type_edit,      0 ],
-            
-            [0xA0704, self.type_edit,      1 ],
-            [0xA0705, self.type_edit,      1 ],
-            
-            [0xA0706, self.type_edit,      1 ],
-            [0xA0707, self.type_edit,      3 ],
-            [0xA0708, self.type_edit,      3 ],
-            
-            [0xA0709, self.type_combo_box, 2, [ "LIGHT", "DARK", "AUTO_LIGHT", "AUTO_DARK", "TOOGLE" ] ],
-            [0xA070A, self.type_spin,      0 ],
-            [0xA070B, self.type_spin,      0 ],
-            [0xA070C, self.type_spin,      0 ],
-            [0xA070D, self.type_check_box, 0, True  ],
-            [0xA070E, self.type_check_box, 0, False ],
-            
-            [0xA070F, self.type_check_box, 0, True  ],
-            [0xA0710, self.type_check_box, 0, True  ],
-            [0xA0711, self.type_edit,      0 ],
-            [0xA0712, self.type_spin,      0 ],
-            
-            [0xA0713, self.type_check_box, 0, False ],
-            [0xA0714, self.type_edit,      0 ],
-            [0xA0715, self.type_edit,      0 ],
-            [0xA0716, self.type_edit,      0 ],
-            [0xA0717, self.type_edit,      0 ],
-            [0xA0718, self.type_edit,      0 ],
-            
-            [0xA0719, self.type_check_box, 0, True  ],
-            [0xA071A, self.type_edit,      1 ],
-            [0xA071B, self.type_edit,      1 ],
-            [0xA071C, self.type_check_box, 0, False ],
-            [0xA071D, self.type_edit,      0 ],
-            [0xA071E, self.type_check_box, 0, False ],
-            [0xA071F, self.type_check_box, 0, False ],
-            [0xA0720, self.type_edit,      0 ],
-            
-            [0xA0721, self.type_check_box, 0, False ],
-            [0xA0722, self.type_edit,      1 ],
-            [0xA0723, self.type_edit,      0 ],
-            [0xA0724, self.type_edit,      0 ],
-            [0xA0725, self.type_edit,      0 ],
-            [0xA0726, self.type_edit,      0 ],
-            [0xA0727, self.type_edit,      1 ],
-            
-            [0xA0728, self.type_check_box, 0, False ],
-            [0xA0729, self.type_edit,      0 ],
-            [0xA072A, self.type_check_box, 0, False ],
-            
-            [0xA072B, self.type_check_box, 0, True  ],
-            [0xA072C, self.type_check_box, 0, False ],
-            
-            [0xA072D, self.type_spin,      0 ],
-            [0xA072E, self.type_spin,      0 ],
-            
-            [0xA072F, self.type_check_box, 0, False ],
-            [0xA0730, self.type_check_box, 0, True  ],
-            
-            [0xA0731, self.type_combo_box, 2, [ "png", "svg" ] ],
-            [0xA0732, self.type_spin,      0 ],
-            [0xA0733, self.type_edit,      1 ],
-            
-            [0xA0734, self.type_check_box, 0, False ],
-            [0xA0735, self.type_combo_box, 2, [ "MathJax_2", "MathJax_3" ] ],
-            [0xA0736, self.type_combo_box, 2, [ "HTML + CSS", "NativeXML", "chtml", "SVG" ] ],
-            
-            [0xA0737, self.type_edit,      1 ],
-            [0xA0738, self.type_edit,      3 ],
-            [0xA0739, self.type_edit,      0 ],
-            
-            [0xA073A, self.type_check_box, 0, False ],
-            [0xA073B, self.type_check_box, 0, False ],
-            [0xA073C, self.type_check_box, 0, False ],
-            [0xA073D, self.type_edit,      0 ],
-            [0xA073E, self.type_edit,      1 ],
-            [0xA073F, self.type_edit,      0 ],
-            [0xA0740, self.type_edit,      3 ]
-        ]
-        self.addElements(label_1_elements, 0x0700)
+        label_11_elements = eval(_("label_11_elements"))
+        self.addElements(11, label_11_elements, 0x0700)
 
 class customScrollView_12(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_12, self).__init__(parent, 12, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1000)
         
         ## 0xA0800
-        label_1_elements = [
-            [0xA0801, self.type_check_box, 0, False ],
-            [0xA0802, self.type_edit,      1 ],
-            [0xA0803, self.type_edit,      1 ],
-            [0xA0804, self.type_edit,      0 ],
-            [0xA0805, self.type_check_box, 0, False ],
-            [0xA0806, self.type_combo_box, 2, [ "a4", "letter", "executive" ] ],
-            [0xA0807, self.type_edit,      3 ],
-            [0xA0808, self.type_edit,      1 ],
-            [0xA0809, self.type_edit,      1 ],
-            [0xA080A, self.type_edit,      3 ],
-            [0xA080B, self.type_edit,      3 ],
-            [0xA080C, self.type_check_box, 0, True  ],
-            [0xA080D, self.type_check_box, 0, True  ],
-            [0xA080E, self.type_combo_box, 2, [ "NO", "YWS", "BATCH", "NON-STOP", "SCROLL", "ERROR_STOP" ] ],
-            [0xA080F, self.type_check_box, 0, False ],
-            [0xA0810, self.type_edit,      0 ],
-            [0xA0811, self.type_edit,      1 ]
-        ]
-        self.addElements(label_1_elements, 0x0800)
+        label_12_elements = eval(_("label_12_elements"))
+        self.addElements(12, label_12_elements, 0x0800)
 
 class customScrollView_13(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_13, self).__init__(parent, 13, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA0900
-        label_1_elements = [
-            [0xA0901, self.type_check_box, 0, False ],
-            [0xA0902, self.type_edit,      1 ],
-            [0xA0903, self.type_check_box, 0, False ],
-            [0xA0904, self.type_check_box, 0, False ],
-            [0xA0905, self.type_edit,      1 ],
-            [0xA0906, self.type_edit,      1 ]
-        ]
-        self.addElements(label_1_elements, 0x0900)
+        label_13_elements = eval(_("label_13_elements"))
+        self.addElements(13, label_13_elements, 0x0900)
 
 class customScrollView_14(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_14, self).__init__(parent, 14, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1000
-        label_1_elements = [
-            [0xA1001, self.type_check_box, 0, False ],
-            [0xA1002, self.type_edit,      1 ],
-            [0xA1003, self.type_edit,      0 ],
-            [0xA1004, self.type_edit,      0 ],
-            [0xA1005, self.type_check_box, 0, False ],
-        ]
-        self.addElements(label_1_elements, 0x1000)
+        label_14_elements = eval(_("label_14_elements"))
+        self.addElements(14, label_14_elements, 0x1000)
 
 class customScrollView_15(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_15, self).__init__(parent, 15, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1100
-        label_1_elements = [
-            [0xA1101, self.type_check_box, 0, False ],
-            [0xA1102, self.type_edit,      1 ],
-            [0xA1103, self.type_check_box, 0, False ],
-            [0xA1104, self.type_check_box, 0, False ]
-        ]
-        self.addElements(label_1_elements, 0x1100)
+        label_15_elements = eval(_("label_15_elements"))
+        self.addElements(15, label_15_elements, 0x1100)
 
 class customScrollView_16(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_16, self).__init__(parent, 16, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1400)
         
         ## 0xA1200
-        label_1_elements = [
+        label_16_elements = [
             [0xA1201, self.type_check_box, 0, False ],
             [0xA1202, self.type_edit,      1 ],
         ]
-        self.addElements(label_1_elements, 0x1200)
+        self.addElements(16, label_16_elements, 0x1200)
 
 class customScrollView_17(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_17, self).__init__(parent, 17, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1300
-        label_1_elements = [
+        label_17_elements = [
             [0xA1301,  self.type_check_box, 0, False ]
         ]
-        self.addElements(label_1_elements, 0x1300)
+        self.addElements(17, label_17_elements, 0x1300)
 
 class customScrollView_18(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_18, self).__init__(parent, 18, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1400
-        label_1_elements = [
+        label_18_elements = [
             [0xA1401, self.type_check_box, 0, False ],
             [0xA1402, self.type_edit,      1 ],
             [0xA1403, self.type_check_box, 0, True  ],
         ]
-        self.addElements(label_1_elements, 0x1400)
+        self.addElements(18, label_18_elements, 0x1400)
 
 class customScrollView_19(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_19, self).__init__(parent, 19, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1500
-        label_1_elements = [
-            [0xA1501, self.type_check_box, 0, False ],
-            [0xA1502, self.type_check_box, 0, False ],
-            [0xA1503, self.type_check_box, 0, False ],
-            [0xA1504, self.type_edit,      1 ]
-        ]
-        self.addElements(label_1_elements, 0x1500)
+        label_19_elements = eval(_("label_19_elements"))
+        self.addElements(19, label_19_elements, 0x1500)
 
 class customScrollView_20(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_20, self).__init__(parent, 20, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(800)
         
         ## 0xA1600
-        label_1_elements = [
-            [0xA1601, self.type_check_box, 0, True  ],
-            [0xA1602, self.type_check_box, 0, True  ],
-            [0xA1603, self.type_check_box, 0, False ],
-            [0xA1604, self.type_check_box, 0, False ],
-            [0xA1605, self.type_edit,      3 ],
-            [0xA1606, self.type_edit,      3 ],
-            [0xA1607, self.type_edit,      3 ],
-            [0xA1608, self.type_edit,      3 ],
-            [0xA1609, self.type_check_box, 0, True  ]
-        ]
-        self.addElements(label_1_elements, 0x1600)
+        label_20_elements = eval(_("label_20_elements"))
+        self.addElements(20, label_20_elements, 0x1600)
 
 class customScrollView_21(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_21, self).__init__(parent, 21, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1700
-        label_1_elements = [
-            [0xA1701, self.type_edit,  3 ],
-            [0xA1702, self.type_edit,  1 ],
-            [0xA1703, self.type_check_box, 0, False ],
-            [0xA1704, self.type_check_box, 0, True  ],
-            [0xA1705, self.type_check_box, 0, True  ]
-        ]
-        self.addElements(label_1_elements, 0x1700)
+        label_21_elements = eval(_("label_21_elements"))
+        self.addElements(21, label_21_elements, 0x1700)
 
 class customScrollView_22(myCustomScrollArea):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, parent, name):
+        super(customScrollView_22, self).__init__(parent, 22, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
+    
     def init_ui(self):
         self.label_1.hide()
         self.content_widget.setMinimumHeight(1800)
         
         ## 0xA1800
-        label_1_elements = [
-            [0xA1801, self.type_check_box, 0, False ],
-            [0xA1802, self.type_check_box, 0, False ],
-            [0xA1803, self.type_spin     , 0 ],
-            
-            [0xA1804, self.type_edit, 0 ],
-            [0xA1805, self.type_edit, 0 ],
-            [0xA1806, self.type_edit, 0 ],
-            [0xA1807, self.type_edit, 1 ],
-            
-            [0xA1808, self.type_combo_box, 2, [ "YES", "NO" ] ],
-            [0xA1809, self.type_check_box, 0, True  ],
-            [0xA180A, self.type_check_box, 0, True  ],
-            [0xA180B, self.type_check_box, 0, False ],
-            [0xA180C, self.type_spin     , 0 ],
-            [0xA180D, self.type_combo_box, 2, [ "NO", "YES" ] ],
-            [0xA180E, self.type_spin     , 0 ],
-            
-            [0xA180F, self.type_check_box, 0, False ],
-            [0xA1810, self.type_check_box, 0, False ],
-            [0xA1811, self.type_check_box, 0, False ],
-            [0xA1812, self.type_check_box, 0, False ],
-            [0xA1813, self.type_check_box, 0, False ],
-            [0xA1814, self.type_check_box, 0, False ],
-            [0xA1815, self.type_check_box, 0, False ],
-            
-            [0xA1816, self.type_spin     , 0 ],
-            [0xA1817, self.type_combo_box, 2, [ "png", "svg" ] ],
-            
-            [0xA1818, self.type_check_box, 0, False ],
-            
-            [0xA1819, self.type_edit     , 1 ],
-            [0xA181A, self.type_edit     , 3 ],
-            
-            [0xA181B, self.type_edit     , 1 ],
-            [0xA181C, self.type_edit     , 3 ],
-            
-            [0xA181D, self.type_edit     , 1 ],
-            [0xA181E, self.type_edit     , 1 ],
-            [0xA181F, self.type_edit     , 3 ],
-            
-            [0xA1820, self.type_spin     , 0 ],
-            [0xA1821, self.type_spin     , 0 ],
-            
-            [0xA1822, self.type_check_box, 0, False ],
-            [0xA1823, self.type_check_box, 0, False ],
-            [0xA1824, self.type_check_box, 0, True  ],
-            [0xA1825, self.type_edit     , 1 ],
-            [0xA1826, self.type_edit     , 3 ]
-        ]
-        self.addElements(label_1_elements, 0x1800)
+        label_22_elements = eval(_("label_22_elements"))
+        self.addElements(22, label_22_elements, 0x1800)
 
 class customScrollView_help(QTextEdit):
     def __init__(self):
@@ -2984,8 +6530,12 @@ class ComboBoxDelegateStatus(QStyledItemDelegate):
         editor.addItem(QIcon(os.path.join(genv.v__app__img__int__, "icon_red"    + genv.v__app__img_ext__)), "Out of Date"  )
         
         #editor.activated.connect(self.on_activated)
-        editor.currentTextChanged.connect(self.on_current_text_changed)
-        editor.currentIndexChanged.connect(self.on_current_index_changed)
+        if not genv.currentTextChanged_connected:
+            genv.currentTextChanged_connected  = True
+            genv.currentIndexChanged_connected = True
+            #
+            editor.currentTextChanged.connect(self.on_current_text_changed)
+            editor.currentIndexChanged.connect(self.on_current_index_changed)
         return editor
     
     # index is text/string
@@ -3024,8 +6574,10 @@ class ComboBoxDelegateIcon(QStyledItemDelegate):
 class CheckableComboBox(QComboBox):
     def __init__(self, parent):
         super(CheckableComboBox, self).__init__(parent)
-        self.view().pressed.connect(self.handleItemPressed)
-        self.setModel(QStandardItemModel(self))
+        if not genv.view_pressed_connected:
+            genv.view_pressed_connected = True
+            self.view().pressed.connect(self.handleItemPressed)
+            self.setModel(QStandardItemModel(self))
 
     def handleItemPressed(self, index):
         item = self.model().itemFromIndex(index)
@@ -3055,17 +6607,6 @@ class SpinEditDelegateID(QStyledItemDelegate):
         editor.setValue(self.topic_counter)
         self.topic_counter = self.topic_counter + 1
         return editor
-
-class CustomItem(QStandardItem):
-    def __init__(self, text, icon):
-        super().__init__(text)
-        self.icon = icon
-    
-    def paint(self, painter, option, index):
-        super().paint(painter, option, index)
-        
-        icon_rect = option.rect.adjusted(4, 4, 20, -4)
-        painter.drawPixmap(icon_rect, self.icon.pixmap(16, 16))
 
 class MyItemRecord:
     def __init__(self, item_attr1, item_attr2):
@@ -3120,6 +6661,7 @@ class doxygenImageTracker(QWidget):
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
+            genv.HelpAuthoringConverterMode = 1
             print("doxygen")
     
     def enterEvent(self, event):
@@ -3180,6 +6722,7 @@ class helpNDocImageTracker(QWidget):
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
+            genv.HelpAuthoringConverterMode = 2
             print("helpNDoc")
     
     def enterEvent(self, event):
@@ -3424,12 +6967,72 @@ class MyPushButton(QLabel):
         self.setStyleSheet(style)
 
 class MyEllipseButton(QPushButton):
-    def __init__(self, font):
+    def __init__(self, parent, font, mode):
         super().__init__("...")
+        self.parent = parent
+        self.mode   = mode
+        
         self.setFont(font)
         self.setMinimumHeight(36)
         self.setMinimumWidth (36)
         self.setMaximumWidth (36)
+        
+        self.clicked.connect(self.clicked_button)
+    
+    def clicked_button(self):
+        dialog  = QFileDialog()
+        file_path = ""
+        icon_size = 20
+        
+        dialog.setWindowTitle(_("Open Project File"))
+        dialog.setStyleSheet (_("QFileDlog"))
+        
+        dialog.setFileMode(QFileDialog.AnyFile)
+        dialog.setViewMode(QFileDialog.Detail)
+        
+        dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
+        dialog.setNameFilters(["Program Files (*.pro)", "Text Files (*.txt)", "All Files (*)"])
+        
+        list_views = dialog.findChildren(QListView)
+        tree_views = dialog.findChildren(QTreeView)
+        
+        for view in list_views + tree_views:
+            view.setIconSize(QSize(icon_size, icon_size))
+    
+        if dialog.exec_() == QFileDialog.Accepted:
+            file_path = dialog.selectedFiles()[0]
+        
+        if not file_path:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(_("no source file given.\n"))
+            msg.setIcon(QMessageBox.Question)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()            
+            return
+        
+        if not os.path.isfile(file_path):
+            msg = None
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(_(
+                "You selected a file, that can not be open.\n"
+                "no file will be open."))
+            msg.setIcon(QMessageBox.Question)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()
+            return
+        
+        if self.mode == 2:
+            self.parent.tab0_fold_edit2.clear()
+            self.parent.tab0_fold_edit2.setText(file_path)
+        
+        global doxygen_project_file
+        doxygen_project_file = self.parent.tab0_fold_edit2.text()
 
 class myExitDialog(QDialog):
     def __init__(self, title, parent=None):
@@ -3460,13 +7063,27 @@ class myExitDialog(QDialog):
         self.prevButton.clicked.connect(self.prev_click)
         self.exitButton.clicked.connect(self.exit_click)
         
+        self.finished.connect(self.on_finished)
         
-        self.hexitText = QLabel(_("Would you realy exit the Application"))
+        self.hexitText = QLabel(_("Would you realy exit the Application?"))
         
         self.hlayout.addLayout(self.vlayout)
         self.hlayout.addWidget(self.hexitText)
         
         self.setLayout(self.hlayout)
+    
+    def disconnectEvents(self):
+        try:
+            self.helpButton.clicked.disconnect(self.help_click)
+            self.prevButton.clicked.disconnect(self.prev_click)
+            self.exitButton.clicked.disconnect(self.exit_click)
+        except TypeError as e:
+            print(e)
+        except Exception as e:
+            print(e)
+    
+    def on_finished(self):
+        self.disconnectEvents()
     
     def help_click(self):
         print("help button")
@@ -3478,6 +7095,7 @@ class myExitDialog(QDialog):
         return
     def exit_click(self):
         print("exit")
+        self.disconnectEvents()
         sys.exit(0)
 
 class myMoveButton(QPushButton):
@@ -3641,7 +7259,9 @@ class addProperty(QLabel):
             self.rhs = QCheckBox()
             self.rhs.setText("FALSE" + self.ftext_spacer)
             self.rhs.setMaximumWidth((self.width()+100)//2)
-            self.rhs.stateChanged.connect(self.checkbox_changed)
+            if not genv.rhs_stateChanged_connected:
+                genv.rhs_stateChanged_connected = True
+                self.rhs.stateChanged.connect(self.checkbox_changed)
         elif kind == 4:
             self.rhs = QComboBox()
             self.rhs.setMaximumWidth((self.width()+100)//2)
@@ -3689,20 +7309,77 @@ class addInspectorItem():
         #
         parent.object_inspector.addTopLevelItem(item)
 
-
-class CppSyntaxHighlighter(QSyntaxHighlighter):
+class SourceCodeEditorBase(QSyntaxHighlighter):
     def __init__(self, document):
-        super().__init__(document)
+        super(SourceCodeEditorBase, self).__init__(document)
         
-        dark_green = QColor(0,100,0)
+        self.dark_green = QColor(0,100,0)
         
         self.commentFormat = QTextCharFormat()
-        self.commentFormat.setForeground(dark_green)
+        self.commentFormat.setForeground(self.dark_green)
         self.commentFormat.setFontWeight(QFont.Normal)  # Set the comment font weight to normal
         
         self.boldFormat = QTextCharFormat()
         self.boldFormat.setFont(QFont(genv.v__app__font_edit, 12))  # Set the font for keywords
         self.boldFormat.setFontWeight(QFont.Bold)
+        
+        # Definiere die Muster für mehrzeilige Kommentare
+        self.multiLineCommentFormat = QTextCharFormat()
+        self.multiLineCommentFormat.setForeground(self.dark_green)
+
+class CppSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(CppSyntaxHighlighter, self).__init__(document)
+        
+        self.commentStartExpression = QRegExp(r"/\*")
+        self.commentEndExpression   = QRegExp(r"\*/")
+
+    def highlightBlock(self, text):
+        # Mehrzeilige Kommentare markieren
+        self.setCurrentBlockState(0)
+        
+        startIndex = 0
+        if self.previousBlockState() != 1:
+            startIndex = self.commentStartExpression.indexIn(text)
+        
+        while startIndex >= 0:
+            endIndex = self.commentEndExpression.indexIn(text, startIndex)
+            if endIndex == -1:
+                self.setCurrentBlockState(1)
+                commentLength = len(text) - startIndex
+            else:
+                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
+            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
+            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
+        
+        # Highlight single line comments
+        single_line_comment_patterns = [r"//"]
+        comment_positions = []
+        
+        # Suche nach einzeiligen Kommentaren und markiere sie
+        for pattern in single_line_comment_patterns:
+            for match in re.finditer(pattern, text):
+                start = match.start()
+                self.setFormat(start, len(text) - start, self.commentFormat)
+                comment_positions.append((start, len(text) - start))
+        
+        # Suche nach Keywords und markiere sie
+        for word in self.keywords:
+            pattern = re.compile(re.escape(word), re.IGNORECASE)
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                
+                # Prüfen, ob das Keyword in einem Kommentar steht
+                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
+                
+                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
+                if self.previousBlockState() != 1 and not in_comment:
+                    self.setFormat(start, length, self.boldFormat)
+
+class dBaseSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(dBaseSyntaxHighlighter, self).__init__(document)
         
         # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
         self.keywords = [
@@ -3710,6 +7387,7 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
             "BREAK",
             "CASE",
             "CLASS",
+            "COLOR",
             "DO",
             "IF",
             "ELSE",
@@ -3720,15 +7398,14 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
             "ENDWHILE",
             "ENDWITH",
             "FOR",
+            "OF",
             "RETURN",
+            "SET",
             "TO",
             "WHILE", 
             "WITH"
         ]
         
-        # Definiere die Muster für mehrzeilige Kommentare
-        self.multiLineCommentFormat = QTextCharFormat()
-        self.multiLineCommentFormat.setForeground(dark_green)
         self.commentStartExpression = QRegExp(r"/\*")
         self.commentEndExpression   = QRegExp(r"\*/")
     
@@ -3775,17 +7452,240 @@ class CppSyntaxHighlighter(QSyntaxHighlighter):
                 if self.previousBlockState() != 1 and not in_comment:
                     self.setFormat(start, length, self.boldFormat)
 
-class EditorTextEdit(QPlainTextEdit):
-    def __init__(self, file_name):
+class LispSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(LispSyntaxHighlighter, self).__init__(document)
+        
+        # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
+        self.keywords = [
+            "DEFUN"
+        ]
+        
+        self.commentStartExpression = QRegExp(r"/\*")
+        self.commentEndExpression   = QRegExp(r"\*/")
+    
+    def highlightBlock(self, text):
+        # Mehrzeilige Kommentare markieren
+        self.setCurrentBlockState(0)
+        
+        startIndex = 0
+        if self.previousBlockState() != 1:
+            startIndex = self.commentStartExpression.indexIn(text)
+        
+        while startIndex >= 0:
+            endIndex = self.commentEndExpression.indexIn(text, startIndex)
+            if endIndex == -1:
+                self.setCurrentBlockState(1)
+                commentLength = len(text) - startIndex
+            else:
+                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
+            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
+            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
+        
+        # Highlight single line comments
+        single_line_comment_patterns = [r"\;"]
+        comment_positions = []
+        
+        # Suche nach einzeiligen Kommentaren und markiere sie
+        for pattern in single_line_comment_patterns:
+            for match in re.finditer(pattern, text):
+                start = match.start()
+                self.setFormat(start, len(text) - start, self.commentFormat)
+                comment_positions.append((start, len(text) - start))
+        
+        # Suche nach Keywords und markiere sie
+        for word in self.keywords:
+            pattern = re.compile(re.escape(word), re.IGNORECASE)
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                
+                # Prüfen, ob das Keyword in einem Kommentar steht
+                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
+                
+                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
+                if self.previousBlockState() != 1 and not in_comment:
+                    self.setFormat(start, length, self.boldFormat)
+
+class PascalSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(PascalSyntaxHighlighter, self).__init__(document)
+        
+        self.commentStartExpressions = [QRegExp(r"\(\*"), QRegExp(r"\{")]
+        self.commentEndExpressions   = [QRegExp(r"\*\)"), QRegExp(r"\}")]
+        
+        self.keywords = [
+            "program", "unit", "library",
+            "begin", "end", "var",
+            "procedure", "function",
+            "while", "with", "do", "else", "for",
+            "case"
+        ]
+    
+    def highlightBlock(self, text):
+        # Mehrzeilige Kommentare markieren
+        self.setCurrentBlockState(0)
+        
+        for startExpr, endExpr in zip(self.commentStartExpressions, self.commentEndExpressions):
+            startIndex = 0
+            if self.previousBlockState() != 1:
+                startIndex = startExpr.indexIn(text)
+            
+            while startIndex >= 0:
+                endIndex = endExpr.indexIn(text, startIndex)
+                if endIndex == -1:
+                    self.setCurrentBlockState(1)
+                    commentLength = len(text) - startIndex
+                else:
+                    commentLength = endIndex - startIndex + endExpr.matchedLength()
+                    self.setCurrentBlockState(0)  # Reset state after ending comment
+                self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
+                startIndex = startExpr.indexIn(text, startIndex + commentLength)
+        
+        # Einzeilige Kommentare markieren
+        single_line_comment_patterns = [r"//"]
+        comment_positions = []
+        
+        for pattern in single_line_comment_patterns:
+            for match in re.finditer(pattern, text):
+                start = match.start()
+                self.setFormat(start, len(text) - start, self.commentFormat)
+                comment_positions.append((start, len(text) - start))
+        
+        # Keywords markieren
+        for word in self.keywords:
+            pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
+                
+                if self.previousBlockState() != 1 and not in_comment:
+                    self.setFormat(start, length, self.boldFormat)
+
+class EditorTranslate(QWidget):
+    def __init__(self, parent):
         super().__init__()
+        font = QFont(genv.v__app__font,11)
+        
+        self.setContentsMargins(0,0,0,0)
+        self.setMinimumWidth(220)
+        self.setMaximumWidth(220)
+        self.setFont(font)
+        
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0,0,0,0)
+        
+        self.group_box = QGroupBox(_(" Choose a Translation: "))
+        self.group_box.setFont(font)
+        self.group_layout = QVBoxLayout()
+        
+        self.dummyl = QLabel(" ")
+        self.radio1 = QRadioButton(_("Convert to FPC Pascal"))
+        self.radio2 = QRadioButton(_("Convert to GNU C++"))
+        self.radio3 = QRadioButton(_("Convert to Byte-Code"))
+        
+        self.radio1.setObjectName("pascal")
+        self.radio2.setObjectName("gnucpp")
+        self.radio3.setObjectName("bytecode")
+        
+        self.dummyl.setFont(font)
+        self.radio1.setFont(font)
+        self.radio2.setFont(font)
+        self.radio3.setFont(font)
+        
+        self.radio1.toggled.connect(self.on_radiobutton_clicked)
+        self.radio2.toggled.connect(self.on_radiobutton_clicked)
+        self.radio3.toggled.connect(self.on_radiobutton_clicked)
+        
+        self.radio3.setChecked(True)
+        
+        self.group_layout.addWidget(self.dummyl)
+        self.group_layout.addWidget(self.radio1)
+        self.group_layout.addWidget(self.radio2)
+        self.group_layout.addWidget(self.radio3)
+        self.group_layout.addStretch()
+        
+        self.group_box.setLayout(self.group_layout)
+        
+        # file list
+        self.files_layout = QVBoxLayout()
+        self.files_list   = QListWidget()
+        
+        self.files_layout.addWidget(self.files_list)
+        
+        # text mini map
+        self.mini_map = MiniMap(self)
+        
+        # QScrollArea for MiniMap
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setMaximumWidth(210)
+        self.scroll_area.setWidget(self.mini_map)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
+        self.layout.addWidget(self.group_box)
+        self.layout.addLayout(self.files_layout)
+        self.layout.addWidget(self.scroll_area)
+        
+        self.setLayout(self.layout)
+    
+    def on_radiobutton_clicked(self):
+        radio_button = self.sender()
+        radio_name   = radio_button.objectName()
+        print("rad: ", radio_name)
+        if radio_button.isChecked():
+            if radio_name == "gnucpp":
+                genv.editor.obj_2.setVisible(False)  # fpc
+                genv.editor.obj_3.setVisible(True)   # gnu cc
+                genv.editor.obj_3.clear()
+            elif radio_name == "pascal":
+                genv.editor.obj_2.setVisible(True)   # fpc
+                genv.editor.obj_3.setVisible(False)  # gnu c++
+                genv.editor.obj_2.clear()
+            elif radio_name == "bytecode":
+                genv.editor.obj_2.setVisible(False)  # fpc
+                genv.editor.obj_3.setVisible(False)  # gnu c++
+            #showInfo("radio_button:  " + radio_button.text())
+    
+# ----------------------------------------------------------------------------
+# \brief This class stands for the source code input editors like: dBase, C
+# ----------------------------------------------------------------------------
+class EditorTextEdit(QPlainTextEdit):
+    def __init__(self, parent, file_name, edit_type):
+        super().__init__()
+        self.setStyleSheet(_("ScrollBarCSS"))
+        self.setObjectName(file_name)
+        
+        self.parent = parent
+        self.move(0,0)
+        self.setLineWrapMode(QPlainTextEdit.NoWrap)
+        
+        self.edit_type = edit_type
         
         self.lineNumberArea = LineNumberArea(self)
         self.bookmarks = set()
-        self.highlighter = CppSyntaxHighlighter(self.document())
         
-        self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
-        self.updateRequest.connect(self.updateLineNumberArea)
-        self.cursorPositionChanged.connect(self.highlightCurrentLine)
+        if edit_type == "isoc":
+            self.highlighter = CppSyntaxHighlighter(self.document())
+        elif edit_type == "dbase":
+            self.highlighter = dBaseSyntaxHighlighter(self.document())
+        elif edit_type == "pascal":
+            self.highlighter = PascalSyntaxHighlighter(self.document())
+        elif edit_type == "lisp":
+            self.highlighter = LispSyntaxHighlighter(self.document())
+        
+        if not genv.blockCountChanged_connected:
+            genv.blockCountChanged_connected = True
+            genv.cursorPositionChanged_connected = True
+            
+            self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
+            self.updateRequest.connect(self.updateLineNumberArea)
+            self.cursorPositionChanged.connect(self.highlightCurrentLine)
+            
+            global main_text_edit
+            main_text_edit = self
         
         self.updateLineNumberAreaWidth(0)
         self.highlightCurrentLine()
@@ -3796,11 +7696,22 @@ class EditorTextEdit(QPlainTextEdit):
         if not os.path.exists(file_name):
             print(f"Error: file does not exists: {file_name}")
             return
-        with open(file_name, 'r') as file:
-            text = file.read()
-            file.close()
         
-        self.setPlainText(text)
+        # Datei einlesen und Text setzen
+        self.load_file(file_name)
+    
+    def load_file(self, file_name):
+        try:
+            with open(file_name, 'r', encoding='utf-8') as file:
+                text = file.read()
+                self.setPlainText(text)
+                file.close()
+        except:
+            showInfo("latin 11111")
+            with open(file_name, 'r', encoding='latin-1') as file:
+                text = file.read()
+                self.setPlainText(text)
+                file.close()
     
     def lineNumberAreaWidth(self):
         digits = 1
@@ -3813,7 +7724,7 @@ class EditorTextEdit(QPlainTextEdit):
         return space + icon_space
     
     def updateLineNumberAreaWidth(self, _):
-        self.setViewportMargins(self.lineNumberAreaWidth(), 0, 0, 0)
+        self.setViewportMargins(self.lineNumberAreaWidth()+9, 0, 0, 0)
     
     def updateLineNumberArea(self, rect, dy):
         if dy:
@@ -3871,7 +7782,7 @@ class EditorTextEdit(QPlainTextEdit):
             top = bottom
             bottom = top + self.blockBoundingRect(block).height()
             blockNumber += 1
-
+    
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             cursor = self.cursorForPosition(event.pos())
@@ -3889,6 +7800,120 @@ class EditorTextEdit(QPlainTextEdit):
                 self.lineNumberArea.update()
         
         super().mousePressEvent(event)
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_F2:
+            script_name = genv.editor.obj_1.objectName()
+            try:
+                # ---------------------------------------
+                # save source code before exec...
+                # ---------------------------------------
+                if genv.editor_saveb.isChecked() == True:
+                    with open(script_name, 'w', encoding='utf-8') as file:
+                        file.write(genv.editor.obj_1.toPlainText())
+                        file.close()
+            except Exception as e:
+                showException(traceback.format_exc())
+                return
+            
+            if self.edit_type == "dbase":
+                showInfo("dbase <---")
+                prg = interpreter_dBase(script_name)
+                try:
+                    try:
+                        prg.parse()
+                        prg.run()
+                    except ENoSourceHeader as e:
+                        showError(_("source missing correct header style."))
+                        prg = None
+                        return
+                finally:
+                    prg = None
+                    
+            elif self.edit_type == "pascal":
+                showInfo("pascal <---")
+                prg = interpreter_Pascal(script_name)
+                try:
+                    prg.parse()
+                    prg.run()
+                finally:
+                    prg = None
+                    
+        elif event.key() == Qt.Key_S and event.modifiers() == Qt.ControlModifier:
+            options = QFileDialog.Options()
+            file_name, a = QFileDialog.getSaveFileName(self,
+                _("Save Text"), "",
+                _("Text files (*.prg);;All Files (*)"),
+                options=options)
+            if file_name:
+                try:
+                    # --------------------------------------------------
+                    # Text aus QPlainTextEdit erhalten und in
+                    # die Datei schreiben
+                    # --------------------------------------------------
+                    with open(file_name, 'w', encoding='utf-8') as file:
+                        file.write(self.toPlainText())
+                        file.close()
+                    # --------------------------------------------------
+                    # Bestätigung anzeigen
+                    # --------------------------------------------------
+                    QMessageBox.information(self,
+                        _("Success"),
+                        _("File successfully saved."))
+                    return
+                except Exception as e:
+                    QMessageBox.critical(self,
+                        _("Error"),
+                        _("Error during saving file"))
+                    return
+            else:
+                showInfo(_("something went wrong"))
+                return
+        elif event.key() == Qt.Key_O and event.modifiers() == Qt.ControlModifier:
+            options = QFileDialog.Options()
+            file_name, a = QFileDialog.getOpenFileName(self,
+                _("Load Text"), "",
+                _("Text files (*.prg);;All Files (*)"),
+                options=options)
+            if file_name:
+                try:
+                    with open(file_name, 'r', encoding='utf-8') as file:
+                        self.setPlainText(file.read())
+                        file.close()
+                    QMessageBox.information(self,
+                        _("Success"),
+                        _("File successfully loaded."))
+                    return
+                except Exception as e:
+                    QMessageBox.critical(self,
+                        _("Error"),
+                        _("Error during loading file"))
+                    return
+            else:
+                showInfo(_("something went wrong"))
+                return
+        else:
+            super().keyPressEvent(event)
+
+# ----------------------------------------------------------------------------
+# \brief when checked, then save the text in QPlainTextEdit before the source
+#        will be compiled, interpreted, or transpiled.
+# ----------------------------------------------------------------------------
+class EditorSavebBox(QCheckBox):
+    def __init__(self, parent):
+        super().__init__()
+        self.setChecked(True)
+        self.setText(_("  Save before Run"))
+
+# ----------------------------------------------------------------------------
+# \brief when checked, compile, and run the source code as gui application.
+#        else: run as dos simulated console application.
+# ----------------------------------------------------------------------------
+class EditorCheckBox(QCheckBox):
+    def __init__(self, parent):
+        super().__init__()
+        self.setChecked(True)
+        self.setText(_("   Run as DOS Application"))
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
@@ -3901,7 +7926,6 @@ class LineNumberArea(QWidget):
     def paintEvent(self, event):
         self.editor.lineNumberAreaPaintEvent(event)
         self.setFont(QFont(genv.v__app__font_edit, 12))  # Schriftgröße und Schriftart für Zeilennummerbereich setzen
-
 
 class myGridViewer(QWidget):
     def __init__(self, parent=None):
@@ -4325,9 +8349,9 @@ class myAddTableDialog(QDialog):
         self.layout_top3 = QVBoxLayout()
         self.btn_move_add_1 = QPushButton(">>")
         self.btn_move_del_1 = QPushButton("<<")
-        self.btn_move_add_2 = QPushButton("Add")
-        self.btn_move_clr_1 = QPushButton("Remove")
-        self.btn_move_clr_2 = QPushButton("Clear")
+        self.btn_move_add_2 = QPushButton(_("Add"))
+        self.btn_move_clr_1 = QPushButton(_("Remove"))
+        self.btn_move_clr_2 = QPushButton(_("Clear"))
         #
         self.layout_top3.addWidget(self.btn_move_add_1)
         self.layout_top3.addWidget(self.btn_move_del_1)
@@ -4360,9 +8384,14 @@ class myAddTableDialog(QDialog):
         
         self.setLayout(self.layout_top)
         
-        self.btn_add   .clicked.connect(self.btn_add_clicked)
-        self.btn_addsrc.clicked.connect(self.btn_addsrc_clicked)
-        self.btn_close .clicked.connect(self.btn_close_clicked)
+        if not genv.btn_add_connected:
+            genv.btn_add_connected    = True
+            genv.btn_addsrc_connected = True
+            genv.btn_close_connected  = True
+            
+            self.btn_add   .clicked.connect(self.btn_add_clicked)
+            self.btn_addsrc.clicked.connect(self.btn_addsrc_clicked)
+            self.btn_close .clicked.connect(self.btn_close_clicked)
         
         # ----------------------------------------
         # detect files in the current directory...
@@ -4995,6 +9024,7 @@ class OpenProFileDialog(QDialog):
             genv.v__app__config['Favorites'][item.text(0)] = item.text(1)
         with open('favorites.ini', 'w') as configfile:
             genv.v__app__config.write(configfile)
+            configfile.close()
     
     def load_drives(self):
         drives = [drive for drive in QDir.drives()]
@@ -5190,6 +9220,7 @@ class OpenProFileDialog(QDialog):
     
     def maxLength(self, input_string, length):
         if len(input_string) > length:
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Information")
             msg.setText(
@@ -5211,6 +9242,7 @@ class OpenProFileDialog(QDialog):
         filtered_files = [f for f in self.current_files if filter_text in f.lower()]
         for file in filtered_files:
             project_name = self.get_project_name(os.path.join(self.path_input.text(), file))
+            item = None
             item = QTreeWidgetItem([file, project_name])
             self.file_list.addTopLevelItem(item)
     
@@ -5228,6 +9260,7 @@ class OpenProFileDialog(QDialog):
         # .pro files shall not be changed ...
         # ------------------------------------
         if item.text(0).lower() == "file":
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Information")
             msg.setText(
@@ -5240,6 +9273,7 @@ class OpenProFileDialog(QDialog):
             result = msg.exec_()
             return
         
+        setting_dialog = None
         setting_dialog = setLocalesProjectSetting(self, item.text(0),item.text(1))
         setting_dialog.exec_()
         
@@ -5267,6 +9301,7 @@ class OpenProFileDialog(QDialog):
             #
             genv.v__app__config.set("project", self.property_name, self.property_value)
         except:
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Warning")
             msg.setText(
@@ -5277,13 +9312,16 @@ class OpenProFileDialog(QDialog):
             
             msg.setStyleSheet(_("msgbox_css"))
             result = msg.exec_()
+            msg = None
             pass
         # write try block
         try:
             with open(pro_file,"w") as configfile:
                 genv.v__app__config.write(configfile)
                 configfile.close()
+                configfile = None
         except:
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Warning")
             msg.setText(
@@ -5300,6 +9338,7 @@ class OpenProFileDialog(QDialog):
             genv.v__app__config.read(pro_file)
             self.update_file_list(pro_file)
         except:
+            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Warning")
             msg.setText(
@@ -5365,36 +9404,36 @@ class doubleClickLocalesLineEdit(QLineEdit):
         super().mouseDoubleClickEvent(event)
     
     def on_lineedit_double_clicked(self):
+        dialog = None
         dialog = OpenProFileDialog(self)
         dialog.exec_()
         return
 
-class ClickableLabel(QLabel):
-    clicked = pyqtSignal()
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.clicked.emit()
-
-class CustomWidget1(QWidget):
-    def __init__(self, parent_class):
+class CustomWidget0(QWidget):
+    def __init__(self, parent_class, parent_tabs, parent_layout):
         super().__init__()
-        self.parent_class = parent_class
+        self.parent_class  = parent_class
+        self.parent_tabs   = parent_tabs
+        self.parent_layout = parent_layout
         self.initUI()
     
     def initUI(self):
         self.setFixedSize(42, 42)  # Set fixed size for the widget
+        
+        self.context_menu = None
         self.context_menu = QMenu(self)
         self.context_menu.setStyleSheet(_("css_menu_button"))
         
+        self.action01 = None
+        self.action02 = None
         self.action01 = QAction("./examples/dbase/Example1.prg\tdBASE ", self)
         self.action02 = QAction("./examples/dbase/Example2.prg\tdBASE ", self)
         #
+        self.action11 = None
         self.action11 = QAction("./examples/pascal/Example1.prg\tPascal", self)
         #
+        self.action21 = None
+        self.action22 = None
         self.action21 = QAction("./examples/lisp/Example1.prg\tLISP  ", self)
         self.action22 = QAction("./examples/lisp/Example1.prg\tLISP  ", self)
         
@@ -5413,16 +9452,6 @@ class CustomWidget1(QWidget):
         self.context_menu.addSeparator()
         self.context_menu.addAction(self.action21)
         self.context_menu.addAction(self.action22)
-                
-        pict = os.path.join(genv.v__app__img__int__, "arrowsmall.png")
-        pixmap = QPixmap(pict)
-        
-        self.arrow_button = ClickableLabel(self)
-        self.arrow_button.setPixmap(pixmap)
-        self.arrow_button.resize(15, 42)
-        self.arrow_button.setStyleSheet("background-color: transparent; border: none;")
-        self.arrow_button.move(self.width() - 15, 0)
-        self.arrow_button.clicked.connect(self.show_context_menu)
     
     def action01_triggered(self):
         self.interpreter = self.action01.text()[-6:]
@@ -5459,19 +9488,28 @@ class CustomWidget1(QWidget):
         self.parent_class.isoc_tabs.hide()
         self.parent_class.java_tabs.hide()
         self.parent_class.python_tabs.hide()
+        self.parent_class.javascript.hide()
         self.parent_class.lisp_tabs.hide()
         self.parent_class.locale_tabs.hide()
+        self.parent_class.setup_tabs.hide()
+        self.parent_class.certssl_tabs.hide()
+        self.parent_class.github_tabs.hide()
+        self.parent_class.apache_tabs.hide()
+        self.parent_class.mysql_tabs.hide()
+        self.parent_class.squid_tabs.hide()
         self.parent_class.c64_tabs.hide()
+        self.parent_class.settings_tabs.hide()
         #
         tabser.show()
         
         self.set_null_state()
-        self.parent_class.side_btn1.set_style()
+        self.parent_class.side_btn0.set_style()
         #self.parent_class.set_style()
     
     def set_null_state(self):
         parent = self.parent_class
         side_buttons = [
+            parent.side_btn0,
             parent.side_btn1,
             parent.side_btn2,
             parent.side_btn3,
@@ -5481,6 +9519,15 @@ class CustomWidget1(QWidget):
             parent.side_btn7,
             parent.side_btn8,
             parent.side_btn9,
+            parent.side_btnA,
+            parent.side_btnB,
+            parent.side_btnC,
+            parent.side_btnD,
+            parent.side_btnE,
+            parent.side_btnF,
+            parent.side_btnG,
+            parent.side_btnH,
+            parent.side_btnI
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -5489,77 +9536,2723 @@ class CustomWidget1(QWidget):
         
     def show_context_menu(self):
         self.context_menu.exec_(self.mapToGlobal(self.arrow_button.pos()))
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.open_dialog()
-    
-    def open_dialog(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Custom Dialog")
-        dialog.setFixedSize(200, 150)
-        
-        layout = QVBoxLayout()
-        label = QLabel("This is a custom dialog", dialog)
-        layout.addWidget(label)
-        dialog.setLayout(layout)
-        
-        dialog.exec_()
-    
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        pixmap = QPixmap(os.path.join(genv.v__app__img__int__, "floppy-disk.png"))
-        painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
-        painter.end()
 
-class CustomWidget2(QWidget):
-    def __init__(self, parent_class):
-        super().__init__()
-        self.parent_class = parent_class
-        self.initUI()
-    
-    def initUI(self):
-        self.setFixedSize(42, 42)
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            if self.parent_class.dbase_tabs_editor1.hasFocus():
-                script_name = "./examples/dbase/example1.prg"
-                if not os.path.exists(script_name):
-                    print(f"Error: file does not exists: {script_name}.")
-                    return
-                prg = dBaseDSL(script_name)
-                try:
-                    prg.parse(self)
-                    prg.run(self)
-                except ENoParserError as noerror:
-                    prg.finalize()
-                    print("\nend of data")
-            elif self.parent_class.dbase_tabs_editor2.hasFocus():
-                script_name = "./examples/dbase/example2.prg"
-                if not os.path.exists(script_name):
-                    print(f"Error: file does not exists: {script_name}.")
-                    return
-                prg = dBaseDSL(script_name)
-                try:
-                    prg.parse(self)
-                    prg.run(self)
-                except ENoParserError as noerror:
-                    prg.finalize()
-                    print("\nend of data")
-            else:
-                print("no editor selected.")
-    
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        pixmap = QPixmap(os.path.join(genv.v__app__img__int__, "floppy-disk.png"))
-        painter.drawPixmap(QRect(0, 0, self.width(), self.height()), pixmap)
-        painter.end()
-
-class FileWatcherGUI(QDialog):
+class scrollBoxTableCreatorDBF(QWidget):
     def __init__(self):
         super().__init__()
         
+        self.setLayout(QVBoxLayout())
+        
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        
+        scroll_content = QWidget()
+        scroll_content.setLayout(QVBoxLayout())
+
+        if genv.v_layout_f_edit == None:
+            genv.v_layout_f_edit = QVBoxLayout()
+            genv.v_layout_t_edit = QVBoxLayout()
+            genv.v_layout_l_edit = QVBoxLayout()
+            genv.v_layout_p_edit = QVBoxLayout()
+            genv.v_layout_k_edit = QVBoxLayout()
+            genv.v_layout_d_push = QVBoxLayout()
+        
+        hlayout = QHBoxLayout()
+        vlayout = QVBoxLayout()
+        
+        le = QLineEdit(); l1 = QLabel(_("Name:"))
+        cb = QComboBox(); l2 = QLabel(_("Type:"))
+        fl = QLineEdit(); l3 = QLabel(_("Length:"))
+        pr = QLineEdit(); l4 = QLabel(_("Prec:"))
+        pk = QComboBox(); l5 = QLabel(_("Pry.Key:"))
+        #
+        db = QPushButton(_("DEL"))
+        db.setMinimumWidth(32)
+        db.setMinimumHeight(18)
+        
+        cb.addItem(_("C CHAR"))
+        cb.addItem(_("N NUMERIK"))
+        cb.addItem(_("F FLOAT"))
+        cb.addItem(_("D DATE"))
+        cb.addItem(_("L LOGICAL"))
+        cb.addItem(_("M MEMO"))
+        cb.addItem(_("B BINARY"))
+        cb.addItem(_("G GENERAL"))
+        cb.addItem(_("P PICTURE"))
+        cb.addItem(_("I INTEGER"))
+        cb.addItem(_("Y CURRENCY"))
+        
+        pk.addItem(_("TRUE"))
+        pk.addItem(_("FALSE"))
+        
+        genv.f_edit.append(le)
+        genv.t_edit.append(cb)
+        genv.l_edit.append(fl)
+        genv.p_edit.append(pr)
+        genv.k_edit.append(pk)
+        #
+        genv.d_push.append(db)
+        
+        if len(genv.f_edit) < 2:
+            genv.v_layout_f_edit.addWidget(l1)
+        if len(genv.t_edit) < 2:
+            genv.v_layout_t_edit.addWidget(l2)
+        if len(genv.l_edit) < 2:
+            genv.v_layout_l_edit.addWidget(l3)
+        if len(genv.p_edit) < 2:
+            genv.v_layout_p_edit.addWidget(l4)
+        if len(genv.k_edit) < 2:
+            genv.v_layout_k_edit.addWidget(l5)
+        
+        tmp = 1
+        for item in genv.f_edit:
+            genv.v_layout_f_edit.addWidget(item)
+        for item in genv.t_edit:
+            genv.v_layout_t_edit.addWidget(item)
+        for item in genv.l_edit:
+            genv.v_layout_l_edit.addWidget(item)
+        for item in genv.p_edit:
+            genv.v_layout_p_edit.addWidget(item)
+        for item in genv.k_edit:
+            genv.v_layout_k_edit.addWidget(item)
+        for item in genv.d_push:
+            if tmp >= 2:
+                genv.v_layout_d_push.addWidget(item)
+                tmp = 3
+            else:
+                spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+                genv.v_layout_d_push.addItem(spacer)
+                tmp = 2
+        
+        hlayout.addLayout(genv.v_layout_f_edit)
+        hlayout.addLayout(genv.v_layout_t_edit)
+        hlayout.addLayout(genv.v_layout_l_edit)
+        hlayout.addLayout(genv.v_layout_p_edit)
+        hlayout.addLayout(genv.v_layout_k_edit)
+        #
+        hlayout.addLayout(genv.v_layout_d_push)
+        vlayout.addLayout(hlayout)
+        
+        scroll_content.layout().addLayout(vlayout)
+        scroll_area.setWidget(scroll_content)
+        
+        self.layout().addWidget(scroll_area)
+
+class clearChildTreeItems():
+    def __init__(self, parent):
+        self.parent = parent
+    
+    # --------------------------------------------------
+    # remove project files from list, when double click
+    # with mouse on a favorite item ...
+    # --------------------------------------------------
+    def remove(self):
+        while self.parent.child_item_forms.rowCount() > 0:
+            self.parent.child_item_forms.removeRow(0)
+        
+        while self.parent.child_item_reports.rowCount() > 0:
+            self.parent.child_item_reports.removeRow(0)
+        
+        while self.parent.child_item_programs.rowCount() > 0:
+            self.parent.child_item_programs.removeRow(0)
+        
+        while self.parent.child_item_images.rowCount() > 0:
+            self.parent.child_item_images.removeRow(0)
+        
+        while self.parent.child_item_tables.rowCount() > 0:
+            self.parent.child_item_tables.removeRow(0)
+        
+        while self.parent.child_item_queries.rowCount() > 0:
+            self.parent.child_item_queries.removeRow(0)
+        
+        while self.parent.child_item_others.rowCount() > 0:
+            self.parent.child_item_others.removeRow(0)
+
+class MiniMap(QFrame):
+    def __init__(self, parent=None):
+        super(MiniMap, self).__init__(parent)
+        
+        self.setFrameStyle(QFrame.Box)
+        self.setFixedWidth(100)
+        self.setMaximumWidth(200)
+        
+        self.label = QLabel(self)
+        self.label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.label.setWordWrap(True)
+        
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.label)
+        
+        self.setLayout(layout)
+    
+    def set_text(self, text):
+        self.label.setText(text)
+        self.label.adjustSize()
+    
+class CustomListWidget(QListWidget):
+    def __init__(self, parent=None):
+        super(CustomListWidget, self).__init__(parent)
+        self.parent = parent
+    
+    def mouseDoubleClickEvent(self, event):
+        item = self.itemAt(event.pos())
+        if not item:
+            return
+        
+        file_path = item.text()
+        
+        # --------------------------------------------------
+        # remove project files from list, when double click
+        # with mouse on a favorite item ...
+        # --------------------------------------------------
+        i = clearChildTreeItems(self.parent)
+        i.remove()
+        
+        self.parent.hlay_edit.clear()
+        self.parent.hlay_edit.setText(file_path)
+        self.parent.setup_favorites  (file_path)
+
+class myProjectLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super(myProjectLineEdit, self).__init__(parent)
+        self.parent = parent
+    
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            folder = QFileDialog.getExistingDirectory(self, 'Ordner auswählen')
+            if folder:
+                print(f"Ausgewählter Ordner: {folder}")
+            
+        super(myProjectLineEdit, self).mouseDoubleClickEvent(event)
+
+class TableModelAll(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelAll, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Forms"),
+            _("Programs"),
+            _("Reports"),
+            _("Tables"),
+            _("Images"),
+            _("SQL"),
+            _("Other")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+        self.modelReset.emit()
+
+class TableModelForms(QAbstractTableModel):
+    modelReset = pyqtSignal()
+    
+    def __init__(self, data):
+        super(TableModelForms, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Forms"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+        self.modelReset.emit()
+
+class TableModelPrograms(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelPrograms, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Programs"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelReports(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelReports, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Reports"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelTables(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelTables, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Tables"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelImages(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelImages, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Images"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelQueries(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelQueries, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Query"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class TableModelOthers(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModelOthers, self).__init__()
+        self._data = data
+    
+    def rowCount(self, index):
+        return len(self._data)
+    
+    def columnCount(self, index):
+        return len(self._data[0])
+    
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+    
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        return False
+    
+    def flags(self, index):
+        if index.column() == 1:  # Nur die zweite Spalte editierbar machen
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return     Qt.ItemIsSelectable | Qt.ItemIsEnabled
+    
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        headers = [
+            _("Other"),
+            _("Remarks")
+        ]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return headers[section]
+            if orientation == Qt.Vertical:
+                return str(section)
+    
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+class RotatedLabel(QLabel):
+    def __init__(self, text, parent=None):
+        super(RotatedLabel, self).__init__(text, parent)
+        
+        self.setMinimumSize(40, 100)  # Adjust the size as needed
+        self.setMaximumWidth(40)
+        self.setFont(QFont("Arial", 15, QFont.Bold))
+        self.setStyleSheet("background: transparent;")  # Make the background transparent
+    
+    def sizeHint(self):
+        fm = QFontMetrics(self.font())
+        return QSize(fm.height(), fm.width(self.text()))
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        
+        # Create the gradient
+        gradient = QLinearGradient(0, self.height(), 0, 0)
+        gradient.setColorAt(0, QColor('blue'))
+        gradient.setColorAt(1, QColor('navy'))
+        painter.fillRect(self.rect(), gradient)
+        
+        # Draw the green line at the right edge
+        pen = QPen(QColor('green'), 2)
+        painter.setPen(pen)
+        painter.drawLine(self.width() - 2, 0, self.width() - 2, self.parent().height())
+        
+        # Draw shadow
+        shadow_pen = QPen(QColor(0, 0, 0, 160))
+        shadow_pen.setWidth(3)
+        painter.setPen(shadow_pen)
+        transform = QTransform()
+        transform.rotate(-90)
+        painter.setTransform(transform)
+        painter.drawText(-self.height() + 2, self.fontMetrics().height() + 2, self.text())
+        
+        # Draw text
+        painter.setPen(QColor(Qt.white))
+        painter.drawText(-self.height(), self.fontMetrics().height(), self.text())
+
+class myCustomContextMenu(QMenu):
+    def __init__(self, parent, item_text):
+        super(myCustomContextMenu, self).__init__(parent)
+        
+        # Main horizontal layout for the custom menu
+        self.main_layout = QHBoxLayout()
+        self.main_layout.setContentsMargins(0, 0, 0, 8)  # Add bottom margin to shift the label up
+        self.main_layout.setSpacing(0)
+        
+        # Vertical label
+        self.vertical_label = RotatedLabel(item_text + "..." + (' ' * 20), self)
+        self.vertical_label.setStyleSheet("font: bold 15pt;")
+        self.main_layout.addWidget(self.vertical_label, alignment=Qt.AlignBottom)
+        
+        # Vertical layout for menu items
+        self.items_layout = QVBoxLayout()
+        self.items_layout.setContentsMargins(0, 0, 0, 0)
+        self.items_layout.setSpacing(0)
+        self.main_layout.addLayout(self.items_layout)
+        
+        # Create a widget to hold the layout
+        container_widget = QWidget(self)
+        container_widget.setLayout(self.main_layout)
+        
+        # Add the container widget as a QWidgetAction to the menu
+        action = QWidgetAction(self)
+        action.setDefaultWidget(container_widget)
+        self.addAction(action)
+        
+        self.setStyleSheet("""
+            QMenu {
+                background-color: navy;
+                color: yellow;
+                font-family: Arial;
+                font-size: 11pt;
+                font-style: italic;
+                border: 2px outset gray;  /* Outset border */
+            }
+            QMenu::item {
+                background-color: navy;
+                font-weight: bold;
+                font-style: italic;
+            }
+            QMenu::item:selected {
+                background-color: green;
+                color: yellow;
+            }
+        """)
+        self.setMinimumWidth(200 + 84)  # Adjust the width to be 200 + 32 + 200 for text width
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        super(myCustomContextMenu, self).paintEvent(event)
+    
+    def addMenuAction(self, action, checked=False, enabled=True, shortcut=""):
+        item_layout = QHBoxLayout()
+        
+        checkbox = QCheckBox(self)
+        checkbox.setChecked(checked)
+        item_layout.addWidget(checkbox)
+        
+        if enabled == True:
+            self.bg_enabled = "navy"
+            self.fg_enabled = "yellow"
+            self.bg_hover   = "green"
+            self.fg_hover   = "yellow"
+        else:
+            self.bg_enabled = "navy"
+            self.fg_enabled = "darkgray"
+            self.bg_hover   = "navy"
+            self.fg_hover   = "darkgray"
+            
+        action_button = QPushButton(action.text(), self)
+        action_button.setFixedWidth(200)  # Set the fixed width for the text
+        action_button.clicked.connect(action.triggered)
+        action_button.setFlat(True)
+        action_button.setStyleSheet(f"""
+            QPushButton {{
+                text-align: left;
+                padding: 5px;
+                background: {self.bg_enabled};
+                border: none;
+                color: {self.fg_enabled};
+                font-family: Arial;
+                font-size: 11pt;
+                font-style: italic;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background: {self.bg_hover};
+                color: {self.fg_hover};
+            }}
+        """)
+        item_layout.addWidget(action_button)
+        
+        if shortcut:
+            shortcut_label = QLabel(shortcut, self)
+            shortcut_label.setStyleSheet("""
+                QLabel {
+                    text-align: left;
+                    padding: 5px;
+                    background: navy;
+                    color: yellow;
+                    font-family: Arial;
+                    font-size: 11pt;
+                    font-style: italic;
+                    font-weight: bold;
+                }
+            """)
+            item_layout.addWidget(shortcut_label)
+        else:
+            spacer = QWidget(self)
+            item_layout.addWidget(spacer)
+        
+        item_layout.setContentsMargins(0, 0, 0, 0)
+        item_layout.setSpacing(0)
+        
+        item_widget = QWidget(self)
+        item_widget.setLayout(item_layout)
+        self.items_layout.addWidget(item_widget)
+        
+        return action_button, checkbox
+    
+    def addMenuSeparator(self):
+        separator = QFrame(self)
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("background-color: lightgray; min-height: 2px; max-height: 2px;")
+        self.items_layout.addWidget(separator)
+
+class applicationProjectWidget(QWidget):
+    def __init__(self, parent=None):
+        super(applicationProjectWidget, self).__init__(parent)
+        
+        self.setStyleSheet(_("ScrollBarCSS"))
+        
+        self.font   = QFont(genv.v__app__font, 11)
+        self.model  = QStandardItemModel()
+        self.result = QMessageBox.No        # default: no overwrite .pro file
+        self.parent = parent
+        
+        self.newline1 = " = ./\n"
+        self.newline2 = " = \n"
+        
+        self.db_path  = "paths"
+        self.db_pro   = "dBaseProject"
+        
+        self.dbase_path    = "./"
+        
+        self.pro_files     = _("Project Files")
+        self.pro_forms     = _("Forms")
+        self.pro_reports   = _("Reports")
+        self.pro_programs  = _("Programs")
+        self.pro_tables    = _("Desktop Tables")
+        self.pro_queries   = _("SQL")
+        self.pro_images    = _("Images")
+        self.pro_others    = _("Others")
+        
+        self.dbase_path_forms    = ""
+        self.dbase_path_reports  = ""
+        self.dbase_path_programs = ""
+        self.dbase_path_tables   = ""
+        self.dbase_path_images   = ""
+        self.dbase_path_queries  = ""
+        self.dbase_path_others   = ""
+        
+        self.child_item_forms    = None
+        self.child_item_reports  = None
+        self.child_item_programs = None
+        self.child_item_tabless  = None
+        self.child_item_queries  = None
+        self.child_item_images   = None
+        self.child_item_others   = None
+        
+        self.selected_item = None
+        css_linestyle = _("editfield_css")
+        
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(0,0,0,0)
+        
+        font3 = QFont(genv.v__app__font, 10)
+        font3.setBold(True)
+        
+        font4 = QFont(genv.v__app__font, 10)
+
+        splitter = QSplitter()
+        splitter.setStyleSheet("QSplitter{width:4px;}")
+        
+        self.tree_view = QTreeView()
+        self.tree_view.header().hide()
+        self.tree_view.setMinimumWidth(180)
+        self.tree_view.setFont(QFont(genv.v__app__font,11))
+        self.tree_view.clicked.connect(self.on_item_clicked)
+        
+        # Enable custom context menu
+        self.tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_view.customContextMenuRequested.connect(self.open_context_menu)
+        
+        self.populate_tree()
+        
+        fav_layout = QHBoxLayout()
+        fav_layout.setContentsMargins(0,0,0,0)
+        
+        fav_add = QPushButton("Add Favorite")
+        fav_del = QPushButton("Remove Favorite")
+        
+        fav_add.setFont(font4)
+        fav_del.setFont(font4)
+        
+        fav_add.setMinimumHeight(32)
+        fav_del.setMinimumHeight(32)
+        
+        fav_add.clicked.connect(self.fav_add_clicked)
+        fav_del.clicked.connect(self.fav_del_clicked)
+        
+        fav_layout.addWidget(fav_add)
+        fav_layout.addWidget(fav_del)
+        
+        pro_layout = QHBoxLayout()
+        pro_layout.setContentsMargins(0,0,0,0)
+        
+        pro_open   = QPushButton("Open Project")
+        pro_clear  = QPushButton("Clear")
+        pro_new    = QPushButton("New Project")
+        
+        pro_open .setMinimumHeight(36)
+        pro_clear.setMinimumHeight(36)
+        pro_new  .setMinimumHeight(36)
+        
+        pro_open .setFont(font3)
+        pro_clear.setFont(font3)
+        pro_new  .setFont(font3)
+        
+        pro_open .clicked.connect(self.pro_open_clicked)
+        pro_clear.clicked.connect(self.pro_clear_clicked)
+        pro_new  .clicked.connect(self.pro_new_clicked)
+        
+        pro_layout.addWidget(pro_open)
+        pro_layout.addWidget(pro_clear)
+        pro_layout.addWidget(pro_new)
+        
+        path_layout = QHBoxLayout()
+        path_layout.setContentsMargins(0,0,0,0)
+        #
+        self.path_edit  = myProjectLineEdit()
+        self.path_edit.setStyleSheet(css_linestyle)
+        self.path_edit.setFont(font3)
+        #
+        self.path_push  = QPushButton(".X.")
+        self.path_push.setMinimumWidth(30)
+        self.path_push.setMinimumHeight(30)
+        self.path_push.setFont(font3)
+        self.path_push.clicked.connect(self.path_push_clicked)
+        #
+        path_layout.addWidget(self.path_edit)
+        path_layout.addWidget(self.path_push)
+        
+        self.list_label = QLabel("Favorites:")
+        self.list_label.setFont(font3)
+        
+        self.list_widget = CustomListWidget(self)
+        self.list_widget.setMaximumHeight(150)
+        self.list_widget.setFont(font4)
+        
+        self.icon_name = "open-folder-green.png"
+        
+        self.icon  = QIcon(os.path.join(genv.v__app__img__int__, self.icon_name))
+        
+        #item1 = QListWidgetItem(self.icon, 'Item 1')
+        #item2 = QListWidgetItem(self.icon, 'Item 2')
+        #item3 = QListWidgetItem(self.icon, 'Item 3')
+        
+        #self.list_widget.addItem(item1)
+        #self.list_widget.addItem(item2)
+        #self.list_widget.addItem(item3)
+
+        hlay_pro = QHBoxLayout()
+        hlay_pro.setContentsMargins(0,0,0,0)
+        
+        self.hlay_edit = QLineEdit()
+        self.hlay_edit.setStyleSheet(css_linestyle)
+        
+        hlay_push = QPushButton(".A.")
+        hlay_push.setMinimumWidth(30)
+        hlay_push.setMinimumHeight(30)
+        hlay_push.setFont(font3)
+        #
+        hlay_push.clicked.connect(self.pro_open_clicked)
+        #
+        hlay_pro.addWidget(self.hlay_edit)
+        hlay_pro.addWidget(hlay_push)
+        
+        left_layout = QVBoxLayout()
+        left_layout.setContentsMargins(0,0,0,0)
+        
+        left_layout.addWidget(self.tree_view)
+        left_layout.addLayout(path_layout)
+        left_layout.addWidget(self.list_label)
+        left_layout.addWidget(self.list_widget)
+        
+        left_layout.addLayout(hlay_pro)
+        left_layout.addLayout(fav_layout)
+        left_layout.addLayout(pro_layout)
+        
+        left_widget = QWidget()
+        left_widget.setLayout(left_layout)
+        
+        
+        self.data_all = [
+            [1, 'A', 3.0, 'X', 'a', 'add', 'Alpha'],
+            [2, 'B', 4.1, 'Y', 'b', 'sub', 'Beta'],
+            [3, 'C', 5.2, 'Z', 'c', 'mul', 'Gamma'],
+            [4, 'D', 6.3, 'W', 'd', 'div', 'Delta']
+        ]
+        
+        self.data_forms    = [ ['name 1', 'remark 1'] ]
+        self.data_reports  = [ ['name 2', 'remark 2'] ]
+        self.data_programs = [ ['name 3', 'remark 3'] ]
+        self.data_tables   = [ ['name 4', 'remark 4'] ]
+        self.data_queries  = [ ['name 5', 'remark 5'] ]
+        self.data_images   = [ ['name 6', 'remark 6'] ]
+        self.data_others   = [ ['name 7', 'remark 7'] ]
+                
+        model = TableModelAll(self.data_all)
+        
+        self.list_view = QTableView()
+        self.list_view.setModel(model)
+        
+        # Vertikale Header ausblenden
+        self.list_view.verticalHeader().setVisible(False)
+        self.list_view.setStyleSheet("QHeaderView::section{background-color:lightgreen;}")
+        
+        #self.list_view = QListView()
+        self.list_view.setMinimumWidth(470)
+        self.list_view.setFont(QFont(genv.v__app__font,11))
+        
+        self.lay_push = QHBoxLayout()
+        self.add_push = QPushButton(_("Add"))
+        self.clr_push = QPushButton(_("Clear All"))
+        self.del_push = QPushButton(_("Remove"))
+        #
+        self.add_push.setStyleSheet(_(genv.css_button_style))
+        self.clr_push.setStyleSheet(_(genv.css_button_style))
+        self.del_push.setStyleSheet(_(genv.css_button_style))
+        #
+        self.add_push.setMinimumHeight(36)
+        self.clr_push.setMinimumHeight(36)
+        self.del_push.setMinimumHeight(36)
+        #
+        self.add_push.setFont(font3)
+        self.clr_push.setFont(font3)
+        self.del_push.setFont(font3)
+        #
+        self.lay_push.addWidget(self.add_push)
+        self.lay_push.addWidget(self.clr_push)
+        self.lay_push.addWidget(self.del_push)
+        
+        self.scroll_box_tab1 = scrollBoxTableCreatorDBF()
+        
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(self.scroll_box_tab1, "dBase")
+        self.tab_widget.addTab(QWidget(), "SQLite 3")
+        self.tab_widget.addTab(QWidget(), "Tab 3")
+        
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0,0,0,0)
+        
+        right_layout.addWidget(self.list_view)
+        right_layout.addLayout(self.lay_push)
+        right_layout.addWidget(self.tab_widget)
+        
+        right_widget = QWidget()
+        right_widget.setLayout(right_layout)
+        
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_widget)
+        
+        main_layout.addWidget(splitter)
+        
+        # setup favorites ...
+        try:
+            genv.v__app__config.read(genv.v__app__favorites)
+            for name, path in genv.v__app__config["dBaseFavorites"].items():
+                item = QListWidgetItem(self.icon, path)
+                self.list_widget.addItem(item)
+        except Exception as e:
+            self.messageBox(""
+            + "Error: something went wrong during reading the Project paths."
+            + "Command aborted.")
+        
+        self.setLayout(main_layout)
+    
+    def open_context_menu(self, position: QPoint):
+        index = self.tree_view.indexAt(position)
+        if index.isValid():
+            item_text = self.model.itemFromIndex(index).text()
+            
+            # Context menu for tree items
+            menu = myCustomContextMenu(self, item_text)
+            
+            action1 = QAction(_("Run"), self)
+            action2 = QAction(_("Open in Designer"), self)
+            action3 = QAction(_("Open in Source Editor"), self)
+            action4 = QAction(_("New"), self)
+            action5 = QAction(_("Add Files to Project..."), self)
+            action6 = QAction(_("Delete"), self)
+            action7 = QAction(_("New Folder"), self)
+            action8 = QAction(_("Set as Main"), self)
+            action9 = QAction(_("Exclude from Build"), self)
+            actionA = QAction(_("Include in Target Image"), self)
+            actionB = QAction(_("Project Properties"), self)
+            actionC = QAction(_("File Properties"), self)
+            actionD = QAction(_("Folder Properties"), self)
+            actionE = QAction(_("Clear"), self)
+            actionF = QAction(_("Clear Items"), self)
+            
+            menu.addMenuAction(action1, False, False, "F2")
+            menu.addMenuAction(action2, False, False, "")
+            menu.addMenuAction(action3)
+            menu.addMenuSeparator()
+            menu.addMenuAction(action4)
+            menu.addMenuAction(action5)
+            menu.addMenuAction(action6, True, True, "Del")
+            menu.addMenuSeparator()
+            menu.addMenuAction(action7)
+            menu.addMenuSeparator()
+            menu.addMenuAction(action8)
+            menu.addMenuAction(action9)
+            menu.addMenuAction(actionA)
+            menu.addMenuSeparator()
+            menu.addMenuAction(actionB)
+            menu.addMenuAction(actionC)
+            menu.addMenuAction(actionD)
+            menu.addMenuSeparator()
+            menu.addMenuAction(actionE)
+            menu.addMenuAction(actionF)
+            
+        else:
+            # Context menu for empty space
+            menu = QMenu()
+            menu.setStyleSheet(_("css_menu_button"))
+            
+            action1 = QAction(_("Add"), self)
+            action2 = QAction(_("Clear"), self)
+            action3 = QAction(_("Clear All"), self)
+            
+            menu.addAction(action1)
+            menu.addSeparator()
+            menu.addAction(action2)
+            menu.addAction(action3)
+
+        menu.exec_(self.tree_view.viewport().mapToGlobal(position))
+    
+    # -----------------------------------------------
+    # search for item with <text> in the widget list.
+    # if it present, then return True; else False...
+    # -----------------------------------------------
+    def isItemInList(self, text):
+        for index in range(self.list_widget.count()):
+            if self.list_widget.item(index).text() == text:
+                return True
+        return False
+    
+    # -----------------------------------------------
+    # dialog, to open a new project file ...
+    # -----------------------------------------------
+    def pro_open_clicked(self):
+        options  = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_path, file_pattern = QFileDialog.getOpenFileName(self,
+            "Open File", "",
+            "All Files (*);;Project Files (*.pro)",
+            options=options)
+        
+        if len(file_path.strip()) < 1:
+            self.messageBox("No Project file selected.")
+            return
+        
+        if not os.path.isfile(file_path):
+            messageBox("Selection is not a Project file.")
+            return
+        
+        if os.path.isdir(file_path):
+            self.messageBox(
+            "Selection is a directory. But file expected.\n"
+            "Command aborted.")
+            return
+        
+        if not file_path.endswith(".pro"):
+            self.messageBox(
+            "Project files must have a postfix with .pro at end of name\n"
+            "Command aborted.")
+            return
+            
+        self.hlay_edit.setText(file_path)
+        self.setup_favorites  (file_path)
+    
+    def setup_favorites(self, file_path):
+        if not os.path.exists(file_path):
+            try:
+                with open(file_path, "w", encoding="utf-8") as configfile:
+                    configfile.write(""
+                    + "[paths]\n"
+                    + "Path"       + self.newline1
+                    + "Forms"      + self.newline1
+                    + "Programs"   + self.newline1
+                    + "Reports"    + self.newline1
+                    + "Tables"     + self.newline1
+                    + "Images"     + self.newline1
+                    + "SQL"        + self.newline1
+                    + "Other"      + self.newline1
+                    + "\n"
+                    + "[" + db_pro + "]\n"
+                    + "Forms"      + self.newline2
+                    + "Programs"   + self.newline2
+                    + "Reports"    + self.newline2
+                    + "Tables" + self.newline2
+                    + "Images"     + self.newline2
+                    + "SQL"        + self.newline2
+                    + "Other"      + self.newline2)
+                    configfile.close()
+            except Exception as e:
+                self.messageBox(""
+                + "Error: file could not be open in write mode.\n"
+                + file_path + "\n"
+                + "Command aborted")
+                return
+        
+        if not os.path.isfile(file_path):
+            self.messageBox(""
+            + "Error: You choose a file that is not a Project file.\n"
+            + file_path + "\n"
+            + "Command aborted.")
+            return
+        try:
+            genv.v__app__config.read(file_path)
+        except Exception as e:
+            self.messageBox("Error: " + e)
+            return
+        try:
+            self.dbase_path          = genv.v__app__config[self.db_path]["Path"]
+            #
+            self.dbase_path_forms    = genv.v__app__config[self.db_path]["Forms"]
+            self.dbase_path_reports  = genv.v__app__config[self.db_path]["Reports"]
+            self.dbase_path_programs = genv.v__app__config[self.db_path]["Programs"]
+            self.dbase_path_images   = genv.v__app__config[self.db_path]["Images"]
+            self.dbase_path_tables   = genv.v__app__config[self.db_path]["Tables"]
+            self.dbase_path_queries  = genv.v__app__config[self.db_path]["SQL"]
+            self.dbase_path_others   = genv.v__app__config[self.db_path]["Other"]
+            
+            self.dbase_forms        = genv.v__app__config[self.db_pro]["Forms"]
+            self.dbase_forms_arr    = []
+            self.dbase_forms_arr.append(self.dbase_forms)
+            self.dbase_forms_arr    = self.dbase_forms_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_forms_arr) > 0:
+                for file_name in self.dbase_forms_arr:
+                    file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_forms.appendRow(child)
+            
+            self.dbase_reports      = genv.v__app__config[self.db_pro]["Reports"]
+            self.dbase_reports_arr  = []
+            self.dbase_reports_arr.append(self.dbase_reports)
+            self.dbase_reports_arr    = self.dbase_reports_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_reports_arr) > 0:
+                for file_name in self.dbase_reports_arr:
+                    file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_reports.appendRow(child)
+            
+            self.dbase_programs     = genv.v__app__config[self.db_pro]["Programs"]
+            self.dbase_programs_arr = []
+            self.dbase_programs_arr.append(self.dbase_programs)
+            self.dbase_programs_arr = self.dbase_programs_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_programs_arr) > 0:
+                for file_name in self.dbase_programs_arr:
+                    file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_programs.appendRow(child)
+            
+            self.dbase_tables       = genv.v__app__config[self.db_pro]["Tables"]
+            self.dbase_tables_arr   = []
+            self.dbase_tables_arr.append(self.dbase_tables)
+            self.dbase_tables_arr   = self.dbase_tables_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_tables_arr) > 0:
+                for file_name in self.dbase_tables_arr:
+                    file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_tables.appendRow(child)
+            
+            self.dbase_images       = genv.v__app__config[self.db_pro]["Images"]
+            self.dbase_images_arr   = []
+            self.dbase_images_arr.append(self.dbase_images)
+            self.dbase_images_arr   = self.dbase_images_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_images_arr) > 0:
+                for file_name in self.dbase_images_arr:
+                    file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_images.appendRow(child)
+            
+            self.dbase_queries          = genv.v__app__config[self.db_pro]["SQL"]
+            self.dbase_queries_arr      = []
+            self.dbase_queries_arr.append(self.dbase_queries)
+            self.dbase_queries_arr      = self.dbase_queries_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_queries_arr) > 0:
+                for file_name in self.dbase_queries_arr:
+                    file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_queries.appendRow(child)
+            
+            self.dbase_others        = genv.v__app__config[self.db_pro]["Other"]
+            self.dbase_others_arr    = []
+            self.dbase_others_arr.append(self.dbase_others)
+            self.dbase_others_arr    = self.dbase_others_arr[0].replace("'","").split(", ")
+            
+            if len(self.dbase_others_arr) > 0:
+                for file_name in self.dbase_others_arr:
+                    file_name = file_name.replace("\"","")
+                    if len(file_name.strip()) < 1:
+                        return
+                    child = QStandardItem(file_name)
+                    if child:
+                        self.child_item_others.appendRow(child)
+            
+        except Exception as e:
+            print(e)
+            self.messageBox(""
+            + "Error: .pro file have not the needed format.\n"
+            + file_path + "\n"
+            + "Command aborted.")
+            self.hlay_edit.clear()
+    
+    # -----------------------------------------------
+    # close the current opened project file ...
+    # -----------------------------------------------
+    def pro_clear_clicked(self):
+        #self.list_widget.clear()
+
+        # --------------------------------------------------
+        # remove project files from list, when double click
+        # with mouse on a favorite item ...
+        # --------------------------------------------------
+        i = clearChildTreeItems(self)
+        i.remove()
+        
+        self.path_edit.clear()
+        self.hlay_edit.clear()
+        return
+    
+    # -----------------------------------------------
+    # new project file ...
+    # -----------------------------------------------
+    def pro_new_clicked(self):
+        self.dialog  = QDialog(self)
+        dialog_font  = QFont(genv.v__app__font,10)
+        dialog_font.setBold(True)
+        
+        dialog_vlay  = QVBoxLayout()
+        dialog_label = QLabel("Please input the Project name:")
+        dialog_label.setFont(dialog_font)
+        
+        self.dialog_edlay = QHBoxLayout()
+        self.dialog_edit  = QLineEdit()
+        self.dialog_edit.setStyleSheet(_("editfield_css"))
+        
+        dialog_push = QPushButton("...")
+        dialog_push.setMinimumHeight(28)
+        dialog_push.setFont(QFont(genv.v__app__font_edit,10))
+        dialog_push.clicked.connect(self.dialog_push_clicked)
+        #
+        self.dialog_edlay.addWidget(self.dialog_edit)
+        self.dialog_edlay.addWidget(dialog_push)
+        #
+        dialog_vlay.addLayout(self.dialog_edlay)
+        
+        dialog_hlay  = QHBoxLayout()
+        dialog_push_ok = QPushButton("Ok.")
+        dialog_push_ok.setMinimumHeight(32)
+        dialog_push_ok.setFont(QFont(genv.v__app__font,11))
+        dialog_push.clicked.connect(self.dialog_push_ok_clicked)
+        
+        dialog_push_cancel = QPushButton("Cancel")
+        dialog_push_cancel.setMinimumHeight(32)
+        dialog_push_cancel.setFont(QFont(genv.v__app__font,11))
+        dialog_push.clicked.connect(self.dialog_push_cancel_clicked)
+        
+        dialog_hlay.addWidget(dialog_push_ok)
+        dialog_hlay.addWidget(dialog_push_cancel)
+        
+        dialog_vlay.addWidget(dialog_label)
+        dialog_vlay.addWidget(self.dialog_edit)
+        dialog_vlay.addLayout(dialog_hlay)
+        
+        self.dialog.setLayout(dialog_vlay)
+        self.dialog.setWindowTitle("New Project...")
+        self.dialog.exec_()
+        #
+        return
+    
+    # ----------------------------------------------
+    # dialog for new .pro file - cancel btn click:
+    # ----------------------------------------------
+    def dialog_push_cancel_clicked(self):
+        self.dialog_edit.clear()
+        self.dialog.close()
+        return
+    
+    # ----------------------------------------------
+    # dialog for new .pro file - ok button click ...
+    # ----------------------------------------------
+    def dialog_push_ok_clicked(self):
+        file_path = self.dialog_edit.text().strip()
+        if not file_path:
+            self.messageBox(""
+            + "Error: no project file given.\n"
+            + "Command aborted.")
+            return
+        if not os.path.exists(file_path):
+            self.messageBox(""
+            + "Error: project file does not exists.\n"
+            + "Command aborted.")
+            return
+        if not os.path.isfile(file_path):
+            self.dialog_edit.clear()
+            self.messageBox(""
+            + "Error: project file is not a normal file object.\n"
+            + "Command aborted.")
+            return
+        
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                file.close()
+        except Exception as e:
+            self.messageBox(""
+            + "Error: file could not be open:\n"
+            + file_path + "\n\n"
+            + "Command aborted.")
+        
+        self.setup_favorites(file_path)
+        return
+    
+    # -----------------------------------------------
+    # dialog to open/create a .pro file ...
+    # -----------------------------------------------
+    def dialog_push_clicked(self):
+        file_dialog = QFileDialog()
+        file_dialog.setStyleSheet("QFileDialog * {font-size: 11pt;}")
+        
+        layout = self.layout()
+        
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            widget = item.widget()
+            if isinstance(widget, QPushButton):
+                widget.setMinimumHeight(21)
+        
+        options  = file_dialog.Options()
+        options |= file_dialog.DontUseNativeDialog
+        file_path, file_pattern = file_dialog.getOpenFileName(self,
+            "Create new Project File", "",
+            "All Files (*);;Project Files (*.pro)",
+            options=options)
+        
+        if file_path:
+            if not file_path.endswith(".pro"):
+                self.messageBox(""
+                + "Error: Project file must have .pro as suffix in file name.\n"
+                + "Command aborted.")
+                return
+            if not os.path.exists(file_path):
+                self.messageBox(""
+                + "Error: file does not exists:\n"
+                + file_path + "\n"
+                + "Command aborted.")
+                return
+            else:
+                msg = QMessageBox()
+                msg.setWindowTitle("Information")
+                msg.setFont(self.font)
+                msg.setText(""
+                + "Info: the file you choose already exists.\n"
+                + "Did you would like overwrite it ?")
+                msg.setIcon(QMessageBox.Information)
+                
+                btn_nok = msg.addButton(QMessageBox.No)
+                btn_yes = msg.addButton(QMessageBox.Yes)
+                
+                btn_nok.setFont(self.font)
+                btn_yes.setFont(self.font)
+                
+                msg.setStyleSheet(_("msgbox_css"))
+                self.result = msg.exec_()
+                
+            if not os.path.isfile(file_path):
+                self.messageBox(""
+                + "Error: you choose a file name that is not a file.\n"
+                + "Maybe it is a directory ?\n"
+                + "\n"
+                + "Command aborted")
+                return
+            try:
+                if self.result == QMessageBox.Yes:
+                    with open(file_path, "w", encoding="utf-8") as file:
+                        file.write(""
+                        + "[paths]\n"
+                        + "Path"      + self.newline1
+                        + "Forms"     + self.newline1
+                        + "Programs"  + self.newline1
+                        + "Reports"   + self.newline1
+                        + "Tables"    + self.newline1
+                        + "Images"    + self.newline1
+                        + "SQL"       + self.newline1
+                        + "Other"     + self.newline1
+                        + "\n"
+                        + "[dBaseProject]\n"
+                        + "Forms"     + self.newline2
+                        + "Programs"  + self.newline2
+                        + "Reports"   + self.newline2
+                        + "Tables"    + self.newline2
+                        + "Images"    + self.newline2
+                        + "SQL"       + self.newline2
+                        + "Other"     + self.newline2)
+                        file.close()
+                
+                self.dialog_edit.clear()
+                self.dialog_edit.setText(file_path)
+                
+            except Exception as e:
+                self.messageBox(""
+                + "Error: file could not be open in write-mode:\n"
+                + file_path + "\n"
+                + "Command aborted.")
+                return
+        return
+    
+    # -----------------------------------------------
+    # add project file name to favorite list ...
+    # -----------------------------------------------
+    def fav_add_clicked(self):
+        txt = self.hlay_edit.text()
+        if len(txt.strip()) > 0:
+            if not self.isItemInList(txt):
+                if txt.endswith(".pro"):
+                    if os.path.exists(txt):
+                        counter = 0
+                        if not os.path.exists(genv.v__app__favorites):
+                            self.messageBox(""
+                            + "Info: favorite.ini file does not exists - I will fix this.")
+                            try:
+                                with open(genv.v__app__favorites, "w", encoding="utf-8") as configfile:
+                                    configfile.write(""
+                                    + "[dBaseFavorites]\n"
+                                    + "1: " + txt + "\n")
+                                    configfile.close()
+                            except Exception as e:
+                                self.messageBox(""
+                                + "Error: favorite.ini file could not be open in write mode.\n"
+                                + "maybe you don't have access permission's to this file.\n"
+                                + "\n"
+                                + "Command aborted.")
+                                return
+                        try:
+                            genv.v__app__config.read(genv.v__app__favorites)
+                            for name, path in genv.v__app__config["dBaseFavorites"].items():
+                                item = QListWidgetItem(self.icon, path)
+                                self.list_widget.addItem(item)
+                        except Exception as e:
+                            self.messageBox(""
+                            + "Error: something went wrong during reading the Project paths."
+                            + "Command aborted.")
+                        return
+                    else:
+                        self.messageBox(
+                        "File can not add to Favorite list.\n"
+                        "Either, you have no access permission's. Or it was deleted.\n"
+                        "Command aborted.")
+                else:
+                    self.messageBox(
+                    "Project files must be end with .pro extension.\n"
+                    "Command aborted.")
+            else:
+                self.messageBox(
+                "No item is already in the Favorite list.\n"
+                "Command aborted.")
+        else:
+            self.messageBox(
+            "No text available for adding into the Favorite list.\n"
+            "Command aborted.")
+        return
+    
+    # -----------------------------------------------
+    # delete selected favorite from the given list...
+    # -----------------------------------------------
+    def fav_del_clicked(self):
+        selected_items = self.list_widget.selectedItems()
+        if selected_items:
+            selected_item = selected_items[0]
+            self.list_widget.takeItem(self.list_widget.row(selected_item))
+        else:
+            self.messageBox(
+            "No item is selected in the Favorite list.\n"
+            "Command aborted.")
+        return
+    
+    # -----------------------------------------------------------
+    # to save code space, and minimaze maintain code, we use this
+    # definition to display a message box with an ok button ...
+    # -----------------------------------------------------------
+    def messageBox(self, text):
+        msg = QMessageBox()
+        msg.setWindowTitle("Information")
+        msg.setFont(self.font)
+        msg.setText(text)
+        msg.setIcon(QMessageBox.Information)
+        
+        btn_ok = msg.addButton(QMessageBox.Ok)
+        btn_ok.setFont(self.font)
+        
+        msg.setStyleSheet(_("msgbox_css"))
+        result = msg.exec_()
+    
+    # -----------------------------------------------
+    # path changer (ellipse pushbutton)
+    # -----------------------------------------------
+    def path_push_clicked(self):
+        old_text = self.path_edit.text()
+        
+        if len(self.hlay_edit.text().split()) < 1:
+            self.messageBox(
+            "You must open a Project before you can add Element's\n"
+            "Command aborted.")
+            self.path_edit.setText(old_text)
+            return
+                
+        if self.selected_item == None:
+            self.messageBox(
+            "No project file section selected.\n"
+            "Command aborted.")
+            self.path_edit.setText(old_text)
+            return
+        
+        new_text = QFileDialog.getExistingDirectory(self, "Select Folder:")
+        if len(new_text.strip()) < 1:
+            self.messageBox(
+            "Something went wrong during selecting folder.\n"
+            "set old value...\n"
+            "Command aborted.")
+            self.path_edit.setText(old_text)
+            return
+        
+        if not os.path.isdir(new_text):
+            self.path_edit.setText(new_text)
+            self.messageBox(
+            "Not a directory.\n"
+            "aborted.")
+            self.path_edit.setText(old_text)
+            return
+        
+        if not self.hlay_edit.text().endswith(".pro"):
+            self.messageBox(
+            "Project files must be post fixed with .pro\n"
+            "Command aborted.")
+            self.path_edit.setText(old_text)
+            return
+        
+        self.path_edit.setText(new_text)
+        
+        path_name = self.path_edit.text()
+        hlay_name = self.hlay_edit.text()
+        #
+        path_mess = _("config file could not be write.")
+        
+        # 1
+        try:
+            genv.v__app__config.read(path_name)
+            if self.selected_item.text() == _(self.pro_forms):
+                genv.v__app__config[self.db_pro]["Form"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set form path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config[self.db_pro] = {
+                "Form": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print("bbb")
+                print(e)
+                self.messageBox(path_mess)
+        # 2
+        try:
+            if self.selected_item.text() == _(self.pro_reports):
+                genv.v__app__config[self.db_pro]["Report"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set report path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config[self.db_pro] = {
+                "Report": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 3
+        try:
+            if self.selected_item.text() == _(self.pro_programs):
+                genv.v__app__config[self.db_pro]["Program"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set program path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config[self.db_pro] = {
+                "Program": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 4
+        try:
+            if self.selected_item.text() == _(self.pro_tables):
+                genv.v__app__config[self.db_pro]["Tables"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set desk tables path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config[self.db_pro] = {
+                "Tables": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 5
+        try:
+            if self.selected_item.text() == _(self.pro_queries):
+                genv.v__app__config[self.db_pro]["SQL"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set sql path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config[self.db_pro] = {
+                "SQL": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 6
+        try:
+            if self.selected_item.text() == _(self.pro_images):
+                genv.v__app__config[self.db_pro]["Image"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set image path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config[self.db_pro] = {
+                "Image": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+        # 7
+        try:
+            if self.selected_item.text() == _(self.pro_other):
+                genv.v__app__config[self.db_pro]["Other"] = path_name
+                try:
+                    with open(hlay_name, "w", encoding="utf-8") as configfile:
+                        genv.v__app__config.write(configfile)
+                        configfile.close()
+                except Exception as e:
+                    print(e)
+                    self.messageBox(path_mess)
+                    return
+                print("set other path")
+        except Exception as e:
+            print(e)
+            genv.v__app__config[self.db_pro] = {
+                "Other": path_name
+            }
+            try:
+                with open(hlay_name, "w", encoding="utf-8") as configfile:
+                    genv.v__app__config.write(configfile)
+                    configfile.close()
+            except Exception as e:
+                print(e)
+                self.messageBox(path_mess)
+                return
+    
+    # -----------------------------------------------
+    # setup project file items list ...
+    # -----------------------------------------------
+    def populate_tree(self):
+        root_node = self.model.invisibleRootItem()
+        
+        font1 = QFont(genv.v__app__font, 12)
+        font1.setBold(True)
+        #
+        font2 = QFont(genv.v__app__font, 11)
+        font2.setBold(True)
+        font2.setItalic(True)
+        
+        icon1 = QIcon(os.path.join(genv.v__app__img__int__, "open-folder-blue.png"))
+        icon2 = QIcon(os.path.join(genv.v__app__img__int__, "open-folder-yellow.png"))
+        
+        parent_item = QStandardItem(self.pro_files)
+        parent_item.setFont(font1)
+        parent_item.setIcon(icon1)
+        
+        self.child_item_forms = QStandardItem(self.pro_forms)
+        self.child_item_forms.setFont(font2)
+        self.child_item_forms.setIcon(icon2)
+        
+        self.child_item_reports = QStandardItem(self.pro_reports)
+        self.child_item_reports.setFont(font2)
+        self.child_item_reports.setIcon(icon2)
+        
+        self.child_item_programs = QStandardItem(self.pro_programs)
+        self.child_item_programs.setFont(font2)
+        self.child_item_programs.setIcon(icon2)
+        
+        self.child_item_tables = QStandardItem(self.pro_tables)
+        self.child_item_tables.setFont(font2)
+        self.child_item_tables.setIcon(icon2)
+        
+        self.child_item_queries = QStandardItem(self.pro_queries)
+        self.child_item_queries.setFont(font2)
+        self.child_item_queries.setIcon(icon2)
+        
+        self.child_item_images = QStandardItem(self.pro_images)
+        self.child_item_images.setFont(font2)
+        self.child_item_images.setIcon(icon2)
+        
+        self.child_item_others = QStandardItem(self.pro_others)
+        self.child_item_others.setFont(font2)
+        self.child_item_others.setIcon(icon2)
+        #
+        parent_item.appendRow(self.child_item_forms)
+        parent_item.appendRow(self.child_item_reports)
+        parent_item.appendRow(self.child_item_programs)
+        parent_item.appendRow(self.child_item_tables)
+        parent_item.appendRow(self.child_item_queries)
+        parent_item.appendRow(self.child_item_images)
+        parent_item.appendRow(self.child_item_others)
+        
+        root_node.appendRow(parent_item)
+        self.tree_view.setModel(self.model)
+        
+        self.expand_all_items(
+            self.tree_view,
+            self.model.indexFromItem(
+            self.model.invisibleRootItem()))
+    
+    # -----------------------------------------------
+    # get the item selected from the file item list.
+    # -----------------------------------------------
+    def on_item_clicked(self, index):
+        liste = [
+            self.pro_files,
+            self.dbase_path_forms,
+            self.dbase_path_reports,
+            self.dbase_path_programs,
+            self.dbase_path_tables,
+            self.dbase_path_images,
+            self.dbase_path_queries,
+            self.dbase_path_others
+        ]
+        #for el in liste:
+        #    if not el:
+        #        return
+        
+        item = self.model.itemFromIndex(index)
+        self.selected_item = item
+        if not item == None:
+            parent_item = item.parent()
+            if not parent_item == None:
+                if parent_item.text() == self.pro_files:
+                    if item.text() == self.pro_forms:
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_forms)
+                        
+                        try:
+                            if not hasattr(self, model_forms):
+                                pass
+                        except NameError as e:
+                            self.model_forms = TableModelForms(self.data_forms)
+                            self.list_view.setModel(self.model_forms)
+                        except AttributeError as e:
+                            self.model_forms = TableModelForms(self.data_forms)
+                            self.list_view.setModel(self.model_forms)
+                        
+                        self.model_forms.updateData(self.data_forms)
+                        self.list_view.model().layoutChanged.emit()
+                        return
+                    elif item.text() == self.pro_reports:
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_reports)
+                        
+                        try:
+                            if not hasattr(self, model_reports):
+                                pass
+                        except NameError as e:
+                            self.model_reports = TableModelReports(self.data_reports)
+                            self.list_view.setModel(self.model_reports)
+                        except AttributeError as e:
+                            self.model_reports = TableModelReports(self.data_reports)
+                            self.list_view.setModel(self.model_reports)
+                        
+                        self.model_reports.updateData(self.data_reports)
+                        return
+                    elif item.text() == self.pro_programs:
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_programs)
+                        
+                        try:
+                            if not hasattr(self, model_programs):
+                                pass
+                        except NameError as e:
+                            self.model_programs = TableModelPrograms(self.data_programs)
+                            self.list_view.setModel(self.model_programs)
+                        except AttributeError as e:
+                            self.model_programs = TableModelPrograms(self.data_programs)
+                            self.list_view.setModel(self.model_programs)
+                        
+                        self.model_programs.updateData(self.data_programs)
+                        return
+                    elif item.text() == self.pro_tables:
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_tables)
+                        
+                        try:
+                            if not hasattr(self, model_tables):
+                                pass
+                        except NameError as e:
+                            self.model_tables = TableModelTables(self.data_tables)
+                            self.list_view.setModel(self.model_tables)
+                        except AttributeError as e:
+                            self.model_tables = TableModelTables(self.data_tables)
+                            self.list_view.setModel(self.model_tables)
+                        
+                        self.model_tables.updateData(self.data_tables)
+                        return
+                    elif item.text() == self.pro_queries:
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_queries)
+                        
+                        try:
+                            if not hasattr(self, model_queries):
+                                pass
+                        except NameError as e:
+                            self.model_queries = TableModelQueries(self.data_queries)
+                            self.list_view.setModel(self.model_queries)
+                        except AttributeError as e:
+                            self.model_queries = TableModelQueries(self.data_queries)
+                            self.list_view.setModel(self.model_queries)
+                        
+                        self.model_queries.updateData(self.data_queries)
+                        return
+                    elif item.text() == self.pro_images:
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_images)
+                        
+                        try:
+                            if not hasattr(self, model_images):
+                                pass
+                        except NameError as e:
+                            self.model_images = TableModelImages(self.data_images)
+                            self.list_view.setModel(self.model_images)
+                        except AttributeError as e:
+                            self.model_images = TableModelImages(self.data_images)
+                            self.list_view.setModel(self.model_images)
+                        
+                        self.model_images.updateData(self.data_images)
+                        return
+                    elif item.text() == self.pro_others:
+                        self.path_edit.clear()
+                        self.path_edit.setText(self.dbase_path_others)
+                        
+                        try:
+                            if not hasattr(self, model_others):
+                                pass
+                        except NameError as e:
+                            self.model_others = TableModelOthers(self.data_others)
+                            self.list_view.setModel(self.model_others)
+                        except AttributeError as e:
+                            self.model_others = TableModelOthers(self.data_others)
+                            self.list_view.setModel(self.model_others)
+                        
+                        self.model_others.updateData(self.data_others)
+                        return
+                elif parent_item.text() == _(self.pro_forms):
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_forms)
+                    return
+                elif parent_item.text() == self.pro_reports:
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_reports)
+                    return
+                elif parent_item.text() == self.pro_programs:
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_programs)
+                    return
+                elif parent_item.text() == self.pro_tables:
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_tables)
+                    return
+                elif parent_item.text() == self.pro_queries:
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_queries)
+                    return
+                elif parent_item.text() == self.pro_images:
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_images)
+                    return
+                elif item.text() == self.pro_others:
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path_others)
+                    return
+            else:
+                if item.text() == _(self.pro_files):
+                    self.path_edit.clear()
+                    self.path_edit.setText(self.dbase_path)
+                    
+                    try:
+                        if not hasattr(self, model_all):
+                            pass
+                    except NameError as e:
+                        self.model_all = TableModelAll(self.data_all)
+                        self.list_view.setModel(self.model_all)
+                    except AttributeError as e:
+                        self.model_all = TableModelAll(self.data_all)
+                        self.list_view.setModel(self.model_all)
+                    
+                    self.model_all.updateData(self.data_all)
+                    self.list_view.model().layoutChanged.emit()
+                    
+                    return
+    
+    # -----------------------------------------------
+    # expand all items in the tree view ...
+    # -----------------------------------------------
+    def expand_all_items(self, tree_view, index):
+        tree_view.expand(index)
+        model = tree_view.model()
+        
+        for row in range(model.rowCount(index)):
+            child_index = model.index(row, 0, index)
+            self.expand_all_items(tree_view, child_index)
+
+class CustomTitleBar(QWidget):
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+        self.minimize_icon = QIcon(QPixmap(16, 16))  # Dummy icon, replace with actual icon
+        self.maximize_icon = QIcon(QPixmap(16, 16))  # Dummy icon, replace with actual icon
+        self.close_icon    = QIcon(QPixmap(16, 16))  # Dummy icon, replace with actual icon
+        
+        self.title = title
+        self.initUI()
+        
+    def initUI(self):
+        self.setFixedHeight(30)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        self.title_label = QLabel(self.title)
+        self.title_label.setStyleSheet(_("DialogTitleBar"))
+        
+        self.minimize_button = QPushButton()
+        self.minimize_button.setIcon(self.minimize_icon)
+        self.minimize_button.setFixedSize(30, 30)
+        self.minimize_button.setStyleSheet("background: transparent;")
+        
+        self.maximize_button = QPushButton()
+        self.maximize_button.setIcon(self.maximize_icon)
+        self.maximize_button.setFixedSize(30, 30)
+        self.maximize_button.setStyleSheet("background: transparent;")
+        
+        self.close_button = QPushButton()
+        self.close_button.setIcon(self.close_icon)
+        self.close_button.setFixedSize(30, 30)
+        self.close_button.setStyleSheet("background: transparent;")
+        
+        layout.addWidget(self.title_label)
+        layout.addStretch()
+        layout.addWidget(self.minimize_button)
+        layout.addWidget(self.maximize_button)
+        layout.addWidget(self.close_button)
+        
+        self.setLayout(layout)
+    
+    # paint border: red
+    def paintEvent(self, event):
+        #super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setBrush(Qt.NoBrush)
+        #
+        gradient = QLinearGradient(0, 0, self.width(), 0)
+        # Create a gradient with 64 steps from yellow to red
+        steps = 64
+        for i in range(steps):
+            t = i / (steps - 1)
+            if t < 0.5:
+                # Interpolate from black to yellow
+                ratio = t / 0.5
+                color = QColor(
+                    int(255 * ratio),  # Red   component (linear interpolation)
+                    int(255 * ratio),  # Green component (linear interpolation)
+                    0                  # Blue  component (constant)
+                )
+            else:
+                # Interpolate from yellow to red
+                ratio = (t - 0.5) / 0.5
+                color = QColor(
+                    255,                     # Red   component (constant)
+                    int(255 * (1 - ratio)),  # Green component (linear interpolation)
+                    0                        # Blue  component (constant)
+                )
+            gradient.setColorAt(t, color)
+        
+        painter.fillRect(self.rect(), gradient)
+
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.parent().mouse_press_pos = event.globalPos()
+            self.parent().mouse_move_pos = event.globalPos() - self.parent().frameGeometry().topLeft()
+    
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            self.parent().move(event.globalPos() - self.parent().mouse_move_pos)
+    
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.parent().toggleMaximizeRestore()
+
+class ApplicationDesignPage():
+    def __init__(self, parent, tabs_design, tabs):
+        self.parent = parent
+        self.main_layout = self.parent.main_layout
+        self.tabs_designs_widget = tabs_design
+        self.tabs = tabs
+        
+        self.designs_layout  = QVBoxLayout()
+        self.designs_layout.setContentsMargins(2,2,2,2)
+        self.designs_palette = QWidget()
+        self.designs_palette.setStyleSheet(_("bggy"))
+        self.designs_palette.setMinimumHeight(85)
+        self.designs_palette.setMaximumHeight(85)
+        #
+        self.palette_layout  = QHBoxLayout()
+        self.palette_layout.setContentsMargins(2,2,2,2)
+        self.palette_widget_lhs  = QLabel ()
+        self.palette_widget_mid  = QWidget()
+        self.palette_widget_rhs  = QLabel ()
+        #
+        self.palette_widget_lhs.setMaximumWidth(20)
+        self.palette_widget_rhs.setMaximumWidth(20)
+        
+        font = QFont("Times New Roman", 16)
+        #font.setBold(True)
+        
+        chr1 = "{0}".format(u'\u25c4')  # <<
+        chr2 = "{0}".format(u'\u25ba')  # >>
+        
+        self.palette_widget_lhs.setFont(font)
+        self.palette_widget_rhs.setFont(font)
+        #
+        self.palette_widget_lhs.setText(chr1)
+        self.palette_widget_rhs.setText(chr2)
+        #
+        self.palette_widget_lhs.setStyleSheet(_("bglg"))
+        self.palette_widget_mid.setStyleSheet(_("bggy"))
+        self.palette_widget_rhs.setStyleSheet(_("bglg"))
+        #
+        #
+        self.palette_widget_mid_layout = QHBoxLayout()
+        self.palette_widget_mid_tabs   = QTabWidget()
+        self.palette_widget_mid_tabs.setStyleSheet(_("designertab"))
+        
+        #######
+        addDesignerTabs(self.palette_widget_mid_tabs)
+        
+        self.palette_widget_mid_layout.addWidget(self.palette_widget_mid_tabs)
+        #
+        self.palette_layout.addWidget(self.palette_widget_lhs)
+        self.palette_layout.addLayout(self.palette_widget_mid_layout)
+        self.palette_layout.addWidget(self.palette_widget_rhs)
+        #
+        self.designs_palette.setLayout(self.palette_layout)
+        ####
+        
+        self.designs_viewer  = myGridViewer(self.parent)
+        self.designs_viewer.setStyleSheet(_("bgwh"))
+        
+        self.designs_layout.addWidget(self.designs_palette)
+        self.designs_layout.addWidget(self.designs_viewer)
+        #
+        
+        self.tabs_designs_widget.setLayout(self.designs_layout)
+        ####
+        self.main_layout.addWidget(self.tabs)
+        #################
+        font = QFont(genv.v__app__font, 12)
+        self.btn1 = myMoveButton(" move me A ", self.designs_viewer.content)
+        self.btn2 = myMoveButton(" move me B ", self.designs_viewer.content)
+        self.btn3 = myMoveButton(" move me C ", self.designs_viewer.content)
+        #
+        self.btn1.move(20,20)
+        self.btn2.move(40,40)
+        self.btn3.move(60,60)
+        #
+        self.btn1.setFont(font)
+        self.btn2.setFont(font)
+        self.btn3.setFont(font)
+        #
+        self.btn1.setStyleSheet("background-color:red;color:yellow;")
+        self.btn2.setStyleSheet("background-color:yellow;color:black;")
+        self.btn3.setStyleSheet("background-color:blue;color:white;")
+
+class ButtonWidget(QWidget):
+    def __init__(self, text, parent=None):
+        super(ButtonWidget, self).__init__(parent)
+        self.setContentsMargins(0,0,0,0)
+        
+        self.layout = QVBoxLayout()
+        self.label  = QLabel(text)
+        
+        text = text.split(':')
+        
+        if text[0] == "label 1":
+            self.label_pixmap = QPixmap("./_internal/_internal/img/open-folder.png")
+        elif text[0] == "label 2":
+            self.label_pixmap = QPixmap("./_internal/_internal/img/floppy-disk.png")
+        elif text[0] == "label 3":
+            self.label_pixmap = QPixmap("./_internal/_internal/img/play.png")
+        
+        self.label.setMinimumWidth (32)
+        self.label.setMaximumWidth (32)
+        
+        self.label.setMinimumHeight(32)
+        self.label.setMaximumHeight(32)
+        
+        self.label.setPixmap(self.label_pixmap)
+        self.setObjectName(text[0] + ':' + text[1])
+        
+        self.layout.addWidget(self.label)
+        self.setLayout(self.layout)
+
+class imageHelperOverlay(QWidget):
+    def __init__(self, image_path, xpos, ypos, parent=None):
+        super(QWidget, self).__init__(parent)
+        
+        self.xpos   = xpos
+        self.ypos   = ypos
+        
+        self.parent = parent
+        self.image  = QPixmap(image_path)
+        
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WA_NoSystemBackground)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setGeometry(0, 0, parent.width(), parent.height())
+    
+    def draw_char(self, painter):
+        font1 = QFont("wingdings", 16)
+        font1.setBold(True)
+        
+        font2 = QFont("Arial", 10)
+        
+        char1 = chr(0x81)    # circled 1
+        char2 = chr(0x82)    # circled 2
+        
+        painter.setFont(font2)
+        painter.setPen(QColor(0,0,0))
+        painter.drawText(32,26, _("Step:"))
+        painter.drawText(32,40, _("Select Project"))
+        
+        painter.setFont(font1)
+        painter.setPen(QColor(255,200,0))
+        painter.drawText(80,26, char1)
+    
+    def paintEvent(self, event):
+        if self.parent.tab0_fold_push2.isVisible():
+            painter = QPainter(self)
+            painter.drawPixmap(self.xpos, self.ypos, self.image)
+            
+            self.draw_char(painter)
+
+def add_item(parent, text):
+    item = QStandardItem(text)
+    parent.appendRow([item, QStandardItem(), QStandardItem()])
+    return item
+
+class IconDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        if index.column() == 2:
+            text = index.sibling(index.row(), 0).data()
+            if text == "Complete":
+                icon_path = os.path.join(genv.v__app__img__int__, "icon_white"  + genv.v__app__img_ext__)
+            elif text == "Needs Review":
+                icon_path = os.path.join(genv.v__app__img__int__, "icon_blue"   + genv.v__app__img_ext__)
+            elif text == "In Progress":
+                icon_path = os.path.join(genv.v__app__img__int__, "icon_yellow" + genv.v__app__img_ext__)
+            elif text == "Out of Date":
+                icon_path = os.path.join(genv.v__app__img__int__, "icon_red"    + genv.v__app__img_ext__)
+            else:
+                icon_path = os.path.join(genv.v__app__img__int__, "edit"        + genv.v__app__img_ext__)
+            
+            icon = QIcon(icon_path)
+            icon.paint(painter, option.rect, Qt.AlignCenter)
+        else:
+            super().paint(painter, option, index)
+
+# ---------------------------------------------------------------------------
+# \brief Constructs a project page to create or modified projects.
+#
+# \param parent - ptr => the corresponding parent
+# \param tabs   - ptr => the "tabs" component
+# \param text   - str => for the object name, to gather information of obj.
+# ---------------------------------------------------------------------------
+class ApplicationProjectPage(QObject):
+    def __init__(self, parent, tabs, text):
+        super(ApplicationProjectPage, self).__init__(parent)
+        self.parent = parent
+        self.text   = text
+        try:
+            self.setObjectName(self.text)
+            
+            self.ProjectVLayout = QVBoxLayout()
+            self.ProjectVLayout.setContentsMargins(0,0,0,0)
+            self.ProjectWidget  = applicationProjectWidget()
+            self.ProjectVLayout.addWidget(self.ProjectWidget)
+            tabs.setLayout(self.ProjectVLayout)
+        except Exception as e:
+            showException(traceback.format_exc())
+
+# ---------------------------------------------------------------------------
+# \brief Constructs a editor page for open, and write source code text's.
+#
+# \param parent - ptr => the corresponding parent
+# \param tabs   - ptr => the "tabs" component
+# \param text   - str => for the object name, to gather information of obj.
+#
+# \return ptr => the class object
+# ---------------------------------------------------------------------------
+class ApplicationEditorsPage(QObject):
+    def __init__(self, parent, tabs, text):
+        super(ApplicationEditorsPage, self).__init__(parent)
+        self.parent = parent
+        self.text   = text
+        try:
+            self.setObjectName(self.text)
+            
+            self.tabs_editor_vlayout = QVBoxLayout(tabs)
+            self.tabs_editor = QTabWidget()
+            self.tabs_editor.setStyleSheet(_(genv.css_tabs))
+            
+            self.tabs_editor_menu = QListWidget()
+            self.tabs_editor_menu.setContentsMargins(0,0,0,0)
+            self.tabs_editor_menu.setFlow(QListWidget.LeftToRight)
+            self.tabs_editor_menu.setStyleSheet("background-color:gray;")
+            self.tabs_editor_menu.setMinimumHeight(64)
+            self.tabs_editor_menu.setMaximumHeight(64)
+            
+            self.custom_widget0 = ButtonWidget("label 1:")
+            self.custom_widget1 = ButtonWidget("label 2:")
+            self.custom_widget2 = ButtonWidget("label 3:")
+            
+            self.widget0_list_item = QListWidgetItem(self.tabs_editor_menu)
+            self.widget0_list_item.setSizeHint(self.custom_widget0.sizeHint())
+            
+            self.widget1_list_item = QListWidgetItem(self.tabs_editor_menu)
+            self.widget1_list_item.setSizeHint(self.custom_widget1.sizeHint())
+            
+            self.widget2_list_item = QListWidgetItem(self.tabs_editor_menu)
+            self.widget2_list_item.setSizeHint(self.custom_widget2.sizeHint())
+            
+            self.tabs_editor_menu.setItemWidget(self.widget0_list_item, self.custom_widget0)
+            self.tabs_editor_menu.setItemWidget(self.widget1_list_item, self.custom_widget1)
+            self.tabs_editor_menu.setItemWidget(self.widget2_list_item, self.custom_widget2)
+            
+            self.tabs_editor_menu.itemClicked.connect(self.on_editor_menu_item_clicked)
+            
+            self.tabs_editor_vlayout.addWidget(self.tabs_editor_menu)
+            self.tabs_editor_vlayout.addWidget(self.tabs_editor)
+        except Exception as e:
+            showException(traceback.format_exc())
+    
+    def on_editor_menu_item_clicked(self, item):
+        print("self: ", self.objectName())
+        widget = self.tabs_editor_menu.itemWidget(item)
+        if widget:
+            text = widget.objectName()
+            text = text.split(':')
+            if text[0] == "label 1":
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
+                if len(filename) < 1:
+                    return
+                widget.setObjectName('label 1:' + file_path)
+                
+                self.tabs_editor_widget = QWidget()
+                
+                genv.editor.hlayout = QHBoxLayout()
+                genv.editor.vlayout = QVBoxLayout()
+                #
+                if not genv.editor.obj_1 == None:
+                    self.tabs_editor.removeTab(self.tabs_editor.currentIndex())
+                    genv.editor.obj_1.deleteLater()
+                    genv.editor.obj_1 = None
+                #
+                hlayout = QHBoxLayout()
+                
+                genv.editor_check = EditorCheckBox(self)
+                genv.editor_saveb = EditorSavebBox(self)
+                #
+                self.editor_dummy = QLabel("")
+                self.editor_dummy.setMinimumWidth(280)
+                
+                hlayout.addWidget(genv.editor_check)
+                hlayout.addWidget(genv.editor_saveb)
+                hlayout.addWidget(self.editor_dummy)
+                
+                hlayout.setAlignment(genv.editor_check, Qt.AlignLeft)
+                hlayout.setAlignment(genv.editor_saveb, Qt.AlignLeft)
+                hlayout.setAlignment(self.editor_dummy, Qt.AlignLeft)
+                #
+                genv.editor.obj_1 = EditorTextEdit(self, file_path, self.text)
+                genv.editor.obj_2 = EditorTextEdit(self, file_path, self.text + ".pas")
+                genv.editor.obj_3 = EditorTextEdit(self, file_path, self.text + ".cc")
+                #
+                genv.editor.vlayout.addLayout(hlayout)
+                #
+                genv.editor.vlayout.addWidget(genv.editor.obj_1)
+                genv.editor.vlayout.addWidget(genv.editor.obj_2)
+                genv.editor.vlayout.addWidget(genv.editor.obj_3)
+                #
+                genv.editor.rightBox = EditorTranslate(self)
+                #
+                genv.editor.hlayout.addLayout(genv.editor.vlayout)
+                genv.editor.hlayout.addWidget(genv.editor.rightBox)
+                
+                self.tabs_editor_file_layout_widget = QWidget()
+                self.tabs_editor_file_layout_widget.setLayout(genv.editor.hlayout)
+                
+                self.tabs_editor.addTab(self.tabs_editor_file_layout_widget, filename)
+                
+                try:
+                    self.focused_widget = genv.editor.obj_1
+                except AttributError:
+                    self.showNoEditorMessage()
+                    return
+            
+            elif text[0] == "label 2":
+                self.checkBeforeSave()
+            elif text[0] == "label 3":
+                global application_mode
+                application_mode = 1
+                
+                try:
+                    script_name = genv.editor.obj_1.objectName()
+                    file_name   = script_name
+                    print("script: ", script_name)
+                    
+                    # ---------------------------------------
+                    # save source code before exec...
+                    # ---------------------------------------
+                    if genv.editor_saveb.isChecked() == True:
+                        with open(file_name, 'w', encoding='utf-8') as file:
+                            file.write(genv.editor.obj_1.toPlainText())
+                            file.close()
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
+                try:
+                    prg = None
+                    if self.objectName() == "dbase":
+                        try:
+                            prg = interpreter_dBase(script_name)
+                            prg.parse()
+                        except ENoSourceHeader as e:
+                            showError(e.message)
+                            prg = None
+                            return
+                    elif self.objectName() == "pascal":
+                        prg = interpreter_Pascal(script_name)
+                        prg.parse()
+                    elif self.objectName() == "java":
+                        prg = interpreter_Java(script_name)
+                        prg.parse()
+                    elif self.objectName() == "isoc":
+                        prg = interpreter_ISOC(script_name)
+                        prg.parse()
+                    elif self.objectName() == "python":
+                        prg = interpreter_Python(script_name)
+                        prg.parse()
+                    elif self.objectName() == "javascript":
+                        prg = interpreter_JavaScript(script_name)
+                        prg.parse()
+                    elif self.objectName() == "lisp":
+                        prg = interpreter_Lisp(script_name)
+                        prg.parse()
+                    elif self.objectName() == "c64":
+                        prg = interpreter_C64(script_name)
+                        prg.parse()
+                    
+                    print("\nend of data\n")
+                        
+                    #genv.text_code += ('\t' * 1)
+                    #genv.text_code += "console.exec_()\n"
+                    print(genv.text_code)
+                    prg.run()
+                    
+                except ENoSourceHeader as e:
+                    showError(e.message)
+                    return
+                except Exception as e:
+                    print(e)
+                    return
+    
+    def showNoEditorMessage(self):
+        msg = QMessageBox()
+        msg.setWindowTitle(_("Warning"))
+        msg.setText(_("no editor open - do nothing."))
+        msg.setIcon(QMessageBox.Warning)
+        
+        btn_ok = msg.addButton(QMessageBox.Ok)
+        
+        msg.setStyleSheet(_("msgbox_css"))
+        msg.exec_()
+    
+    def checkBeforeSave(self):
+        try:
+            if not self.focused_widget:
+                self.showNoEditorMessage()
+                return
+        except AttributeError:
+            self.showNoEditorMessage()
+            return
+
+        msg = None
+        msg = QMessageBox()
+        msg.setWindowTitle("Confirmation")
+        msg.setText(
+            "The source file content will be overwrite if you choose YES !\n"
+            "Would you save the current content ?")
+        msg.setIcon(QMessageBox.Question)
+        
+        btn_yes = msg.addButton(QMessageBox.Yes)
+        btn_no  = msg.addButton(QMessageBox.No)
+        
+        msg.setStyleSheet(_("msgbox_css"))
+        result = msg.exec_()
+        
+        if result == QMessageBox.Yes:
+            #self.focused_widget = QApplication.focusWidget()
+            if self.focused_widget:
+                if isinstance(self.focused_widget, QPlainTextEdit):
+                    script_name = self.focused_widget.objectName()
+                    print(script_name)
+                    if not os.path.exists(script_name):
+                        msg = None
+                        msg = QMessageBox()
+                        msg.setWindowTitle("Warning")
+                        msg.setText(_("Error: file could not be saved:") + f"\n{script_name}.")
+                        msg.setIcon(QMessageBox.Warning)
+                        btn_ok = msg.addButton(QMessageBox.Ok)
+                        
+                        msg.setStyleSheet(_("msgbox_css"))
+                        result = msg.exec_()
+                        print(f"Error: file does not exists: {script_name}.")
+                        return
+                    file_path = script_name.replace("\\", "/")
+                    #
+                    with open(file_path, "w") as file:
+                        file.write(self.focused_widget.toPlainText())
+                        file.close()
+    
+    def open_dialog(self):
+        dialog  = QFileDialog()
+        file_path = ""
+        icon_size = 20
+        
+        dialog.setWindowTitle(_("Open File"))
+        dialog.setStyleSheet (_("QFileDlog"))
+        
+        dialog.setFileMode(QFileDialog.AnyFile)
+        dialog.setViewMode(QFileDialog.Detail)
+        
+        dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
+        
+        if self.objectName() == "dbase":
+            dialog.setNameFilters([
+                _("Program Files")  + " (*.prg)",
+                _("Database Files") + " (*.dbf, *.db)",
+                _("Query Files")    + " (*.sql)",
+                _("Text Files")     + " (*.txt *.md)",
+                _("All Files")      + " (*)"])
+        elif self.objectName() == "pascal":
+            dialog.setNameFilters([
+                _("Pascal Files")  + " (*.pas *.pp)",
+                _("Include Files") + " (*.inc)",
+                _("Text Files")    + " (*.txt *.md)",
+                _("All Files")     + " (*)"])
+        elif self.objectName() == "isoc":
+            dialog.setNameFilters([
+                _("C++ Program Files") + " (*.c *.cc *.cpp *.c++)",
+                _("C++ Header Files")  + " (*.h *.hh *.hpp *.h++)",
+                _("C++ Include Files") + " (*.inc)",
+                _("Text Files")        + " (*.txt *.md)",
+                _("All Files")         + " (*)"])
+        elif self.objectName() == "python":
+            dialog.setNameFilters([
+                _("Python Files") + " (*.py *.pyw)",
+                _("Text Files")   + " (*.txt *.md)",
+                _("All Files")    + " (*)"])
+        elif self.objectName() == "lisp":
+            dialog.setNameFilters([
+                _("Lisp Files") + " (*.lisp *.lsp *.l *.el)",
+                _("Text Files")   + " (*.txt *.md)",
+                _("All Files")    + " (*)"])
+        elif self.objectName() == "java":
+            dialog.setNameFilters([
+                _("Java Files")   + " (*.java)",
+                _("Text Files")   + " (*.txt *.md)",
+                _("All Files")    + " (*)"])
+        elif self.objectName() == "javascript":
+            dialog.setNameFilters([
+                _("JavaScript Files") + " (*.js)",
+                _("HTML Files")       + " (*.html *.htm)",
+                _("CSS Files")        + " (*.css)",
+                _("XML Files")        + " (*.xml)",
+                _("Text Files")       + " (*.txt *.md)",
+                _("All Files")        + " (*)"])
+        else:
+            dialog.setNameFilters([
+                _("All Files") + " (*)"])
+                
+        if dialog.exec_() == QFileDialog.Accepted:
+            file_path = dialog.selectedFiles()[0]
+        
+        if not file_path:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(_("no source file given.\n"))
+            msg.setIcon(QMessageBox.Question)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()            
+            return ""
+        
+        if not os.path.isfile(file_path):
+            msg = None
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(_(
+                "You selected a file, that can not be open.\n"
+                "no file will be open."))
+            msg.setIcon(QMessageBox.Question)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()
+            return ""
+        return file_path
+
+class ApplicationTabWidget(QTabWidget):
+    def __init__(self, tabs, parent=None):
+        super(ApplicationTabWidget, self).__init__(parent)
+        
+        self.setStyleSheet(_(genv.css_tabs))
+        self.hide()
+        
+        self.tabs = []
+        
+        if len(tabs) < 1:
+            return
+            
+        for index in tabs:
+            widget = QWidget()
+            self.tabs.append(widget)
+            self.addTab(widget, index)
+    
+    def getTab(self, index:int):
+        return self.tabs[index]
+
+# ---------------------------------------------------------------------------
+# \brief tree widget delegation: status codes
+# ---------------------------------------------------------------------------
+class ColorComboBoxDelegateTree(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        # Hintergrund zeichnen
+        super().paint(painter, option, index)
+        
+        # Text abrufen
+        column = index.column()
+        text   = index.data()
+        
+        # Rechten Kreis zeichnen
+        right_circle_color = QColor("red")
+        if column == 5 and text == "F":
+            right_circle_color = QColor("red")
+        elif column == 5 and text == "S":
+            right_circle_color = QColor("yellow")
+            
+        painter.setBrush(QBrush(right_circle_color))
+        right_circle_rect = QRect(option.rect.left() + 25, option.rect.top() + 5, 10, 10)
+        painter.drawEllipse(right_circle_rect)
+
+# ---------------------------------------------------------------------------
+# \brief combo box delegation for cert ssl tab ...
+# ---------------------------------------------------------------------------
+class ColorComboBoxDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        # Hintergrund zeichnen
+        super().paint(painter, option, index)
+
+        # Text abrufen
+        text = index.data()
+        
+        # Rechten Kreis zeichnen
+        right_circle_color = QColor("blue")
+        if text == "256":
+            right_circle_color = QColor("blue")
+        if text == "512":
+            right_circle_color = QColor("red")
+        if text == "1024":
+            right_circle_color = QColor("green")
+        if text == "2048":
+            right_circle_color = QColor("lime")
+        if text == "4096":
+            right_circle_color = QColor("yellow")
+            
+        painter.setBrush(QBrush(right_circle_color))
+        right_circle_rect = QRect(option.rect.right() - 25, option.rect.top() + 5, 10, 10)
+        painter.drawEllipse(right_circle_rect)
+
+# ---------------------------------------------------------------------------
+# \brief  This is the GUI-Entry point for our application.
+# \param  nothing
+# \return ptr => the class object pointer
+# ---------------------------------------------------------------------------
+class FileWatcherGUI(QDialog):
+    def __init__(self, parent=None):
+        super(FileWatcherGUI, self).__init__(parent)
+        
+        global application_window
+        application_window = self
+        print("2222")
+        # Alle Qt-Warnungen stummschalten
+        QLoggingCategory.setFilterRules("*.debug=false\n*.warning=false")
+        print("111111")
         genv.css_menu_item_style  = _("css_menu_item_style")
         genv.css_menu_label_style = _("css_menu_label_style")
         genv.css_menu_item        = _("css_menu_item")
@@ -5568,13 +12261,18 @@ class FileWatcherGUI(QDialog):
         self.setFont(self.font)
         self.setContentsMargins(0,0,0,0)
         self.setStyleSheet("padding:0px;margin:0px;")
-        #self.setStyleSheet("font-family:'Arial';font-size:12pt;")
+        self.setWindowIcon(QIcon(genv.v__app__img__int__ + "/winico.png"))
         
         self.worker_hasFocus = False
+        self.is_maximized    = False
+        
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.windowtitle = 'HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32'
         
         self.my_list = MyItemRecord(0, QStandardItem(""))
+        
         self.init_ui()
-    
+        
     # --------------------
     # dialog exit ? ...
     # --------------------
@@ -5587,8 +12285,8 @@ class FileWatcherGUI(QDialog):
                 msg = QMessageBox()
                 msg.setWindowTitle("Warnin")
                 msg.setText(
-                    "The help file for  the Application\n"
-                    "Could not be found !")
+                    _("The help file for the Application\n"
+                    + "Could not be found !"))
                 msg.setIcon(QMessageBox.Warning)
                 
                 btn_ok = msg.addButton(QMessageBox.Ok)
@@ -5637,6 +12335,34 @@ class FileWatcherGUI(QDialog):
         self.tab1_path_lineEdit.setText(f"{self.tab1_path_file}")
         return
     
+    def on_treeview_clicked(self, index):
+        row  = index.row()
+        col  = index.column()
+        item = self.tab2_tree_model.itemFromIndex(index)
+        text = item.text()
+        print(f"Clicked row: {row}, col: {col}, text: {text}")
+    
+    def on_data_changed(self, top_left, bottom_right, roles):
+        if Qt.EditRole in roles:
+            for row in range(top_left.row(), bottom_right.row() + 1):
+                for column in range(top_left.column(), bottom_right.column() + 1):
+                    index = self.tab2_tree_model.index(row, column)
+                    item  = self.tab2_tree_model.itemFromIndex(index)
+                    text  = item.text()
+                    
+                    if text == "Complete":
+                        icon_path = os.path.join(genv.v__app__img__int__, "icon_white"  + genv.v__app__img_ext__)
+                    elif text == "Needs Review":
+                        icon_path = os.path.join(genv.v__app__img__int__, "icon_blue"   + genv.v__app__img_ext__)
+                    elif text == "In Progress":
+                        icon_path = os.path.join(genv.v__app__img__int__, "icon_yellow" + genv.v__app__img_ext__)
+                    elif text == "Out of Date":
+                        icon_path = os.path.join(genv.v__app__img__int__, "icon_red"    + genv.v__app__img_ext__)
+                    else:
+                        icon_path = os.path.join(genv.v__app__img__int__, "edit"        + genv.v__app__img_ext__)
+                    
+                    item.setIcon(QIcon(icon_path))
+    
     def populate_tree_view(self, file_path, icon):
         with open(file_path, 'r') as file:
             roots = []
@@ -5653,13 +12379,15 @@ class FileWatcherGUI(QDialog):
                 item_name = line.strip('+').strip()
                 
                 new_item = QStandardItem(item_name)
-                new_item.setIcon(QIcon(icon))
+                new_item.setIcon(QIcon(os.path.join(genv.v__app__img__int__, "open-folder" + genv.v__app__img_ext__)))
                 
-                global item2
-                item1 = QStandardItem(str(self.topic_counter))
-                item2 = QStandardItem(" ") #item2.setIcon(QIcon(icon))
-                item3 = QStandardItem(" ")
-                item4 = QStandardItem(" ")
+                try:
+                    item1 = QStandardItem(str(self.topic_counter))
+                    item2 = QStandardItem(" ") #; item2.setIcon(QIcon(icon))
+                    item3 = QStandardItem(" ") #; item3.setIcon(QIcon(icon))
+                    item4 = QStandardItem(" ") #; item4.setIcon(QIcon(icon))
+                except Exception as e:
+                    print(e)
                 
                 self.my_list.add(self.topic_counter, item1)
                 
@@ -5730,7 +12458,47 @@ class FileWatcherGUI(QDialog):
         
         menu.addAction(self.menu_action)
         return
-        
+    
+    def open_context_topics_menu(self, position: QPoint):
+        index = self.tab2_tree_view.indexAt(position)
+        if index.isValid():
+            item_text = self.tab2_tree_model.itemFromIndex(index).text()
+            print(f"Item text: {item_text}")
+            # Context menu for tree items
+            menu = QMenu()
+            menu.setStyleSheet(_("css_menu_button"))
+            
+            action1 = QAction(_("Add Topic"), self)
+            action2 = QAction(_("Add Sub Topic"), self)
+            action3 = QAction(_("Rename Topic"), self)
+            #
+            action4 = QAction(_("Move Up"), self)
+            action5 = QAction(_("Move Down"), self)
+            action6 = QAction(_("Move Left"), self)
+            action7 = QAction(_("Move Right"), self)
+            #
+            action8 = QAction(_("Delete"), self)
+            
+            menu.addAction(action1)
+            menu.addAction(action2)
+            menu.addSeparator()
+            menu.addAction(action3)
+            menu.addSeparator()
+            menu.addAction(action4)
+            menu.addAction(action5)
+            menu.addAction(action6)
+            menu.addAction(action7)
+            menu.addSeparator()
+            menu.addAction(action8)
+            
+            menu.exec_(self.tab2_tree_view.viewport().mapToGlobal(position))
+            
+    def add_item_with_icon(self, parent, text, icon_path):
+        item = QStandardItem(text)
+        item.setIcon(QIcon(icon_path))
+        parent.appendRow(item)
+        return item
+    
     def init_ui(self):
         # mouse tracking
         self.setMouseTracking(True)
@@ -5747,31 +12515,43 @@ class FileWatcherGUI(QDialog):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0,0,0,0)
         
+        layout = QVBoxLayout()
+                        
+        self.title_bar = CustomTitleBar(self.windowtitle, self)
+        self.title_bar.minimize_button.clicked.connect(self.showMinimized)
+        self.title_bar.maximize_button.clicked.connect(self.showMaximized)
+        self.title_bar.close_button.clicked.connect(self.close)
+        
+        content = QWidget()
+        content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(0,0,0,0)
+        content.setLayout(content_layout)
+        
         # menu bar
         self.menu_bar = QMenuBar(self)
         self.menu_bar.setStyleSheet(genv.css_menu_item_style)
         
         self.menu_style_bg = "background-color:navy;"
         menu_list = [
-            ["&File",
+            [_("&File"),
                 [
-                    ["New"       , "Ctrl+N", self.menu_file_clicked_new   ],
-                    ["Open"      , "Ctrl+O", self.menu_file_clicked_open  ],
-                    ["Save"      , "Ctrl+S", self.menu_file_clicked_save  ],
-                    ["Save As...", ""      , self.menu_file_clicked_saveas],
-                    ["Exit"      , "Ctrl+X", self.menu_file_clicked_exit  ]
+                    [_("New...")    , "Ctrl+N", self.menu_file_clicked_new   ],
+                    [_("Open")      , "Ctrl+O", self.menu_file_clicked_open  ],
+                    [_("Save")      , "Ctrl+S", self.menu_file_clicked_save  ],
+                    [_("Save as..."), ""      , self.menu_file_clicked_saveas],
+                    [_("Exit")      , "Ctrl+X", self.menu_file_clicked_exit  ]
                 ]
             ],
-            ["&Edit",
+            [_("&Edit"),
                 [
-                    ["Undo"     , ""      , self.menu_edit_clicked_undo     ],
-                    ["Redo"     , ""      , self.menu_edit_clicked_redo     ],
-                    ["Clear All", "Ctrl+0", self.menu_edit_clicked_clearall ]
+                    [_("Undo")     , ""      , self.menu_edit_clicked_undo     ],
+                    [_("Redo")     , ""      , self.menu_edit_clicked_redo     ],
+                    [_("Clear All"), "Ctrl+0", self.menu_edit_clicked_clearall ]
                 ]
             ],
-            ["&Help",
+            [_("&Help"),
                 [
-                    ["About...", "F1", self.menu_help_clicked_about ]
+                    [_("About..."), "F1", self.menu_help_clicked_about ]
                 ]
             ]
         ]
@@ -5783,13 +12563,14 @@ class FileWatcherGUI(QDialog):
                 subs = menu_item
                 self.add_menu_item(subs[0], subs[1], mbar, subs[2])
         
-        self.layout.addWidget( self.menu_bar )
-        self.menu_bar.show()
+        #self.layout.addWidget( self.menu_bar )
+        #self.menu_bar.show()
         
         # tool bar
         self.tool_bar = QToolBar()
         self.tool_bar.setContentsMargins(0,0,0,0)
-        self.tool_bar.setStyleSheet(_("toolbar_css"))
+        self.tool_bar.setMinimumHeight(36)
+        self.tool_bar.setStyleSheet(_(genv.toolbar_css))
         
         self.tool_bar_button_exit = QToolButton()
         self.tool_bar_button_exit.setText("Clear")
@@ -5805,8 +12586,8 @@ class FileWatcherGUI(QDialog):
         
         self.tool_bar.addWidget(self.tool_bar_button_exit)
         
-        self.layout.addWidget(self.tool_bar)
-        self.tool_bar.show()
+        #self.layout.addWidget(self.tool_bar)
+        #self.tool_bar.show()
         
         # status bar
         self.status_bar = QStatusBar()
@@ -5818,9 +12599,7 @@ class FileWatcherGUI(QDialog):
         self.main_layout = QHBoxLayout()
         self.main_widget = QWidget()
         
-        self.main_widget.setContentsMargins(0,0,0,0)
         self.main_widget.setStyleSheet("padding:0px;margin:0px;")
-        
         
         self.side_scroll = QScrollArea()
         self.side_widget = QWidget()
@@ -5829,25 +12608,34 @@ class FileWatcherGUI(QDialog):
         self.side_widget.setContentsMargins(0,0,0,0)
         self.side_scroll.setContentsMargins(0,0,0,0)
         
-        self.side_btn1 = myIconButton(self,  0, "Help"   , "Help Authoring for/with:\no doxygen\no HelpNDoc")
-        self.side_btn2 = myIconButton(self,  1, "dBASE"  , "dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !")
-        self.side_btn3 = myIconButton(self,  2, "Pascal" , "Pascal old school programming\no Delphi\no FPC")
-        self.side_btn4 = myIconButton(self,  3, "ISO C"  , "C / C++ embeded programming\nor cross platform")
-        self.side_btn5 = myIconButton(self,  4, "Java"   , "Java modern cross programming\nfor any device")
-        self.side_btn6 = myIconButton(self,  5, "Python" , "Python modern GUI programming\nlets rock AI\nand TensorFlow")
-        self.side_btn7 = myIconButton(self,  6, "LISP"   , "LISP traditional programming\nultimate old school")
+        self.side_btn0 = myIconButton(self,  0, _("Help")      , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
+        self.side_btn1 = myIconButton(self,  1, _("dBASE")     , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
+        self.side_btn2 = myIconButton(self,  2, _("Pascal")    , _("Pascal old school programming\no Delphi\no FPC"))
+        self.side_btn3 = myIconButton(self,  3, _("ISO C")     , _("C / C++ embeded programming\nor cross platform"))
+        self.side_btn4 = myIconButton(self,  4, _("Java")      , _("Java modern cross programming\nfor any device"))
+        self.side_btn5 = myIconButton(self,  5, _("Python")    , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
+        self.side_btn6 = myIconButton(self,  6, _("JavaScript"), _("JavaScript programming"))
+        self.side_btn7 = myIconButton(self,  7, _("LISP")      , _("LISP traditional programming\nultimate old school"))
         #
-        self.side_btn8 = myIconButton(self, 10, "Locales", "" \
-            + "Localization your Application with different supported languages\n" \
-            + "around the World.\n" \
-            + "Used tools are msgfmt - the Unix Tool for generationg .mo files.\n")
+        self.side_btn8 = myIconButton(self,  8, _("Locales"), _(""
+            + "Localization your Application with different supported languages\n"
+            + "around the World.\n"
+            + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
         #
-        self.side_btn9 = myIconButton(self,  11, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btn9 = myIconButton(self,   9, "Console", "Your classical style of commands")
+        self.side_btnA = myIconButton(self,  10, "Todo / Tasks", "Your todo's")
+        self.side_btnB = myIconButton(self,  11, "Setup", "Setup your Project")
+        self.side_btnC = myIconButton(self,  12, "SSL Certs", "Setup SSL")
+        self.side_btnD = myIconButton(self,  13, "GitHub.com", "Publish Project")
+        self.side_btnE = myIconButton(self,  14, "Web Server", "Configure Web Server")
+        self.side_btnF = myIconButton(self,  15, "MySQL", "Configure MySQL")
+        self.side_btnG = myIconButton(self,  16, "Squid", "Configure Squid")
+        self.side_btnH = myIconButton(self,  17, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btnI = myIconButton(self,  18, _("Settings")   , _("Settings for this Application\n\n"))
         
-        
-        self.side_btn1.bordercolor = "lime"
-        self.side_btn1.state       = 2
-        self.side_btn1.set_style()
+        self.side_btn0.bordercolor = "lime"
+        self.side_btn0.state       = 2
+        self.side_btn0.set_style()
         
         self.side_widget.setMaximumWidth(120)
         self.side_widget.setLayout(self.side_layout)
@@ -5857,26 +12645,36 @@ class FileWatcherGUI(QDialog):
         self.side_scroll.setWidgetResizable(True)
         self.side_scroll.setMinimumWidth(130)
         self.side_scroll.setMaximumWidth(130)
+        self.side_scroll.setStyleSheet(_("ScrollBarCSS"))
         self.side_scroll.setWidget(self.side_widget)
         
         ####
+               
         self.main_layout.addWidget(self.side_scroll)
-        
-        
+                
         self.handleDBase()
         self.handlePascal()
         self.handleIsoC()
         self.handleJava()
         self.handlePython()
+        self.handleJavaScript()
         self.handleLISP()
         self.handleLocales()
+        self.handleConsole()
+        self.handleTodo()
+        self.handleSetup()
+        self.handleCertSSL()
+        self.handleGitHub()
+        self.handleApache()
+        self.handleMySQL()
+        self.handleSquid()
         self.handleCommodoreC64()
-        
+        self.handleSettings()
         
         
         # first register card - action's ...
         self.help_tabs = QTabWidget()
-        self.help_tabs.setStyleSheet(css_tabs)
+        self.help_tabs.setStyleSheet(_(genv.css_tabs))
         
         # help
         self.tab0_0 = QWidget()
@@ -5886,27 +12684,17 @@ class FileWatcherGUI(QDialog):
         self.tab4   = QWidget()
         
         # add tabs
-        self.help_tabs.addTab(self.tab0_0, "Help Project")
-        self.help_tabs.addTab(self.tab1_0, "Pre-/Post Actions")
-        self.help_tabs.addTab(self.tab2, "Topics")
-        self.help_tabs.addTab(self.tab3, "DoxyGen")
-        self.help_tabs.addTab(self.tab4, "Content")
+        self.help_tabs.addTab(self.tab0_0, _("Help Project"))
+        self.help_tabs.addTab(self.tab1_0, _("Pre-/Post Actions"))
+        self.help_tabs.addTab(self.tab3,   _("HelpNDoc"))
+        self.help_tabs.addTab(self.tab4,   _("Content"))
         
         self.tab_widget_tabs = QTabWidget(self.tab4)
         self.tab_widget_tabs.setMinimumWidth(830)
         self.tab_widget_tabs.setMinimumHeight(650)
-        self.tab_dbase  = QWidget()
-        self.tab_pascal = QWidget()
         self.tab_html   = QWidget()
-        self.tab_widget_tabs.addTab(self.tab_dbase , "dBase" )
-        self.tab_widget_tabs.addTab(self.tab_pascal, "Pascal")
+        self.tab_widget_tabs.addTab(self.tab2, "Topics")
         self.tab_widget_tabs.addTab(self.tab_html  , "HTML"  )
-        
-        
-        self.tab_dbase_layout = QVBoxLayout(self.tab_dbase)
-        self.tab_dbase_layout.setAlignment(Qt.AlignTop)
-        self.tab_dbase_editor = myDBaseTextEditor(self)
-        self.tab_dbase_layout.addWidget(self.tab_dbase_editor)
         
         #
         self.main_layout.addWidget(self.help_tabs)
@@ -5986,7 +12774,6 @@ class FileWatcherGUI(QDialog):
             self.devices_list_storages.addItem(devices_list_item)
         #
         
-        
         self.devices_tabs_label3 = QPushButton()
         self.devices_tabs_label3.setText("  Team Server:  ")
         self.devices_tabs_label3.setFont(font)
@@ -6051,10 +12838,10 @@ class FileWatcherGUI(QDialog):
         list_layout_a.addLayout(list_layout_1)
         
         list_widget_1.setFocusPolicy(Qt.NoFocus)
-        list_widget_1.setStyleSheet(css__widget_item)
+        list_widget_1.setStyleSheet(_(genv.css__widget_item))
         list_widget_1.setMinimumHeight(300)
         list_widget_1.setMaximumWidth(200)
-        self.list_widget_1_elements = ["Project", "Mode", "Output", "Diagrams" ]
+        self.list_widget_1_elements = [_("Project"), _("Mode"), _("Output"), _("Diagrams") ]
         #
         #
         for element in self.list_widget_1_elements:
@@ -6064,10 +12851,10 @@ class FileWatcherGUI(QDialog):
         list_widget_1.itemClicked.connect(self.handle_item_click)
         list_layout_1.addWidget(list_widget_1)
         
-        self.sv_1_1 = customScrollView_1("Project")
-        self.sv_1_2 = customScrollView_2("Mode");     self.sv_1_2.hide()
-        self.sv_1_3 = customScrollView_3("Output");   self.sv_1_3.hide()
-        self.sv_1_4 = customScrollView_4("Diagrams"); self.sv_1_4.hide()
+        self.sv_1_1 = customScrollView_1(self, _("Project"))
+        self.sv_1_2 = customScrollView_2(self, _("Mode"));     self.sv_1_2.hide()
+        self.sv_1_3 = customScrollView_3(self, _("Output"));   self.sv_1_3.hide()
+        self.sv_1_4 = customScrollView_4(self, _("Diagrams")); self.sv_1_4.hide()
         
         for i in range(1, 5):
             s = "sv_1_" + str(i)
@@ -6099,13 +12886,14 @@ class FileWatcherGUI(QDialog):
         list_layout_b.addLayout(list_layout_2)
         
         list_widget_2.setFocusPolicy(Qt.NoFocus)
-        list_widget_2.setStyleSheet(css__widget_item)
+        list_widget_2.setStyleSheet(_(genv.css__widget_item))
         list_widget_2.setMinimumHeight(300)
         list_widget_2.setMaximumWidth(200)
+        
         self.list_widget_2_elements = [                                     \
-            "Project", "Build", "Messages", "Input", "Source Browser",      \
+            _("Project"), _("Build"), _("Messages"), _("Input"), _("Source Browser"),      \
             "Index", "HTML", "LaTeX", "RTF", "Man", "XML", "DocBook",       \
-            "AutoGen", "SQLite3", "PerlMod", "Preprocessor", "External",    \
+            "AutoGen", "SQLite3", "PerlMod", "Preprocessor", _("External"),    \
             "Dot" ]
         #
         #
@@ -6127,8 +12915,10 @@ class FileWatcherGUI(QDialog):
         i    = 0
         for item in tab1_classes:
             s = "sv_2_" + str(i+1)
-            v1 = eval(item+"('')")
+            #print("sv_2: ", item)
+            v1 = eval(item + "(self,'')")
             v1.setName(self.list_widget_2_elements[i])
+            v1.setObjectName(self.list_widget_2_elements[i])
             objs.append(v1)
             setattr(self, s, v1)
             list_layout_2.addWidget(v1)
@@ -6138,35 +12928,94 @@ class FileWatcherGUI(QDialog):
         self.sv_2_1.show()
         self.hw_2 = QWidget()
         
-        list_layout_b.addWidget(sv_help)
+        list_layout_b.addWidget(genv.sv_help)
         ########################
         self.tab3_top_layout.addWidget(self.tab_widget_1)
         
         
         self.tab2_file_path = os.path.join(genv.v__app__internal__, "topics.txt")
+        if not os.path.exists(self.tab2_file_path):
+            showError("Error: file does not exists:\n" + self.tab2_file_path)
+            sys.exit(1)
+        print("---> " + self.tab2_file_path)
         
-        global tab2_tree_view
-        tab2_tree_view = QTreeView()
-        tab2_tree_view.setStyleSheet(_(css_model_header))
+        self.tab2_tree_view = QTreeView()
+        self.tab2_tree_view.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
+        self.tab2_tree_view.clicked.connect(self.on_treeview_clicked)
+        
         self.tab2_tree_model = QStandardItemModel()
-        self.tab2_tree_model.setHorizontalHeaderLabels(["Topic name", "ID", "Status", "Help icon", "In Build"])
-        tab2_tree_view.setModel(self.tab2_tree_model)
+        self.tab2_tree_model.setHorizontalHeaderLabels([_("Topic name"), "ID", "Status", "Help icon", "In Build"])
+        self.tab2_tree_model.dataChanged.connect(self.on_data_changed)
+        self.tab2_tree_view.setModel(self.tab2_tree_model)
         
-        self.tab2_top_layout.addWidget(tab2_tree_view)
-        self.populate_tree_view(self.tab2_file_path, os.path.join(genv.v__app__img__int__, "open-folder" + genv.v__app__img_ext__))
         
-        self.delegateID     = SpinEditDelegateID     (tab2_tree_view)
-        self.delegateStatus = ComboBoxDelegateStatus (tab2_tree_view)
-        self.delegateIcon   = ComboBoxDelegateIcon   (tab2_tree_view)
-        self.delegateBuild  = ComboBoxDelegateBuild  (tab2_tree_view)
+        root_node = self.tab2_tree_model.invisibleRootItem()
+        self.fold_icon = genv.v__app__internal__ + "/img/floppy-disk.png"
         
-        tab2_tree_view.setItemDelegateForColumn(1, self.delegateID)
-        tab2_tree_view.setItemDelegateForColumn(2, self.delegateStatus)
-        tab2_tree_view.setItemDelegateForColumn(3, self.delegateIcon)
-        tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
+        self.tab2_tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tab2_tree_view.customContextMenuRequested.connect(self.open_context_topics_menu)
+        
+        self.tab2_pushbuttonAdd = QPushButton(_("Add"))
+        self.tab2_pushbuttonAdd.setMinimumHeight(32)
+        self.tab2_pushbuttonAdd.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonAddSub = QPushButton(_("Add Sub Topic"))
+        self.tab2_pushbuttonAddSub.setMinimumHeight(32)
+        self.tab2_pushbuttonAddSub.setStyleSheet(_(genv.css_button_style))
+        
+        self.topics_layout = QVBoxLayout()
+        
+        self.tab2_pushbuttonRename    = QPushButton(_("Rename Topic"))
+        self.tab2_pushbuttonRename.setMinimumHeight(32)
+        self.tab2_pushbuttonRename.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveUp    = QPushButton(_("Move Up"))
+        self.tab2_pushbuttonMoveUp.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveUp.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveDown  = QPushButton(_("Move Down"))
+        self.tab2_pushbuttonMoveDown.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveDown.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveLeft  = QPushButton(_("Move Left"))
+        self.tab2_pushbuttonMoveLeft.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveLeft.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveRight = QPushButton(_("Move Right"))
+        self.tab2_pushbuttonMoveRight.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveRight.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonRemove    = QPushButton(_("Delete"))
+        self.tab2_pushbuttonRemove.setMinimumHeight(32)
+        self.tab2_pushbuttonRemove.setStyleSheet(_(genv.css_button_style))
+        
+        self.topics_layout.addWidget(self.tab2_pushbuttonAdd)
+        self.topics_layout.addWidget(self.tab2_pushbuttonAddSub)
+        self.topics_layout.addWidget(self.tab2_pushbuttonRename)
+        self.topics_layout.addWidget(self.tab2_pushbuttonMoveUp)
+        self.topics_layout.addWidget(self.tab2_pushbuttonMoveDown)
+        self.topics_layout.addWidget(self.tab2_pushbuttonMoveLeft)
+        self.topics_layout.addWidget(self.tab2_pushbuttonMoveRight)
+        self.topics_layout.addWidget(self.tab2_pushbuttonRemove)
+        self.topics_layout.addStretch()
+        
+        self.tab2_top_layout.addWidget(self.tab2_tree_view)
+        self.tab2_top_layout.addLayout(self.topics_layout)
+        
+        self.populate_tree_view(self.tab2_file_path,os.path.join(genv.v__app__img__int__, "edit" + genv.v__app__img_ext__))
+        
+        
+        self.delegateID     = SpinEditDelegateID     (self.tab2_tree_view)
+        self.delegateStatus = ComboBoxDelegateStatus (self.tab2_tree_view)
+        self.delegateIcon   = ComboBoxDelegateIcon   (self.tab2_tree_view)
+        self.delegateBuild  = ComboBoxDelegateBuild  (self.tab2_tree_view)
+        
+        self.tab2_tree_view.setItemDelegateForColumn(1, self.delegateID)
+        self.tab2_tree_view.setItemDelegateForColumn(2, self.delegateStatus)
+        self.tab2_tree_view.setItemDelegateForColumn(3, self.delegateIcon)
+        self.tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
         
         #self.tab2_top_layout.
-        
         
         # create project tab
         self.tab0_top_layout    = QHBoxLayout(self.tab0_0)
@@ -6205,14 +13054,14 @@ class FileWatcherGUI(QDialog):
         font = QFont(genv.v__app__font, 11)
         font.setPointSize(11)
         #
-        self.tab0_fold_text1 = QLabel("Directory:")
+        self.tab0_fold_text1 = QLabel(_("Directory:"))
         self.tab0_fold_text1.setMaximumWidth(84)
         self.tab0_fold_text1.setFont(font)
         
         self.tab0_fold_edit1 = myLineEdit()
         self.tab0_fold_edit1.returnPressed.connect(self.tab0_fold_edit1_return)
         
-        self.tab0_fold_push1 = MyEllipseButton(font)
+        self.tab0_fold_push1 = MyEllipseButton(self, font, 1)
         self.tab0_fold_userd = QDir.homePath()
         
         if (self.tab0_fold_userd[1:1] == ":") or (":" in self.tab0_fold_userd):
@@ -6232,11 +13081,11 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_push13  = MyPushButton("Repro" , 3)
         self.tab0_fold_push14  = MyPushButton("Build" , 4)
         #
-        self.tab0_fold_text2   = QLabel("Project-Name:")
+        self.tab0_fold_text2   = QLabel(_("Project-Name:"))
         self.tab0_fold_text2.setMaximumWidth(84)
         self.tab0_fold_text2.setFont(font)
         self.tab0_fold_edit2   = myLineEdit()
-        self.tab0_fold_push2   = MyEllipseButton(font)
+        self.tab0_fold_push2   = MyEllipseButton(self, font, 2)
         
         self.tab0_fold_scroll2 = QScrollArea()
         self.tab0_fold_scroll2.setMaximumWidth(300)
@@ -6314,6 +13163,7 @@ class FileWatcherGUI(QDialog):
         #
         #self.img_scroll2_layout.addWidget(self.tab0_fold_scroll2)
         #
+        
         global img_ccpplus
         global img_javadoc
         global img_freepas
@@ -6349,7 +13199,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_file_tree = QTreeView()
         self.tab0_file_list = QListView()
         
-        self.tab0_file_tree.setStyleSheet(_(css_model_header))
+        self.tab0_file_tree.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
         
         self.tab0_file_tree.setModel(self.tab0_dir_model)
         self.tab0_file_list.setModel(self.tab0_file_model)
@@ -6368,10 +13218,10 @@ class FileWatcherGUI(QDialog):
         self.tab0_help_list.font().setBold(True)
         
         liste = [
-            ["Empty Project"         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
-            ["Recipe"                , os.path.join("recipe"       + genv.v__app__img_ext__) ],
-            ["API Project"           , os.path.join("api"          + genv.v__app__img_ext__) ],
-            ["Software Documentation", os.path.join("software"     + genv.v__app__img_ext__) ],
+            [_("Empty Project")         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
+            [_("Recipe")                , os.path.join("recipe"       + genv.v__app__img_ext__) ],
+            [_("API Project")           , os.path.join("api"          + genv.v__app__img_ext__) ],
+            [_("Software Documentation"), os.path.join("software"     + genv.v__app__img_ext__) ],
         ]
         for item in liste:
             self.list_item1 = QListWidgetItem(_(item[0]),self.tab0_help_list)
@@ -6403,8 +13253,8 @@ class FileWatcherGUI(QDialog):
         # ------------------
         # left, top part ...
         # ------------------
-        self.tab1_fold_text = QLabel('Directory:', self.tab1_0)
-        self.tab1_file_text = QLabel("File:", self.tab1_0)
+        self.tab1_fold_text = QLabel(_("Directory:"), self.tab1_0)
+        self.tab1_file_text = QLabel(_("File:"), self.tab1_0)
         #
         self.tab1_left_layout.addWidget(self.tab1_fold_text)
         
@@ -6431,7 +13281,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_file_tree = QTreeView()
         self.tab1_file_list = QListView()
         
-        self.tab1_file_tree.setStyleSheet(_(css_model_header))
+        self.tab1_file_tree.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
         
         self.tab1_file_tree.setModel(self.tab1_dir_model)
         self.tab1_file_list.setModel(self.tab1_file_model)
@@ -6446,10 +13296,9 @@ class FileWatcherGUI(QDialog):
         self.tab1_file_tree.clicked.connect(self.tab1_file_tree_clicked)
         self.tab1_file_list.clicked.connect(self.tab1_file_list_clicked)
         
-        
         # Eingabezeile für den Pfad
         self.tab1_path_lineEdit = QLineEdit(self.tab1_0)
-        self.tab1_path_lineEdit.setStyleSheet(css_button_style)
+        self.tab1_path_lineEdit.setStyleSheet(_(genv.css_button_style))
         self.tab1_path_lineButton = QPushButton("...")
         self.tab1_path_lineButton.setMinimumWidth(28)
         self.tab1_path_lineButton.setMaximumHeight(28)
@@ -6464,19 +13313,19 @@ class FileWatcherGUI(QDialog):
         
         # Start und Stop Buttons
         self.tab1_startButton = QPushButton("Start", self.tab1_0)
-        self.tab1_startButton.setStyleSheet(css_button_style)
+        self.tab1_startButton.setStyleSheet(_(genv.css_button_style))
         self.tab1_startButton.clicked.connect(self.startWatching)
         self.tab1_left_layout.addWidget(self.tab1_startButton)
         
         self.tab1_stopButton = QPushButton('Stop', self.tab1_0)
-        self.tab1_stopButton.setStyleSheet(css_button_style)
+        self.tab1_stopButton.setStyleSheet(_(genv.css_button_style))
         self.tab1_stopButton.clicked.connect(self.stopWatching)
         self.tab1_left_layout.addWidget(self.tab1_stopButton)
         
         # ComboBox für Zeitangaben
         self.tab1_timeComboBox = QComboBox(self.tab1_0)
         self.tab1_timeComboBox.addItems(["10", "15", "20", "25", "30", "60", "120"])
-        self.tab1_timeComboBox.setStyleSheet(css_button_style)
+        self.tab1_timeComboBox.setStyleSheet(_(genv.css_button_style))
         self.tab1_timeComboBox.setMaximumWidth(49)
         self.tab1_left_layout.addWidget(self.tab1_timeComboBox)
         
@@ -6486,8 +13335,10 @@ class FileWatcherGUI(QDialog):
         
         # mitte Seite
         self.tab1_preActionList = QListWidget(self.tab1_0)
-        self.tab1_preActionList_Label  = QLabel("Content:", self.tab1_0)
+        self.tab1_preActionList.setStyleSheet(_("ScrollBarCSS"))
+        self.tab1_preActionList_Label  = QLabel(_("Content:"), self.tab1_0)
         self.tab1_preActionList_Editor = QPlainTextEdit()
+        self.tab1_preActionList_Editor.setStyleSheet(_("ScrollBarCSS"))
         #
         self.tab1_middle_layout.addWidget(self.tab1_preActionList)
         self.tab1_middle_layout.addWidget(self.tab1_preActionList_Label)
@@ -6495,7 +13346,7 @@ class FileWatcherGUI(QDialog):
         
         #
         self.tab1_preActionComboBox = QComboBox(self.tab1_0)
-        self.tab1_preActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
+        self.tab1_preActionComboBox.addItems([_(" Message"), _(" Script"), " URL", " FTP"])
         self.tab1_preActionComboBox.setStyleSheet(_(css_combobox_style))
         self.tab1_timeComboBox.setMaximumWidth(49)
         self.tab1_middle_layout.addWidget(self.tab1_preActionComboBox)
@@ -6506,7 +13357,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_pre_layout = QHBoxLayout()
         
         self.tab1_preEditLineText = QLineEdit(self.tab1_0)
-        self.tab1_preEditLineText.setStyleSheet(css_button_style)
+        self.tab1_preEditLineText.setStyleSheet(_(genv.css_button_style))
      
         self.tab1_path_lineButton.setMaximumHeight(28)
         
@@ -6515,14 +13366,14 @@ class FileWatcherGUI(QDialog):
         
         self.tab1_middle_layout.addLayout(self.tab1_pre_layout)
         
-        self.tab1_preAddButton = QPushButton("Add")
-        self.tab1_preAddButton.setStyleSheet(css_button_style)
+        self.tab1_preAddButton = QPushButton(_("Add"))
+        self.tab1_preAddButton.setStyleSheet(_(genv.css_button_style))
         #
-        self.tab1_preDelButton = QPushButton("Delete")
-        self.tab1_preDelButton.setStyleSheet(css_button_style)
+        self.tab1_preDelButton = QPushButton(_("Delete"))
+        self.tab1_preDelButton.setStyleSheet(_(genv.css_button_style))
         #            
-        self.tab1_preClrButton = QPushButton("Clear All")
-        self.tab1_preClrButton.setStyleSheet(css_button_style)
+        self.tab1_preClrButton = QPushButton(_("Clear All"))
+        self.tab1_preClrButton.setStyleSheet(_(genv.css_button_style))
         
         self.tab1_preAddButton.clicked.connect(self.button_clicked_preadd)
         self.tab1_preDelButton.clicked.connect(self.button_clicked_preDel)
@@ -6535,15 +13386,17 @@ class FileWatcherGUI(QDialog):
         
         # rechte Seite
         self.tab1_postActionList = QListWidget(self.tab1_0)
-        self.tab1_postActionList_Label  = QLabel("Content:", self.tab1_0)
+        self.tab1_postActionList.setStyleSheet(_("ScrollBarCSS"))
+        self.tab1_postActionList_Label  = QLabel(_("Content:"), self.tab1_0)
         self.tab1_postActionList_Editor = QPlainTextEdit()
+        self.tab1_postActionList_Editor.setStyleSheet(_("ScrollBarCSS"))
         #
         self.tab1_right_layout.addWidget(self.tab1_postActionList)
         self.tab1_right_layout.addWidget(self.tab1_postActionList_Label)
         self.tab1_right_layout.addWidget(self.tab1_postActionList_Editor)
         
         self.tab1_postActionComboBox = QComboBox(self.tab1_0)
-        self.tab1_postActionComboBox.addItems([" Message", " Script", " URL", " FTP"])
+        self.tab1_postActionComboBox.addItems([_(" Message"), _(" Script"), " URL", " FTP"])
         self.tab1_postActionComboBox.setStyleSheet(_(css_combobox_style))
         self.tab1_right_layout.addWidget(self.tab1_postActionComboBox)
         
@@ -6553,19 +13406,19 @@ class FileWatcherGUI(QDialog):
         self.tab1_post_layout = QHBoxLayout()
         
         self.tab1_postEditLineText = QLineEdit(self.tab1_0)
-        self.tab1_postEditLineText.setStyleSheet(css_button_style)
+        self.tab1_postEditLineText.setStyleSheet(_(genv.css_button_style))
         #
         self.tab1_post_layout.addWidget(self.tab1_postEditLineText)
         self.tab1_right_layout.addLayout(self.tab1_post_layout)
         
-        self.tab1_postAddButton = QPushButton("Add")
-        self.tab1_postAddButton.setStyleSheet(css_button_style)
+        self.tab1_postAddButton = QPushButton(_("Add"))
+        self.tab1_postAddButton.setStyleSheet(_(genv.css_button_style))
         #
-        self.tab1_postDelButton = QPushButton("Delete")
-        self.tab1_postDelButton.setStyleSheet(css_button_style)
+        self.tab1_postDelButton = QPushButton(_("Delete"))
+        self.tab1_postDelButton.setStyleSheet(_(genv.css_button_style))
         #
-        self.tab1_postClrButton = QPushButton("Clear All")
-        self.tab1_postClrButton.setStyleSheet(css_button_style)
+        self.tab1_postClrButton = QPushButton(_("Clear All"))
+        self.tab1_postClrButton.setStyleSheet(_(genv.css_button_style))
         
         self.tab1_postAddButton.clicked.connect(self.button_clicked_postadd)
         self.tab1_postDelButton.clicked.connect(self.button_clicked_postDel)
@@ -6583,7 +13436,7 @@ class FileWatcherGUI(QDialog):
         self.profile1 = QWebEngineProfile("storage1", self.webView1)
         self.page1    = QWebEnginePage(self.profile1, self.webView1)
         self.webView1.setPage(self.page1)
-        self.webView1.setHtml(html_content, baseUrl = QUrl. fromLocalFile('.'))
+        self.webView1.setHtml(_(genv.html_content), baseUrl = QUrl.fromLocalFile('.'))
         
         self.tab5_top_layout.addWidget(self.webView1);            
         self.tab0_top_layout.addLayout(self.tab0_left_layout)
@@ -6591,19 +13444,59 @@ class FileWatcherGUI(QDialog):
         self.tab1_top_layout.addLayout(self.tab1_left_layout)
         self.tab1_top_layout.addLayout(self.tab1_middle_layout)
         self.tab1_top_layout.addLayout(self.tab1_right_layout)
+        print("0000")
+        layout.addWidget(self.title_bar  )
+        layout.addWidget(self.menu_bar   )
+        layout.addWidget(self.tool_bar   )
+        layout.addLayout(self.main_layout)
+        layout.addWidget(self.status_bar )
         
-        self.layout.addLayout(self.main_layout)
-        self.layout.addWidget(self.status_bar)
+        #
+        #self.layout.addLayout(self.main_layout)
+        #self.layout.addWidget(self.status_bar)
         
-        self.setLayout(self.layout)
-        self.setWindowTitle('HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32')
+        self.setLayout(layout)
+        self.setWindowTitle(self.windowtitle)
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
+        
+        widget     = self.tab0_fold_push2
+        global_pos = widget.mapToGlobal(QPoint(0, 0))
+        geom       = widget.geometry()
+        
+        self.helper_overlay = imageHelperOverlay(
+            genv.v__app__internal__ + "/img/blub.png",
+            geom.x()+20,
+            geom.y(),
+            self)
+        self.helper_overlay.show()
+
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
         
         self.interval = 0
         self.currentTime = 0
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        QTimer.singleShot(0, self.helper_positions)
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.helper_positions()
+    
+    def helper_positions(self):
+        control_pos  = self.tab0_fold_push2
+        control      = self.helper_overlay
+        
+        global_pos   = control_pos.mapToGlobal(QPoint(0, 0))
+        relative_pos = control_pos.pos()
+        
+        xpos = relative_pos.x()+70
+        ypos = relative_pos.y()+50
+        
+        control.setObjectName(f"X{xpos}:Y{ypos}")
+        control.move(xpos, ypos)
     
     # folder tree
     def openContextMenuTreeView(self, position):
@@ -6618,10 +13511,10 @@ class FileWatcherGUI(QDialog):
             menu.setStyleSheet(_("menu_css"))
             
             # Aktionen zum Menü hinzufügen
-            enters_action = QAction("Enter Directory", self)
-            create_action = QAction("Create", self)
-            delete_action = QAction("Delete", self)
-            rename_action = QAction("Rename", self)
+            enters_action = QAction(_("Enter Directory"), self)
+            create_action = QAction(_("Create"), self)
+            delete_action = QAction(_("Delete"), self)
+            rename_action = QAction(_("Rename"), self)
             
             menu.addAction(enters_action)
             menu.addAction(create_action)
@@ -6641,6 +13534,7 @@ class FileWatcherGUI(QDialog):
         index = model.index(path)
         if index.isValid():
             tree_view.expand(index)
+    
     def entersDirectory(self, index):
         dir_path = self.tab0_dir_model.filePath(index)
         if os.path.isdir(dir_path):
@@ -6655,8 +13549,8 @@ class FileWatcherGUI(QDialog):
             dialog = QMessageBox(self)
             dialog.setWindowTitle("Enter Directory")
             dialog.setText(
-                "Operation successfully !\n"
-                "No Error.")
+                _("Operation successfully !\n"
+                + "No Error."))
             dialog.setFont(font)
             
             btn_ok = dialog.addButton(QMessageBox.Ok)
@@ -6671,8 +13565,8 @@ class FileWatcherGUI(QDialog):
             font = QFont(genv.v__app__font, 11)
             
             dialog = QInputDialog(self)
-            dialog.setWindowTitle("Create new directory")
-            dialog.setLabelText("Type-In the name:")
+            dialog.setWindowTitle(_("Create new directory"))
+            dialog.setLabelText(_("Type-In the name:"))
             dialog.setFont(font)
             
             if dialog.exec_() == QInputDialog.Accepted:
@@ -6687,8 +13581,8 @@ class FileWatcherGUI(QDialog):
                         msg.setWindowTitle("Information")
                         msg.setFont(font)
                         msg.setText(
-                            "The directpry was create successfully.\n"
-                            "No errors")
+                            _("The directpry was create successfully.\n"
+                            + "No errors."))
                         msg.setIcon(QMessageBox.Information)
                         
                         btn_ok = msg.addButton(QMessageBox.Ok)
@@ -6698,11 +13592,11 @@ class FileWatcherGUI(QDialog):
                         result = msg.exec_()
                     else:
                         msg = QMessageBox()
-                        msg.setWindowTitle("Error")
+                        msg.setWindowTitle(_("Error"))
                         msg.setFont(font)
                         msg.setText(
-                            "The directpry already exists.\n"
-                            "Error.")
+                            _("The directpry already exists.\n"
+                            + "Error."))
                         msg.setIcon(QMessageBox.Information)
                         
                         btn_ok = msg.addButton(QMessageBox.Ok)
@@ -6713,9 +13607,9 @@ class FileWatcherGUI(QDialog):
                     
                 except PermissionError:
                     msg = QMessageBox()
-                    msg.setWindowTitle("Error")
+                    msg.setWindowTitle(_("Error"))
                     msg.setFont(font)
-                    msg.setText("No permissions to crrate this directpry !\n")
+                    msg.setText(_("No permissions to crrate this directpry !"))
                     msg.setIcon(QMessageBox.Warning)
                     
                     btn_ok = msg.addButton(QMessageBox.Ok)
@@ -6726,11 +13620,11 @@ class FileWatcherGUI(QDialog):
                     
                 except FileExistsError:
                     msg = QMessageBox()
-                    msg.setWindowTitle("Warning")
+                    msg.setWindowTitle(_("Warning"))
                     msg.setFont(font)
                     msg.setText(
-                        "A directpry with the same name already exists !\n"
-                        "Please try again, and giva a unique file name.")
+                        _("A directpry with the same name already exists !\n"
+                        + "Please try again, and giva a unique file name."))
                     msg.setIcon(QMessageBox.Warning)
                     
                     btn_ok = msg.addButton(QMessageBox.Ok)
@@ -6745,8 +13639,8 @@ class FileWatcherGUI(QDialog):
                     msg.setWindowTitle("Warning")
                     msg.setFont(font)
                     msg.setText(
-                        "The directpry could not be created !\n"
-                        "Please try again, with different file name.")
+                        _("The directpry could not be created !\n"
+                        + "Please try again, with different file name."))
                     msg.setIcon(QMessageBox.Warning)
                     
                     btn_ok = msg.addButton(QMessageBox.Ok)
@@ -6763,38 +13657,20 @@ class FileWatcherGUI(QDialog):
     def renameDirectory(self, index):
         file_path = self.tab0_dir_model.filePath(index)
         print(f"Umbenennen: {file_path}")
+        
+    def readFromFile(self, file_path):
+        file_content = ""
+        file = QFile(file_path)
+        if file.open(QFile.ReadOnly | QFile.Text):
+            stream = QTextStream(file)
+            file_content = stream.readAll()
+            file.close()
+        return file_content
     
     # dbase
-    def dbase_file_editor0_checkmessage(self, obj, new_content):
-        if obj.hasFocus():
-            msg = QMessageBox()
-            msg.setWindowTitle("Confirmation")
-            msg.setText(
-                "The file content has been changed on file system.\n" +
-                "Would you reload the new content ?")
-            msg.setIcon(QMessageBox.Question)
-            
-            btn_yes = msg.addButton(QMessageBox.Yes)
-            btn_no  = msg.addButton(QMessageBox.No)
-            
-            msg.setStyleSheet(_("msgbox_css"))
-            result = msg.exec_()
-            
-            if result == QMessageBox.Yes:
-                obj.setPlainText(new_content)
-                event.accept()
-            else:
-                event.ignore()
-    
-    def dbase_file_editor1_changed(self, file_path, new_content):
-        dbase_file_editor0_checkmessage(self.dbase_tabs_editor1, new_content)
-    #
-    def dbase_file_editor2_changed(self, file_path, new_content):
-        dbase_file_editor0_checkmessage(self.dbase_tabs_editor2, new_content)
-    
     def handleDBase(self):
         self.dbase_tabs = QTabWidget()
-        self.dbase_tabs.setStyleSheet(css_tabs)
+        self.dbase_tabs.setStyleSheet(_(genv.css_tabs))
         self.dbase_tabs.hide()
         
         self.dbase_tabs_project_widget = QWidget()
@@ -6805,21 +13681,19 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_reports_widget = QWidget()
         #
         #
-        self.dbase_tabs.addTab(self.dbase_tabs_project_widget, "dBASE Project")
-        self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, "dBASE Editor")
-        self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, "dBASE Designer")
-        self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, "dBASE SQL Builder")
-        self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, "dBASE Data Tables")
-        self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, "dBASE Reports")
+        self.dbase_tabs_project_widget.setContentsMargins(1,1,1,1)
         ####
-        self.dbase_tabs_editors_layout = QVBoxLayout()
-        self.dbase_tabs_editors_layout.setContentsMargins(2,2,2,2)
+        self.dbase_tabs.addTab(self.dbase_tabs_project_widget, _("dBASE Project"))
+        self.dbase_tabs.addTab(self.dbase_tabs_editors_widget, _("dBASE Editor"))
+        self.dbase_tabs.addTab(self.dbase_tabs_designs_widget, _("dBASE Designer"))
+        self.dbase_tabs.addTab(self.dbase_tabs_builder_widget, _("dBASE SQL Builder"))
+        self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, _("dBASE Data Tables"))
+        self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, _("dBASE Reports"))
+        ####
+        self.dbase_project = ApplicationProjectPage(self, self.dbase_tabs_project_widget, "dbase")
+        self.dbase_editors = ApplicationEditorsPage(self, self.dbase_tabs_editors_widget, "dbase")
+        ####
         
-        self.dbase_tabs_editor_menu = QWidget()
-        self.dbase_tabs_editor_menu.setStyleSheet("background-color:gray;")
-        self.dbase_tabs_editor_menu.setMinimumHeight(64)
-        #
-        ####
         self.dbase_tabs_data_tables_layout = QVBoxLayout()
         self.dbase_tabs_data_tables_layout.setContentsMargins(2,2,2,2)
         
@@ -6835,54 +13709,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_reports_menu.setStyleSheet("background-color:gray;")
         self.dbase_tabs_reports_menu.setMinimumHeight(64)
         #
-        
-        self.dbase_file_layout1 = QVBoxLayout()
-        self.dbase_file_layout1.setContentsMargins(1,0,0,1)
-        self.dbase_file_widget1 = QWidget()
-        
-        self.dbase_file_hlay = QHBoxLayout()
-        
-        custom_widget1 = CustomWidget1(self)
-        custom_widget2 = CustomWidget2(self)
-        
-        self.dbase_file_hlay.addWidget(custom_widget1)
-        self.dbase_file_hlay.addWidget(custom_widget2)
-        self.dbase_file_hlay.addStretch()
         #
-        self.dbase_tabs_editor_menu.setLayout(self.dbase_file_hlay)
-        
-        ####
-        self.dbase_tabs_editor1 = EditorTextEdit("./examples/dbase/example1.prg")
-        self.dbase_file_layout1.addWidget(self.dbase_tabs_editor1)
-        self.dbase_file_widget1.setLayout(self.dbase_file_layout1)
-        
-        self.dbase_file_editor1_filewatcher = FileSystemWatcher()
-        self.dbase_file_editor1_filewatcher.addFile("./examples/dbase/example1.prg")
-        self.dbase_file_editor1_filewatcher.fileContentChanged(self.dbase_file_editor1_changed)
-        #
-        ####
-        self.dbase_file_layout2 = QVBoxLayout()
-        self.dbase_file_layout2.setContentsMargins(1,0,0,1)
-        self.dbase_file_widget2 = QWidget()
-        ####
-        self.dbase_tabs_editor2 = EditorTextEdit("./examples/dbase/example2.prg")
-        self.dbase_file_layout2.addWidget(self.dbase_tabs_editor2)
-        self.dbase_file_widget2.setLayout(self.dbase_file_layout2)
-        
-        self.dbase_file_editor2_filewatcher = FileSystemWatcher()
-        self.dbase_file_editor2_filewatcher.addFile("./examples/dbase/example2.prg")
-        self.dbase_file_editor2_filewatcher.fileContentChanged(self.dbase_file_editor2_changed)
-        #
-        self.dbase_tabs_files  = QTabWidget()
-        self.dbase_tabs_files.setStyleSheet(css_tabs)
-        self.dbase_tabs_files.addTab(self.dbase_file_widget1, "Example1.prg")
-        self.dbase_tabs_files.addTab(self.dbase_file_widget2, "Example2.prg")
-        
-        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_editor_menu)
-        self.dbase_tabs_editors_layout.addWidget(self.dbase_tabs_files)
-        
-        
-        self.dbase_tabs_editors_widget.setLayout(self.dbase_tabs_editors_layout)
         ####
         self.dbase_builder_layout = QVBoxLayout()
         self.dbase_builder_layout.setContentsMargins(2,2,2,2)
@@ -6954,81 +13781,10 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs_builder_widget.setLayout(self.dbase_builder_layout)
         
         ####
-        self.dbase_designs_layout  = QVBoxLayout()
-        self.dbase_designs_layout.setContentsMargins(2,2,2,2)
-        self.dbase_designs_palette = QWidget()
-        self.dbase_designs_palette.setStyleSheet(_("bggy"))
-        self.dbase_designs_palette.setMinimumHeight(85)
-        self.dbase_designs_palette.setMaximumHeight(85)
-        #
-        self.dbase_palette_layout  = QHBoxLayout()
-        self.dbase_palette_layout.setContentsMargins(2,2,2,2)
-        self.dbase_palette_widget_lhs  = QLabel ()
-        self.dbase_palette_widget_mid  = QWidget()
-        self.dbase_palette_widget_rhs  = QLabel ()
-        #
-        self.dbase_palette_widget_lhs.setMaximumWidth(20)
-        self.dbase_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.dbase_palette_widget_lhs.setFont(font)
-        self.dbase_palette_widget_rhs.setFont(font)
-        #
-        self.dbase_palette_widget_lhs.setText(chr1)
-        self.dbase_palette_widget_rhs.setText(chr2)
-        #
-        self.dbase_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.dbase_palette_widget_mid.setStyleSheet(_("bggy"))
-        self.dbase_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.dbase_palette_widget_mid_layout = QHBoxLayout()
-        self.dbase_palette_widget_mid_tabs   = QTabWidget()
-        self.dbase_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.dbase_palette_widget_mid_tabs)
-        
-        self.dbase_palette_widget_mid_layout.addWidget(self.dbase_palette_widget_mid_tabs)
-        #
-        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_lhs)
-        self.dbase_palette_layout.addLayout(self.dbase_palette_widget_mid_layout)
-        self.dbase_palette_layout.addWidget(self.dbase_palette_widget_rhs)
-        #
-        self.dbase_designs_palette.setLayout(self.dbase_palette_layout)
-        ####
-        
-        self.dbase_designs_viewer  = myGridViewer(self)
-        self.dbase_designs_viewer.setStyleSheet(_("bgwh"))
-        
-        self.dbase_designs_layout.addWidget(self.dbase_designs_palette)
-        self.dbase_designs_layout.addWidget(self.dbase_designs_viewer)
-        #
-        self.dbase_tabs_designs_widget.setLayout(self.dbase_designs_layout)
-        ####
-        self.main_layout.addWidget(self.dbase_tabs)
-        #################
-        font = QFont(genv.v__app__font, 12)
-        self.dbase_btn1 = myMoveButton(" move me A ", self.dbase_designs_viewer.content)
-        self.dbase_btn2 = myMoveButton(" move me B ", self.dbase_designs_viewer.content)
-        self.dbase_btn3 = myMoveButton(" move me C ", self.dbase_designs_viewer.content)
-        #
-        self.dbase_btn1.move(20,20)
-        self.dbase_btn2.move(40,40)
-        self.dbase_btn3.move(60,60)
-        #
-        self.dbase_btn1.setFont(font)
-        self.dbase_btn2.setFont(font)
-        self.dbase_btn3.setFont(font)
-        #
-        self.dbase_btn1.setStyleSheet("background-color:red;color:yellow;")
-        self.dbase_btn2.setStyleSheet("background-color:yellow;color:black;")
-        self.dbase_btn3.setStyleSheet("background-color:blue;color:white;")
+        self.dbase_designer = ApplicationDesignPage(
+            self,
+            self.dbase_tabs_designs_widget,
+            self.dbase_tabs)
     
     def dbase_builder_btn1_clicked(self):
         tableDialog = myAddTableDialog(self)
@@ -7040,388 +13796,95 @@ class FileWatcherGUI(QDialog):
     
     # pascal
     def handlePascal(self):
-        self.pascal_tabs = QTabWidget()
-        self.pascal_tabs.setStyleSheet(css_tabs)
-        self.pascal_tabs.hide()
-        
-        self.pascal_tabs_project_widget = QWidget()
-        self.pascal_tabs_editors_widget = QWidget()
-        self.pascal_tabs_designs_widget = QWidget()
-        #
-        self.pascal_tabs.addTab(self.pascal_tabs_project_widget, "Pascal Project")
-        self.pascal_tabs.addTab(self.pascal_tabs_editors_widget, "Pascal Editor")
-        self.pascal_tabs.addTab(self.pascal_tabs_designs_widget, "Pascal Designer")
-        
-        self.pascal_designs_layout  = QVBoxLayout()
-        self.pascal_designs_layout.setContentsMargins(2,2,2,2)
-        self.pascal_designs_palette = QWidget()
-        self.pascal_designs_palette.setStyleSheet(_("bggy"))
-        self.pascal_designs_palette.setMaximumHeight(80)
-        #
-        self.pascal_palette_layout  = QHBoxLayout()
-        self.pascal_palette_layout.setContentsMargins(2,2,2,2)
-        self.pascal_palette_widget_lhs  = QLabel ()
-        self.pascal_palette_widget_mid  = QWidget()
-        self.pascal_palette_widget_rhs  = QLabel ()
-        #
-        self.pascal_palette_widget_lhs.setMaximumWidth(20)
-        self.pascal_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.pascal_palette_widget_lhs.setFont(font)
-        self.pascal_palette_widget_rhs.setFont(font)
-        #
-        self.pascal_palette_widget_lhs.setText(chr1)
-        self.pascal_palette_widget_rhs.setText(chr2)
-        #
-        self.pascal_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.pascal_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.pascal_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.pascal_palette_widget_mid_layout = QHBoxLayout()
-        self.pascal_palette_widget_mid_tabs   = QTabWidget()
-        self.pascal_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.pascal_palette_widget_mid_tabs)
-        
-        self.pascal_palette_widget_mid_layout.addWidget(self.pascal_palette_widget_mid_tabs)
-        #
-        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_lhs)
-        self.pascal_palette_layout.addLayout(self.pascal_palette_widget_mid_layout)
-        self.pascal_palette_layout.addWidget(self.pascal_palette_widget_rhs)
-        #
-        self.pascal_designs_palette.setLayout(self.pascal_palette_layout)
-        ####
-        
-        self.pascal_designs_viewer  = myGridViewer(self)
-        self.pascal_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.pascal_designs_layout.addWidget(self.pascal_designs_palette)
-        self.pascal_designs_layout.addWidget(self.pascal_designs_viewer)
-        #
-        self.pascal_tabs_designs_widget.setLayout(self.pascal_designs_layout)
-        ####
-        self.main_layout.addWidget(self.pascal_tabs)
-        #################
-        self.pascal_btn1 = myMoveButton("move me D", self.pascal_designs_viewer)
-        self.pascal_btn2 = myMoveButton("move me E", self.pascal_designs_viewer)
-        self.pascal_btn3 = myMoveButton("move me F", self.pascal_designs_viewer)
-        #
-        self.pascal_btn1.move(120,20)
-        self.pascal_btn2.move(140,40)
-        self.pascal_btn3.move(160,60)
-        
+        self.pascal_tabs = ApplicationTabWidget([
+            _("Pascal Project"),
+            _("Pascal Editor"),
+            _("Pascal Designer")])
+        self.pascal_project  = ApplicationProjectPage(self, self.pascal_tabs.getTab(0), "pascal")
+        self.pascal_editors  = ApplicationEditorsPage(self, self.pascal_tabs.getTab(1), "pascal")
+        self.pascal_designer = ApplicationDesignPage(
+            self,
+            self.pascal_tabs.getTab(2),
+            self.pascal_tabs)
+    
     # isoc
     def handleIsoC(self):
-        self.isoc_tabs = QTabWidget()
-        self.isoc_tabs.setStyleSheet(css_tabs)
-        self.isoc_tabs.hide()
-        
-        self.isoc_tabs_project_widget = QWidget()
-        self.isoc_tabs_editors_widget = QWidget()
-        self.isoc_tabs_designs_widget = QWidget()
-        #
-        self.isoc_tabs.addTab(self.isoc_tabs_project_widget, "ISO C Project")
-        self.isoc_tabs.addTab(self.isoc_tabs_editors_widget, "ISO C Editor")
-        self.isoc_tabs.addTab(self.isoc_tabs_designs_widget, "ISO C Designer")
-        
-        self.isoc_designs_layout  = QVBoxLayout()
-        self.isoc_designs_layout.setContentsMargins(2,2,2,2)
-        self.isoc_designs_palette = QWidget()
-        self.isoc_designs_palette.setStyleSheet(_("bggy"))
-        self.isoc_designs_palette.setMaximumHeight(80)
-        #
-        self.isoc_palette_layout  = QHBoxLayout()
-        self.isoc_palette_layout.setContentsMargins(2,2,2,2)
-        self.isoc_palette_widget_lhs  = QLabel ()
-        self.isoc_palette_widget_mid  = QWidget()
-        self.isoc_palette_widget_rhs  = QLabel ()
-        #
-        self.isoc_palette_widget_lhs.setMaximumWidth(20)
-        self.isoc_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.isoc_palette_widget_lhs.setFont(font)
-        self.isoc_palette_widget_rhs.setFont(font)
-        #
-        self.isoc_palette_widget_lhs.setText(chr1)
-        self.isoc_palette_widget_rhs.setText(chr2)
-        #
-        self.isoc_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.isoc_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.isoc_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.isoc_palette_widget_mid_layout = QHBoxLayout()
-        self.isoc_palette_widget_mid_tabs   = QTabWidget()
-        self.isoc_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.isoc_palette_widget_mid_tabs)
-        
-        
-        self.isoc_palette_widget_mid_layout.addWidget(self.isoc_palette_widget_mid_tabs)
-        #
-        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_lhs)
-        self.isoc_palette_layout.addLayout(self.isoc_palette_widget_mid_layout)
-        self.isoc_palette_layout.addWidget(self.isoc_palette_widget_rhs)
-        #
-        self.isoc_designs_palette.setLayout(self.isoc_palette_layout)
-        ####
-        
-        self.isoc_designs_viewer  = myGridViewer(self)
-        self.isoc_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.isoc_designs_layout.addWidget(self.isoc_designs_palette)
-        self.isoc_designs_layout.addWidget(self.isoc_designs_viewer)
-        #
-        self.isoc_tabs_designs_widget.setLayout(self.isoc_designs_layout)
-        ####
-        self.main_layout.addWidget(self.isoc_tabs)
+        self.isoc_tabs = ApplicationTabWidget([
+            _("ISO-C Project"),
+            _("ISO-C Editor"),
+            _("ISO-C Designer")])
+        self.isoc_project  = ApplicationProjectPage(self, self.isoc_tabs.getTab(0), "isoc")
+        self.isoc_editors  = ApplicationEditorsPage(self, self.isoc_tabs.getTab(1), "isoc")
+        self.isoc_designer = ApplicationDesignPage(
+            self,
+            self.isoc_tabs.getTab(2),
+            self.isoc_tabs)
     
     # java
     def handleJava(self):
-        # java
-        self.java_tabs = QTabWidget()
-        self.java_tabs.setStyleSheet(css_tabs)
-        self.java_tabs.hide()
-        
-        self.java_tabs_project_widget = QWidget()
-        self.java_tabs_editors_widget = QWidget()
-        self.java_tabs_designs_widget = QWidget()
-        #
-        self.java_tabs.addTab(self.java_tabs_project_widget, "Java Project")
-        self.java_tabs.addTab(self.java_tabs_editors_widget, "Java Editor")
-        self.java_tabs.addTab(self.java_tabs_designs_widget, "Java Designer")
-        
-        self.java_designs_layout  = QVBoxLayout()
-        self.java_designs_layout.setContentsMargins(2,2,2,2)
-        self.java_designs_palette = QWidget()
-        self.java_designs_palette.setStyleSheet(_("bggy"))
-        self.java_designs_palette.setMaximumHeight(80)
-        #
-        self.java_palette_layout  = QHBoxLayout()
-        self.java_palette_layout.setContentsMargins(2,2,2,2)
-        self.java_palette_widget_lhs  = QLabel ()
-        self.java_palette_widget_mid  = QWidget()
-        self.java_palette_widget_rhs  = QLabel ()
-        #
-        self.java_palette_widget_lhs.setMaximumWidth(20)
-        self.java_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.java_palette_widget_lhs.setFont(font)
-        self.java_palette_widget_rhs.setFont(font)
-        #
-        self.java_palette_widget_lhs.setText(chr1)
-        self.java_palette_widget_rhs.setText(chr2)
-        #
-        self.java_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.java_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.java_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.java_palette_widget_mid_layout = QHBoxLayout()
-        self.java_palette_widget_mid_tabs   = QTabWidget()
-        self.java_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.java_palette_widget_mid_tabs)
-        
-        
-        self.java_palette_widget_mid_layout.addWidget(self.java_palette_widget_mid_tabs)
-        #
-        self.java_palette_layout.addWidget(self.java_palette_widget_lhs)
-        self.java_palette_layout.addLayout(self.java_palette_widget_mid_layout)
-        self.java_palette_layout.addWidget(self.java_palette_widget_rhs)
-        #
-        self.java_designs_palette.setLayout(self.java_palette_layout)
-        ####
-        
-        self.java_designs_viewer  = myGridViewer(self)
-        self.java_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.java_designs_layout.addWidget(self.java_designs_palette)
-        self.java_designs_layout.addWidget(self.java_designs_viewer)
-        #
-        self.java_tabs_designs_widget.setLayout(self.java_designs_layout)
-        ####
-        self.main_layout.addWidget(self.java_tabs)
+        self.java_tabs = ApplicationTabWidget([
+            _("Java Project"),
+            _("Java Editor"),
+            _("Java Designer")])
+        self.java_project  = ApplicationProjectPage(self, self.java_tabs.getTab(0), "java")
+        self.java_editors  = ApplicationEditorsPage(self, self.java_tabs.getTab(1), "java")
+        self.java_designer = ApplicationDesignPage(
+            self,
+            self.java_tabs.getTab(2),
+            self.java_tabs)
     
     # python
     def handlePython(self):
-        self.python_tabs = QTabWidget()
-        self.python_tabs.setStyleSheet(css_tabs)
-        self.python_tabs.hide()
-        
-        self.python_tabs_project_widget = QWidget()
-        self.python_tabs_editors_widget = QWidget()
-        self.python_tabs_designs_widget = QWidget()
-        #
-        self.python_tabs.addTab(self.python_tabs_project_widget, "Python Project")
-        self.python_tabs.addTab(self.python_tabs_editors_widget, "Python Editor")
-        self.python_tabs.addTab(self.python_tabs_designs_widget, "Python Designer")
-        
-        self.python_designs_layout  = QVBoxLayout()
-        self.python_designs_layout.setContentsMargins(2,2,2,2)
-        self.python_designs_palette = QWidget()
-        self.python_designs_palette.setStyleSheet(_("bggy"))
-        self.python_designs_palette.setMaximumHeight(80)
-        #
-        self.python_palette_layout  = QHBoxLayout()
-        self.python_palette_layout.setContentsMargins(2,2,2,2)
-        self.python_palette_widget_lhs  = QLabel ()
-        self.python_palette_widget_mid  = QWidget()
-        self.python_palette_widget_rhs  = QLabel ()
-        #
-        self.python_palette_widget_lhs.setMaximumWidth(20)
-        self.python_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.python_palette_widget_lhs.setFont(font)
-        self.python_palette_widget_rhs.setFont(font)
-        #
-        self.python_palette_widget_lhs.setText(chr1)
-        self.python_palette_widget_rhs.setText(chr2)
-        #
-        self.python_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.python_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.python_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.python_palette_widget_mid_layout = QHBoxLayout()
-        self.python_palette_widget_mid_tabs   = QTabWidget()
-        self.python_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.python_palette_widget_mid_tabs)
-        
-        self.python_palette_widget_mid_layout.addWidget(self.python_palette_widget_mid_tabs)
-        #
-        self.python_palette_layout.addWidget(self.python_palette_widget_lhs)
-        self.python_palette_layout.addLayout(self.python_palette_widget_mid_layout)
-        self.python_palette_layout.addWidget(self.python_palette_widget_rhs)
-        #
-        self.python_designs_palette.setLayout(self.python_palette_layout)
-        ####
-        
-        self.python_designs_viewer  = myGridViewer(self)
-        self.python_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.python_designs_layout.addWidget(self.python_designs_palette)
-        self.python_designs_layout.addWidget(self.python_designs_viewer)
-        #
-        self.python_tabs_designs_widget.setLayout(self.python_designs_layout)
-        ####
-        self.main_layout.addWidget(self.python_tabs)
+        self.python_tabs = ApplicationTabWidget([
+            _("Python Project"),
+            _("Python Editor"),
+            _("Python Designer")])
+        self.python_project  = ApplicationProjectPage(self, self.python_tabs.getTab(0), "python")
+        self.python_editors  = ApplicationEditorsPage(self, self.python_tabs.getTab(1), "python")
+        self.python_designer = ApplicationDesignPage(
+            self,
+            self.python_tabs.getTab(2),
+            self.python_tabs)
     
     # lisp
     def handleLISP(self):
-        self.lisp_tabs = QTabWidget()
-        self.lisp_tabs.setStyleSheet(css_tabs)
-        self.lisp_tabs.hide()
-        
-        self.lisp_tabs_project_widget = QWidget()
-        self.lisp_tabs_editors_widget = QWidget()
-        self.lisp_tabs_designs_widget = QWidget()
-        #
-        self.lisp_tabs.addTab(self.lisp_tabs_project_widget, "LISP Project")
-        self.lisp_tabs.addTab(self.lisp_tabs_editors_widget, "LISP Editor")
-        self.lisp_tabs.addTab(self.lisp_tabs_designs_widget, "LISP Designer")
-        
-        self.lisp_designs_layout  = QVBoxLayout()
-        self.lisp_designs_layout.setContentsMargins(2,2,2,2)
-        self.lisp_designs_palette = QWidget()
-        self.lisp_designs_palette.setStyleSheet(_("bggy"))
-        self.lisp_designs_palette.setMaximumHeight(80)
-        #
-        self.lisp_palette_layout  = QHBoxLayout()
-        self.lisp_palette_layout.setContentsMargins(2,2,2,2)
-        self.lisp_palette_widget_lhs  = QLabel ()
-        self.lisp_palette_widget_mid  = QWidget()
-        self.lisp_palette_widget_rhs  = QLabel ()
-        #
-        self.lisp_palette_widget_lhs.setMaximumWidth(20)
-        self.lisp_palette_widget_rhs.setMaximumWidth(20)
-        
-        font = QFont("Times New Roman", 16)
-        #font.setBold(True)
-        
-        chr1 = "{0}".format(u'\u25c4')  # <<
-        chr2 = "{0}".format(u'\u25ba')  # >>
-        
-        self.lisp_palette_widget_lhs.setFont(font)
-        self.lisp_palette_widget_rhs.setFont(font)
-        #
-        self.lisp_palette_widget_lhs.setText(chr1)
-        self.lisp_palette_widget_rhs.setText(chr2)
-        #
-        self.lisp_palette_widget_lhs.setStyleSheet(_("bglg"))
-        self.lisp_palette_widget_mid.setStyleSheet(_("bgwh"))
-        self.lisp_palette_widget_rhs.setStyleSheet(_("bglg"))
-        #
-        #
-        self.lisp_palette_widget_mid_layout = QHBoxLayout()
-        self.lisp_palette_widget_mid_tabs   = QTabWidget()
-        self.lisp_palette_widget_mid_tabs.setStyleSheet(_("designertab"))
-        
-        #######
-        addDesignerTabs(self.lisp_palette_widget_mid_tabs)
-        
-        self.lisp_palette_widget_mid_layout.addWidget(self.lisp_palette_widget_mid_tabs)
-        #
-        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_lhs)
-        self.lisp_palette_layout.addLayout(self.lisp_palette_widget_mid_layout)
-        self.lisp_palette_layout.addWidget(self.lisp_palette_widget_rhs)
-        #
-        self.lisp_designs_palette.setLayout(self.lisp_palette_layout)
-        ####
-        
-        self.lisp_designs_viewer  = myGridViewer(self)
-        self.lisp_designs_viewer.setStyleSheet("background-color:cyan;")
-        
-        self.lisp_designs_layout.addWidget(self.lisp_designs_palette)
-        self.lisp_designs_layout.addWidget(self.lisp_designs_viewer)
-        #
-        self.lisp_tabs_designs_widget.setLayout(self.lisp_designs_layout)
-        ####
-        self.main_layout.addWidget(self.lisp_tabs)
+        self.lisp_tabs = ApplicationTabWidget([
+            _("LISP Project"),
+            _("LISP Editor"),
+            _("LISP Designer")])
+        self.lisp_project  = ApplicationProjectPage(self, self.lisp_tabs.getTab(0), "lisp")
+        self.lisp_editors  = ApplicationEditorsPage(self, self.lisp_tabs.getTab(1), "lisp")
+        self.lisp_designer = ApplicationDesignPage(
+            self,
+            self.lisp_tabs.getTab(2),
+            self.lisp_tabs)
+    
+    # javascript
+    def handleJavaScript(self):
+        self.javascript_tabs = ApplicationTabWidget([
+            _("JavaScript Project"),
+            _("JavaScript Editor"),
+            _("JavaScript Designer")])
+        self.javascript_project  = ApplicationProjectPage(self, self.javascript_tabs.getTab(0), "javascript")
+        self.javascript_editors  = ApplicationEditorsPage(self, self.javascript_tabs.getTab(1), "javascript")
+        self.javascript_designer = ApplicationDesignPage(
+            self,
+            self.javascript_tabs.getTab(2),
+            self.javascript_tabs)
     
     # locale
     def handleLocales(self):
         self.locale_tabs = QTabWidget()
-        self.locale_tabs.setStyleSheet(css_tabs)
+        self.locale_tabs.setStyleSheet(_(genv.css_tabs))
         self.locale_tabs.hide()
         
         self.locale_tabs_project_widget = QWidget()
         self.locale_tabs_editors_widget = QWidget()
         self.locale_tabs_designs_widget = QWidget()
         #
-        self.locale_tabs.addTab(self.locale_tabs_project_widget, "Locales Project")
-        self.locale_tabs.addTab(self.locale_tabs_editors_widget, "Locales Editor")
-        self.locale_tabs.addTab(self.locale_tabs_designs_widget, "Locales Designer")
+        self.locale_tabs.addTab(self.locale_tabs_project_widget, _("Locales Project"))
+        self.locale_tabs.addTab(self.locale_tabs_editors_widget, _("Locales Editor"))
+        self.locale_tabs.addTab(self.locale_tabs_designs_widget, _("Locales Designer"))
         ####
         self.main_layout.addWidget(self.locale_tabs)
         
@@ -7443,7 +13906,7 @@ class FileWatcherGUI(QDialog):
         self.text_edit = QPlainTextEdit()
         self.text_edit.setFont(font2)
         
-        self.load_button = QPushButton('Load .mo File')
+        self.load_button = QPushButton(_("Load .mo File"))
         self.load_button.setFont(font)
         self.load_button.setMinimumHeight(31)
         self.load_button.clicked.connect(self.load_mo_file)
@@ -7466,9 +13929,707 @@ class FileWatcherGUI(QDialog):
         
         self.locale_tabs_editors_widget.setLayout(vbox)
         return
+    
+    def downloadCHMTool(self):
+        QDesktopServices.openUrl(QUrl("https://learn.microsoft.com/en-us/previous-versions/windows/desktop/htmlhelp/microsoft-html-help-downloads"))
+    
+    def handleConsole(self):
+        self.console_tabs = QTabWidget()
+        self.console_tabs.setStyleSheet(_(genv.css_tabs))
+        self.console_tabs.hide()
         
+        vlayout = QVBoxLayout()
+        hlayout = QHBoxLayout()
+        
+        font = QFont("Arial", 10)
+        
+        group_box = QGroupBox(_("Selecte OS: "))
+        group_box.setFont(font)
+        
+        os_radio_button1 = QRadioButton("MS-DOS")
+        os_radio_button2 = QRadioButton("Amiga 500")
+        os_radio_button3 = QRadioButton("C-64")
+        os_radio_button4 = QRadioButton("Linux")
+        
+        os_radio_button1.setFont(font)
+        os_radio_button2.setFont(font)
+        os_radio_button3.setFont(font)
+        os_radio_button4.setFont(font)
+        
+        os_radio_button1.setChecked(True)
+        
+        dummy = QWidget()
+        dummy.setMinimumHeight(32)
+        
+        vlayout.addWidget(dummy)
+        vlayout.addWidget(os_radio_button1)
+        vlayout.addWidget(os_radio_button2)
+        vlayout.addWidget(os_radio_button3)
+        vlayout.addWidget(os_radio_button4)
+        vlayout.addStretch()
+        
+        group_box.setLayout(vlayout)
+        
+        user_console = DOSConsoleWindow(application_window)
+        user_console.show()
+        
+        hlayout.addWidget(group_box)
+        hlayout.addWidget(user_console)
+        hlayout.addStretch()
+        
+        self.console_tabs_chm_widget = QWidget()
+        self.console_tabs_chm_widget.setLayout(hlayout)
+        self.console_tabs.addTab(self.console_tabs_chm_widget, _("Console"))
+        ###
+        self.main_layout.addWidget(self.console_tabs)
+        return
+    
+    def handleTodo(self):
+        self.todo_tabs = QTabWidget()
+        self.todo_tabs.setStyleSheet(_(genv.css_tabs))
+        self.todo_tabs.hide()
+        
+        self.todo_tabs_chm_widget = QWidget()
+        self.todo_tabs.addTab(self.todo_tabs_chm_widget, _("Todo"))
+        ###
+        self.main_layout.addWidget(self.todo_tabs)
+        return
+    
+    def handleSetup(self):
+        self.setup_tabs = ApplicationTabWidget([
+            _("Setup Project"),
+            _("Setup Editor")])
+        self.setup_project  = ApplicationProjectPage(self, self.setup_tabs.getTab(0), "setup")
+        self.setup_editors  = ApplicationEditorsPage(self, self.setup_tabs.getTab(1), "setup")
+        ###
+        self.main_layout.addWidget(self.setup_tabs)
+        return
+    
+    def handleCertSSL(self):
+        self.certssl_tabs = ApplicationTabWidget([
+            _("SSL Cert Project"),
+            _("SSL Cert Editor")])
+        
+        font = QFont("Arial", 10)
+        
+        hlayout = QHBoxLayout()
+        vlayout = QVBoxLayout()
+        
+        self.tree_widget = QTreeWidget()
+        self.tree_widget.setColumnCount(6)
+        self.tree_widget.setHeaderLabels(["Name", "CA-Name", "Owner", "Start Valid.", "End Valid.", "Status"])
+        
+        root = QTreeWidgetItem(self.tree_widget)
+        root.setText(0, "root CA")
+        root.setText(1, "Super Root CA")
+        root.setText(2, "The CA Root Owner")
+        root.setText(3, "01.01.2000")
+        root.setText(4, "31.12.2000")
+        root.setText(5, "S")
+        
+        child1 = QTreeWidgetItem(root)
+        child1.setText(0,"Child1")
+        child1.setText(1,"beschre bbb")
+        
+        root_delegate = ColorComboBoxDelegateTree(self.tree_widget)
+        self.tree_widget.setItemDelegateForColumn(5, root_delegate)
+        
+        self.cert_tab = QTabWidget()
+        tab1 = QWidget()
+        tab1_layout = QVBoxLayout()
+        
+        tab1_scroll_area = QScrollArea(tab1)
+        tab1_scroll_area.setWidgetResizable(True)
+        tab1_content_widget = QWidget()
+        tab1_content_layout = QVBoxLayout()
+        
+        tab1_content_widget.setLayout(tab1_content_layout)
+        tab1_scroll_area   .setWidget(tab1_content_widget)
+        
+        tab1_hlayout_1 = QHBoxLayout()
+        tab1_label_1 = QLabel(_("Display Name:"))
+        tab1_label_1.setMinimumWidth(120)
+        tab1_label_1.setFont(font)
+        #
+        tab1_edit = QLineEdit()
+        tab1_edit.setFont(font)
+        
+        tab1_hlayout_2 = QHBoxLayout()
+        #
+        tab1_label_2   = QLabel(_("Usage:"))
+        tab1_label_2.setMinimumWidth(120)
+        tab1_label_2.setFont(font)
+        #
+        tab1_combo = QComboBox()
+        tab1_combo.setFont(font)
+        tab1_combo.addItem(_("Personel"))
+        tab1_combo.addItem(_("Web Hosting"))
+        
+        tab1_hlayout_1.addWidget(tab1_label_1)
+        tab1_hlayout_1.addWidget(tab1_edit)
+        tab1_hlayout_1.addStretch()
+        #
+        tab1_hlayout_2.addWidget(tab1_label_2)
+        tab1_hlayout_2.addWidget(tab1_combo)
+        tab1_hlayout_2.addStretch()
+        
+        tab1_button_layout = QHBoxLayout()
+        
+        tab1_button_cert_new = QPushButton(_("Create Cert"))
+        tab1_button_cert_add = QPushButton(_("Append Cert"))
+        tab1_button_cert_del = QPushButton(_("Delete Cert"))
+        
+        tab1_button_cert_new.clicked.connect(self.on_click_cert_new)
+        tab1_button_cert_add.clicked.connect(self.on_click_cert_add)
+        tab1_button_cert_del.clicked.connect(self.on_click_cert_del)
+        
+        tab1_button_cert_new.setMinimumHeight(32)
+        tab1_button_cert_add.setMinimumHeight(32)
+        tab1_button_cert_del.setMinimumHeight(32)
+        
+        tab1_button_cert_new.setMinimumWidth(180)
+        tab1_button_cert_add.setMinimumWidth(180)
+        tab1_button_cert_del.setMinimumWidth(180)
+        
+        tab1_button_layout.addWidget(tab1_button_cert_new)
+        tab1_button_layout.addWidget(tab1_button_cert_add)
+        tab1_button_layout.addWidget(tab1_button_cert_del)
+        tab1_button_layout.addStretch()
+        
+        tab1_content_layout.addLayout(tab1_hlayout_1)
+        tab1_content_layout.addLayout(tab1_hlayout_2)
+        tab1_content_layout.addLayout(tab1_button_layout)
+        tab1_content_layout.addStretch()
+        #
+        tab1_layout.addWidget(tab1_scroll_area)
+        tab1.setLayout(tab1_layout)
+        
+        #
+        tab2 = QWidget()
+        tab2_layout = QVBoxLayout()
+        
+        tab2_scroll_area = QScrollArea(tab1)
+        tab2_scroll_area.setWidgetResizable(True)
+        #
+        tab2_content_widget = QWidget()
+        tab2_content_layout = QVBoxLayout()
+        
+        #
+        linedits = [
+            [ _("CA Name"),                 "trashserver.net"          ],      # 0
+            [ _("Organization Name"),       "Internet Widgits Pty Ltd" ],      # 1
+            [ _("Unit Name"),               "IT"                       ],      # 2
+            [ _("Localy Name"),             "Landshut"                 ],      # 3
+            [ _("State or Province"),       "BY"                       ],      # 4
+            [ _("Country (2 letter code)"), "DE"                       ],      # 5
+            [ _("E-Mail"),                  "ssl@master@domain.com"    ],      # 6
+            [ _("Valide Date"),             1                          ],      # 7
+            [ _("CA key File"),             "ca-key.pem"               ],      # 8
+            [ _("CA csr File"),             "ca-csr.pem"               ],      # 9
+            [ _("Password"),                "xyz"                      ],      # 10
+            [ _("Chiper Bits"),             1                          ]       # 11
+        ]
+        #
+        v_layout = QVBoxLayout()
+        #
+        i = -1
+        for linedit in linedits:
+            i = i + 1
+            h_layout = QHBoxLayout()
+            h_label  = QLabel(linedit[0])
+            h_label.setFont(font)
+            h_label.setMinimumWidth(180)
+            if i == 7:
+                h_labl_beg = QLabel(_("Begin: "))
+                h_labl_beg.setFont(font)
+                #
+                h_edit_beg = QDateEdit()
+                h_edit_beg.setCalendarPopup(True)
+                h_edit_beg.setDate(QDate.currentDate())
+                h_edit_beg.setFont(font)
+                #
+                h_labl_end = QLabel(_(" End: "))
+                h_labl_end.setFont(font)
+                #
+                h_edit_end = QDateEdit()
+                h_edit_end.setCalendarPopup(True)
+                h_edit_end.setDate(QDate.currentDate())
+                h_edit_end.setFont(font)
+                #
+                h_layout.addWidget(h_label)
+                h_layout.addWidget(h_labl_beg)
+                h_layout.addWidget(h_edit_beg)
+                h_layout.addWidget(h_labl_end)
+                h_layout.addWidget(h_edit_end)
+                #
+                h_layout.addStretch()
+            elif i == 8 or i == 9:
+                h_push = QPushButton("  -x-  ")
+                h_push.setMinimumHeight(26)
+                h_push.setMaximumWidth(64)
+                h_push.setFont(font)
+                #
+                h_edit = QLineEdit(linedit[1])
+                h_edit.setFont(font)
+                #
+                h_layout.addWidget(h_label)
+                h_layout.addWidget(h_edit)
+                h_layout.addWidget(h_push)
+            elif i == 11:
+                h_combo = QComboBox()
+                h_combo.setMinimumWidth(64)
+                h_combo.addItem("256")
+                h_combo.addItem("512")
+                h_combo.addItem("1024")
+                h_combo.addItem("2048")
+                h_combo.addItem("4096")
+                h_combo.setFont(font)
+                #
+                delegate = ColorComboBoxDelegate(h_combo)
+                h_combo.setItemDelegate(delegate)
+                #
+                h_layout.addWidget(h_label)
+                h_layout.addWidget(h_combo)
+                h_layout.addStretch()
+            else:
+                h_edit = QLineEdit(linedit[1])
+                h_edit.setFont(font)
+                h_layout.addWidget(h_label)
+                h_layout.addWidget(h_edit)
+            v_layout.addLayout(h_layout)
+        
+        tab2_content_layout.addLayout(v_layout)
+        #
+        push_saveca = QPushButton(_("Save CA Data"))
+        push_create = QPushButton(_("Create CA"))
+        push_delete = QPushButton(_("Delete CA"))
+        push_cleara = QPushButton(_("Clear All"))
+        
+        push_saveca.clicked.connect(self.on_click_saveca_ca)
+        push_create.clicked.connect(self.on_click_create_ca)
+        push_delete.clicked.connect(self.on_click_delete_ca)
+        push_cleara.clicked.connect(self.on_click_cleara_ca)
+        
+        push_saveca.setFont(font)
+        push_create.setFont(font)
+        push_delete.setFont(font)
+        push_cleara.setFont(font)
+        
+        push_saveca.setMinimumHeight(32)
+        push_create.setMinimumHeight(32)
+        push_delete.setMinimumHeight(32)
+        push_cleara.setMinimumHeight(32)
+        
+        push_saveca.setMinimumWidth(180)
+        push_create.setMinimumWidth(180)
+        push_delete.setMinimumWidth(180)
+        push_cleara.setMinimumWidth(180)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(push_saveca)
+        btn_layout.addWidget(push_create)
+        btn_layout.addWidget(push_delete)
+        btn_layout.addWidget(push_cleara)
+        btn_layout.addStretch()
+        
+        dummy_layout = QVBoxLayout()
+        dummy_widget = QWidget()
+        dummy_widget.setMinimumHeight(32)
+        dummy_layout.addWidget(dummy_widget)
+               
+        tab2_content_layout.addLayout(btn_layout)
+        tab2_content_layout.addLayout(dummy_layout)
+        #
+        tab2_content_widget.setLayout(tab2_content_layout)
+        tab2_scroll_area   .setWidget(tab2_content_widget)
+        
+        tab2_layout.addWidget(tab2_scroll_area)
+        tab2.setLayout(tab2_layout)
+        
+        self.cert_tab.addTab(tab1, _("Create SSL"))
+        self.cert_tab.addTab(tab2, _("Create CA"))
+        
+        vlayout.addWidget(self.tree_widget)
+        vlayout.addWidget(self.cert_tab)
+        #
+        hlayout.addLayout(vlayout)
+        
+        tab = self.certssl_tabs.getTab(0)
+        tab.setLayout(hlayout)
+        
+        #self.certssl_project  = ApplicationProjectPage(self, self.certssl_tabs.getTab(0), "ssl")
+        #self.certssl_editors  = ApplicationEditorsPage(self, self.certssl_tabs.getTab(1), "ssl")
+        ###
+        self.main_layout.addWidget(self.certssl_tabs)
+        return
+    
+    def on_click_cert_new(self):
+        print("cert new")
+    def on_click_cert_add(self):
+        print("cert add")
+    def on_click_cert_del(self):
+        print("cert del")
+    
+    def on_click_saveca_ca(self):
+        print("saveca ca")
+    
+    def on_click_create_ca(self):
+        print("create ca")
+    
+    def on_click_delete_ca(self):
+        print("delete ca")
+    
+    def on_click_cleara_ca(self):
+        print("clear all ca")
+    
+    def handleGitHub(self):
+        self.github_tabs = ApplicationTabWidget([
+            _("GitHub Project"),
+            _("GitHub Editor")])
+        self.github_project  = ApplicationProjectPage(self, self.github_tabs.getTab(0), "github")
+        self.github_editors  = ApplicationEditorsPage(self, self.github_tabs.getTab(1), "github")
+        ###
+        self.main_layout.addWidget(self.github_tabs)
+        return
+    
+    def iis_server_start(self):
+        print("start iis")
+    
+    def apache_server_start(self):
+        print("start apache")
+    
+    def tomcat_server_start(self):
+        print("start tomcat")
+    
+    def iis_server_stop(self):
+        print("stop iis")
+    
+    def apache_server_stop(self):
+        print("stop apache")
+    
+    def tomcat_server_stop(self):
+        print("stop tomcat")
+    
+    def iis_send_clients(self):
+        print("send to iis clients")
+    
+    def apache_send_clients(self):
+        print("send to apache clients")
+    
+    def tomcat_send_clients(self):
+        print("send to tomcat clients")
+    
+    def handleApache(self):
+        self.apache_tabs = ApplicationTabWidget([
+            _("Web Server Configuration")])
+        
+        main_layout = QHBoxLayout()
+        splitter = QSplitter(Qt.Horizontal)
+        
+        tree_widget  = QTreeWidget()
+        tree_widget.setColumnCount(1)
+        tree_widget.setHeaderLabels(["Server"])
+        
+        root1 = QTreeWidgetItem(tree_widget)
+        root1.setText(0, "Root1")
+        
+        child1 = QTreeWidgetItem(root1)
+        child1.setText(0, "Child 1.1")
+        
+        splitter.addWidget(tree_widget)
+        
+        right_widget = QWidget()
+        right_layout = QVBoxLayout()
+        
+        tab_widget_1 = QTabWidget()
+        
+        tab1_1 = QWidget()
+        tab2_1 = QWidget()
+        tab3_1 = QWidget()
+        
+        font = QFont("Arial", 10)
+        tab_layout  = QHBoxLayout()
+        
+        tab1_layout = QVBoxLayout()     # iis
+        tab2_layout = QVBoxLayout()     # apache 2.4
+        tab3_layout = QVBoxLayout()     # tomcat
+        
+        # iis
+        push_layout_iis = QHBoxLayout()
+        push_start_iis  = QPushButton(_("Start Server"))
+        push_stop_iis   = QPushButton(_("Stop Server"))
+        #
+        push_start_iis.clicked.connect(self.iis_server_start)
+        push_stop_iis .clicked.connect(self.iis_server_stop)
+        #
+        push_start_iis.setFont(font)
+        push_stop_iis .setFont(font)
+        #
+        push_start_iis.setMinimumHeight(26)
+        push_stop_iis .setMinimumHeight(26)
+        #
+        push_layout_iis.addWidget(push_start_iis)
+        push_layout_iis.addWidget(push_stop_iis)
+        
+        
+        # apache 2.4
+        push_layout_apache = QHBoxLayout()
+        push_start_apache  = QPushButton(_("Start Server"))
+        push_stop_apache   = QPushButton(_("Stop Server"))
+        #
+        push_start_apache.clicked.connect(self.apache_server_start)
+        push_stop_apache .clicked.connect(self.apache_server_stop)
+        #
+        push_start_apache.setFont(font)
+        push_stop_apache .setFont(font)
+        #
+        push_start_apache.setMinimumHeight(26)
+        push_stop_apache .setMinimumHeight(26)
+        #
+        push_layout_apache.addWidget(push_start_apache)
+        push_layout_apache.addWidget(push_stop_apache)
+        
+        
+        # tomcat
+        push_layout_tomcat = QHBoxLayout()
+        push_start_tomcat  = QPushButton(_("Start Server"))
+        push_stop_tomcat   = QPushButton(_("Stop Server"))
+        #
+        push_start_tomcat.clicked.connect(self.tomcat_server_start)
+        push_stop_tomcat .clicked.connect(self.tomcat_server_stop)
+        #
+        push_start_tomcat.setFont(font)
+        push_stop_tomcat .setFont(font)
+        #
+        push_start_tomcat.setMinimumHeight(26)
+        push_stop_tomcat .setMinimumHeight(26)
+        #
+        push_layout_tomcat.addWidget(push_start_tomcat)
+        push_layout_tomcat.addWidget(push_stop_tomcat)
+        
+        
+        tab1_layout.addLayout(push_layout_iis)
+        tab2_layout.addLayout(push_layout_apache)
+        tab3_layout.addLayout(push_layout_tomcat)
+        
+        
+        # iis
+        label_layout_iis = QHBoxLayout()
+        label_clients_iis = QLabel(_("Client's Connected: 0"))
+        label_clients_iis.setFont(font)
+        pushr_clients_iis = QPushButton(_("Send Repair Message"))
+        pushr_clients_iis.setMinimumHeight(26)
+        pushr_clients_iis.setMinimumWidth(210)
+        pushr_clients_iis.setFont(font)
+        pushr_clients_iis.clicked.connect(self.iis_send_clients)
+        
+        label_layout_iis.addWidget(label_clients_iis)
+        label_layout_iis.addWidget(pushr_clients_iis)
+        label_layout_iis.addStretch()
+        
+        
+        # apache 2.4
+        label_layout_apache = QHBoxLayout()
+        label_clients_apache = QLabel(_("Client's Connected: 0"))
+        label_clients_apache.setFont(font)
+        pushr_clients_apache = QPushButton(_("Send Repair Message"))
+        pushr_clients_apache.setMinimumHeight(26)
+        pushr_clients_apache.setMinimumWidth(210)
+        pushr_clients_apache.setFont(font)
+        pushr_clients_apache.clicked.connect(self.apache_send_clients)
+        
+        label_layout_apache.addWidget(label_clients_apache)
+        label_layout_apache.addWidget(pushr_clients_apache)
+        label_layout_apache.addStretch()
+        
+        
+        # tomcat
+        label_layout_tomcat = QHBoxLayout()
+        label_clients_tomcat = QLabel(_("Client's Connected: 0"))
+        label_clients_tomcat.setFont(font)
+        pushr_clients_tomcat = QPushButton(_("Send Repair Message"))
+        pushr_clients_tomcat.setMinimumHeight(26)
+        pushr_clients_tomcat.setMinimumWidth(210)
+        pushr_clients_tomcat.setFont(font)
+        pushr_clients_tomcat.clicked.connect(self.tomcat_send_clients)
+        
+        label_layout_tomcat.addWidget(label_clients_tomcat)
+        label_layout_tomcat.addWidget(pushr_clients_tomcat)
+        label_layout_tomcat.addStretch()
+        
+        
+        tab1_1.setLayout(tab1_layout)
+        tab2_1.setLayout(tab2_layout)
+        tab3_1.setLayout(tab3_layout)
+        
+        tab_widget_1.addTab(tab1_1, "IIS")
+        tab_widget_1.addTab(tab2_1, "Apache 2")
+        tab_widget_1.addTab(tab3_1, "Tomcat")
+        
+        tab_layout.addWidget(tab_widget_1)
+        
+        right_layout.addLayout(tab_layout)
+        right_widget.setLayout(right_layout)
+        
+        splitter.addWidget(right_widget)
+        splitter.setSizes([200, 600])
+        
+        main_layout.addWidget(splitter)
+        
+        
+        help_widget = QListWidget()
+        help_widget.setMaximumWidth(180)
+        
+        items = ["Element 1", "Element 2", "Element 3", "Element 4", "Element 5"]
+        for item in items:
+            QListWidgetItem(item, help_widget)
+        
+        # microsoft internet information server
+        icon_list_iis = QListWidget()
+        icon_list_iis.setViewMode(QListWidget.IconMode)
+        icon_list_iis.setIconSize(QSize(32, 32))
+        
+        icon_items_iis = [
+            [_("Connection"),      genv.v__app__img__int__ + "/earth.ico"],
+            [_("SSL Certs"),       genv.v__app__img__int__ + "/certmgr.ico"],
+            [_("Network Adapter"), genv.v__app__img__int__ + "/nic.ico"]
+        ]
+        strings_iss = [_("Connection"), _("SSL Certs"), _("Network Adapter")]
+        max_length_iss = max(len(s)+3 for s in strings_iss)
+        padded_strings_iis = [s.center(max_length_iss) for s in strings_iss]
+        i = 0
+        for s in padded_strings_iis:
+            print(s)
+            icon_items_iis[i][0] = s
+            i = i + 1
+        for item_text, item_icon in icon_items_iis:
+            icon = QListWidgetItem(QIcon(item_icon), item_text)
+            icon.setSizeHint(QSize(120, 64))
+            icon_list_iis.addItem(icon)
+        
+        tab1_layout.addWidget(icon_list_iis)
+        tab1_layout.addLayout(label_layout_iis)
+        
+        
+        # apache 2.4
+        icon_list_apache = QListWidget()
+        icon_list_apache.setViewMode(QListWidget.IconMode)
+        icon_list_apache.setIconSize(QSize(32, 32))
+        
+        icon_items_apache = [
+            [_("Connection"),      genv.v__app__img__int__ + "/earth.ico"],
+            [_("SSL Certs"),       genv.v__app__img__int__ + "/certmgr.ico"],
+            [_("Network Adapter"), genv.v__app__img__int__ + "/nic.ico"]
+        ]
+        strings_apache = [_("Connection"), _("SSL Certs"), _("Network Adapter")]
+        max_length_apache = max(len(s)+3 for s in strings_apache)
+        padded_strings_apache = [s.center(max_length_apache) for s in strings_apache]
+        i = 0
+        for s in padded_strings_apache:
+            print(s)
+            icon_items_apache[i][0] = s
+            i = i + 1
+        for item_text, item_icon in icon_items_apache:
+            icon = QListWidgetItem(QIcon(item_icon), item_text)
+            icon.setSizeHint(QSize(120, 64))
+            icon_list_apache.addItem(icon)
+        
+        tab2_layout.addWidget(icon_list_apache)
+        tab2_layout.addLayout(label_layout_apache)
+        
+        
+        # tomcat
+        icon_list_tomcat = QListWidget()
+        icon_list_tomcat.setViewMode(QListWidget.IconMode)
+        icon_list_tomcat.setIconSize(QSize(32, 32))
+        
+        icon_items_tomcat = [
+            [_("Connection"),      genv.v__app__img__int__ + "/earth.ico"],
+            [_("SSL Certs"),       genv.v__app__img__int__ + "/certmgr.ico"],
+            [_("Network Adapter"), genv.v__app__img__int__ + "/nic.ico"]
+        ]
+        strings_tomcat = [_("Connection"), _("SSL Certs"), _("Network Adapter")]
+        max_length_tomcat = max(len(s)+3 for s in strings_tomcat)
+        padded_strings_tomcat = [s.center(max_length_tomcat) for s in strings_tomcat]
+        i = 0
+        for s in padded_strings_tomcat:
+            icon_items_tomcat[i][0] = s
+            i = i + 1
+        for item_text, item_icon in icon_items_tomcat:
+            icon = QListWidgetItem(QIcon(item_icon), item_text)
+            icon.setSizeHint(QSize(120, 64))
+            icon_list_tomcat.addItem(icon)
+        
+        tab3_layout.addWidget(icon_list_tomcat)
+        tab3_layout.addLayout(label_layout_tomcat)
+        
+        
+        main_layout.addWidget(help_widget)
+        
+        tab = self.apache_tabs.getTab(0)
+        tab.setLayout(main_layout)
+        
+        ###
+        self.main_layout.addWidget(self.apache_tabs)
+        return
+    
+    def handleMySQL(self):
+        self.mysql_tabs = ApplicationTabWidget([
+            _("MySQL Project"),
+            _("MySQL Editor")])
+        self.mysql_project  = ApplicationProjectPage(self, self.mysql_tabs.getTab(0), "mysql")
+        self.mysql_editors  = ApplicationEditorsPage(self, self.mysql_tabs.getTab(1), "mysql")
+        ###
+        self.main_layout.addWidget(self.mysql_tabs)
+        return
+    
+    def handleSquid(self):
+        self.squid_tabs = ApplicationTabWidget([
+            _("Squid Project"),
+            _("Squid Editor")])
+        self.squid_project  = ApplicationProjectPage(self, self.squid_tabs.getTab(0), "squid")
+        self.squid_editors  = ApplicationEditorsPage(self, self.squid_tabs.getTab(1), "squid")
+        ###
+        self.main_layout.addWidget(self.squid_tabs)
+        return
+    
+    def handleSettings(self):
+        self.settings_tabs = QTabWidget()
+        self.settings_tabs.setStyleSheet(_(genv.css_tabs))
+        self.settings_tabs.hide()
+        
+        self.settings_tabs_chm_widget = QWidget()
+        #
+        self.settings_tabs.addTab(self.settings_tabs_chm_widget, _("Settings"))
+        ###
+        self.main_layout.addWidget(self.settings_tabs)
+        
+        vlay = QVBoxLayout()
+        chm_fnt1 = QFont("Arial"   , 10)
+        chm_fnt2 = QFont("Consolas", 10)
+        
+        chm_down = QPushButton("download HTML-Workshop...")
+        chm_down.setFont(chm_fnt1)
+        chm_down.setMinimumHeight(32)
+        chm_down.clicked.connect(self.downloadCHMTool)
+        
+        chm_edit = QLineEdit()
+        chm_edit.setFont(chm_fnt2)
+        chm_edit.setMinimumHeight(32)
+        
+        chm_seld = QPushButton("Select Directory")
+        chm_seld.setFont(chm_fnt1)
+        chm_seld.setMinimumHeight(32)
+        
+        vlay.addWidget(chm_down)
+        vlay.addWidget(chm_edit)
+        vlay.addWidget(chm_seld)
+        vlay.addStretch()
+        
+        self.settings_tabs_chm_widget.setLayout(vlay)
+    
     def load_mo_file(self):
-        file_name, _ = QFileDialog.getOpenFileName(self, 'Open .mo file', '', 'MO Files (*.mo)')
+        file_name, _ = QFileDialog.getOpenFileName(self, _("Open .mo file"), '', 'MO Files (*.mo)')
         if file_name:
             self.po = polib.mofile(file_name)
             self.list_widget.clear()
@@ -7638,7 +14799,7 @@ class FileWatcherGUI(QDialog):
         
         # Create the drives tree
         self.drives_treeLocales = QTreeWidget()
-        self.drives_treeLocales.setHeaderLabels(["Drive", "Available Space", "Total Size"])
+        self.drives_treeLocales.setHeaderLabels([_("Drive"), _("Available Space"), _("Total Size")])
         self.drives_treeLocales.setMinimumHeight(120)
         #self.drives_treeLocales.setMaximumWidth(380)
         self.drives_treeLocales.header().setSectionResizeMode(QHeaderView.Interactive)
@@ -7735,7 +14896,7 @@ class FileWatcherGUI(QDialog):
                         else:
                             print("file: " + file_name + " is not packed.")
                         file.close()
-                    print(self.localeliste[0][0].text())
+                    #print(self.localeliste[0][0].text())
         return
     
     def load_drives(self):
@@ -7853,12 +15014,12 @@ class FileWatcherGUI(QDialog):
     
     # commodore c64
     def onC64TabChanged(self, index):
-        if index == 0 or index == 2:
+        if index == 0 or index == 1 or index == 3:
             print("end")
             if not self.c64_screen.worker_thread == None:
                 self.c64_screen.worker_thread.stop()
             self.worker_hasFocus = False
-        elif index == 1:
+        elif index == 2:
             print("start")
             if not self.c64_screen.worker_thread == None:
                 self.c64_screen.worker_thread.stop()
@@ -7869,17 +15030,24 @@ class FileWatcherGUI(QDialog):
     
     def handleCommodoreC64(self):
         self.c64_tabs = QTabWidget()
-        self.c64_tabs.setStyleSheet(css_tabs)
+        self.c64_tabs.setStyleSheet(_(genv.css_tabs))
         self.c64_tabs.hide()
         
         
         self.c64_tabs_project_widget = QWidget()
+        self.c64_tabs_basic___widget = QWidget()
         self.c64_tabs_editors_widget = QWidget()
         self.c64_tabs_designs_widget = QWidget()
         #
-        self.c64_tabs.addTab(self.c64_tabs_project_widget, "C-64 Project")
-        self.c64_tabs.addTab(self.c64_tabs_editors_widget, "C-64 Editor")
-        self.c64_tabs.addTab(self.c64_tabs_designs_widget, "C-64 Designer")
+        self.c64_tabs.addTab(self.c64_tabs_project_widget, _("C-64 Project"))
+        self.c64_tabs.addTab(self.c64_tabs_basic___widget, _("C-64 Editor"))
+        self.c64_tabs.addTab(self.c64_tabs_editors_widget, _("C-64 Editor (Sceen)"))
+        self.c64_tabs.addTab(self.c64_tabs_designs_widget, _("C-64 Designer"))
+        ####
+        self.c64_project = ApplicationProjectPage(self, self.c64_tabs_project_widget, "c64")
+        self.c64_editors = ApplicationEditorsPage(self, self.c64_tabs_basic___widget, "c64")
+        ####
+        
         
         self.c64_layout = QVBoxLayout()
         self.c64_frame_oben  = QFrame()
@@ -7896,7 +15064,6 @@ class FileWatcherGUI(QDialog):
         self.c64_keyboard_pixmap = QPixmap(genv.v__app__keybc64__)
         self.c64_keyboard_label.setPixmap(self.c64_keyboard_pixmap)
         
-        
         #####
         c64_logo_label  = QLabel(self.c64_frame_unten)
         c64_logo_label_pixmap = QPixmap(genv.v__app__logoc64__)
@@ -7909,8 +15076,8 @@ class FileWatcherGUI(QDialog):
         
         self.c64_tabs.currentChanged.connect(self.onC64TabChanged)
         
-        _listpush_apps = QPushButton("Applications")
-        _listpush_game = QPushButton("Games")
+        _listpush_apps = QPushButton(_("Applications"))
+        _listpush_game = QPushButton(_("Games"))
         
         _listwidget = QListWidget()
         _listwidget.setViewMode  (QListView.IconMode)
@@ -7960,8 +15127,8 @@ class FileWatcherGUI(QDialog):
     
     def closeEvent(self, event):
         msg = QMessageBox()
-        msg.setWindowTitle("Confirmation")
-        msg.setText("Would you close the Application ?")
+        msg.setWindowTitle(_("Confirmation"))
+        msg.setText(_("Would you close the Application?"))
         msg.setIcon(QMessageBox.Question)
         
         btn_yes = msg.addButton(QMessageBox.Yes)
@@ -8137,6 +15304,98 @@ class FileWatcherGUI(QDialog):
         else:
             print(f"File {filePath} not found.")
             # ktionen durchführen, wenn die Datei nicht existiert
+    
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.mouse_press_pos = event.globalPos()
+            self.mouse_move_pos = event.globalPos() - self.frameGeometry().topLeft()
+            self.resizing = self.getCursorPosition(event.pos())
+    
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            if self.resizing:
+                self.resizeWindow(event.globalPos())
+            else:
+                self.move(event.globalPos() - self.mouse_move_pos)
+        else:
+            self.updateCursor(event.pos())
+    
+    def mouseReleaseEvent(self, event):
+        self.resizing = None
+    
+    def updateCursor(self, pos):
+        cursor_pos = self.getCursorPosition(pos)
+        if cursor_pos:
+            self.setCursor(cursor_pos)
+        else:
+            self.setCursor(Qt.ArrowCursor)
+    
+    def getCursorPosition(self, pos):
+        rect = self.rect()
+        margin = 10
+        
+        if pos.x() < margin and pos.y() < margin:
+            return Qt.SizeFDiagCursor
+        elif pos.x() > rect.width() - margin and pos.y() > rect.height() - margin:
+            return Qt.SizeFDiagCursor
+        elif pos.x() > rect.width() - margin and pos.y() < margin:
+            return Qt.SizeBDiagCursor
+        elif pos.x() < margin and pos.y() > rect.height() - margin:
+            return Qt.SizeBDiagCursor
+        elif pos.x() < margin:
+            return Qt.SizeHorCursor
+        elif pos.x() > rect.width() - margin:
+            return Qt.SizeHorCursor
+        elif pos.y() < margin:
+            return Qt.SizeVerCursor
+        elif pos.y() > rect.height() - margin:
+            return Qt.SizeVerCursor
+        else:
+            return None
+    
+    def resizeWindow(self, global_pos):
+        rect = self.frameGeometry()
+        diff = global_pos - self.mouse_press_pos
+        self.mouse_press_pos = global_pos
+        
+        if self.resizing == Qt.SizeFDiagCursor:
+            rect.setTopLeft(rect.topLeft() + diff)
+        elif self.resizing == Qt.SizeBDiagCursor:
+            rect.setBottomRight(rect.bottomRight() + diff)
+        elif self.resizing == Qt.SizeHorCursor:
+            if self.mouse_press_pos.x() < rect.center().x():
+                rect.setLeft(rect.left() + diff.x())
+            else:
+                rect.setRight(rect.right() + diff.x())
+        elif self.resizing == Qt.SizeVerCursor:
+            if self.mouse_press_pos.y() < rect.center().y():
+                rect.setTop(rect.top() + diff.y())
+            else:
+                rect.setBottom(rect.bottom() + diff.y())
+        self.setGeometry(rect)
+    
+    def toggleMaximizeRestore(self):
+        if self.is_maximized:
+            self.setGeometry(self.normal_geometry)
+            self.is_maximized = False
+        else:
+            self.normal_geometry = self.geometry()
+            self.setGeometry(QApplication.desktop().availableGeometry(self))
+            self.is_maximized = True
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(255, 0, 0))
+        
+        # Use the standard background color from the widget's palette
+        standard_background_color = self.palette().color(QPalette.Window)
+        adjusted_rect = self.rect().adjusted(10, 10, -10, -10)
+        painter.fillRect(adjusted_rect, standard_background_color)
+        
+        painter.setBrush(Qt.NoBrush)
+        painter.setPen(QColor(255, 0, 0))
+        painter.drawRect(10, 10, self.width() - 1, self.height() - 1)
 
 # ------------------------------------------------------------------------
 # inform the user about the rules/license of this application script ...
@@ -8147,42 +15406,17 @@ class licenseWindow(QDialog):
         
         self.returnCode = 0
         
-        self.file_content = ""
-        self.file_path = os.path.join(genv.v__app__internal__, "LICENSE")
-        try:
-            with open(self.file_path, "r") as file:
-                self.file_content = file.read()
-            
-        except FileNotFoundError:
-            print("error: license file not found.")
-            print("abort.")
-            sys.exit(genv.EXIT_FAILURE)
-            
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-            tb = traceback.extract_tb(e.__traceback__)[-1]
-            
-            print(f"Exception occur at license view:")
-            print(f"type : {exc_type.__name__}")
-            print(f"value: {exc_value}")
-            print(misc.StringRepeat("-",40))
-            #
-            print(f"file : {tb.filename}")
-            print(f"line : {tb.lineno}")
-            #
-            print(misc.StringRepeat("-",40))
-            sys.exit(genv.EXIT_FAILURE)
-        
         self.setWindowTitle("LICENSE - Please read, before you start.")
+        self.setWindowIcon(QIcon(genv.v__app__img__int__ + "/winico.png"))
         self.setMinimumWidth(820)
         
-        font = QFont("Courier New", 10)
+        font = QFont("Arial", 10)
         self.setFont(font)
         
         layout = QVBoxLayout()
         
-        button1 = QPushButton("Accept")
-        button2 = QPushButton("Decline")
+        button1 = QPushButton(_("Accept"))
+        button2 = QPushButton(_("Decline"))
         
         button1.clicked.connect(self.button1_clicked)
         button2.clicked.connect(self.button2_clicked)
@@ -8199,7 +15433,7 @@ class licenseWindow(QDialog):
         # ---------------------------------------------------------
         # get license to front, before the start shot ...
         # ---------------------------------------------------------
-        textfield.setPlainText(self.file_content)
+        textfield.setPlainText(_("LICENSE"))
     
     def button1_clicked(self):
         #self.returnCode = 0
@@ -8223,7 +15457,7 @@ def ApplicationAtExit():
 def EntryPoint(arg1=None):
     atexit.register(ApplicationAtExit)
     
-    genv.v__app__comment_hdr  = ("# " + misc.StringRepeat("-",78) + "\n")
+    genv.v__app__comment_hdr  = ("# " + StringRepeat("-",78) + "\n")
     
     global conn
     global conn_cursor
@@ -8233,15 +15467,16 @@ def EntryPoint(arg1=None):
     
     topic_counter = 1
     
-    if not arg1 == None:
-        genv.v__app__scriptname__ = arg1
-        if not os.path.exists(genv.v__app__scriptname__):
-            print("script does not exists !")
-            error_result = 1
-            sys.exit(1)
+    #if not arg1 == None:
+    #    genv.v__app__scriptname__ = arg1
+    #    print("--> " + genv.v__app__scriptname__)
+    #    if not os.path.exists(genv.v__app__scriptname__):
+    #        print("script does not exists !")
+    #        error_result = 1
+    #        sys.exit(1)
     
     # ---------------------------------------------------------
-    # init pascal interpreter ...
+    # splash screen ...
     # ---------------------------------------------------------
     #pas = interpreter_Pascal()
     #pas.ShowInstructions()
@@ -8253,33 +15488,6 @@ def EntryPoint(arg1=None):
     # scoped global stuff ...
     # ---------------------------------------------------------
     pcount     = len(sys.argv) - 1
-    
-    # ---------------------------------------------------------
-    # doxygen.exe directory path ...
-    # ---------------------------------------------------------
-    if not genv.doxy_env in os.environ:
-        if genv.v__app__debug == True:
-            os.environ["DOXYGEN_PATH"] = "E:\\doxygen\\bin"
-        else:
-            print(("error: " + f"{genv.doxy_env}"
-            + " is not set in your system settings."))
-            sys.exit(genv.EXIT_FAILURE)
-    else:
-        genv.doxy_path = os.environ[genv.doxy_env]
-    
-    # ---------------------------------------------------------
-    # Microsoft Help Workshop path ...
-    # ---------------------------------------------------------
-    if not genv.doxy_hhc in os.environ:
-        if genv.v__app__debug == True:
-            os.environ["DOXYHHC_PATH"] = "E:\\doxygen\\hhc"
-        else:
-            print((""
-                + "error: " + f"{genv.doxy_hhc}"
-                + " is not set in your system settings."))
-            sys.exit(genv.EXIT_FAILURE)
-    else:
-        genv.hhc__path = os.environ[genv.doxy_hhc]
     
     # ---------------------------------------------------------
     # first, we check the operating system platform:
@@ -8299,7 +15507,103 @@ def EntryPoint(arg1=None):
     # show a license window, when readed, and user give a
     # okay, to accept it, then start the application ...
     # -----------------------------------------------------
-    app = QApplication(sys.argv)
+    genv.v__app_object = QApplication(sys.argv)
+    
+    # ---------------------------------------------------------
+    # doxygen.exe directory path ...
+    # ---------------------------------------------------------
+    if not genv.doxy_env in os.environ:
+        print("66 0 00  0")
+        if genv.v__app__debug == True:
+            print("66pppp")
+            os.environ["DOXYGEN_PATH"] = "E:/doxygen/bin"
+        else:
+            try:
+                print(genv.v__app__config.get("doxygen","path"))
+            except Exception as e:
+                # -------------------------------
+                # close tje splash screen ...
+                # -------------------------------
+                time.sleep(1)
+                if getattr(sys, 'frozen', False):
+                    pyi_splash.close()
+                    
+                win32api.MessageBox(0,(""
+                + "Error: no section: 'doxygen' or option: 'path'\n"
+                + "(missing) in observer.ini\n\n"
+                + "Application is shuting down..."),_("Error:"),
+                win32con.MB_OK or
+                win32con.MB_ICONINFORMATION or
+                win32con.MB_TOPMOST)
+                
+                sys.exit(1)
+            
+            file_path = genv.v__app__config["doxygen"]["path"]
+            
+            if len(file_path) < 1:
+                if getattr(sys, 'frozen', False):
+                    pyi_splash.close()
+                    
+                win32api.MessageBox(0,(""
+                + "Error: "
+                + genv.doxy_env
+                + " is not set in your system settings."),
+                _("Error:"),
+                win32con.MB_OK or
+                win32con.MB_ICONINFORMATION or
+                win32con.MB_TOPMOST)
+                
+                sys.exit(genv.EXIT_FAILURE)
+            else:
+                os.environ["DOXYGEN_PATH"] = file_path
+    else:
+        genv.doxy_path = os.environ[genv.doxy_env]
+    
+    # ---------------------------------------------------------
+    # Microsoft Help Workshop path ...
+    # ---------------------------------------------------------
+    if not genv.doxy_hhc in os.environ:
+        if genv.v__app__debug == True:
+            os.environ["DOXYHHC_PATH"] = "E:/doxygen/hhc"
+        else:
+            try:
+                file_path = genv.v__app__config["doxygen"]["hhc"]
+            except Exception as e:
+                if getattr(sys, 'frozen', False):
+                    pyi_splash.close()
+                    
+                win32api.MessageBox(0,(""
+                + "Error: no section: 'doxygen' or option: 'hhc'\n"
+                + "(missing) in observer.ini\n\n"
+                + "Application is shuting down..."),_("Error:"),
+                win32con.MB_OK or
+                win32con.MB_ICONINFORMATION or
+                win32con.MB_TOPMOST)
+                
+                sys.exit(1)
+            
+            file_path = genv.v__app__config["doxygen"]["hhc"]
+            
+            if len(file_path) < 1:
+                if getattr(sys, 'frozen', False):
+                    pyi_splash.close()
+                    
+                win32api.MessageBox(0,(""
+                + "Error: "
+                + genv.doxy_hhc
+                + " is not set in your system settings."),
+                _("Error:"),
+                win32con.MB_OK or
+                win32con.MB_ICONINFORMATION or
+                win32con.MB_TOPMOST)
+                
+                sys.exit(genv.EXIT_FAILURE)
+            else:
+                os.environ["DOXYHHC_PATH"] = file_path
+    else:
+        genv.hhc__path = os.environ[genv.doxy_hhc]
+    print("ööööööööööööööööööö")
+    
     
     license_window = licenseWindow()
     # -------------------------------
@@ -8310,27 +15614,21 @@ def EntryPoint(arg1=None):
         
     license_window.exec_()
     
-    # ---------------------------------------------------------
-    # when config.ini does not exists, then create a small one:
-    # ---------------------------------------------------------
-    if not os.path.exists(genv.v__app__config_ini):
-        print("1212121212")
-        with open(genv.v__app__config_ini, "w", encoding="utf-8") as output_file:
-            content = (""
-            + "[common]\n"
-            + "language = en_us\n")
-            output_file.write(content)
-            output_file.close()
-            ini_lang = "en_us" # default is english; en_us
-    else:
-        try:
-            genv.v__app__config.read(genv.v__app__config_ini)
-            ini_lang = genv.v__app__config.get("common", "language")
-        except:
-            ini_lang = "en_us"
-            pass
+    # ------------------------------------------------------------------------
+    # selected list of flags for translation localization display ...
+    # ------------------------------------------------------------------------
+    cdn_host = genv.v__app__cdn_host + "/observer/img/flags/"
+    cdn_suff = ".gif"
+    genv.v__app__cdn_flags = _("moped_list")
+    #
+    pattern_host = r"cdn_host"
+    pattern_suff = r"cdn_suff"
+    #
+    processed_string = re.sub(pattern_host, repr(cdn_host), genv.v__app__cdn_flags)
+    processed_string = re.sub(pattern_suff, repr(cdn_suff), processed_string)
+    #
+    genv.v__app__cdn_flags = eval(processed_string)
     
-    _ = handle_language(ini_lang)
     
     # ---------------------------------------------------------
     # when config file not exists, then spite a info message,
@@ -8340,20 +15638,18 @@ def EntryPoint(arg1=None):
         print("info: config: '" \
         + f"{genv.doxyfile}" + "' does not exists. I will fix this by create a default file.")
         
-        file_content_warn = [
-            ["QUIET", "YES"],
-            ["WARNINGS", "YES"],
-            ["",""],
-            ["WARN_IF_UNDOCUMENTED", "NO"],
-            ["WARN_IF_UNDOC_ENUM_VAL", "NO"],
-            ["WARN_IF_DOC_ERROR", "YES"],
-            ["WARN_IF_INCOMPLETE_DOC", "YES"],
-            ["WARN_AS_ERROR", "NO"],
-            ["WARN_FORMAT", "\"$file:$line: $text\""],
-            ["WARN_LINE_FORMAT", "\"at line $line of file $file\""],
-            ["WARN_LOGFILE", "warnings.log"]
-        ]
-        with open(doxyfile, 'w') as file:
+        file_content      = json.loads(_("doxyfile_content"))
+        #print(file_content)
+        
+        try:
+            file_content_warn = json.loads(_("doxyfile_content_warn"))
+            #print(file_content_warn)
+        except Exception as e:
+            print(e)
+        print(">>>")
+        #print(file_content)
+        print("<<<")
+        with open(genv.doxyfile, 'w') as file:
             file.write(genv.v__app__comment_hdr)
             file.write("# File: Doxyfile\n")
             file.write("# Author: (c) 2024 Jens Kallup - paule32 non-profit software\n")
@@ -8384,8 +15680,8 @@ def EntryPoint(arg1=None):
             
             file.close()
     
-    global sv_help
-    sv_help = customScrollView_help()
+    genv.sv_help = customScrollView_help()
+    genv.sv_help.setStyleSheet(_("ScrollBarCSS"))
     
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     time_str = datetime.datetime.now().strftime("%H:%M:%S")
@@ -8394,19 +15690,19 @@ def EntryPoint(arg1=None):
     conn_cursor = conn.cursor()
     conn.close()
     
+    #öööö
     try:
-        if app == None:
-            app = QApplication(sys.argv)
+        if genv.v__app_object == None:
+            genv.v__app_object = QApplication(sys.argv)
         
-        global appwin
-        appwin = FileWatcherGUI()
-        appwin.move(100, 100)
+        genv.v__app_win = FileWatcherGUI()
+        genv.v__app_win.move(100, 100)
+        genv.v__app_win.exec_()
         
-        appwin.exec_()
     except UnboundLocalError as e:
         tb = traceback.extract_tb(e.__traceback__)
         filename, lineno, funcname, text = tb[-1]
-        if appwin == None:
+        if genv.v__app_win == None:
             print(f"Exception: {e}")
             print(f"Error occurred in file: {filename}")
             print(f"Function: {funcname}")
@@ -8456,36 +15752,65 @@ class parserBinary:
 # ---------------------------------------------------------------------------
 class parserDBasePoint:
     def __init__(self, script_name):
-        prg = dBaseDSL(script_name)
         try:
-            prg.parse(self)
-            prg.run(self)
-        except ENoParserError as noerror:
-            prg.finalize()
-            print("\nend of data")
+            showInfo("oooppppp")
+            prg = dBaseDSL(script_name)
+        except configparser.NoOptionError as e:
+            err = _("Exception: option 'language' not found.") + "\n" + _("abort")
+            showException(err)
+        except configparser.NoSectionError as e:
+            err = _("Exception: section not found.") + "\n" + e + _("abort.")
+            showException(err)
+        except configparser.Error as e:
+            err = _("Exception: config error occur.") + "\n" + _("abort.")
+            showException(err)
+        except SyntaxError as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            
+            err = (_("Exception occur at module import:") +
+            f"type : {exc_type.__name__}" +
+            f"value: {exc_value}"     +   StringRepeat("-",40)  +
+            f"file : {tb.filename}\n" +
+            f"line : {tb.lineno}")
+            
+            showException(err)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            #
+            if exc_type.__name__ == "NoOptionError":
+                #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
+                #genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+                #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
+                pass
+            else:
+                err = (
+                _("Exception occur at module import:") + "\n" +
+                f"type : {exc_type.__name__}\n" +
+                f"value: {exc_value}\n"         + StringRepeat("-",40) +
+                f"file : {tb.filename}\n"       +
+                f"line : {tb.lineno}\n")
+                showException(err)
 
 # ---------------------------------------------------------------------------
 # parse Doxyfile script ...
 # ---------------------------------------------------------------------------
 class parserDoxyGen:
-    def __init__(self, script_name):
-        prg = doxygenDSL(script_name)
-        try:
-            prg.parse(self)
-            prg.run(self)
-        except ENoParserError as noerror:
-            prg.finalize()
-            print("\nend of data")
+    def __init__(self, script_name, parent_gui=None):
+        self.parent_gui = parent_gui
+        prg = doxygenDSL(script_name, parent_gui)
 
 # ---------------------------------------------------------------------------
 # parse Pascal script ...
 # ---------------------------------------------------------------------------
 class parserPascalPoint:
     def __init__(self, script_name):
+        self.prg = None
         self.prg = interpreter_Pascal(script_name)
         try:
             self.prg.parse()
-            self.prg.run()
+            #self.prg.run()
         except ENoParserError as noerror:
             self.finalize()
             print("\nend of data")
@@ -8495,11 +15820,11 @@ class parserPascalPoint:
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
     
-    # The Python 2.7+ or 3.3+ is required.
+    # The Python 3+ or 3.12+ is required.
     major = sys.version_info[0]
     minor = sys.version_info[1]
-    if (major == 2 and minor < 7) or (major == 3 and minor < 0):
-        print("Python 2.7+ or Python 3.0+ are required for the script")
+    if (major < 3 and minor < 12):
+        print("Python 3.12+ are required for the script")
         sys.exit(1)
     
     # Determine the path to the script and its name.
@@ -8520,15 +15845,16 @@ if __name__ == '__main__':
     genv.v__app__tmp3 = "parse..."
     if len(sys.argv) < 2:
         print("no arguments given.")
-        print(genv.v__app__parameter)
+        #print(genv.v__app__parameter)
         sys.exit(1)
     
     if len(sys.argv) >= 1:
         if sys.argv[1] == "--gui":
-            if len(sys.argv) == 2:
-                sys.argv.append("test.txt")
-            genv.v__app__scriptname__ = sys.argv[2]
-            handleExceptionApplication(EntryPoint,genv.v__app__scriptname__)
+            #if len(sys.argv) == 2:
+            #    sys.argv.append("test.txt")
+            #genv.v__app__scriptname__ = sys.argv[2]
+            #handleExceptionApplication(EntryPoint,genv.v__app__scriptname__)
+            handleExceptionApplication(EntryPoint)
             sys.exit(0)
         elif sys.argv[1] == "--doxygen":
             if len(sys.argv) == 2:
