@@ -1,6 +1,6 @@
 # HelpNDocTools
 Some stuff for "HelpNDoc" (www.helpndoc.com) - the Help authoring Software for CHM, HTML, PDF, ... help projects.
-To download the Windows 10 64-Bit Professional based Application, you can visit:
+To download the Windows 10 64-Bit Professional based Application, you can visit:<br>
 [Application](https://kallup.net/woops/)
 
 Here are some out dated screen shoot on running the application:
