@@ -2900,18 +2900,73 @@ print = builtins.print
             c = self.getChar()
             if c == genv.ptNoMoreData:
                 return c
+            elif c == '(':
+                c = self.getChar()
+                if c == '*':
+                    if parser_type == self.pascal_parser:
+                        while True:
+                            c = self.getChar()
+                            if c == genv.ptNoMoreData:
+                                genv.have_errors = True
+                                genv.unexpectedError(_("comment not terminated."))
+                                return
+                            elif c == '*':
+                                c = self.getChar()
+                                if c == ')':
+                                    break;
+                            elif c == '\n':
+                                continue
+                            elif c == '\r':
+                                c = self.getChar()
+                                if not c == '\n':
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("line end error"))
+                                    return
+                            else:
+                                continue
+                        continue
+                    else:
+                        genv.unexpectedError(_("pascal comment not allowed")))
+                        return
+                else:
+                    genv.unexpectedError(_("todo"))
+                    return
+            elif c == '{':
+                if parser_type == self.pascal_parser:
+                    while True:
+                        c = self.getChar()
+                        if c == genv.ptNoMoreData:
+                            genv.have_errors = True
+                            genv.unexpectedError(_("unterminated comment."))
+                        elif c == '\n':
+                            break
+                        elif c == '\r':
+                            c = self.getChar()
+                            if not c == '\n':
+                                genv.have_errors = True
+                                genv.unexpectedError(_("line end error"))
+                        elif c == '}':
+                            break
+                        else:
+                            continue
+                else:
+                    genv.unexpectedError(_("pascal comment not allowed"))
+                    return
             elif c == '*':
                 c = self.getChar()
                 if c == genv.ptNoMoreData:
                     return c
                 elif c == '*':
-                    #showInfo('dbase 11 comment ---> ' + str(genv.line_row))
-                    while True:
-                        c = self.getChar()
-                        if c == genv.ptNoMoreData:
-                            return c
-                        elif c == '\n':
-                            break
+                    if parser_type == self.dbase_parser:
+                        while True:
+                            c = self.getChar()
+                            if c == genv.ptNoMoreData:
+                                return c
+                            elif c == '\n':
+                                break
+                    else:
+                        genv.unexpectedError(_("dbase comment not allowed."))
+                        return
                 else:
                     return c
             elif c == '&':
@@ -2919,13 +2974,16 @@ print = builtins.print
                 if c == genv.ptNoMoreData:
                     return c
                 elif c == '&':
-                    #showInfo('dbase 2 comment ---> ' + str(genv.line_row))
-                    while True:
-                        c = self.getChar()
-                        if c == genv.ptNoMoreData:
-                            return c
-                        elif c == '\n':
-                            break
+                    if parser_type == self.dbase_parser:
+                        while True:
+                            c = self.getChar()
+                            if c == genv.ptNoMoreData:
+                                return c
+                            elif c == '\n':
+                                break
+                    else:
+                        genv.unexpectedError(_("dbase comment not allowed."))
+                        return
                 else:
                     return c
             elif c == '/':
@@ -2933,25 +2991,28 @@ print = builtins.print
                 if c == genv.ptNoMoreData:
                     return genv.ptNoMoreData
                 elif c == '*':
-                    #showInfo("open C comment: "  + str(genv.line_row))
-                    self.in_comment += 1
-                    while True:
-                        c = self.getChar()
-                        if c == genv.ptNoMoreData:
-                            genv.unexpectedError(_("unterminated comment."))
-                        elif c == '*':
+                    if parser_type == dbase_parser:
+                        self.in_comment += 1
+                        while True:
                             c = self.getChar()
-                            if c == '/':
-                                #showInfo("closed C Comment: "  + str(genv.line_row))
-                                self.in_comment -= 1
-                                break
+                            if c == genv.ptNoMoreData:
+                                genv.unexpectedError(_("unterminated comment."))
+                            elif c == '*':
+                                c = self.getChar()
+                                if c == '/':
+                                    #showInfo("closed C Comment: "  + str(genv.line_row))
+                                    self.in_comment -= 1
+                                    break
+                                else:
+                                    continue
                             else:
                                 continue
-                        else:
-                            continue
-                    if self.in_comment > 0:
-                        #showInfo("comment großer")
-                        genv.unexpectedError(_("self.err_commentNC"))
+                        if self.in_comment > 0:
+                            #showInfo("comment großer")
+                            genv.unexpectedError(_("self.err_commentNC"))
+                    else:
+                        genv.unexpectedError(_("C comment not allowrd"))
+                        return
                 elif c == '/':
                     #showInfo("C++ comment: "  + str(genv.line_row))
                     while True:
@@ -3014,7 +3075,7 @@ print = builtins.print
             + "\tconsole.exec_()\n"
             )
         
-        showInfo("runner:\n" + genv.text_code)
+        #showInfo("runner:\n" + genv.text_code)
         
         #showInfo(genv.text_code)
         try:
@@ -4336,7 +4397,33 @@ class interpreter_Pascal(interpreter_base):
                 return c
     
     def parse(self):
-        self.found = False
+        try:
+            genv.counter_digits = 0
+            genv.counter_indent = 1
+            genv.counter_for    = 0
+            genv.counter_brace  = 0
+            
+            genv.first_part  = False
+            genv.second_part = False
+            
+            genv.line_row  = 1
+            genv.line_col  = 1
+            
+            if len(self.source) < 1:
+                genv.unexpectedError(_("no data available."))
+                return
+            
+            self.token_str = ""            
+            self.found = False
+            while True:
+                c = self.skip_white_spaces()
+                if c == genv.ptNoMoreData:
+                    raise e_no_more_data()
+                elif c.isalpha():
+                    self.token_str = c
+                    self.getIdent()
+                    if self.token_str.lower() == "program":
+                        c = self.skip_white_spaces(self.dbase_parser)
         try:
             if len(self.source) < 1:
                 genv.unexpectedError(_("no data available."))
