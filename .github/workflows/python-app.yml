@@ -22,103 +22,126 @@ permissions:
   contents: read
 
 jobs:
-  # -----------------------------------------------
-  # optimized for Microsoft Windows 10, Python 3.10
-  # -----------------------------------------------
   Run-Windows:
-    name: Build for Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
-    # ------------------------------
-    # pre-installed Python check ...
-    # ------------------------------
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    # -----------------------------------
-    # we use PowerShell under Windows 10:
-    # -----------------------------------
-    - name: Check, and Install dependencies ...
-      shell: pwsh
-      run: |
-        $env:MY_WORK_DIR = "${{ github.workspace }}"
-        D:
-        cd $env:MY_WORK_DIR\\src
-        $pythonExe    = Get-Command python      -ErrorAction Ignore
-        $pyInstallExe = Get-Command pyInstaller -ErrorAction Ignore
-        if ($pythonExe) {
-          Write-Output "Python is installed."
-          python3 --version
-        } else {
-          Write-Output "Python is not installed, try to install it..."
-          python -m pip install --upgrade pip
-          pip install flake8 pytest
-          python3 -m pip install pysqlite3
-          python3 -m pip install PyQt5
-          python3 -m pip install PyQt5-sip
-          python3 -m pip install PyQtWebEngine
-        }
-        if ($pyInstallExe) {
-          Write-Output "pyInstaller is installed."
-          pyinstaller --version
-        } else {
-          pip install pyinstaller
-          pip install --upgrade pyinstaller
-        }
-        Write-Output "Create ByteCode ..."
-        python3 -m compileall observer.py
-        Write-Output "Create Application ..."
-        $pyInstallerArgs = "pyInstaller --noconfirm --onefile --console      " +
-        "--icon         $env:MY_WORK_DIR\src\img\floppy-disk.ico " +
-        "--splash       $env:MY_WORK_DIR\src\img\splash.png      " +
-        "--version-file $env:MY_WORK_DIR\src\version.info        " +
-        "               $env:MY_WORK_DIR\src\observer.py"
-        $pyInstallerArgs
+      - name: Build for Windows
+        uses: actions/checkout@v3
+      # ------------------------------
+      # pre-installed Python check ...
+      # ------------------------------
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      # -----------------------------------
+      # we use PowerShell under Windows 10:
+      # -----------------------------------
+      - name: Check, and Install dependencies ...
+        shell: pwsh
+        run: |
+          $env:MY_WORK_DIR = "${{ github.workspace }}"
+          D:
+          cd $env:MY_WORK_DIR\\src
+          $pythonExe    = Get-Command python      -ErrorAction Ignore
+          $pyInstallExe = Get-Command pyInstaller -ErrorAction Ignore
+          if ($pythonExe) {
+            Write-Output "Python is installed."
+            python3 --version
+          } else {
+            Write-Output "Python is not installed, try to install it..."
+            python -m pip install --upgrade pip
+            pip install flake8 pytest
+            python3 -m pip install pysqlite3
+            python3 -m pip install PyQt5
+            python3 -m pip install PyQt5-sip
+            python3 -m pip install PyQtWebEngine
+            python3 -m pip install pywin32
+            python3 -m pip install pywintypes
+            python3 -m pip install codecs
+          }
+          if ($pyInstallExe) {
+            Write-Output "pyInstaller is installed."
+            pyinstaller --version
+          } else {
+            pip install pyinstaller
+            pip install --upgrade pyinstaller
+          }
+          Write-Output "Create ByteCode ..."
+          python3 -m compileall observer.py
+          Write-Output "Create Application ..."
+          $pyInstallerArgs = "pyInstaller --noconfirm --onefile --console      " +
+          "--icon         $env:MY_WORK_DIR\src\_internal\img\floppy-disk.ico " +
+          "--splash       $env:MY_WORK_DIR\src\_internal\img\splash.png      " +
+          "--version-file $env:MY_WORK_DIR\src\version.info        " +
+          "               $env:MY_WORK_DIR\src\observer.py"
+          $pyInstallerArgs
+          dir
+      # ------------------------------------------------------
+      # we must upload artifact, before we can download it ...
+      # ------------------------------------------------------
+      #- name: Build binary directory ...
+      #  shell: pwsh
+      #  run: |
+      #    $env:MY_WORK_DIR = "${{ github.workspace }}"
+      #    D:
+      #    cd $env:MY_WORK_DIR
+      #    mkdir builds/windows
+      #    dir
+      #- name: Upload
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    path: /builds/windows
+      # ------------------------------------------------------
+      # now, we can download the artifact ...
+      # ------------------------------------------------------
+      #- name: Download a single artifact
+      #  uses: actions/download-artifact@v4
+      #  with:
+      #    path: /builds/windows
 
   # -----------------------------------
   # optimized for Linux - not tested !
   # -----------------------------------
   Run-Linux:
-    name: Build for Linux
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
+      name: Build for Linux
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
     
-    # -----------------------------------
-    # we use BASH under Linux Ubuntu 22.0
-    # -----------------------------------
-    - name: Install dependencies
-      run: |
-        MY_WORK_DIR="${{ github.workspace }}"
-        cd $MY_WORK_DIR/src
-        python3 --version
-        pyresult=$?
-        if [ $pyresult -eq 0 ]; then
-          echo "Python3 installed"
-          python -m pip install --upgrade pip
-          pip install flake8 pytest
-          python3 -m pip install pysqlite3 
-          python3 -m pip install PyQt5
-          python3 -m pip install PyQt5-sip
-          python3 -m pip install PyQtWebEngine
+      # -----------------------------------
+      # we use BASH under Linux Ubuntu 22.0
+      # -----------------------------------
+      - name: Install dependencies
+        run: |
+          MY_WORK_DIR="${{ github.workspace }}"
+          cd $MY_WORK_DIR/src
+          python3 --version
+          pyresult=$?
+          if [ $pyresult -eq 0 ]; then
+            echo "Python3 installed"
+            python -m pip install --upgrade pip
+            pip install flake8 pytest
+            python3 -m pip install pysqlite3 
+            python3 -m pip install PyQt5
+            python3 -m pip install PyQt5-sip
+            python3 -m pip install PyQtWebEngine
         
-          pip install pyinstaller
-          pip install --upgrade pyinstaller
-        else
-          echo "Python3 missing !"
-          exit 1
-        fi
-        echo "Create ByteCode ..."
-        python3 -m compileall observer.py
-        echo "Create Application ..."
-        pyinstaller --noconfirm --onefile --console     \
-        --icon     $MY_WORK_DIR/src/img/floppy-disk.ico \
-        --splash   $MY_WORK_DIR/src/img/splash.png      \
-        --version-file $MY_WORK_DIR/src/version.info    \
-        $MY_WORK_DIR/src/observer.py
+            pip install pyinstaller
+            pip install --upgrade pyinstaller
+          else
+            echo "Python3 missing !"
+            exit 1
+          fi
+          echo "Create ByteCode ..."
+          python3 -m compileall observer.py
+          echo "Create Application ..."
+          pyinstaller --noconfirm --onefile --console     \
+          --icon     $MY_WORK_DIR/src/_internal/img/floppy-disk.ico \
+          --splash   $MY_WORK_DIR/src/_internal/img/splash.png      \
+          --version-file $MY_WORK_DIR/src/version.info    \
+          $MY_WORK_DIR/src/observer.py
