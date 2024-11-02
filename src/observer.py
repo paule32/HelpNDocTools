@@ -23,6 +23,9 @@ import subprocess
 import sys
 import os
 
+import win32api
+import win32con
+
 # ---------------------------------------------------------------------------
 # under the windows console, python paths can make problems ...
 # ---------------------------------------------------------------------------
@@ -744,7 +747,9 @@ try:
         myappid = 'kallup-nonprofit.helpndoc.observer.1'
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except ImportError:
-        print("windll error")
+        print(_("windll error"))
+    except Exception:
+        print(_("common exception occur"))
 
 except IgnoreOuterException:
     print(genv.v__app__locales)
@@ -828,7 +833,7 @@ HTML_FILE_STOP = """</body></html>"""
 
 LINKS = {}
 REVERSE_LINK_MAP = {}
-
+print("6666666")
 class HTMLHelpSubject:
     "a help subject consists of a topic, and a filename"
     def __init__( self, topic, filename, keywords = [] ):
@@ -1049,7 +1054,7 @@ doc_index = 0
 last_body = ""
 output = None    
 data = ""
-
+print("7777777")
 def isnumeric(token):
     try:
         int(token)
@@ -2926,11 +2931,11 @@ print = builtins.print
                                 continue
                         continue
                     else:
-                        genv.unexpectedError(_("pascal comment not allowed")))
+                        genv.unexpectedError(_("pascal comment not allowed"))
                         return
                 else:
-                    genv.unexpectedError(_("todo"))
-                    return
+                    self.ungetChar(1)
+                    return '('
             elif c == '{':
                 if parser_type == self.pascal_parser:
                     while True:
@@ -2938,17 +2943,10 @@ print = builtins.print
                         if c == genv.ptNoMoreData:
                             genv.have_errors = True
                             genv.unexpectedError(_("unterminated comment."))
-                        elif c == '\n':
-                            break
-                        elif c == '\r':
-                            c = self.getChar()
-                            if not c == '\n':
-                                genv.have_errors = True
-                                genv.unexpectedError(_("line end error"))
+                            return
                         elif c == '}':
                             break
-                        else:
-                            continue
+                        continue
                 else:
                     genv.unexpectedError(_("pascal comment not allowed"))
                     return
@@ -4314,87 +4312,9 @@ class dBaseDSL():
 class interpreter_Pascal(interpreter_base):
     def __init__(self, file_name):
         super(interpreter_Pascal, self).__init__(file_name)
+        
+        self.script_name   = file_name
     
-    def skip_white_spaces(self):
-        while True:
-            c = self.getChar()
-            if c == genv.ptNoMoreData:
-                return c
-            elif c == '/':
-                c = self.getChar()
-                if c == '/':
-                    while True:
-                        c = self.getChar()
-                        if c == genv.ptNoMoreData:
-                            return c
-                        elif c == '\n':
-                            break
-                        elif c == '\r':
-                            c = self.getChar()
-                            if not c == '\n':
-                                genv.have_errors = True
-                                genv.unexpectedError(_("line end error"))
-                            break
-                        else:
-                            continue
-                    continue
-                else:
-                    self.ungetChar(1)
-                    return '/'
-            elif c == '(':
-                c = self.getChar()
-                if c == '*':
-                    while True:
-                        c = self.getChar()
-                        if c == '\n':
-                            break
-                        elif c == '\r':
-                            c = self.getChar()
-                            if not c == '\n':
-                                genv.have_errors = True
-                                genv.unexpectedError(_("line end error"))
-                        elif c == '*':
-                            c = self.getChar()
-                            if c == genv.ptNoMoreData:
-                                genv.have_errors = True
-                                genv.unexpectedError(_("unterminated comment."))
-                            elif c == ')':
-                                break
-                            else:
-                                continue
-                        else:
-                            continue
-                    continue
-                else:
-                    self.ungetChar(1)
-                    return '('
-            elif c == '{':
-                while True:
-                    c = self.getChar()
-                    if c == genv.ptNoMoreData:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("unterminated comment."))
-                    elif c == '\n':
-                        break
-                    elif c == '\r':
-                        c = self.getChar()
-                        if not c == '\n':
-                            genv.have_errors = True
-                            genv.unexpectedError(_("line end error"))
-                    elif c == '}':
-                        break
-                    else:
-                        continue
-            elif c == '\n':
-                continue
-            elif c == '\r':
-                c = self.getChar()
-                if not c == '\n':
-                    genv.have_errors = True
-                    genv.unexpectedError(_("line end error"))
-                continue
-            else:
-                return c
     
     def parse(self):
         try:
@@ -4409,64 +4329,315 @@ class interpreter_Pascal(interpreter_base):
             genv.line_row  = 1
             genv.line_col  = 1
             
+            self.counter_begin = 0
+            self.counter_end   = 0
+            
             if len(self.source) < 1:
                 genv.unexpectedError(_("no data available."))
                 return
             
             self.token_str = ""            
             self.found = False
-            while True:
-                c = self.skip_white_spaces()
+            
+            ident_name = ""
+            
+            c = self.skip_white_spaces(self.pascal_parser)
+            if c == genv.ptNoMoreData:
+                raise e_no_more_data()
+                return
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == "program":
+                    pass
+                elif self.token_str.lower() == "unit":
+                    pass
+                elif self.token_str.lower() == "library":
+                    pass
+                    
+                c = self.skip_white_spaces(self.pascal_parser)
                 if c == genv.ptNoMoreData:
                     raise e_no_more_data()
+                    return
                 elif c.isalpha():
                     self.token_str = c
                     self.getIdent()
-                    if self.token_str.lower() == "program":
-                        c = self.skip_white_spaces(self.dbase_parser)
-        try:
-            if len(self.source) < 1:
-                genv.unexpectedError(_("no data available."))
-                return
-            # header
-            self.token_str = ""
-            self.found = False
-            while True:
-                c = self.skip_white_spaces()
-                if c == genv.ptNoMoreData:
-                    return c
-                elif c.isalpha():
-                    self.token_str = c
-                    self.getIdent()
-                    #showInfo(self.token_str)
-                    if len(self.token_str) > 64:
+                    ident_name = self.token_str
+                    self.token_str = ""
+                
+                if len(ident_name) > 0:
+                    c = self.skip_white_spaces(self.pascal_parser)
+                    if c == genv.ptNoMoreData:
+                        raise e_no_more_data()
+                        return
+                    if not c == ';':
                         genv.have_errors = True
-                        genv.unexpectedError(_("symbol name too long"))
-                    if self.token_str.lower() == "program":
-                        self.found = True
-                        print("---> program")
-                        break
-                    elif self.token_str.lower() == "unit":
-                        self.found = True
-                        print("---> unit")
-                        break
-                    elif self.token_str.lower() == "library":
-                        self.found = True
-                        print("---> library")
-                        break
-                    else:
-                        self.found = False
-                    if len(self.token_str) > 0:
-                        if not self.found:
-                            genv.have_errors = True
-                            genv.unexpectedError(_(f"token not found: {self.token_str}"))
-                        else:
-                            showInfo("toko:  " + self.token_str)
+                        genv.unexpectedError(_("semicolon expected"))
+                        return
                 else:
                     genv.have_errors = True
-                    genv.unexpectedChar(c)
-        except:
-            showException(traceback.format_exc())
+                    genv.unexpectedError(_("module ident name expected."))
+                    return
+                    
+                c = self.skip_white_spaces(self.pascal_parser)
+                if c == genv.ptNoMoreData:
+                    raise e_no_more_data()
+                    return
+                elif c.isalpha():
+                    self.token_str = c
+                    self.getIdent()
+                    
+                    if self.token_str.lower() == "interface":
+                        pass
+                    self.handle_pascal_code(self.token_str.lower())
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedError(_("alpha ident expected"))
+                    return
+            else:
+                genv.have_errors = True
+                genv.unexpectedError(_("alpha ident expected"))
+                return
+        except e_no_more_data as noerr:
+            showInfo("A no Error Exception")
+    
+    def handle_pascal_code(self, token):
+        self.ungetChar(len(self.token_str)+1)
+        while True:
+            c = self.skip_white_spaces(self.pascal_parser)
+            if c == genv.ptNoMoreData:
+                raise e_no_more_data()
+                return
+            elif c.isalpha():
+                self.token_str = c
+                self.getIdent()
+                if self.token_str.lower() == "procedure":
+                    c = self.skip_white_spaces(self.pascal_parser)
+                    if c == genv.ptNoMoreData:
+                        raise e_no_more_data()
+                        return
+                    if c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        ident_name = self.token_str
+                        c = self.skip_white_spaces(self.pascal_parser)
+                        if c == genv.ptNoMoreData:
+                            raise e_no_more_data()
+                            return
+                        if c == '(':
+                            c = self.skip_white_spaces(self.pascal_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data()
+                                return
+                            elif c == ')':
+                                c = self.skip_white_spaces(self.pascal_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data()
+                                    return
+                                elif c == ';':
+                                    c = self.skip_white_spaces(self.pascal_parser)
+                                    if c == genv.ptNoMoreData:
+                                        raise e_no_more_data()
+                                        return
+                                    elif c.isalpha():
+                                        self.token_str = c
+                                        self.getIdent()
+                                        if self.token_str == "var":
+                                            pass
+                                        elif self.token_str == "begin":
+                                            c = self.skip_white_spaces(self.pascal_parser)
+                                            if c == genv.ptNoMoreData:
+                                                raise e_no_more_data()
+                                                return
+                                            elif c.isalpha():
+                                                self.token_str = c
+                                                self.getIdent()
+                                                if self.token_str == "end":
+                                                    c = self.skip_white_spaces(self.pascal_parser)
+                                                    if c == genv.ptNoMoreData:
+                                                        raise e_no_more_data()
+                                                        return
+                                                    elif c == ';':
+                                                        continue
+                                                    else:
+                                                        genv.have_errors = True
+                                                        genv.unexpectedError(_("semicolon expected"))
+                                                        return
+                                                else:
+                                                    genv.have_errors = True
+                                                    genv.unexpectedError(_("END expected"))
+                                                    return
+                                            else:
+                                                genv.have_errors = True
+                                                genv.unexpectedError(_("alpha ident expected"))
+                                                return
+                                        else:
+                                            genv.have_errors = True
+                                            genv.unexpectedError(_("BEGIN, VAR expected"))
+                                            return
+                                    else:
+                                        genv.have_errors = True
+                                        genv.unexpectedError(_("alpha ident expected"))
+                                        return
+                                else:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("semicolon expected"))
+                                    return
+                            else:
+                                genv.have_errors = True
+                                genv.unexpectedError(_("closed paren expected"))
+                                return
+                        else:
+                            genv.have_errors = True
+                            genv.unexpectedError(_("open paren expected"))
+                            return
+                    else:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("alpha ident expected"))
+                        return
+                        
+                elif self.token_str.lower() == "function":
+                    c = self.skip_white_spaces(self.pascal_parser)
+                    if c == genv.ptNoMoreData:
+                        raise e_no_more_data()
+                        return
+                    elif c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        ident_name = self.token_str
+                        c = self.skip_white_spaces(self.pascal_parser)
+                        if c == genv.ptNoMoreData:
+                            raise e_no_more_data()
+                            return
+                        elif c == '(':
+                            c = self.skip_white_spaces(self.pascal_parser)
+                            if c == genv.ptNoMoreData:
+                                raise e_no_more_data()
+                                return
+                            elif c == ')':
+                                c = self.skip_white_spaces(self.pascal_parser)
+                                if c == genv.ptNoMoreData:
+                                    raise e_no_more_data()
+                                    return
+                                elif c == ':':
+                                    c = self.skip_white_spaces(self.pascal_parser)
+                                    if c == genv.ptNoMoreData:
+                                        raise e_no_more_data()
+                                        return
+                                    elif c.isalpha():
+                                        self.token_str = c
+                                        self.getIdent()
+                                        resultName = self.token_str
+                                        c = self.skip_white_spaces(self.pascal_parser)
+                                        if c == genv.ptNoMoreData:
+                                            raise e_no_more_data()
+                                            return
+                                        elif c == ';':
+                                            c = self.skip_white_spaces(self.pascal_parser)
+                                            if c == genv.ptNoMoreData:
+                                                raise e_no_more_data()
+                                                return
+                                            elif c.isalpha():
+                                                self.token_str = c
+                                                self.getIdent()
+                                                if self.token_str == "var":
+                                                    pass
+                                                elif self.token_str == "begin":
+                                                    c = self.skip_white_spaces(self.pascal_parser)
+                                                    if c == genv.ptNoMoreData:
+                                                        raise e_no_more_data()
+                                                        return
+                                                    elif c.isalpha():
+                                                        self.token_str = c
+                                                        self.getIdent()
+                                                        if self.token_str == "end":
+                                                            c = self.skip_white_spaces(self.pascal_parser)
+                                                            if c == genv.ptNoMoreData:
+                                                                raise e_no_more_data()
+                                                                return
+                                                            elif c == ';':
+                                                                continue
+                                                            else:
+                                                                genv.have_errors = True
+                                                                genv.unexpectedError(_("semicolon expected"))
+                                                                return
+                                                        else:
+                                                            genv.have_errors = True
+                                                            genv.unexpectedError(_("END expected"))
+                                                            return
+                                                    else:
+                                                        genv.have_errors = True
+                                                        genv.unexpectedError(_("alpha ident expected"))
+                                                        return
+                                                else:
+                                                    genv.have_errors = True
+                                                    genv.unexpectedError(_("BEGIN, VAR expected"))
+                                                    return
+                                            else:
+                                                genv.have_errors = True
+                                                genv.unexpectedError(_("alpha ident expected"))
+                                                return
+                                        else:
+                                            genv.have_errors = True
+                                            genv.unexpectedError(_("semicolon expected"))
+                                            return
+                                    else:
+                                        genv.have_errors = True
+                                        genv.unexpectedError(_("alpha ident expected"))
+                                        return
+                                else:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("colom expected"))
+                                    return
+                            else:
+                                genv.have_errors = True
+                                genv.unexpectedError(_("closed paren expected"))
+                                return
+                        else:
+                            genv.have_errors = True
+                            genv.unexpectedError(_("open paren expected"))
+                            return
+                    else:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("alpha ident expected"))
+                        return
+                
+                elif self.token_str.lower() == "begin":
+                    c = self.skip_white_spaces(self.pascal_parser)
+                    if c == genv.ptNoMoreData:
+                        raise e_no_more_data()
+                        return
+                    elif c.isalpha():
+                        self.token_str = c
+                        self.getIdent()
+                        if self.token_str.lower() == "end":
+                            c = self.skip_white_spaces(self.pascal_parser)
+                            if not c == '.':
+                                genv.have_errors = True
+                                genv.unexpectedError(_("end-point expected"))
+                                return
+                            else:
+                                raise e_no_more_data()
+                                return
+                        else:
+                            genv.have_errors = True
+                            genv.unexpectedError(_("END expected"))
+                            return
+                    else:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("alpha ident expected"))
+                        return
+                else:
+                    genv.have_errors = True
+                    genv.unexpectedToken(self.token_str)
+                    return
+            else:
+                genv.have_errors = True
+                genv.unexpectedToken(self.token_str)
+                return
+    
+    def handle_pascal_commands(self):
+        showInfo("---> " + self.token_str)
 
 class pascalDSL():
     def __init__(self, script_name):
@@ -7645,17 +7816,29 @@ class EditorTextEdit(QPlainTextEdit):
                 showException(traceback.format_exc())
                 return
             
-            prg = interpreter_dBase(script_name)
-            try:
+            if self.edit_type == "dbase":
+                showInfo("dbase <---")
+                prg = interpreter_dBase(script_name)
+                try:
+                    try:
+                        prg.parse()
+                        prg.run()
+                    except ENoSourceHeader as e:
+                        showError(_("source missing correct header style."))
+                        prg = None
+                        return
+                finally:
+                    prg = None
+                    
+            elif self.edit_type == "pascal":
+                showInfo("pascal <---")
+                prg = interpreter_Pascal(script_name)
                 try:
                     prg.parse()
                     prg.run()
-                except ENoSourceHeader as e:
-                    showError(_("source missing correct header style."))
+                finally:
                     prg = None
-                    return
-            finally:
-                prg = None
+                    
         elif event.key() == Qt.Key_S and event.modifiers() == Qt.ControlModifier:
             options = QFileDialog.Options()
             file_name, a = QFileDialog.getSaveFileName(self,
@@ -11547,11 +11730,11 @@ class ButtonWidget(QWidget):
         text = text.split(':')
         
         if text[0] == "label 1":
-            self.label_pixmap = QPixmap("./_internal/img/open-folder.png")
+            self.label_pixmap = QPixmap("./_internal/_internal/img/open-folder.png")
         elif text[0] == "label 2":
-            self.label_pixmap = QPixmap("./_internal/img/floppy-disk.png")
+            self.label_pixmap = QPixmap("./_internal/_internal/img/floppy-disk.png")
         elif text[0] == "label 3":
-            self.label_pixmap = QPixmap("./_internal/img/play.png")
+            self.label_pixmap = QPixmap("./_internal/_internal/img/play.png")
         
         self.label.setMinimumWidth (32)
         self.label.setMaximumWidth (32)
@@ -12061,15 +12244,15 @@ class ColorComboBoxDelegate(QStyledItemDelegate):
 # \return ptr => the class object pointer
 # ---------------------------------------------------------------------------
 class FileWatcherGUI(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super(FileWatcherGUI, self).__init__(parent)
         
         global application_window
         application_window = self
-        
+        print("2222")
         # Alle Qt-Warnungen stummschalten
         QLoggingCategory.setFilterRules("*.debug=false\n*.warning=false")
-        
+        print("111111")
         genv.css_menu_item_style  = _("css_menu_item_style")
         genv.css_menu_label_style = _("css_menu_label_style")
         genv.css_menu_item        = _("css_menu_item")
@@ -15293,7 +15476,7 @@ def EntryPoint(arg1=None):
     #        sys.exit(1)
     
     # ---------------------------------------------------------
-    # init pascal interpreter ...
+    # splash screen ...
     # ---------------------------------------------------------
     #pas = interpreter_Pascal()
     #pas.ShowInstructions()
@@ -15305,58 +15488,6 @@ def EntryPoint(arg1=None):
     # scoped global stuff ...
     # ---------------------------------------------------------
     pcount     = len(sys.argv) - 1
-    
-    # ---------------------------------------------------------
-    # doxygen.exe directory path ...
-    # ---------------------------------------------------------
-    if not genv.doxy_env in os.environ:
-        if genv.v__app__debug == True:
-            os.environ["DOXYGEN_PATH"] = "E:/doxygen/bin"
-        else:
-            try:
-                print(genv.v__app__config.get("doxygen","path"))
-            except Exception as e:
-                showError("error: "
-                "no section: 'doxygen' or option: 'path'\n"
-                "(missing) in observer.ini")
-                sys.exit(1)
-            
-            file_path = genv.v__app__config["doxygen"]["path"]
-            
-            if len(file_path) < 1:
-                showError("error: " + genv.doxy_env +
-                " is not set in your system settings.")
-                sys.exit(genv.EXIT_FAILURE)
-            else:
-                os.environ["DOXYGEN_PATH"] = file_path
-    else:
-        genv.doxy_path = os.environ[genv.doxy_env]
-    
-    # ---------------------------------------------------------
-    # Microsoft Help Workshop path ...
-    # ---------------------------------------------------------
-    if not genv.doxy_hhc in os.environ:
-        if genv.v__app__debug == True:
-            os.environ["DOXYHHC_PATH"] = "E:/doxygen/hhc"
-        else:
-            try:
-                file_path = genv.v__app__config["doxygen"]["hhc"]
-            except Exception as e:
-                showError("error: "
-                "no section: 'doxygen' or option: 'hhc'\n"
-                "(missing) in observer.ini")
-                sys.exit(1)
-            
-            file_path = genv.v__app__config["doxygen"]["hhc"]
-            
-            if len(file_path) < 1:
-                showError("error: " + genv.doxy_hhc +
-                " is not set in your system settings.")
-                sys.exit(genv.EXIT_FAILURE)
-            else:
-                os.environ["DOXYHHC_PATH"] = file_path
-    else:
-        genv.hhc__path = os.environ[genv.doxy_hhc]
     
     # ---------------------------------------------------------
     # first, we check the operating system platform:
@@ -15377,6 +15508,102 @@ def EntryPoint(arg1=None):
     # okay, to accept it, then start the application ...
     # -----------------------------------------------------
     genv.v__app_object = QApplication(sys.argv)
+    
+    # ---------------------------------------------------------
+    # doxygen.exe directory path ...
+    # ---------------------------------------------------------
+    if not genv.doxy_env in os.environ:
+        print("66 0 00  0")
+        if genv.v__app__debug == True:
+            print("66pppp")
+            os.environ["DOXYGEN_PATH"] = "E:/doxygen/bin"
+        else:
+            try:
+                print(genv.v__app__config.get("doxygen","path"))
+            except Exception as e:
+                # -------------------------------
+                # close tje splash screen ...
+                # -------------------------------
+                time.sleep(1)
+                if getattr(sys, 'frozen', False):
+                    pyi_splash.close()
+                    
+                win32api.MessageBox(0,(""
+                + "Error: no section: 'doxygen' or option: 'path'\n"
+                + "(missing) in observer.ini\n\n"
+                + "Application is shuting down..."),_("Error:"),
+                win32con.MB_OK or
+                win32con.MB_ICONINFORMATION or
+                win32con.MB_TOPMOST)
+                
+                sys.exit(1)
+            
+            file_path = genv.v__app__config["doxygen"]["path"]
+            
+            if len(file_path) < 1:
+                if getattr(sys, 'frozen', False):
+                    pyi_splash.close()
+                    
+                win32api.MessageBox(0,(""
+                + "Error: "
+                + genv.doxy_env
+                + " is not set in your system settings."),
+                _("Error:"),
+                win32con.MB_OK or
+                win32con.MB_ICONINFORMATION or
+                win32con.MB_TOPMOST)
+                
+                sys.exit(genv.EXIT_FAILURE)
+            else:
+                os.environ["DOXYGEN_PATH"] = file_path
+    else:
+        genv.doxy_path = os.environ[genv.doxy_env]
+    
+    # ---------------------------------------------------------
+    # Microsoft Help Workshop path ...
+    # ---------------------------------------------------------
+    if not genv.doxy_hhc in os.environ:
+        if genv.v__app__debug == True:
+            os.environ["DOXYHHC_PATH"] = "E:/doxygen/hhc"
+        else:
+            try:
+                file_path = genv.v__app__config["doxygen"]["hhc"]
+            except Exception as e:
+                if getattr(sys, 'frozen', False):
+                    pyi_splash.close()
+                    
+                win32api.MessageBox(0,(""
+                + "Error: no section: 'doxygen' or option: 'hhc'\n"
+                + "(missing) in observer.ini\n\n"
+                + "Application is shuting down..."),_("Error:"),
+                win32con.MB_OK or
+                win32con.MB_ICONINFORMATION or
+                win32con.MB_TOPMOST)
+                
+                sys.exit(1)
+            
+            file_path = genv.v__app__config["doxygen"]["hhc"]
+            
+            if len(file_path) < 1:
+                if getattr(sys, 'frozen', False):
+                    pyi_splash.close()
+                    
+                win32api.MessageBox(0,(""
+                + "Error: "
+                + genv.doxy_hhc
+                + " is not set in your system settings."),
+                _("Error:"),
+                win32con.MB_OK or
+                win32con.MB_ICONINFORMATION or
+                win32con.MB_TOPMOST)
+                
+                sys.exit(genv.EXIT_FAILURE)
+            else:
+                os.environ["DOXYHHC_PATH"] = file_path
+    else:
+        genv.hhc__path = os.environ[genv.doxy_hhc]
+    print("ööööööööööööööööööö")
+    
     
     license_window = licenseWindow()
     # -------------------------------

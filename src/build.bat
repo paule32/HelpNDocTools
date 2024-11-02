@@ -122,6 +122,10 @@ if errorlevel 1 ( goto error_bytecode )
 pyinstaller --noupx --noconfirm --console  ^
     --icon="%PRJ%/_internal/img/floppy-disk.ico"  ^
     --clean       ^
+    --exclude-module tkinter ^
+    --exclude-module tk      ^
+    --exclude-module tk86t      ^
+    --exclude-module tcl86t      ^
     --log-level="WARN"   ^
     --splash="%PRJ%/_internal/img/splash.png"     ^
     --strip                                 ^
@@ -132,11 +136,6 @@ pyinstaller --noupx --noconfirm --console  ^
     --paths="C:/Windows/System32"           ^
     --paths="C:/Windows/SysWOW64"           ^
     ^
-    --paths="%PRJ%/src/interpreter/doxygen" ^
-    --paths="%PRJ%/src/interpreter/pascal"  ^
-    --paths="%PRJ%/src/interpreter/dbase"   ^
-    --paths="%PRJ%/src/interpreter"         ^
-    --paths="%PRJ%/src/tools"               ^
     --paths="%PRJ%/src"                     ^
     ^
     --collect-submodules="%PRJ%/src/__init__.py"         ^
@@ -204,6 +203,20 @@ if exist "dist" (
     cd dist
     if exist "observer" (
         cd observer
+        mkdir _internal\_internal
+        mkdir _internal\_internal\img\flags
+        mkdir _internal\_internal\locales\de_de\LC_MESSAGES
+        mkdir _internal\_internal\locales\en_us\LC_MESSAGES
+        copy ..\..\locales\de_de\LC_MESSAGES\observer.mo.gz _internal\_internal\locales\de_de\LC_MESSAGES\observer.mo.gz
+        copy ..\..\locales\en_us\LC_MESSAGES\observer.mo.gz _internal\_internal\locales\en_us\LC_MESSAGES\observer.mo.gz
+        copy ..\..\observer.ini _internal\_internal\observer.ini
+        copy ..\..\__pycache__\_internal\img\flags\*.gif _internal\_internal\img\flags\
+        copy ..\..\__pycache__\_internal\img\*.gif _internal\_internal\img\
+        copy ..\..\__pycache__\_internal\img\*.png _internal\_internal\img\
+        copy ..\..\__pycache__\_internal\img\*.bmp _internal\_internal\img\
+        copy ..\..\__pycache__\_internal\img\*.ico _internal\_internal\img\
+        copy ..\..\__pycache__\_internal\favorites.ini _internal\_internal\favorites.ini
+        copy ..\..\topics.txt _internal\_internal\topics.txt
         touch test.txt
     )   else (
         echo observer directory does not exists.

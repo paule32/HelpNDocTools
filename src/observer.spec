@@ -7,14 +7,14 @@ hiddenimports += collect_submodules('E:/Projekte/HelpNDocTools/src/__init__.py')
 
 a = Analysis(
     ['E:/Projekte/HelpNDocTools/src/observer.py'],
-    pathex=['./', 'C:/Windows/System32', 'C:/Windows/SysWOW64', 'E:/Projekte/HelpNDocTools/src/interpreter/doxygen', 'E:/Projekte/HelpNDocTools/src/interpreter/pascal', 'E:/Projekte/HelpNDocTools/src/interpreter/dbase', 'E:/Projekte/HelpNDocTools/src/interpreter', 'E:/Projekte/HelpNDocTools/src/tools', 'E:/Projekte/HelpNDocTools/src'],
+    pathex=['./', 'C:/Windows/System32', 'C:/Windows/SysWOW64', 'E:/Projekte/HelpNDocTools/src'],
     binaries=[],
     datas=[],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['tkinter', 'tk', 'tk86t', 'tcl86t'],
     noarchive=False,
     optimize=0,
 )
