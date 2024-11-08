@@ -9,16 +9,15 @@
 :: commercial use ist not allowed.
 :: ---------------------------------------------------------------------------
 @echo off
-set PY=E:\Python312
-set PX=%PY%\python.exe
+set PY=python.exe
 set BASEDIR=%cd%
 
 echo Create Byte-Code...
-%PX% -m compileall %BASEDIR%\observer.py
+%PY% -m compileall %BASEDIR%\observer.py
 if errorlevel 1 ( goto error_bytecode )
 ::goto end
 cd __pycache__
-%PX% %BASEDIR%\__pycache__\observer.cpython-312.pyc --gui
+%PY% %BASEDIR%\__pycache__\observer.cpython-313.pyc --gui
 if errorlevel 1 ( goto error_observer)
 cd ..
 goto all_done

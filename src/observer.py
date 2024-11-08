@@ -8,8 +8,8 @@
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
 global doxygen_project_file; doxygen_project_file = " "
-
 global DoxyGenElementLayoutList
+
 DoxyGenElementLayoutList = []
 
 # Dictionary to store the mapping from object instances to variable names
@@ -20,39 +20,155 @@ topic_counter = 1
 
 import importlib
 import subprocess
-import sys
-import os
+import sys           # system specifies
+import os            # operating system stuff
 
-import win32api
-import win32con
-
-# ---------------------------------------------------------------------------
-# under the windows console, python paths can make problems ...
-# ---------------------------------------------------------------------------
-if 'PYTHONHOME' in os.environ:
-    del os.environ['PYTHONHOME']
-if 'PYTHONPATH' in os.environ:
-    del os.environ['PYTHONPATH']
-
-def check_and_install_module(module_name):
+try:
+    # -----------------------------------------------------------------------
+    # under the windows console, python paths can make problems ...
+    # -----------------------------------------------------------------------
+    if 'PYTHONHOME' in os.environ:
+        del os.environ['PYTHONHOME']
+    if 'PYTHONPATH' in os.environ:
+        del os.environ['PYTHONPATH']
+    
+    # ------------------------------------------------------------------------
+    # before we start the application core, we try to update the pip installer
+    # ------------------------------------------------------------------------
     try:
-        importlib.import_module(module_name)
-        print(f"{module_name} is already installed.")
-    except ImportError:
-        print(f"{module_name} not found. Installing...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", module_name])
-        print(f"{module_name} installed successfully.")
+        result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "--upgrade", "pip"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+        print("pip is up to date.")
+    except subprocess.CalledProcessError as ex:
+        print(f"error: pip installer update fail. {ex.returncode}")
+        sys.exit(1)
+    
+    # ------------------------------------------------------------------------
+    # check for installed modules ...
+    # ------------------------------------------------------------------------
+    def check_and_install_module():
+        required_modules = [
+            "re", "dbf", "polib", "requests", "timer", "threading", "glob",
+            "atexit", "platform", "gzip", "base64", "shutil", "datetime",
+            "pkgutil", "ast", "csv", "gettext", "locale", "io", "random", "string",
+            "ctypes", "sqlite3", "configparser", "traceback", "marshal", "inspect",
+            "logging", "PyQt5", "pathlib", "rich", "string", "codecs", "pywin32",
+            "pywintypes", "PyQtWebEngine" ]
+        
+        for module in required_modules:
+            try:
+                importlib.import_module(module)
+                print(f"{module} is already installed.")
+            except ImportError:
+                try:
+                    print(f"error: {module} not found. Installing...")
+                    result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "--user", module],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
+                    print(f"{module} installed successfully.")
+                except:
+                    try:
+                        print(f"error: upgrade pip...")
+                        result = subprocess.run(
+                        [sys.executable, "-m", "pip", "--upgrade", "pip"],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE)
+                        print(f"info: pip installer upgrade ok.")
+                        #
+                        result = subprocess.run(
+                        [sys.executable, "-m", "pip", "install", "--user", module],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE)
+                        print(f"{module} installed successfully.")
+                    except:
+                        print(f"error: module: install fail.")
+                        sys.exit(1)
+    check_and_install_module()
+except Exception as e:
+    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+    tb = traceback.extract_tb(e.__traceback__)[-1]
+    
+    print(f"Exception occur:")
+    print(f"type : {exc_type.__name__}")
+    print(f"value: {exc_value}")
+    print(("-" * 40))
+    #
+    print(f"file : {tb.filename}")
+    print(f"line : {tb.lineno}")
+    sys.exit(1)
+        
+# ------------------------------------------------------------------------
+# this is a double check for application imports ...
+# ------------------------------------------------------------------------
+import re             # regular expression handling
+import requests       # get external url stuff
+import traceback
 
-required_modules = [
-    "re", "dbf", "polib", "requests", "timer", "threading", "glob", "atexit",
-    "platform", "gzip", "base64", "shutil", "datetime", "pkgutil", "ast",
-    "csv", "gettext", "locale", "io", "random", "string", "ctypes", "sqlite3",
-    "configparser", "traceback", "marshal", "inspect", "logging", "PyQt5",
-    "pathlib", "rich", "string", "codecs", "pywin32", "pywintypes" ]
+import time           # thread count
+import datetime       # date, and time routines
 
-def when_debug_is_on():
-    for module in required_modules:
-        check_and_install_module(module)
+import threading      # multiple action simulator
+
+import glob           # directory search
+import atexit         # clean up
+import subprocess     # start sub processes
+import platform       # Windows ?
+
+import gzip           # pack/de-pack data
+import base64         # base64 encoded data
+import shutil         # shell utils
+
+import pkgutil        # attached binary data utils
+import ast            # string to list
+import json           # json lists
+import csv            # simplest data format
+
+import gettext        # localization
+import locale         # internal system locale
+import polib          # create .mo locales files from .po files
+
+import io             # memory streams
+
+import random         # randome numbers
+import string
+
+import ctypes         # windows ip info
+
+import sqlite3        # database: sqlite
+import configparser   # .ini files
+
+import traceback      # stack exception trace back
+
+import textwrap
+import marshal        # bytecode exec
+import inspect        # stack
+
+import logging
+import dbf            # good old data base file
+
+# ------------------------------------------------------------------------
+# windows os stuff ...
+# ------------------------------------------------------------------------
+#import win32api
+#import win32con
+
+# ------------------------------------------------------------------------
+# Qt5 gui framework
+# ------------------------------------------------------------------------
+from PyQt5.QtWebEngineWidgets  import *
+from PyQt5.QtWidgets           import *
+from PyQt5.QtCore              import *
+from PyQt5.QtGui               import *
+
+if getattr(sys, 'frozen', False):
+    import pyi_splash
 
 # ---------------------------------------------------------------------------
 class unexpectedParserException(Exception):
@@ -73,35 +189,6 @@ class e_no_more_data(Exception):
 
 class IgnoreOuterException(Exception):
     pass
-# ---------------------------------------------------------------------------
-try:
-    import os            # operating system stuff
-    import sys           # system specifies
-    import traceback
-    
-    if getattr(sys, 'frozen', False):
-        import pyi_splash
-    
-    # ------------------------------------------------------------------------
-    # Qt5 gui framework
-    # ------------------------------------------------------------------------
-    from PyQt5.QtWidgets          import *
-    from PyQt5.QtWebEngineWidgets import *
-    from PyQt5.QtCore             import *
-    from PyQt5.QtGui              import *
-
-except Exception as e:
-    exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-    tb = traceback.extract_tb(e.__traceback__)[-1]
-    
-    print(f"Exception occur:")
-    print(f"type : {exc_type.__name__}")
-    print(f"value: {exc_value}")
-    print(StringRepeat("-", 40))
-    #
-    print(f"file : {tb.filename}")
-    print(f"line : {tb.lineno}")
-    sys.exit(1)
 
 # ------------------------------------------------------------------------
 # message box code place holder ...
@@ -475,7 +562,7 @@ class globalEnv:
             msg += f"{txt2}: {exc_type.__name__}\n"
             msg += f"{txt3}: {exc_value}\n"
             msg += f"{txt4}: {e.message}\n"
-            msg += StringRepeat("-",40)
+            msg += ("-" * 40)
             msg += "\n"
             #
             msg += f"file : {tb.filename}\n"
@@ -486,19 +573,11 @@ class globalEnv:
 global genv
 genv = globalEnv()
 
-# ------------------------------------------------------------------------------
-# print a string S repeatly NT times...
-# ------------------------------------------------------------------------------
-def StringRepeat(s,nt):
-    return (s*nt)
-
 # ------------------------------------------------------------------------
 # read a file into memory ...
 # ------------------------------------------------------------------------
 def read_gzfile_to_memory(file_path):
-    print("--->", file_path)
     check_file = Path(file_path)
-    print(check_file)
     if not check_file.exists():
         print("Error: gzfile directory exists, but file could not found.")
         print("abort.")
@@ -511,7 +590,6 @@ def read_gzfile_to_memory(file_path):
         with open(check_file, "rb") as file:
             file_header = file.read(3)
             if file_header == b'\x1f\x8b\x08':
-                print("packed")
                 file.seek(0)
                 file_data = file.read()
                 compressed_data = io.BytesIO(file_data)
@@ -524,7 +602,6 @@ def read_gzfile_to_memory(file_path):
                 _ = translations.gettext
                 return _
             elif file_header == b'\xde\x12\x04':
-                print("not packed")
                 file.seek(0)
                 file_data = file.read()
                 mo_file = io.BytesIO(file_data)
@@ -560,7 +637,7 @@ def handle_language(lang):
         print(f"Exception occur during handle language:")
         print(f"type : {exc_type.__name__}")
         print(f"value: {exc_value}")
-        print(StringRepeat("-",40))
+        print(("-" * 40))
         #
         print(f"file : {tb.filename}")
         print(f"llline : {tb.lineno}")
@@ -571,50 +648,6 @@ def handle_language(lang):
 # application imports ...
 # ---------------------------------------------------------------------------
 try:
-    import re             # regular expression handling
-    import requests       # get external url stuff
-    
-    import time           # thread count
-    import datetime       # date, and time routines
-    
-    import threading      # multiple action simulator
-    
-    import glob           # directory search
-    import atexit         # clean up
-    import subprocess     # start sub processes
-    import platform       # Windows ?
-    
-    import gzip           # pack/de-pack data
-    import base64         # base64 encoded data
-    import shutil         # shell utils
-    
-    import pkgutil        # attached binary data utils
-    import ast            # string to list
-    import json           # json lists
-    import csv            # simplest data format
-    
-    import gettext        # localization
-    import locale         # internal system locale
-    import polib          # create .mo locales files from .po files
-    
-    import io             # memory streams
-    
-    import random         # randome numbers
-    import string
-    
-    import ctypes         # windows ip info
-    
-    import sqlite3        # database: sqlite
-    import configparser   # .ini files
-    
-    import traceback      # stack exception trace back
-    
-    import textwrap
-    import marshal        # bytecode exec
-    import inspect        # stack
-    
-    import logging
-    import dbf            # good old data base file
     
     # ------------------------------------------------------------------------
     # Unter Windows können wir versuchen zu prüfen, ob eine GUI-basierte
@@ -648,7 +681,7 @@ try:
     # ------------------------------------------------------------------------
     # developers modules ...
     # ------------------------------------------------------------------------
-    import string, codecs, win32com.client
+    import string, codecs
     
     # ---------------------------------------------------------
     # when config.ini does not exists, then create a small one:
@@ -774,7 +807,7 @@ except SyntaxError as e:
     print(f"Exception occur at module import:")
     print(f"type : {exc_type.__name__}")
     print(f"value: {exc_value}")
-    print(StringRepeat("-",40))
+    print(("-" * 40))
     #
     print(f"file : {tb.filename}")
     print(f"line : {tb.lineno}")
@@ -792,7 +825,7 @@ except Exception as e:
         print(f"Exception occur at module import:")
         print(f"type : {exc_type.__name__}")
         print(f"value: {exc_value}")
-        print(StringRepeat("-",40))
+        print(("-"*40))
         #
         print(f"file : {tb.filename}")
         print(f"line : {tb.lineno}")
@@ -833,7 +866,7 @@ HTML_FILE_STOP = """</body></html>"""
 
 LINKS = {}
 REVERSE_LINK_MAP = {}
-print("6666666")
+
 class HTMLHelpSubject:
     "a help subject consists of a topic, and a filename"
     def __init__( self, topic, filename, keywords = [] ):
@@ -988,7 +1021,7 @@ Title={self.title}
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
-            dummy = StringRepeat("-",40)
+            dummy = ("-"*40)
             err_message = (f""
             + f"Exception occur at module import:\n"
             + f"type : {exc_type.__name__}\n"
@@ -1054,7 +1087,7 @@ doc_index = 0
 last_body = ""
 output = None    
 data = ""
-print("7777777")
+
 def isnumeric(token):
     try:
         int(token)
@@ -1636,7 +1669,6 @@ class FileSystemWatcher(QObject):
         self.fileContents = {}
     
     def addFile(self, filePath):
-        #print("--> " + filePath)
         self.watcher.addPath(filePath)
         self.fileContents[filePath] = self.readFromFile(filePath)  # Initialen Inhalt der Datei einlesen
     
@@ -2490,7 +2522,6 @@ class dbase_loop:
 
 class dbase_command:
     def __init__(self, src, name, link=None):
-        #print("---> " + name)
         self.what  = "keyword"
         self.owner = src
         self.name  = name
@@ -2989,7 +3020,7 @@ print = builtins.print
                 if c == genv.ptNoMoreData:
                     return genv.ptNoMoreData
                 elif c == '*':
-                    if parser_type == dbase_parser:
+                    if parser_type == self.dbase_parser:
                         self.in_comment += 1
                         while True:
                             c = self.getChar()
@@ -4637,7 +4668,7 @@ class interpreter_Pascal(interpreter_base):
                 return
     
     def handle_pascal_commands(self):
-        showInfo("---> " + self.token_str)
+        showInfo("oooooo---> " + self.token_str)
 
 class pascalDSL():
     def __init__(self, script_name):
@@ -5229,12 +5260,12 @@ def handleExceptionApplication(func,arg1=""):
         print(f"Exception occur:")
         print(f"type : {exc_type.__name__}")
         print(f"value: {exc_value}")
-        print(StringRepeat("-",40))
+        print(("-"*40))
         #
         print(f"file : {tb.filename}")
         print(f"line : {tb.lineno}")
         #
-        print(StringRepeat("-",40))
+        print(("-"*40))
         
         s = f"{ex.args}"
         parts = [part.strip() for part in s.split("'") if part.strip()]
@@ -5289,7 +5320,6 @@ class customQListWidgetItem(QListWidgetItem):
 # ------------------------------------------------------------------------
 class widgetTypeHelper():
     def __init__(self, object_name, object_type, object_widget):
-        print("aaaaa")
         self.object_name   = object_name
         self.object_type   = object_type
         self.object_widget = object_widget
@@ -11730,11 +11760,11 @@ class ButtonWidget(QWidget):
         text = text.split(':')
         
         if text[0] == "label 1":
-            self.label_pixmap = QPixmap("./_internal/_internal/img/open-folder.png")
+            self.label_pixmap = QPixmap("./_internal/img/open-folder.png")
         elif text[0] == "label 2":
-            self.label_pixmap = QPixmap("./_internal/_internal/img/floppy-disk.png")
+            self.label_pixmap = QPixmap("./_internal/img/floppy-disk.png")
         elif text[0] == "label 3":
-            self.label_pixmap = QPixmap("./_internal/_internal/img/play.png")
+            self.label_pixmap = QPixmap("./_internal/img/play.png")
         
         self.label.setMinimumWidth (32)
         self.label.setMaximumWidth (32)
@@ -12249,10 +12279,10 @@ class FileWatcherGUI(QDialog):
         
         global application_window
         application_window = self
-        print("2222")
+        
         # Alle Qt-Warnungen stummschalten
         QLoggingCategory.setFilterRules("*.debug=false\n*.warning=false")
-        print("111111")
+        
         genv.css_menu_item_style  = _("css_menu_item_style")
         genv.css_menu_label_style = _("css_menu_label_style")
         genv.css_menu_item        = _("css_menu_item")
@@ -12327,7 +12357,6 @@ class FileWatcherGUI(QDialog):
     
     def tab0_file_list_clicked(self, index):
         self.tab0_path_file = self.tab0_dir_model.fileInfo(index).absoluteFilePath()
-        print("---> " + self.tab0_path_file)
         return
     
     def tab1_file_list_clicked(self, index):
@@ -13180,7 +13209,6 @@ class FileWatcherGUI(QDialog):
         #
         self.tab0_top_layout.addLayout(self.tab0_topV_vlayout)
         
-        
         self.tab0_file_text = QLabel("File:", self.tab0_0)
         
         self.tab0_left_layout.addWidget(self.tab0_file_text)
@@ -13428,13 +13456,13 @@ class FileWatcherGUI(QDialog):
         self.tab1_right_layout.addWidget(self.tab1_postDelButton)
         self.tab1_right_layout.addWidget(self.tab1_postClrButton)
         
-        
         # ------------------
         # alles zusammen ...
         # ------------------
         self.webView1 = QWebEngineView(self.tab_html)
         self.profile1 = QWebEngineProfile("storage1", self.webView1)
         self.page1    = QWebEnginePage(self.profile1, self.webView1)
+        
         self.webView1.setPage(self.page1)
         self.webView1.setHtml(_(genv.html_content), baseUrl = QUrl.fromLocalFile('.'))
         
@@ -13444,7 +13472,7 @@ class FileWatcherGUI(QDialog):
         self.tab1_top_layout.addLayout(self.tab1_left_layout)
         self.tab1_top_layout.addLayout(self.tab1_middle_layout)
         self.tab1_top_layout.addLayout(self.tab1_right_layout)
-        print("0000")
+        
         layout.addWidget(self.title_bar  )
         layout.addWidget(self.menu_bar   )
         layout.addWidget(self.tool_bar   )
@@ -13469,7 +13497,7 @@ class FileWatcherGUI(QDialog):
             geom.y(),
             self)
         self.helper_overlay.show()
-
+        
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
@@ -15457,7 +15485,7 @@ def ApplicationAtExit():
 def EntryPoint(arg1=None):
     atexit.register(ApplicationAtExit)
     
-    genv.v__app__comment_hdr  = ("# " + StringRepeat("-",78) + "\n")
+    genv.v__app__comment_hdr  = ("# " + ("-"*78) + "\n")
     
     global conn
     global conn_cursor
@@ -15513,9 +15541,7 @@ def EntryPoint(arg1=None):
     # doxygen.exe directory path ...
     # ---------------------------------------------------------
     if not genv.doxy_env in os.environ:
-        print("66 0 00  0")
         if genv.v__app__debug == True:
-            print("66pppp")
             os.environ["DOXYGEN_PATH"] = "E:/doxygen/bin"
         else:
             try:
@@ -15602,8 +15628,6 @@ def EntryPoint(arg1=None):
                 os.environ["DOXYHHC_PATH"] = file_path
     else:
         genv.hhc__path = os.environ[genv.doxy_hhc]
-    print("ööööööööööööööööööö")
-    
     
     license_window = licenseWindow()
     # -------------------------------
@@ -15770,7 +15794,7 @@ class parserDBasePoint:
             
             err = (_("Exception occur at module import:") +
             f"type : {exc_type.__name__}" +
-            f"value: {exc_value}"     +   StringRepeat("-",40)  +
+            f"value: {exc_value}"     +   ("-"*40)  +
             f"file : {tb.filename}\n" +
             f"line : {tb.lineno}")
             
@@ -15788,7 +15812,7 @@ class parserDBasePoint:
                 err = (
                 _("Exception occur at module import:") + "\n" +
                 f"type : {exc_type.__name__}\n" +
-                f"value: {exc_value}\n"         + StringRepeat("-",40) +
+                f"value: {exc_value}\n"         + ("-"*40) +
                 f"file : {tb.filename}\n"       +
                 f"line : {tb.lineno}\n")
                 showException(err)

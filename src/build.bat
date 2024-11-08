@@ -19,10 +19,9 @@ set APP=observer
 :: Python 3.1.0 - there should be a Tools directory which comes with the
 :: official installation files.
 :: ---------------------------------------------------------------------------
-set PY=E:\Python312
-set PO=%PY%\Tools\i18n\msgfmt.py
-set PX=%PY%\python.exe
-::set PATH=%PY%;%PATH%
+set PY=python.exe
+set PO=msgfmt.exe
+
 :: ---------------------------------------------------------------------------
 :: First, check if python is installed. If not, try to install it, else try to
 :: create the application.
@@ -31,12 +30,12 @@ set PX=%PY%\python.exe
 ::if not exists %PY%\python.exe goto pythonSetup
 :buildApp
 set BASEDIR=%cd%
-%PX% -V
+%PY% -V
 
 ::set PYTHONPATH=
 ::%PY%\Lib;%PY%\Lib\site-packagesss
 ::set PYTHONHOME=
-set PRJ=E:/Projekte/HelpNDocTools
+set PRJ=T:/a/HelpNDocTools/HelpNDocTools/src
 
 echo remove old data...
 rm -rf build
@@ -61,38 +60,21 @@ echo create directories...
 :: en => English
 :: de => German
 :: ---------------------------------------------------------------------------
-for %%A in (en_us, de_de) do (
-    cd %BASEDIR%
-    dir /A:D %BASEDIR%\locales  >nul 2>&1
-    if errorlevel 0 (
-        mkdir %BASEDIR%\locales >nul 2>&1
-        dir /A:D %BASEDIR%\locales\%%A  >nul 2>&1
-        if errorlevel 0 (
-            echo|set /p="%%A => "
-            mkdir %BASEDIR%\locales\%%A >nul 2>&1
-            dir /A:D %BASEDIR%\locales\%%A\LC_MESSAGES >nul 2>&1
-            if errorlevel 0 (
-                echo|set /p="ok, "
-                mkdir %BASEDIR%\locales\%%A\LC_MESSAGES >nul 2>&1
-                cd %BASEDIR%\locales\%%A\LC_MESSAGES
-                echo|set /p="locales compiled => "
-                msgfmt -o ^
-                %BASEDIR%\locales\%%A\LC_MESSAGES\observer.mo ^
-                %BASEDIR%\locales\%%A\LC_MESSAGES\observer.po
-                if errorlevel 0 (
-                    cd %BASEDIR%\locales\%%A\LC_MESSAGES
-                    rm -rf observer.mo.gz
-                    gzip -9 observer.mo
-                    copy /b observer.mo.gz %BASEDIR%\_internal\locales\%%A\LC_MESSAGES\observer.mo.gz
-                    cd %BASEDIR%
-                )   else (
-                    echo error: %%A not created.
-                )
-            )
-        )
-    )
-)
-::goto endstep
+mkdir __pycache__\_internal\locales\de_de\LC_MESSAGES
+mkdir __pycache__\_internal\locales\en_us\LC_MESSAGES
+
+cd %BASEDIR%\locales\de_de\LC_MESSAGES
+rm -rf observer.mo.gz
+msgfmt -o observer.mo observer.po
+gzip -9 observer.mo
+copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_MESSAGES
+
+cd %BASEDIR%\locales\en_us\LC_MESSAGES
+rm -rf observer.mo.gz
+msgfmt -o observer.mo observer.po
+gzip -9 observer.mo
+copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_MESSAGES
+
 :: ---------------------------------------------------------------------------
 :: Python can produce byte-code, and executable files to speed up the loading
 :: and for information hidding ...
@@ -117,8 +99,9 @@ echo Create Byte-Code...
 ::    echo fail collection batch
 ::    goto error_bytecode ) else ( echo collection.py exec ok )
 ::cd ..
-%PY%\python.exe -m compileall %BASEDIR%\observer.py
+python -m compileall %BASEDIR%\observer.py
 if errorlevel 1 ( goto error_bytecode )
+echo installer...
 pyinstaller --noupx --noconfirm --console  ^
     --icon="%PRJ%/_internal/img/floppy-disk.ico"  ^
     --clean       ^
@@ -130,7 +113,7 @@ pyinstaller --noupx --noconfirm --console  ^
     --splash="%PRJ%/_internal/img/splash.png"     ^
     --strip                                 ^
     --hide-console="minimize-late"          ^
-    --version-file="%PRJ%/src/version.info" ^
+    --version-file="%PRJ%/version.info" ^
     ^
     --paths=./                              ^
     --paths="C:/Windows/System32"           ^
@@ -160,7 +143,7 @@ pyinstaller --noupx --noconfirm --console  ^
     --hidden-import="sre_constants"   ^
     --hidden-import="copyreg"         ^
     ^
-    "%PRJ%/src/observer.py"
+    "%PRJ%/observer.py"
 goto TheEnd
 :: ---------------------------------------------------------------------------
 :: to create Windows executables, you have to install pyinstaller seperatly.
@@ -261,6 +244,3 @@ goto skipper
 :: ---------------------------------------------------------------------------
 :: E - O - F   End of File
 :: ---------------------------------------------------------------------------
-
-
-::auto-py-to-exe 
