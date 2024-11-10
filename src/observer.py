@@ -6264,13 +6264,17 @@ class customScrollView_4(myCustomScrollArea):
         
         self.addLabel(_("Dot graphs to generate:"), True)
         
-        self.addCheckBox(" ",_("Class graph"))
-        self.addCheckBox(" ",_("Colaboration diagram"))
-        self.addCheckBox(" ",_("Overall Class hiearchy"))
-        self.addCheckBox(" ",_("Include dependcy graphs"))
-        self.addCheckBox(" ",_("Included by dependcy graphs"))
-        self.addCheckBox(" ",_("Call graphs"))
-        self.addCheckBox(" ",_("Called-by graphs"))
+        check_array = [
+            _("Class graph"),
+            _("Colaboration diagram"),
+            _("Overall Class hiearchy"),
+            _("Include dependcy graphs"),
+            _("Included by dependcy graphs"),
+            _("Call graphs"),
+            _("Called-by graphs")
+        ]
+        for chk in check_array:
+            self.addCheckBox(" ", chk)
 
 class customScrollView_5(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -7013,18 +7017,15 @@ class MyPushButton(QLabel):
         self.setMinimumWidth(110)
         self.setMinimumHeight(34)
         
-        if mode == 1:
-            self.btn_img_fg = os.path.join(genv.v__app__img__int__, "create1" + genv.v__app__img_ext__)
-            self.btn_img_bg = os.path.join(genv.v__app__img__int__, "create2" + genv.v__app__img_ext__)
-        elif mode == 2:
-            self.btn_img_fg = os.path.join(genv.v__app__img__int__, "open1"   + genv.v__app__img_ext__)
-            self.btn_img_bg = os.path.join(genv.v__app__img__int__, "open2"   + genv.v__app__img_ext__)
-        elif mode == 3:
-            self.btn_img_fg = os.path.join(genv.v__app__img__int__, "repro1"  + genv.v__app__img_ext__)
-            self.btn_img_bg = os.path.join(genv.v__app__img__int__, "repro2"  + genv.v__app__img_ext__)
-        elif mode == 4:
-            self.btn_img_fg = os.path.join(genv.v__app__img__int__, "build1"  + genv.v__app__img_ext__)
-            self.btn_img_bg = os.path.join(genv.v__app__img__int__, "build2"  + genv.v__app__img_ext__)
+        img_array = [
+            "", "create", "open", "repro", "build"
+        ]
+        print("11111111")
+        for img in img_array:
+            if mode == img_array.index(img):
+                self.btn_img_fg = os.path.join(genv.v__app__img__int__, img + "1" + genv.v__app__img_ext__)
+                self.btn_img_bg = os.path.join(genv.v__app__img__int__, img + "2" + genv.v__app__img_ext__)
+                break
         
         fg = self.btn_img_fg.replace("\\","/")
         bg = self.btn_img_bg.replace("\\","/")
@@ -7193,6 +7194,7 @@ class myMoveButton(QPushButton):
         widget = event.source()
         event.accept()
         print("drop")
+    
 
 class myGridViewerOverlay(QWidget):
     def __init__(self, parent=None):
@@ -7736,14 +7738,16 @@ class EditorTextEdit(QPlainTextEdit):
         self.lineNumberArea = LineNumberArea(self)
         self.bookmarks = set()
         
-        if edit_type == "isoc":
-            self.highlighter = CppSyntaxHighlighter(self.document())
-        elif edit_type == "dbase":
-            self.highlighter = dBaseSyntaxHighlighter(self.document())
-        elif edit_type == "pascal":
-            self.highlighter = PascalSyntaxHighlighter(self.document())
-        elif edit_type == "lisp":
-            self.highlighter = LispSyntaxHighlighter(self.document())
+        type_array = [
+            [ "isoc"  , CppSyntaxHighlighter   (self.document()) ],
+            [ "dbase" , dBaseSyntaxHighlighter (self.document()) ],
+            [ "pascal", PascalSyntaxHighlighter(self.document()) ],
+            [ "lisp"  , LispSyntaxHighlighter  (self.document()) ],
+        ]
+        for tarr in type_array:
+            if edit_type == tarr[0]:
+                self.highlighter = tarr[1]
+                break
         
         if not genv.blockCountChanged_connected:
             genv.blockCountChanged_connected = True
@@ -8096,19 +8100,22 @@ class myGridViewer(QWidget):
         self.pos_cat5_aüü_helpstr  = addProperty(self,2,"Help URL")
         self.pos_cat5_app_helpid   = addProperty(self,2,"Help ID")
         ####
-        
-        self.evt_on_enter       = addEventField(self,"OnGotFocus")
-        self.evt_on_leave       = addEventField(self,"OnLeftFocus")
-        self.evt_on_key_down    = addEventField(self,"OnKeyDown")
-        self.evt_on_key_press   = addEventField(self,"OnKeyPress")
-        self.evt_on_key_up      = addEventField(self,"OnKeyUp")
-        self.evt_on_mouse_down  = addEventField(self,"OnMouseDown")
-        self.evt_on_mouse_press = addEventField(self,"OnMousePress")
-        self.evt_on_mouse_up    = addEventField(self,"OnMouseUp")
-        
-        self.evt_on_form_create = addEventField(self,"OnFormCreate")
-        self.evt_on_form_close  = addEventField(self,"OnFormClose")
-        self.evt_on_form_show   = addEventField(self,"OnFormShow")
+        evt_array = [
+            [ lambda: setattr(self, 'evt_on_enter'      , None) or self.evt_on_enter       , "OnGotFocus"   ],
+            [ lambda: setattr(self, 'evt_on_leave'      , None) or self.evt_on_leave       , "OnLeftFocus"  ],
+            [ lambda: setattr(self, 'evt_on_key_down'   , None) or self.evt_on_key_down    , "OnKeyDown"    ],
+            [ lambda: setattr(self, 'evt_on_key_press'  , None) or self.evt_on_key_press   , "OnKeyPress"   ],
+            [ lambda: setattr(self, 'evt_on_key_up'     , None) or self.evt_on_key_up      , "OnKeyUp"      ],
+            [ lambda: setattr(self, 'evt_on_mouse_down' , None) or self.evt_on_mouse_down  , "OnMouseDown"  ],
+            [ lambda: setattr(self, 'evt_on_mouse_press', None) or self.evt_on_mouse_press , "OnMousePress" ],
+            [ lambda: setattr(self, 'evt_on_mouse_up'   , None) or self.evt_on_mouse_up    , "OnMouseUp"    ],
+            [ lambda: setattr(self, 'evt_on_form_create', None) or self.evt_on_form_create , "OnFormCreate" ],
+            [ lambda: setattr(self, 'evt_on_form_close' , None) or self.evt_on_form_close  , "OnFormClose"  ],
+            [ lambda: setattr(self, 'evt_on_form_show'  , None) or self.evt_on_form_show   , "OnFormShow"   ]
+        ]
+        for evt in evt_array:
+            evt[0] = addEventField(self,evt[1])
+            
         ### da
         #
         self.pos_scroll_widget.setLayout(self.pos_vbox_layout)
@@ -8162,7 +8169,9 @@ class myGridViewer(QWidget):
         self.scroll_right.setMaximumWidth (16)
         self.scroll_left .setMaximumWidth (16)
         #
-        self.content = myGridViewerOverlay(self.parent)
+        
+        self.content = FormDesigner()
+        #self.content = myGridViewerOverlay(self.parent)
         #
         self.layout.addWidget(self.property_top   , 0,0)
         self.layout.addWidget(self.property_bottom, 2,0)
@@ -8177,12 +8186,16 @@ class myGridViewer(QWidget):
         self.object_widget.setMaximumWidth(245)
         self.object_widget.setLayout(self.property_object)
         
-        self.layout.addWidget(self.scroll_up    , 0,2)
-        self.layout.addWidget(self.scroll_left  , 1,1)
-        self.layout.addWidget(self.object_widget, 1,0)
-        self.layout.addWidget(self.content      , 1,2)
-        self.layout.addWidget(self.scroll_right , 1,3)
-        self.layout.addWidget(self.scroll_down  , 2,2)
+        lay_array = [
+            [ self.scroll_up    , 0,2 ],
+            [ self.scroll_left  , 1,1 ],
+            [ self.object_widget, 1,0 ],
+            [ self.content      , 1,2 ],
+            [ self.scroll_right , 1,3 ],
+            [ self.scroll_down  , 2,2 ]
+        ]
+        for lay in lay_array:
+            self.layout.addWidget(lay[0], lay[1], lay[2])
         #
         chr1 = "{0}".format(u'\u25c4')  # <<
         chr2 = "{0}".format(u'\u25ba')  # >>
@@ -9641,17 +9654,21 @@ class scrollBoxTableCreatorDBF(QWidget):
         db.setMinimumWidth(32)
         db.setMinimumHeight(18)
         
-        cb.addItem(_("C CHAR"))
-        cb.addItem(_("N NUMERIK"))
-        cb.addItem(_("F FLOAT"))
-        cb.addItem(_("D DATE"))
-        cb.addItem(_("L LOGICAL"))
-        cb.addItem(_("M MEMO"))
-        cb.addItem(_("B BINARY"))
-        cb.addItem(_("G GENERAL"))
-        cb.addItem(_("P PICTURE"))
-        cb.addItem(_("I INTEGER"))
-        cb.addItem(_("Y CURRENCY"))
+        cb_array = [
+            _("C CHAR"),
+            _("N NUMERIK"),
+            _("F FLOAT"),
+            _("D DATE"),
+            _("L LOGICAL"),
+            _("M MEMO"),
+            _("B BINARY"),
+            _("G GENERAL"),
+            _("P PICTURE"),
+            _("I INTEGER"),
+            _("Y CURRENCY")
+        ]
+        for item in cb_array:
+            cb.addItem(item)
         
         pk.addItem(_("TRUE"))
         pk.addItem(_("FALSE"))
@@ -10578,43 +10595,34 @@ class applicationProjectWidget(QWidget):
             # Context menu for tree items
             menu = myCustomContextMenu(self, item_text)
             
-            action1 = QAction(_("Run"), self)
-            action2 = QAction(_("Open in Designer"), self)
-            action3 = QAction(_("Open in Source Editor"), self)
-            action4 = QAction(_("New"), self)
-            action5 = QAction(_("Add Files to Project..."), self)
-            action6 = QAction(_("Delete"), self)
-            action7 = QAction(_("New Folder"), self)
-            action8 = QAction(_("Set as Main"), self)
-            action9 = QAction(_("Exclude from Build"), self)
-            actionA = QAction(_("Include in Target Image"), self)
-            actionB = QAction(_("Project Properties"), self)
-            actionC = QAction(_("File Properties"), self)
-            actionD = QAction(_("Folder Properties"), self)
-            actionE = QAction(_("Clear"), self)
-            actionF = QAction(_("Clear Items"), self)
-            
-            menu.addMenuAction(action1, False, False, "F2")
-            menu.addMenuAction(action2, False, False, "")
-            menu.addMenuAction(action3)
-            menu.addMenuSeparator()
-            menu.addMenuAction(action4)
-            menu.addMenuAction(action5)
-            menu.addMenuAction(action6, True, True, "Del")
-            menu.addMenuSeparator()
-            menu.addMenuAction(action7)
-            menu.addMenuSeparator()
-            menu.addMenuAction(action8)
-            menu.addMenuAction(action9)
-            menu.addMenuAction(actionA)
-            menu.addMenuSeparator()
-            menu.addMenuAction(actionB)
-            menu.addMenuAction(actionC)
-            menu.addMenuAction(actionD)
-            menu.addMenuSeparator()
-            menu.addMenuAction(actionE)
-            menu.addMenuAction(actionF)
-            
+            action_array = [                      # check, open
+                [ _("Run"),                       False, False, "F2"  ],
+                [ _("Open in Designer"),          False, True,  ""    ],
+                [ _("Open in Source Editor"),     False, True, ""    ],
+                [ "--",                           False, True, ""    ],
+                [ _("New"),                       False, True, ""    ],
+                [ _("Add Files to Project..."),   False, True, ""    ],
+                [ _("Delete"),                    True , True , "Del" ],
+                [ "--",                           False, False, ""    ],
+                [ _("New Folder"),                False, False, ""    ],
+                [ "--",                           False, False, ""    ],
+                [ _("Set as Main"),               False, False, ""    ],
+                [ _("Exclude from Build"),        False, False, ""    ],
+                [ _("Include in Target Image"),   False, False, ""    ],
+                [ "--",                           False, False, ""    ],
+                [ _("Project Properties"),        False, False, ""    ],
+                [ _("File Properties"),           False, False, ""    ],
+                [ _("Folder Properties"),         False, False, ""    ],
+                [ "--",                           False, False, ""    ],
+                [ _("Clear"),                     False, False, ""    ],
+                [ _("Clear Items"),               False, False, ""    ]
+            ]
+            for act in action_array:
+                action = QAction(act[0], self)
+                if act[0] == "--":
+                    menu.addMenuSeparator()
+                else:
+                    menu.addMenuAction(action, act[1], act[2], act[3])
         else:
             # Context menu for empty space
             menu = QMenu()
@@ -10718,114 +10726,32 @@ class applicationProjectWidget(QWidget):
             self.messageBox("Error: " + e)
             return
         try:
-            self.dbase_path          = genv.v__app__config[self.db_path]["Path"]
+            self.dbase_path = genv.v__app__config[self.db_path]["Path"]
             #
-            self.dbase_path_forms    = genv.v__app__config[self.db_path]["Forms"]
-            self.dbase_path_reports  = genv.v__app__config[self.db_path]["Reports"]
-            self.dbase_path_programs = genv.v__app__config[self.db_path]["Programs"]
-            self.dbase_path_images   = genv.v__app__config[self.db_path]["Images"]
-            self.dbase_path_tables   = genv.v__app__config[self.db_path]["Tables"]
-            self.dbase_path_queries  = genv.v__app__config[self.db_path]["SQL"]
-            self.dbase_path_others   = genv.v__app__config[self.db_path]["Other"]
-            
-            self.dbase_forms        = genv.v__app__config[self.db_pro]["Forms"]
-            self.dbase_forms_arr    = []
-            self.dbase_forms_arr.append(self.dbase_forms)
-            self.dbase_forms_arr    = self.dbase_forms_arr[0].replace("'","").split(", ")
-            
-            if len(self.dbase_forms_arr) > 0:
-                for file_name in self.dbase_forms_arr:
-                    file_name = file_name.replace("\"","")
-                    if len(file_name.strip()) < 1:
-                        return
-                    child = QStandardItem(file_name)
-                    if child:
-                        self.child_item_forms.appendRow(child)
-            
-            self.dbase_reports      = genv.v__app__config[self.db_pro]["Reports"]
-            self.dbase_reports_arr  = []
-            self.dbase_reports_arr.append(self.dbase_reports)
-            self.dbase_reports_arr    = self.dbase_reports_arr[0].replace("'","").split(", ")
-            
-            if len(self.dbase_reports_arr) > 0:
-                for file_name in self.dbase_reports_arr:
-                    file_name = file_name.replace("\"","")
-                    if len(file_name.strip()) < 1:
-                        return
-                    child = QStandardItem(file_name)
-                    if child:
-                        self.child_item_reports.appendRow(child)
-            
-            self.dbase_programs     = genv.v__app__config[self.db_pro]["Programs"]
-            self.dbase_programs_arr = []
-            self.dbase_programs_arr.append(self.dbase_programs)
-            self.dbase_programs_arr = self.dbase_programs_arr[0].replace("'","").split(", ")
-            
-            if len(self.dbase_programs_arr) > 0:
-                for file_name in self.dbase_programs_arr:
-                    file_name = file_name.replace("\"","")
-                    if len(file_name.strip()) < 1:
-                        return
-                    child = QStandardItem(file_name)
-                    if child:
-                        self.child_item_programs.appendRow(child)
-            
-            self.dbase_tables       = genv.v__app__config[self.db_pro]["Tables"]
-            self.dbase_tables_arr   = []
-            self.dbase_tables_arr.append(self.dbase_tables)
-            self.dbase_tables_arr   = self.dbase_tables_arr[0].replace("'","").split(", ")
-            
-            if len(self.dbase_tables_arr) > 0:
-                for file_name in self.dbase_tables_arr:
-                    file_name = file_name.replace("\"","")
-                    if len(file_name.strip()) < 1:
-                        return
-                    child = QStandardItem(file_name)
-                    if child:
-                        self.child_item_tables.appendRow(child)
-            
-            self.dbase_images       = genv.v__app__config[self.db_pro]["Images"]
-            self.dbase_images_arr   = []
-            self.dbase_images_arr.append(self.dbase_images)
-            self.dbase_images_arr   = self.dbase_images_arr[0].replace("'","").split(", ")
-            
-            if len(self.dbase_images_arr) > 0:
-                for file_name in self.dbase_images_arr:
-                    file_name = file_name.replace("\"","")
-                    if len(file_name.strip()) < 1:
-                        return
-                    child = QStandardItem(file_name)
-                    if child:
-                        self.child_item_images.appendRow(child)
-            
-            self.dbase_queries          = genv.v__app__config[self.db_pro]["SQL"]
-            self.dbase_queries_arr      = []
-            self.dbase_queries_arr.append(self.dbase_queries)
-            self.dbase_queries_arr      = self.dbase_queries_arr[0].replace("'","").split(", ")
-            
-            if len(self.dbase_queries_arr) > 0:
-                for file_name in self.dbase_queries_arr:
-                    file_name = file_name.replace("\"","")
-                    if len(file_name.strip()) < 1:
-                        return
-                    child = QStandardItem(file_name)
-                    if child:
-                        self.child_item_queries.appendRow(child)
-            
-            self.dbase_others        = genv.v__app__config[self.db_pro]["Other"]
-            self.dbase_others_arr    = []
-            self.dbase_others_arr.append(self.dbase_others)
-            self.dbase_others_arr    = self.dbase_others_arr[0].replace("'","").split(", ")
-            
-            if len(self.dbase_others_arr) > 0:
-                for file_name in self.dbase_others_arr:
-                    file_name = file_name.replace("\"","")
-                    if len(file_name.strip()) < 1:
-                        return
-                    child = QStandardItem(file_name)
-                    if child:
-                        self.child_item_others.appendRow(child)
-            
+            dbase_array = [
+                [ self.child_item_forms,    self.dbase_forms_arr,    self.dbase_forms,    self.dbase_path_forms,    "Forms"    ],
+                [ self.child_item_reports,  self.dbase_reports_arr,  self.dbase_reports,  self.dbase_path_reports,  "Reports"  ],
+                [ self.child_item_programs, self.dbase_programs_arr, self.dbase_programs, self.dbase_path_programs, "Programs" ],
+                [ self.child_item_images,   self.dbase_images_arr,   self.dbase_images,   self.dbase_path_images,   "Images"   ],
+                [ self.child_item_tables,   self.dbase_tables_arr,   self.dbase_tables,   self.dbase_path_tables,   "Tables"   ],
+                [ self.child_item_queries,  self.dbase_queries_arr,  self.dbase_queies,   self.dbase_path_queries,  "SQL"      ],
+                [ self.child_item_others,   self.dbase_others_arr,   self.dbase_others,   self.dbase_path_others,   "Other"    ]
+            ]
+            for db in dbase_array:
+                db[3] = genv.v__app__config[self.db_path][db[4]]
+                db[2] = genv.v__app__config[self.db_pro ][db[4]]
+                db[1] = []
+                db[1].append(db[2])
+                db[1] = db[1].replace("'","").split(", ")
+                #
+                if len(db[1]) > 0:
+                    for file_name in db[1]:
+                        file_name = file_name.replace("\"","")
+                        if len(file_name.strip()) < 1:
+                            return
+                        child = QStandardItem(file_name)
+                        if child:
+                            db[0].appendRow(child)
         except Exception as e:
             print(e)
             self.messageBox(""
@@ -11174,189 +11100,42 @@ class applicationProjectWidget(QWidget):
         #
         path_mess = _("config file could not be write.")
         
-        # 1
-        try:
-            genv.v__app__config.read(path_name)
-            if self.selected_item.text() == _(self.pro_forms):
-                genv.v__app__config[self.db_pro]["Form"] = path_name
+        config_array = [
+            [self.pro_forms,    "Form"    ],
+            [self.pro_reports,  "Reüprt"  ],
+            [self.pro_programs, "Program" ],
+            [self.pro_tables,   "Tables"  ],
+            [self.pro_queries,  "SQL"     ],
+            [self.pro_images,   "Image"   ],
+            [self.pro_other,    "Other"   ]
+        ]
+        for conf in config_array:
+            try:
+                genv.v__app__config.read(path_name)
+                if self.selected_item.text() == _(conf[0]):
+                    genv.v__app__config[self.db_pro][conf[1]] = path_name
+                    try:
+                        with open(hlay_name, "w", encoding="utf-8") as configfile:
+                            genv.v__app__config.write(configfile)
+                            configfile.close()
+                    except Exception as e:
+                        print(e)
+                        self.messageBox(path_mess)
+                        return
+                    print("set " + conf[1] + " path")
+            except Exception as e:
+                print(e)
+                genv.v__app__config[self.db_pro] = {
+                    conf[1]: path_name
+                }
                 try:
                     with open(hlay_name, "w", encoding="utf-8") as configfile:
                         genv.v__app__config.write(configfile)
                         configfile.close()
                 except Exception as e:
+                    print("bbb")
                     print(e)
                     self.messageBox(path_mess)
-                    return
-                print("set form path")
-        except Exception as e:
-            print(e)
-            genv.v__app__config[self.db_pro] = {
-                "Form": path_name
-            }
-            try:
-                with open(hlay_name, "w", encoding="utf-8") as configfile:
-                    genv.v__app__config.write(configfile)
-                    configfile.close()
-            except Exception as e:
-                print("bbb")
-                print(e)
-                self.messageBox(path_mess)
-        # 2
-        try:
-            if self.selected_item.text() == _(self.pro_reports):
-                genv.v__app__config[self.db_pro]["Report"] = path_name
-                try:
-                    with open(hlay_name, "w", encoding="utf-8") as configfile:
-                        genv.v__app__config.write(configfile)
-                        configfile.close()
-                except Exception as e:
-                    print(e)
-                    self.messageBox(path_mess)
-                    return
-                print("set report path")
-        except Exception as e:
-            print(e)
-            genv.v__app__config[self.db_pro] = {
-                "Report": path_name
-            }
-            try:
-                with open(hlay_name, "w", encoding="utf-8") as configfile:
-                    genv.v__app__config.write(configfile)
-                    configfile.close()
-            except Exception as e:
-                print(e)
-                self.messageBox(path_mess)
-                return
-        # 3
-        try:
-            if self.selected_item.text() == _(self.pro_programs):
-                genv.v__app__config[self.db_pro]["Program"] = path_name
-                try:
-                    with open(hlay_name, "w", encoding="utf-8") as configfile:
-                        genv.v__app__config.write(configfile)
-                        configfile.close()
-                except Exception as e:
-                    print(e)
-                    self.messageBox(path_mess)
-                    return
-                print("set program path")
-        except Exception as e:
-            print(e)
-            genv.v__app__config[self.db_pro] = {
-                "Program": path_name
-            }
-            try:
-                with open(hlay_name, "w", encoding="utf-8") as configfile:
-                    genv.v__app__config.write(configfile)
-                    configfile.close()
-            except Exception as e:
-                print(e)
-                self.messageBox(path_mess)
-                return
-        # 4
-        try:
-            if self.selected_item.text() == _(self.pro_tables):
-                genv.v__app__config[self.db_pro]["Tables"] = path_name
-                try:
-                    with open(hlay_name, "w", encoding="utf-8") as configfile:
-                        genv.v__app__config.write(configfile)
-                        configfile.close()
-                except Exception as e:
-                    print(e)
-                    self.messageBox(path_mess)
-                    return
-                print("set desk tables path")
-        except Exception as e:
-            print(e)
-            genv.v__app__config[self.db_pro] = {
-                "Tables": path_name
-            }
-            try:
-                with open(hlay_name, "w", encoding="utf-8") as configfile:
-                    genv.v__app__config.write(configfile)
-                    configfile.close()
-            except Exception as e:
-                print(e)
-                self.messageBox(path_mess)
-                return
-        # 5
-        try:
-            if self.selected_item.text() == _(self.pro_queries):
-                genv.v__app__config[self.db_pro]["SQL"] = path_name
-                try:
-                    with open(hlay_name, "w", encoding="utf-8") as configfile:
-                        genv.v__app__config.write(configfile)
-                        configfile.close()
-                except Exception as e:
-                    print(e)
-                    self.messageBox(path_mess)
-                    return
-                print("set sql path")
-        except Exception as e:
-            print(e)
-            genv.v__app__config[self.db_pro] = {
-                "SQL": path_name
-            }
-            try:
-                with open(hlay_name, "w", encoding="utf-8") as configfile:
-                    genv.v__app__config.write(configfile)
-                    configfile.close()
-            except Exception as e:
-                print(e)
-                self.messageBox(path_mess)
-                return
-        # 6
-        try:
-            if self.selected_item.text() == _(self.pro_images):
-                genv.v__app__config[self.db_pro]["Image"] = path_name
-                try:
-                    with open(hlay_name, "w", encoding="utf-8") as configfile:
-                        genv.v__app__config.write(configfile)
-                        configfile.close()
-                except Exception as e:
-                    print(e)
-                    self.messageBox(path_mess)
-                    return
-                print("set image path")
-        except Exception as e:
-            print(e)
-            genv.v__app__config[self.db_pro] = {
-                "Image": path_name
-            }
-            try:
-                with open(hlay_name, "w", encoding="utf-8") as configfile:
-                    genv.v__app__config.write(configfile)
-                    configfile.close()
-            except Exception as e:
-                print(e)
-                self.messageBox(path_mess)
-                return
-        # 7
-        try:
-            if self.selected_item.text() == _(self.pro_other):
-                genv.v__app__config[self.db_pro]["Other"] = path_name
-                try:
-                    with open(hlay_name, "w", encoding="utf-8") as configfile:
-                        genv.v__app__config.write(configfile)
-                        configfile.close()
-                except Exception as e:
-                    print(e)
-                    self.messageBox(path_mess)
-                    return
-                print("set other path")
-        except Exception as e:
-            print(e)
-            genv.v__app__config[self.db_pro] = {
-                "Other": path_name
-            }
-            try:
-                with open(hlay_name, "w", encoding="utf-8") as configfile:
-                    genv.v__app__config.write(configfile)
-                    configfile.close()
-            except Exception as e:
-                print(e)
-                self.messageBox(path_mess)
-                return
     
     # -----------------------------------------------
     # setup project file items list ...
@@ -11378,41 +11157,28 @@ class applicationProjectWidget(QWidget):
         parent_item.setFont(font1)
         parent_item.setIcon(icon1)
         
-        self.child_item_forms = QStandardItem(self.pro_forms)
-        self.child_item_forms.setFont(font2)
-        self.child_item_forms.setIcon(icon2)
-        
-        self.child_item_reports = QStandardItem(self.pro_reports)
-        self.child_item_reports.setFont(font2)
-        self.child_item_reports.setIcon(icon2)
-        
+        self.child_item_forms    = QStandardItem(self.pro_forms)
+        self.child_item_reports  = QStandardItem(self.pro_reports)
         self.child_item_programs = QStandardItem(self.pro_programs)
-        self.child_item_programs.setFont(font2)
-        self.child_item_programs.setIcon(icon2)
+        self.child_item_tables   = QStandardItem(self.pro_tables)
+        self.child_item_queries  = QStandardItem(self.pro_queries)
+        self.child_item_images   = QStandardItem(self.pro_images)
+        self.child_item_others   = QStandardItem(self.pro_others)
         
-        self.child_item_tables = QStandardItem(self.pro_tables)
-        self.child_item_tables.setFont(font2)
-        self.child_item_tables.setIcon(icon2)
-        
-        self.child_item_queries = QStandardItem(self.pro_queries)
-        self.child_item_queries.setFont(font2)
-        self.child_item_queries.setIcon(icon2)
-        
-        self.child_item_images = QStandardItem(self.pro_images)
-        self.child_item_images.setFont(font2)
-        self.child_item_images.setIcon(icon2)
-        
-        self.child_item_others = QStandardItem(self.pro_others)
-        self.child_item_others.setFont(font2)
-        self.child_item_others.setIcon(icon2)
+        item_array = [
+            self.child_item_forms,
+            self.child_item_reports,
+            self.child_item_programs,
+            self.child_item_tables,
+            self.child_item_queries,
+            self.child_item_images,
+            self.child_item_others
+        ]
+        for item in item_array:
+            item.setFont(font2)
+            item.setIcon(icon2)
+            parent_item.appendRow(item)
         #
-        parent_item.appendRow(self.child_item_forms)
-        parent_item.appendRow(self.child_item_reports)
-        parent_item.appendRow(self.child_item_programs)
-        parent_item.appendRow(self.child_item_tables)
-        parent_item.appendRow(self.child_item_queries)
-        parent_item.appendRow(self.child_item_images)
-        parent_item.appendRow(self.child_item_others)
         
         root_node.appendRow(parent_item)
         self.tree_view.setModel(self.model)
@@ -11774,21 +11540,22 @@ class ApplicationDesignPage():
         self.main_layout.addWidget(self.tabs)
         #################
         font = QFont(genv.v__app__font, 12)
-        self.btn1 = myMoveButton(" move me A ", self.designs_viewer.content)
-        self.btn2 = myMoveButton(" move me B ", self.designs_viewer.content)
-        self.btn3 = myMoveButton(" move me C ", self.designs_viewer.content)
+        
+        #self.btn1 = myMoveButton(" move me A ", self.designs_viewer.content)
+        #self.btn2 = myMoveButton(" move me B ", self.designs_viewer.content)
+        #self.btn3 = myMoveButton(" move me C ", self.designs_viewer.content)
         #
-        self.btn1.move(20,20)
-        self.btn2.move(40,40)
-        self.btn3.move(60,60)
+        #self.btn1.move(20,20)
+        #self.btn2.move(40,40)
+        #self.btn3.move(60,60)
         #
-        self.btn1.setFont(font)
-        self.btn2.setFont(font)
-        self.btn3.setFont(font)
+        #self.btn1.setFont(font)
+        #self.btn2.setFont(font)
+        #self.btn3.setFont(font)
         #
-        self.btn1.setStyleSheet("background-color:red;color:yellow;")
-        self.btn2.setStyleSheet("background-color:yellow;color:black;")
-        self.btn3.setStyleSheet("background-color:blue;color:white;")
+        #self.btn1.setStyleSheet("background-color:red;color:yellow;")
+        #self.btn2.setStyleSheet("background-color:yellow;color:black;")
+        #self.btn3.setStyleSheet("background-color:blue;color:white;")
 
 class ButtonWidget(QWidget):
     def __init__(self, text, parent=None):
@@ -12315,27 +12082,24 @@ class GridGraphicsView(QGraphicsView):
         self.setRenderHint(QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-
+        
         # Setze die Größe der Szene auf das Doppelte der Fenstergröße
         scene.setSceneRect(0, 0, window_size.width() * 2, window_size.height() * 2)
+        self.selected_item = None  # Aktuell ausgewähltes Element
+        self.resize_mode = None  # Speichert den aktiven Ziehpunkt
+        self.last_resize_pos = None  # Speichert die letzte Position für die 10-Pixel-Schritte
     
     def drawBackground(self, painter, rect):
         super().drawBackground(painter, rect)
 
         # Gitterabstand und Punktgröße festlegen
-        grid_size = 10
-        point_size = 2  # Punktgröße: 2x2 Pixel
+        grid_size  = 10  # Abstand zwischen den Punkten
+        point_size =  2  # Punktgröße: 2x2 Pixel
 
-        # Scrollen nach unten um 10 Pixel
-        self.verticalScrollBar().setValue(self.verticalScrollBar().value() + 10)
-        
-        # Scrollen nach oben um 10 Pixel
-        self.verticalScrollBar().setValue(self.verticalScrollBar().value() - 10)
-        
         # Pinsel und Farbe für das Gitter definieren
-        pen = QPen(QColor(200, 200, 200))
+        pen = QPen(QColor(200, 200, 200))  # Farbe der Punkte
         painter.setPen(pen)
-        brush = QBrush(QColor(200, 200, 200))
+        brush = QBrush(QColor(200, 200, 200))  # Füllfarbe der Punkte
         painter.setBrush(brush)
 
         # Start- und Endkoordinaten des sichtbaren Bereichs bestimmen
@@ -12346,6 +12110,116 @@ class GridGraphicsView(QGraphicsView):
         for x in range(left, int(rect.right()), grid_size):
             for y in range(top, int(rect.bottom()), grid_size):
                 painter.drawRect(x, y, point_size, point_size)
+    
+    def drawForeground(self, painter, rect):
+        super().drawForeground(painter, rect)
+        
+        if self.selected_item:
+            pen = QPen(QColor("red"), 4, Qt.DashLine)
+            painter.setPen(pen)
+            item_rect = self.selected_item.sceneBoundingRect()
+            painter.drawRect(item_rect)
+
+            # Füllfarbe und Größe für die Ziehpunkte festlegen
+            painter.setBrush(QBrush(QColor("red")))
+            rect_size = 12
+
+            # Berechne und zeichne die Positionen der Ziehpunkte auf jeder Seite
+            for point in self.calculate_resize_handles(item_rect):
+                painter.drawRect(int(point.x() - rect_size / 2), int(point.y() - rect_size / 2), rect_size, rect_size)
+
+    def calculate_resize_handles(self, item_rect):
+        """Berechnet die Positionen der Ziehpunkte an den Seiten des Rahmens."""
+        left_center = QPointF(item_rect.left(), item_rect.center().y())
+        right_center = QPointF(item_rect.right(), item_rect.center().y())
+        top_center = QPointF(item_rect.center().x(), item_rect.top())
+        bottom_center = QPointF(item_rect.center().x(), item_rect.bottom())
+        return [left_center, right_center, top_center, bottom_center]
+
+    def mousePressEvent(self, event):
+        # Bestimme das ausgewählte Element und speichere es
+        item = self.itemAt(event.pos())
+        if isinstance(item, QGraphicsItem):
+            self.selected_item = item
+            self.last_resize_pos = self.mapToScene(event.pos())  # Setze die Ausgangsposition
+        else:
+            self.selected_item   = None
+            self.last_resize_pos = None
+        
+        # Prüfe, ob ein Ziehpunkt angeklickt wurde
+        pos = self.mapToScene(event.pos())
+        item_rect = self.selected_item.sceneBoundingRect() if self.selected_item else None
+        handles = self.calculate_resize_handles(item_rect) if item_rect else []
+
+        # Zuordnung der Ziehpunkte zu den Seiten mit einem Toleranzbereich von 10 Pixel
+        if self.selected_item and self.is_near_point(pos, handles[0], threshold=10):
+            self.resize_mode = 'left'
+        elif self.selected_item and self.is_near_point(pos, handles[1], threshold=10):
+            self.resize_mode = 'right'
+        elif self.selected_item and self.is_near_point(pos, handles[2], threshold=10):
+            self.resize_mode = 'top'
+        elif self.selected_item and self.is_near_point(pos, handles[3], threshold=10):
+            self.resize_mode = 'bottom'
+        else:
+            self.resize_mode = None  # Keine Ziehpunkte ausgewählt
+
+        self.viewport().update()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.selected_item and self.resize_mode:
+            pos = self.mapToScene(event.pos())
+            delta = pos - self.last_resize_pos  # Berechne die Verschiebung seit dem letzten Schritt
+
+            # Anpassung des Rechtecks in 10-Pixel-Schritten
+            if self.resize_mode == 'left' and abs(delta.x()) >= 10:
+                adjustment = 10 * (-1 if delta.x() > 0 else 1)
+                new_width = max(10, self.selected_item.rect().width() + adjustment)
+                self.selected_item.setRect(self.selected_item.rect().x() - adjustment, 
+                                           self.selected_item.rect().y(), 
+                                           new_width, 
+                                           self.selected_item.rect().height())
+                self.last_resize_pos = pos  # Aktualisiere die Position
+
+            elif self.resize_mode == 'right' and abs(delta.x()) >= 10:
+                adjustment = 10 * (1 if delta.x() > 0 else -1)
+                new_width = max(10, self.selected_item.rect().width() + adjustment)
+                self.selected_item.setRect(self.selected_item.rect().x(), 
+                                           self.selected_item.rect().y(), 
+                                           new_width, 
+                                           self.selected_item.rect().height())
+                self.last_resize_pos = pos  # Aktualisiere die Position
+
+            elif self.resize_mode == 'top' and abs(delta.y()) >= 10:
+                adjustment = 10 * (-1 if delta.y() > 0 else 1)
+                new_height = max(10, self.selected_item.rect().height() + adjustment)
+                self.selected_item.setRect(self.selected_item.rect().x(), 
+                                           self.selected_item.rect().y() - adjustment, 
+                                           self.selected_item.rect().width(), 
+                                           new_height)
+                self.last_resize_pos = pos  # Aktualisiere die Position
+
+            elif self.resize_mode == 'bottom' and abs(delta.y()) >= 10:
+                adjustment = 10 * (1 if delta.y() > 0 else -1)
+                new_height = max(10, self.selected_item.rect().height() + adjustment)
+                self.selected_item.setRect(self.selected_item.rect().x(), 
+                                           self.selected_item.rect().y(), 
+                                           self.selected_item.rect().width(), 
+                                           new_height)
+                self.last_resize_pos = pos  # Aktualisiere die Position
+
+            self.viewport().update()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        # Zurücksetzen des Resize-Modus nach dem Loslassen
+        self.resize_mode = None
+        super().mouseReleaseEvent(event)
+
+    def is_near_point(self, pos, point, threshold=10):
+        """Hilfsfunktion zur Überprüfung, ob die Position `pos` nahe an einem bestimmten Punkt `point` liegt."""
+        return abs(pos.x() - point.x()) < threshold and abs(pos.y() - point.y()) < threshold
 
 class DraggableComponent(QGraphicsRectItem):
     def __init__(self, name, x=0, y=0, width=50, height=50, view=None, label="", connections=[]):
@@ -12432,7 +12306,7 @@ class DraggableComponent(QGraphicsRectItem):
         if scene_pos.y() + height_threshold > view_rect.height():
             self.is_scrolling = True
             self.view.verticalScrollBar().setValue(
-                self.view.verticalScrollBar().value() + scroll_step
+            self.view.verticalScrollBar().value() + scroll_step
             )
             self.scroll_timer.start(25)
         elif scene_pos.y() < height_threshold:
@@ -12464,14 +12338,14 @@ class DraggableComponent(QGraphicsRectItem):
 
         QCursor.setPos(self.view.mapToGlobal(cursor_pos))
 
-class CircuitDesigner(QWidget):
+class FormDesigner(QWidget):
     def __init__(self):
         super().__init__()
         
         # QGraphicsScene und GridGraphicsView erstellen
         window_size = QSize(800, 600)
-        self.scene = QGraphicsScene()
-        self.view = GridGraphicsView(self.scene, window_size)
+        self.scene  = QGraphicsScene()
+        self.view   = GridGraphicsView(self.scene, window_size)
         
         # Layout für das QWidget
         layout = QVBoxLayout()
@@ -12490,7 +12364,7 @@ class CircuitDesigner(QWidget):
             connections=[
                 (QPointF(-10, 10), QPointF(0, 10)),    # Linke obere Verankerung
                 (QPointF(-10, 30), QPointF(0, 30)),    # Linke untere Verankerung
-                (QPointF(50, 20), QPointF(60, 20))     # Rechte Verankerung
+                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
             ]
         )
         
@@ -12498,7 +12372,7 @@ class CircuitDesigner(QWidget):
             "Lamp", x=200, y=200, view=self.view, label="LED",
             connections=[
                 (QPointF(-10, 20), QPointF(0, 20)),    # Linke Verankerung
-                (QPointF(50, 20), QPointF(60, 20))     # Rechte Verankerung
+                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
             ]
         )
         
@@ -12506,7 +12380,66 @@ class CircuitDesigner(QWidget):
             "Battery", x=300, y=300, view=self.view, label="SRC",
             connections=[
                 (QPointF(-10, 20), QPointF(0, 20)),    # Linke Verankerung
-                (QPointF(50, 20), QPointF(60, 20))     # Rechte Verankerung
+                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
+            ]
+        )
+        
+        wire1 = DraggableComponent(
+            "Wire1", x=200, y=100, width=100, height=2, view=self.view,
+            connections=[
+                (QPointF(  0,0), QPointF(  0,0)),
+                (QPointF(100,0), QPointF(100,0))
+            ]
+        )
+        
+        self.scene.addItem(and_gate)
+        self.scene.addItem(lamp)
+        self.scene.addItem(battery)
+        self.scene.addItem(wire1)
+
+class CircuitDesigner(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        # QGraphicsScene und GridGraphicsView erstellen
+        window_size = QSize(800, 600)
+        self.scene  = QGraphicsScene()
+        self.view   = GridGraphicsView(self.scene, window_size)
+        
+        # Layout für das QWidget
+        layout = QVBoxLayout()
+        layout.addWidget(self.view)
+        self.setLayout(layout)
+        
+        
+        #self.setCentralWidget(self.view)
+        #self.resize(window_size)
+        self.init_components()
+
+    def init_components(self):
+        # Bauteile mit individuellen Beschriftungen und Verankerungen hinzufügen
+        and_gate = DraggableComponent(
+            "AND-Gate", x=100, y=100, view=self.view, label="AND",
+            connections=[
+                (QPointF(-10, 10), QPointF(0, 10)),    # Linke obere Verankerung
+                (QPointF(-10, 30), QPointF(0, 30)),    # Linke untere Verankerung
+                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
+            ]
+        )
+        
+        lamp = DraggableComponent(
+            "Lamp", x=200, y=200, view=self.view, label="LED",
+            connections=[
+                (QPointF(-10, 20), QPointF(0, 20)),    # Linke Verankerung
+                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
+            ]
+        )
+        
+        battery = DraggableComponent(
+            "Battery", x=300, y=300, view=self.view, label="SRC",
+            connections=[
+                (QPointF(-10, 20), QPointF(0, 20)),    # Linke Verankerung
+                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
             ]
         )
         
@@ -13275,14 +13208,18 @@ class FileWatcherGUI(QDialog):
         self.tab2_pushbuttonRemove.setMinimumHeight(32)
         self.tab2_pushbuttonRemove.setStyleSheet(_(genv.css_button_style))
         
-        self.topics_layout.addWidget(self.tab2_pushbuttonAdd)
-        self.topics_layout.addWidget(self.tab2_pushbuttonAddSub)
-        self.topics_layout.addWidget(self.tab2_pushbuttonRename)
-        self.topics_layout.addWidget(self.tab2_pushbuttonMoveUp)
-        self.topics_layout.addWidget(self.tab2_pushbuttonMoveDown)
-        self.topics_layout.addWidget(self.tab2_pushbuttonMoveLeft)
-        self.topics_layout.addWidget(self.tab2_pushbuttonMoveRight)
-        self.topics_layout.addWidget(self.tab2_pushbuttonRemove)
+        top_array = [
+            self.tab2_pushbuttonAdd,
+            self.tab2_pushbuttonAddSub,
+            self.tab2_pushbuttonRename,
+            self.tab2_pushbuttonMoveUp,
+            self.tab2_pushbuttonMoveDown,
+            self.tab2_pushbuttonMoveLeft,
+            self.tab2_pushbuttonMoveRight,
+            self.tab2_pushbuttonRemove
+        ]
+        for topa in top_array:
+            self.topics_layout.addWidget(topa)
         self.topics_layout.addStretch()
         
         self.tab2_top_layout.addWidget(self.tab2_tree_view)
