@@ -326,6 +326,7 @@ class globalEnv:
         self.v__app__apache2__  = im_path + "apache"
         self.v__app__mysqlcf__  = im_path + "mysql"
         self.v__app__squidwp__  = im_path + "squid"
+        self.v__app__electro__  = im_path + "electro"
         self.v__app__com_c64__  = im_path + "c64"
         self.v__app__com_set__  = im_path + "settings"
         self.v__app__keybc64__  = im_path + "c64keyboard.png"
@@ -5514,44 +5515,30 @@ class myIconLabel(QLabel):
         parent = self.parent.parent
         if event.button() == Qt.LeftButton:
             #print(self.caption)
-            if self.mode == 0:
-                self.btn_clicked(self.parent,parent.help_tabs)
-            elif self.mode == 1:
-                self.btn_clicked(self.parent,parent.dbase_tabs)
-            elif self.mode == 2:
-                self.btn_clicked(self.parent,parent.pascal_tabs)
-            elif self.mode == 3:
-                self.btn_clicked(self.parent,parent.isoc_tabs)
-            elif self.mode == 4:
-                self.btn_clicked(self.parent,parent.java_tabs)
-            elif self.mode == 5:
-                self.btn_clicked(self.parent,parent.python_tabs)
-            elif self.mode == 6:
-                self.btn_clicked(self.parent,parent.javascript_tabs)
-            elif self.mode == 7:
-                self.btn_clicked(self.parent,parent.lisp_tabs)
-            elif self.mode == 8:
-                self.btn_clicked(self.parent,parent.locale_tabs)
-            elif self.mode == 9:
-                self.btn_clicked(self.parent,parent.console_tabs)
-            elif self.mode == 10:
-                self.btn_clicked(self.parent,parent.todo_tabs)
-            elif self.mode == 11:
-                self.btn_clicked(self.parent,parent.setup_tabs)
-            elif self.mode == 12:
-                self.btn_clicked(self.parent,parent.certssl_tabs)
-            elif self.mode == 13:
-                self.btn_clicked(self.parent,parent.github_tabs)
-            elif self.mode == 14:
-                self.btn_clicked(self.parent,parent.apache_tabs)
-            elif self.mode == 15:
-                self.btn_clicked(self.parent,parent.mysql_tabs)
-            elif self.mode == 16:
-                self.btn_clicked(self.parent,parent.squid_tabs)
-            elif self.mode == 17:
-                self.btn_clicked(self.parent,parent.c64_tabs)
-            elif self.mode == 18:
-                self.btn_clicked(self.parent,parent.settings_tabs)
+            parent_array = [
+                parent.help_tabs,
+                parent.dbase_tabs,
+                parent.pascal_tabs,
+                parent.isoc_tabs,
+                parent.java_tabs,
+                parent.python_tabs,
+                parent.javascript_tabs,
+                parent.lisp_tabs,
+                parent.locale_tabs,
+                parent.console_tabs,
+                parent.todo_tabs,
+                parent.setup_tabs,
+                parent.certssl_tabs,
+                parent.github_tabs,
+                parent.apache_tabs,
+                parent.mysql_tabs,
+                parent.squid_tabs,
+                parent.electro_tabs,
+                parent.c64_tabs,
+                parent.settings_tabs
+            ]
+            self.btn_clicked(self.parent,
+                parent_array[self.mode])
     
     def enterEvent(self, event):
         self.show_overlay()
@@ -5579,6 +5566,7 @@ class myIconLabel(QLabel):
         parent.apache_tabs.hide()
         parent.mysql_tabs.hide()
         parent.squid_tabs.hide()
+        parent.electro_tabs.hide()
         parent.c64_tabs.hide()
         parent.settings_tabs.hide()
     
@@ -5616,6 +5604,7 @@ class myIconLabel(QLabel):
             parent.side_btnG,
             parent.side_btnH,
             parent.side_btnI,
+            parent.side_btnJ,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -5671,63 +5660,33 @@ class myIconButton(QWidget):
         
         parent.side_layout.addWidget(self)
         
-        if mode == 0:
-            self.image_fg = ptx + genv.v__app__helpdev__ + fg
-            self.image_bg = ptx + genv.v__app__helpdev__ + bg
-        elif mode == 1:
-            self.image_fg = ptx + genv.v__app__dbasedb__ + fg
-            self.image_bg = ptx + genv.v__app__dbasedb__ + bg
-        elif mode == 2:
-            self.image_fg = ptx + genv.v__app__freepas__ + fg
-            self.image_bg = ptx + genv.v__app__freepas__ + bg
-        elif mode == 3:
-            self.image_fg = ptx + genv.v__app__cpp1dev__ + fg
-            self.image_bg = ptx + genv.v__app__cpp1dev__ + bg
-        elif mode == 4:
-            self.image_fg = ptx + genv.v__app__javadev__ + fg
-            self.image_bg = ptx + genv.v__app__javadev__ + bg
-        elif mode == 5:
-            self.image_fg = ptx + genv.v__app__pythonc__ + fg
-            self.image_bg = ptx + genv.v__app__pythonc__ + bg
-        elif mode == 6:
-            self.image_fg = ptx + genv.v__app__javascr__ + fg
-            self.image_bg = ptx + genv.v__app__javascr__ + bg
-        elif mode == 7:
-            self.image_fg = ptx + genv.v__app__lispmod__ + fg
-            self.image_bg = ptx + genv.v__app__lispmod__ + bg
-        elif mode == 8:
-            self.image_fg = ptx + genv.v__app__locales__ + fg
-            self.image_bg = ptx + genv.v__app__locales__ + bg
-        elif mode == 9:
-            self.image_fg = ptx + genv.v__app__console__ + fg
-            self.image_bg = ptx + genv.v__app__console__ + bg
-        elif mode == 10:
-            self.image_fg = ptx + genv.v__app__todopro__ + fg
-            self.image_bg = ptx + genv.v__app__todopro__ + bg
-        elif mode == 11:
-            self.image_fg = ptx + genv.v__app__setupro__ + fg
-            self.image_bg = ptx + genv.v__app__setupro__ + bg
-        elif mode == 12:
-            self.image_fg = ptx + genv.v__app__certssl__ + fg
-            self.image_bg = ptx + genv.v__app__certssl__ + bg
-        elif mode == 13:
-            self.image_fg = ptx + genv.v__app__githubp__ + fg
-            self.image_bg = ptx + genv.v__app__githubp__ + bg
-        elif mode == 14:
-            self.image_fg = ptx + genv.v__app__apache2__ + fg
-            self.image_bg = ptx + genv.v__app__apache2__ + bg
-        elif mode == 15:
-            self.image_fg = ptx + genv.v__app__mysqlcf__ + fg
-            self.image_bg = ptx + genv.v__app__mysqlcf__ + bg
-        elif mode == 16:
-            self.image_fg = ptx + genv.v__app__squidwp__ + fg
-            self.image_bg = ptx + genv.v__app__squidwp__ + bg
-        elif mode == 17:
-            self.image_fg = ptx + genv.v__app__com_c64__ + fg
-            self.image_bg = ptx + genv.v__app__com_c64__ + bg
-        elif mode == 18:
-            self.image_fg = ptx + genv.v__app__com_set__ + fg
-            self.image_bg = ptx + genv.v__app__com_set__ + bg
+        img_array = [
+            genv.v__app__helpdev__,
+            genv.v__app__dbasedb__,
+            genv.v__app__freepas__,
+            genv.v__app__cpp1dev__,
+            genv.v__app__javadev__,
+            genv.v__app__pythonc__,
+            genv.v__app__javascr__,
+            genv.v__app__lispmod__,
+            genv.v__app__locales__,
+            genv.v__app__console__,
+            genv.v__app__todopro__,
+            genv.v__app__setupro__,
+            genv.v__app__certssl__,
+            genv.v__app__githubp__,
+            genv.v__app__apache2__,
+            genv.v__app__mysqlcf__,
+            genv.v__app__squidwp__,
+            genv.v__app__electro__,
+            genv.v__app__com_c64__,
+            genv.v__app__com_set__
+        ]
+        for idx in img_array:
+            m = img_array.index(idx)
+            if mode == m:
+                self.image_fg = ptx + img_array[m] + fg
+                self.image_bg = ptx + img_array[m] + bg
         
         self.set_style()
     
@@ -9607,6 +9566,7 @@ class CustomWidget0(QWidget):
         self.parent_class.apache_tabs.hide()
         self.parent_class.mysql_tabs.hide()
         self.parent_class.squid_tabs.hide()
+        self.parent_class.electro_tabs.hide()
         self.parent_class.c64_tabs.hide()
         self.parent_class.settings_tabs.hide()
         #
@@ -9637,7 +9597,8 @@ class CustomWidget0(QWidget):
             parent.side_btnF,
             parent.side_btnG,
             parent.side_btnH,
-            parent.side_btnI
+            parent.side_btnI,
+            parent.side_btnJ,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -12348,6 +12309,220 @@ class ColorComboBoxDelegate(QStyledItemDelegate):
         right_circle_rect = QRect(option.rect.right() - 25, option.rect.top() + 5, 10, 10)
         painter.drawEllipse(right_circle_rect)
 
+class GridGraphicsView(QGraphicsView):
+    def __init__(self, scene, window_size):
+        super().__init__(scene)
+        self.setRenderHint(QPainter.Antialiasing)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+
+        # Setze die Größe der Szene auf das Doppelte der Fenstergröße
+        scene.setSceneRect(0, 0, window_size.width() * 2, window_size.height() * 2)
+    
+    def drawBackground(self, painter, rect):
+        super().drawBackground(painter, rect)
+
+        # Gitterabstand und Punktgröße festlegen
+        grid_size = 10
+        point_size = 2  # Punktgröße: 2x2 Pixel
+
+        # Scrollen nach unten um 10 Pixel
+        self.verticalScrollBar().setValue(self.verticalScrollBar().value() + 10)
+        
+        # Scrollen nach oben um 10 Pixel
+        self.verticalScrollBar().setValue(self.verticalScrollBar().value() - 10)
+        
+        # Pinsel und Farbe für das Gitter definieren
+        pen = QPen(QColor(200, 200, 200))
+        painter.setPen(pen)
+        brush = QBrush(QColor(200, 200, 200))
+        painter.setBrush(brush)
+
+        # Start- und Endkoordinaten des sichtbaren Bereichs bestimmen
+        left = int(rect.left()) - (int(rect.left()) % grid_size)
+        top = int(rect.top()) - (int(rect.top()) % grid_size)
+
+        # Punkt-Gitter zeichnen als 2x2 Pixel Rechtecke
+        for x in range(left, int(rect.right()), grid_size):
+            for y in range(top, int(rect.bottom()), grid_size):
+                painter.drawRect(x, y, point_size, point_size)
+
+class DraggableComponent(QGraphicsRectItem):
+    def __init__(self, name, x=0, y=0, width=50, height=50, view=None, label="", connections=[]):
+        super().__init__(0, 0, width, height)
+        self.setFlag(QGraphicsItem.ItemIsMovable)
+        self.setFlag(QGraphicsItem.ItemIsSelectable)
+        self.setPos(x, y)
+        self.name = name
+        self.label = label
+        self.connections = connections  # Speichert relative Positionen der Verankerungen
+        self.view = view
+        self.last_snap_pos = QPointF(x, y)
+        self.scroll_timer = QTimer()
+        self.scroll_timer.setSingleShot(True)
+        self.scroll_timer.timeout.connect(self.resume_movement)
+        self.is_scrolling = False
+    
+    def paint(self, painter, option, widget):
+        # Hintergrundfarbe und Rahmen zeichnen
+        painter.setBrush(QColor("skyblue"))
+        painter.drawRect(self.rect())
+        
+        # Text im Zentrum des Bauteils zeichnen
+        font = QFont("Arial", 10, QFont.Bold)
+        painter.setFont(font)
+        painter.setPen(Qt.black)
+        text_rect = self.rect()
+        painter.drawText(text_rect, Qt.AlignCenter, self.label)
+        
+        # Verankerungen relativ zur aktuellen Position zeichnen
+        pen = QPen(Qt.black, 2)
+        painter.setPen(pen)
+        for connection in self.connections:
+            start_offset, end_offset = connection
+            start_point = self.rect().topLeft() + start_offset
+            end_point = self.rect().topLeft() + end_offset
+            painter.drawLine(start_point, end_point)
+
+            # Kreis an den Endpunkten der Linie zeichnen
+            painter.setBrush(Qt.black)
+            painter.drawEllipse(start_point, 2, 2)  # Startpunkt Kreis
+            painter.drawEllipse(end_point, 2, 2)    # Endpunkt Kreis
+
+    def mouseMoveEvent(self, event):
+        if not self.is_scrolling:
+            delta = event.scenePos() - self.last_snap_pos
+            snapped_x, snapped_y = self.last_snap_pos.x(), self.last_snap_pos.y()
+
+            if abs(delta.x()) >= 10:
+                snapped_x += 10 * (1 if delta.x() > 0 else -1)
+            if abs(delta.y()) >= 10:
+                snapped_y += 10 * (1 if delta.y() > 0 else -1)
+
+            # Setze die neue Position und aktualisiere das Element und den View
+            self.setPos(QPointF(snapped_x, snapped_y))
+            self.last_snap_pos = QPointF(snapped_x, snapped_y)
+            
+            self.update()  # Aktualisiere nur das betroffene Element
+            self.view.update()  # Aktualisiere den gesamten View, um Hintergrund und Verankerungen neu zu zeichnen
+            
+            self.snap_based_scroll()
+            self.restrict_cursor_within_window()
+        
+    def snap_based_scroll(self):
+        view_rect = self.view.viewport().rect()
+        scene_pos = self.view.mapFromScene(self.scenePos())
+        width_threshold = self.rect().width() * 0.75
+        height_threshold = self.rect().height() * 0.75
+        scroll_step = 10
+
+        if scene_pos.x() + width_threshold > view_rect.width():
+            self.is_scrolling = True
+            self.view.horizontalScrollBar().setValue(
+                self.view.horizontalScrollBar().value() + scroll_step
+            )
+            self.scroll_timer.start(25)
+        elif scene_pos.x() < width_threshold:
+            self.is_scrolling = True
+            self.view.horizontalScrollBar().setValue(
+                self.view.horizontalScrollBar().value() - scroll_step
+            )
+            self.scroll_timer.start(25)
+
+        if scene_pos.y() + height_threshold > view_rect.height():
+            self.is_scrolling = True
+            self.view.verticalScrollBar().setValue(
+                self.view.verticalScrollBar().value() + scroll_step
+            )
+            self.scroll_timer.start(25)
+        elif scene_pos.y() < height_threshold:
+            self.is_scrolling = True
+            self.view.verticalScrollBar().setValue(
+                self.view.verticalScrollBar().value() - scroll_step
+            )
+            self.scroll_timer.start(25)
+
+        # Aktualisiere den gesamten View nach jedem Scrollschritt
+        self.view.update()
+
+    def resume_movement(self):
+        self.is_scrolling = False
+
+    def restrict_cursor_within_window(self):
+        cursor_pos = self.view.mapFromGlobal(QCursor.pos())
+        view_rect = self.view.viewport().rect()
+
+        if cursor_pos.x() < 0:
+            cursor_pos.setX(0)
+        elif cursor_pos.x() > view_rect.width():
+            cursor_pos.setX(view_rect.width())
+
+        if cursor_pos.y() < 0:
+            cursor_pos.setY(0)
+        elif cursor_pos.y() > view_rect.height():
+            cursor_pos.setY(view_rect.height())
+
+        QCursor.setPos(self.view.mapToGlobal(cursor_pos))
+
+class CircuitDesigner(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        # QGraphicsScene und GridGraphicsView erstellen
+        window_size = QSize(800, 600)
+        self.scene = QGraphicsScene()
+        self.view = GridGraphicsView(self.scene, window_size)
+        
+        # Layout für das QWidget
+        layout = QVBoxLayout()
+        layout.addWidget(self.view)
+        self.setLayout(layout)
+        
+        
+        #self.setCentralWidget(self.view)
+        #self.resize(window_size)
+        self.init_components()
+
+    def init_components(self):
+        # Bauteile mit individuellen Beschriftungen und Verankerungen hinzufügen
+        and_gate = DraggableComponent(
+            "AND-Gate", x=100, y=100, view=self.view, label="AND",
+            connections=[
+                (QPointF(-10, 10), QPointF(0, 10)),    # Linke obere Verankerung
+                (QPointF(-10, 30), QPointF(0, 30)),    # Linke untere Verankerung
+                (QPointF(50, 20), QPointF(60, 20))     # Rechte Verankerung
+            ]
+        )
+        
+        lamp = DraggableComponent(
+            "Lamp", x=200, y=200, view=self.view, label="LED",
+            connections=[
+                (QPointF(-10, 20), QPointF(0, 20)),    # Linke Verankerung
+                (QPointF(50, 20), QPointF(60, 20))     # Rechte Verankerung
+            ]
+        )
+        
+        battery = DraggableComponent(
+            "Battery", x=300, y=300, view=self.view, label="SRC",
+            connections=[
+                (QPointF(-10, 20), QPointF(0, 20)),    # Linke Verankerung
+                (QPointF(50, 20), QPointF(60, 20))     # Rechte Verankerung
+            ]
+        )
+        
+        wire1 = DraggableComponent(
+            "Wire1", x=200, y=100, width=100, height=2, view=self.view,
+            connections=[
+                (QPointF(  0,0), QPointF(  0,0)),
+                (QPointF(100,0), QPointF(100,0))
+            ]
+        )
+        
+        self.scene.addItem(and_gate)
+        self.scene.addItem(lamp)
+        self.scene.addItem(battery)
+        self.scene.addItem(wire1)
+
 # ---------------------------------------------------------------------------
 # \brief  This is the GUI-Entry point for our application.
 # \param  nothing
@@ -12739,8 +12914,9 @@ class FileWatcherGUI(QDialog):
         self.side_btnE = myIconButton(self,  14, "Web Server", "Configure Web Server")
         self.side_btnF = myIconButton(self,  15, "MySQL", "Configure MySQL")
         self.side_btnG = myIconButton(self,  16, "Squid", "Configure Squid")
-        self.side_btnH = myIconButton(self,  17, "C-64", "The most popular Commodore C-64\from int the 1980er")
-        self.side_btnI = myIconButton(self,  18, _("Settings")   , _("Settings for this Application\n\n"))
+        self.side_btnH = myIconButton(self,  17, "Electro", "electronic simulations")
+        self.side_btnI = myIconButton(self,  18, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btnJ = myIconButton(self,  19, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn0.bordercolor = "lime"
         self.side_btn0.state       = 2
@@ -12777,6 +12953,7 @@ class FileWatcherGUI(QDialog):
         self.handleApache()
         self.handleMySQL()
         self.handleSquid()
+        self.handleElectro()
         self.handleCommodoreC64()
         self.handleSettings()
         
@@ -13902,6 +14079,30 @@ class FileWatcherGUI(QDialog):
         sourceDialog = addDataSourceDialog(self)
         sourceDialog.exec_()
     
+    # Electro
+    def handleElectro(self):
+        self.electro_tabs = QTabWidget()
+        self.electro_tabs.setStyleSheet(_(genv.css_tabs))
+        self.electro_tabs.hide()
+        
+        self.electro_tabs_designer_widget = QWidget()
+        
+        hlayout = QHBoxLayout()
+        component_list = QListWidget()
+        component_list.addItems(["item1", "item2"])
+        
+        component_designer = CircuitDesigner()
+        
+        hlayout.addWidget(component_list)
+        hlayout.addWidget(component_designer)
+        
+        #self.electro_tabs.addLayout(hlayout)
+        self.electro_tabs_designer_widget.setLayout(hlayout)
+        
+        self.electro_tabs.addTab(self.electro_tabs_designer_widget, _("Electro Project"))
+        self.main_layout.addWidget(self.electro_tabs)
+        return
+            
     # pascal
     def handlePascal(self):
         self.pascal_tabs = ApplicationTabWidget([
