@@ -52,7 +52,7 @@ try:
     def check_and_install_module():
         required_modules = [
             "re", "dbf", "polib", "requests", "timer", "threading", "glob",
-            "atexit", "platform", "gzip", "base64", "shutil", "datetime",
+            "atexit", "platform", "gzip", "base64", "shutil", "datetime", "gmpy2",
             "pkgutil", "ast", "csv", "gettext", "locale", "io", "random", "string",
             "ctypes", "sqlite3", "configparser", "traceback", "marshal", "inspect",
             "logging", "PyQt5", "pathlib", "rich", "string", "codecs", "pywin32",
@@ -156,8 +156,14 @@ import dbf            # good old data base file
 # ------------------------------------------------------------------------
 # windows os stuff ...
 # ------------------------------------------------------------------------
-#import win32api
-#import win32con
+import win32api
+import win32con
+
+# ------------------------------------------------------------------------
+# gnu multi precision version 2 (gmp2 for python)
+# ------------------------------------------------------------------------
+import gmpy2
+from   gmpy2 import mpz, mpq, mpfr, mpc
 
 # ------------------------------------------------------------------------
 # Qt5 gui framework
@@ -188,8 +194,9 @@ class e_no_more_data(Exception):
         super().__init__(0)
 
 class e_expr_error(Exception):
-    def __init__(self, message="too many closed paren", line=1):
-        self.message = f"Error: {message}\nat line: {str(line)}"
+    def __init__(self, message="too many closed paren", line=1, code=0):
+        self.message = message
+        self.code    = code
         super().__init__(0)
 
 class e_expr_empty(Exception):
@@ -343,6 +350,15 @@ class globalEnv:
         self.v__app__discc64__  = im_path + "disk2.png"
         self.v__app__datmc64__  = im_path + "mc2.png"
         self.v__app__logoc64__  = im_path + "logo2.png"
+
+        # ------------------------------------------------------------------------
+        # dBase parser error code's:
+        # ------------------------------------------------------------------------
+        self.DBASE_EXPR_SYNTAX_ERROR   = 1000
+        self.DBASE_EXPR_KEYWORD_ERROR  = 1001
+        self.DBASE_EXPR_IS_EMPTY_ERROR = 1002
+        
+        self.code_error = 0
         
         # ------------------------------------------------------------------------
         # string conversation ...
@@ -428,8 +444,9 @@ class globalEnv:
         self.code_code  = ""
         self.class_code = ""
 
-        self.open_paren = 0
-        self.text_paren = ""
+        self.open_paren  = 0
+        self.close_paren = 0
+        self.text_paren  = ""
         
         self.last_command = True
 
@@ -556,10 +573,9 @@ class globalEnv:
         try:
             calledFrom = inspect.stack()[1][3]
             genv.message = (""
-                + f"Error  : {message}\n"
-                + f"Code   : {genv.code_error}\n"
-                + f"at line: {genv.line_row}\n"
-                + f"in file: {self.v__app__scriptname__}.\n")
+                + f"{message}\n"
+                + f"at line   : {genv.line_row}\n"
+                + f"in file   : {self.v__app__scriptname__}.\n")
             raise unexpectedParserException(self.message, genv.code_error)
         except unexpectedParserException as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -569,7 +585,7 @@ class globalEnv:
             
             txt1 = _("Exception occur at parsing:\n")
             txt2 = _("type"  ).ljust( padding )
-            txt3 = _("value" ).ljust( padding )
+            txt3 = _("code"  ).ljust( padding )
             txt4 = _("reason").ljust( padding )
             
             msg  = f"{txt1}"
@@ -2578,8 +2594,9 @@ class interpreter_base():
         self.script_name = file_name
         genv.v__app__scriptname__ = file_name
         
-        self.pos        = -1
-        self.open_paren =  0
+        self.pos         = -1
+        self.open_paren  =  0
+        self.close_paren =  0
         
         # default, no error's at parse time ...
         genv.have_errors = False
@@ -2603,6 +2620,8 @@ print = builtins.print
         self.token_id    = ""
         self.token_prev  = ""
         self.token_str   = ""
+        
+        self.expr_is_empty = True
         
         self.token_macro_counter = 0
         self.token_comment_flag  = 0
@@ -2951,7 +2970,13 @@ print = builtins.print
             c = self.getChar()
             if c == genv.ptNoMoreData:
                 return c
+            elif c == ')':
+                genv.open_paren -= 1
+                showInfo("close: " + str(genv.open_paren))
+                return ')'
             elif c == '(':
+                genv.open_paren += 1
+                showInfo("open: " + str(genv.open_paren))
                 c = self.getChar()
                 if c == '*':
                     if parser_type == self.pascal_parser:
@@ -2980,18 +3005,31 @@ print = builtins.print
                         genv.have_errors = True
                         genv.unexpectedError(_("pascal comment not allowed"))
                         return
+                elif c.isnumeric():
+                    return c
                 elif c.isalpha() or c == '_':
-                    self.ungetChar(1)
-                    return '('
+                    return c
+                elif c == '(':
+                    genv.open_paren += 1
+                    showInfo("open: " + str(genv.open_paren))
+                    return c
                 elif c == ')':
-                    showInfo("VVVVVVVVVV")
-                    self.ungetChar(1)
-                    return '('
+                    genv.open_paren -= 1
+                    showInfo("close: " + str(genv.open_paren))
+                    return c
+                elif (c == '\r'):
+                    c = self.getChar()
+                    if not c == '\n':
+                        genv.have_errors = True
+                        genv.unexpectedError(_("invalide line end."))
+                        return
+                    continue
                 elif (c == '\n') or (c == '\t') or (c == ' '):
                     continue
                 else:
-                    self.ungetChar(2)
-                    return '('
+                    genv.have_errors = True
+                    genv.unexpectedError(_("unknown character found."))
+                    return
             elif c == '{':
                 if parser_type == self.pascal_parser:
                     while True:
@@ -3019,6 +3057,14 @@ print = builtins.print
                                 return c
                             elif c == '\n':
                                 break
+                            elif c == '\r':
+                                c = self.getChar()
+                                if not c == '\n':
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("line end error."))
+                                else:
+                                    break
+                        continue
                     else:
                         genv.have_errors = True
                         genv.unexpectedError(_("dbase comment not allowed."))
@@ -3037,6 +3083,14 @@ print = builtins.print
                                 return c
                             elif c == '\n':
                                 break
+                            elif c == '\r':
+                                c = self.getChar()
+                                if not c == '\n':
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("line end error."))
+                                else:
+                                    break
+                        continue
                     else:
                         genv.have_errors = True
                         genv.unexpectedError(_("dbase comment not allowed."))
@@ -3074,7 +3128,7 @@ print = builtins.print
                         genv.unexpectedError(_("C comment not allowrd"))
                         return
                 elif c == '/':
-                    #showInfo("C++ comment: "  + str(genv.line_row))
+                    #showInfo("C++ comment: "  + str(genv.open_paren))
                     while True:
                         c = self.getChar()
                         if c == genv.ptNoMoreData:
@@ -3082,6 +3136,13 @@ print = builtins.print
                             genv.unexpectedError(_("unterminated comment."))
                         elif c == '\n':
                             break
+                        elif c == '\r':
+                            c = self.getChar()
+                            if not c == '\n':
+                                genv.have_errors = True
+                                genv.unexpectedError(_("line end error."))
+                            else:
+                                break
                         else:
                             continue
                     #showInfo("closed C++ comment: " + str(genv.line_row))
@@ -3089,10 +3150,21 @@ print = builtins.print
                 else:
                     self.ungetChar(1)
                     return '/'
-            elif (c == ')'):
-                return c
+            elif (c == '\r'):
+                c = self.getChar()
+                if not c == '\n':
+                    genv.have_errors = True
+                    raise e_expr_error(
+                        message=_("line end syntax error"),
+                        line=genv.line_row,
+                        code=1200
+                        )
+                    return 0
+                continue
             elif (c == '\n') or (c == '\t') or (c == ' '):
                 continue
+            elif c.isalpha() or c == '_':
+                return c
             else:
                 return c
     
@@ -3300,7 +3372,7 @@ class interpreter_dBase(interpreter_base):
     def handle_parens(self):
         c = self.skip_white_spaces(self.dbase_parser)
         if c == '(':
-            genv.open_paren += 1
+            self.open_paren += 1
             genv.temp_code  += c
             c = self.skip_white_spaces(self.dbase_parser)
             if c == genv.ptNoMoreData:
@@ -4049,8 +4121,9 @@ class interpreter_dBase(interpreter_base):
             genv.text_paren = ""
             #showInfo(genv.text_code)
             pass
-        except e_expr_empty as err:
+        except e_expr_error as err:
             genv.have_errors = True
+            genv.code_error  =   err.code
             genv.unexpectedError(err.message)
             return
         except e_expr_empty as err:
@@ -4070,79 +4143,81 @@ class interpreter_dBase(interpreter_base):
     # \return expr
     # ----------------------------------------------------
     def dbase_expr(self):
-        c = self.skip_white_spaces(self.dbase_parser)
-        if c == genv.ptNoMoreData:
-            genv.have_errors = True
-            raise e_expr_error(
-                message=_("syntax error."),
-                line=genv.line_row
-                )
-            return 0
-        elif c == '(':
-            showInfo("ooooooooooooooo")
-            self.open_paren += 1
-            return self.dbase_expr()
-        elif c == ')':
-            showInfo("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-            if self.open_paren < 1:
+        while True:
+            c = self.skip_white_spaces(self.dbase_parser)
+            if c == genv.ptNoMoreData:
                 genv.have_errors = True
                 raise e_expr_error(
-                    message=_("paren syntax error"),
-                    line=genv.line_row
+                    message=_("syntax error."),
+                    line=genv.line_row,
+                    code=genv.DBASE_EXPR_SYNTAX_ERROR
                     )
                 return 0
-            self.open_paren -= 1
-            return
-        elif c.isnumeric():
-            self.token_str = c
-            self.getNumber()
-            num1 = self.token_str
-            c = self.skip_white_spaces(self.dbase_parser)
-            if c in['-','+','*','/']:
-                c = self.skip_white_spaces(self.dbase_parser)
-                if c == genv.ptNoMoreData:
+            elif c == '(':
+                continue
+            elif c == ')':
+                if (genv.open_paren) < 0:
                     genv.have_errors = True
                     raise e_expr_error(
-                        message=_("data out."),
-                        line=genv.line.row
+                        message=_("1111 paren syntax error"),
+                        line=genv.line_row,
+                        code=genv.DBASE_EXPR_SYNTAX_ERROR
                         )
-                    return 0
-            c = self.skip_white_spaces(self.dbase_parser)
-            if c.isnumeric():
+                continue
+            elif c.isnumeric():
                 self.token_str = c
                 self.getNumber()
-                num2 = self.token_str
+                num1 = self.token_str
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c in['-','+','*','/']:
+                    c = self.skip_white_spaces(self.dbase_parser)
+                    if c == genv.ptNoMoreData:
+                        genv.have_errors = True
+                        raise e_expr_error(
+                            message=_("data out."),
+                            line=genv.line.row,
+                            code=genv.DBASE_EXPR_SYNTAX_ERROR
+                            )
+                        return 0
+                c = self.skip_white_spaces(self.dbase_parser)
+                if c.isnumeric():
+                    self.token_str = c
+                    self.getNumber()
+                    num2 = self.token_str
+                elif c.isalpha() or c == '_':
+                    self.token_str = c
+                    self.getIdent()
+                    str2 = self.token_str
+                else:
+                    genv.have_errors = True
+                    raise e_expr_error(
+                        message=_("numeric or alpha expected."),
+                        line=genv.line_row,
+                        code=genv.DBASE_EXPR_SYNTAX_ERROR
+                        )
+                    return 0
+                return 1
             elif c.isalpha() or c == '_':
                 self.token_str = c
                 self.getIdent()
-                str2 = self.token_str
+                showInfo("----> " + self.token_str)
+                if self.token_str.lower() in genv.dbase_keywords:
+                    genv.have_errors = True
+                    raise e_expr_error(
+                        message=_("keywords not allowed there."),
+                        line=genv.line_row,
+                        code=genv.DBASE_EXPR_KEYWORD_ERROR
+                        )
+                    return 0
+                else:
+                    pass
             else:
                 genv.have_errors = True
                 raise e_expr_error(
-                    message=_("numeric or alpha expected."),
+                    message=_("if syntax error."),
                     line=genv.line_row
                     )
                 return 0
-            return 1
-        elif c.isalpha() or c == '_':
-            self.token_str = c
-            self.getIdent()
-            if self.token_str.lower() in genv.dbase_keywords:
-                genv.have_errors = True
-                raise e_expr_error(
-                    message=_("keywords not allowed there."),
-                    line=genv.line_row
-                    )
-                return 0
-            else:
-                pass
-        else:
-            genv.have_errors = True
-            raise e_expr_error(
-                message=_("if syntax error."),
-                line=genv.line_row
-                )
-            return 0
     
     def handle_dbase_header(self, code):
         self.source = code
@@ -4213,7 +4288,6 @@ class interpreter_dBase(interpreter_base):
                 elif self.token_str.lower() == "if":
                     genv.header_code += ('\t' * genv.counter_indent)
                     genv.header_code += "if "
-                    showInfo("CCCCCCCCCCCCCCCCCCCCCCCCCC")
                     self.dbase_expr()
                     
                     showInfo("if: ------\n" + genv.header_code)
