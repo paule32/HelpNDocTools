@@ -4159,10 +4159,12 @@ class interpreter_dBase(interpreter_base):
                 if (genv.open_paren) < 0:
                     genv.have_errors = True
                     raise e_expr_error(
-                        message=_("1111 paren syntax error"),
+                        message=_("paren syntax error"),
                         line=genv.line_row,
                         code=genv.DBASE_EXPR_SYNTAX_ERROR
                         )
+                elif genv.open_paren == 0:
+                    break
                 continue
             elif c.isnumeric():
                 self.token_str = c
@@ -4422,6 +4424,7 @@ class interpreter_dBase(interpreter_base):
                                             genv.header_code += self.token_str
                                             return
                                     else:
+                                        genv.have_errors = True
                                         genv.unexpectedError(_("unexpected syntax"))
                                         return
                                 else:
@@ -4431,6 +4434,7 @@ class interpreter_dBase(interpreter_base):
                                 genv.header_code += self.token_str
                                 return
             else:
+                genv.have_errors = True
                 genv.unexpectedError(_("unexpected syntax"))
                 return
             
