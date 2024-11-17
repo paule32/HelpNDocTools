@@ -30,14 +30,95 @@ set PO=msgfmt.exe
 ::if not exists %PY%\python.exe goto pythonSetup
 :buildApp
 set BASEDIR=%cd%
-%PY% -V
 
 ::set PYTHONPATH=
 ::%PY%\Lib;%PY%\Lib\site-packagesss
 ::set PYTHONHOME=
-set PRJ=T:/a/HelpNDocTools/HelpNDocTools/src
+set SRC=%BASEDIR%/src
+set VPA=%BASEDIR%/venv
+
+:: ---------------------------------------------------------------------------
+:: check, if Python is installed ...
+:: ---------------------------------------------------------------------------
+echo try to setup develop system...
+python3 --version >nul 2>&1
+if errorlevel 1 (
+    echo Python is not installed. Please install Python and try again.
+    pause
+    exit /b 1
+)
+
+:: ---------------------------------------------------------------------------
+:: create virtual user environment...
+:: ---------------------------------------------------------------------------
+python3 -m venv venv
+if errorlevel 1 (
+    echo "Error: can not setup the virtual environment."
+    pause
+    exit /b 1
+)
+
+for /f "tokens=2 delims=:." %%a in ('"%SystemRoot%\System32\chcp.com"') do (
+    set _OLD_CODEPAGE=%%a
+)
+if defined _OLD_CODEPAGE (
+    "%SystemRoot%\System32\chcp.com" 65001 > nul
+)
+
+set VIRTUAL_ENV=%BASEDIR%\venv
+
+if not defined PROMPT set PROMPT=$P$G
+
+if defined _OLD_VIRTUAL_PROMPT     set PROMPT=%_OLD_VIRTUAL_PROMPT%
+if defined _OLD_VIRTUAL_PYTHONHOME set PYTHONHOME=%_OLD_VIRTUAL_PYTHONHOME%
+
+set "_OLD_VIRTUAL_PROMPT=%PROMPT%"
+set "PROMPT=(venv) %PROMPT%"
+
+if defined PYTHONHOME set _OLD_VIRTUAL_PYTHONHOME=%PYTHONHOME%
+set PYTHONHOME=
+
+if defined _OLD_VIRTUAL_PATH set PATH=%_OLD_VIRTUAL_PATH%
+if not defined _OLD_VIRTUAL_PATH set _OLD_VIRTUAL_PATH=%PATH%
+
+set PATH=%VIRTUAL_ENV%\Scripts;%PATH%
+set VIRTUAL_ENV_PROMPT=venv
+
+cd %BASEDIR%\venv\Scripts
+dir
+
+:: ---------------------------------------------------------------------------
+:: check, if pip3 is installed ...
+:: ---------------------------------------------------------------------------
+python -m pip install --upgrade pip >nul 2>&1
+if errorlevel 1 (
+    echo pip is not installed. Try to install pip...
+    python -m ensurepip
+    if errorlevel 1 (
+        echo Error: could not install pip. Please install it manually.
+        pause
+        exit /b 1
+    )
+)
+python -m pip install --upgrade pip
+python -m pip install ast >nul 2>&1
+
+echo install requirements...
+python -m pip install -r requirements.txt
+if errorlevel 1 (
+    echo Error: could not install requirement's.
+    pause
+    exit /b 1
+)
+
+:: ---------------------------------------------------------------------------
+:: install windows stuff ...
+:: ---------------------------------------------------------------------------
+pip install pywin32
+python -m   pywin32_postinstall -install
 
 echo remove old data...
+exit
 rm -rf build
 rm -rf dist
 
