@@ -118,7 +118,8 @@ pip install pywin32
 python -m   pywin32_postinstall -install
 
 echo remove old data...
-exit
+cd venv
+
 rm -rf build
 rm -rf dist
 
@@ -189,7 +190,7 @@ pyinstaller --noupx --noconfirm --console  ^
     --exclude-module tkinter ^
     --exclude-module tk      ^
     --exclude-module tk86t      ^
-    --exclude-module tcl86t      ^
+    --exclude-module tcl86t     ^
     --log-level="WARN"   ^
     --splash="%PRJ%/_internal/img/splash.png"     ^
     --strip                                 ^

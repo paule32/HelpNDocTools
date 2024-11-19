@@ -101,7 +101,7 @@ if errorlevel 1 (
     )
 )
 python -m pip install --upgrade pip
-python -m pip install ast
+python -m pip install ast >nul 2>&1
 
 echo install requirements...
 python -m pip install -r requirements.txt
@@ -111,8 +111,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
+:: ---------------------------------------------------------------------------
+:: install windows stuff ...
+:: ---------------------------------------------------------------------------
 pip install pywin32
-python -m   pywin32_postinstall
+python -m   pywin32_postinstall -install
 
 echo remove old data...
 exit
