@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# File:   observer.py
+# File:   client.py
 # Author: (c) 2024 Jens Kallup - paule32
 # All rights reserved
 # ---------------------------------------------------------------------------
@@ -166,10 +166,11 @@ from   gmpy2 import mpz, mpq, mpfr, mpc
 # ------------------------------------------------------------------------
 # Qt5 gui framework
 # ------------------------------------------------------------------------
-from PyQt5.QtWebEngineWidgets  import *
-from PyQt5.QtWidgets           import *
-from PyQt5.QtCore              import *
-from PyQt5.QtGui               import *
+from PyQt5.QtWebEngineWidgets   import *
+from PyQt5.QtWidgets            import *
+from PyQt5.QtCore               import *
+from PyQt5.QtGui                import *
+from PyQt5.QtNetwork            import QTcpServer, QTcpSocket, QHostAddress
 
 if getattr(sys, 'frozen', False):
     import pyi_splash
@@ -359,9 +360,15 @@ class globalEnv:
         self.code_error     = 0
         self.counter_if     = 0
         self.counter_endif  = 0
+
+        self.char_prev = ''
+        self.char_curr = ''
+        self.char_next = ''
         
         self.temp_token = ""
         self.TOKEN_TEMP = 4000
+        
+        self.token_macro = ["define","ifdef","ifndef","else","endif"]
         
         # ------------------------------------------------------------------------
         # string conversation ...
@@ -402,6 +409,13 @@ class globalEnv:
         
         self.editor_check = None
         self.editor_saveb = None
+        
+        self.img_doxygen = None
+        self.img_hlpndoc = None
+        
+        self.img_ccpplus = None
+        self.img_javadoc = None
+        self.img_freepas = None
 
         # ------------------------------------------------------------------------
         # databse stuff ...
@@ -441,6 +455,8 @@ class globalEnv:
             'set', 'color', 'to',
             'get', 'local', 'parameter', 'if', 'else', 'endif'
         ]
+
+        self.TOKEN_IDENT = 3000
         
         self.text_code  = ""
         self.temp_code  = ""
@@ -534,7 +550,14 @@ class globalEnv:
         
         self.basedir = os.path.dirname(__file__)
         # ------------------------------------------------------------------------
-                
+        
+        self.project_not_known = (""
+            + "Error: project type not known.\n\n"
+            + "would you create a 'doxygen'  project ?\n"
+            + "would you create a 'helpndoc' project ?\n\n"
+            + "Dont forget to specify the kind of documentation (C, Java, Pascal) !\n\n"
+            + "Please choose an option...")
+        
         self.error_result = 0
         self.topic_counter = 1
         
@@ -553,6 +576,8 @@ class globalEnv:
         self.hhc__path  = ""
         
         self.doxyfile   = os.path.join(self.v__app__internal__, "Doxyfile")
+
+        self.project_type = ""
         
         self.error_fail = False
         
@@ -2718,7 +2743,7 @@ print = builtins.print
         self.pos += 1
         
         if self.pos >= len(self.source):
-            return genv.ptNoMoreData
+            raise e_no_more_data(_("getChar"))
         else:
             c = self.source[self.pos]
             if c == '\n':
@@ -2742,49 +2767,70 @@ print = builtins.print
                 return c
     
     def ungetChar(self, num):
-        genv.line_col -= num;
-        self.pos -= num;
-        c = self.source[self.pos]
-        return c
+        genv.line_col -= num
+        self.pos -= num
+        genv.char_prev = self.source[self.pos-1]
+        genv.char_curr = self.source[self.pos]
+        return genv.char_curr
+    
+    def check_token_white_spaces(self):
+        if genv.char_curr == '\t' or genv.char_curr == ' ':
+            return True
+        elif genv.char_curr == '\n':
+            genv.line_row += 1
+            return True
+        elif genv.char_curr == '\r':
+            genv.line_row += 1
+            genv.char_curr = self.getChar()
+            if not genv.char_curr == '\n':
+                genv.have_errors = True
+                genv.unexpectedError(_("line error"))
+                return False
+            else:
+                return True
+        else:
+            return False
+    
+    def check_token_alpha(self):
+        if genv.char_curr.isalpha():
+            return True
+        return False;
+    
+    def check_token_digit(self, ch):
+        if ch.isdigit():
+            self.token_str = ch
+            self.getNumber()
+            return True
+        return False
     
     def getIdent(self):
+        self.token_str = genv.char_curr
         while True:
-            c = self.getChar()
-            if c == genv.ptNoMoreData:
-                return self.token_str
-            elif c == '\t' or c == ' ':
-                return self.token_str
-            elif c == '\n':
-                genv.line_row += 1
-                return self.token_str
-            elif c == '\r':
-                genv.line_row += 1
-                c = self.getChar()
-                if not c == '\n':
-                    genv.unexpectedError("line error")
-                else:
-                    return self.token
-            elif c.isdigit():
-                self.token_str += c
+            genv.char_prev = genv.char_curr
+            genv.char_curr = self.getChar()
+            self.check_token_no_more_data()
+            if self.check_token_white_spaces():
+                return TOKEN_IDENT
+            if self.check_token_alpha():
+                self.token_str += genv.char_curr
                 continue
-            elif c.isalpha() or c == '_':
-                self.token_str += c
-                continue
-            else:
-                self.ungetChar(1)
-                return self.token_str
+            genv.have_errors = True
+            genv.unexpectedError(_("getIdent"))
+            return False
     
     def getNumber(self):
         have_point = False
-        self.counter_digit = 0
         while True:
-            c = self.getChar()
-            if c.isdigit():
-                self.token_str += c
+            genv.char_prev = genv.char_curr
+            genv.char_curr = self.getChar()
+            if genv.char_curr.isdigit():
+                self.token_str += genv.char_curr
                 continue
-            elif c == '.':
+            elif genv.char_curr == '.':
                 if have_point == True:
+                    genv.have_errors = True
                     genv.unexpectedChar(c)
+                    return False
                 else:
                     have_point = True
                     continue
@@ -2795,7 +2841,6 @@ print = builtins.print
     def expect_ident(self, token=""):
         c = self.skip_white_spaces(self.dbase_parser)
         if c.isalpha() or c == '_':
-            self.token_str = c
             self.getIdent()
             if len(token) > 0:
                 if self.token_str.lower() == token.lower():
@@ -2830,21 +2875,17 @@ print = builtins.print
             else:
                 return True
         elif c.isalpha() or c == '_':
-            self.token_str = c
             self.getIdent()
-            genv.temp_code += self.token_str
-            if self.expect_op():
-                return self.expect_expr()
-            else:
-                return True
+            genv.text_code += self.token_str
+            return True
         elif self.expect_op():
             return self.expect_expr()
         elif c == '(':
-            genv.temp_code += '('
-            return self.expect_expr()
+            genv.text_code += '('
+            return '('
         elif c == ')':
-            genv.temp_code += ')'
-            return True
+            self.ungetChar(1)
+            return ')'
         else:
             return False
     
@@ -2857,10 +2898,11 @@ print = builtins.print
     
     def check_null(self, c):
         if self.pos >= len(self.source):
-            return genv.ptNoMoreData
+            raise e_no_more_data()
         if c == '\0':
             return True
-        return False
+        else:
+            return False
     
     def check_spaces(self, c):
         if c == '\t' or c  == ' ':
@@ -2893,14 +2935,13 @@ print = builtins.print
             self.unexpectedError(_("expect a digit"))
         return False
         
-    def check_alpha(self, c):
+    def check_alpha(self, ch):
         result = False
-        if c.isalpha():
-            self.token_str = c
+        if ch.isalpha():
             self.getIdent()
             result = True
         else:
-            genv.unexpectedChar(c)
+            genv.unexpectedChar(ch)
             result = False
         return result
     
@@ -2936,26 +2977,16 @@ print = builtins.print
             elif c == '$':
                 c = self.getChar()
                 self.check_null(c)
-                if self.check_alpha(c):
-                    self.getIdent()
+                if self.check_token_ident(c):
+                    if len(self.token_str) > 64:
+                        genv.have_errors = True
+                        genv.unexpectedError(_("macro name too long"))
+                        return False
+                    elif self.check_token_ident_macro(self.token_str):
+                        pass
                 else:
                     genv.unexpectedError(_("unknown macro symbol"))
                     return '\0'
-                
-                if len(self.token_str) > 64:
-                    genv.unexpectedError(_("macro name too long"))
-                    return '\0'
-                if self.token_str == "define":
-                    print("define macro")
-                elif self.token_str == "ifdef":
-                    print("ifdef macro")
-                elif self.token_str == "ifndef":
-                    print("if not def")
-                elif self.token_str == "else":
-                    print("else macro")
-                elif self.token_str == "endif":
-                    print("endif macro")
-                
             else:
                 genv.line_col += 1
                 continue
@@ -2970,37 +3001,36 @@ print = builtins.print
     def skip_white_spaces(self, parser_type):
         self.pascal_comment_open = False
         while True:
-            c = self.getChar()
-            if c == genv.ptNoMoreData:
-                return c
-            elif c == ')':
+            genv.char_prev = genv.char_curr
+            genv.char_curr = self.getChar()
+            self.check_token_no_more_data(_("skip white spaces"))
+            if self.check_token_char(')'):
                 genv.open_paren -= 1
-                showInfo("close: " + str(genv.open_paren))
-                return ')'
-            elif c == '(':
+                if genv.open_paren < 0:
+                    genv.have_errors = True
+                    genv.unexpectedError(_("paren underflow."))
+                    return False
+                else:
+                    genv.text_code += ')'
+                    return True
+            if self.check_token_char('('):
                 genv.open_paren += 1
-                genv.temp_token += '('
-                c = self.getChar()
-                if c == '*':
+                genv.text_code  += genv.char_curr
+                genv.char_prev   = genv.char_curr
+                genv.char_curr   = self.getChar()
+                if self.check_token_char('*'):
                     if parser_type == self.pascal_parser:
                         while True:
-                            c = self.getChar()
-                            if c == genv.ptNoMoreData:
-                                genv.have_errors = True
-                                genv.unexpectedError(_("comment not terminated."))
-                                return
-                            elif c == '*':
-                                c = self.getChar()
-                                if c == ')':
-                                    break;
-                            elif c == '\n':
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.getChar()
+                            self.check_token_no_more_data(_("comment not terminated."))
+                            if self.check_token_white_spaces():
                                 continue
-                            elif c == '\r':
-                                c = self.getChar()
-                                if not c == '\n':
-                                    genv.have_errors = True
-                                    genv.unexpectedError(_("line end error"))
-                                    return
+                            if self.check_token_char('*'):
+                                genv.char_prev = genv.char_curr
+                                genv.char_curr = self.getChar()
+                                if self.check_token_char(')'):
+                                    break
                             else:
                                 continue
                         continue
@@ -3008,72 +3038,63 @@ print = builtins.print
                         genv.have_errors = True
                         genv.unexpectedError(_("pascal comment not allowed"))
                         return
-                elif c.isnumeric():
-                    self.ungetChar(1)
-                    return '('
-                elif c.isalpha() or c == '_':
-                    self.ungetChar(1)
-                    return '('
-                elif c == '(':
-                    self.ungetChar(1)
-                    return '('
-                elif c == ')':
-                    self.ungetChar(1)
-                    return '('
-                elif (c == '\r'):
-                    c = self.getChar()
-                    if not c == '\n':
-                        genv.have_errors = True
-                        genv.unexpectedError(_("invalide line end."))
-                        return
+                else:
                     continue
-                elif (c == '\n') or (c == '\t') or (c == ' '):
-                    continue
+            
+            if self.check_token_alpha():
+                if self.getIdent() == genv.TOKEN_IDENT:
+                    return genv.TOKEN_IDENT
                 else:
                     genv.have_errors = True
-                    genv.unexpectedError(_("unknown character found."))
-                    return
+                    genv.unexpectedError(_("alpha ident error."))
+                    return False
+            
+            if self.check_token_newline():
+                continue
             elif c == '{':
                 if parser_type == self.pascal_parser:
                     while True:
-                        c = self.getChar()
-                        if c == genv.ptNoMoreData:
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.getChar()
+                        if genv.char_curr == genv.ptNoMoreData:
                             genv.have_errors = True
                             genv.unexpectedError(_("unterminated comment."))
-                            return
-                        elif c == '}':
+                            return False
+                        elif genv.char_curr == '}':
                             break
                         continue
                 else:
                     genv.have_errors = True
                     genv.unexpectedError(_("pascal comment not allowed"))
                     return
-            elif c == '*':
-                c = self.getChar()
-                if c == genv.ptNoMoreData:
-                    return c
-                elif c == '*':
+            elif genv.char_curr == '*':
+                genv.char_prev = genv.char_curr
+                genv.char_curr = self.getChar()
+                self.check_token_no_more_data(_("comment not terminated."))
+                if self.check_token_char('*'):
                     if parser_type == self.dbase_parser:
                         while True:
-                            c = self.getChar()
-                            if c == genv.ptNoMoreData:
-                                return c
-                            elif c == '\n':
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.getChar()
+                            self.check_token_no_more_data(_("comment not terminated."))
+                            if genv.char_curr == '\n':
                                 break
-                            elif c == '\r':
-                                c = self.getChar()
-                                if not c == '\n':
+                            elif genv.char_curr == '\r':
+                                genv.char_prev = genv.char_curr
+                                genv.char_curr = self.getChar()
+                                if not genv.char_curr == '\n':
                                     genv.have_errors = True
                                     genv.unexpectedError(_("line end error."))
+                                    return False
                                 else:
                                     break
                         continue
                     else:
                         genv.have_errors = True
                         genv.unexpectedError(_("dbase comment not allowed."))
-                        return
+                        return False
                 else:
-                    return c
+                    return genv.char_curr
             elif c == '&':
                 c = self.getChar()
                 if c == genv.ptNoMoreData:
@@ -3170,6 +3191,19 @@ print = builtins.print
                 return c
             else:
                 return c
+    
+    def check_token_newline(self):
+        if genv.char_curr == '\n':
+            return True
+        if genv.char_curr == '\r':
+            genv.char_prev = genv.char_curr
+            genv.char_curr = self.getChar()
+            if not genv.char_curr == '\n':
+                genv.have_errors = True
+                genv.unexpectedError(_("invalide line end."))
+                return False
+            elif (genv.char_curr == '\n') or (genv.char_curr == '\t') or (genv.char_curr == ' '):
+                return True
     
     # -----------------------------------------------------------------------
     # \brief parse a one line comment: // for c++, ** and && for dBase ...
@@ -3866,8 +3900,7 @@ class interpreter_dBase(interpreter_base):
             elif c == '\n':
                 continue
             elif c.isalpha() or c == '_':
-                self.token_str = c
-                self.getIdent()
+                self.getIdent(c)
                 if self.token_str.lower() == "class":
                     #showInfo("---------class------")
                     genv.class_code += "class "
@@ -3880,14 +3913,14 @@ class interpreter_dBase(interpreter_base):
                     c = self.skip_white_spaces(self.dbase_parser)
                     if c.isalpha() or c == '_':
                         self.token_str = c
-                        self.getIdent()
+                        self.getIdent(c)
                         #showInfo("22 token:  " + self.token_str)
                         if self.token_str.lower() == "color":
                             self.token_str = ""
                             c = self.skip_white_spaces(self.dbase_parser)
                             if c.isalpha() or c == '_':
                                 self.token_str = c
-                                self.getIdent()
+                                self.getIdent(c)
                                 #showInfo("33 token:  " + self.token_str)
                                 if self.token_str.lower() == "to":
                                     #showInfo("TTOOOOO")
@@ -3982,7 +4015,7 @@ class interpreter_dBase(interpreter_base):
                         pass
                     elif c.isalpha():
                         self.token_str = c
-                        self.getIdent()
+                        self.getIdent(c)
                         #showInfo('oo\n' + self.token_str)
                     else:
                         genv.unexpectedError(_("variable can not assign."))
@@ -4190,7 +4223,7 @@ class interpreter_dBase(interpreter_base):
                         continue
                     elif c.isalpha() or c == '_':
                         self.token_str = c
-                        self.getIdent()
+                        self.getIdent(c)
                         if self.token_str.lower() in genv.dbase_keywords:
                             genv.have_errors = True
                             raise e_expr_error(
@@ -4214,7 +4247,7 @@ class interpreter_dBase(interpreter_base):
                     continue
             elif c.isalpha() or c == '_':
                 self.token_str = c
-                self.getIdent()
+                self.getIdent(c)
                 if self.token_str.lower() in genv.dbase_keywords:
                     genv.have_errors = True
                     raise e_expr_error(
@@ -4242,8 +4275,7 @@ class interpreter_dBase(interpreter_base):
                     raise e_no_more_data();
                     return
                 elif c.isalpha():
-                    self.token_str = c
-                    self.getIdent()
+                    self.getIdent(c)
                     if self.token_str.lower() == "parameter":
                         self.temp_code = ""
                         while True:
@@ -4251,8 +4283,7 @@ class interpreter_dBase(interpreter_base):
                             if c == genv.ptNoMoreData:
                                 raise e_no_more_data();
                             elif c.isalpha():
-                                self.token_str = c
-                                self.getIdent()
+                                self.getIdent(c)
                                 if self.token_str.lower() in genv.dbase_keywords:
                                     genv.have_errors = True
                                     genv.unexpectedError(_("keywords can not be used as variable"))
@@ -4286,8 +4317,7 @@ class interpreter_dBase(interpreter_base):
                             if c == genv.ptNoMoreData:
                                 raise e_no_more_data();
                             if c.isalpha():
-                                self.token_str = c
-                                self.getIdent()
+                                self.getIdent(c)
                                 if self.token_str.lower() in genv.dbase_keywords:
                                     genv.have_errors = True
                                     genv.unexpectedError(_("keywords can not be used as variable"))
@@ -4319,8 +4349,7 @@ class interpreter_dBase(interpreter_base):
                         if c == genv.ptNoMoreData:
                             raise e_no_more_data()
                         elif c.isalpha():
-                            self.token_str = c
-                            self.getIdent()
+                            self.getIdent(c)
                             genv.text_code += ('\t' * genv.counter_indent)
                             genv.text_code += self.token_str
                             c = self.skip_white_spaces(self.dbase_parser)
@@ -4332,8 +4361,7 @@ class interpreter_dBase(interpreter_base):
                                 if c == genv.ptNoMoreData:
                                     raise e_no_more_data();
                                 if c.isalpha():
-                                    self.token_str = c
-                                    self.getIdent()
+                                    self.getIdent(c)
                                     if self.token_str.lower() == "open":
                                         genv.text_code += "open"
                                         c = self.skip_white_spaces(self.dbase_parser)
@@ -4348,6 +4376,27 @@ class interpreter_dBase(interpreter_base):
                                                 genv.text_code += ")"
                                                 #showInfo("else:\n" + genv.header_code)
                                                 continue
+                                            else:
+                                                genv.have_errors = True
+                                                genv.unexpectedError(_("closed paren expected."))
+                                                return
+                                        else:
+                                            genv.have_errors = True
+                                            genv.unexpectedError(_("open paren expected."))
+                                            return
+                                    else:
+                                        genv.have_errors = True
+                                        genv.unexpectedError(_("open expected."))
+                                        return
+                                else:
+                                    genv.have_errors = True
+                                    genv.unexpectedError(_("unexpected character fund."))
+                                    return
+                            elif c == '(':
+                                showInfo("not implemented paren")
+                                genv.have_errors = True
+                                genv.unexpectedError(_("not implemented."))
+                                return
                     elif self.token_str.lower() == "endif":
                         genv.counter_endif += 1
                         showInfo("IF:  " + str(genv.counter_if) + "\nBB: " + str(genv.counter_endif))
@@ -4361,158 +4410,96 @@ class interpreter_dBase(interpreter_base):
                         showInfo("--->>>\n" + self.token_str)
                         genv.text_code += self.token_str
                         showInfo("VV\n" + genv.text_code)
-                        c = self.skip_white_spaces(self.dbase_parser)
-                        if c == genv.ptNoMoreData:
+                        
+                        self.check_point()
+                        self.check_token_ident(c)
+                        self.check_token_expr(["readmodal","open"])
+                        if b == False:
                             genv.have_errors = True
-                            raise e_no_more_data()
-                        elif c == '.':
-                            showInfo("punkt")
-                            genv.text_code += '.'
-                            c = self.skip_white_spaces(self.dbase_parser)
-                            if c == genv.ptNoMoreData:
-                                genv.have_errors = True
-                                genv.unexpectedError(_("no more source."))
-                                return
-                            elif c.isalpha() or c == '_':
-                                self.token_str = c
-                                self.getIdent()
-                                genv.text_code += self.token_str
-                                showInfo("123\n" + genv.text_code)
-                                #current_ident = self.token_str
-                                if self.token_str.lower() in genv.dbase_keywords:
-                                    genv.have_errors = True
-                                    genv.unexpectedError(_("keywords not allowed there."))
-                                    return
-                                elif self.token_str.lower() == "readmodal":
-                                    showInfo("zzzzzz\n" + genv.text_code)
-                                    c = self.skip_white_spaces(self.dbase_parser)
-                                    if c == genv.ptNoMoreData:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_("ident expected"))
-                                        return
-                                    elif c == '(':
-                                        genv.text_code += '('
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c == genv.ptNoMoreData:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("open paren expected."))
-                                            return
-                                        elif c == ')':
-                                            genv.text_code += ')'
-                                            continue
-                                        else:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("unknow character found."))
-                                            return
-                                    else:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_("unknow character found."))
-                                        return
-                                elif self.token_str.lower() == 'open':
-                                    genv.text_code += 'open'
-                                    c = self.skip_white_spaces(self.dbase_parser)
-                                    if c == genv.ptNoMoreData:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_("ident expected"))
-                                        return
-                                    elif c == '(':
-                                        genv.text_code += '('
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c == genv.ptNoMoreData:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("open paren expected."))
-                                            return
-                                        elif c == ')':
-                                            genv.text_code += ')'
-                                            continue
-                                        else:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("unknow character found."))
-                                            return
-                                    else:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_("unknow character found."))
-                                        return
-                                else:
-                                    #genv.text_code += self.token_str
-                                    #genv.text_code += current_ident
-                                    showInfo("ooo>>\n" + genv.text_code)
-                                    c = self.skip_white_spaces(self.dbase_parser)
-                                    if c == genv.ptNoMoreData:
-                                        genv.have_errors = True
-                                        raise e_no_more_data()
-                                        return
-                                    elif c == '(':
-                                        genv.text_code += '('
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c == genv.ptNoMoreData:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("open paren expected."))
-                                            return
-                                        elif c == ')':
-                                            genv.text_code += ')'
-                                            continue
-                                        else:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("unknow character found."))
-                                            return
-                                    elif c == '=':
-                                        showInfo("equaallllll")
-                                        genv.text_code += " = "
-                                        c = self.skip_white_spaces(self.dbase_parser)
-                                        if c == genv.ptNoMoreData:
-                                            genv.have_errors = True
-                                            raise e_no_more_data()
-                                        elif c == '.':
-                                            boolval = 'f'
-                                            c = self.getChar()
-                                            if c.lower() == 'f' or c.lower() == 't':
-                                                boolval = c.lower()
-                                                c = self.getChar()
-                                                if c == '.':
-                                                    if boolval == 'f':
-                                                        genv.text_code += 'False'
-                                                        continue
-                                                    elif boolval == 't':
-                                                        genv.text_code += 'True'
-                                                        continue
-                                                    else:
-                                                        genv.have_errors = True
-                                                        genv.unexpectedError(_(".f. or .t. expected"))
-                                                        return
-                                                else:
-                                                    genv.have_errors = True
-                                                    genv.unexpectedError(_("dot '.' expected"))
-                                                    return
-                                            else:
-                                                genv.have_errors = True
-                                                genv.unexpectedError(_(".f. or .t. expected"))
-                                                return
-                                        elif c.isnumeric():
-                                            showInfo("todo: c.isnumeric()")
-                                            genv.have_errors = True
-                                            break
-                                        elif c.isalpha():
-                                            self.token_str = c
-                                            self.getIdent()
-                                            showInfo("token:  " + self.token_str)
-                                            if self.token_str.lower() == "false":
-                                                genv.text_code += "False\r"
-                                            elif self.token_str.lower() == "true":
-                                                genv.text_code += "True\r"
-                                            else:
-                                                genv.have_errors = True
-                                                genv.unexpectedError(_("false or true or .t. or .f. expected."))
-                                                return
-                                            showInfo("102\n" + genv.text_code)
-                                            continue
-                                        else:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("boolean value expected."))
-                                            return
-                            else:
-                                genv.text_code += self.token_str
-                                return
+                            genv.unexpectedError(_("readmodal or open expected."))
+                            return False
+                                
+                            showInfo("zzzzzz\n" + genv.text_code)
+                                
+                            #    else:
+                            #        #genv.text_code += self.token_str
+                            #        #genv.text_code += current_ident
+                            #        showInfo("ooo>>\n" + genv.text_code)
+                            #        c = self.skip_white_spaces(self.dbase_parser)
+                            #        if c == genv.ptNoMoreData:
+                            #            genv.have_errors = True
+                            #            raise e_no_more_data()
+                            #            return
+                            #        elif c == '(':
+                            #            genv.text_code += '('
+                            #            c = self.skip_white_spaces(self.dbase_parser)
+                            #            if c == genv.ptNoMoreData:
+                            #                genv.have_errors = True
+                            #                genv.unexpectedError(_("open paren expected."))
+                            #                return
+                            #            elif c == ')':
+                            #                genv.text_code += ')'
+                            #                continue
+                            #            else:
+                            #                genv.have_errors = True
+                            #                genv.unexpectedError(_("unknow character found."))
+                            #                return
+                            #        elif c == '=':
+                            #            showInfo("equaallllll")
+                            #            genv.text_code += " = "
+                            #            c = self.skip_white_spaces(self.dbase_parser)
+                            #            if c == genv.ptNoMoreData:
+                            #                genv.have_errors = True
+                            #                raise e_no_more_data()
+                            #            elif c == '.':
+                            #                boolval = 'f'
+                            #                c = self.getChar()
+                            #                if c.lower() == 'f' or c.lower() == 't':
+                            #                    boolval = c.lower()
+                            #                    c = self.getChar()
+                            #                    if c == '.':
+                            #                        if boolval == 'f':
+                            #                            genv.text_code += 'False'
+                            #                            continue
+                            #                        elif boolval == 't':
+                            #                            genv.text_code += 'True'
+                            #                            continue
+                            #                        else:
+                            #                            genv.have_errors = True
+                            #                            genv.unexpectedError(_(".f. or .t. expected"))
+                            #                            return
+                            #                    else:
+                            #                        genv.have_errors = True
+                            #                        genv.unexpectedError(_("dot '.' expected"))
+                            #                        return
+                            #                else:
+                            #                    genv.have_errors = True
+                            #                    genv.unexpectedError(_(".f. or .t. expected"))
+                            #                    return
+                            #            elif c.isnumeric():
+                            #                showInfo("todo: c.isnumeric()")
+                            #               genv.have_errors = True
+                            #                break
+                            #            elif c.isalpha():
+                            #                self.getIdent(c)
+                            #                showInfo("token:  " + self.token_str)
+                            #                if self.token_str.lower() == "false":
+                            #                    genv.text_code += "False\r"
+                            #                elif self.token_str.lower() == "true":
+                            #                    genv.text_code += "True\r"
+                            #                else:
+                            #                    genv.have_errors = True
+                            #                    genv.unexpectedError(_("false or true or .t. or .f. expected."))
+                            #                    return
+                            #                showInfo("102\n" + genv.text_code)
+                            #                continue
+                            #            else:
+                            #                genv.have_errors = True
+                            #                genv.unexpectedError(_("boolean value expected."))
+                            #                return
+                            #else:
+                            #    genv.text_code += self.token_str
+                            #    return
                         elif c == '=':
                             showInfo("===\n" + genv.text_code)
                             genv.text_code += " = "
@@ -4521,8 +4508,7 @@ class interpreter_dBase(interpreter_base):
                                 genv.have_errors = True
                                 raise e_no_more_data();
                             elif c.isalpha() or c == '_':
-                                self.token_str = c
-                                self.getIdent()
+                                self.getIdent(c)
                                 if self.token_str.lower() == "new":
                                     showInfo("new er")
                                     c = self.skip_white_spaces(self.dbase_parser)
@@ -4531,8 +4517,7 @@ class interpreter_dBase(interpreter_base):
                                         genv.unexpectedError(_("new expected."))
                                         return
                                     elif c.isalpha() or c == '_':
-                                        self.token_str = c
-                                        self.getIdent()
+                                        self.getIdent(c)
                                         if self.token_str.lower() in genv.dbase_keywords:
                                             genv.have_errors = True
                                             genv.unexpectedError(_("keywords not allowed there"))
@@ -4587,11 +4572,66 @@ class interpreter_dBase(interpreter_base):
                 genv.have_errors = True
                 genv.unexpectedError(_("if/endif syntax error."))
     
-    def check_token(self, token):
-        for token_list in self.token_colors:
-            if token in token_list:
-                return True
+    def check_token_no_more_data(self, message=""):
+        if genv.char_curr == genv.ptNoMoreData:
+            genv.have_errors = True
+            raise e_no_more_data(message)
+        else:
+            return False
+    
+    def check_point(self):
+        c = self.check_token_no_more_data(_("check point"))
+        if c == '.':
+            genv.text_code += '.'
+            return '.'
+        else:
+            genv.habe_errors = True
+            genv.unexpectedError(_("point expected."))
+            return False
+    
+    def check_token_ident_macro(self, token):
+        if token in genv.token_macro:
+            return True
+        else:
+            genv.have_errors = True
+            genv.unexpectedError(_("macro condition expected."))
         return False
+    
+    def check_token_ident(self):
+        self.check_token_no_more_data()
+        if genv.char_curr.isalpha() or genv.char_curr == '_':
+            self.getIdent(genv.check_curr)
+            genv.text_code += self.token_str
+            return True
+        else:
+            genv.have_errors = True
+            genv.unexpectedError(_("ident expected."))
+        return False
+    
+    def check_token_keywords(self, tokens):
+        for item in tokens:
+            if item in genv.dbase_keywords:
+                genv.have_errors = True
+                genv.unexpectedError(_("keywords not allowed there."))
+                return False
+            else:
+                if item.lower() == self.token_str.lower():
+                    return True
+            return False
+    
+    def check_token_expr(self, tokens):
+        if self.check_token_keywords(tokens) == False:
+            self.check_token_char('(')
+            self.expect_expr()
+            self.check_token_char(')')
+            return True
+        return False
+    
+    def check_token_char(self, ch):
+        if genv.char_curr == ch:
+            return True
+        else:
+            return False
     
     def check_color_token(self, flag):
         self.token_str = ""
@@ -4670,8 +4710,7 @@ class interpreter_dBase(interpreter_base):
                     if c == '/':
                         c = self.skip_white_spaces(self.dbase_parser)
                         if c.isalpha() or c == '_':
-                            self.token_str = c
-                            self.getIdent()
+                            self.getIdent(c)
                             #showInfo('color: ' + self.token_str)
                             if self.token_str in genv.concolors:
                                 index    = genv.concolors.index(self.token_str)
@@ -4752,8 +4791,7 @@ class interpreter_Pascal(interpreter_base):
                 raise e_no_more_data()
                 return
             elif c.isalpha():
-                self.token_str = c
-                self.getIdent()
+                self.getIdent(c)
                 if self.token_str.lower() == "program":
                     pass
                 elif self.token_str.lower() == "unit":
@@ -4766,8 +4804,7 @@ class interpreter_Pascal(interpreter_base):
                     raise e_no_more_data()
                     return
                 elif c.isalpha():
-                    self.token_str = c
-                    self.getIdent()
+                    self.getIdent(c)
                     ident_name = self.token_str
                     self.token_str = ""
                 
@@ -4790,8 +4827,7 @@ class interpreter_Pascal(interpreter_base):
                     raise e_no_more_data()
                     return
                 elif c.isalpha():
-                    self.token_str = c
-                    self.getIdent()
+                    self.getIdent(c)
                     
                     if self.token_str.lower() == "interface":
                         pass
@@ -4815,16 +4851,14 @@ class interpreter_Pascal(interpreter_base):
                 raise e_no_more_data()
                 return
             elif c.isalpha():
-                self.token_str = c
-                self.getIdent()
+                self.getIdent(c)
                 if self.token_str.lower() == "procedure":
                     c = self.skip_white_spaces(self.pascal_parser)
                     if c == genv.ptNoMoreData:
                         raise e_no_more_data()
                         return
                     if c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
+                        self.getIdent(c)
                         ident_name = self.token_str
                         c = self.skip_white_spaces(self.pascal_parser)
                         if c == genv.ptNoMoreData:
@@ -4846,8 +4880,7 @@ class interpreter_Pascal(interpreter_base):
                                         raise e_no_more_data()
                                         return
                                     elif c.isalpha():
-                                        self.token_str = c
-                                        self.getIdent()
+                                        self.getIdent(c)
                                         if self.token_str == "var":
                                             pass
                                         elif self.token_str == "begin":
@@ -4856,8 +4889,7 @@ class interpreter_Pascal(interpreter_base):
                                                 raise e_no_more_data()
                                                 return
                                             elif c.isalpha():
-                                                self.token_str = c
-                                                self.getIdent()
+                                                self.getIdent(c)
                                                 if self.token_str == "end":
                                                     c = self.skip_white_spaces(self.pascal_parser)
                                                     if c == genv.ptNoMoreData:
@@ -4908,8 +4940,7 @@ class interpreter_Pascal(interpreter_base):
                         raise e_no_more_data()
                         return
                     elif c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
+                        self.getIdent(c)
                         ident_name = self.token_str
                         c = self.skip_white_spaces(self.pascal_parser)
                         if c == genv.ptNoMoreData:
@@ -4931,8 +4962,7 @@ class interpreter_Pascal(interpreter_base):
                                         raise e_no_more_data()
                                         return
                                     elif c.isalpha():
-                                        self.token_str = c
-                                        self.getIdent()
+                                        self.getIdent(c)
                                         resultName = self.token_str
                                         c = self.skip_white_spaces(self.pascal_parser)
                                         if c == genv.ptNoMoreData:
@@ -4944,8 +4974,7 @@ class interpreter_Pascal(interpreter_base):
                                                 raise e_no_more_data()
                                                 return
                                             elif c.isalpha():
-                                                self.token_str = c
-                                                self.getIdent()
+                                                self.getIdent(c)
                                                 if self.token_str == "var":
                                                     pass
                                                 elif self.token_str == "begin":
@@ -4954,8 +4983,7 @@ class interpreter_Pascal(interpreter_base):
                                                         raise e_no_more_data()
                                                         return
                                                     elif c.isalpha():
-                                                        self.token_str = c
-                                                        self.getIdent()
+                                                        self.getIdent(c)
                                                         if self.token_str == "end":
                                                             c = self.skip_white_spaces(self.pascal_parser)
                                                             if c == genv.ptNoMoreData:
@@ -5014,8 +5042,7 @@ class interpreter_Pascal(interpreter_base):
                         raise e_no_more_data()
                         return
                     elif c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
+                        self.getIdent(c)
                         if self.token_str.lower() == "end":
                             c = self.skip_white_spaces(self.pascal_parser)
                             if not c == '.':
@@ -5178,8 +5205,7 @@ class interpreter_Lisp(interpreter_base):
             if c == genv.ptNoMoreData:
                 return c
             elif c.isalpha():
-                self.token_str = c
-                self.getIdent()
+                self.getIdent(c)
                 if self.token_str.lower() == "defun":
                     showInfo("a defune")
                     c = self.skip_white_spaces()
@@ -5188,8 +5214,7 @@ class interpreter_Lisp(interpreter_base):
                         genv.unexpectedError(_("syntax error."))
                         return
                     elif c.isalpha():
-                        self.token_str = c
-                        self.getIdent()
+                        self.getIdent(c)
                         self.handle_defun_head()
                         continue
             elif c == '(':
@@ -5295,7 +5320,8 @@ class interpreter_DoxyGen(interpreter_base):
         c = self.source[self.pos]
         return c
     
-    def getIdent(self):
+    def getIdent(self, ch):
+        self.token_str = ch
         while True:
             c = self.getChar()
             if c.isalnum() or c == '_':    # 0-9 todo
@@ -5401,8 +5427,7 @@ class interpreter_DoxyGen(interpreter_base):
         while True:
             c = self.getChar()
             if c.isalpha() or c == '_':
-                self.token_str = c
-                self.getIdent()
+                self.getIdent(c)
                 print("token: ", self.token_str)
                 if self.check_token():
                     print("OK")
@@ -6993,11 +7018,11 @@ class doxygenImageTracker(QWidget):
     def __init__(self, parent=None):
         super(doxygenImageTracker, self).__init__(parent)
         
-        self.img_origin_doxygen_label = QLabel(self)
-        self.img_origin_doxygen_label.setObjectName("doxygen-image")
-        self.img_origin_doxygen_label.move(30,10)
-        self.img_origin_doxygen_label.setMinimumHeight(70)
-        self.img_origin_doxygen_label.setMinimumWidth(238)
+        self.img_label = QLabel(self)
+        self.img_label.setObjectName("doxygen-image")
+        self.img_label.move(30,10)
+        self.img_label.setMinimumHeight(70)
+        self.img_label.setMinimumWidth(238)
         
         self.bordercolor = "lightgray"
         self.parent      = parent
@@ -7011,14 +7036,14 @@ class doxygenImageTracker(QWidget):
         .replace("{2i}",genv.v__app__doxygen__ + str(2) + genv.v__app__img_ext__) \
         .replace("{2b}",self.bordercolor )
         
-        self.img_origin_doxygen_label.setStyleSheet(style.replace("\\","/"))
+        self.img_label.setStyleSheet(style.replace("\\","/"))
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if img_hlpndoc.state == 2:
-                img_hlpndoc.bordercolor = "lightgray"
-                img_hlpndoc.state = 0
-                img_hlpndoc.set_style()
+            if genv.img_hlpndoc.state == 2:
+                genv.img_hlpndoc.bordercolor = "lightgray"
+                genv.img_hlpndoc.state = 0
+                genv.img_hlpndoc.set_style()
             
             if self.state == 0:
                 self.state = 2
@@ -7038,7 +7063,7 @@ class doxygenImageTracker(QWidget):
         else:
             self.bordercolor = "gray";
             self.set_style()
-        self.img_origin_doxygen_label.setCursor(QCursor(Qt.PointingHandCursor))
+        self.img_label.setCursor(QCursor(Qt.PointingHandCursor))
     
     def leaveEvent(self, event):
         if self.state == 2:
@@ -7047,7 +7072,7 @@ class doxygenImageTracker(QWidget):
         else:
             self.bordercolor = "lightgray";
             self.set_style()
-        self.img_origin_doxygen_label.setCursor(QCursor(Qt.ArrowCursor))
+        self.img_label.setCursor(QCursor(Qt.ArrowCursor))
 
 class helpNDocImageTracker(QWidget):
     def __init__(self, parent=None):
@@ -7076,10 +7101,10 @@ class helpNDocImageTracker(QWidget):
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if img_doxygen.state == 2:
-                img_doxygen.bordercolor = "lightgray"
-                img_doxygen.state = 0
-                img_doxygen.set_style()
+            if genv.img_doxygen.state == 2:
+                genv.img_doxygen.bordercolor = "lightgray"
+                genv.img_doxygen.state = 0
+                genv.img_doxygen.set_style()
             
             if self.state == 0:
                 self.state = 2
@@ -7136,15 +7161,15 @@ class ccpplusImageTracker(QWidget):
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if img_javadoc.state == 2:
-                img_javadoc.bordercolor = "lightgray"
-                img_javadoc.set_style()
-                img_javadoc.state = 0
+            if genv.img_javadoc.state == 2:
+                genv.img_javadoc.bordercolor = "lightgray"
+                genv.img_javadoc.set_style()
+                genv.img_javadoc.state = 0
             #
-            if img_freepas.state == 2:
-                img_freepas.bordercolor = "lightgray"
-                img_freepas.set_style()
-                img_freepas.state = 0
+            if genv.img_freepas.state == 2:
+                genv.img_freepas.bordercolor = "lightgray"
+                genv.img_freepas.set_style()
+                genv.img_freepas.state = 0
             
             if self.state == 0:
                 self.state = 2
@@ -7201,15 +7226,15 @@ class javadocImageTracker(QWidget):
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if img_ccpplus.state == 2:
-                img_ccpplus.bordercolor = "lightgray"
-                img_ccpplus.set_style()
-                img_ccpplus.state = 0
+            if genv.img_ccpplus.state == 2:
+                genv.img_ccpplus.bordercolor = "lightgray"
+                genv.img_ccpplus.set_style()
+                genv.img_ccpplus.state = 0
             #
-            if img_freepas.state == 2:
-                img_freepas.bordercolor = "lightgray"
-                img_freepas.set_style()
-                img_freepas.state = 0
+            if genv.img_freepas.state == 2:
+                genv.img_freepas.bordercolor = "lightgray"
+                genv.img_freepas.set_style()
+                genv.img_freepas.state = 0
             
             if self.state == 0:
                 self.state = 2
@@ -7266,15 +7291,15 @@ class freepasImageTracker(QWidget):
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if img_javadoc.state == 2:
-                img_javadoc.bordercolor = "lightgray"
-                img_javadoc.set_style()
-                img_javadoc.state = 0
+            if genv.img_javadoc.state == 2:
+                genv.img_javadoc.bordercolor = "lightgray"
+                genv.img_javadoc.set_style()
+                genv.img_javadoc.state = 0
             #
-            if img_ccpplus.state == 2:
-                img_ccpplus.bordercolor = "lightgray"
-                img_ccpplus.set_style()
-                img_ccpplus.state = 0
+            if genv.img_ccpplus.state == 2:
+                genv.img_ccpplus.bordercolor = "lightgray"
+                genv.img_ccpplus.set_style()
+                genv.img_ccpplus.state = 0
                 
             if self.state == 0:
                 self.state = 2
@@ -7305,8 +7330,12 @@ class freepasImageTracker(QWidget):
         self.img_origin_freepas_label.setCursor(QCursor(Qt.ArrowCursor))
 
 class MyPushButton(QLabel):
-    def __init__(self, parent, mode):
-        super().__init__("")
+    def __init__(self, parent, text="", mode=0, callback_func=None):
+        super(MyPushButton, self).__init__(parent)
+        self.parent = parent
+        self.callback_func = callback_func
+        #self.setText(text)
+        
         self.setMaximumWidth(110)
         self.setMinimumWidth(110)
         self.setMinimumHeight(34)
@@ -7328,12 +7357,56 @@ class MyPushButton(QLabel):
         .replace("{bg}",bg)
         
         self.setStyleSheet(style)
+    
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.LeftButton:
+            #if not self.func == None:
+            self.callback_func()
+        super().mousePressEvent(event)
 
-class MyEllipseButton(QPushButton):
-    def __init__(self, parent, font, mode):
-        super().__init__("...")
+class MyProjectOption():
+    def __init__(self):
+        msg = None
+        msg = QMessageBox()
+        msg.setWindowTitle("Information")
+        msg.setText(_(genv.project_not_known))
+        
+        msg.setIcon(QMessageBox.Question)
+        msg.setStyleSheet(_("msgbox_css"))
+        
+        btn_doxy = QPushButton("Doxygen")
+        btn_help = QPushButton("HelpNDoc")
+        btn_hide = QPushButton("Abort")
+        
+        btn_doxy.clicked.connect(self.on_doxy_clicked)
+        btn_help.clicked.connect(self.on_help_clicked)
+        btn_hide.clicked.connect(self.on_hide_clicked)
+        
+        msg.addButton(btn_doxy, QMessageBox.ActionRole)
+        msg.addButton(btn_help, QMessageBox.ActionRole)
+        msg.addButton(btn_hide, QMessageBox.ActionRole)
+        
+        result = msg.exec_()
+        return
+    
+    def on_doxy_clicked(self):
+        print("doxy")
+        genv.project_type = "doxygen"
+        return True
+    
+    def on_help_clicked(self):
+        print("help")
+        genv.project_type = "helpndoc"
+        return True
+    
+    def on_hide_clicked(self):
+        return True
+
+class OpenProjectButton(QPushButton):
+    def __init__(self, parent=None, font=None):
+        super(OpenProjectButton, self).__init__(parent)
         self.parent = parent
-        self.mode   = mode
+        self.setText("...")
         
         self.setFont(font)
         self.setMinimumHeight(36)
@@ -7361,7 +7434,7 @@ class MyEllipseButton(QPushButton):
         
         for view in list_views + tree_views:
             view.setIconSize(QSize(icon_size, icon_size))
-    
+        
         if dialog.exec_() == QFileDialog.Accepted:
             file_path = dialog.selectedFiles()[0]
         
@@ -7390,12 +7463,25 @@ class MyEllipseButton(QPushButton):
             result = msg.exec_()
             return
         
-        if self.mode == 2:
-            self.parent.tab0_fold_edit2.clear()
-            self.parent.tab0_fold_edit2.setText(file_path)
+        self.parent.tab0_fold_edit1.clear()
+        self.parent.tab0_fold_edit1.setText(file_path)
         
-        global doxygen_project_file
-        doxygen_project_file = self.parent.tab0_fold_edit2.text()
+        try:
+            genv.v__app__config_ini = file_path
+            genv.v__app__config.read( file_path )
+        
+            genv.project_type = genv.v__app__config.get("common", "type")
+        except configparser.NoOptionError as error:
+            MyProjectOption()
+        
+        if genv.project_type.lower() == "doxygen":
+            self.parent.trigger_mouse_press(genv.img_doxygen)
+        elif genv.project_type.lower() == "helpndoc":
+            self.parent.trigger_mouse_press(genv.img_hlpndoc)
+        else:
+            showInfo(_("Error: help framework not known."))
+            return False
+        return True
 
 class myExitDialog(QDialog):
     def __init__(self, title, parent=None):
@@ -11826,46 +11912,6 @@ class ButtonWidget(QWidget):
         self.layout.addWidget(self.label)
         self.setLayout(self.layout)
 
-class imageHelperOverlay(QWidget):
-    def __init__(self, image_path, xpos, ypos, parent=None):
-        super(QWidget, self).__init__(parent)
-        
-        self.xpos   = xpos
-        self.ypos   = ypos
-        
-        self.parent = parent
-        self.image  = QPixmap(image_path)
-        
-        self.setAttribute(Qt.WA_TransparentForMouseEvents)
-        self.setAttribute(Qt.WA_NoSystemBackground)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setGeometry(0, 0, parent.width(), parent.height())
-    
-    def draw_char(self, painter):
-        font1 = QFont("wingdings", 16)
-        font1.setBold(True)
-        
-        font2 = QFont("Arial", 10)
-        
-        char1 = chr(0x81)    # circled 1
-        char2 = chr(0x82)    # circled 2
-        
-        painter.setFont(font2)
-        painter.setPen(QColor(0,0,0))
-        painter.drawText(32,26, _("Step:"))
-        painter.drawText(32,40, _("Select Project"))
-        
-        painter.setFont(font1)
-        painter.setPen(QColor(255,200,0))
-        painter.drawText(80,26, char1)
-    
-    def paintEvent(self, event):
-        if self.parent.tab0_fold_push2.isVisible():
-            painter = QPainter(self)
-            painter.drawPixmap(self.xpos, self.ypos, self.image)
-            
-            self.draw_char(painter)
-
 def add_item(parent, text):
     item = QStandardItem(text)
     parent.appendRow([item, QStandardItem(), QStandardItem()])
@@ -12926,7 +12972,7 @@ class FileWatcherGUI(QDialog):
         self.is_maximized    = False
         
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.windowtitle = 'HelpNDoc File Watcher v0.0.1 - (c) 2024 Jens Kallup - paule32'
+        self.windowtitle = 'HelpNDoc File Watcher Client - v0.0.1 - (c) 2024 Jens Kallup - paule32'
         
         self.my_list = MyItemRecord(0, QStandardItem(""))
         
@@ -12974,18 +13020,9 @@ class FileWatcherGUI(QDialog):
     def menu_edit_clicked_clearall(self):
         return
     
-    def tab0_file_tree_clicked(self, index):
-        self.tab0_path = self.tab0_dir_model.fileInfo(index).absoluteFilePath()
-        self.tab0_file_list.setRootIndex(self.tab0_file_model.setRootPath(self.tab0_path))
-        return
-    
     def tab1_file_tree_clicked(self, index):
         self.tab1_path = self.tab1_dir_model.fileInfo(index).absoluteFilePath()
         self.tab1_file_list.setRootIndex(self.tab1_file_model.setRootPath(self.tab1_path))
-        return
-    
-    def tab0_file_list_clicked(self, index):
-        self.tab0_path_file = self.tab0_dir_model.fileInfo(index).absoluteFilePath()
         return
     
     def tab1_file_list_clicked(self, index):
@@ -13157,6 +13194,18 @@ class FileWatcherGUI(QDialog):
         parent.appendRow(item)
         return item
     
+    def trigger_mouse_press(self, obj):
+        # Erzeuge das QMouseEvent für einen linken Mausklick
+        mouse_event = QMouseEvent(
+            QMouseEvent.MouseButtonPress,
+            QPoint(2,2),
+            Qt.LeftButton,
+            Qt.LeftButton,
+            Qt.NoModifier)
+        
+        # Sende das Ereignis an den Button
+        QApplication.postEvent(obj, mouse_event)
+        
     def init_ui(self):
         # mouse tracking
         self.setMouseTracking(True)
@@ -13718,55 +13767,43 @@ class FileWatcherGUI(QDialog):
         font = QFont(genv.v__app__font, 11)
         font.setPointSize(11)
         #
-        self.tab0_fold_text1 = QLabel(_("Directory:"))
+        self.tab0_fold_text1 = QLabel(_("Project:"))
         self.tab0_fold_text1.setMaximumWidth(84)
         self.tab0_fold_text1.setFont(font)
         
         self.tab0_fold_edit1 = myLineEdit()
         self.tab0_fold_edit1.returnPressed.connect(self.tab0_fold_edit1_return)
         
-        self.tab0_fold_push1 = MyEllipseButton(self, font, 1)
+        self.tab0_fold_push1 = OpenProjectButton(self, font)
         self.tab0_fold_userd = QDir.homePath()
+        self.tab0_fold_userd = self.tab0_fold_userd.replace("\\",'/',1)
         
-        if (self.tab0_fold_userd[1:1] == ":") or (":" in self.tab0_fold_userd):
-            self.tab0_fold_userd = ("/" +
-            self.tab0_fold_userd[0:1]   +
-            self.tab0_fold_userd[2:])
+        if ' ' in self.tab0_fold_userd:
+            self.tab0_fold_userd = '"' + self.tab0_fold_userd + '"'
         
-        self.tab0_fold_push1.clicked.connect(self.tab0_fold_push1_clicked)
         self.tab0_fold_edit1.setFont(font)
         self.tab0_fold_edit1.setText(self.tab0_fold_userd)
         
         self.tab0_fold_scroll1 = QScrollArea()
         self.tab0_fold_scroll1.setMinimumWidth(300)
         self.tab0_fold_scroll1.setMaximumWidth(300)
-        self.tab0_fold_push11  = MyPushButton("Create", 1)
-        self.tab0_fold_push12  = MyPushButton("Open"  , 2)
-        self.tab0_fold_push13  = MyPushButton("Repro" , 3)
-        self.tab0_fold_push14  = MyPushButton("Build" , 4)
-        #
-        self.tab0_fold_text2   = QLabel(_("Project-Name:"))
-        self.tab0_fold_text2.setMaximumWidth(84)
-        self.tab0_fold_text2.setFont(font)
-        self.tab0_fold_edit2   = myLineEdit()
-        self.tab0_fold_push2   = MyEllipseButton(self, font, 2)
         
+        self.tab0_fold_push11  = MyPushButton(self, "Create", 1, None)
+        self.tab0_fold_push12  = MyPushButton(self, "Open"  , 2, self.open_project_clicked)
+        self.tab0_fold_push13  = MyPushButton(self, "Repro" , 3, None)
+        self.tab0_fold_push14  = MyPushButton(self, "Build" , 4, None)
+        #        
+        #
         self.tab0_fold_scroll2 = QScrollArea()
         self.tab0_fold_scroll2.setMaximumWidth(300)
-        self.tab0_fold_push21  = MyPushButton("Create", 1)
-        self.tab0_fold_push22  = MyPushButton("Open"  , 2)
-        self.tab0_fold_push23  = MyPushButton("Repro" , 3)
-        self.tab0_fold_push24  = MyPushButton("Build" , 4)
-        
+        self.tab0_fold_push21  = MyPushButton(self, "Create", 1, None)
+        self.tab0_fold_push22  = MyPushButton(self, "Open"  , 2, None)
+        self.tab0_fold_push23  = MyPushButton(self, "Repro" , 3, None)
+        self.tab0_fold_push24  = MyPushButton(self, "Build" , 4, None)
         #
         self.tab0_top1_hlayout.addWidget(self.tab0_fold_text1)
         self.tab0_top1_hlayout.addWidget(self.tab0_fold_edit1)
         self.tab0_top1_hlayout.addWidget(self.tab0_fold_push1)
-        #
-        #
-        self.tab0_top2_hlayout.addWidget(self.tab0_fold_text2)
-        self.tab0_top2_hlayout.addWidget(self.tab0_fold_edit2)
-        self.tab0_top2_hlayout.addWidget(self.tab0_fold_push2)
         #
         #
         self.tab0_topA_vlayout.addWidget(self.tab0_fold_push11)
@@ -13813,33 +13850,25 @@ class FileWatcherGUI(QDialog):
         self.img_scroll1_layout = QVBoxLayout(self.tab0_fold_scroll1)
         self.img_scroll1_layout.addWidget(self.tab0_fold_scroll1)
         #
-        global img_doxygen
-        global img_hlpndoc
-        #
-        img_doxygen = doxygenImageTracker ()
-        img_hlpndoc = helpNDocImageTracker()
+        genv.img_doxygen = doxygenImageTracker ()
+        genv.img_hlpndoc = helpNDocImageTracker()
         #
         #
-        self.img_scroll1_layout.addWidget(img_doxygen)
-        self.img_scroll1_layout.addWidget(img_hlpndoc)
+        self.img_scroll1_layout.addWidget(genv.img_doxygen)
+        self.img_scroll1_layout.addWidget(genv.img_hlpndoc)
         #
         self.img_scroll2_layout = QGridLayout(self.tab0_fold_scroll2)
         #
         #self.img_scroll2_layout.addWidget(self.tab0_fold_scroll2)
         #
-        
-        global img_ccpplus
-        global img_javadoc
-        global img_freepas
-        #
-        img_ccpplus = ccpplusImageTracker()
-        img_javadoc = javadocImageTracker()
-        img_freepas = freepasImageTracker()
+        genv.img_ccpplus = ccpplusImageTracker()
+        genv.img_javadoc = javadocImageTracker()
+        genv.img_freepas = freepasImageTracker()
         #
         #
-        self.img_scroll2_layout.addWidget(img_ccpplus, 0, 0)
-        self.img_scroll2_layout.addWidget(img_javadoc, 0, 1)
-        self.img_scroll2_layout.addWidget(img_freepas, 2, 0, 1, 2)
+        self.img_scroll2_layout.addWidget(genv.img_ccpplus, 0, 0)
+        self.img_scroll2_layout.addWidget(genv.img_javadoc, 0, 1)
+        self.img_scroll2_layout.addWidget(genv.img_freepas, 2, 0, 1, 2)
         #
         #
         self.tab0_top_layout.addLayout(self.tab0_topV_vlayout)
@@ -13848,31 +13877,6 @@ class FileWatcherGUI(QDialog):
         
         self.tab0_left_layout.addWidget(self.tab0_file_text)
         self.tab0_path = QDir.homePath()
-        
-        self.tab0_dir_model = QFileSystemModel()
-        self.tab0_dir_model.setRootPath(self.tab0_path)
-        self.tab0_dir_model.setFilter(QDir.NoDotAndDotDot | QDir.Dirs)
-        
-        self.tab0_file_model = QFileSystemModel()
-        self.tab0_file_model.setNameFilters(['*.pro'])
-        self.tab0_file_model.setNameFilterDisables(False)
-        self.tab0_file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
-        
-        
-        self.tab0_file_tree = QTreeView()
-        self.tab0_file_list = QListView()
-        
-        self.tab0_file_tree.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
-        
-        self.tab0_file_tree.setModel(self.tab0_dir_model)
-        self.tab0_file_list.setModel(self.tab0_file_model)
-        
-        self.tab0_file_tree.setRootIndex(self.tab0_dir_model.index(self.tab0_path))
-        self.tab0_file_list.setRootIndex(self.tab0_file_model.index(self.tab0_path))
-        ###
-        # Kontextmenü für QTreeView verbinden
-        self.tab0_file_tree.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tab0_file_tree.customContextMenuRequested.connect(self.openContextMenuTreeView)
         
         self.tab0_help_list   = QListWidget()
         self.tab0_help_list.setMinimumWidth(260)
@@ -13887,25 +13891,25 @@ class FileWatcherGUI(QDialog):
             [_("Software Documentation"), os.path.join("software"     + genv.v__app__img_ext__) ],
         ]
         for item in liste:
-            self.list_item1 = QListWidgetItem(_(item[0]),self.tab0_help_list)
+            self.list_item1 = QListWidgetItem(_(item[0]))
             self.list_item1.setIcon(QIcon(os.path.join(genv.v__app__img__int__, item[1])))
             self.list_item1.setFont(self.tab0_help_list.font())
+            self.tab0_help_list.addItem(self.list_item1)
+        
+        self.list_blue_item = QListWidgetItem(_("Projects:"))
+        self.list_blue_item.setBackground(QColor("blue"))
+        self.list_blue_item.setForeground(QColor("yellow"))
+        self.list_blue_item.setFlags(
+        self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list.addItem(self.list_blue_item)
         
         self.tab0_help_layout = QHBoxLayout()
-        self.tab0_help_layout.addWidget(self.tab0_file_list)
         self.tab0_help_layout.addWidget(self.tab0_help_list)
         
-        self.tab0_left_layout.addWidget(self.tab0_file_tree)
         self.tab0_left_layout.addWidget(self.tab0_file_text)
         self.tab0_left_layout.addLayout(self.tab0_help_layout)
-        
-        self.tab0_file_tree.clicked.connect(self.tab0_file_tree_clicked)
-        self.tab0_file_list.clicked.connect(self.tab0_file_list_clicked)
-        
-        
         #####
         # help templates
-        
         
         # create action tab
         self.tab1_top_layout    = QHBoxLayout(self.tab1_0)
@@ -14122,24 +14126,81 @@ class FileWatcherGUI(QDialog):
         self.setWindowTitle(self.windowtitle)
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         
-        widget     = self.tab0_fold_push2
-        global_pos = widget.mapToGlobal(QPoint(0, 0))
-        geom       = widget.geometry()
-        
-        #self.helper_overlay = imageHelperOverlay(
-        #    genv.v__app__internal__ + "/img/blub.png",
-        #    geom.x()+20,
-        #    geom.y(),
-        #    self)
-        #self.helper_overlay.show()
-        
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
         
         self.interval = 0
         self.currentTime = 0
-
+    
+    def open_project_clicked(self):
+        dialog  = QFileDialog()
+        file_path = ""
+        icon_size = 20
+        
+        dialog.setWindowTitle(_("Open Project File"))
+        dialog.setStyleSheet (_("QFileDlog"))
+        
+        dialog.setFileMode(QFileDialog.AnyFile)
+        dialog.setViewMode(QFileDialog.Detail)
+        
+        dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
+        dialog.setNameFilters(["Program Files (*.pro)", "Text Files (*.txt)", "All Files (*)"])
+        
+        list_views = dialog.findChildren(QListView)
+        tree_views = dialog.findChildren(QTreeView)
+        
+        for view in list_views + tree_views:
+            view.setIconSize(QSize(icon_size, icon_size))
+        
+        if dialog.exec_() == QFileDialog.Accepted:
+            file_path = dialog.selectedFiles()[0]
+        
+        if not file_path:
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(_("no source file given.\n"))
+            msg.setIcon(QMessageBox.Question)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()            
+            return
+        
+        if not os.path.isfile(file_path):
+            msg = None
+            msg = QMessageBox()
+            msg.setWindowTitle("Information")
+            msg.setText(_(
+                "You selected a file, that can not be open.\n"
+                "no file will be open."))
+            msg.setIcon(QMessageBox.Question)
+            msg.setStyleSheet(_("msgbox_css"))
+            
+            btn_ok = msg.addButton(QMessageBox.Ok)
+            result = msg.exec_()
+            return
+        
+        self.tab0_fold_edit1.clear()
+        self.tab0_fold_edit1.setText(file_path)
+        
+        try:
+            genv.v__app__config_ini = file_path
+            genv.v__app__config.read( file_path )
+        
+            genv.project_type = genv.v__app__config.get("common", "type")
+        except configparser.NoOptionError as error:
+            MyProjectOption()
+        
+        if genv.project_type.lower() == "doxygen":
+            self.trigger_mouse_press(genv.img_doxygen)
+        elif genv.project_type.lower() == "helpndoc":
+            self.trigger_mouse_press(genv.img_hlpndoc)
+        else:
+            showInfo(_("Error: help framework not known."))
+            return False
+        return True
+    
     def showEvent(self, event):
         super().showEvent(event)
         QTimer.singleShot(0, self.helper_positions)
@@ -14150,7 +14211,7 @@ class FileWatcherGUI(QDialog):
     
     def helper_positions(self):
         return
-        control_pos  = self.tab0_fold_push2
+        #control_pos  = self.tab0_fold_push2
         #control      = self.helper_overlay
         
         global_pos   = control_pos.mapToGlobal(QPoint(0, 0))
@@ -14162,166 +14223,11 @@ class FileWatcherGUI(QDialog):
         control.setObjectName(f"X{xpos}:Y{ypos}")
         control.move(xpos, ypos)
     
-    # folder tree
-    def openContextMenuTreeView(self, position):
-        indexes = self.tab0_file_tree.selectedIndexes()
-        if indexes:
-            font = QFont(genv.v__app__font, 11)
-            font.setBold(True)
-            
-            # Popup-Menü erstellen
-            menu = QMenu()
-            menu.setFont(font)
-            menu.setStyleSheet(_("menu_css"))
-            
-            # Aktionen zum Menü hinzufügen
-            enters_action = QAction(_("Enter Directory"), self)
-            create_action = QAction(_("Create"), self)
-            delete_action = QAction(_("Delete"), self)
-            rename_action = QAction(_("Rename"), self)
-            
-            menu.addAction(enters_action)
-            menu.addAction(create_action)
-            menu.addAction(delete_action)
-            menu.addAction(rename_action)
-            
-            # Aktionen verbinden
-            enters_action.triggered.connect(lambda: self.entersDirectory(indexes[0]))
-            create_action.triggered.connect(lambda: self.createDirectory(indexes[0]))
-            delete_action.triggered.connect(lambda: self.deleteDirectory(indexes[0]))
-            rename_action.triggered.connect(lambda: self.renameDirectory(indexes[0]))
-            
-            # Menü anzeigen
-            menu.exec_(self.tab0_file_tree.viewport().mapToGlobal(position))
-    
     def expand_entry(self, tree_view, model, path):
         index = model.index(path)
         if index.isValid():
             tree_view.expand(index)
     
-    def entersDirectory(self, index):
-        dir_path = self.tab0_dir_model.filePath(index)
-        if os.path.isdir(dir_path):
-            os.chdir(dir_path)
-            self.expand_entry(
-                self.tab0_file_tree,
-                self.tab0_dir_model,
-                dir_path)
-            
-            font = QFont(genv.v__app__font, 11)
-            
-            dialog = QMessageBox(self)
-            dialog.setWindowTitle("Enter Directory")
-            dialog.setText(
-                _("Operation successfully !\n"
-                + "No Error."))
-            dialog.setFont(font)
-            
-            btn_ok = dialog.addButton(QMessageBox.Ok)
-            btn_ok.setFont(font)
-                    
-            dialog.setStyleSheet(_("msgbox_css"))
-            dialog.exec_()
-    
-    def createDirectory(self, index):
-        dir_path = self.tab0_dir_model.filePath(index)
-        if os.path.isdir(dir_path):
-            font = QFont(genv.v__app__font, 11)
-            
-            dialog = QInputDialog(self)
-            dialog.setWindowTitle(_("Create new directory"))
-            dialog.setLabelText(_("Type-In the name:"))
-            dialog.setFont(font)
-            
-            if dialog.exec_() == QInputDialog.Accepted:
-                folder_name  = dialog.textValue()
-                new_dir_path = os.path.join(dir_path, folder_name)
-                new_dir_path = new_dir_path.replace('/',"\\")
-                try:
-                    if not os.path.exists(new_dir_path):
-                        os.makedirs(new_dir_path, exist_ok=True)
-                        
-                        msg = QMessageBox()
-                        msg.setWindowTitle("Information")
-                        msg.setFont(font)
-                        msg.setText(
-                            _("The directpry was create successfully.\n"
-                            + "No errors."))
-                        msg.setIcon(QMessageBox.Information)
-                        
-                        btn_ok = msg.addButton(QMessageBox.Ok)
-                        btn_ok.setFont(font)
-                        
-                        msg.setStyleSheet(_("msgbox_css"))
-                        result = msg.exec_()
-                    else:
-                        msg = QMessageBox()
-                        msg.setWindowTitle(_("Error"))
-                        msg.setFont(font)
-                        msg.setText(
-                            _("The directpry already exists.\n"
-                            + "Error."))
-                        msg.setIcon(QMessageBox.Information)
-                        
-                        btn_ok = msg.addButton(QMessageBox.Ok)
-                        btn_ok.setFont(font)
-                        
-                        msg.setStyleSheet(_("msgbox_css"))
-                        result = msg.exec_()
-                    
-                except PermissionError:
-                    msg = QMessageBox()
-                    msg.setWindowTitle(_("Error"))
-                    msg.setFont(font)
-                    msg.setText(_("No permissions to crrate this directpry !"))
-                    msg.setIcon(QMessageBox.Warning)
-                    
-                    btn_ok = msg.addButton(QMessageBox.Ok)
-                    btm_ok.setFont(font)
-                    
-                    msg.setStyleSheet(_("msgbox_css"))
-                    msg.exec_()
-                    
-                except FileExistsError:
-                    msg = QMessageBox()
-                    msg.setWindowTitle(_("Warning"))
-                    msg.setFont(font)
-                    msg.setText(
-                        _("A directpry with the same name already exists !\n"
-                        + "Please try again, and giva a unique file name."))
-                    msg.setIcon(QMessageBox.Warning)
-                    
-                    btn_ok = msg.addButton(QMessageBox.Ok)
-                    btm_ok.setFont(font)
-                    
-                    msg.setStyleSheet(_("msgbox_css"))
-                    msg.exec_()
-                    
-                except Exception as e:
-                    print(e)
-                    msg = QMessageBox()
-                    msg.setWindowTitle("Warning")
-                    msg.setFont(font)
-                    msg.setText(
-                        _("The directpry could not be created !\n"
-                        + "Please try again, with different file name."))
-                    msg.setIcon(QMessageBox.Warning)
-                    
-                    btn_ok = msg.addButton(QMessageBox.Ok)
-                    btn_ok.setFont(font)
-                    
-                    msg.setStyleSheet(_("msgbox_css"))
-                    msg.exec_()
-                
-    
-    def deleteDirectory(self, index):
-        file_path = self.tab0_dir_model.filePath(index)
-        print(f"Löschen: {file_path}")
-    
-    def renameDirectory(self, index):
-        file_path = self.tab0_dir_model.filePath(index)
-        print(f"Umbenennen: {file_path}")
-        
     def readFromFile(self, file_path):
         file_content = ""
         file = QFile(file_path)
@@ -15359,10 +15265,10 @@ class FileWatcherGUI(QDialog):
         templateLabel = QLabel("Templates:")
         templateLabel.setFont(font)
         
-        push1 = MyPushButton("Create", 1)
-        push2 = MyPushButton("Open"  , 2)
-        push3 = MyPushButton("Repro" , 3)
-        push4 = MyPushButton("Build" , 4)
+        push1 = MyPushButton(self, "Create", 1, None)
+        push2 = MyPushButton(self, "Open"  , 2, None)
+        push3 = MyPushButton(self, "Repro" , 3, None)
+        push4 = MyPushButton(self, "Build" , 4, None)
         #
         vlayout0.addWidget(templateLabel)
         vlayout0.addWidget(push1)
@@ -15872,18 +15778,6 @@ class FileWatcherGUI(QDialog):
             if i == it:
                 w.show()
     
-    # project tab: top push
-    def tab0_fold_push1_clicked(self):
-        oldtext = self.tab0_fold_userd
-        openDir = str(QFileDialog.getExistingDirectory(self,
-        "Select Directory"))
-        if len(openDir.strip()) < 1:
-            self.tab0_fold_edit1.setText(self.tab0_fold_userd)
-            self.tab0_fold_edit1_return()
-        else:
-            self.tab0_fold_userd = openDir
-            self.tab0_fold_edit1_return()
-    
     def tab0_fold_edit1_return(self):
         oldtext = self.tab0_fold_userd.strip()
         
@@ -15903,21 +15797,8 @@ class FileWatcherGUI(QDialog):
             windowsdir = self.tab0_fold_userd
         
         if os.path.exists(windowsdir) and os.path.isdir(windowsdir):
-            self.tab0_dir_model .setRootPath(windowsdir)
-            self.tab0_file_model.setRootPath(windowsdir)
-            #
-            self.tab0_file_tree.setRootIndex(self.tab0_dir_model.index(windowsdir))
-            #self.tab0_file_list.setRootIndex(self.tab0_file_model_proxy.index(windowsdir))
-            #
             self.tab0_fold_edit1.setText(self.tab0_fold_userd)
         else:
-            self.tab0_fold_userd = oldtext
-            self.tab0_dir_model .setRootPath(oldtext)
-            self.tab0_file_model.setRootPath(oldtext)
-            #
-            self.tab0_file_tree.setRootIndex(self.tab0_dir_model.index(oldtext))
-            self.tab0_file_list.setRootIndex(self.tab0_file_model_proxy.mapFromSource(self.tab0_file_model.index(oldtext)))
-            #
             self.tab0_fold_edit1.setText(self.tab0_fold_userd)
     
     def generate_random_string(self, length):
@@ -16531,36 +16412,38 @@ if __name__ == '__main__':
         print("no arguments given.")
         #print(genv.v__app__parameter)
         sys.exit(1)
-    
+        
+    idx = 1
     if len(sys.argv) >= 1:
-        if sys.argv[1] == "--gui":
-            #if len(sys.argv) == 2:
-            #    sys.argv.append("test.txt")
-            #genv.v__app__scriptname__ = sys.argv[2]
-            #handleExceptionApplication(EntryPoint,genv.v__app__scriptname__)
-            handleExceptionApplication(EntryPoint)
-            sys.exit(0)
-        elif sys.argv[1] == "--doxygen":
-            if len(sys.argv) == 2:
-                sys.argv.append("Doxyfile")
-            genv.v__app__scriptname__ = sys.argv[2]
-            handleExceptionApplication(parserDoxyGen,sys.argv[2])
-            sys.exit(0)
-        elif sys.argv[1] == "--exec":
-            genv.v__app__scriptname__ = sys.argv[2]
-            handleExceptionApplication(parserBinary,sys.argv[2])
-        elif sys.argv[1] == "--dbase":
-            print(genv.v__app__tmp3)
-            try:
-                handleExceptionApplication(parserDBasePoint,sys.argv[2])
+        for item in sys.argv:
+            if item == "--gui":
+                handleExceptionApplication(EntryPoint)
                 sys.exit(0)
-            except Exception as ex:
-                sys.exit(1)
-        elif sys.argv[1] == "--pascal":
-            print(genv.v__app__tmp3)
-            genv.v__app__scriptname__ = sys.argv[2]
-            handleExceptionApplication(parserPascalPoint,sys.argv[2])
-            sys.exit(0)
+            elif item == "--doxygen":
+                idx += 1
+                if sys.argv[idx]:
+                    sys.argv.append("Doxyfile")
+                    genv.v__app__scriptname__ = sys.argv[idx]
+                    handleExceptionApplication(parserDoxyGen,sys.argv[idx])
+                    sys.exit(0)
+            elif item == "--exec":
+                idx += 1
+                genv.v__app__scriptname__ = sys.argv[idx + 1]
+                handleExceptionApplication(parserBinary,sys.argv[idx])
+            elif item == "--dbase":
+                idx += 1
+                print(genv.v__app__tmp3)
+                try:
+                    handleExceptionApplication(parserDBasePoint,sys.argv[idx])
+                    sys.exit(0)
+                except Exception as ex:
+                    sys.exit(1)
+            elif item == "--pascal":
+                idx += 1
+                print(genv.v__app__tmp3)
+                genv.v__app__scriptname__ = sys.argv[2]
+                handleExceptionApplication(parserPascalPoint,sys.argv[idx])
+                sys.exit(0)
         else:
             print("parameter unknown.")
             print(genv.v__app__parameter)

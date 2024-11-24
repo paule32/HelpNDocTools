@@ -11,9 +11,10 @@
 @echo off
 :start
 :: ---------------------------------------------------------------------------
-:: set observer application stuff ...
+:: set application stuff ...
 :: ---------------------------------------------------------------------------
-set APP=observer
+set SRVAPP=server.py
+set CLTAPP=client.py
 :: ---------------------------------------------------------------------------
 :: the USERPROFILE directory contains the standard default installation of
 :: Python 3.1.0 - there should be a Tools directory which comes with the
@@ -118,7 +119,8 @@ pip install pywin32
 python -m   pywin32_postinstall -install
 
 echo remove old data...
-exit
+cd venv
+
 rm -rf build
 rm -rf dist
 
@@ -182,6 +184,7 @@ echo Create Byte-Code...
 ::cd ..
 python -m compileall %BASEDIR%\observer.py
 if errorlevel 1 ( goto error_bytecode )
+exit
 echo installer...
 pyinstaller --noupx --noconfirm --console  ^
     --icon="%PRJ%/_internal/img/floppy-disk.ico"  ^
@@ -189,7 +192,7 @@ pyinstaller --noupx --noconfirm --console  ^
     --exclude-module tkinter ^
     --exclude-module tk      ^
     --exclude-module tk86t      ^
-    --exclude-module tcl86t      ^
+    --exclude-module tcl86t     ^
     --log-level="WARN"   ^
     --splash="%PRJ%/_internal/img/splash.png"     ^
     --strip                                 ^

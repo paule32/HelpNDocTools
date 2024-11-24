@@ -11,9 +11,10 @@
 @echo off
 :start
 :: ---------------------------------------------------------------------------
-:: set observer application stuff ...
+:: set application stuff ...
 :: ---------------------------------------------------------------------------
-set APP=observer
+set SRVAPP=server.py
+set CLTAPP=client.py
 :: ---------------------------------------------------------------------------
 :: the USERPROFILE directory contains the standard default installation of
 :: Python 3.1.0 - there should be a Tools directory which comes with the
@@ -181,8 +182,11 @@ echo Create Byte-Code...
 ::    echo fail collection batch
 ::    goto error_bytecode ) else ( echo collection.py exec ok )
 ::cd ..
-python -m compileall %BASEDIR%\observer.py
+python -m compileall %BASEDIR%\&SRVAPP&
 if errorlevel 1 ( goto error_bytecode )
+python -m compileall %BASEDIR%\&CLTAPP&
+if errorlevel 1 ( goto error_bytecode )
+exit
 echo installer...
 pyinstaller --noupx --noconfirm --console  ^
     --icon="%PRJ%/_internal/img/floppy-disk.ico"  ^

@@ -139,3 +139,7 @@ src/_internal/temp/1
 src/_internal/temp/test.html
 src/observer.py.bak
 src/build.bat.bak
+src/server.py.bak
+src/start.bat.bak
+src/client.py.bak
+src/build.bat.bak

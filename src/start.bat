@@ -12,12 +12,19 @@
 set PY=python.exe
 set BASEDIR=%cd%
 
+set VERSION=cpython-313
+
+set SRVAPP=server
+set CLTAPP=client
+
 echo Create Byte-Code...
-%PY% -m compileall %BASEDIR%\observer.py
+%PY% -m compileall %BASEDIR%\%SRVAPP%.py
+if errorlevel 1 ( goto error_bytecode )
+%PY% -m compileall %BASEDIR%\%CLTAPP%.py
 if errorlevel 1 ( goto error_bytecode )
 ::goto end
 cd __pycache__
-%PY% %BASEDIR%\__pycache__\observer.cpython-313.pyc --gui
+%PY% %BASEDIR%\__pycache__\%CLTAPP%.%VERSION%.pyc --port=2300 --gui
 if errorlevel 1 ( goto error_observer)
 cd ..
 goto all_done
