@@ -516,6 +516,7 @@ class globalEnv:
         self.v__app__scriptname__ = "./examples/dbase/example1.prg"
         self.v__app__favorites    = self.v__app__internal__ + "/favorites.ini"
         
+        self.window_login = None
         self.client = None
         
         self.doxygen_project_file = " "
@@ -13057,6 +13058,7 @@ class CircuitDesigner(QWidget):
 class FileWatcherGUI(QDialog):
     def __init__(self, parent=None):
         super(FileWatcherGUI, self).__init__(parent)
+        #self.setAttribute(Qt.WA_DeleteOnClose, True)
         
         global application_window
         application_window = self
@@ -13089,21 +13091,23 @@ class FileWatcherGUI(QDialog):
     # --------------------
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F1:
-            help_chm = "help.chm"
-            if os.path.exists(help_chm):
-                os.startfile(help_chm)
-            else:
-                msg = QMessageBox()
-                msg.setWindowTitle("Warnin")
-                msg.setText(
-                    _("The help file for the Application\n"
-                    + "Could not be found !"))
-                msg.setIcon(QMessageBox.Warning)
-                
-                btn_ok = msg.addButton(QMessageBox.Ok)
-                
-                msg.setStyleSheet(_("msgbox_css"))
-                result = msg.exec_()
+            genv.help_dialog = HelpWindow(self)
+            genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+            #help_chm = "help.chm"
+            #if os.path.exists(help_chm):
+            #    os.startfile(help_chm)
+            #else:
+            #    msg = QMessageBox()
+            #    msg.setWindowTitle("Warnin")
+            #    msg.setText(
+            #        _("The help file for the Application\n"
+            #        + "Could not be found !"))
+            #    msg.setIcon(QMessageBox.Warning)
+            #    
+            #    btn_ok = msg.addButton(QMessageBox.Ok)
+            #    
+            #    msg.setStyleSheet(_("msgbox_css"))
+            #    result = msg.exec_()
         
         elif event.key() == Qt.Key_Escape:
             exitBox = myExitDialog(_("Exit Dialog"))
@@ -16126,6 +16130,161 @@ def ApplicationAtExit():
     print("Thank's for using.")
     return
 
+# ------------------------------------------------------------------------
+# chm help window ...
+# ------------------------------------------------------------------------
+class HelpWindow(QMainWindow):
+    def __init__(self, parent=None):
+        if not genv.window_login == None:
+            self.saved_style = genv.window_login.styleSheet()
+            genv.window_login.setStyleSheet("")
+        
+        super(HelpWindow, self).__init__(parent)
+        
+        self.hide()
+        self.setWindowTitle(_("CHM Help Dialog"))
+        self.setGeometry(100, 100, 700, 600)
+        
+        # Hauptlayout des Dialogs
+        layout = QVBoxLayout()
+        
+        # Navigation Panel erstellen
+        navigation_container = QVBoxLayout()
+        navigation_widget = QWidget()
+        navigation_layout = QHBoxLayout()
+        
+        # Buttons: Home, Prev, Next
+        self.home_button = QPushButton("Home")
+        self.prev_button = QPushButton("Prev")
+        self.next_button = QPushButton("Next")
+        
+        self.home_button.setMinimumHeight(49)
+        self.prev_button.setMinimumHeight(49)
+        self.next_button.setMinimumHeight(49)
+        
+        self.home_button.setCursor(Qt.PointingHandCursor)
+        self.prev_button.setCursor(Qt.PointingHandCursor)
+        self.next_button.setCursor(Qt.PointingHandCursor)
+        
+        self.home_button.setFont(QFont("Arial", 12))
+        self.prev_button.setFont(QFont("Arial", 12))
+        self.next_button.setFont(QFont("Arial", 12))
+        
+        navigation_widget.setStyleSheet("background-color:lightgray;")
+        navigation_layout.setAlignment(Qt.AlignTop)
+        
+        # Buttons dem Layout hinzufügen
+        navigation_layout.addWidget(self.home_button)
+        navigation_layout.addWidget(self.prev_button)
+        navigation_layout.addWidget(self.next_button)
+        
+        # Setze das Layout für das Navigations-Widget
+        navigation_widget.setLayout(navigation_layout)
+        
+        hlayout = QHBoxLayout()
+        topic_list = QListWidget()
+        topic_list.setStyleSheet("""
+        background-color: white;
+        width: 100px;
+        """)
+        
+        # WebView Widget zum Anzeigen der CHM-Datei
+        self.browser  = QWebEngineView()
+        
+        hlayout.addWidget(topic_list)
+        hlayout.addWidget(self.browser)
+        
+        navigation_container.addWidget(navigation_widget)
+        navigation_container.addLayout(hlayout)
+        
+        layout.addLayout(navigation_container)
+        
+        
+        dir_file_path = os.path.dirname(os.path.abspath(__file__))
+        chm_file_path = os.path.join("./_internal/help/help.chm")
+        
+        chm_file_url  = f"file:///{chm_file_path}"
+        
+        if not os.path.exists(chm_file_path):
+            if not parent == None:
+                genv.window_login.hide()
+                QMessageBox.critical(self,
+                _("Error"),
+                _("Error:\nThe helpfile could not be found."))
+                self.deleteLater()
+                return None
+        
+        if not QUrl(chm_file_url).isValid():
+            if not parent == None:
+                genv.window_login.hide()
+                QMessageBox.critical(self,
+                _("Error"),
+                _("Error:\nThe helpfile could not be found."))
+                self.deleteLater()
+                return None
+        
+        self.browser.setUrl(QUrl(chm_file_url))
+        #layout.addWidget(self.browser)
+        
+        # Schließen-Button
+        button_widget = QWidget()
+        button_layout = QHBoxLayout()
+        
+        button_widget.setMaximumHeight(84)
+        
+        # PNG-Grafik
+        image_label = QLabel()
+        image_label.setMinimumHeight(64)
+        image_label.setMaximumHeight(64)
+        image_label.setMaximumWidth (64)
+        
+        image_label.setStyleSheet("""
+        background-color: orange;
+        background-image: url('./_internal/img/py.png');
+        background-repeat: no-repeat;
+        border: 1px solid red;
+        """)
+        
+        # Text "Made with Python"
+        text_label = QLabel(_("Made with Python\n(c) 2024 by paule32"))
+        text_label.setStyleSheet("""
+        background-color: navy;
+        border: 1px solid red;
+        font-size: 14px;
+        font-weight: bold;
+        color: yellow;
+        """)
+        
+        # Zum Button-Layout hinzufügen
+        button_layout.addWidget(image_label)
+        button_layout.addWidget(text_label)
+        button_layout.setAlignment(Qt.AlignVCenter)
+        
+        button_widget.setLayout(button_layout)
+        layout.addWidget(button_widget)
+        
+        if not genv.window_login == None:
+            genv.window_login.setStyleSheet(self.saved_style)
+        
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+        self.show()
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+    
+    def closeEvent(self, event):
+        if not genv.window_login == None:
+            genv.window_login.setStyleSheet(self.saved_style)
+        if not self.browser == None:
+            self.browser.deleteLater()
+        event.accept()
+    
+    def on_close(self):
+        self.close()
+
 class LoginDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -16172,14 +16331,13 @@ class LoginDialog(QDialog):
         self.password_field.setPlaceholderText(_("type in password"))
         self.password_field.setEchoMode(QLineEdit.Password)
         self.password_field.setStyleSheet(_("login_dialog_pass"))
-        
         layout.addWidget(self.password_field)
 
         # Login-Button
         self.login_button = QPushButton(_("Login into the System"))
         self.login_button.setStyleSheet(_("login_dialog_push"))
-        
         self.login_button.setCursor(Qt.PointingHandCursor)
+        self.login_button.clicked.connect(self.on_close)
         layout.addWidget(self.login_button)
 
         # Setze das Layout
@@ -16190,6 +16348,16 @@ class LoginDialog(QDialog):
         additional_dialog.setWindowTitle("Zusätzlicher Dialog")
         additional_dialog.setGeometry(150, 150, 300, 200)
         additional_dialog.exec_()
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            sys.exit(0)
+        elif event.key() == Qt.Key_F1:
+            genv.help_dialog = HelpWindow(self)
+            genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+    
+    def on_close(self):
+        self.close()
 
 # ------------------------------------------------------------------------
 # this is our "main" entry point, where the application will start.
@@ -16350,8 +16518,8 @@ def EntryPoint(arg1=None):
     window_license = licenseWindow()
     window_license.exec_()
     
-    window_login = LoginDialog()
-    window_login.exec_()
+    genv.window_login = LoginDialog()
+    genv.window_login.exec_()
     
     # ------------------------------------------------------------------------
     # selected list of flags for translation localization display ...
