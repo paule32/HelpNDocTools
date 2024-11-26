@@ -7,16 +7,9 @@
 # ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
-global doxygen_project_file; doxygen_project_file = " "
-global DoxyGenElementLayoutList
-
-DoxyGenElementLayoutList = []
 
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
-
-global topic_counter
-topic_counter = 1
 
 import importlib
 import subprocess
@@ -170,7 +163,7 @@ from PyQt5.QtWebEngineWidgets   import *
 from PyQt5.QtWidgets            import *
 from PyQt5.QtCore               import *
 from PyQt5.QtGui                import *
-from PyQt5.QtNetwork            import QTcpServer, QTcpSocket, QHostAddress
+from PyQt5.QtNetwork            import *
 
 if getattr(sys, 'frozen', False):
     import pyi_splash
@@ -523,6 +516,11 @@ class globalEnv:
         self.v__app__scriptname__ = "./examples/dbase/example1.prg"
         self.v__app__favorites    = self.v__app__internal__ + "/favorites.ini"
         
+        self.client = None
+        
+        self.doxygen_project_file = " "
+        self.DoxyGenElementLayoutList = []
+        
         # ------------------------------------------------------------------------
         self.v__app__config   = None
         self.v__app__devmode  = -1
@@ -568,6 +566,20 @@ class globalEnv:
         
         self.tr = None
         self.sv_help = None
+
+        self.TARGET_DIRECTORY      = self.v__app__internal__ + "/temp"
+        self.PROJECT_NAME          = "A Temporary Project"
+        self.PROJECT_SOURCE        = self.v__app__internal__ + "/temp/test.html"
+        self.GENERATE_DOC          = 0
+        self.ADD_LINKS_TO_INDEX    = 1
+        self.PAGE_FORMAT_LANDSCAPE = 0
+        self.USE_TOPLEVEL_PROJECT  = 1
+        self.DEFAULT_TOPIC         = "test.html"
+        self.USE_DOC_TEMPLATE      = "pydocgen.dot"
+        self.DOC_PAGE_BREAKS       = 0
+
+        # needed for converting Unicode->Ansi (in local system codepage)
+        DecodeUnicodeString = lambda x: codecs.latin_1_encode(x)[0]
         
         self.doxy_env   = "DOXYGEN_PATH"  # doxygen.exe
         self.doxy_hhc   = "DOXYHHC_PATH"  # hhc.exe
@@ -578,9 +590,7 @@ class globalEnv:
         self.doxyfile   = os.path.join(self.v__app__internal__, "Doxyfile")
 
         self.project_type = ""
-        
         self.error_fail = False
-        
         self.byte_code = None
         
     def unexpectedToken(self, text):
@@ -706,7 +716,6 @@ def handle_language(lang):
 # application imports ...
 # ---------------------------------------------------------------------------
 try:
-    
     # ------------------------------------------------------------------------
     # Unter Windows können wir versuchen zu prüfen, ob eine GUI-basierte
     # Anwendung läuft,indem wir den Windows-GUI-Thread verwenden.
@@ -894,24 +903,119 @@ except Exception as e:
 # ------------------------------------------------------------------------
 css_combobox_style = "combo_actn"
 
-TARGET_DIRECTORY      = genv.v__app__internal__ + "/temp"
-PROJECT_NAME          = "A Temporary Project"
-PROJECT_SOURCE        = genv.v__app__internal__ + "/temp/test.html"
-GENERATE_DOC          = 0
-ADD_LINKS_TO_INDEX    = 1
-PAGE_FORMAT_LANDSCAPE = 0
-USE_TOPLEVEL_PROJECT  = 1
-DEFAULT_TOPIC         = "test.html"
-USE_DOC_TEMPLATE      = "pydocgen.dot"
-DOC_PAGE_BREAKS       = 0
+# ------------------------------------------------------------------------
+# our client login, and write/read class ...
+# ------------------------------------------------------------------------
+class ClientHandlerThread(QThread):
+    new_data = pyqtSignal(QSslSocket, str)
+    client_disconnected = pyqtSignal(QSslSocket)
 
-# needed for converting Unicode->Ansi (in local system codepage)
-DecodeUnicodeString = lambda x: codecs.latin_1_encode(x)[0]
+    def __init__(self, client_socket):
+        super().__init__()
+        self.client_socket = client_socket
+        self.client_socket.readyRead.connect(self.read_data)
+        self.client_socket.disconnected.connect(lambda: self.handle_disconnection(self.client_socket))
 
-if GENERATE_DOC:
+    def read_data(self):
+        try:
+            if self.client_socket.state() == QSslSocket.ConnectedState:
+                if self.client_socket.bytesAvailable() > 0:
+                    data = self.client_socket.readAll().data().decode()
+                    self.new_data.emit(self.client_socket, data)
+                else:
+                    showInfo(_("no data, close connection."))
+                    self.client_socket.disconnectFromHost()
+                    return True
+        except Exception as e:
+            showInfo(_("Error:\n file not found.\n") + e)
+            return False
+    
+    def handle_disconnection(self):
+        self.client_disconnected.emit(self.client_socket)
+
+class SSLClient:
+    def __init__(
+        self,
+        host          = 'localhost',
+        port          = 1234,
+        crt_file      = './ssl/client.crt',
+        key_file      = './ssl/client.key'):
+        self.socket   = QSslSocket()
+        
+        self.crt_file = crt_file
+        self.key_file = key_file
+        
+        self.host     = host
+        self.port     = port
+    
+    def set_host(self, addr):
+        self.host = addr
+        return True
+    
+    def set_port(self, port):
+        self.port = port
+        return True
+    
+    def set_crt_file(self, crt_file):
+        self.crt_file = crt_file
+        return True
+    
+    def set_key_file(self, key_file):
+        self.key_file = key_file
+        return True
+    
+    def get_host(self):
+        return self.host
+    def get_port(self):
+        return self.port
+    def get_crt_file(self):
+        return self.crt_file
+    def get_key_file(self):
+        return self.key_file
+    
+    def connect(self):
+        # SSL-Konfiguration
+        certificates = QSslCertificate.fromPath(cert_file)
+        if not certificates:
+            showInfo(_("Error:\nThe 'client.csr' file could not be found or it is wrong."))
+            return False
+        
+        cert = certificates[0]
+        self.socket.setLocalCertificate(cert)
+
+        with open(self.key_file, "rb") as key_file:
+            key = QSslKey(
+            key_file.read(),
+            QSsl.KeyAlgorithm.Rsa,
+            QSsl.EncodingFormat.Pem,
+            QSsl.PrivateKey)
+            key_file.close()
+        
+        self.socket.setPrivateKey(key)
+        self.socket.connectToHostEncrypted(self.host, self.port)
+
+        if not self.socket.waitForEncrypted():
+            showInfo(f"SSL Error:\n{self.socket.errorString()}")
+            return False
+        else:
+            showInfo(_("SSL encrypted connection established."))
+            
+        # Signal-Verbindungen
+        self.socket.readyRead.connect(self.read_data)
+
+    def send(self, message):
+        self.socket.write(message.encode())
+        self.socket.flush()
+
+    def read(self):
+        data = self.socket.readAll().data().decode()
+        print(f"Empfangene Daten vom Server: {data}")
+
+
+if genv.GENERATE_DOC:
     word = win32com.client.Dispatch("Word.Application")
-    doc = word.Documents.Add(USE_DOC_TEMPLATE)
-    if PAGE_FORMAT_LANDSCAPE:
+    doc = word.Documents.Add(genv.USE_DOC_TEMPLATE)
+    if genv.PAGE_FORMAT_LANDSCAPE:
         doc.PageSetup.Orientation = win32com.client.constants.wdOrientLandscape
     else:
         doc.PageSetup.Orientation = win32com.client.constants.wdOrientPortrait
@@ -1159,7 +1263,7 @@ is_recording_preformatted = 0
 # this function gets called for all tokens the parser finds
 def Pass1_OnToken(token):
     global FILENAMES, project, output, last_body, file_index, is_recording_preformatted
-    global doc_index_list, doc_index, GENERATE_DOC, current_table, DOC_PAGE_BREAKS
+    global doc_index_list, doc_index, current_table
     
     token_string = token
     token = map(string.lower,token.split())
@@ -1170,10 +1274,12 @@ def Pass1_OnToken(token):
         project.last_subject.topic = last_body
         project.last_subject.keywords[0] = last_body
         
-        if GENERATE_DOC:
+        if genv.GENERATE_DOC:
             doc.Content.InsertAfter("\n")
             doc_index += 1
-            doc.Range(doc_index_list[-1],doc_index).Style = getattr(win32com.client.constants,"wdStyleHeading%d" % project.last_subject.level)
+            doc.Range(
+            doc_index_list[-1],
+            doc_index).Style = getattr(win32com.client.constants,"wdStyleHeading%d" % project.last_subject.level)
             doc_index_list.append(doc_index)       
     
     elif token[0] == "a" and token[1][:5] == "href=":
@@ -1192,24 +1298,24 @@ def Pass1_OnToken(token):
             return
     
     # table handling BEGIN ----------------------------------
-    elif token[0] == "table" and GENERATE_DOC:
+    elif token[0] == "table" and genv.GENERATE_DOC:
         current_table = Table()
     
-    elif token[0] == "tr" and GENERATE_DOC and current_table:
+    elif token[0] == "tr" and genv.GENERATE_DOC and current_table:
         if len(current_table.rows) > 1:
             for item in current_table.rows[-1][:-1]:
                 item.style = "TABC"
         
         current_table.rows.append([])
     
-    elif token[0] == "/td" and GENERATE_DOC and current_table:
+    elif token[0] == "/td" and genv.GENERATE_DOC and current_table:
         style = "TAB"
         if len(current_table.rows) == 1:
             style = "TABHEAD"
         
         current_table.rows[-1].append(TC(last_body,style))
     
-    elif token[0] == "/table" and GENERATE_DOC and current_table:
+    elif token[0] == "/table" and genv.GENERATE_DOC and current_table:
         if len(current_table.rows) > 1:
             for item in current_table.rows[-1][:-1]:
                 item.style = "TABC"
@@ -1224,7 +1330,7 @@ def Pass1_OnToken(token):
     # preprocessor define
     elif token[0] == '/pre':
         is_recording_preformatted = 0
-        if GENERATE_DOC:
+        if genv.GENERATE_DOC:
             doc.Content.InsertAfter("\n")
             doc_index += 1
             doc.Range(doc_index_list[-1],doc_index).Style = "sourcecode"
@@ -1232,7 +1338,7 @@ def Pass1_OnToken(token):
     
     # bullet-style list entry
     elif token[0] == '/li':
-        if GENERATE_DOC:
+        if genv.GENERATE_DOC:
             doc.Content.InsertAfter("\n")
             doc_index += 1
             doc.Range(doc_index_list[-1],doc_index).Style = win32com.client.constants.wdStyleListBullet
@@ -1240,14 +1346,14 @@ def Pass1_OnToken(token):
     
     # end of paragraph
     elif token[0] == '/p':
-        if GENERATE_DOC and not current_table:
+        if genv.GENERATE_DOC and not current_table:
             doc.Content.InsertAfter("\n")
             doc_index += 1
             doc_index_list.append(doc_index)
     
     # font-style BOLD
     elif token[0] == '/b':
-        if GENERATE_DOC:
+        if genv.GENERATE_DOC:
             doc.Content.InsertAfter(" ")
             doc.Range(doc_index_list[-1],doc_index).Bold = 1
             doc_index += 1
@@ -1255,7 +1361,7 @@ def Pass1_OnToken(token):
     
     # font-style ITALIC
     elif token[0] == '/i':
-        if GENERATE_DOC:
+        if genv.GENERATE_DOC:
             doc.Content.InsertAfter(" ")
             doc.Range(doc_index_list[-1],doc_index).Italic = 1
             doc_index += 1
@@ -1269,8 +1375,8 @@ def Pass1_OnToken(token):
         x = filename.rfind('"')
         if x > 0:
             filename = filename[:x]
-        filename = os.path.join(TARGET_DIRECTORY,filename)
-        if GENERATE_DOC:
+        filename = os.path.join(genv.TARGET_DIRECTORY,filename)
+        if genv.GENERATE_DOC:
             doc.Content.InsertAfter("\n")
             print("DATEINAME=" + filename)
             picture = doc.InlineShapes.AddPicture( filename, 1, 0,Range=doc.Range(doc_index,doc_index) )
@@ -1291,14 +1397,14 @@ def Pass1_OnToken(token):
         # generate new topic      
         filename = "file%d.htm" % file_index
         
-        output = open( os.path.join(TARGET_DIRECTORY,filename), "w" )
+        output = open( os.path.join(genv.TARGET_DIRECTORY,filename), "w" )
         file_index += 1
         output.write(HTML_FILE_START)
         
         subject = HTMLHelpSubject(filename, filename)
         project.last_subject = subject
         
-        if ADD_LINKS_TO_INDEX:
+        if genv.ADD_LINKS_TO_INDEX:
             try:
                 for keyword in REVERSE_LINK_MAP[filename]:
                     subject.keywords.append(keyword[1:])
@@ -1324,7 +1430,7 @@ def Pass1_OnToken(token):
             
             project.levels[topic_level] = subject
         
-        if GENERATE_DOC and DOC_PAGE_BREAKS:
+        if genv.GENERATE_DOC and genv.DOC_PAGE_BREAKS:
             doc.Range(doc_index,doc_index).InsertBreak(win32com.client.constants.wdPageBreak)
             doc_index = doc.Range().End-1
             doc_index_list.append(doc_index)
@@ -1339,7 +1445,7 @@ def Pass1_OnBody(body):
     last_body = body
     if output:
         output.write(body)
-    if GENERATE_DOC and not current_table:
+    if genv.GENERATE_DOC and not current_table:
         if not is_recording_preformatted:
             body = body.replace("\n"," ")
         body = body.replace("&lt;","<")
@@ -1400,18 +1506,18 @@ def ParseData(onbody,ontoken):
 
 class createHTMLproject():
     def __init__(self):
-        project = HTMLHelpProject( PROJECT_NAME, DEFAULT_TOPIC )
+        project = HTMLHelpProject( genv.PROJECT_NAME, genv.DEFAULT_TOPIC )
         project.levels = {}
         project.last_subject = None
-        project.use_toplevel_project = USE_TOPLEVEL_PROJECT
+        project.use_toplevel_project = genv.USE_TOPLEVEL_PROJECT
         
-        with open(PROJECT_SOURCE,"r") as file:
+        with open(genv.PROJECT_SOURCE,"r") as file:
             data = file.read()
         
         file_index = 0
         ParseData(Pass0_OnBody,Pass0_OnToken)
         
-        if ADD_LINKS_TO_INDEX:
+        if genv.ADD_LINKS_TO_INDEX:
             for key in LINKS:
                 file = LINKS[key]
                 try:
@@ -1451,7 +1557,7 @@ class createHTMLproject():
             # -----------------------------------------
             # generate a chm project file ...
             # -----------------------------------------
-            project.Generate(TARGET_DIRECTORY)
+            project.Generate(genv.TARGET_DIRECTORY)
             
             # -----------------------------------------
             # create chm binary file ...
@@ -5634,7 +5740,7 @@ def handleExceptionApplication(func,arg1=""):
     try:
         func(arg1)
     except NoOptionError:
-        print("----")
+        print("no ption error")
         #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
         #genv.v__app__locales = os.path.join(genv.v__aoo__locales, "LC_MESSAGES")
         #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
@@ -5727,7 +5833,7 @@ class widgetTypeHelper():
 class findWidgetHelper():
     def __init__(self, parent, key, value, verify, messages):
         try:
-            for item in DoxyGenElementLayoutList:
+            for item in genv.DoxyGenElementLayoutList:
                 text = item.objectName().split(':')
                 if text[0] == key:
                     if isinstance(item, QLineEdit):
@@ -6225,7 +6331,7 @@ class myCustomScrollArea(QScrollArea):
             if elements[i][1] == self.type_edit:
                 w = self.addLineEdit(tokennum, "",lh_0)
                 w.setObjectName(tokennum + ':' + str(number))
-                DoxyGenElementLayoutList.append(w)
+                genv.DoxyGenElementLayoutList.append(w)
                 
                 if elements[i][2] == 1:
                     self.addPushButton("+",lh_0)
@@ -6466,7 +6572,7 @@ class customScrollView_1(myCustomScrollArea):
             btn_ok = msg.addButton(QMessageBox.Ok)
             result = msg.exec_()            
             return
-        if len(doxygen_project_file) < 2:
+        if len(genv.doxygen_project_file) < 2:
             msg = QMessageBox()
             msg.setWindowTitle("Error")
             msg.setText(_("no project file given."))
@@ -6478,7 +6584,7 @@ class customScrollView_1(myCustomScrollArea):
             return
         
         try:
-            genv.v__app__config.read(doxygen_project_file)
+            genv.v__app__config.read(genv.doxygen_project_file)
             if 'doxygen' in genv.v__app__config:
                 doxyfile = genv.v__app__config['doxygen']['config']
                 if not os.path.exists(doxyfile):
@@ -6995,7 +7101,7 @@ class ComboBoxDelegateBuild(QStyledItemDelegate):
 class SpinEditDelegateID(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QSpinBox(parent)
-        self.topic_counter = topic_counter
+        self.topic_counter = 1
         editor.setValue(self.topic_counter)
         self.topic_counter = self.topic_counter + 1
         return editor
@@ -15970,8 +16076,8 @@ class FileWatcherGUI(QDialog):
 # inform the user about the rules/license of this application script ...
 # ------------------------------------------------------------------------
 class licenseWindow(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super(licenseWindow, self).__init__(parent)
         
         self.returnCode = 0
         
@@ -16020,6 +16126,50 @@ def ApplicationAtExit():
     print("Thank's for using.")
     return
 
+class LoginDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Login Screen")
+        self.setGeometry(100, 100, 400, 300)
+        
+        # Hauptlayout des Dialogs
+        layout = QVBoxLayout()
+
+        # Bild (Logo oder Symbol)
+        self.logo_label = QLabel(self)
+        pixmap = QPixmap("path/to/your/image.png")  # Ersetze den Pfad durch den Pfad zu deinem Bild
+        self.logo_label.setPixmap(pixmap)
+        self.logo_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.logo_label)
+        
+        # Eingabe-ComboBox
+        self.combo_box = QComboBox()
+        self.combo_box.addItems(["Option 1", "Option 2", "Option 3"])
+        layout.addWidget(self.combo_box)
+        
+        # Weitere Eingabezeile unterhalb der ComboBox
+        self.additional_field = QLineEdit()
+        self.additional_field.setPlaceholderText("Zusätzliche Eingabe")
+        layout.addWidget(self.additional_field)
+        
+        # Eingabe für Benutzername
+        self.username_field = QLineEdit()
+        self.username_field.setPlaceholderText("Benutzername eingeben")
+        layout.addWidget(self.username_field)
+        
+        # Eingabe für Passwort
+        self.password_field = QLineEdit()
+        self.password_field.setPlaceholderText("Passwort eingeben")
+        self.password_field.setEchoMode(QLineEdit.Password)
+        layout.addWidget(self.password_field)
+        
+        # Login-Button
+        self.login_button = QPushButton("Login")
+        layout.addWidget(self.login_button)
+        
+        # Setze das Layout
+        self.setLayout(layout)
+
 # ------------------------------------------------------------------------
 # this is our "main" entry point, where the application will start.
 # ------------------------------------------------------------------------
@@ -16034,7 +16184,7 @@ def EntryPoint(arg1=None):
     error_fail    = False
     error_result  = 0
     
-    topic_counter = 1
+    genv.topic_counter = 1
     
     #if not arg1 == None:
     #    genv.v__app__scriptname__ = arg1
@@ -16170,14 +16320,17 @@ def EntryPoint(arg1=None):
     else:
         genv.hhc__path = os.environ[genv.doxy_hhc]
     
-    license_window = licenseWindow()
     # -------------------------------
     # close tje splash screen ...
     # -------------------------------
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
-        
-    license_window.exec_()
+    
+    window_license = licenseWindow()
+    window_license.exec_()
+    
+    window_login = LoginDialog()
+    window_login.exec_()
     
     # ------------------------------------------------------------------------
     # selected list of flags for translation localization display ...
