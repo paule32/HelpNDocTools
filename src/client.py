@@ -16129,46 +16129,67 @@ def ApplicationAtExit():
 class LoginDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Login Screen")
-        self.setGeometry(100, 100, 400, 300)
         
+        self.setWindowTitle("Login")
+        self.setGeometry(100, 100, 450, 400)
+        self.setStyleSheet(_("login_dialog_style"))
+
         # Hauptlayout des Dialogs
         layout = QVBoxLayout()
 
-        # Bild (Logo oder Symbol)
-        self.logo_label = QLabel(self)
-        pixmap = QPixmap("path/to/your/image.png")  # Ersetze den Pfad durch den Pfad zu deinem Bild
-        self.logo_label.setPixmap(pixmap)
-        self.logo_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.logo_label)
-        
-        # Eingabe-ComboBox
+        # Titel: Login
+        self.title_label = QLabel("Login")
+        self.title_label.setAlignment(Qt.AlignCenter)
+        self.title_label.setFont(QFont("Arial", 18, QFont.Bold))
+        self.title_label.setStyleSheet("color: #ffffff;")
+        self.title_label.setMaximumHeight(100)
+        layout.addWidget(self.title_label)
+
+        # ComboBox zur Auswahl
         self.combo_box = QComboBox()
         self.combo_box.addItems(["Option 1", "Option 2", "Option 3"])
+        self.combo_box.setStyleSheet(_("login_dialog_combobox"))
+        
         layout.addWidget(self.combo_box)
-        
-        # Weitere Eingabezeile unterhalb der ComboBox
+
+        # Eingabefeld unter der ComboBox
         self.additional_field = QLineEdit()
-        self.additional_field.setPlaceholderText("Zusätzliche Eingabe")
-        layout.addWidget(self.additional_field)
+        self.additional_field.setPlaceholderText(_("type in server"))
+        self.additional_field.setStyleSheet(_("login_dialog_edit1"))
+        self.additional_field.mouseDoubleClickEvent = self.open_additional_dialog
         
+        layout.addWidget(self.additional_field)
+
         # Eingabe für Benutzername
         self.username_field = QLineEdit()
-        self.username_field.setPlaceholderText("Benutzername eingeben")
-        layout.addWidget(self.username_field)
+        self.username_field.setPlaceholderText(_("type in username"))
+        self.username_field.setStyleSheet(_("login_dialog_edit2"))
         
+        layout.addWidget(self.username_field)
+
         # Eingabe für Passwort
         self.password_field = QLineEdit()
-        self.password_field.setPlaceholderText("Passwort eingeben")
+        self.password_field.setPlaceholderText(_("type in password"))
         self.password_field.setEchoMode(QLineEdit.Password)
+        self.password_field.setStyleSheet(_("login_dialog_pass"))
+        
         layout.addWidget(self.password_field)
-        
+
         # Login-Button
-        self.login_button = QPushButton("Login")
-        layout.addWidget(self.login_button)
+        self.login_button = QPushButton(_("Login into the System"))
+        self.login_button.setStyleSheet(_("login_dialog_push"))
         
+        self.login_button.setCursor(Qt.PointingHandCursor)
+        layout.addWidget(self.login_button)
+
         # Setze das Layout
         self.setLayout(layout)
+
+    def open_additional_dialog(self, event):
+        additional_dialog = QDialog(self)
+        additional_dialog.setWindowTitle("Zusätzlicher Dialog")
+        additional_dialog.setGeometry(150, 150, 300, 200)
+        additional_dialog.exec_()
 
 # ------------------------------------------------------------------------
 # this is our "main" entry point, where the application will start.
