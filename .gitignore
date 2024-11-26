@@ -155,3 +155,9 @@ src/tools.pro/__pycache__/zipfiles.cpython-313.pyc
 src/tools.pro/flags/__pycache__/downresize.cpython-313.pyc
 src/locales/en_us/LC_MESSAGES/observer.mo.gz
 src/locales/de_de/LC_MESSAGES/observer.mo.gz
+src/build_loc.bat.bak
+src/_internal/locales/en_us/LC_HELP/help.po.bak
+src/_internal/locales/de_de/LC_HELP/help.po.bak
+src/locales/de_de/LC_HELP/help.po.bak
+src/locales/en_us/LC_HELP/help.po.bak
+src/locales/en_us/LC_MESSAGES/1

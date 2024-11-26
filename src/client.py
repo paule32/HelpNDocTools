@@ -271,7 +271,10 @@ class globalEnv:
         self.v__app__modul__      = os.path.join(self.v__app__app_dir__, "")
         
         self.v__app__name         = "observer"
+        self.v__app__help         = "help"
+        
         self.v__app__name_mo      = self.v__app__name + ".mo"
+        self.v__app__help_mo      = self.v__app__help + ".mo"
         
         self.v__app__cdn_host     = "http://localhost/cdn"
         self.v__app__internal__   = os.path.join(self.v__app__modul__, "_internal")
@@ -503,7 +506,10 @@ class globalEnv:
         self.v__app_object        = None
         self.v__app_win           = None
         #
-        self.v__app__locales      = ""
+        self.v__app__locales           = ""
+        self.v__app__locales_messages  = ""
+        self.v__app__locales_help      = ""
+        
         self.v__app__img_ext__    = ".png"
         self.v__app__font         = "Arial"
         self.v__app__font_edit    = "Consolas"
@@ -697,8 +703,26 @@ def handle_language(lang):
         #file_path = os.path.join(file_path, "LC_MESSAGES")
         #file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
         #
-        _ = read_gzfile_to_memory(genv.v__app__locales)
+        _ = read_gzfile_to_memory(genv.v__app__locales_messages)
         return _
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+        tb = traceback.extract_tb(e.__traceback__)[-1]
+        
+        print(f"Exception occur during handle language:")
+        print(f"type : {exc_type.__name__}")
+        print(f"value: {exc_value}")
+        print(("-" * 40))
+        #
+        print(f"file : {tb.filename}")
+        print(f"llline : {tb.lineno}")
+        #
+        sys.exit(genv.EXIT_FAILURE)
+ 
+def handle_help(lang):
+    try:
+        _h = read_gzfile_to_memory(genv.v__app__locales_help)
+        return _h
     except Exception as e:
         exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
         tb = traceback.extract_tb(e.__traceback__)[-1]
@@ -801,14 +825,20 @@ try:
     print(genv.v__app__config["common"]["language"])
     genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
     genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
-    genv.v__app__locales = os.path.join(genv.v__app__locales, "LC_MESSAGES")
-    genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo + ".gz")
+    
+    genv.v__app__locales_messages = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+    genv.v__app__locales_help     = os.path.join(genv.v__app__locales, "LC_HELP")
+    
+    genv.v__app__locales_messages = os.path.join(genv.v__app__locales_messages, genv.v__app__name_mo + ".gz")
+    genv.v__app__locales_help     = os.path.join(genv.v__app__locales_help    , genv.v__app__help_mo + ".gz")
     #
     if len(genv.v__app__locales) < 5:
         print("Error: locale out of seed.")
         print("abort.")
         sys.exit(1)
-    _ = handle_language(ini_lang)
+        
+    _  = handle_language(ini_lang)
+    _h = handle_help    (ini_lang)
     
     # ------------------------------------------------------------------------
     # determine on which operating the application script runs ...
@@ -16182,16 +16212,19 @@ class HelpWindow(QMainWindow):
         navigation_widget.setLayout(navigation_layout)
         
         hlayout = QHBoxLayout()
-        topic_list = QListWidget()
-        topic_list.setStyleSheet("""
-        background-color: white;
-        width: 100px;
-        """)
         
         # WebView Widget zum Anzeigen der CHM-Datei
-        self.browser  = QWebEngineView()
+        self.browser = QWebEngineView()
+        self.topics  = QWebEngineView()
         
-        hlayout.addWidget(topic_list)
+        self.topics.setMinimumWidth(180)
+        self.topics.setMaximumWidth(180)
+        
+        self.topics.setStyleSheet("""
+        background-color: white;
+        """)
+        
+        hlayout.addWidget(self.topics)
         hlayout.addWidget(self.browser)
         
         navigation_container.addWidget(navigation_widget)
@@ -16200,30 +16233,15 @@ class HelpWindow(QMainWindow):
         layout.addLayout(navigation_container)
         
         
-        dir_file_path = os.path.dirname(os.path.abspath(__file__))
-        chm_file_path = os.path.join("./_internal/help/help.chm")
+        # table of contents - TOC
+        html_content = _h("TOC")
+        self.topics.setHtml(html_content)
         
-        chm_file_url  = f"file:///{chm_file_path}"
+        # topic content
+        html_content = _h("home")
+        self.browser.setHtml(html_content)
         
-        if not os.path.exists(chm_file_path):
-            if not parent == None:
-                genv.window_login.hide()
-                QMessageBox.critical(self,
-                _("Error"),
-                _("Error:\nThe helpfile could not be found."))
-                self.deleteLater()
-                return None
-        
-        if not QUrl(chm_file_url).isValid():
-            if not parent == None:
-                genv.window_login.hide()
-                QMessageBox.critical(self,
-                _("Error"),
-                _("Error:\nThe helpfile could not be found."))
-                self.deleteLater()
-                return None
-        
-        self.browser.setUrl(QUrl(chm_file_url))
+        #self.browser.setUrl(QUrl(chm_file_url))
         #layout.addWidget(self.browser)
         
         # Schließen-Button

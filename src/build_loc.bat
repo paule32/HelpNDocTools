@@ -22,11 +22,11 @@ echo create directories...
 mkdir __pycache__\_internal\locales\de_de\LC_MESSAGES
 mkdir __pycache__\_internal\locales\en_us\LC_MESSAGES
 
+mkdir __pycache__\_internal\locales\de_de\LC_HELP
+mkdir __pycache__\_internal\locales\en_us\LC_HELP
+
 set BASEDIR=%cd%
 
-::set PYTHONPATH=
-::%PY%\Lib;%PY%\Lib\site-packagesss
-::set PYTHONHOME=
 set SRC=%BASEDIR%/src
 set VPA=%BASEDIR%/venv
 
@@ -41,3 +41,16 @@ rm -rf observer.mo.gz
 msgfmt -o observer.mo observer.po
 gzip -9 observer.mo
 copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_MESSAGES
+:: ----------------------------------
+
+cd %BASEDIR%\locales\de_de\LC_HELP
+rm -rf help.mo.gz
+msgfmt -o help.mo help.po
+gzip -9 help.mo
+copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_HELP
+
+cd %BASEDIR%\locales\en_us\LC_HELP
+rm -rf help.mo.gz
+msgfmt -o help.mo help.po
+gzip -9 help.mo
+copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP

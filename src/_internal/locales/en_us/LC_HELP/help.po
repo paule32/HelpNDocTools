@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------------------
+# File:   help.po - localization translated stuff
+# Author: Jens Kallup - paule32
+#
+# Rights: (c) 2024 by kallup non-profit software
+#         all rights reserved
+#
+# only for education, and for non-profit usage !!!
+# commercial use ist not allowed.
+# ---------------------------------------------------------------------------
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0.0\n"
+"POT-Creation-Date: 2024-04-06 20:33+0100\n"
+"PO-Revision-Date: 2024-04-06 20:15+0100\n"
+"Last-Translator: Jens Kallup <paule32@gmail.com>\n"
+"Language-Team: English <paule32@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=cp1252\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# ---------------------------------------------------------------------------
+# the license of the application ...
+# ---------------------------------------------------------------------------
+msgid "home"
+msgstr ""
+    "<html>"
+    "<head>"
+    "<title>Beispielseite</title>"
+    "</head>"
+    "<body>"
+    "<h1>Hello, World!</h1>"
+    "<p>Dies ist ein HTML-String, der in QWebView angezeigt wird.</p>"
+    "</body>"
+    "</html>"
