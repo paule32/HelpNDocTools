@@ -68,13 +68,14 @@ jobs:
             pip install --upgrade pyinstaller
           }
           Write-Output "Create ByteCode ..."
-          python3 -m compileall observer.py
+          python3 -m compileall client.py
+          python3 -m compileall server.py
           Write-Output "Create Application ..."
           $pyInstallerArgs = "pyInstaller --noconfirm --onefile --console      " +
           "--icon         $env:MY_WORK_DIR\src\_internal\img\floppy-disk.ico " +
           "--splash       $env:MY_WORK_DIR\src\_internal\img\splash.png      " +
           "--version-file $env:MY_WORK_DIR\src\version.info        " +
-          "               $env:MY_WORK_DIR\src\observer.py"
+          "               $env:MY_WORK_DIR\src\client.py"
           $pyInstallerArgs
           dir
       # ------------------------------------------------------
@@ -138,10 +139,11 @@ jobs:
             exit 1
           fi
           echo "Create ByteCode ..."
-          python3 -m compileall observer.py
+          python3 -m compileall client.py
+          python3 -m compileall server.py
           echo "Create Application ..."
           pyinstaller --noconfirm --onefile --console     \
           --icon     $MY_WORK_DIR/src/_internal/img/floppy-disk.ico \
           --splash   $MY_WORK_DIR/src/_internal/img/splash.png      \
           --version-file $MY_WORK_DIR/src/version.info    \
-          $MY_WORK_DIR/src/observer.py
+          $MY_WORK_DIR/src/client.py
