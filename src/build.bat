@@ -133,30 +133,8 @@ rm -rf dist
 ::pip install pyinstaller
 ::pip install --upgrade pyinstaller
 
-echo create directories...
-
-:: ---------------------------------------------------------------------------
-:: for default, the neccassary localization directories, and file are already
-:: exists. But I add a "mkdir" command, and return value check for future use
-:: new languages can be add into the for range block.
-:: ---------------------------------------------------------------------------
-:: en => English
-:: de => German
-:: ---------------------------------------------------------------------------
-mkdir __pycache__\_internal\locales\de_de\LC_MESSAGES
-mkdir __pycache__\_internal\locales\en_us\LC_MESSAGES
-
-cd %BASEDIR%\locales\de_de\LC_MESSAGES
-rm -rf observer.mo.gz
-msgfmt -o observer.mo observer.po
-gzip -9 observer.mo
-copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_MESSAGES
-
-cd %BASEDIR%\locales\en_us\LC_MESSAGES
-rm -rf observer.mo.gz
-msgfmt -o observer.mo observer.po
-gzip -9 observer.mo
-copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_MESSAGES
+cd %BASEDIR%
+build_loc.bat
 
 :: ---------------------------------------------------------------------------
 :: Python can produce byte-code, and executable files to speed up the loading
@@ -182,9 +160,9 @@ echo Create Byte-Code...
 ::    echo fail collection batch
 ::    goto error_bytecode ) else ( echo collection.py exec ok )
 ::cd ..
-python -m compileall %BASEDIR%\&SRVAPP&
+python -m compileall %BASEDIR%\%SRVAPP%
 if errorlevel 1 ( goto error_bytecode )
-python -m compileall %BASEDIR%\&CLTAPP&
+python -m compileall %BASEDIR%\%CLTAPP%
 if errorlevel 1 ( goto error_bytecode )
 exit
 echo installer...

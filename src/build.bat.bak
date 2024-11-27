@@ -182,7 +182,9 @@ echo Create Byte-Code...
 ::    echo fail collection batch
 ::    goto error_bytecode ) else ( echo collection.py exec ok )
 ::cd ..
-python -m compileall %BASEDIR%\observer.py
+python -m compileall %BASEDIR%\&SRVAPP&
+if errorlevel 1 ( goto error_bytecode )
+python -m compileall %BASEDIR%\&CLTAPP&
 if errorlevel 1 ( goto error_bytecode )
 exit
 echo installer...

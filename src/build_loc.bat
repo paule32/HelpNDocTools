@@ -54,3 +54,10 @@ rm -rf help.mo.gz
 msgfmt -o help.mo help.po
 gzip -9 help.mo
 copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP
+:: ----------------------------------
+
+cd %BASEDIR%
+python -m compileall TObject.py
+python -m compileall TStream.py
+python -m compileall TMemory.py
+python -m compileall TException.py

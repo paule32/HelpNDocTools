@@ -522,6 +522,7 @@ class globalEnv:
         self.v__app__scriptname__ = "./examples/dbase/example1.prg"
         self.v__app__favorites    = self.v__app__internal__ + "/favorites.ini"
         
+        self.saved_style = ""
         self.window_login = None
         self.client = None
         
@@ -16160,14 +16161,30 @@ def ApplicationAtExit():
     print("Thank's for using.")
     return
 
+class CustomWebEnginePage(QWebEnginePage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent_view = None
+
+    def set_parent_view(self, parent_view):
+        self.parent_view = parent_view
+
+    def acceptNavigationRequest(self, url, _type, isMainFrame):
+        if _type == QWebEnginePage.NavigationTypeLinkClicked:
+            if self.parent_view:
+                # Link-Klick abfangen und an die zweite WebView weitergeben
+                self.parent_view.setUrl(url)
+                return False
+        return super().acceptNavigationRequest(url, _type, isMainFrame)
+
 # ------------------------------------------------------------------------
 # chm help window ...
 # ------------------------------------------------------------------------
 class HelpWindow(QMainWindow):
     def __init__(self, parent=None):
-        if not genv.window_login == None:
-            self.saved_style = genv.window_login.styleSheet()
-            genv.window_login.setStyleSheet("")
+        #if not genv.window_login == None:
+        genv.saved_style = genv.window_login.styleSheet()
+        genv.window_login.setStyleSheet("")
         
         super(HelpWindow, self).__init__(parent)
         
@@ -16223,6 +16240,16 @@ class HelpWindow(QMainWindow):
         self.topics.setStyleSheet("""
         background-color: white;
         """)
+
+        page = CustomWebEnginePage(self.topics)
+        page.set_parent_view(self.browser)
+        self.topics.setPage(page)
+        
+        
+        # table of contents - TOC
+        html_content = _h("TOC")
+        self.topics.setHtml(html_content)
+        
         
         hlayout.addWidget(self.topics)
         hlayout.addWidget(self.browser)
@@ -16232,10 +16259,6 @@ class HelpWindow(QMainWindow):
         
         layout.addLayout(navigation_container)
         
-        
-        # table of contents - TOC
-        html_content = _h("TOC")
-        self.topics.setHtml(html_content)
         
         # topic content
         html_content = _h("home")
@@ -16281,8 +16304,8 @@ class HelpWindow(QMainWindow):
         button_widget.setLayout(button_layout)
         layout.addWidget(button_widget)
         
-        if not genv.window_login == None:
-            genv.window_login.setStyleSheet(self.saved_style)
+        #if not genv.window_login == None:
+        genv.window_login.setStyleSheet(genv.saved_style)
         
         container = QWidget()
         container.setLayout(layout)
@@ -16295,7 +16318,7 @@ class HelpWindow(QMainWindow):
     
     def closeEvent(self, event):
         if not genv.window_login == None:
-            genv.window_login.setStyleSheet(self.saved_style)
+            genv.window_login.setStyleSheet(genv.saved_style)
         if not self.browser == None:
             self.browser.deleteLater()
         event.accept()
