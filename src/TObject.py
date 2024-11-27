@@ -57,22 +57,35 @@ class TObject:
         else:
             self.ParentHashCode = parent.GetHashCode()
         
+        # ----------------------------------------------------------------
+        # append object informations ...
+        # ----------------------------------------------------------------
         ClassObjects.append({
         "class": {
             "parent": {
                 "name": parent.__class__.__name__,
                 "addr": parent,
-                "hash": self.ParentHashCode
+                "hash": self.ParentHashCode,
                 },
             "owner": {
                 "name": self.__class__.__name__,
                 "addr": self,
-                "hash": self.GetHashCode()
+                "hash": self.GetHashCode(),
+                "date": datetime.now()
                 }
         }   }   )
         
         print("")
         print(ClassObjects)
+        print("\n")
+        idx = 0
+        while True:
+            if idx == len(ClassObjects):
+                break
+            #print("---> "  + ClassObjects[idx]["class"]["parent"]["hash"])
+            print("---> "  + ClassObjects[idx]["class"]["owner" ]["hash"])
+            idx += 1
+        
         pass
     
     # --------------------------------------------------------------------
