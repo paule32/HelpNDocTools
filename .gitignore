@@ -176,3 +176,7 @@ src/build.bat.bak
 src/memory.py.bak
 src/TList.py.bak
 src/TApplication.py.bak
+src/TStatusBar.py.bak
+src/z1.py.bak
+src/TMenuBar.py.bak
+src/TMainWindow.py.bak

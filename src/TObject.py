@@ -5,9 +5,11 @@
 # ---------------------------------------------------------------------------
 import sys
 import os
+import gc
 
 import hashlib
-from   datetime import datetime
+
+from datetime import datetime
 
 # ---------------------------------------------------------------------------
 # \brief ClassObjects holds the TObject classes. TObject is the base of all
@@ -17,8 +19,8 @@ from   datetime import datetime
 # \note  do not use this varuable directly - it is used for internal things.
 # \since version 0.0.1
 # ---------------------------------------------------------------------------
-ClassObjects   = []
-ClassObjetcsID = ""
+global ClassObjects
+ClassObjects = []
 
 # ---------------------------------------------------------------------------
 # \brief TObject is the base class of all classes that used this framework.
@@ -52,33 +54,16 @@ class TObject:
         .sha256(self.hashstring.encode()) \
         .hexdigest()
         
-        if parent == None:
-            self.parentHashCode = self.hashString
-            self.parentNode = None
-        else:
-            self.parentHashCode = parent.GetHashCode()
-            self.parentNode = { "parent": {
+        self.parentNode = {
+            "class": {
                 "parent": None,
                 "name": self.__class__.__name__,
                 "addr": self,
-                "hash": self.GetHashCode(),
+                "hash": self.hashString,
                 "date": datetime.now()
-                }
+            }
         }
-        
-        # ----------------------------------------------------------------
-        # append object informations ...
-        # ----------------------------------------------------------------
-        ClassObjects.append({
-        "class": {
-            "parent": {
-                "parent": parent_node,
-                "name": self.__class__.__name__,
-                "addr": self,
-                "hash": self.GetHashCode(),
-                "date": datetime.now()
-                }
-        }   }   )
+        self.Add()
     
     # --------------------------------------------------------------------
     # dtor of class TObject
@@ -87,36 +72,64 @@ class TObject:
         pass
     
     # --------------------------------------------------------------------
+    # internal function: for add object informations to ClassObjects.
+    # --------------------------------------------------------------------
+    def Add(self):
+        # ----------------------------------------------------------------
+        # create a new child
+        # ----------------------------------------------------------------
+        child_node = {
+            "class": {
+                "parent": self.parentNode,
+                "name": self.__class__.__name__,
+                "addr": self,
+                "obj_name": type(self).__name__,
+                "hash": self.hashString,
+                "date": datetime.now()
+            }
+        }
+        # ----------------------------------------------------------------
+        # append object informations ...
+        # ----------------------------------------------------------------
+        self.parentNode = child_node
+        ClassObjects.append(child_node)
+    
+    def test(self):
+        print(ClassObjects[0]["class"]["hash"])
+        print(ClassObjects[1]["class"]["hash"])
+    
+    # --------------------------------------------------------------------
     # check for None and call destructor
     # --------------------------------------------------------------------
     def Free(self):
-        idx = 0
-        while True:
-            if idx == len(ClassObjects):
-                break
-            if ClassObjects[idx]["class"]["owner"]["hash"] == self.hashstring:
-                ClassObjects.pop(ClassObjects[idx]["class"]["owner"])
-            idx += 1
-        pass
+        current_node = ClassObjects[-1]
+        while current_node is not None:
+            try:
+                addr = current_node["class"]["addr"]
+                if addr is not None:
+                    del addr
+                
+                current_node["class"]["addr"] = None
+                parent_node = current_node["class"]["parent"]
+                
+                del current_node
+                current_node = parent_node
+                
+                if current_node is None:
+                    break
+                
+            except Exception as err:
+                print("error during element del.")
+        
+        # force garbage collector to remove allocated memory space
+        gc.collect()
+        self.Destroy()
     
     # --------------------------------------------------------------------
     # return a hash code for the object
     # --------------------------------------------------------------------
     def GetHashCode(self):
-        return self.hashString
-    
-    # --------------------------------------------------------------------
-    # internal function: for add object informations to self.Objects.
-    # --------------------------------------------------------------------
-    def AddInternalObject(self, AItem):
-        self.Objects.append(AItem)
-        pass
-    # --------------------------------------------------------------------
-    # internal function: for add object informations to self.Objects.
-    # --------------------------------------------------------------------
-    def DelInternalObject(self, AItem):
-        #self.Objects.append(AItem)
-        pass
+        return self.hashstring
     
     # --------------------------------------------------------------------
     # Equals returns True if the object instance pointer (Self) equals
@@ -140,7 +153,24 @@ class TObject:
     
     def ToString(self):
         return str(self.ClassName)
+    
+    # --------------------------------------------------------------------
+    # we re-assign the constructor and destructor for Turbo-Pascal feeling
+    # --------------------------------------------------------------------
+    __init__ = Create       # constructor - ctor
+    __del__  = Destroy      # destructor  - dtor
 
+# ---------------------------------------------------------------------------
+# \brief A wrapper class to TObject.
+# ---------------------------------------------------------------------------
+class TClass(TObject):
+    def Create(self, parent=None):
+        super().Create(parent)
+    
+    def Destroy(self):
+        if hasattr(super(), 'Destroy'):
+            super().Destroy()
+    
     # --------------------------------------------------------------------
     # we re-assign the constructor and destructor for Turbo-Pascal feeling
     # --------------------------------------------------------------------
