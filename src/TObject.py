@@ -53,9 +53,18 @@ class TObject:
         .hexdigest()
         
         if parent == None:
-            self.ParentHashCode = self.hashString
+            self.parentHashCode = self.hashString
+            self.parentNode = None
         else:
-            self.ParentHashCode = parent.GetHashCode()
+            self.parentHashCode = parent.GetHashCode()
+            self.parentNode = { "parent": {
+                "parent": None,
+                "name": self.__class__.__name__,
+                "addr": self,
+                "hash": self.GetHashCode(),
+                "date": datetime.now()
+                }
+        }
         
         # ----------------------------------------------------------------
         # append object informations ...
@@ -63,30 +72,13 @@ class TObject:
         ClassObjects.append({
         "class": {
             "parent": {
-                "name": parent.__class__.__name__,
-                "addr": parent,
-                "hash": self.ParentHashCode,
-                },
-            "owner": {
+                "parent": parent_node,
                 "name": self.__class__.__name__,
                 "addr": self,
                 "hash": self.GetHashCode(),
                 "date": datetime.now()
                 }
         }   }   )
-        
-        print("")
-        print(ClassObjects)
-        print("\n")
-        idx = 0
-        while True:
-            if idx == len(ClassObjects):
-                break
-            #print("---> "  + ClassObjects[idx]["class"]["parent"]["hash"])
-            print("---> "  + ClassObjects[idx]["class"]["owner" ]["hash"])
-            idx += 1
-        
-        pass
     
     # --------------------------------------------------------------------
     # dtor of class TObject
@@ -98,6 +90,13 @@ class TObject:
     # check for None and call destructor
     # --------------------------------------------------------------------
     def Free(self):
+        idx = 0
+        while True:
+            if idx == len(ClassObjects):
+                break
+            if ClassObjects[idx]["class"]["owner"]["hash"] == self.hashstring:
+                ClassObjects.pop(ClassObjects[idx]["class"]["owner"])
+            idx += 1
         pass
     
     # --------------------------------------------------------------------
