@@ -322,6 +322,7 @@ class globalEnv:
         self.v__app__helpdev__  = im_path + "help"
         self.v__app__pythonc__  = im_path + "python"
         self.v__app__lispmod__  = im_path + "lisp"
+        self.v__app__prologm__  = im_path + "prolog"
         self.v__app__ccpplus__  = im_path + "cpp"
         self.v__app__cpp1dev__  = im_path + "c"
         self.v__app__dbasedb__  = im_path + "dbase"
@@ -929,6 +930,470 @@ except Exception as e:
         print(f"file : {tb.filename}")
         print(f"line : {tb.lineno}")
         sys.exit(1)
+
+# ---------------------------------------------------------------------------
+# \brief ClassObjects holds the TObject classes. TObject is the base of all
+#        classes that used this framework. The array will be delete its
+#        objects with the destructor definition __del__.
+#
+# \note  do not use this varuable directly - it is used for internal things.
+# \since version 0.0.1
+# ---------------------------------------------------------------------------
+global ClassObjects
+ClassObjects = []
+
+# ---------------------------------------------------------------------------
+# \brief TObject is the base class of all classes that used this framework.
+#        You can use "Create" for __init__ and "Destroy" for __del__.
+#        For each TObject, we use/save a hash string to unufy the object.
+#        This makes it possible to search for objects.
+#
+# \since version 0.0.1
+# ---------------------------------------------------------------------------
+class TObject:
+    # --------------------------------------------------------------------
+    # constructor of class TObject
+    # --------------------------------------------------------------------
+    def Create(self, parent=None):
+        # ----------------------------------------------------------------
+        # ClassName returns the class name for the current class.
+        # ----------------------------------------------------------------
+        self.ClassName = str(__class__.__name__)
+        
+        # ----------------------------------------------------------------
+        # to get the hash, we get the class name and the current date and
+        # time will be add at end of string. But this is not enough so we
+        # add a reference counter at finally string end.
+        # the counter is simple the length of the ClassObjects container.
+        # ----------------------------------------------------------------
+        self.hashstring  = self.__class__.__name__
+        self.hashstring += datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.hashstring += str(len(ClassObjects) + 1)
+        
+        self.hashString  = hashlib        \
+        .sha256(self.hashstring.encode()) \
+        .hexdigest()
+        
+        self.parentNode = {
+            "class": {
+                "parent": None,
+                "name": self.__class__.__name__,
+                "addr": self,
+                "hash": self.hashString,
+                "date": datetime.now()
+            }
+        }
+        self.Add()
+    
+    # --------------------------------------------------------------------
+    # dtor of class TObject
+    # --------------------------------------------------------------------
+    def Destroy(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # internal function: for add object informations to ClassObjects.
+    # --------------------------------------------------------------------
+    def Add(self):
+        # ----------------------------------------------------------------
+        # create a new child
+        # ----------------------------------------------------------------
+        child_node = {
+            "class": {
+                "parent": self.parentNode,
+                "name": self.__class__.__name__,
+                "addr": self,
+                "obj_name": type(self).__name__,
+                "hash": self.hashString,
+                "date": datetime.now()
+            }
+        }
+        # ----------------------------------------------------------------
+        # append object informations ...
+        # ----------------------------------------------------------------
+        self.parentNode = child_node
+        ClassObjects.append(child_node)
+    
+    def test(self):
+        print(ClassObjects[0]["class"]["hash"])
+        print(ClassObjects[1]["class"]["hash"])
+    
+    # --------------------------------------------------------------------
+    # check for None and call destructor
+    # --------------------------------------------------------------------
+    def Free(self):
+        current_node = ClassObjects[-1]
+        while current_node is not None:
+            try:
+                addr = current_node["class"]["addr"]
+                if addr is not None:
+                    del addr
+                
+                current_node["class"]["addr"] = None
+                parent_node = current_node["class"]["parent"]
+                
+                del current_node
+                current_node = parent_node
+                
+                if current_node is None:
+                    break
+                
+            except Exception as err:
+                print("error during element del.")
+        
+        # force garbage collector to remove allocated memory space
+        gc.collect()
+        self.Destroy()
+    
+    # --------------------------------------------------------------------
+    # return a hash code for the object
+    # --------------------------------------------------------------------
+    def GetHashCode(self):
+        return self.hashstring
+    
+    # --------------------------------------------------------------------
+    # Equals returns True if the object instance pointer (Self) equals
+    # the instance pointer Obj.
+    # --------------------------------------------------------------------
+    def Equals(self, AObject):
+        if AObject == self:
+            return True
+        else:
+            return False
+    
+    # --------------------------------------------------------------------
+    # ClassNameIs checks whether Name equals the class name. It takes of
+    # case sensitivity.
+    # --------------------------------------------------------------------
+    def ClassNameIs(self, name):
+        if self.ClassName == name:
+            return True
+        else:
+            return False
+    
+    def ToString(self):
+        return str(self.ClassName)
+    
+    # --------------------------------------------------------------------
+    # we re-assign the constructor and destructor for Turbo-Pascal feeling
+    # --------------------------------------------------------------------
+    __init__ = Create       # constructor - ctor
+    __del__  = Destroy      # destructor  - dtor
+
+# ---------------------------------------------------------------------------
+# \brief A wrapper class to TObject.
+# ---------------------------------------------------------------------------
+class TClass(TObject):
+    def Create(self, parent=None):
+        super().Create(parent)
+    
+    def Destroy(self):
+        if hasattr(super(), 'Destroy'):
+            super().Destroy()
+    
+    # --------------------------------------------------------------------
+    # we re-assign the constructor and destructor for Turbo-Pascal feeling
+    # --------------------------------------------------------------------
+    __init__ = Create       # constructor - ctor
+    __del__  = Destroy      # destructor  - dtor
+
+class TStream(TObject):
+    # --------------------------------------------------------------------
+    # ctor for the class TStream
+    # --------------------------------------------------------------------
+    def __init__(self):
+        self.Position = 0       # the current position in the stream
+        self.Size     = 0       # the current size of the stream
+    
+    # --------------------------------------------------------------------
+    # reads data from the stream and returns the number of bytes written
+    # --------------------------------------------------------------------
+    def Read(self):
+        pass
+    def Seek(self):             # 
+        pass
+    
+    # --------------------------------------------------------------------
+    # writes data from a buffer to the stream
+    # --------------------------------------------------------------------
+    def Write(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # read a byte from the stream and retzrn its value
+    # --------------------------------------------------------------------
+    def ReadByte(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # read a word from the stream and return its value
+    # --------------------------------------------------------------------
+    def ReadWord(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # read a double word from the stream and return its value
+    # --------------------------------------------------------------------
+    def ReadDWord(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # read a quad word from the stream and return its value
+    # --------------------------------------------------------------------
+    def ReadQWord(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # write a byte to the stream
+    # --------------------------------------------------------------------
+    def WriteByte(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # write a word to the stream
+    # --------------------------------------------------------------------
+    def WriteWord(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # write a double word to the stream
+    # --------------------------------------------------------------------
+    def WriteDWord(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # write a quad word to the stream
+    # --------------------------------------------------------------------
+    def WriteQWord(self):
+        pass
+
+# ------------------------------------------------------------------------
+# read a file into memory ...
+# ------------------------------------------------------------------------
+class TCustomMemoryStream(TStream):
+    # --------------------------------------------------------------------
+    # ctor for the class TCustomMemoryStream
+    # --------------------------------------------------------------------
+    def __init__(self):
+        self.Memory = None
+    
+    # --------------------------------------------------------------------
+    # read count byres from the stream into buffer
+    # --------------------------------------------------------------------
+    def Read(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # sets a new position in the stream
+    # --------------------------------------------------------------------
+    def Seek(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # writes contents of the memory stream to another stream
+    # --------------------------------------------------------------------
+    def SaveToStream(self, Stream=None):
+        if Stream == None:
+            raise E_Error(_("stream could not save."))
+    
+    # --------------------------------------------------------------------
+    # writes contents of the stream to a file.
+    # --------------------------------------------------------------------
+    def SaveToFile(self, FileNamee="temp.tmp"):
+        pass
+
+class TList(TObject):
+    # --------------------------------------------------------------------
+    # ctor for class TList
+    # --------------------------------------------------------------------
+    def __init__(self):
+        super(TList, self).__init__()
+        self.Count = 0
+        self.Items = []
+        self.List  = 0
+    
+    # --------------------------------------------------------------------
+    # dtor for class TList
+    # --------------------------------------------------------------------
+    def __del__(self):
+        super(TList, self).__del__()
+    
+    # --------------------------------------------------------------------
+    # Adds a new pointer to the list.
+    # --------------------------------------------------------------------
+    def Add(self, AItem):
+        try:
+            if isinstance(AItem, str):
+                print("item is string")
+                return True
+            elif isinstance(AItem, int):
+                print("item is integer")
+                return True
+            elif isinstance(AItem, float):
+                print("item is float")
+                return True
+            elif isinstance(AItme, None):
+                raise TypeError("None is not allowed there.")
+                return False
+            else:
+                raise TypeError("item kind unknown")
+                return False
+        except TypeError as err:
+            raise TypeError(err)
+    
+    # --------------------------------------------------------------------
+    # --------------------------------------------------------------------
+    def Clear(self):
+        pass
+    # --------------------------------------------------------------------
+    # --------------------------------------------------------------------
+    def Delete(self):
+        pass
+    # --------------------------------------------------------------------
+    # --------------------------------------------------------------------
+    def Remove(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # --------------------------------------------------------------------
+    def Pack(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # --------------------------------------------------------------------
+    def First(self):
+        pass
+    
+    # --------------------------------------------------------------------
+    # --------------------------------------------------------------------
+    def Last(self):
+        pass
+
+class TMenuBar(TObject):
+    def Create(self, parent=None):
+        super(TMenuBar, self).Create(parent)
+        
+        if not parent == None:
+            if not isinstance(parent, TApplication.TApplication):
+                QMessageBox.information(self,
+                "Information",
+                "parent must be TApplication")
+                return
+        else:
+            QMessageBox.information(self,
+            "Information",
+            "parent must be given")
+            return
+        
+        self.parent      = parent
+        self.menu_bar    = parent.dialog.mainwindow.menuBar()
+        
+        self.file_menu   = self.menu_bar.addMenu("File")
+        self.exit_action = QAction("Exit", parent.dialog.mainwindow)
+        self.file_menu.addAction(self.exit_action)
+    
+    def show(self):
+        self.menu_bar.show()
+    
+    def hide(self):
+        self.menu_bar.hide()
+    
+    def Destroy(self):
+        super().Destroy()
+    
+    # --------------------------------------------------------------------
+    # we re-assign the constructor and destructor for Turbo-Pascal feeling
+    # --------------------------------------------------------------------
+    __init__ = Create       # constructor - ctor
+    __del__  = Destroy      # destructor  - dtor
+
+class TApplication(TObject):
+    # --------------------------------------------------------------------
+    # ctor for class TApplication
+    # --------------------------------------------------------------------
+    def Create(self, parent=None):
+        super(TApplication, self).__init__(parent)
+        #
+        self.ParamCount = len(sys.argv)
+        self.Params     = sys.argv
+        self.app        = QApplication(sys.argv)
+        self.dialog     = TMainWindow()
+        #
+        self.ExeName         = self.ParamStr(0)
+        self.ApplicationName = "Python Application"
+        #
+        self.bar_menu   = TMenuBar.TMenuBar(self)
+        self.bar_status = TStatusBar.TStatusBar(self)
+        
+    # --------------------------------------------------------------------
+    # this definition member returns the n'th program argument parameter
+    # --------------------------------------------------------------------
+    def ParamStr(self, index):
+        if index < len(self.Params):
+            return self.Params[index]
+        else:
+            return ""
+    
+    # --------------------------------------------------------------------
+    # dtor for class TApplication
+    # --------------------------------------------------------------------
+    def Destroy(self):
+        if hasattr(super(), 'Destroy'):
+            super().Destroy()
+        pass
+    
+    # --------------------------------------------------------------------
+    # runner def inition entry point.
+    # --------------------------------------------------------------------
+    def run(self):
+        try:
+            self.dialog.show()
+            self.app.exec_()
+        finally:
+            self.bar_menu  .Free()
+            self.bar_status.Free()
+            #
+            sys.exit(0)
+    
+    # --------------------------------------------------------------------
+    # we re-assign the constructor and destructor for Turbo-Pascal feeling
+    # --------------------------------------------------------------------
+    __init__ = Create       # constructor - ctor
+    __del__  = Destroy      # destructor  - dtor
+
+class TStatusBar(TObject):
+    def Create(self, parent=None):
+        super(TStatusBar, self).Create(parent)
+        
+        if not parent == None:
+            if not isinstance(parent, TApplication.TApplication):
+                QMessageBox.information(self,
+                "Information",
+                "parent must be TApplication")
+        else:
+            QMessageBox.information(self,
+            "Information",
+            "parent must be given")
+            return
+        
+        self.status_bar = parent.dialog.mainwindow.statusBar()
+        self.status_bar.showMessage("Ready.")
+        self.status_bar.setStyleSheet("background-color:lightgray;")
+    
+    def show(self):
+        self.status_bar.show()
+    
+    def hide(self):
+        self.status_bar.hide()
+    
+    def Destroy(self):
+        super().Destroy()
+    
+    # --------------------------------------------------------------------
+    # we re-assign the constructor and destructor for Turbo-Pascal feeling
+    # --------------------------------------------------------------------
+    __init__ = Create       # constructor - ctor
+    __del__  = Destroy      # destructor  - dtor
 
 # ------------------------------------------------------------------------
 # style sheet definition's:
@@ -1774,7 +2239,7 @@ class TMenu:
 # \brief this class provides accessible menubar for the application on the
 #        top upper part line.
 # ---------------------------------------------------------------------------
-class TMenuBar(TMenu):
+class TMenuBar2(TMenu):
     def __init__(self,parent):
         super().__init__(parent)
         font_name  = "Arial"
@@ -2798,8 +3263,9 @@ print = builtins.print
         self.pascal_parser     = 2
         self.java_parser       = 3
         self.isoc_parser       = 4
-        self.lisp_parser       = 5
-        self.javascript_parser = 6
+        self.prolog_parser     = 5
+        self.lisp_parser       = 6
+        self.javascript_parser = 7
         
         genv.counter_for    = 0
         genv.counter_indent = 1
@@ -5270,6 +5736,10 @@ class interpreter_ISOC(interpreter_base):
     def parse(self):
         self.token_str = ""
 
+class interpreter_Prolog(interpreter_base):
+    def __init__(self, file_name):
+        super(interpreter_Prolog, self).__init__(file_name)
+
 class interpreter_Lisp(interpreter_base):
     def __init__(self, file_name):
         super(interpreter_Lisp, self).__init__(file_name)
@@ -5980,6 +6450,7 @@ class myIconLabel(QLabel):
                 parent.java_tabs,
                 parent.python_tabs,
                 parent.javascript_tabs,
+                parent.prolog_tabs,
                 parent.lisp_tabs,
                 parent.locale_tabs,
                 parent.console_tabs,
@@ -6013,6 +6484,7 @@ class myIconLabel(QLabel):
         parent.java_tabs.hide()
         parent.python_tabs.hide()
         parent.javascript_tabs.hide()
+        parent.prolog_tabs.hide()
         parent.lisp_tabs.hide()
         parent.locale_tabs.hide()
         parent.console_tabs.hide()
@@ -6052,16 +6524,17 @@ class myIconLabel(QLabel):
             parent.side_btn7,
             parent.side_btn8,
             parent.side_btn9,
-            parent.side_btnA,
-            parent.side_btnB,
-            parent.side_btnC,
-            parent.side_btnD,
-            parent.side_btnE,
-            parent.side_btnF,
-            parent.side_btnG,
-            parent.side_btnH,
-            parent.side_btnI,
-            parent.side_btnJ,
+            parent.side_btn10,
+            parent.side_btn11,
+            parent.side_btn12,
+            parent.side_btn13,
+            parent.side_btn14,
+            parent.side_btn15,
+            parent.side_btn16,
+            parent.side_btn17,
+            parent.side_btn18,
+            parent.side_btn19,
+            parent.side_btn20,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -6125,6 +6598,7 @@ class myIconButton(QWidget):
             genv.v__app__javadev__,
             genv.v__app__pythonc__,
             genv.v__app__javascr__,
+            genv.v__app__prologm__,
             genv.v__app__lispmod__,
             genv.v__app__locales__,
             genv.v__app__console__,
@@ -8095,6 +8569,61 @@ class LispSyntaxHighlighter(SourceCodeEditorBase):
                 if self.previousBlockState() != 1 and not in_comment:
                     self.setFormat(start, length, self.boldFormat)
 
+class PrologSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(PrologSyntaxHighlighter, self).__init__(document)
+        
+        # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
+        self.keywords = [
+            "DEFUN"
+        ]
+        
+        self.commentStartExpression = QRegExp(r"/\*")
+        self.commentEndExpression   = QRegExp(r"\*/")
+    
+    def highlightBlock(self, text):
+        # Mehrzeilige Kommentare markieren
+        self.setCurrentBlockState(0)
+        
+        startIndex = 0
+        if self.previousBlockState() != 1:
+            startIndex = self.commentStartExpression.indexIn(text)
+        
+        while startIndex >= 0:
+            endIndex = self.commentEndExpression.indexIn(text, startIndex)
+            if endIndex == -1:
+                self.setCurrentBlockState(1)
+                commentLength = len(text) - startIndex
+            else:
+                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
+            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
+            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
+        
+        # Highlight single line comments
+        single_line_comment_patterns = [r"\;"]
+        comment_positions = []
+        
+        # Suche nach einzeiligen Kommentaren und markiere sie
+        for pattern in single_line_comment_patterns:
+            for match in re.finditer(pattern, text):
+                start = match.start()
+                self.setFormat(start, len(text) - start, self.commentFormat)
+                comment_positions.append((start, len(text) - start))
+        
+        # Suche nach Keywords und markiere sie
+        for word in self.keywords:
+            pattern = re.compile(re.escape(word), re.IGNORECASE)
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                
+                # Prüfen, ob das Keyword in einem Kommentar steht
+                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
+                
+                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
+                if self.previousBlockState() != 1 and not in_comment:
+                    self.setFormat(start, length, self.boldFormat)
+
 class PascalSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
         super(PascalSyntaxHighlighter, self).__init__(document)
@@ -8256,13 +8785,15 @@ class EditorTextEdit(QPlainTextEdit):
         self.bookmarks = set()
 
         if edit_type == "dbase":
-            self.highlighter = dBaseSyntaxHighlighter (self.document());
+            self.highlighter = dBaseSyntaxHighlighter (self.document())
         if edit_type == "pascal":
-            self.highlighter = PascalSyntaxHighlighter(self.document());
+            self.highlighter = PascalSyntaxHighlighter(self.document())
         if edit_type == "isoc":
-            self.highlighter = CppSyntaxHighlighter   (self.document());
+            self.highlighter = CppSyntaxHighlighter   (self.document())
         if edit_type == "lisp":
-            self.highlighter = LispSyntaxHighlighter  (self.document());
+            self.highlighter = LispSyntaxHighlighter  (self.document())
+        if edit_type == "prolog":
+            self.highlighter = PrologSyntaxHighlighter(self.document())
         
         if not genv.blockCountChanged_connected:
             genv.blockCountChanged_connected = True
@@ -8417,7 +8948,7 @@ class EditorTextEdit(QPlainTextEdit):
                         return
                 finally:
                     prg = None
-                    
+            
             elif self.edit_type == "pascal":
                 showInfo("pascal <---")
                 prg = interpreter_Pascal(script_name)
@@ -8426,7 +8957,10 @@ class EditorTextEdit(QPlainTextEdit):
                     prg.run()
                 finally:
                     prg = None
-                    
+            
+            elif self.edit_type == "prolog":
+                showInfo("prolog <---")
+        
         elif event.key() == Qt.Key_S and event.modifiers() == Qt.ControlModifier:
             options = QFileDialog.Options()
             file_name, a = QFileDialog.getSaveFileName(self,
@@ -10035,6 +10569,7 @@ class CustomWidget0(QWidget):
         self.parent_class.java_tabs.hide()
         self.parent_class.python_tabs.hide()
         self.parent_class.javascript.hide()
+        self.parent_class.prolog_tabs.hide()
         self.parent_class.lisp_tabs.hide()
         self.parent_class.locale_tabs.hide()
         self.parent_class.setup_tabs.hide()
@@ -10066,16 +10601,17 @@ class CustomWidget0(QWidget):
             parent.side_btn7,
             parent.side_btn8,
             parent.side_btn9,
-            parent.side_btnA,
-            parent.side_btnB,
-            parent.side_btnC,
-            parent.side_btnD,
-            parent.side_btnE,
-            parent.side_btnF,
-            parent.side_btnG,
-            parent.side_btnH,
-            parent.side_btnI,
-            parent.side_btnJ,
+            parent.side_btn10,
+            parent.side_btn11,
+            parent.side_btn12,
+            parent.side_btn13,
+            parent.side_btn14,
+            parent.side_btn15,
+            parent.side_btn16,
+            parent.side_btn17,
+            parent.side_btn18,
+            parent.side_btn19,
+            parent.side_btn20,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -12261,6 +12797,9 @@ class ApplicationEditorsPage(QObject):
                     elif self.objectName() == "javascript":
                         prg = interpreter_JavaScript(script_name)
                         prg.parse()
+                    elif self.objectName() == "prolog":
+                        prg = interpreter_Prolog(script_name)
+                        prg.parse()
                     elif self.objectName() == "lisp":
                         prg = interpreter_Lisp(script_name)
                         prg.parse()
@@ -12381,6 +12920,11 @@ class ApplicationEditorsPage(QObject):
         elif self.objectName() == "lisp":
             dialog.setNameFilters([
                 _("Lisp Files") + " (*.lisp *.lsp *.l *.el)",
+                _("Text Files")   + " (*.txt *.md)",
+                _("All Files")    + " (*)"])
+        elif self.objectName() == "prolog":
+            dialog.setNameFilters([
+                _("Prolog Files") + " (*.pl *.pro)",
                 _("Text Files")   + " (*.txt *.md)",
                 _("All Files")    + " (*)"])
         elif self.objectName() == "java":
@@ -13456,31 +14000,32 @@ class FileWatcherGUI(QDialog):
         self.side_widget.setContentsMargins(0,0,0,0)
         self.side_scroll.setContentsMargins(0,0,0,0)
         
-        self.side_btn0 = myIconButton(self,  0, _("Help")      , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
-        self.side_btn1 = myIconButton(self,  1, _("dBASE")     , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
-        self.side_btn2 = myIconButton(self,  2, _("Pascal")    , _("Pascal old school programming\no Delphi\no FPC"))
-        self.side_btn3 = myIconButton(self,  3, _("ISO C")     , _("C / C++ embeded programming\nor cross platform"))
-        self.side_btn4 = myIconButton(self,  4, _("Java")      , _("Java modern cross programming\nfor any device"))
-        self.side_btn5 = myIconButton(self,  5, _("Python")    , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
-        self.side_btn6 = myIconButton(self,  6, _("JavaScript"), _("JavaScript programming"))
-        self.side_btn7 = myIconButton(self,  7, _("LISP")      , _("LISP traditional programming\nultimate old school"))
+        self.side_btn0 = myIconButton(self,   0, _("Help")      , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
+        self.side_btn1 = myIconButton(self,   1, _("dBASE")     , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
+        self.side_btn2 = myIconButton(self,   2, _("Pascal")    , _("Pascal old school programming\no Delphi\no FPC"))
+        self.side_btn3 = myIconButton(self,   3, _("ISO C")     , _("C / C++ embeded programming\nor cross platform"))
+        self.side_btn4 = myIconButton(self,   4, _("Java")      , _("Java modern cross programming\nfor any device"))
+        self.side_btn5 = myIconButton(self,   5, _("Python")    , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
+        self.side_btn6 = myIconButton(self,   6, _("JavaScript"), _("JavaScript programming"))
+        self.side_btn7 = myIconButton(self,   7, _("Prolog")    , _("Prolog - logical programming."))
+        self.side_btn8 = myIconButton(self,   8, _("LISP")      , _("LISP traditional programming\nultimate old school"))
         #
-        self.side_btn8 = myIconButton(self,  8, _("Locales"), _(""
+        self.side_btn9 = myIconButton(self,   9, _("Locales"), _(""
             + "Localization your Application with different supported languages\n"
             + "around the World.\n"
             + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
         #
-        self.side_btn9 = myIconButton(self,   9, "Console", "Your classical style of commands")
-        self.side_btnA = myIconButton(self,  10, "Todo / Tasks", "Your todo's")
-        self.side_btnB = myIconButton(self,  11, "Setup", "Setup your Project")
-        self.side_btnC = myIconButton(self,  12, "SSL Certs", "Setup SSL")
-        self.side_btnD = myIconButton(self,  13, "GitHub.com", "Publish Project")
-        self.side_btnE = myIconButton(self,  14, "Web Server", "Configure Web Server")
-        self.side_btnF = myIconButton(self,  15, "MySQL", "Configure MySQL")
-        self.side_btnG = myIconButton(self,  16, "Squid", "Configure Squid")
-        self.side_btnH = myIconButton(self,  17, "Electro", "electronic simulations")
-        self.side_btnI = myIconButton(self,  18, "C-64", "The most popular Commodore C-64\from int the 1980er")
-        self.side_btnJ = myIconButton(self,  19, _("Settings")   , _("Settings for this Application\n\n"))
+        self.side_btn10 = myIconButton(self, 10, "Console", "Your classical style of commands")
+        self.side_btn11 = myIconButton(self, 11, "Todo / Tasks", "Your todo's")
+        self.side_btn12 = myIconButton(self, 12, "Setup", "Setup your Project")
+        self.side_btn13 = myIconButton(self, 13, "SSL Certs", "Setup SSL")
+        self.side_btn14 = myIconButton(self, 14, "GitHub.com", "Publish Project")
+        self.side_btn15 = myIconButton(self, 15, "Web Server", "Configure Web Server")
+        self.side_btn16 = myIconButton(self, 16, "MySQL", "Configure MySQL")
+        self.side_btn17 = myIconButton(self, 17, "Squid", "Configure Squid")
+        self.side_btn18 = myIconButton(self, 18, "Electro", "electronic simulations")
+        self.side_btn19 = myIconButton(self, 19, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btn20 = myIconButton(self, 20, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn0.bordercolor = "lime"
         self.side_btn0.state       = 2
@@ -13507,6 +14052,7 @@ class FileWatcherGUI(QDialog):
         self.handleJava()
         self.handlePython()
         self.handleJavaScript()
+        self.handleProlog()
         self.handleLISP()
         self.handleLocales()
         self.handleConsole()
@@ -14580,6 +15126,19 @@ class FileWatcherGUI(QDialog):
             self,
             self.python_tabs.getTab(2),
             self.python_tabs)
+    
+    # prolog
+    def handleProlog(self):
+        self.prolog_tabs = ApplicationTabWidget([
+            _("Prolog Project"),
+            _("Prolog Editor"),
+            _("Prolog Designer")])
+        self.prolog_project  = ApplicationProjectPage(self, self.prolog_tabs.getTab(0), "prolog")
+        self.prolog_editors  = ApplicationEditorsPage(self, self.prolog_tabs.getTab(1), "prolog")
+        self.prolog_designer = ApplicationDesignPage(
+            self,
+            self.prolog_tabs.getTab(2),
+            self.prolog_tabs)
     
     # lisp
     def handleLISP(self):
