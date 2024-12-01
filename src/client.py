@@ -8393,52 +8393,70 @@ class SourceCodeEditorBase(QSyntaxHighlighter):
 class CppSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
         super(CppSyntaxHighlighter, self).__init__(document)
-        
-        self.commentStartExpression = QRegExp(r"/\*")
-        self.commentEndExpression   = QRegExp(r"\*/")
+        self.highlighting_rules = []
+
+        # Keywords
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("blue"))
+        keyword_format.setFontWeight(QFont.Bold)
+        keywords = [
+            r"\bint\b", r"\bfloat\b", r"\breturn\b", r"\bvoid\b", r"\bif\b",
+            r"\belse\b", r"\bwhile\b", r"\bfor\b", r"\bclass\b", r"\bstruct\b"
+        ]
+        for keyword in keywords:
+            self.highlighting_rules.append((re.compile(keyword), keyword_format))
+
+        # Single-line comments
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor("green"))
+        self.highlighting_rules.append((re.compile(r"//.*"), comment_format))
+
+        # Multi-line comments
+        self.comment_start_expression = re.compile(r"/\*")
+        self.comment_end_expression = re.compile(r"\*/")
+        self.comment_format = QTextCharFormat()
+        self.comment_format.setForeground(QColor("green"))
+
+        # Strings
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor("magenta"))
+        self.highlighting_rules.append((re.compile(r'"[^"\\]*(\\.[^"\\]*)*"'), string_format))
+
+        # Numbers
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor("darkRed"))
+        self.highlighting_rules.append((re.compile(r"\b[0-9]+\b"), number_format))
 
     def highlightBlock(self, text):
-        # Mehrzeilige Kommentare markieren
-        self.setCurrentBlockState(0)
-        
-        startIndex = 0
-        if self.previousBlockState() != 1:
-            startIndex = self.commentStartExpression.indexIn(text)
-        
-        while startIndex >= 0:
-            endIndex = self.commentEndExpression.indexIn(text, startIndex)
-            if endIndex == -1:
-                self.setCurrentBlockState(1)
-                commentLength = len(text) - startIndex
-            else:
-                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
-            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
-            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
-        
-        # Highlight single line comments
-        single_line_comment_patterns = [r"//"]
-        comment_positions = []
-        
-        # Suche nach einzeiligen Kommentaren und markiere sie
-        for pattern in single_line_comment_patterns:
-            for match in re.finditer(pattern, text):
-                start = match.start()
-                self.setFormat(start, len(text) - start, self.commentFormat)
-                comment_positions.append((start, len(text) - start))
-        
-        # Suche nach Keywords und markiere sie
-        for word in self.keywords:
-            pattern = re.compile(re.escape(word), re.IGNORECASE)
+        # Apply single-line patterns
+        for pattern, format in self.highlighting_rules:
             for match in pattern.finditer(text):
-                start = match.start()
-                length = match.end() - start
-                
-                # Prüfen, ob das Keyword in einem Kommentar steht
-                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
-                
-                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
-                if self.previousBlockState() != 1 and not in_comment:
-                    self.setFormat(start, length, self.boldFormat)
+                start, end = match.span()
+                self.setFormat(start, end - start, format)
+
+        # Handle multi-line comments
+        self.setCurrentBlockState(0)
+
+        if self.previousBlockState() == 1:
+            match = self.comment_end_expression.search(text)
+            if match:
+                start, end = match.span()
+                self.setFormat(0, end, self.comment_format)
+                self.setCurrentBlockState(0)
+            else:
+                self.setFormat(0, len(text), self.comment_format)
+                self.setCurrentBlockState(1)
+
+        start_match = self.comment_start_expression.search(text)
+        if start_match:
+            start = start_match.start()
+            end_match = self.comment_end_expression.search(text, start)
+            if end_match:
+                end = end_match.end()
+                self.setFormat(start, end - start, self.comment_format)
+            else:
+                self.setFormat(start, len(text) - start, self.comment_format)
+                self.setCurrentBlockState(1)
 
 class dBaseSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
@@ -8594,6 +8612,81 @@ class PythonSyntaxHighlighter(SourceCodeEditorBase):
                 self.setFormat(start, end - start, fmt)
         self.setCurrentBlockState(0)
 
+class JavaSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(JavaSyntaxHighlighter, self).__init__(document)
+        self.highlighting_rules = []
+        
+        # Keywords in Java
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("blue"))
+        keyword_format.setFontWeight(QFont.Bold)
+        keywords = [
+            r'\babstract\b', r'\bassert\b', r'\bboolean\b', r'\bbreak\b',
+            r'\bbyte\b', r'\bcase\b', r'\bcatch\b', r'\bchar\b', r'\bclass\b',
+            r'\bconst\b', r'\bcontinue\b', r'\bdefault\b', r'\bdo\b',
+            r'\bdouble\b', r'\belse\b', r'\benum\b', r'\bextends\b', r'\bfinal\b',
+            r'\bfinally\b', r'\bfloat\b', r'\bfor\b', r'\bgoto\b', r'\bif\b',
+            r'\bimplements\b', r'\bimport\b', r'\binstanceof\b', r'\bint\b',
+            r'\binterface\b', r'\blong\b', r'\bnative\b', r'\bnew\b', r'\bnull\b',
+            r'\bpackage\b', r'\bprivate\b', r'\bprotected\b', r'\bpublic\b',
+            r'\breturn\b', r'\bshort\b', r'\bstatic\b', r'\bstrictfp\b',
+            r'\bsuper\b', r'\bswitch\b', r'\bsynchronized\b', r'\bthis\b',
+            r'\bthrow\b', r'\bthrows\b', r'\btransient\b', r'\btry\b',
+            r'\bvoid\b', r'\bvolatile\b', r'\bwhile\b'
+        ]
+        for keyword in keywords:
+            self.highlighting_rules.append((re.compile(keyword), keyword_format))
+        
+        # Single-line comments
+        single_line_comment_format = QTextCharFormat()
+        single_line_comment_format.setForeground(QColor("green"))
+        self.highlighting_rules.append((re.compile(r'//[^\n]*'), single_line_comment_format))
+        
+        # Multi-line comments
+        self.multi_line_comment_format = QTextCharFormat()
+        self.multi_line_comment_format.setForeground(QColor("green"))
+        
+        # Strings
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor("magenta"))
+        self.highlighting_rules.append((re.compile(r'"[^"\\]*(\\.[^"\\]*)*"'), string_format))
+        
+        # Characters
+        char_format = QTextCharFormat()
+        char_format.setForeground(QColor("orange"))
+        self.highlighting_rules.append((re.compile(r"'.'"), char_format))
+        
+        # Numbers
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor("darkCyan"))
+        self.highlighting_rules.append((re.compile(r'\b\d+\b'), number_format))
+    
+    def highlightBlock(self, text):
+        for pattern, fmt in self.highlighting_rules:
+            for match in pattern.finditer(text):
+                self.setFormat(match.start(), match.end() - match.start(), fmt)
+        self.setCurrentBlockState(0)
+        
+        # Multi-line comments
+        start_comment = "/*"
+        end_comment = "*/"
+        
+        if self.previousBlockState() != 1:
+            start_index = text.find(start_comment)
+        else:
+            start_index = 0
+        
+        while start_index >= 0:
+            end_index = text.find(end_comment, start_index)
+            if end_index == -1:
+                self.setCurrentBlockState(1)
+                comment_length = len(text) - start_index
+            else:
+                comment_length = end_index - start_index + len(end_comment)
+            self.setFormat(start_index, comment_length, self.multi_line_comment_format)
+            start_index = text.find(start_comment, start_index + comment_length)
+
 class PrologSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
         super(PrologSyntaxHighlighter, self).__init__(document)
@@ -8614,7 +8707,7 @@ class PrologSyntaxHighlighter(SourceCodeEditorBase):
         # Format for single-line comments
         comment_format = QTextCharFormat()
         comment_format.setForeground(QColor("green"))
-        self.highlighting_rules.append((QRegExp("\#.*[^\\r\\n]"), comment_format))
+        self.highlighting_rules.append((QRegExp("#.*[^\\r\\n]"), comment_format))
 
         # Format for strings
         string_format = QTextCharFormat()
@@ -8810,6 +8903,8 @@ class EditorTextEdit(QPlainTextEdit):
             self.highlighter = PascalSyntaxHighlighter(self.document())
         elif edit_type == "isoc":
             self.highlighter = CppSyntaxHighlighter   (self.document())
+        elif edit_type == "java":
+            self.highlighter = JavaSyntaxHighlighter   (self.document())
         elif edit_type == "lisp":
             self.highlighter = LispSyntaxHighlighter  (self.document())
         elif edit_type == "prolog":
