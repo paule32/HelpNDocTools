@@ -140,6 +140,7 @@ import traceback      # stack exception trace back
 import textwrap
 import marshal        # bytecode exec
 import inspect        # stack
+import gc             # garbage collector
 
 import logging
 import dbf            # good old data base file
@@ -8517,112 +8518,127 @@ class dBaseSyntaxHighlighter(SourceCodeEditorBase):
 class LispSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
         super(LispSyntaxHighlighter, self).__init__(document)
+        self.highlighting_rules = []
+
+        # Format for LISP keywords (e.g., defun, lambda)
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("blue"))
+        keyword_format.setFontWeight(QFont.Bold)
+        keywords = ["defun", "lambda", "setq", "let", "cond", "if", "progn", "car", "cdr"]
+        for keyword in keywords:
+            pattern = QRegExp(f"\\b{keyword}\\b")
+            self.highlighting_rules.append((pattern, keyword_format))
+
+        # Format for numbers
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor("darkMagenta"))
+        self.highlighting_rules.append((QRegExp("\\b[0-9]+\\b"), number_format))
+
+        # Format for strings
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor("darkGreen"))
+        self.highlighting_rules.append((QRegExp("\".*\""), string_format))
+
+        # Format for parentheses
+        paren_format = QTextCharFormat()
+        paren_format.setForeground(QColor("darkRed"))
+        self.highlighting_rules.append((QRegExp("[()]"), paren_format))
         
-        # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
-        self.keywords = [
-            "DEFUN"
-        ]
-        
-        self.commentStartExpression = QRegExp(r"/\*")
-        self.commentEndExpression   = QRegExp(r"\*/")
-    
+        # Format for comments (starting with ; and continuing to the end of the line)
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor("green"))
+        self.highlighting_rules.append((QRegExp(";[^\r\n]*"), comment_format))
+
     def highlightBlock(self, text):
-        # Mehrzeilige Kommentare markieren
-        self.setCurrentBlockState(0)
-        
-        startIndex = 0
-        if self.previousBlockState() != 1:
-            startIndex = self.commentStartExpression.indexIn(text)
-        
-        while startIndex >= 0:
-            endIndex = self.commentEndExpression.indexIn(text, startIndex)
-            if endIndex == -1:
-                self.setCurrentBlockState(1)
-                commentLength = len(text) - startIndex
-            else:
-                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
-            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
-            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
-        
-        # Highlight single line comments
-        single_line_comment_patterns = [r"\;"]
-        comment_positions = []
-        
-        # Suche nach einzeiligen Kommentaren und markiere sie
-        for pattern in single_line_comment_patterns:
+        for pattern, char_format in self.highlighting_rules:
+            expression = QRegExp(pattern)
+            index = expression.indexIn(text)
+            while index >= 0:
+                length = expression.matchedLength()
+                self.setFormat(index, length, char_format)
+                index = expression.indexIn(text, index + length)
+
+class PythonSyntaxHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super(PythonSyntaxHighlighter, self).__init__(document)
+        self.highlighting_rules = []
+
+        # Format für Schlüsselwörter
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("blue"))
+        keyword_format.setFontWeight(QFont.Bold)
+        keywords = [
+            'and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except',
+            'False', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'None',
+            'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'True', 'try', 'while', 'with', 'yield'
+        ]
+        for word in keywords:
+            pattern = f'\b{word}\b'
+            self.highlighting_rules.append((re.compile(pattern), keyword_format))
+
+        # Format für Zeichenketten
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor("darkGreen"))
+        self.highlighting_rules.append((re.compile(r'(".*?"|\'.*?\')'), string_format))
+
+        # Format für Kommentare
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor("darkGray"))
+        comment_format.setFontItalic(True)
+        self.highlighting_rules.append((re.compile(r'#.*'), comment_format))
+
+    def highlightBlock(self, text):
+        for pattern, fmt in self.highlighting_rules:
             for match in re.finditer(pattern, text):
-                start = match.start()
-                self.setFormat(start, len(text) - start, self.commentFormat)
-                comment_positions.append((start, len(text) - start))
-        
-        # Suche nach Keywords und markiere sie
-        for word in self.keywords:
-            pattern = re.compile(re.escape(word), re.IGNORECASE)
-            for match in pattern.finditer(text):
-                start = match.start()
-                length = match.end() - start
-                
-                # Prüfen, ob das Keyword in einem Kommentar steht
-                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
-                
-                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
-                if self.previousBlockState() != 1 and not in_comment:
-                    self.setFormat(start, length, self.boldFormat)
+                start, end = match.span()
+                self.setFormat(start, end - start, fmt)
+        self.setCurrentBlockState(0)
 
 class PrologSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
         super(PrologSyntaxHighlighter, self).__init__(document)
-        
-        # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
-        self.keywords = [
-            "DEFUN"
+        self.highlighting_rules = []
+
+        # Format for Prolog keywords
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("blue"))
+        keyword_format.setFontWeight(QFont.Bold)
+        keywords = [
+            "is", "not", "true", "fail", "false", "repeat", "assert", "retract",
+            "consult", "listing", "halt", "def"
         ]
-        
-        self.commentStartExpression = QRegExp(r"/\*")
-        self.commentEndExpression   = QRegExp(r"\*/")
-    
+        for word in keywords:
+            pattern = QRegExp("\\b" + word + "\\b")
+            self.highlighting_rules.append((pattern, keyword_format))
+
+        # Format for single-line comments
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor("green"))
+        self.highlighting_rules.append((QRegExp("\#.*[^\\r\\n]"), comment_format))
+
+        # Format for strings
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor("magenta"))
+        self.highlighting_rules.append((QRegExp("'[^']*'"), string_format))
+
+        # Format for variables (starting with an uppercase letter or _)
+        variable_format = QTextCharFormat()
+        variable_format.setForeground(QColor("darkRed"))
+        self.highlighting_rules.append((QRegExp("\\b[A-Z_][a-zA-Z0-9_]*\\b"), variable_format))
+
+        # Format for atoms (lowercase identifiers)
+        atom_format = QTextCharFormat()
+        atom_format.setForeground(QColor("black"))
+        self.highlighting_rules.append((QRegExp("\\b[a-z][a-zA-Z0-9_]*\\b"), atom_format))
+
     def highlightBlock(self, text):
-        # Mehrzeilige Kommentare markieren
-        self.setCurrentBlockState(0)
-        
-        startIndex = 0
-        if self.previousBlockState() != 1:
-            startIndex = self.commentStartExpression.indexIn(text)
-        
-        while startIndex >= 0:
-            endIndex = self.commentEndExpression.indexIn(text, startIndex)
-            if endIndex == -1:
-                self.setCurrentBlockState(1)
-                commentLength = len(text) - startIndex
-            else:
-                commentLength = endIndex - startIndex + self.commentEndExpression.matchedLength()
-            self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
-            startIndex = self.commentStartExpression.indexIn(text, startIndex + commentLength)
-        
-        # Highlight single line comments
-        single_line_comment_patterns = [r"\;"]
-        comment_positions = []
-        
-        # Suche nach einzeiligen Kommentaren und markiere sie
-        for pattern in single_line_comment_patterns:
-            for match in re.finditer(pattern, text):
-                start = match.start()
-                self.setFormat(start, len(text) - start, self.commentFormat)
-                comment_positions.append((start, len(text) - start))
-        
-        # Suche nach Keywords und markiere sie
-        for word in self.keywords:
-            pattern = re.compile(re.escape(word), re.IGNORECASE)
-            for match in pattern.finditer(text):
-                start = match.start()
-                length = match.end() - start
-                
-                # Prüfen, ob das Keyword in einem Kommentar steht
-                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
-                
-                # Prüfen, ob das Keyword in einem mehrzeiligen Kommentar steht
-                if self.previousBlockState() != 1 and not in_comment:
-                    self.setFormat(start, length, self.boldFormat)
+        for pattern, fmt in self.highlighting_rules:
+            expression = QRegExp(pattern)
+            index = expression.indexIn(text)
+            while index >= 0:
+                length = expression.matchedLength()
+                self.setFormat(index, length, fmt)
+                index = expression.indexIn(text, index + length)
 
 class PascalSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
@@ -8771,43 +8787,35 @@ class EditorTranslate(QWidget):
 # ----------------------------------------------------------------------------
 class EditorTextEdit(QPlainTextEdit):
     def __init__(self, parent, file_name, edit_type):
-        super().__init__()
+        super(EditorTextEdit, self).__init__()
+        
         self.setStyleSheet(_("ScrollBarCSS"))
         self.setObjectName(file_name)
+        
+        self.edit_type = edit_type
+        self.bookmarks = set()
         
         self.parent = parent
         self.move(0,0)
         self.setLineWrapMode(QPlainTextEdit.NoWrap)
         
-        self.edit_type = edit_type
-        
         self.lineNumberArea = LineNumberArea(self)
-        self.bookmarks = set()
-
+        self.blockCountChanged    .connect(self.updateLineNumberAreaWidth)
+        self.updateRequest        .connect(self.updateLineNumberArea)
+        self.cursorPositionChanged.connect(self.highlightCurrentLine)
+        
         if edit_type == "dbase":
             self.highlighter = dBaseSyntaxHighlighter (self.document())
-        if edit_type == "pascal":
+        elif edit_type == "pascal":
             self.highlighter = PascalSyntaxHighlighter(self.document())
-        if edit_type == "isoc":
+        elif edit_type == "isoc":
             self.highlighter = CppSyntaxHighlighter   (self.document())
-        if edit_type == "lisp":
+        elif edit_type == "lisp":
             self.highlighter = LispSyntaxHighlighter  (self.document())
-        if edit_type == "prolog":
+        elif edit_type == "prolog":
             self.highlighter = PrologSyntaxHighlighter(self.document())
-        
-        if not genv.blockCountChanged_connected:
-            genv.blockCountChanged_connected = True
-            genv.cursorPositionChanged_connected = True
-            
-            self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
-            self.updateRequest.connect(self.updateLineNumberArea)
-            self.cursorPositionChanged.connect(self.highlightCurrentLine)
-            
-            global main_text_edit
-            main_text_edit = self
-        
-        self.updateLineNumberAreaWidth(0)
-        self.highlightCurrentLine()
+        elif edit_type == "python":
+            self.highlighter = PythonSyntaxHighlighter(self.document())
         
         # Schriftgröße und Schriftart setzen
         self.setFont(QFont(genv.v__app__font_edit, 12))
@@ -8818,6 +8826,66 @@ class EditorTextEdit(QPlainTextEdit):
         
         # Datei einlesen und Text setzen
         self.load_file(file_name)
+        
+        self.updateLineNumberAreaWidth(0)
+        self.highlightCurrentLine()
+    
+    def lineNumberAreaWidth(self):
+        digits = len(str(max(1, self.blockCount())))
+        space = 3 + self.fontMetrics().horizontalAdvance('9') * digits
+        return space + 10  # Zusätzlicher Platz, um sicherzustellen, dass die Zeilennummern nicht den Text überlappen
+    
+    def updateLineNumberAreaWidth(self, _):
+        self.setViewportMargins(self.lineNumberAreaWidth(), 0, 0, 0)
+    
+    def updateLineNumberArea(self, rect, dy):
+        if dy:
+            self.lineNumberArea.scroll(0, dy)
+        else:
+            self.lineNumberArea.update(0, rect.y(), self.lineNumberArea.width(), rect.height())
+        
+        if rect.contains(self.viewport().rect()):
+            self.updateLineNumberAreaWidth(0)
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        cr = self.contentsRect()
+        self.lineNumberArea.setGeometry(QRect(cr.left(), cr.top(), self.lineNumberAreaWidth(), cr.height()))
+    
+    def highlightCurrentLine(self):
+        extraSelections = []
+        
+        if not self.isReadOnly():
+            selection = QTextEdit.ExtraSelection()
+            lineColor = QColor(Qt.yellow).lighter(160)
+            
+            selection.format.setBackground(lineColor)
+            selection.format.setProperty(QTextFormat.FullWidthSelection, True)
+            selection.cursor = self.textCursor()
+            selection.cursor.clearSelection()
+            extraSelections.append(selection)
+        
+        self.setExtraSelections(extraSelections)
+    
+    def lineNumberAreaPaintEvent(self, event):
+        painter = QPainter(self.lineNumberArea)
+        painter.fillRect(event.rect(), Qt.lightGray)
+        
+        block = self.firstVisibleBlock()
+        blockNumber = block.blockNumber()
+        top = self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
+        bottom = top + self.blockBoundingRect(block).height()
+        
+        while block.isValid() and top <= event.rect().bottom():
+            if block.isVisible() and bottom >= event.rect().top():
+                number = str(blockNumber + 1)
+                painter.setPen(Qt.black)
+                painter.drawText(0, int(top), self.lineNumberArea.width() - 5, self.fontMetrics().height(), Qt.AlignRight, number)
+            
+            block = block.next()
+            top = bottom
+            bottom = top + self.blockBoundingRect(block).height()
+            blockNumber += 1
     
     def load_file(self, file_name):
         try:
@@ -8843,7 +8911,7 @@ class EditorTextEdit(QPlainTextEdit):
         return space + icon_space
     
     def updateLineNumberAreaWidth(self, _):
-        self.setViewportMargins(self.lineNumberAreaWidth()+9, 0, 0, 0)
+        self.setViewportMargins(self.lineNumberAreaWidth()+4, 0, 0, 0)
     
     def updateLineNumberArea(self, rect, dy):
         if dy:
@@ -8888,11 +8956,11 @@ class EditorTextEdit(QPlainTextEdit):
             if block.isVisible() and bottom >= event.rect().top():
                 number = str(blockNumber + 1)
                 painter.setPen(Qt.black)
-                rect = QRect(20, int(top), self.lineNumberArea.width() - 20, self.fontMetrics().height())
+                rect = QRect(21, int(top), self.lineNumberArea.width() - 21, self.fontMetrics().height())
                 painter.drawText(rect, Qt.AlignRight, number)
                 
                 # Zeichnen des Icons
-                icon_rect = QRect(0, int(top), 20, self.fontMetrics().height())
+                icon_rect = QRect(0, int(top), 21, self.fontMetrics().height())
                 if blockNumber in self.bookmarks:
                     painter.setBrush(Qt.red)
                     painter.drawEllipse(icon_rect.center(), 5, 5)
@@ -9039,7 +9107,7 @@ class EditorCheckBox(QCheckBox):
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
-        super().__init__(editor)
+        super(LineNumberArea, self).__init__(editor)
         self.editor = editor
     
     def sizeHint(self):
@@ -12721,10 +12789,12 @@ class ApplicationEditorsPage(QObject):
                 hlayout.addWidget(genv.editor_saveb)
                 hlayout.addWidget(self.editor_dummy)
                 
-                hlayout.setAlignment(genv.editor_check, Qt.AlignLeft)
-                hlayout.setAlignment(genv.editor_saveb, Qt.AlignLeft)
-                hlayout.setAlignment(self.editor_dummy, Qt.AlignLeft)
+                #hlayout.setAlignment(genv.editor_check, Qt.AlignLeft)
+                #hlayout.setAlignment(genv.editor_saveb, Qt.AlignLeft)
+                #hlayout.setAlignment(self.editor_dummy, Qt.AlignLeft)
                 #
+                genv.editor.obj_1 = None
+                gc.collect()
                 genv.editor.obj_1 = EditorTextEdit(self, file_path, self.text)
                 genv.editor.obj_2 = EditorTextEdit(self, file_path, self.text)
                 genv.editor.obj_3 = EditorTextEdit(self, file_path, self.text)
