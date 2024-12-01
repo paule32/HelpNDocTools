@@ -3846,7 +3846,7 @@ print = builtins.print
         
         #genv.text_code += "\tcon.reset()\n"
         #genv.counter_indent -= 1
-        
+        return
         if genv.editor_check.isChecked():
             genv.text_code += ("\n\n"
             + "if __name__ == '__main__':\n"
@@ -4694,10 +4694,11 @@ class interpreter_dBase(interpreter_base):
             # ------------------------------------
             # dbase plus ?
             # ------------------------------------
-            if not genv.editor_check.isChecked():
-                self.handle_scoped_commands()
-                return
-            elif genv.editor_check.isChecked():
+            #if not genv.editor_check.isChecked():
+            #    self.handle_scoped_commands()
+            #    return
+            return
+            if genv.editor_check.isChecked():
                 content = self.source
                 pattern = re.compile(r"\*\* END HEADER.*?\n(.*?)\n*[cC][lL][aA][sS][sS]", re.DOTALL)
                 plus_code = self.source
@@ -12892,14 +12893,13 @@ class ApplicationEditorsPage(QObject):
             elif text[0] == "label 2":
                 self.checkBeforeSave()
             elif text[0] == "label 3":
-                global application_mode
-                application_mode = 1
-                
+                prg = None
                 try:
                     # ---------------------------------------
                     # todo: text editor focus !!
                     # ---------------------------------------
                     plain_text_edits = []
+                    script_name = ""
                     
                     for index in range(self.tabs_editor.count()):
                         tab = self.tabs_editor.widget(index)
@@ -12912,15 +12912,12 @@ class ApplicationEditorsPage(QObject):
                     # ---------------------------------------
                     for i, edit in enumerate(plain_text_edits, start=0):
                         if genv.current_focus.objectName() == edit.objectName():
-                            with open(edit.objectName(), 'w', encoding='utf-8') as file:
+                            script_name = edit.objectName()
+                            with open(script_name, 'w', encoding='utf-8') as file:
                                 file.write(edit.toPlainText())
                                 file.close()
                             break
                     
-                    prg.deleteLater()
-                    gc.collect()
-                    
-                    script_name = genv.current_focus.objeczName()
                     if genv.current_focus.edit_type == "dbase":
                         prg = interpreter_dBase(script_name)
                         prg.parse()
@@ -12961,25 +12958,21 @@ class ApplicationEditorsPage(QObject):
                     
                     print(genv.text_code)
                     prg.run()
-                
-                except AttributeError:
-                    self.showNoEditorMessage()
+                    
+                except AttributeError as e:
+                    showInfo(f"AttributeError:\n{e}\n\nMaybe no Focus to Editor.")
                     return
                 except ENoSourceHeader as e:
-                    showError(e.message)
-                    prg = None
-                    return
-                except ENoSourceHeader as e:
-                    showError(e.message)
+                    showError(f"SourceReaderError:\n{e}")
                     return
                 except Exception as e:
-                    print(e)
+                    showError(f"Exception:\n{e}")
                     return
     
     def showNoEditorMessage(self):
         msg = QMessageBox()
         msg.setWindowTitle(_("Warning"))
-        msg.setText(_("no editor open - do nothing."))
+        msg.setText(_("no editor open - do nothing.\n"))
         msg.setIcon(QMessageBox.Warning)
         
         btn_ok = msg.addButton(QMessageBox.Ok)
