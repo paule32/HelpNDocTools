@@ -12915,52 +12915,60 @@ class ApplicationEditorsPage(QObject):
                             with open(edit.objectName(), 'w', encoding='utf-8') as file:
                                 file.write(edit.toPlainText())
                                 file.close()
+                            break
                     
-                except AttributeError:
-                    self.showNoEditorMessage()
-                    return
-                try:
-                    prg = None
-                    if self.objectName() == "dbase":
-                        try:
-                            prg = interpreter_dBase(script_name)
-                            prg.parse()
-                        except ENoSourceHeader as e:
-                            showError(e.message)
-                            prg = None
-                            return
-                    elif self.objectName() == "pascal":
+                    prg.deleteLater()
+                    gc.collect()
+                    
+                    script_name = genv.current_focus.objeczName()
+                    if genv.current_focus.edit_type == "dbase":
+                        prg = interpreter_dBase(script_name)
+                        prg.parse()
+                        
+                    elif genv.current_focus.edit_type == "pascal":
                         prg = interpreter_Pascal(script_name)
                         prg.parse()
-                    elif self.objectName() == "java":
+                        
+                    elif genv.current_focus.edit_type == "java":
                         prg = interpreter_Java(script_name)
                         prg.parse()
-                    elif self.objectName() == "isoc":
+                        
+                    elif genv.current_focus.edit_type == "isoc":
                         prg = interpreter_ISOC(script_name)
                         prg.parse()
-                    elif self.objectName() == "python":
+                        
+                    elif genv.current_focus.edit_type == "python":
                         prg = interpreter_Python(script_name)
                         prg.parse()
-                    elif self.objectName() == "javascript":
+                        
+                    elif genv.current_focus.edit_type == "javascript":
                         prg = interpreter_JavaScript(script_name)
                         prg.parse()
-                    elif self.objectName() == "prolog":
+                        
+                    elif genv.current_focus.edit_type == "prolog":
                         prg = interpreter_Prolog(script_name)
                         prg.parse()
-                    elif self.objectName() == "lisp":
+                        
+                    elif genv.current_focus.edit_type == "lisp":
                         prg = interpreter_Lisp(script_name)
                         prg.parse()
-                    elif self.objectName() == "c64":
+                        
+                    elif genv.current_focus.edit_type == "c64":
                         prg = interpreter_C64(script_name)
                         prg.parse()
                     
                     print("\nend of data\n")
-                        
-                    #genv.text_code += ('\t' * 1)
-                    #genv.text_code += "console.exec_()\n"
+                    
                     print(genv.text_code)
                     prg.run()
-                    
+                
+                except AttributeError:
+                    self.showNoEditorMessage()
+                    return
+                except ENoSourceHeader as e:
+                    showError(e.message)
+                    prg = None
+                    return
                 except ENoSourceHeader as e:
                     showError(e.message)
                     return
