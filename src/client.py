@@ -369,6 +369,20 @@ class globalEnv:
         self.token_macro = ["define","ifdef","ifndef","else","endif"]
         
         # ------------------------------------------------------------------------
+        # source code editors collector ...
+        # ------------------------------------------------------------------------
+        self.editors_entries = {
+            "dbase": [],
+            "pascal": [],
+            "iosc": [],
+            "java": [],
+            "javascript": [],
+            "python": [],
+            "prolog": [],
+            "lisp": []
+        }
+        
+        # ------------------------------------------------------------------------
         # string conversation ...
         # ------------------------------------------------------------------------
         self.octal_digits      = ['\060','\061','\062','\063','\064','\065','\066','\067','\070','\071']
@@ -393,20 +407,19 @@ class globalEnv:
         class editor_class:
             def __init__(self):
                 self.rightBox = None
-                self.obj_1 = None
-                self.obj_2 = None
-                self.obj_3 = None
+                #self.obj_1 = None
+                #self.obj_2 = None
+                #self.obj_3 = None
                 #
                 self.hlayout = None
                 self.vlayout = None
         #
         self.editor = editor_class()
-        self.editor.obj_1 = None
-        self.editor.obj_2 = None
-        self.editor.obj_3 = None
         
         self.editor_check = None
         self.editor_saveb = None
+        
+        self.current_focus = None
         
         self.img_doxygen = None
         self.img_hlpndoc = None
@@ -8861,19 +8874,19 @@ class EditorTranslate(QWidget):
         radio_button = self.sender()
         radio_name   = radio_button.objectName()
         print("rad: ", radio_name)
-        if radio_button.isChecked():
-            if radio_name == "gnucpp":
-                genv.editor.obj_2.setVisible(False)  # fpc
-                genv.editor.obj_3.setVisible(True)   # gnu cc
-                genv.editor.obj_3.clear()
-            elif radio_name == "pascal":
-                genv.editor.obj_2.setVisible(True)   # fpc
-                genv.editor.obj_3.setVisible(False)  # gnu c++
-                genv.editor.obj_2.clear()
-            elif radio_name == "bytecode":
-                genv.editor.obj_2.setVisible(False)  # fpc
-                genv.editor.obj_3.setVisible(False)  # gnu c++
-            #showInfo("radio_button:  " + radio_button.text())
+        #if radio_button.isChecked():
+        #    #if radio_name == "gnucpp":
+        #    #    #genv.editor.obj_2.setVisible(False)  # fpc
+        #    #    #genv.editor.obj_3.setVisible(True)   # gnu cc
+        #    #    #genv.editor.obj_3.clear()
+        #    #elif radio_name == "pascal":
+        #    #    #genv.editor.obj_2.setVisible(True)   # fpc
+        #    #    #genv.editor.obj_3.setVisible(False)  # gnu c++
+        #    #    #genv.editor.obj_2.clear()
+        #    #elif radio_name == "bytecode":
+        #    #    #genv.editor.obj_2.setVisible(False)  # fpc
+        #    #    #genv.editor.obj_3.setVisible(False)  # gnu c++
+        #    ###showInfo("radio_button:  " + radio_button.text())
     
 # ----------------------------------------------------------------------------
 # \brief This class stands for the source code input editors like: dBase, C
@@ -8885,6 +8898,7 @@ class EditorTextEdit(QPlainTextEdit):
         self.setStyleSheet(_("ScrollBarCSS"))
         self.setObjectName(file_name)
         
+        self.file_name = file_name
         self.edit_type = edit_type
         self.bookmarks = set()
         
@@ -8904,7 +8918,7 @@ class EditorTextEdit(QPlainTextEdit):
         elif edit_type == "isoc":
             self.highlighter = CppSyntaxHighlighter   (self.document())
         elif edit_type == "java":
-            self.highlighter = JavaSyntaxHighlighter   (self.document())
+            self.highlighter = JavaSyntaxHighlighter  (self.document())
         elif edit_type == "lisp":
             self.highlighter = LispSyntaxHighlighter  (self.document())
         elif edit_type == "prolog":
@@ -9067,11 +9081,13 @@ class EditorTextEdit(QPlainTextEdit):
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            cursor = self.cursorForPosition(event.pos())
-            block = cursor.block()
-            block_number = block.blockNumber()
-            top = self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
-            bottom = top + self.blockBoundingRect(block).height()
+            cursor        = self.cursorForPosition(event.pos())
+            block         = cursor.block()
+            block_number  = block.blockNumber()
+            top           = self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
+            bottom        = top + self.blockBoundingRect(block).height()
+            
+            genv.current_focus = self
             
             # Überprüfen, ob der Klick innerhalb der Linie liegt
             if int(top) <= event.pos().y() <= int(bottom):
@@ -9085,14 +9101,14 @@ class EditorTextEdit(QPlainTextEdit):
     
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_F2:
-            script_name = genv.editor.obj_1.objectName()
+            script_name = self.file_name
             try:
                 # ---------------------------------------
                 # save source code before exec...
                 # ---------------------------------------
                 if genv.editor_saveb.isChecked() == True:
                     with open(script_name, 'w', encoding='utf-8') as file:
-                        file.write(genv.editor.obj_1.toPlainText())
+                        file.write(self.toPlainText())
                         file.close()
             except Exception as e:
                 showException(traceback.format_exc())
@@ -9179,26 +9195,6 @@ class EditorTextEdit(QPlainTextEdit):
                 return
         else:
             super().keyPressEvent(event)
-
-# ----------------------------------------------------------------------------
-# \brief when checked, then save the text in QPlainTextEdit before the source
-#        will be compiled, interpreted, or transpiled.
-# ----------------------------------------------------------------------------
-class EditorSavebBox(QCheckBox):
-    def __init__(self, parent):
-        super().__init__()
-        self.setChecked(True)
-        self.setText(_("  Save before Run"))
-
-# ----------------------------------------------------------------------------
-# \brief when checked, compile, and run the source code as gui application.
-#        else: run as dos simulated console application.
-# ----------------------------------------------------------------------------
-class EditorCheckBox(QCheckBox):
-    def __init__(self, parent):
-        super().__init__()
-        self.setChecked(True)
-        self.setText(_("   Run as DOS Application"))
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
@@ -12861,60 +12857,37 @@ class ApplicationEditorsPage(QObject):
                 if len(filename) < 1:
                     return
                 widget.setObjectName('label 1:' + file_path)
-                
-                self.tabs_editor_widget = QWidget()
-                
-                genv.editor.hlayout = QHBoxLayout()
-                genv.editor.vlayout = QVBoxLayout()
                 #
-                if not genv.editor.obj_1 == None:
-                    self.tabs_editor.removeTab(self.tabs_editor.currentIndex())
-                    genv.editor.obj_1.deleteLater()
-                    genv.editor.obj_1 = None
-                #
-                hlayout = QHBoxLayout()
+                for entry in genv.editors_entries[self.text]:
+                    if entry["name"] == file_path:
+                        showInfo("already open.")
+                        return
                 
-                genv.editor_check = EditorCheckBox(self)
-                genv.editor_saveb = EditorSavebBox(self)
-                #
-                self.editor_dummy = QLabel("")
-                self.editor_dummy.setMinimumWidth(280)
+                file_layout_widget = QWidget()
+                file_layout        = QHBoxLayout()
                 
-                hlayout.addWidget(genv.editor_check)
-                hlayout.addWidget(genv.editor_saveb)
-                hlayout.addWidget(self.editor_dummy)
+                editor_object = EditorTextEdit(self, file_path, self.text)
+                new_editor    = {
+                    "object": editor_object,
+                    "name":   file_path
+                }
+                genv.editors_entries[self.text].append(new_editor)
                 
-                #hlayout.setAlignment(genv.editor_check, Qt.AlignLeft)
-                #hlayout.setAlignment(genv.editor_saveb, Qt.AlignLeft)
-                #hlayout.setAlignment(self.editor_dummy, Qt.AlignLeft)
-                #
-                genv.editor.obj_1 = None
-                gc.collect()
-                genv.editor.obj_1 = EditorTextEdit(self, file_path, self.text)
-                genv.editor.obj_2 = EditorTextEdit(self, file_path, self.text)
-                genv.editor.obj_3 = EditorTextEdit(self, file_path, self.text)
-                #
-                genv.editor.vlayout.addLayout(hlayout)
-                #
-                genv.editor.vlayout.addWidget(genv.editor.obj_1)
-                genv.editor.vlayout.addWidget(genv.editor.obj_2)
-                genv.editor.vlayout.addWidget(genv.editor.obj_3)
-                #
-                genv.editor.rightBox = EditorTranslate(self)
-                #
-                genv.editor.hlayout.addLayout(genv.editor.vlayout)
-                genv.editor.hlayout.addWidget(genv.editor.rightBox)
+                file_layout_widget = QWidget()
+                file_layout        = QVBoxLayout()
                 
-                self.tabs_editor_file_layout_widget = QWidget()
-                self.tabs_editor_file_layout_widget.setLayout(genv.editor.hlayout)
+                file_layout.addWidget(editor_object)
+                file_layout_widget.setLayout(
+                file_layout)
                 
-                self.tabs_editor.addTab(self.tabs_editor_file_layout_widget, filename)
+                self.tabs_editor.addTab(file_layout_widget, filename)
                 
-                try:
-                    self.focused_widget = genv.editor.obj_1
-                except AttributError:
-                    self.showNoEditorMessage()
-                    return
+                #try:
+                #    pass
+                #    #self.focused_widget = genv.editor.obj_1
+                #except AttributError:
+                #    self.showNoEditorMessage()
+                #    return
             
             elif text[0] == "label 2":
                 self.checkBeforeSave()
@@ -12923,17 +12896,26 @@ class ApplicationEditorsPage(QObject):
                 application_mode = 1
                 
                 try:
-                    script_name = genv.editor.obj_1.objectName()
-                    file_name   = script_name
-                    print("script: ", script_name)
+                    # ---------------------------------------
+                    # todo: text editor focus !!
+                    # ---------------------------------------
+                    plain_text_edits = []
+                    
+                    for index in range(self.tabs_editor.count()):
+                        tab = self.tabs_editor.widget(index)
+                        if tab:
+                            edits = tab.findChildren(QPlainTextEdit)
+                            plain_text_edits.extend(edits)
                     
                     # ---------------------------------------
                     # save source code before exec...
                     # ---------------------------------------
-                    if genv.editor_saveb.isChecked() == True:
-                        with open(file_name, 'w', encoding='utf-8') as file:
-                            file.write(genv.editor.obj_1.toPlainText())
-                            file.close()
+                    for i, edit in enumerate(plain_text_edits, start=0):
+                        if genv.current_focus.objectName() == edit.objectName():
+                            with open(edit.objectName(), 'w', encoding='utf-8') as file:
+                                file.write(edit.toPlainText())
+                                file.close()
+                    
                 except AttributeError:
                     self.showNoEditorMessage()
                     return
