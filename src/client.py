@@ -14574,19 +14574,20 @@ class FileWatcherGUI(QDialog):
         self.tab0_left_layout.addWidget(self.tab0_file_text)
         self.tab0_path = QDir.homePath()
         
-        self.tab0_help_list   = QListWidget()
-        self.tab0_help_list.setMinimumWidth(260)
-        self.tab0_help_list.setIconSize(QSize(34,34))
-        self.tab0_help_list.setFont(QFont(genv.v__app__font, 12))
-        self.tab0_help_list.font().setBold(True)
-        self.tab0_help_list.itemClicked.connect(self.tab0_help_list_item_click)
+        self.tab0_help_list1   = QListWidget()
+        self.tab0_help_list1.setMinimumWidth(260)
+        self.tab0_help_list1.setMaximumHeight(113)
+        self.tab0_help_list1.setIconSize(QSize(34,34))
+        self.tab0_help_list1.setFont(QFont(genv.v__app__font, 12))
+        self.tab0_help_list1.font().setBold(True)
+        self.tab0_help_list1.itemClicked.connect(self.tab0_help_list1_item_click)
         
-        self.list_blue_item = QListWidgetItem(_("Page Template:"))
-        self.list_blue_item.setBackground(QColor("navy"))
-        self.list_blue_item.setForeground(QColor("yellow"))
-        self.list_blue_item.setFlags(
-        self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
-        self.tab0_help_list.addItem(self.list_blue_item)
+        self.list_blue_item1 = QListWidgetItem(_("Page Template:"))
+        self.list_blue_item1.setBackground(QColor("navy"))
+        self.list_blue_item1.setForeground(QColor("yellow"))
+        self.list_blue_item1.setFlags(
+        self.list_blue_item1.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list1.addItem(self.list_blue_item1)
         
         liste = [
             [_("HTML WebSite Template")],
@@ -14594,22 +14595,30 @@ class FileWatcherGUI(QDialog):
         ]
         for item in liste:
             self.list_item1 = QListWidgetItem(_(item[0]))
-            self.list_item1.setFont(self.tab0_help_list.font())
-            self.tab0_help_list.addItem(self.list_item1)
+            self.list_item1.setFont(self.tab0_help_list1.font())
+            self.tab0_help_list1.addItem(self.list_item1)
         
-        self.list_blue_item = QListWidgetItem(_("empty"))
-        self.list_blue_item.setBackground(QColor("white"))
-        self.list_blue_item.setForeground(QColor("white"))
-        self.list_blue_item.setFlags(
-        self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
-        self.tab0_help_list.addItem(self.list_blue_item)
+        self.list_blue_item2 = QListWidgetItem(_("empty"))
+        self.list_blue_item2.setBackground(QColor("white"))
+        self.list_blue_item2.setForeground(QColor("white"))
+        self.list_blue_item2.setFlags(
+        self.list_blue_item2.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list1.addItem(self.list_blue_item2)
         
-        self.list_blue_item = QListWidgetItem(_("Project Template:"))
-        self.list_blue_item.setBackground(QColor("navy"))
-        self.list_blue_item.setForeground(QColor("yellow"))
-        self.list_blue_item.setFlags(
-        self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
-        self.tab0_help_list.addItem(self.list_blue_item)
+        ###
+        self.tab0_help_list2   = QListWidget()
+        self.tab0_help_list2.setMinimumWidth(260)
+        self.tab0_help_list2.setIconSize(QSize(34,34))
+        self.tab0_help_list2.setFont(QFont(genv.v__app__font, 12))
+        self.tab0_help_list2.font().setBold(True)
+        self.tab0_help_list2.itemClicked.connect(self.tab0_help_list2_item_click)
+        
+        self.list_blue_item3 = QListWidgetItem(_("Project Template:"))
+        self.list_blue_item3.setBackground(QColor("navy"))
+        self.list_blue_item3.setForeground(QColor("yellow"))
+        self.list_blue_item3.setFlags(
+        self.list_blue_item3.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list2.addItem(self.list_blue_item3)
         
         liste = [
             [_("Empty Project")         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
@@ -14618,20 +14627,31 @@ class FileWatcherGUI(QDialog):
             [_("Software Documentation"), os.path.join("software"     + genv.v__app__img_ext__) ],
         ]
         for item in liste:
-            self.list_item1 = QListWidgetItem(_(item[0]))
-            self.list_item1.setIcon(QIcon(os.path.join(genv.v__app__img__int__, item[1])))
-            self.list_item1.setFont(self.tab0_help_list.font())
-            self.tab0_help_list.addItem(self.list_item1)
+            self.list_item2 = QListWidgetItem(_(item[0]))
+            self.list_item2.setIcon(QIcon(os.path.join(genv.v__app__img__int__, item[1])))
+            self.list_item2.setFont(self.tab0_help_list2.font())
+            self.tab0_help_list2.addItem(self.list_item2)
         
-        self.list_blue_item = QListWidgetItem(_("Projects:"))
-        self.list_blue_item.setBackground(QColor("navy"))
-        self.list_blue_item.setForeground(QColor("yellow"))
-        self.list_blue_item.setFlags(
-        self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
-        self.tab0_help_list.addItem(self.list_blue_item)
+        ###
+        self.tab0_help_list3   = QListWidget()
+        self.tab0_help_list3.setMinimumWidth(260)
+        self.tab0_help_list3.setIconSize(QSize(34,34))
+        self.tab0_help_list3.setFont(QFont(genv.v__app__font, 12))
+        self.tab0_help_list3.font().setBold(True)
+        self.tab0_help_list3.itemClicked.connect(self.tab0_help_list3_item_click)
         
-        self.tab0_help_layout = QHBoxLayout()
-        self.tab0_help_layout.addWidget(self.tab0_help_list)
+        self.list_blue_item3 = QListWidgetItem(_("Projects:"))
+        self.list_blue_item3.setBackground(QColor("navy"))
+        self.list_blue_item3.setForeground(QColor("yellow"))
+        self.list_blue_item3.setFlags(
+        self.list_blue_item3.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list3.addItem(self.list_blue_item3)
+        ##
+        
+        self.tab0_help_layout = QVBoxLayout()
+        self.tab0_help_layout.addWidget(self.tab0_help_list1)
+        self.tab0_help_layout.addWidget(self.tab0_help_list2)
+        self.tab0_help_layout.addWidget(self.tab0_help_list3)
         
         self.tab0_left_layout.addWidget(self.tab0_file_text)
         self.tab0_left_layout.addLayout(self.tab0_help_layout)
@@ -14860,7 +14880,13 @@ class FileWatcherGUI(QDialog):
         self.interval = 0
         self.currentTime = 0
     
-    def tab0_help_list_item_click(self, item):
+    def tab0_help_list3_item_click(self, item):
+        text = item.text()
+    
+    def tab0_help_list2_item_click(self, item):
+        text = item.text()
+    
+    def tab0_help_list1_item_click(self, item):
         text = item.text()
         if text == _("Empty Project"):
             genv.doc_template = genv.DOC_TEMPLATE_EMPTY
