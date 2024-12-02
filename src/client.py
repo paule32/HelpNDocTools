@@ -203,40 +203,61 @@ class IgnoreOuterException(Exception):
 # ------------------------------------------------------------------------
 # message box code place holder ...
 # ------------------------------------------------------------------------
-def showMessage(text, msgtype=0):
-    if not isApplicationInit():
-        genv.v__app_object = QApplication(sys.argv)
-    #
-    msgtypes = [
-        [ QMessageBox.Information, "Information" ],
-        [ QMessageBox.Warning,     "Warning" ],
-        [ QMessageBox.Critical,    "Error" ],
-        [ QMessageBox.Critical,    "Exception" ]
-    ]
+class showMessage(QDialog):
+    def __init__(self, text="", msgtype=0):
+        super(showMessage, self).__init__()
+        
+        if not isApplicationInit():
+            genv.v__app_object = QApplication(sys.argv)
+        #
+        msgtypes = [
+            [ QMessageBox.Information, "Information" ],
+            [ QMessageBox.Warning,     "Warning" ],
+            [ QMessageBox.Critical,    "Error" ],
+            [ QMessageBox.Critical,    "Exception" ]
+        ]
+        
+        self.setWindowTitle(msgtypes[msgtype][1])
+        self.setMinimumWidth(700)
+        
+        text_lay = QVBoxLayout()
+        text_box = QPlainTextEdit()
+        text_box.setFont(QFont("Consolas", 10))
+        text_box.document().setPlainText(text)
+        
+        if msgtype == 2:
+            text_no = QPushButton(_("No"))
+            text_ok = QPushButton(_("No"))
+            #
+            text_no.setMinimumHeight(32)
+            text_ok.setMinimumHeight(32)
+            #
+            text_no.setStyleSheet(_("msgbox_css"))
+            text_ok.setStyleSheet(_("msgbox_css"))
+            #
+            text_no.clicked.connect(self.no_click)
+            text_ok.clicked.connect(self.ok_click)
+        
+        text_btn = QPushButton(_("Close"))
+        text_btn.setMinimumHeight(32)
+        text_btn.setStyleSheet(_("msgbox_css"))
+        text_btn.clicked.connect(self.no_click)
+        
+        text_lay.addWidget(text_box)
+        text_lay.addWidget(text_btn)
+        
+        self.setLayout(text_lay)
+        self.exec_()
+        
+    def no_click(self):
+        genv.LastResult = False
+        self.close()
+        return True
     
-    if not application_window == None:
-        dialog = QDialog(application_window)
-    else:
-        dialog = QDialog()
-    
-    dialog.setWindowTitle(msgtypes[msgtype][1])
-    dialog.setMinimumWidth(700)
-    
-    text_lay = QVBoxLayout()
-    text_box = QPlainTextEdit()
-    text_box.setFont(QFont("Consolas", 10))
-    text_box.document().setPlainText(text)
-    
-    text_btn = QPushButton(_("Close"))
-    text_btn.setMinimumHeight(32)
-    text_btn.setStyleSheet(_("msgbox_css"))
-    text_btn.clicked.connect(lambda: dialog.close())
-    
-    text_lay.addWidget(text_box)
-    text_lay.addWidget(text_btn)
-    
-    dialog.setLayout(text_lay)
-    dialog.exec_()
+    def ok_click(self):
+        genv.LastResult = True
+        self.close()
+        return True
 
 # ------------------------------------------------------------------------
 # code shortner definitions ...
@@ -248,8 +269,7 @@ def showWarning(text):
     showMessage(text, 1)
     return
 def showError(text):
-    showMessage(text, 2)
-    return
+    return showMessage(text, 2)
 # ------------------------------------------------------------------------------
 # \brief  This definition displays a exception dialog if some exception is raise
 #         by the developer.
@@ -309,7 +329,9 @@ class globalEnv:
 
         self.__error__locales_error = "" \
             + "no locales file for this application."
-
+        
+        self.LastResult = True
+        
         # ---------------------------------------------------------------------------
         # \brief currently onle two converters are supported:
         #        0 - not sprecified => unknown
@@ -382,6 +404,12 @@ class globalEnv:
             "lisp": []
         }
         
+        self.radio_cpp          = None
+        self.radio_java         = None
+        self.radio_javascript   = None
+        self.radio_python       = None
+        self.radio_php          = None
+        
         # ------------------------------------------------------------------------
         # string conversation ...
         # ------------------------------------------------------------------------
@@ -424,9 +452,9 @@ class globalEnv:
         self.img_doxygen = None
         self.img_hlpndoc = None
         
-        self.img_ccpplus = None
-        self.img_javadoc = None
-        self.img_freepas = None
+        #self.img_ccpplus = None
+        #self.img_javadoc = None
+        #self.img_freepas = None
 
         # ------------------------------------------------------------------------
         # databse stuff ...
@@ -586,6 +614,15 @@ class globalEnv:
         self.line_row = 1
         
         self.c64_painter = None
+        
+        self.doc_project  = ""
+        self.doc_template = -1
+        self.doc_type     = -1
+        
+        self.DOC_TEMPLATE_API      = 0
+        self.DOC_TEMPLATE_EMPTY    = 1
+        self.DOC_TEMPLATE_RECIPE   = 2
+        self.DOC_TEMPLATE_SOFTWARE = 3
         
         self.tr = None
         self.sv_help = None
@@ -7676,10 +7713,12 @@ class doxygenImageTracker(QWidget):
                 self.state = 2
                 self.bordercolor = "lime";
                 self.set_style()
+                genv.doc_project = "doxygen"
             else:
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
+                genv.doc_project = ""
             genv.HelpAuthoringConverterMode = 1
             print("doxygen")
     
@@ -7737,10 +7776,12 @@ class helpNDocImageTracker(QWidget):
                 self.state = 2
                 self.bordercolor = "lime";
                 self.set_style()
+                genv.doc_project = "helpndoc"
             else:
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
+                genv.doc_project = ""
             genv.HelpAuthoringConverterMode = 2
             print("helpNDoc")
     
@@ -7761,200 +7802,6 @@ class helpNDocImageTracker(QWidget):
             self.bordercolor = "lightgray";
             self.set_style()
         self.img_origin_hlpndoc_label.setCursor(QCursor(Qt.ArrowCursor))
-
-class ccpplusImageTracker(QWidget):
-    def __init__(self, parent=None):
-        super(ccpplusImageTracker, self).__init__(parent)
-        
-        #self.setMinimumHeight(120)
-        #self.setMinimumWidth(120)
-        self.img_origin_ccpplus_label = QLabel(self)
-        self.img_origin_ccpplus_label.setObjectName("ccpplus-image")
-        self.img_origin_ccpplus_label.move(15,0)
-        self.img_origin_ccpplus_label.setMinimumHeight(107)
-        self.img_origin_ccpplus_label.setMinimumWidth(104)
-        
-        self.bordercolor = "lightgray"
-        self.parent      = parent
-        self.state       = 0
-        self.set_style()
-    
-    def set_style(self):
-        style = _("doxtrack_css") \
-        .replace("{1i}", genv.v__app__cpp1dev__ + str(1) + genv.v__app__img_ext__).replace("{1b}", self.bordercolor ) \
-        .replace("{2i}", genv.v__app__cpp1dev__ + str(2) + genv.v__app__img_ext__).replace("{2b}", self.bordercolor )
-        
-        self.img_origin_ccpplus_label.setStyleSheet(style.replace("\\","/"))
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            if genv.img_javadoc.state == 2:
-                genv.img_javadoc.bordercolor = "lightgray"
-                genv.img_javadoc.set_style()
-                genv.img_javadoc.state = 0
-            #
-            if genv.img_freepas.state == 2:
-                genv.img_freepas.bordercolor = "lightgray"
-                genv.img_freepas.set_style()
-                genv.img_freepas.state = 0
-            
-            if self.state == 0:
-                self.state = 2
-                self.bordercolor = "lime";
-                self.set_style()
-            else:
-                self.state = 0
-                self.bordercolor = "lightgray";
-                self.set_style()
-            print("javadoc")
-    
-    def enterEvent(self, event):
-        if self.state == 2:
-            self.bordercolor = "lime";
-            self.set_style()
-        else:
-            self.bordercolor = "gray";
-            self.set_style()
-        self.img_origin_ccpplus_label.setCursor(QCursor(Qt.PointingHandCursor))
-    
-    def leaveEvent(self, event):
-        if self.state == 2:
-            self.bordercolor = "lime";
-            self.set_style()
-        else:
-            self.bordercolor = "lightgray";
-            self.set_style()
-        self.img_origin_ccpplus_label.setCursor(QCursor(Qt.ArrowCursor))
-
-class javadocImageTracker(QWidget):
-    def __init__(self, parent=None):
-        super(javadocImageTracker, self).__init__(parent)
-        
-        self.img_origin_javadoc_label = QLabel(self)
-        self.img_origin_javadoc_label.setObjectName("javadoc-image")
-        self.img_origin_javadoc_label.move(14,0)
-        self.img_origin_javadoc_label.setMinimumHeight(107)
-        self.img_origin_javadoc_label.setMinimumWidth(104)
-        
-        self.bordercolor = "lightgray";
-        self.parent      = parent
-        self.state       = 0
-        
-        self.set_style()
-        
-    def set_style(self):
-        style = _("doxtrack_css") \
-        .replace("{1i}",genv.v__app__javadoc__ + str(1) + genv.v__app__img_ext__) \
-        .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",genv.v__app__javadoc__ + str(2) + genv.v__app__img_ext__) \
-        .replace("{2b}",self.bordercolor )
-        
-        self.img_origin_javadoc_label.setStyleSheet(style.replace("\\","/"))
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            if genv.img_ccpplus.state == 2:
-                genv.img_ccpplus.bordercolor = "lightgray"
-                genv.img_ccpplus.set_style()
-                genv.img_ccpplus.state = 0
-            #
-            if genv.img_freepas.state == 2:
-                genv.img_freepas.bordercolor = "lightgray"
-                genv.img_freepas.set_style()
-                genv.img_freepas.state = 0
-            
-            if self.state == 0:
-                self.state = 2
-                self.bordercolor = "lime";
-                self.set_style()
-            else:
-                self.state = 0
-                self.bordercolor = "lightgray";
-                self.set_style()
-            print("javadoc")
-    
-    def enterEvent(self, event):
-        if self.state == 2:
-            self.bordercolor = "lime";
-            self.set_style()
-        else:
-            self.bordercolor = "gray";
-            self.set_style()
-        self.img_origin_javadoc_label.setCursor(QCursor(Qt.PointingHandCursor))
-    
-    def leaveEvent(self, event):
-        if self.state == 2:
-            self.bordercolor = "lime";
-            self.set_style()
-        else:
-            self.bordercolor = "lightgray";
-            self.set_style()
-        self.img_origin_javadoc_label.setCursor(QCursor(Qt.ArrowCursor))
-
-class freepasImageTracker(QWidget):
-    def __init__(self, parent=None):
-        super(freepasImageTracker, self).__init__(parent)
-        
-        self.bordercolor = "lightgray"
-        self.parent      = parent
-        self.state       = 0
-        
-        self.img_origin_freepas_label = QLabel(self)
-        self.img_origin_freepas_label.setObjectName("freepas-image")
-        self.img_origin_freepas_label.move(30,10)
-        self.img_origin_freepas_label.setMinimumHeight(70)
-        self.img_origin_freepas_label.setMinimumWidth(218)
-        
-        self.set_style()
-        
-    def set_style(self):
-        style = _("doxtrack_css") \
-        .replace("{1i}",genv.v__app__freepas__ + str(1) + genv.v__app__img_ext__) \
-        .replace("{1b}",self.bordercolor ) \
-        .replace("{2i}",genv.v__app__freepas__ + str(2) + genv.v__app__img_ext__) \
-        .replace("{2b}",self.bordercolor )
-        
-        self.img_origin_freepas_label.setStyleSheet(style.replace("\\","/"))
-    
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            if genv.img_javadoc.state == 2:
-                genv.img_javadoc.bordercolor = "lightgray"
-                genv.img_javadoc.set_style()
-                genv.img_javadoc.state = 0
-            #
-            if genv.img_ccpplus.state == 2:
-                genv.img_ccpplus.bordercolor = "lightgray"
-                genv.img_ccpplus.set_style()
-                genv.img_ccpplus.state = 0
-                
-            if self.state == 0:
-                self.state = 2
-                self.bordercolor = "lime";
-                self.set_style()
-            else:
-                self.state = 0
-                self.bordercolor = "lightgray";
-                self.set_style()
-            print("freepas")
-    
-    def enterEvent(self, event):
-        if self.state == 2:
-            self.bordercolor = "lime";
-            self.set_style()
-        else:
-            self.bordercolor = "gray";
-            self.set_style()
-        self.img_origin_freepas_label.setCursor(QCursor(Qt.PointingHandCursor))
-    
-    def leaveEvent(self, event):
-        if self.state == 2:
-            self.bordercolor = "lime";
-            self.set_style()
-        else:
-            self.bordercolor = "lightgray";
-            self.set_style()
-        self.img_origin_freepas_label.setCursor(QCursor(Qt.ArrowCursor))
 
 class MyPushButton(QLabel):
     def __init__(self, parent, text="", mode=0, callback_func=None):
@@ -8102,8 +7949,10 @@ class OpenProjectButton(QPushButton):
             MyProjectOption()
         
         if genv.project_type.lower() == "doxygen":
+            genv.doc_project = "doxygen"
             self.parent.trigger_mouse_press(genv.img_doxygen)
         elif genv.project_type.lower() == "helpndoc":
+            genv.doc_project = "helpndoc"
             self.parent.trigger_mouse_press(genv.img_hlpndoc)
         else:
             showInfo(_("Error: help framework not known."))
@@ -14611,10 +14460,12 @@ class FileWatcherGUI(QDialog):
         
         self.tab0_fold_push1 = OpenProjectButton(self, font)
         self.tab0_fold_userd = QDir.homePath()
-        self.tab0_fold_userd = self.tab0_fold_userd.replace("\\",'/',1)
+        self.tab0_fold_userd = self.tab0_fold_userd.replace("\\",'/')
         
         if ' ' in self.tab0_fold_userd:
-            self.tab0_fold_userd = '"' + self.tab0_fold_userd + '"'
+            self.tab0_fold_userd = '"' + self.tab0_fold_userd + '"' + "/unknown.pro"
+        else:
+            self.tab0_fold_userd = QDir.homePath() + "/unknown.pro"
         
         self.tab0_fold_edit1.setFont(font)
         self.tab0_fold_edit1.setText(self.tab0_fold_userd)
@@ -14623,10 +14474,10 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_scroll1.setMinimumWidth(300)
         self.tab0_fold_scroll1.setMaximumWidth(300)
         
-        self.tab0_fold_push11  = MyPushButton(self, "Create", 1, None)
+        self.tab0_fold_push11  = MyPushButton(self, "Create", 1, self.create_project_clicked)
         self.tab0_fold_push12  = MyPushButton(self, "Open"  , 2, self.open_project_clicked)
-        self.tab0_fold_push13  = MyPushButton(self, "Repro" , 3, None)
-        self.tab0_fold_push14  = MyPushButton(self, "Build" , 4, None)
+        self.tab0_fold_push13  = MyPushButton(self, "Repro" , 3, self.repro_project_clicked)
+        self.tab0_fold_push14  = MyPushButton(self, "Build" , 4, self.build_project_clicked)
         #        
         #
         self.tab0_fold_scroll2 = QScrollArea()
@@ -14692,18 +14543,28 @@ class FileWatcherGUI(QDialog):
         self.img_scroll1_layout.addWidget(genv.img_doxygen)
         self.img_scroll1_layout.addWidget(genv.img_hlpndoc)
         #
-        self.img_scroll2_layout = QGridLayout(self.tab0_fold_scroll2)
-        #
-        #self.img_scroll2_layout.addWidget(self.tab0_fold_scroll2)
-        #
-        genv.img_ccpplus = ccpplusImageTracker()
-        genv.img_javadoc = javadocImageTracker()
-        genv.img_freepas = freepasImageTracker()
-        #
-        #
-        self.img_scroll2_layout.addWidget(genv.img_ccpplus, 0, 0)
-        self.img_scroll2_layout.addWidget(genv.img_javadoc, 0, 1)
-        self.img_scroll2_layout.addWidget(genv.img_freepas, 2, 0, 1, 2)
+
+        self.img_scroll2_layout = QVBoxLayout(self.tab0_fold_scroll2)
+        
+        radio_font = QFont("Consolas",11)
+        genv.radio_cpp        = QRadioButton("C++        Documentation")
+        genv.radio_java       = QRadioButton("Java       Documentation")
+        genv.radio_javascript = QRadioButton("JavaScript Documentation")
+        genv.radio_python     = QRadioButton("Python     Documentation")
+        genv.radio_php        = QRadioButton("PHP        Documentation")
+        
+        genv.radio_cpp.setFont(radio_font)
+        genv.radio_java.setFont(radio_font)
+        genv.radio_javascript.setFont(radio_font)
+        genv.radio_python.setFont(radio_font)
+        genv.radio_php.setFont(radio_font)
+        
+        self.img_scroll2_layout.addWidget(genv.radio_cpp)
+        self.img_scroll2_layout.addWidget(genv.radio_java)
+        self.img_scroll2_layout.addWidget(genv.radio_javascript)
+        self.img_scroll2_layout.addWidget(genv.radio_python)
+        self.img_scroll2_layout.addWidget(genv.radio_php)
+        
         #
         #
         self.tab0_top_layout.addLayout(self.tab0_topV_vlayout)
@@ -14718,6 +14579,37 @@ class FileWatcherGUI(QDialog):
         self.tab0_help_list.setIconSize(QSize(34,34))
         self.tab0_help_list.setFont(QFont(genv.v__app__font, 12))
         self.tab0_help_list.font().setBold(True)
+        self.tab0_help_list.itemClicked.connect(self.tab0_help_list_item_click)
+        
+        self.list_blue_item = QListWidgetItem(_("Page Template:"))
+        self.list_blue_item.setBackground(QColor("navy"))
+        self.list_blue_item.setForeground(QColor("yellow"))
+        self.list_blue_item.setFlags(
+        self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list.addItem(self.list_blue_item)
+        
+        liste = [
+            [_("HTML WebSite Template")],
+            [_("PDF  Portable Docuement Format")]
+        ]
+        for item in liste:
+            self.list_item1 = QListWidgetItem(_(item[0]))
+            self.list_item1.setFont(self.tab0_help_list.font())
+            self.tab0_help_list.addItem(self.list_item1)
+        
+        self.list_blue_item = QListWidgetItem(_("empty"))
+        self.list_blue_item.setBackground(QColor("white"))
+        self.list_blue_item.setForeground(QColor("white"))
+        self.list_blue_item.setFlags(
+        self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list.addItem(self.list_blue_item)
+        
+        self.list_blue_item = QListWidgetItem(_("Project Template:"))
+        self.list_blue_item.setBackground(QColor("navy"))
+        self.list_blue_item.setForeground(QColor("yellow"))
+        self.list_blue_item.setFlags(
+        self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list.addItem(self.list_blue_item)
         
         liste = [
             [_("Empty Project")         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
@@ -14732,7 +14624,7 @@ class FileWatcherGUI(QDialog):
             self.tab0_help_list.addItem(self.list_item1)
         
         self.list_blue_item = QListWidgetItem(_("Projects:"))
-        self.list_blue_item.setBackground(QColor("blue"))
+        self.list_blue_item.setBackground(QColor("navy"))
         self.list_blue_item.setForeground(QColor("yellow"))
         self.list_blue_item.setFlags(
         self.list_blue_item.flags() & ~Qt.ItemIsSelectable)
@@ -14967,6 +14859,82 @@ class FileWatcherGUI(QDialog):
         
         self.interval = 0
         self.currentTime = 0
+    
+    def tab0_help_list_item_click(self, item):
+        text = item.text()
+        if text == _("Empty Project"):
+            genv.doc_template = genv.DOC_TEMPLATE_EMPTY
+            return True
+        elif text == _("Recipe"):
+            genv.doc_template = genv.DOC_TEMPLATE_RECIPE
+            return True
+        elif text == _("API Project"):
+            genv.doc_template = genv.DOC_TEMPLATE_API
+            return True
+        elif text == _("Software Documentation"):
+            genv.doc_template = genv.DOC_TEMPLATE_SOFTWARE
+            return True
+        else:
+            return False
+    
+    def repro_project_clicked(self):
+        showError("not implemented, yet.")
+        return False
+    
+    def build_project_clicked(self):
+        showError("not implemented, yet.")
+        return False
+    
+    def create_project_clicked(self):
+        bool_flagA = False
+        bool_flagB = False
+        bool_flagC = False
+        
+        path_error = _(""
+        + "Warning:\nA project with the corresponding name already exists.\n"
+        + "All data will be lost and override with new informations.")
+        
+        file_path = Path(self.tab0_fold_edit1.text())
+        if not self.tab0_fold_edit1.text().endswith(".pro"):
+            showError(_("Error:\nproject name does not fit the requirements."))
+            return False
+        if file_path.is_dir():
+            showError(_("Error:\ngiven file not a file type (is dir)."))
+            return False
+        if file_path.exists():
+            showError(path_error)
+            return False
+        # ------------------------------
+        if genv.radio_cpp.isChecked():
+            bool_flagA = True
+        elif genv.radio_java.isChecked():
+            bool_flagA = True
+        elif genv.radio_javascript.isChecked():
+            bool_flagA = True
+        elif genv.radio_python.isChecked():
+            bool_flagA = True
+        elif genv.radio_php.isChecked():
+            bool_flagA = True
+        # ------------------------------
+        if genv.doc_project == "doxygen":
+            bool_flagB = True
+        elif genv.doc_project == "helpndoc":
+            bool_flagB = True
+        else:
+            bool_flagB = False
+        # ------------------------------
+        if genv.doc_template >= 0:
+            bool_flagC = True
+        else:
+            bool_flagC = False
+        # ------------------------------
+        if not (bool_flagA == True) \
+        or not (bool_flagB == True) \
+        or not (bool_flagC == True):
+            showError(_("Error:\nNo project documentation selected."))
+            return False
+        # ------------------------------
+        return True
     
     def open_project_clicked(self):
         dialog  = QFileDialog()
@@ -16889,7 +16857,6 @@ class CustomWebEnginePage(QWebEnginePage):
 # ------------------------------------------------------------------------
 class HelpWindow(QMainWindow):
     def __init__(self, parent=None):
-        #if not genv.window_login == None:
         genv.saved_style = genv.window_login.styleSheet()
         genv.window_login.setStyleSheet("")
         
