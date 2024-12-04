@@ -44,7 +44,7 @@ try:
     # ------------------------------------------------------------------------
     def check_and_install_module():
         required_modules = [
-            "dbf", "polib", "requests", "timer", "datetime", "gmpy2",
+            "dbf", "polib", "requests", "timer", "datetime", "gmpy2", "webbrowser",
             "locale", "io", "random", "string",
             "ctypes", "sqlite3", "configparser", "traceback", "marshal", "inspect",
             "logging", "PyQt5", "pathlib", "rich", "string", "codecs" ]
@@ -136,6 +136,7 @@ import sqlite3        # database: sqlite
 import configparser   # .ini files
 
 import traceback      # stack exception trace back
+import webbrowser
 
 import textwrap
 import marshal        # bytecode exec
@@ -14431,6 +14432,7 @@ class FileWatcherGUI(QDialog):
         #
         self.tab0_topB_hlayout = QHBoxLayout()
         self.tab0_topB_vlayout = QVBoxLayout()
+        self.tab0_topA_vlayout.setAlignment(Qt.AlignLeft)
         #
         self.tab0_top0_vlayout = QVBoxLayout()
         #
@@ -14473,6 +14475,9 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_scroll1 = QScrollArea()
         self.tab0_fold_scroll1.setMinimumWidth(300)
         self.tab0_fold_scroll1.setMaximumWidth(300)
+        #
+        self.tab0_fold_scroll1.setMinimumHeight(215)
+        self.tab0_fold_scroll1.setMaximumHeight(215)
         
         self.tab0_fold_push11  = MyPushButton(self, "Create", 1, self.create_project_clicked)
         self.tab0_fold_push12  = MyPushButton(self, "Open"  , 2, self.open_project_clicked)
@@ -14481,11 +14486,23 @@ class FileWatcherGUI(QDialog):
         #        
         #
         self.tab0_fold_scroll2 = QScrollArea()
-        self.tab0_fold_scroll2.setMaximumWidth(300)
-        self.tab0_fold_push21  = MyPushButton(self, "Create", 1, None)
-        self.tab0_fold_push22  = MyPushButton(self, "Open"  , 2, None)
-        self.tab0_fold_push23  = MyPushButton(self, "Repro" , 3, None)
-        self.tab0_fold_push24  = MyPushButton(self, "Build" , 4, None)
+        self.tab0_fold_scroll2.setMinimumWidth(310)
+        self.tab0_fold_scroll2.setMaximumWidth(310)
+        #
+        lyfont = QFont("Arial",10)
+        
+        update = QLabel(_("search for updates"))
+        server = QLabel(_("connect to server"))
+        
+        update.setFont(lyfont)
+        server.setFont(lyfont)
+        
+        update.setMinimumWidth(120)
+        #
+        self.tab0_topB_vlayout.addWidget(update)
+        self.tab0_topB_vlayout.addWidget(server)
+        #
+        self.tab0_topB_hlayout.addWidget(self.tab0_fold_scroll2)
         #
         self.tab0_top1_hlayout.addWidget(self.tab0_fold_text1)
         self.tab0_top1_hlayout.addWidget(self.tab0_fold_edit1)
@@ -14501,11 +14518,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_topC_hlayout.addLayout(self.tab0_topA_vlayout)
         self.tab0_topC_hlayout.addLayout(self.tab0_topA_hlayout)
         #
-        self.tab0_topB_vlayout.addWidget(self.tab0_fold_push21)
-        self.tab0_topB_vlayout.addWidget(self.tab0_fold_push22)
-        self.tab0_topB_vlayout.addWidget(self.tab0_fold_push23)
-        self.tab0_topB_vlayout.addWidget(self.tab0_fold_push24)
-        self.tab0_topB_hlayout.addWidget(self.tab0_fold_scroll2)
+        
         #
         self.tab0_topD_hlayout.addLayout(self.tab0_topB_vlayout)
         self.tab0_topD_hlayout.addLayout(self.tab0_topB_hlayout)
@@ -14576,7 +14589,7 @@ class FileWatcherGUI(QDialog):
         
         self.tab0_help_list1   = QListWidget()
         self.tab0_help_list1.setMinimumWidth(260)
-        self.tab0_help_list1.setMaximumHeight(113)
+        self.tab0_help_list1.setMaximumHeight(110)
         self.tab0_help_list1.setIconSize(QSize(34,34))
         self.tab0_help_list1.setFont(QFont(genv.v__app__font, 12))
         self.tab0_help_list1.font().setBold(True)
@@ -14879,6 +14892,18 @@ class FileWatcherGUI(QDialog):
         
         self.interval = 0
         self.currentTime = 0
+    
+    def open_in_edge(self, request):
+        url = request.url().toString()
+        print("--> url: " + url)
+        if url:
+            print("23323232323")
+            webbrowser.register('edge', None,
+            webbrowser.BackgroundBrowser('C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'))
+            print("--------------")
+            webbrowser.get('edge').open_new(url)
+            print(",,,,,,,,")
+        request.accept()
     
     def tab0_help_list3_item_click(self, item):
         text = item.text()
