@@ -341,6 +341,8 @@ class globalEnv:
         # ---------------------------------------------------------------------------
         self.HelpAuthoringConverterMode = 0
         
+        self.v__app__donate1__  = im_path + "donate.png"
+        #
         self.v__app__doxygen__  = im_path + "doxygen"
         self.v__app__hlpndoc__  = im_path + "helpndoc"
         self.v__app__helpdev__  = im_path + "help"
@@ -13623,6 +13625,117 @@ class CircuitDesigner(QWidget):
         self.scene.addItem(battery)
         self.scene.addItem(wire1)
 
+class GradientButton(QPushButton):
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
+        
+        self.setFont(QFont("Arial", 10))  # Textgröße 11 Pixel
+        self.font().setBold(True)
+        
+        self.setMinimumSize(110, 30)
+        self.setMaximumSize(110, 30)
+        
+        self.setStyleSheet("border:none;font-weight:bold;")
+        self.clicked.connect(self.on_button_click)
+        self.is_hovered = False
+    
+    def on_button_click(self):
+        print("jjjj")
+    
+    def enterEvent(self, event):
+        self.is_hovered = True
+        self.update()
+    
+    def leaveEvent(self, event):
+        self.is_hovered = False
+        self.update()
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Farbverlauf oder Hover-Farbe
+        if self.is_hovered:
+            brush = QBrush(QColor("blue"))
+        else:
+            brush = QBrush(QColor("navy"))
+        
+        # Hintergrund zeichnen
+        rect = QRectF(0, 0, self.width(), self.height())
+        painter.setBrush(brush)
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(rect, 15, 15)  # Runde Ecken
+        
+        # Text zeichnen
+        if not self.is_hovered:
+            painter.setPen(Qt.white)
+        else:
+            painter.setPen(Qt.yellow)
+        painter.drawText(
+            rect,
+            Qt.AlignCenter,
+            self.text()
+        )
+
+class ClickableImage(QPushButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.setFont(QFont("Arial", 10))
+        self.font().setBold(True)
+        
+        self.setMinimumSize(110, 30)
+        self.setMaximumSize(110, 30)
+        
+        self.setStyleSheet("border:none;font-weight:bold;")
+        self.setText(_("Donate"))
+        
+        self.clicked.connect(self.on_button_click)
+        
+        self.is_hovered = False  # Hover-Zustand
+    
+    def on_button_click(self):
+        print("jjjj")
+        html_code = _("paypaldonate")
+        with open("temp_form.html", "w") as file:
+            file.write(html_code)
+        webbrowser.open("temp_form.html")
+    
+    def enterEvent(self, event):
+        self.is_hovered = True
+        self.update()
+    
+    def leaveEvent(self, event):
+        self.is_hovered = False
+        self.update()
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Farbverlauf oder Hover-Farbe
+        if self.is_hovered:
+            brush = QBrush(QColor("blue"))
+        else:
+            brush = QBrush(QColor("navy"))
+        
+        # Hintergrund zeichnen
+        rect = QRectF(0, 0, self.width(), self.height())
+        painter.setBrush(brush)
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(rect, 15, 15)  # Runde Ecken
+        
+        # Text zeichnen
+        if not self.is_hovered:
+            painter.setPen(Qt.white)
+        else:
+            painter.setPen(Qt.yellow)
+        painter.drawText(
+            rect,
+            Qt.AlignCenter,
+            self.text()
+        )
+
 # ---------------------------------------------------------------------------
 # \brief  This is the GUI-Entry point for our application.
 # \param  nothing
@@ -14474,10 +14587,7 @@ class FileWatcherGUI(QDialog):
         
         self.tab0_fold_scroll1 = QScrollArea()
         self.tab0_fold_scroll1.setMinimumWidth(300)
-        self.tab0_fold_scroll1.setMaximumWidth(300)
-        #
         self.tab0_fold_scroll1.setMinimumHeight(215)
-        self.tab0_fold_scroll1.setMaximumHeight(215)
         
         self.tab0_fold_push11  = MyPushButton(self, "Create", 1, self.create_project_clicked)
         self.tab0_fold_push12  = MyPushButton(self, "Open"  , 2, self.open_project_clicked)
@@ -14487,7 +14597,6 @@ class FileWatcherGUI(QDialog):
         #
         self.tab0_fold_scroll2 = QScrollArea()
         self.tab0_fold_scroll2.setMinimumWidth(310)
-        self.tab0_fold_scroll2.setMaximumWidth(310)
         #
         lyfont = QFont("Arial",10)
         
@@ -14497,10 +14606,21 @@ class FileWatcherGUI(QDialog):
         update.setFont(lyfont)
         server.setFont(lyfont)
         
-        update.setMinimumWidth(120)
+        update.setMinimumWidth(140)
+        server.setMinimumWidth(140)
         #
         self.tab0_topB_vlayout.addWidget(update)
         self.tab0_topB_vlayout.addWidget(server)
+        #
+        image_path = genv.v__app__donate1__
+        print(image_path)
+        #url = "https://kallup.dev/paypal/observer.html"
+        
+        donate = ClickableImage()
+        button = GradientButton("Online Help", self)
+                
+        self.tab0_topB_vlayout.addWidget(donate)
+        self.tab0_topB_vlayout.addWidget(button)
         #
         self.tab0_topB_hlayout.addWidget(self.tab0_fold_scroll2)
         #
@@ -14892,9 +15012,9 @@ class FileWatcherGUI(QDialog):
         
         self.interval = 0
         self.currentTime = 0
-    
-    def open_in_edge(self, request):
-        url = request.url().toString()
+        
+    def on_link_clicked(self, url):
+        url = url.url().toString()
         print("--> url: " + url)
         if url:
             print("23323232323")
