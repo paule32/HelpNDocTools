@@ -171,6 +171,16 @@ if getattr(sys, 'frozen', False):
     import pyi_splash
 
 # ---------------------------------------------------------------------------
+# Funktionen aus der Windows-API laden
+# ---------------------------------------------------------------------------
+CreateDesktop       = ctypes.windll.user32.CreateDesktopW
+SwitchDesktop       = ctypes.windll.user32.SwitchDesktop
+OpenDesktop         = ctypes.windll.user32.OpenDesktopW
+SetThreadDesktop    = ctypes.windll.user32.SetThreadDesktop
+CloseDesktop        = ctypes.windll.user32.CloseDesktop
+GetThreadDesktop    = ctypes.windll.user32.GetThreadDesktop
+GetCurrentThread    = ctypes.windll.kernel32.GetCurrentThread
+# ---------------------------------------------------------------------------
 class unexpectedParserException(Exception):
     def __init__(self, text, value=1):
         self.value    = str(value)
@@ -332,6 +342,7 @@ class globalEnv:
             + "no locales file for this application."
         
         self.LastResult = True
+        self.h_desktop  = None
         
         # ---------------------------------------------------------------------------
         # \brief currently onle two converters are supported:
@@ -390,6 +401,9 @@ class globalEnv:
         
         self.temp_token = ""
         self.TOKEN_TEMP = 4000
+        
+        # Konstante für Sicherheitsberechtigungen
+        self.GENERIC_ALL = 0x10000000
         
         self.token_macro = ["define","ifdef","ifndef","else","endif"]
         
@@ -617,15 +631,34 @@ class globalEnv:
         self.line_row = 1
         
         self.c64_painter = None
+
+        self.v__app__config_project_ini = "unknown.pro"
+        self.v__app__pro_config    = ""
+        #
+        self.doc_project            = -1
+        self.doc_template           = -1
+        self.doc_document_type      = -1
+        self.doc_lang               = -1
         
-        self.doc_project  = ""
-        self.doc_template = -1
-        self.doc_type     = -1
+        self.doc_project_open       = False
         
-        self.DOC_TEMPLATE_API      = 0
-        self.DOC_TEMPLATE_EMPTY    = 1
-        self.DOC_TEMPLATE_RECIPE   = 2
-        self.DOC_TEMPLATE_SOFTWARE = 3
+        self.DOC_LANG_CPP           = 0
+        self.DOC_LANG_JAVA          = 1
+        self.DOC_LANG_JAVASCRIPT    = 2
+        self.DOC_LANG_PYTHON        = 3
+        self.DOC_LANG_PHP           = 4
+        self.DOC_LANG_FORTRAN       = 5
+        
+        self.DOC_TEMPLATE_API       = 0
+        self.DOC_TEMPLATE_EMPTY     = 1
+        self.DOC_TEMPLATE_RECIPE    = 2
+        self.DOC_TEMPLATE_SOFTWARE  = 3
+        
+        self.DOC_DOCUMENT_HTML      = 0
+        self.DOC_DOCUMENT_PDF       = 1
+        
+        self.DOC_PROJECT_DOXYGEN    = 0
+        self.DOC_PROJECT_HELPNDOC   = 1
         
         self.tr = None
         self.sv_help = None
@@ -703,6 +736,40 @@ class globalEnv:
 # ---------------------------------------------------------------------------
 global genv
 genv = globalEnv()
+
+# Erstellen eines neuen Desktops
+def create_isolated_desktop(desktop_name="KioskDesktop"):
+    new_desktop = CreateDesktop(
+        desktop_name,
+        None,
+        None,
+        0,
+        GENERIC_ALL,
+        None
+    )
+    if not new_desktop:
+        raise ctypes.WinError()
+    return new_desktop, desktop_name
+
+# ---------------------------------------------------------------------------
+# Anwendung auf einem separaten Desktop starten
+# ---------------------------------------------------------------------------
+def run_on_desktop(desktop_name):
+    # Desktop öffnen
+    genv.h_desktop = OpenDesktop(desktop_name, 0, False, GENERIC_ALL)
+    if not genv.h_desktop:
+        raise ctypes.WinError()
+    
+    # Desktop setzen
+    success = SetThreadDesktop(genv.h_desktop)
+    if not success:
+        raise ctypes.WinError()
+    
+    # Anwendung starten
+    subprocess.Popen(application_path, creationflags=subprocess.CREATE_NEW_CONSOLE)
+    
+    # Desktop freigeben
+    CloseDesktop(genv.h_desktop)
 
 # ------------------------------------------------------------------------
 # read a file into memory ...
@@ -7716,12 +7783,12 @@ class doxygenImageTracker(QWidget):
                 self.state = 2
                 self.bordercolor = "lime";
                 self.set_style()
-                genv.doc_project = "doxygen"
+                genv.doc_project = genv.DOC_PROJECT_DOXYGEN
             else:
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
-                genv.doc_project = ""
+                genv.doc_project = -1
             genv.HelpAuthoringConverterMode = 1
             print("doxygen")
     
@@ -7779,12 +7846,12 @@ class helpNDocImageTracker(QWidget):
                 self.state = 2
                 self.bordercolor = "lime";
                 self.set_style()
-                genv.doc_project = "helpndoc"
+                genv.doc_project = genv.DOC_PROJECT_HELPNDOC
             else:
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
-                genv.doc_project = ""
+                genv.doc_project = -1
             genv.HelpAuthoringConverterMode = 2
             print("helpNDoc")
     
@@ -7952,10 +8019,10 @@ class OpenProjectButton(QPushButton):
             MyProjectOption()
         
         if genv.project_type.lower() == "doxygen":
-            genv.doc_project = "doxygen"
+            genv.doc_project = genv.DOC_PROJECT_DOXYGEN
             self.parent.trigger_mouse_press(genv.img_doxygen)
         elif genv.project_type.lower() == "helpndoc":
-            genv.doc_project = "helpndoc"
+            genv.doc_project = genv.DOC_PROJECT_HELPNDOC
             self.parent.trigger_mouse_press(genv.img_hlpndoc)
         else:
             showInfo(_("Error: help framework not known."))
@@ -8024,6 +8091,10 @@ class myExitDialog(QDialog):
     def exit_click(self):
         print("exit")
         self.disconnectEvents()
+        
+        # Desktop freigeben
+        CloseDesktop(genv.h_desktop)
+        
         sys.exit(0)
 
 class myMoveButton(QPushButton):
@@ -13744,13 +13815,32 @@ class ClickableImage(QPushButton):
 class FileWatcherGUI(QDialog):
     def __init__(self, parent=None):
         super(FileWatcherGUI, self).__init__(parent)
-        #self.setAttribute(Qt.WA_DeleteOnClose, True)
-        
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
+                
         global application_window
         application_window = self
         
         # Alle Qt-Warnungen stummschalten
         QLoggingCategory.setFilterRules("*.debug=false\n*.warning=false")
+        
+        try:
+            # Erstelle einen neuen Desktop
+            desktop, desktop_name = create_isolated_desktop("KioskDesktop")
+            
+            print(f"Desktop '{desktop_name}' erstellt.")
+            
+            # Desktop öffnen
+            genv.h_desktop = OpenDesktop(desktop_name, 0, False, GENERIC_ALL)
+            if not genv.h_desktop:
+                raise ctypes.WinError()
+            print("111")
+            # Desktop setzen
+            success = SetThreadDesktop(genv.h_desktop)
+            if not success:
+                raise ctypes.WinError()
+            print("222")
+        except Exception as e:
+            print(e)
         
         genv.css_menu_item_style  = _("css_menu_item_style")
         genv.css_menu_label_style = _("css_menu_label_style")
@@ -14189,17 +14279,21 @@ class FileWatcherGUI(QDialog):
         self.tab2   = QWidget()
         self.tab3   = QWidget()
         self.tab4   = QWidget()
+        self.tab5   = QWidget()
         
         # add tabs
         self.help_tabs.addTab(self.tab0_0, _("Help Project"))
         self.help_tabs.addTab(self.tab1_0, _("Pre-/Post Actions"))
-        self.help_tabs.addTab(self.tab3,   _("HelpNDoc"))
+        self.help_tabs.addTab(self.tab3,   _("DoxyGen"))
+        self.help_tabs.addTab(self.tab5,   _("HelpNDoc"))
         self.help_tabs.addTab(self.tab4,   _("Content"))
         
         self.tab_widget_tabs = QTabWidget(self.tab4)
         self.tab_widget_tabs.setMinimumWidth(830)
         self.tab_widget_tabs.setMinimumHeight(650)
+        
         self.tab_html   = QWidget()
+        
         self.tab_widget_tabs.addTab(self.tab2, "Topics")
         self.tab_widget_tabs.addTab(self.tab_html  , "HTML"  )
         
@@ -14685,18 +14779,27 @@ class FileWatcherGUI(QDialog):
         genv.radio_javascript = QRadioButton("JavaScript Documentation")
         genv.radio_python     = QRadioButton("Python     Documentation")
         genv.radio_php        = QRadioButton("PHP        Documentation")
+        genv.radio_fortran    = QRadioButton("Fortran    Documentation")
         
-        genv.radio_cpp.setFont(radio_font)
-        genv.radio_java.setFont(radio_font)
+        genv.radio_cpp       .setFont(radio_font)
+        genv.radio_java      .setFont(radio_font)
         genv.radio_javascript.setFont(radio_font)
-        genv.radio_python.setFont(radio_font)
-        genv.radio_php.setFont(radio_font)
+        genv.radio_python    .setFont(radio_font)
+        genv.radio_php       .setFont(radio_font)
+        genv.radio_fortran   .setFont(radio_font)
+        
+        genv.radio_cpp       .toggled.connect(self.radio_button_toggled)
+        genv.radio_java      .toggled.connect(self.radio_button_toggled)
+        genv.radio_javascript.toggled.connect(self.radio_button_toggled)
+        genv.radio_python    .toggled.connect(self.radio_button_toggled)
+        genv.radio_fortran   .toggled.connect(self.radio_button_toggled)
         
         self.img_scroll2_layout.addWidget(genv.radio_cpp)
         self.img_scroll2_layout.addWidget(genv.radio_java)
         self.img_scroll2_layout.addWidget(genv.radio_javascript)
         self.img_scroll2_layout.addWidget(genv.radio_python)
         self.img_scroll2_layout.addWidget(genv.radio_php)
+        self.img_scroll2_layout.addWidget(genv.radio_fortran)
         
         #
         #
@@ -15012,27 +15115,48 @@ class FileWatcherGUI(QDialog):
         
         self.interval = 0
         self.currentTime = 0
-        
-    def on_link_clicked(self, url):
-        url = url.url().toString()
-        print("--> url: " + url)
-        if url:
-            print("23323232323")
-            webbrowser.register('edge', None,
-            webbrowser.BackgroundBrowser('C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'))
-            print("--------------")
-            webbrowser.get('edge').open_new(url)
-            print(",,,,,,,,")
-        request.accept()
+    
+    def radio_button_toggled(self):
+        sender = self.sender()
+        if sender.isChecked():
+            showInfo(_("Attention:\nproject properties was changed."))
+            text = sender.text()
+            if text.startswith("C++"):
+                genv.doc_lang = genv.DOC_LANG_CPP
+            elif text.startswith("Java"):
+                genv.doc_lang = genv.DOC_LANG_JAVA
+            elif text.startswith("JavaScript"):
+                genv.doc_lang = genv.DOC_LANG_JAVASCRIPT
+            elif text.startswith("Python"):
+                genv.doc_lang = genv.DOC_LANG_PYTHON
+            elif text.startswith("PHP"):
+                genv.doc_lang = genv.DOC_LANG_PHP
+            elif text.startswith("Fortran"):
+                genv.doc_lang = genv.DOC_LANG_FORTRAN
+            else:
+                showError(_("Error:\nunknown help project language."))
+                return False
+        return True
     
     def tab0_help_list3_item_click(self, item):
         text = item.text()
     
-    def tab0_help_list2_item_click(self, item):
-        text = item.text()
-    
     def tab0_help_list1_item_click(self, item):
         text = item.text()
+        print("---> " + text)
+        if text.startswith("HTML"):
+            genv.doc_document_type = genv.DOC_DOCUMENT_HTML
+            return True
+        elif text.startswith("PDF"):
+            genv.doc_document_type = genv.DOC_DOCUMENT_PDF
+            return True
+        else:
+            genv.doc_document_type = -1
+            return False
+    
+    def tab0_help_list2_item_click(self, item):
+        text = item.text()
+        print(text)
         if text == _("Empty Project"):
             genv.doc_template = genv.DOC_TEMPLATE_EMPTY
             return True
@@ -15046,6 +15170,7 @@ class FileWatcherGUI(QDialog):
             genv.doc_template = genv.DOC_TEMPLATE_SOFTWARE
             return True
         else:
+            genv.doc_template = -1
             return False
     
     def repro_project_clicked(self):
@@ -15060,6 +15185,7 @@ class FileWatcherGUI(QDialog):
         bool_flagA = False
         bool_flagB = False
         bool_flagC = False
+        bool_flagD = False
         
         path_error = _(""
         + "Warning:\nA project with the corresponding name already exists.\n"
@@ -15077,34 +15203,108 @@ class FileWatcherGUI(QDialog):
             return False
         # ------------------------------
         if genv.radio_cpp.isChecked():
+            genv.doc_lang = genv.DOC_LANG_CPP
             bool_flagA = True
         elif genv.radio_java.isChecked():
+            genv.doc_lang = genv.DOC_LANG_JAVA
             bool_flagA = True
         elif genv.radio_javascript.isChecked():
+            genv.doc_lang = genv.DOC_LANG_JAVASCRIPT
             bool_flagA = True
         elif genv.radio_python.isChecked():
+            genv.doc_lang = genv.DOC_LANG_PYTHON
             bool_flagA = True
         elif genv.radio_php.isChecked():
+            genv.doc_lang = genv.DOC_LANG_PHP
             bool_flagA = True
+        elif genv.radio_fortran.isChecked():
+            genv.doc_lang = genv.DOC_LANG_FORTRAN
+            bool_flagA = True
+        else:
+            bool_flagA = False
         # ------------------------------
-        if genv.doc_project == "doxygen":
-            bool_flagB = True
-        elif genv.doc_project == "helpndoc":
+        if genv.doc_document_type >= 0:
             bool_flagB = True
         else:
             bool_flagB = False
         # ------------------------------
-        if genv.doc_template >= 0:
+        if genv.doc_project >= 0:
             bool_flagC = True
         else:
             bool_flagC = False
         # ------------------------------
+        if genv.doc_template >= 0:
+            bool_flagD = True
+        else:
+            bool_flagD = False
+        # ------------------------------
         if not (bool_flagA == True) \
         or not (bool_flagB == True) \
-        or not (bool_flagC == True):
+        or not (bool_flagC == True) \
+        or not (bool_flagD == True):
             showError(_("Error:\nNo project documentation selected."))
             return False
         # ------------------------------
+        genv.v__app__config_project_ini = self.tab0_fold_edit1.text()
+        pro = genv.v__app__config_project_ini
+        new = pro.replace('"', '')
+        pro = pro.lower()
+        if not pro.endswith(".pro"):
+            showError(_("Error:\nproject file does not fit requierements."))
+            return False
+        genv.v__app__config_project_ini = new
+        print(new)
+        if not os.path.exists(new):
+            try:
+                with open(genv.v__app__config_project_ini, "w", encoding="utf-8") as f:
+                    content = (""
+                    + "[common]"
+                    + "\ntype = helpdoc"
+                    + "\nlanguage = en_us"
+                    + "\ndoc_doctype = "    + str(genv.doc_document_type)
+                    + "\ndoc_template = "   + str(genv.doc_template)
+                    + "\ndoc_project = "    + str(genv.doc_project)
+                    + "\ndoc_lang = "       + str(genv.doc_lang)
+                    + "\n")
+                    f.write(content)
+                    f.close()
+            except Exception as e:
+                print(e)
+                showError(_("Error:\nproject file could not create."))
+                genv.doc_project_open = False
+                return False
+        # -----------------------------------------------------------
+        # forward initializations ...
+        # -----------------------------------------------------------
+        try:
+            genv.v__app__pro_config = configparser.ConfigParser()
+            genv.v__app__pro_config.read(genv.v__app__config_project_ini)
+            
+            genv.doc_project_open = True
+            
+        except Exception as e:
+            print(e)
+            showError(_("Error:\ncofigparser module error."))
+            genv.doc_project_open = False
+            return False
+        
+        # ------------------------------------------
+        # prüfe alle Einträge aus der QListWidget
+        # ------------------------------------------
+        items = []
+        for i in range(self.tab0_help_list3.count()):
+            items.append(self.tab0_help_list3.item(i))
+        
+        for item in items:
+            if item.text() == genv.v__app__config_project_ini:
+                showError(_("Error:\nproject already exists."))
+                return False
+            
+        list_item = QListWidgetItem(genv.v__app__config_project_ini)
+        list_item.setIcon(QIcon(os.path.join(genv.v__app__img__int__, "project.png")))
+        list_item.setFont(self.tab0_help_list2.font())
+        self.tab0_help_list3.addItem(list_item)
+        
         return True
     
     def open_project_clicked(self):
