@@ -171,16 +171,6 @@ if getattr(sys, 'frozen', False):
     import pyi_splash
 
 # ---------------------------------------------------------------------------
-# Funktionen aus der Windows-API laden
-# ---------------------------------------------------------------------------
-CreateDesktop       = ctypes.windll.user32.CreateDesktopW
-SwitchDesktop       = ctypes.windll.user32.SwitchDesktop
-OpenDesktop         = ctypes.windll.user32.OpenDesktopW
-SetThreadDesktop    = ctypes.windll.user32.SetThreadDesktop
-CloseDesktop        = ctypes.windll.user32.CloseDesktop
-GetThreadDesktop    = ctypes.windll.user32.GetThreadDesktop
-GetCurrentThread    = ctypes.windll.kernel32.GetCurrentThread
-# ---------------------------------------------------------------------------
 class unexpectedParserException(Exception):
     def __init__(self, text, value=1):
         self.value    = str(value)
@@ -320,6 +310,7 @@ class globalEnv:
         im_path = self.v__app__img__int__ + "/"
         
         self.isGuiApplication = False
+        self.parent_array    = []
         
         self.start_idx = 1
         self.end_idx   = 1
@@ -342,7 +333,6 @@ class globalEnv:
             + "no locales file for this application."
         
         self.LastResult = True
-        self.h_desktop  = None
         
         # ---------------------------------------------------------------------------
         # \brief currently onle two converters are supported:
@@ -360,6 +350,7 @@ class globalEnv:
         self.v__app__pythonc__  = im_path + "python"
         self.v__app__lispmod__  = im_path + "lisp"
         self.v__app__prologm__  = im_path + "prolog"
+        self.v__app__fortran__  = im_path + "python"
         self.v__app__ccpplus__  = im_path + "cpp"
         self.v__app__cpp1dev__  = im_path + "c"
         self.v__app__dbasedb__  = im_path + "dbase"
@@ -421,11 +412,27 @@ class globalEnv:
             "lisp": []
         }
         
+        # ------------------------------------------------------------------------
+        # programming language stuff ...
+        # ------------------------------------------------------------------------
+        self.SIDE_BUTTON_HELP       = 0
+        self.SIDE_BUTTON_DBASE      = 1
+        self.SIDE_BUTTON_PASCAL     = 2
+        self.SIDE_BUTTON_CPP        = 3
+        self.SIDE_BUTTON_JAVA       = 4
+        self.SIDE_BUTTON_JAVASCRIPT = 5
+        self.SIDE_BUTTON_PYTHON     = 6
+        self.SIDE_BUTTON_PROLOG     = 7
+        self.SIDE_BUTTON_FORTRAN    = 8
+        self.SIDE_BUTTON_LISP       = 9
+        
         self.radio_cpp          = None
         self.radio_java         = None
         self.radio_javascript   = None
         self.radio_python       = None
         self.radio_php          = None
+        
+        self.active_side_button = -1
         
         # ------------------------------------------------------------------------
         # string conversation ...
@@ -469,10 +476,6 @@ class globalEnv:
         self.img_doxygen = None
         self.img_hlpndoc = None
         
-        #self.img_ccpplus = None
-        #self.img_javadoc = None
-        #self.img_freepas = None
-
         # ------------------------------------------------------------------------
         # databse stuff ...
         # ------------------------------------------------------------------------
@@ -736,40 +739,6 @@ class globalEnv:
 # ---------------------------------------------------------------------------
 global genv
 genv = globalEnv()
-
-# Erstellen eines neuen Desktops
-def create_isolated_desktop(desktop_name="KioskDesktop"):
-    new_desktop = CreateDesktop(
-        desktop_name,
-        None,
-        None,
-        0,
-        GENERIC_ALL,
-        None
-    )
-    if not new_desktop:
-        raise ctypes.WinError()
-    return new_desktop, desktop_name
-
-# ---------------------------------------------------------------------------
-# Anwendung auf einem separaten Desktop starten
-# ---------------------------------------------------------------------------
-def run_on_desktop(desktop_name):
-    # Desktop öffnen
-    genv.h_desktop = OpenDesktop(desktop_name, 0, False, GENERIC_ALL)
-    if not genv.h_desktop:
-        raise ctypes.WinError()
-    
-    # Desktop setzen
-    success = SetThreadDesktop(genv.h_desktop)
-    if not success:
-        raise ctypes.WinError()
-    
-    # Anwendung starten
-    subprocess.Popen(application_path, creationflags=subprocess.CREATE_NEW_CONSOLE)
-    
-    # Desktop freigeben
-    CloseDesktop(genv.h_desktop)
 
 # ------------------------------------------------------------------------
 # read a file into memory ...
@@ -2370,7 +2339,7 @@ class TMenuBar2(TMenu):
         back_color = "navy"
         back_str   = "background-color"
         
-        str_font   = "fint"
+        str_font   = "font"
         str_size   = "size"
         str_color  = "color"
         
@@ -6550,7 +6519,7 @@ class myIconLabel(QLabel):
         self.caption = text
         self.mode    = mode
         self.parent  = parent
-    
+        
     def show_overlay(self):
         self.overlay.move(
             QCursor().pos().x()+50,
@@ -6562,33 +6531,11 @@ class myIconLabel(QLabel):
     
     def mousePressEvent(self, event):
         parent = self.parent.parent
+        genv.active_side_button = self.mode
         if event.button() == Qt.LeftButton:
             #print(self.caption)
-            parent_array = [
-                parent.help_tabs,
-                parent.dbase_tabs,
-                parent.pascal_tabs,
-                parent.isoc_tabs,
-                parent.java_tabs,
-                parent.python_tabs,
-                parent.javascript_tabs,
-                parent.prolog_tabs,
-                parent.lisp_tabs,
-                parent.locale_tabs,
-                parent.console_tabs,
-                parent.todo_tabs,
-                parent.setup_tabs,
-                parent.certssl_tabs,
-                parent.github_tabs,
-                parent.apache_tabs,
-                parent.mysql_tabs,
-                parent.squid_tabs,
-                parent.electro_tabs,
-                parent.c64_tabs,
-                parent.settings_tabs
-            ]
             self.btn_clicked(self.parent,
-                parent_array[self.mode])
+            genv.parent_array[self.mode])
     
     def enterEvent(self, event):
         self.show_overlay()
@@ -6604,9 +6551,10 @@ class myIconLabel(QLabel):
         parent.pascal_tabs.hide()
         parent.isoc_tabs.hide()
         parent.java_tabs.hide()
-        parent.python_tabs.hide()
         parent.javascript_tabs.hide()
+        parent.python_tabs.hide()
         parent.prolog_tabs.hide()
+        parent.fortran_tabs.hide()
         parent.lisp_tabs.hide()
         parent.locale_tabs.hide()
         parent.console_tabs.hide()
@@ -6657,6 +6605,7 @@ class myIconLabel(QLabel):
             parent.side_btn18,
             parent.side_btn19,
             parent.side_btn20,
+            parent.side_btn21,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -6718,9 +6667,10 @@ class myIconButton(QWidget):
             genv.v__app__freepas__,
             genv.v__app__cpp1dev__,
             genv.v__app__javadev__,
-            genv.v__app__pythonc__,
             genv.v__app__javascr__,
+            genv.v__app__pythonc__,
             genv.v__app__prologm__,
+            genv.v__app__fortran__,
             genv.v__app__lispmod__,
             genv.v__app__locales__,
             genv.v__app__console__,
@@ -6738,6 +6688,8 @@ class myIconButton(QWidget):
         for idx in img_array:
             m = img_array.index(idx)
             if mode == m:
+                #genv.active_side_button = m
+                
                 self.image_fg = ptx + img_array[m] + fg
                 self.image_bg = ptx + img_array[m] + bg
         
@@ -8091,9 +8043,6 @@ class myExitDialog(QDialog):
     def exit_click(self):
         print("exit")
         self.disconnectEvents()
-        
-        # Desktop freigeben
-        CloseDesktop(genv.h_desktop)
         
         sys.exit(0)
 
@@ -10650,9 +10599,10 @@ class CustomWidget0(QWidget):
         self.parent_class.pascal_tabs.hide()
         self.parent_class.isoc_tabs.hide()
         self.parent_class.java_tabs.hide()
-        self.parent_class.python_tabs.hide()
         self.parent_class.javascript.hide()
+        self.parent_class.python_tabs.hide()
         self.parent_class.prolog_tabs.hide()
+        self.parent_class.fortran_tabs.hide()
         self.parent_class.lisp_tabs.hide()
         self.parent_class.locale_tabs.hide()
         self.parent_class.setup_tabs.hide()
@@ -10695,6 +10645,7 @@ class CustomWidget0(QWidget):
             parent.side_btn18,
             parent.side_btn19,
             parent.side_btn20,
+            parent.side_btn21,
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -13807,6 +13758,43 @@ class ClickableImage(QPushButton):
             self.text()
         )
 
+# Verschiebbares Icon
+class MovableIcon(QWindow):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+    
+    def initUI(self):
+        self.setWindowTitle("LogOut Icon")
+        self.setFixedSize(100, 50)
+        
+        # Label als Text
+        self.label = QLabel("LogOut", self)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setGeometry(0, 0, 100, 50)
+        
+        # Mausbewegung initialisieren
+        self.old_pos = QPoint()
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.old_pos = event.globalPos()
+    
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            delta = QPoint(event.globalPos() - self.old_pos)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self.old_pos = event.globalPos()
+    
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            # Zurück zum Standard-Desktop wechseln
+            try:
+                switch_to_default_desktop()
+                sys.exit()  # Beende die Anwendung
+            except Exception as e:
+                print(f"Fehler beim Wechsel zurück: {e}")
+
 # ---------------------------------------------------------------------------
 # \brief  This is the GUI-Entry point for our application.
 # \param  nothing
@@ -13822,25 +13810,6 @@ class FileWatcherGUI(QDialog):
         
         # Alle Qt-Warnungen stummschalten
         QLoggingCategory.setFilterRules("*.debug=false\n*.warning=false")
-        
-        try:
-            # Erstelle einen neuen Desktop
-            desktop, desktop_name = create_isolated_desktop("KioskDesktop")
-            
-            print(f"Desktop '{desktop_name}' erstellt.")
-            
-            # Desktop öffnen
-            genv.h_desktop = OpenDesktop(desktop_name, 0, False, GENERIC_ALL)
-            if not genv.h_desktop:
-                raise ctypes.WinError()
-            print("111")
-            # Desktop setzen
-            success = SetThreadDesktop(genv.h_desktop)
-            if not success:
-                raise ctypes.WinError()
-            print("222")
-        except Exception as e:
-            print(e)
         
         genv.css_menu_item_style  = _("css_menu_item_style")
         genv.css_menu_label_style = _("css_menu_label_style")
@@ -13861,6 +13830,31 @@ class FileWatcherGUI(QDialog):
         self.my_list = MyItemRecord(0, QStandardItem(""))
         
         self.init_ui()
+        
+        genv.parent_array = [
+            self.help_tabs,
+            self.dbase_tabs,
+            self.pascal_tabs,
+            self.isoc_tabs,
+            self.java_tabs,
+            self.javascript_tabs,
+            self.python_tabs,
+            self.prolog_tabs,
+            self.fortran_tabs,
+            self.lisp_tabs,
+            self.locale_tabs,
+            self.console_tabs,
+            self.todo_tabs,
+            self.setup_tabs,
+            self.certssl_tabs,
+            self.github_tabs,
+            self.apache_tabs,
+            self.mysql_tabs,
+            self.squid_tabs,
+            self.electro_tabs,
+            self.c64_tabs,
+            self.settings_tabs
+        ]
         
     # --------------------
     # dialog exit ? ...
@@ -13989,8 +13983,276 @@ class FileWatcherGUI(QDialog):
         print("about")
         return
     
-    def menu_file_clicked_new(self):
-        return
+    def menu_file_clicked_new_help(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_HELP
+        parent = genv.parent_array[genv.SIDE_BUTTON_HELP]
+        self.side_btn0.pix_label.set_null_state()
+        self.side_btn0.pix_label.hide_tabs()
+        self.side_btn0.pix_label.btn_clicked(self.side_btn0, parent)
+        return True
+    
+    def menu_file_clicked_new_dbase(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_DBASE
+        parent = genv.parent_array[genv.SIDE_BUTTON_DBASE]
+        self.side_btn1.pix_label.set_null_state()
+        self.side_btn1.pix_label.hide_tabs()
+        self.side_btn1.pix_label.btn_clicked(self.side_btn1, parent)
+        return True
+    
+    def menu_file_clicked_new_pascal(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_PASCAL
+        parent = genv.parent_array[genv.SIDE_BUTTON_PASCAL]
+        self.side_btn2.pix_label.set_null_state()
+        self.side_btn2.pix_label.hide_tabs()
+        self.side_btn2.pix_label.btn_clicked(self.side_btn2, parent)
+        return True
+    
+    def menu_file_clicked_new_cpp(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_CPP
+        parent = genv.parent_array[genv.SIDE_BUTTON_CPP]
+        self.side_btn3.pix_label.set_null_state()
+        self.side_btn3.pix_label.hide_tabs()
+        self.side_btn3.pix_label.btn_clicked(self.side_btn3, parent)
+        return True
+    
+    def menu_file_clicked_new_java(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_JAVA
+        parent = genv.parent_array[genv.SIDE_BUTTON_JAVA]
+        self.side_btn4.pix_label.set_null_state()
+        self.side_btn4.pix_label.hide_tabs()
+        self.side_btn4.pix_label.btn_clicked(self.side_btn4, parent)
+        return True
+    
+    def menu_file_clicked_new_javascript(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_JAVASCRIPT
+        parent = genv.parent_array[genv.SIDE_BUTTON_JAVASCRIPT]
+        self.side_btn5.pix_label.set_null_state()
+        self.side_btn5.pix_label.hide_tabs()
+        self.side_btn5.pix_label.btn_clicked(self.side_btn5, parent)
+        return True
+    
+    def menu_file_clicked_new_python(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_PYTHON
+        parent = genv.parent_array[genv.SIDE_BUTTON_PYTHON]
+        self.side_btn6.pix_label.set_null_state()
+        self.side_btn6.pix_label.hide_tabs()
+        self.side_btn6.pix_label.btn_clicked(self.side_btn6, parent)
+        return True
+    
+    def menu_file_clicked_new_prolog(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_PROLOG
+        parent = genv.parent_array[genv.SIDE_BUTTON_PROLOG]
+        self.side_btn7.pix_label.set_null_state()
+        self.side_btn7.pix_label.hide_tabs()
+        self.side_btn7.pix_label.btn_clicked(self.side_btn7, parent)
+        return True
+    
+    def menu_file_clicked_new_fortran(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_FORTRAN
+        parent = genv.parent_array[genv.SIDE_BUTTON_FORTRAN]
+        self.side_btn8.pix_label.set_null_state()
+        self.side_btn8.pix_label.hide_tabs()
+        self.side_btn8.pix_label.btn_clicked(self.side_btn8, parent)
+        return True
+    
+    def menu_file_clicked_new_lisp(self):
+        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+            print("help")
+        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+            print("dbase")
+        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+            print("pascal")
+        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
+            print("cpp")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
+            print("java")
+        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
+            print("java script")
+        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
+            print("python")
+        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
+            print("lisp")
+        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
+            print("fortran")
+        #
+        genv.active_side_button = genv.SIDE_BUTTON_LISP
+        parent = genv.parent_array[genv.SIDE_BUTTON_LISP]
+        self.side_btn9.pix_label.set_null_state()
+        self.side_btn9.pix_label.hide_tabs()
+        self.side_btn9.pix_label.btn_clicked(self.side_btn9, parent)
+        return True
+    
     def menu_file_clicked_open(self):
         return
     def menu_file_clicked_save(self):
@@ -14009,7 +14271,7 @@ class FileWatcherGUI(QDialog):
     # --------------------------------------------------------------------
     # add sub menu item to the menuBar menu item.
     # --------------------------------------------------------------------
-    def add_menu_item(self, name, shortcut, menu, callback):
+    def add_menu_item(self, name, state, shortcut, menu, callback):
         self.menu_action = QWidgetAction(menu)
         
         self.menu_widget = QWidget()
@@ -14020,7 +14282,11 @@ class FileWatcherGUI(QDialog):
         self.menu_icon.setFixedWidth(26)
         self.menu_icon.setContentsMargins(0,0,0,0)
         #
-        self.menu_label = QLabel(name)
+        pro_name = name
+        if state == 1:
+            pro_name += "\t" + _("Project")
+        
+        self.menu_label = QLabel(pro_name)
         self.menu_label.setContentsMargins(0,0,0,0)
         self.menu_label.setStyleSheet(genv.css_menu_label_style)
         self.menu_label.setMinimumWidth(160)
@@ -14125,26 +14391,38 @@ class FileWatcherGUI(QDialog):
         self.menu_bar.setStyleSheet(genv.css_menu_item_style)
         
         self.menu_style_bg = "background-color:navy;"
+        genv.active_side_button = genv.SIDE_BUTTON_HELP
+        
         menu_list = [
             [_("&File"),
                 [
-                    [_("New...")    , "Ctrl+N", self.menu_file_clicked_new   ],
-                    [_("Open")      , "Ctrl+O", self.menu_file_clicked_open  ],
-                    [_("Save")      , "Ctrl+S", self.menu_file_clicked_save  ],
-                    [_("Save as..."), ""      , self.menu_file_clicked_saveas],
-                    [_("Exit")      , "Ctrl+X", self.menu_file_clicked_exit  ]
+                    [_("New Help")      , 1, "Ctrl+N", self.menu_file_clicked_new_help   ],
+                    [_("New dBase")     , 1, "Ctrl+N", self.menu_file_clicked_new_dbase   ],
+                    [_("New Pascal")    , 1, "Ctrl+N", self.menu_file_clicked_new_pascal   ],
+                    [_("New C/C++")     , 1, "Ctrl+N", self.menu_file_clicked_new_cpp   ],
+                    [_("New Java")      , 1, "Ctrl+N", self.menu_file_clicked_new_java   ],
+                    [_("New JavaScript"), 1, "Ctrl+N", self.menu_file_clicked_new_javascript   ],
+                    [_("New Python")    , 1, "Ctrl+N", self.menu_file_clicked_new_python   ],
+                    [_("New Fortran")   , 1, "Ctrl+N", self.menu_file_clicked_new_fortran   ],
+                    [_("New Prolog")    , 1, "Ctrl+N", self.menu_file_clicked_new_prolog   ],
+                    [_("New LISP")      , 1, "Ctrl+N", self.menu_file_clicked_new_lisp   ],
+                    #
+                    [_("Open")          , 0, "Ctrl+O", self.menu_file_clicked_open  ],
+                    [_("Save")          , 0, "Ctrl+S", self.menu_file_clicked_save  ],
+                    [_("Save as...")    , 0, ""      , self.menu_file_clicked_saveas],
+                    [_("Exit")          , 0, "Ctrl+X", self.menu_file_clicked_exit  ]
                 ]
             ],
             [_("&Edit"),
                 [
-                    [_("Undo")     , ""      , self.menu_edit_clicked_undo     ],
-                    [_("Redo")     , ""      , self.menu_edit_clicked_redo     ],
-                    [_("Clear All"), "Ctrl+0", self.menu_edit_clicked_clearall ]
+                    [_("Undo")     , 0, ""      , self.menu_edit_clicked_undo     ],
+                    [_("Redo")     , 0, ""      , self.menu_edit_clicked_redo     ],
+                    [_("Clear All"), 0, "Ctrl+0", self.menu_edit_clicked_clearall ]
                 ]
             ],
             [_("&Help"),
                 [
-                    [_("About..."), "F1", self.menu_help_clicked_about ]
+                    [_("About..."), 0, "F1", self.menu_help_clicked_about ]
                 ]
             ]
         ]
@@ -14154,7 +14432,7 @@ class FileWatcherGUI(QDialog):
             mbar.setStyleSheet(self.menu_style_bg)
             for menu_item in menu:
                 subs = menu_item
-                self.add_menu_item(subs[0], subs[1], mbar, subs[2])
+                self.add_menu_item(subs[0], subs[1], subs[2], mbar, subs[3])
         
         #self.layout.addWidget( self.menu_bar )
         #self.menu_bar.show()
@@ -14201,32 +14479,33 @@ class FileWatcherGUI(QDialog):
         self.side_widget.setContentsMargins(0,0,0,0)
         self.side_scroll.setContentsMargins(0,0,0,0)
         
-        self.side_btn0 = myIconButton(self,   0, _("Help")      , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
-        self.side_btn1 = myIconButton(self,   1, _("dBASE")     , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
-        self.side_btn2 = myIconButton(self,   2, _("Pascal")    , _("Pascal old school programming\no Delphi\no FPC"))
-        self.side_btn3 = myIconButton(self,   3, _("ISO C")     , _("C / C++ embeded programming\nor cross platform"))
-        self.side_btn4 = myIconButton(self,   4, _("Java")      , _("Java modern cross programming\nfor any device"))
-        self.side_btn5 = myIconButton(self,   5, _("Python")    , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
-        self.side_btn6 = myIconButton(self,   6, _("JavaScript"), _("JavaScript programming"))
-        self.side_btn7 = myIconButton(self,   7, _("Prolog")    , _("Prolog - logical programming."))
-        self.side_btn8 = myIconButton(self,   8, _("LISP")      , _("LISP traditional programming\nultimate old school"))
+        self.side_btn0  = myIconButton(self,   0, _("Help")      , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
+        self.side_btn1  = myIconButton(self,   1, _("dBASE")     , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
+        self.side_btn2  = myIconButton(self,   2, _("Pascal")    , _("Pascal old school programming\no Delphi\no FPC"))
+        self.side_btn3  = myIconButton(self,   3, _("ISO C")     , _("C / C++ embeded programming\nor cross platform"))
+        self.side_btn4  = myIconButton(self,   4, _("Java")      , _("Java modern cross programming\nfor any device"))
+        self.side_btn5  = myIconButton(self,   5, _("JavaScript"), _("JavaScript programming"))
+        self.side_btn6  = myIconButton(self,   6, _("Python")    , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
+        self.side_btn7  = myIconButton(self,   7, _("Prolog")    , _("Prolog - logical programming."))
+        self.side_btn8  = myIconButton(self,   8, _("Fortran")   , _("Fortran old school"))
+        self.side_btn9  = myIconButton(self,   9, _("LISP")      , _("LISP traditional programming\nultimate old school"))
         #
-        self.side_btn9 = myIconButton(self,   9, _("Locales"), _(""
+        self.side_btn10 = myIconButton(self,  10, _("Locales"), _(""
             + "Localization your Application with different supported languages\n"
             + "around the World.\n"
             + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
         #
-        self.side_btn10 = myIconButton(self, 10, "Console", "Your classical style of commands")
-        self.side_btn11 = myIconButton(self, 11, "Todo / Tasks", "Your todo's")
-        self.side_btn12 = myIconButton(self, 12, "Setup", "Setup your Project")
-        self.side_btn13 = myIconButton(self, 13, "SSL Certs", "Setup SSL")
-        self.side_btn14 = myIconButton(self, 14, "GitHub.com", "Publish Project")
-        self.side_btn15 = myIconButton(self, 15, "Web Server", "Configure Web Server")
-        self.side_btn16 = myIconButton(self, 16, "MySQL", "Configure MySQL")
-        self.side_btn17 = myIconButton(self, 17, "Squid", "Configure Squid")
-        self.side_btn18 = myIconButton(self, 18, "Electro", "electronic simulations")
-        self.side_btn19 = myIconButton(self, 19, "C-64", "The most popular Commodore C-64\from int the 1980er")
-        self.side_btn20 = myIconButton(self, 20, _("Settings")   , _("Settings for this Application\n\n"))
+        self.side_btn11 = myIconButton(self, 11, "Console", "Your classical style of commands")
+        self.side_btn12 = myIconButton(self, 12, "Todo / Tasks", "Your todo's")
+        self.side_btn13 = myIconButton(self, 13, "Setup", "Setup your Project")
+        self.side_btn14 = myIconButton(self, 14, "SSL Certs", "Setup SSL")
+        self.side_btn15 = myIconButton(self, 15, "GitHub.com", "Publish Project")
+        self.side_btn16 = myIconButton(self, 16, "Web Server", "Configure Web Server")
+        self.side_btn17 = myIconButton(self, 17, "MySQL", "Configure MySQL")
+        self.side_btn18 = myIconButton(self, 18, "Squid", "Configure Squid")
+        self.side_btn19 = myIconButton(self, 19, "Electro", "electronic simulations")
+        self.side_btn20 = myIconButton(self, 20, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btn21 = myIconButton(self, 21, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn0.bordercolor = "lime"
         self.side_btn0.state       = 2
@@ -14251,9 +14530,10 @@ class FileWatcherGUI(QDialog):
         self.handlePascal()
         self.handleIsoC()
         self.handleJava()
-        self.handlePython()
         self.handleJavaScript()
+        self.handlePython()
         self.handleProlog()
+        self.handleFortran()
         self.handleLISP()
         self.handleLocales()
         self.handleConsole()
@@ -15626,6 +15906,19 @@ class FileWatcherGUI(QDialog):
             self,
             self.prolog_tabs.getTab(2),
             self.prolog_tabs)
+    
+    # fortran
+    def handleFortran(self):
+        self.fortran_tabs = ApplicationTabWidget([
+            _("Fortran Project"),
+            _("Fortran Editor"),
+            _("Fortran Designer")])
+        self.fortran_project  = ApplicationProjectPage(self, self.fortran_tabs.getTab(0), "fortran")
+        self.fortran_editors  = ApplicationEditorsPage(self, self.fortran_tabs.getTab(1), "fortran")
+        self.fortran_designer = ApplicationDesignPage(
+            self,
+            self.fortran_tabs.getTab(2),
+            self.fortran_tabs)
     
     # lisp
     def handleLISP(self):
@@ -17687,7 +17980,7 @@ def EntryPoint(arg1=None):
     try:
         if genv.v__app_object == None:
             genv.v__app_object = QApplication(sys.argv)
-        
+            
         genv.v__app_win = FileWatcherGUI()
         genv.v__app_win.move(100, 100)
         genv.v__app_win.exec_()
