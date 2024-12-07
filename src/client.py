@@ -10,7 +10,7 @@
 
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
-
+print("1111")
 import importlib
 import subprocess
 import sys           # system specifies
@@ -94,7 +94,7 @@ except Exception as e:
     print(f"file : {tb.filename}")
     print(f"line : {tb.lineno}")
     sys.exit(1)
-        
+
 # ------------------------------------------------------------------------
 # this is a double check for application imports ...
 # ------------------------------------------------------------------------
@@ -350,7 +350,7 @@ class globalEnv:
         self.v__app__pythonc__  = im_path + "python"
         self.v__app__lispmod__  = im_path + "lisp"
         self.v__app__prologm__  = im_path + "prolog"
-        self.v__app__fortran__  = im_path + "python"
+        self.v__app__fortran__  = im_path + "fortran"
         self.v__app__ccpplus__  = im_path + "cpp"
         self.v__app__cpp1dev__  = im_path + "c"
         self.v__app__dbasedb__  = im_path + "dbase"
@@ -15838,7 +15838,7 @@ class FileWatcherGUI(QDialog):
         #self.electro_tabs.addLayout(hlayout)
         self.electro_tabs_designer_widget.setLayout(hlayout)
         
-        self.electro_tabs.addTab(self.electro_tabs_designer_widget, _("Electro Project"))
+        self.electro_tabs.addTab(self.electro_tabs_designer_widget, _("electro"))
         self.main_layout.addWidget(self.electro_tabs)
         return
             
