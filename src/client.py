@@ -9679,6 +9679,244 @@ class c64Bildschirm(QWidget):
             line += 11
         self.painter.end()
 
+class C64Keyboard(QWidget):
+    def __init__(self, parent=None):
+        super(C64Keyboard, self).__init__(parent)
+        layout = QVBoxLayout()
+        
+        self.setMinimumWidth(1050)
+        self.setMinimumHeight(320)
+        #
+        self.graphics_view  = QGraphicsView (self)
+        self.graphics_scene = QGraphicsScene(self)
+        #
+        self.graphics_view.setScene(self.graphics_scene)
+        self.graphics_view.setSceneRect(0, 0, 1050, 300)
+        #
+        self.highlight_layer = None
+        
+        # ScrollArea erstellen
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.resize(1120,310)
+        #
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy  (Qt.ScrollBarAsNeeded)
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        
+        content_widget.setMinimumWidth(1050)
+        content_widget.setMinimumHeight(310)
+        
+        # Beispielhaftes Layout für Tasten der C64-Tastatur
+        self.keys = [
+            {"x":  10, "y": 10, "w": 53, "h": 53, "label": "<-", "ll": ""},
+            {"x":  10+( 1 * 56), "y": 10, "w": 53, "h": 53, "label": "!" , "ll": "1" },
+            {"x":  10+( 2 * 56), "y": 10, "w": 53, "h": 53, "label": "\"", "ll": "2" },
+            {"x":  10+( 3 * 56), "y": 10, "w": 53, "h": 53, "label": "#" , "ll": "3" },
+            {"x":  10+( 4 * 56), "y": 10, "w": 53, "h": 53, "label": "$" , "ll": "4" },
+            {"x":  10+( 5 * 56), "y": 10, "w": 53, "h": 53, "label": "%" , "ll": "5" },
+            {"x":  10+( 6 * 56), "y": 10, "w": 53, "h": 53, "label": "&" , "ll": "6" },
+            {"x":  10+( 7 * 56), "y": 10, "w": 53, "h": 53, "label": "\'", "ll": "7" },
+            {"x":  10+( 8 * 56), "y": 10, "w": 53, "h": 53, "label": "(" , "ll": "8" },
+            {"x":  10+( 9 * 56), "y": 10, "w": 53, "h": 53, "label": ")" , "ll": "9" },
+            {"x":  10+(10 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
+            
+            {"x":  10+(11 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
+            {"x":  10+(12 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
+            {"x":  10+(13 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
+            {"x":  10+(14 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
+            {"x":  10+(15 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
+            
+            {"x":  10+(16 * 56)+42, "y": 10, "w": 84, "h": 53, "label": "F1"  , "ll": "0" },
+            
+            #
+            {"x":  10,           "y": 64, "w": 90, "h": 53, "label": "CTRL", "ll": "" },
+            #
+            {"x": 105,           "y": 64, "w": 53, "h": 53, "label": "Q" , "ll": "" },
+            {"x": 105+( 1 * 56), "y": 64, "w": 53, "h": 53, "label": "W" , "ll": "" },
+            {"x": 105+( 2 * 56), "y": 64, "w": 53, "h": 53, "label": "E" , "ll": "" },
+            {"x": 105+( 3 * 56), "y": 64, "w": 53, "h": 53, "label": "R" , "ll": "" },
+            {"x": 105+( 4 * 56), "y": 64, "w": 53, "h": 53, "label": "T" , "ll": "" },
+            {"x": 105+( 5 * 56), "y": 64, "w": 53, "h": 53, "label": "Y" , "ll": "" },
+            {"x": 105+( 6 * 56), "y": 64, "w": 53, "h": 53, "label": "U" , "ll": "" },
+            {"x": 105+( 7 * 56), "y": 64, "w": 53, "h": 53, "label": "I" , "ll": "" },
+            {"x": 105+( 8 * 56), "y": 64, "w": 53, "h": 53, "label": "O" , "ll": "" },
+            {"x": 105+( 9 * 56), "y": 64, "w": 53, "h": 53, "label": "P" , "ll": "" },
+            {"x": 105+(10 * 56), "y": 64, "w": 53, "h": 53, "label": "@" , "ll": "" },
+            {"x": 105+(11 * 56), "y": 64, "w": 53, "h": 53, "label": "*" , "ll": "" },
+            {"x": 105+(12 * 56), "y": 64, "w": 53, "h": 53, "label": "!" , "ll": "" },
+            #
+            {"x": 106+(13 * 56), "y": 64, "w": 84, "h": 53, "label": "RESTORE"   , "ll": "" },
+            {"x": 106+(13 * 56)+84+30, "y": 64, "w": 84, "h": 53, "label": "F3"  , "ll": "0" },
+            #
+            {"x":  0, "y": 117, "w": 53, "h": 53, "label": "RUN\nSTOP"  , "ll": "" },
+            {"x": 56, "y": 117, "w": 53, "h": 53, "label": "SHIFT\nLOCK", "ll": "" },
+            #
+            {"x": 56+( 1 * 56), "y": 117, "w": 53, "h": 53, "label": "A", "ll": "" },
+            {"x": 56+( 2 * 56), "y": 117, "w": 53, "h": 53, "label": "S", "ll": "" },
+            {"x": 56+( 3 * 56), "y": 117, "w": 53, "h": 53, "label": "D", "ll": "" },
+            {"x": 56+( 4 * 56), "y": 117, "w": 53, "h": 53, "label": "F", "ll": "" },
+            {"x": 56+( 5 * 56), "y": 117, "w": 53, "h": 53, "label": "G", "ll": "" },
+            {"x": 56+( 6 * 56), "y": 117, "w": 53, "h": 53, "label": "H", "ll": "" },
+            {"x": 56+( 7 * 56), "y": 117, "w": 53, "h": 53, "label": "J", "ll": "" },
+            {"x": 56+( 8 * 56), "y": 117, "w": 53, "h": 53, "label": "K", "ll": "" },
+            {"x": 56+( 9 * 56), "y": 117, "w": 53, "h": 53, "label": "L", "ll": "" },
+            #
+            {"x": 56+(10 * 56), "y": 117, "w": 53, "h": 53, "label": "[", "ll": "" },
+            {"x": 56+(11 * 56), "y": 117, "w": 53, "h": 53, "label": "]", "ll": "" },
+            {"x": 56+(12 * 56), "y": 117, "w": 53, "h": 53, "label": "=", "ll": "" },
+            #
+            {"x": 56+(13 * 56), "y": 117, "w": 129, "h": 53, "label": "RETURN", "ll": "" },
+            {"x": 56+(13 * 56)+129+36, "y": 117, "w": 84, "h": 53, "label": "F5"  , "ll": "0" },
+            #
+            {"x":  0, "y": 117+54, "w": 53, "h": 53, "label": "CBM"  , "ll": ""},
+            {"x": 56, "y": 117+54, "w": 79, "h": 53, "label": "SHIFT"  , "ll": ""},
+            #
+            {"x": ( 1 * 56)+80+3, "y": 117+54, "w": 53, "h": 53, "label": "Z"  , "ll": "" },
+            {"x": ( 2 * 56)+80+3, "y": 117+54, "w": 53, "h": 53, "label": "X"  , "ll": "" },
+            {"x": ( 3 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "C"  , "ll": ""},
+            {"x": ( 4 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "V"  , "ll": "" },
+            {"x": ( 5 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "B"  , "ll": "" },
+            {"x": ( 6 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "N"  , "ll": "" },
+            {"x": ( 7 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "M"  , "ll": "" },
+            #
+            {"x": ( 8 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "<"  , "ll": "" },
+            {"x": ( 9 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": ">"  , "ll": "" },
+            {"x": (10 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "?"  , "ll": "" },
+            #
+            {"x": (11 * 56)+80+5, "y": 117+54, "w": 84, "h": 53, "label": "SHIFT"  , "ll": "" },
+            #
+            {"x": (11 * 56)+80+9+84, "y": 117+54, "w": 60, "h": 53, "label": "CRSR"  , "ll": "" },
+            {"x": (11 * 56)+80+13+84+60, "y": 117+54, "w": 60, "h": 53, "label": "CRSR"  , "ll": ""},
+            
+            {"x": (11 * 56)+80+13+84+158, "y": 117+54, "w": 84, "h": 53, "label": "F7"  , "ll": "0" },
+            #
+            {"x": ( 1 * 56)+100+3, "y": 117+110, "w": 500, "h": 53, "label": "SPACE"  , "ll": ""},
+        ]
+        #
+        self.load_c64_font()
+        self.draw_keyboard()
+        
+        content_layout.addWidget(self.graphics_view)
+        scroll_area.setWidget(content_widget)
+        
+        layout.addWidget(scroll_area)
+    
+    def load_c64_font(self):
+        font_id = QFontDatabase.addApplicationFont("C64_Pro-STYLE.ttf")
+        if font_id == -1:
+            print("Fehler beim Laden des C64 Pro Fonts.")
+            sys.exit(1)
+        else:
+            self.c64_font = QFont("C64 Pro Mono", 12)
+            self.ari_font = QFont("Arial", 8)
+            print("C64 Pro Font erfolgreich geladen.")
+    
+    def draw_keyboard(self):
+        for i, key in enumerate(self.keys):
+            self.draw_key(key["x"], key["y"], key["w"], key["h"], key["label"], i)
+    
+    def draw_key(self, x, y, width, height, label, index):
+        key_path = QPainterPath()
+        key_path.addRoundedRect(QRectF(x, y, width, height), 5, 5)
+        
+        key_rect = QGraphicsPathItem(key_path)
+        key_rect.setBrush(QBrush(QColor(200, 200, 200)))
+        key_rect.setPen(QPen(QColor(0, 0, 0), 2))
+        self.graphics_scene.addItem(key_rect)
+        
+        # Weißes Rechteck innerhalb der Taste mit präzisen Abständen
+        small_rect_x      = x + 8
+        small_rect_y      = y + 5
+        #
+        small_rect_width  = width - 9 - 5
+        small_rect_height = height - 9 - 5
+
+        small_rect_path = QPainterPath()
+        small_rect_path.addRect(QRectF(
+            small_rect_x,
+            small_rect_y,
+            small_rect_width,
+            small_rect_height))
+
+        small_rect = QGraphicsPathItem(small_rect_path)
+        small_rect.setBrush(QBrush(QColor(255, 255, 255)))  # Weiß
+        small_rect.setPen(QPen(Qt.NoPen))
+        self.graphics_scene.addItem(small_rect)
+        
+        # Text für die Taste
+        text = self.graphics_scene.addText(label)
+        text.setDefaultTextColor(Qt.black)
+        text.setFont(self.ari_font)
+        text.setPos(x + 10, y + 5)
+        
+        # Speichern des Index im Key-Daten
+        key_rect.setData(0, index)  # Speichert den Index im Datenfeld des Items
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            pos = event.pos()
+            x, y = pos.x(), pos.y()
+            
+            # Prüfen, ob der Klick innerhalb einer Taste erfolgt ist
+            for key_index, key in enumerate(self.keys):
+                if key["x"] <= x <= key["x"] + key["w"] and key["y"] <= y <= key["y"] + key["h"]:
+                    self.handle_key_press(key_index, key)
+                    return
+    
+    def mouseMoveEvent(self, event):
+        pos = event.pos()
+        x, y = pos.x(), pos.y()
+        
+        # Prüfen, ob die Maus über einer Taste ist
+        for key in self.keys:
+            if key["x"] <= x <= key["x"] + key["w"] and key["y"] <= y <= key["y"] + key["h"]:
+                self.show_highlight(key["x"], key["y"], key["w"], key["h"], key["label"])
+                return
+        
+        # Kein Treffer, Layer ausblenden
+        self.hide_highlight()
+    
+    def show_highlight(self, x, y, width, height, label):
+        if self.highlight_layer is None:
+            # Initialisierung des Highlight-Layers
+            highlight_path = QPainterPath()
+            highlight_path.addRoundedRect(QRectF(x, y, width, height), 10, 10)
+            
+            self.highlight_layer = QGraphicsPathItem(highlight_path)
+            self.highlight_layer.setBrush(QBrush(QColor(255, 255, 0, 128)))  # Gelb mit Transparenz
+            self.highlight_layer.setPen(QPen(Qt.NoPen))  # Kein Rahmen
+            self.graphics_scene .addItem(self.highlight_layer)
+        else:
+            # Highlight-Layer aktualisieren
+            highlight_path = QPainterPath()
+            highlight_path.addRoundedRect(QRectF(x, y, width, height), 10, 10)
+            self.highlight_layer.setPath(highlight_path)
+        
+        # Text erneut zeichnen
+        highlight_text = self.graphics_scene.addText(label)
+        highlight_text.setDefaultTextColor(Qt.black)
+        highlight_text.font().setBold(True)
+        highlight_text.setPos(x + 10, y + 5)  # Zentriert über dem kleinen Rechteck
+        highlight_text.setZValue(1)
+    
+    def hide_highlight(self):
+        if self.highlight_layer is not None:
+            self.graphics_scene.removeItem(self.highlight_layer)
+            self.highlight_layer = None
+        
+        # Alle Texte des Highlight-Layers entfernen
+        for item in self.graphics_scene.items():
+            if isinstance(item, QGraphicsPathItem):
+                continue
+            if item.zValue() == 1:  # Entfernt nur Highlight-Texte
+                self.graphics_scene.removeItem(item)
+    
+    def handle_key_press(self, index, key):
+        print(f"Taste {key['label']} gedrückt (Index: {index})")
+
 class addDataSourceDialog(QDialog):
     def __init__(self, parent):
         super().__init__()
@@ -17332,27 +17570,31 @@ class FileWatcherGUI(QDialog):
         self.c64_editors = ApplicationEditorsPage(self, self.c64_tabs_basic___widget, "c64")
         ####
         
+        self.c64_tabs_editors_widget.setMinimumWidth(1050)
         
         self.c64_layout = QVBoxLayout()
         self.c64_frame_oben  = QFrame()
         self.c64_frame_unten = QFrame()
         
-        self.c64_frame_oben.setMinimumHeight(320)
-        self.c64_frame_oben.setMaximumHeight(320)
+        self.c64_frame_oben .setMinimumHeight(320)
+        self.c64_frame_oben .setMaximumHeight(320)
+        #
+        self.c64_frame_unten.setMinimumWidth(1050)
         
         self.c64_frame_oben .setStyleSheet("background-color:lightgray;")
         self.c64_frame_unten.setStyleSheet("background-color:lightgray;")
         
-        
-        self.c64_keyboard_label = QLabel(self.c64_frame_unten)
-        self.c64_keyboard_pixmap = QPixmap(genv.v__app__keybc64__)
-        self.c64_keyboard_label.setPixmap(self.c64_keyboard_pixmap)
+        self.c64_keyboard = C64Keyboard(self.c64_frame_unten)
+                
+        #self.c64_keyboard_label = QLabel(self.c64_frame_unten)
+        #self.c64_keyboard_pixmap = QPixmap(genv.v__app__keybc64__)
+        #self.c64_keyboard_label.setPixmap(self.c64_keyboard_pixmap)
         
         #####
         c64_logo_label  = QLabel(self.c64_frame_unten)
         c64_logo_label_pixmap = QPixmap(genv.v__app__logoc64__)
         c64_logo_label.setPixmap(c64_logo_label_pixmap)
-        c64_logo_label.move(502,1)
+        c64_logo_label.move(4,402)
         #####
         
         
