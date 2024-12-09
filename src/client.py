@@ -10,11 +10,38 @@
 
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
-print("1111")
+
 import importlib
 import subprocess
-import sys           # system specifies
-import os            # operating system stuff
+import sys            # system specifies
+import os             # operating system stuff
+
+import ctypes
+from   ctypes import wintypes
+
+import traceback      # stack exception trace back
+
+# ---------------------------------------------------------------------------
+# Windows API structure for LOGFONT
+# ---------------------------------------------------------------------------
+class LOGFONT(ctypes.Structure):
+    _fields_ = [
+        ("lfHeight"         , wintypes.LONG),
+        ("lfWidth"          , wintypes.LONG),
+        ("lfEscapement"     , wintypes.LONG),
+        ("lfOrientation"    , wintypes.LONG),
+        ("lfWeight"         , wintypes.LONG),
+        ("lfItalic"         , wintypes.BYTE),
+        ("lfUnderline"      , wintypes.BYTE),
+        ("lfStrikeOut"      , wintypes.BYTE),
+        ("lfCharSet"        , wintypes.BYTE),
+        ("lfOutPrecision"   , wintypes.BYTE),
+        ("lfClipPrecision"  , wintypes.BYTE),
+        ("lfQuality"        , wintypes.BYTE),
+        ("lfPitchAndFamily" , wintypes.BYTE),
+        ("lfFaceName"       , wintypes.CHAR * 32)
+    ]
+# ---------------------------------------------------------------------------
 
 try:
     # -----------------------------------------------------------------------
@@ -81,7 +108,191 @@ try:
                     except:
                         print(f"error: module: install fail.")
                         sys.exit(1)
-    check_and_install_module()
+    
+    # ---------------------------------------------------------
+    # check, if font installed ...
+    # ---------------------------------------------------------
+    def font_check_callback(lpelfe, lpntme, font_type, lparam):
+        lf = ctypes.cast(lpelfe, ctypes.POINTER(LOGFONT)).contents
+        if font_name.lower() == lf.lfFaceName.decode("utf-8").lower():
+            lparam[0] = True
+            return 0
+        return 1
+    
+    def font_check_installed(font_name):
+        # ---------------------------------------------------------------------
+        # Handle zum Geräte-Kontext
+        # ---------------------------------------------------------------------
+        hdc = ctypes.windll.user32.GetDC(0)
+        
+        # Erzeuge ein LOGFONT-Objekt
+        logfont = LOGFONT()
+        logfont.lfCharSet = 0  # DEFAULT_CHARSET
+        
+        # Überprüfungsvariable
+        found = [False]
+        
+        # EnumFontFamiliesExW aufrufen
+        ctypes.windll.gdi32.EnumFontFamiliesExW(
+            hdc,
+            ctypes.byref(logfont),
+            ENUMFONTEXPROC(font_check_callback),
+            ctypes.byref(ctypes.c_long(found[0])),
+            0
+        )
+
+        # Geräte-Kontext freigeben
+        ctypes.windll.user32.ReleaseDC(0, hdc)
+        
+        return found[0]
+    
+    # ---------------------------------------------------------
+    # Überprüft, ob das Skript mit Administratorrechten
+    # ausgeführt wird.
+    # ---------------------------------------------------------
+    def is_admin():
+        try:
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        except:
+            return False
+    
+    # ---------------------------------------------------------
+    # Startet das Programm neu ohne Administratorrechte.
+    # ---------------------------------------------------------
+    def drop_admin_privileges():
+        try:
+            # Token eines Standardbenutzers anfordern
+            ctypes.windll.shell32.IsUserAnAdmin()
+            shell_exec = ctypes.windll.shell32.ShellExecuteW
+            shell_exec(None, "open", sys.executable, ' '.join(sys.argv), None, 1)
+            print("Neuer Prozess ohne Administratorrechte gestartet.")
+            sys.exit(0)
+        except Exception as e:
+            print(f"Fehler beim Entfernen der Administratorrechte: {e}")
+            sys.exit(1)
+    
+    # ---------------------------------------------------------
+    # Startet das Skript mit Administratorrechten.
+    # ---------------------------------------------------------
+    def run_as_admin():
+        if not is_admin():
+            # Versuche, das Skript mit Administratorrechten neu zu starten
+            script = sys.argv[0]
+            params = ' '.join([f'"{arg}"' for arg in sys.argv[1:]])
+            try:
+                #ctypes.windll.shell32.ShellExecuteW(
+                #    None, "runas", sys.executable, f'"{script}" {params}', None, 1
+                #)
+                #sys.exit(0)
+                raise Exception("TODO: Admin")
+            except Exception as e:
+                print(f"Error: could not switch to admin: {e}")
+                sys.exit(1)
+    
+    # ---------------------------------------------------------
+    # Installiert einen TrueType-Font (.ttf) auf Windows.
+    # ---------------------------------------------------------
+    def install_font(font_path):
+        if not os.path.exists(font_path):
+            raise FileNotFoundError(f"Font-Datei nicht gefunden: {font_path}")
+        
+        font_added = ctypes.windll.gdi32.AddFontResourceExW(font_path, FR_PRIVATE, None)
+        if font_added == 0:
+            raise RuntimeError(f"Fehler beim Hinzufügen des Fonts: {font_path}")
+            
+        hwnd_broadcast = 0xFFFF
+        ctypes.windll.user32.SendMessageW(hwnd_broadcast, WM_FONTCHANGE, 0, 0)
+        
+        print(f"SUCCESSFUL: font installed: {font_path}")
+        
+    # ---------------------------------------------------------------------
+    # Fügt den Font dauerhaft zur Windows-Schriftartenliste hinzu,
+    # indem er in der Registry registriert wird.
+    # :param font_name: Der Name des Fonts (wie er angezeigt werden soll).
+    # :param font_path: Der absolute Pfad zur Schriftartdatei (.ttf).
+    # ---------------------------------------------------------------------
+    def add_font_to_registry(font_name, font_path):
+        fonts_key = r"Software\Microsoft\Windows NT\CurrentVersion\Fonts"
+        try:
+            with reg.OpenKey(reg.HKEY_LOCAL_MACHINE, fonts_key, 0, reg.KEY_SET_VALUE) as key:
+                reg.SetValueEx(key, font_name, 0, reg.REG_SZ, font_path)
+                print(f"Font in Registry eingetragen: {font_name}")
+        except PermissionError:
+            raise PermissionError(""
+            + "Administratorrechte erforderlich, um den Font "
+            + "in die Registry einzutragen.")
+            sys.exit(1)
+    
+    # ---------------------------------------------------------------------
+    # entry point:
+    # ---------------------------------------------------------------------
+    ENUMFONTEXPROC = ctypes.WINFUNCTYPE(
+        wintypes.INT,
+        wintypes.LPARAM,
+        wintypes.LPARAM,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.LPARAM)
+    )
+    
+    try:
+        foo = os.environ["observer_second"]
+    except:
+        os.environ["observer_second"] = ""
+    
+    # ---------------------------------------------------------------------
+    # try to find, and instal C64 Pro Mono Font ...
+    # ---------------------------------------------------------------------
+    if not font_check_installed("C64 Pro Mono"):
+        if os.environ["observer_second"] == "":
+            check_and_install_module()
+            os.environ["observer_second"] = "true"
+            
+            # ---------------------------------------------------------
+            # Definieren der Windows-Konstanten
+            # Installiert die Schriftart nur für die laufende Sitzung
+            # ---------------------------------------------------------
+            FR_PRIVATE    = 0x10  
+            WM_FONTCHANGE = 0x001D
+            
+            import winreg as reg
+            
+            if not is_admin():
+                print("ATTENTION: Admin rights requered for first start.")
+                #run_as_admin()
+            else:
+                print("ATTENTION: Application run in Admin mode !")
+            
+            c64_normal = "/_internal/fonts/C64_Pro-STYLE.ttf"
+            c64_mono   = "/_internal/fonts/C64_Pro_Mono-STYLE.ttf"
+            #
+            font_file         = os.getcwd() + c64_mono
+            font_display_name = "C64 Pro Mono"
+            #
+            install_font(font_file)
+            #add_font_to_registry(font_display_name, font_file)
+            
+            print("font OK")
+    
+    # ---------------------------------------------------------------------
+    # we try not to use admin rights for the application ...
+    # ---------------------------------------------------------------------
+    if ctypes.windll.shell32.IsUserAnAdmin():
+        print("Das Programm läuft mit Administratorrechten.")
+        drop_admin_privileges()
+    
+    if is_admin():
+        print("Error: Application runs in Admin Mode")
+        sys.exit(1)
+
+except FileNotFoundError as e:
+    print(e)
+    sys.exit(1)
+except PermissionError as e:
+    print(e)
+    sys.exit(1)
+except RuntimeError as e:
+    print(e)
+    sys.exit(1)
 except Exception as e:
     exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     tb = traceback.extract_tb(e.__traceback__)[-1]
@@ -100,7 +311,6 @@ except Exception as e:
 # ------------------------------------------------------------------------
 import re             # regular expression handling
 import requests       # get external url stuff
-import traceback
 
 import time           # thread count
 import datetime       # date, and time routines
