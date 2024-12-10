@@ -9712,88 +9712,88 @@ class C64Keyboard(QWidget):
         # Beispielhaftes Layout für Tasten der C64-Tastatur
         self.keys = [
             {"x":  10, "y": 10, "w": 53, "h": 53, "label": "<-", "ll": ""},
-            {"x":  10+( 1 * 56), "y": 10, "w": 53, "h": 53, "label": "!" , "ll": "1" },
-            {"x":  10+( 2 * 56), "y": 10, "w": 53, "h": 53, "label": "\"", "ll": "2" },
-            {"x":  10+( 3 * 56), "y": 10, "w": 53, "h": 53, "label": "#" , "ll": "3" },
-            {"x":  10+( 4 * 56), "y": 10, "w": 53, "h": 53, "label": "$" , "ll": "4" },
-            {"x":  10+( 5 * 56), "y": 10, "w": 53, "h": 53, "label": "%" , "ll": "5" },
-            {"x":  10+( 6 * 56), "y": 10, "w": 53, "h": 53, "label": "&" , "ll": "6" },
-            {"x":  10+( 7 * 56), "y": 10, "w": 53, "h": 53, "label": "\'", "ll": "7" },
-            {"x":  10+( 8 * 56), "y": 10, "w": 53, "h": 53, "label": "(" , "ll": "8" },
-            {"x":  10+( 9 * 56), "y": 10, "w": 53, "h": 53, "label": ")" , "ll": "9" },
-            {"x":  10+(10 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
+            {"x":  10+( 1 * 56), "y": 10, "w": 53, "h": 53, "label": "!" , "ll": "1", "sub_chars": ["!", "@"] },
+            {"x":  10+( 2 * 56), "y": 10, "w": 53, "h": 53, "label": "\"", "ll": "2", "sub_chars": ["!", "@"]  },
+            {"x":  10+( 3 * 56), "y": 10, "w": 53, "h": 53, "label": "#" , "ll": "3", "sub_chars": ["!", "@"]  },
+            {"x":  10+( 4 * 56), "y": 10, "w": 53, "h": 53, "label": "$" , "ll": "4", "sub_chars": ["!", "@"]  },
+            {"x":  10+( 5 * 56), "y": 10, "w": 53, "h": 53, "label": "%" , "ll": "5", "sub_chars": ["!", "@"]  },
+            {"x":  10+( 6 * 56), "y": 10, "w": 53, "h": 53, "label": "&" , "ll": "6", "sub_chars": ["!", "@"]  },
+            {"x":  10+( 7 * 56), "y": 10, "w": 53, "h": 53, "label": "\'", "ll": "7", "sub_chars": ["!", "@"]  },
+            {"x":  10+( 8 * 56), "y": 10, "w": 53, "h": 53, "label": "(" , "ll": "8", "sub_chars": ["!", "@"]  },
+            {"x":  10+( 9 * 56), "y": 10, "w": 53, "h": 53, "label": ")" , "ll": "9", "sub_chars": ["!", "@"]  },
+            {"x":  10+(10 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
             
-            {"x":  10+(11 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
-            {"x":  10+(12 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
-            {"x":  10+(13 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
-            {"x":  10+(14 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
-            {"x":  10+(15 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0" },
+            {"x":  10+(11 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
+            {"x":  10+(12 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
+            {"x":  10+(13 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
+            {"x":  10+(14 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
+            {"x":  10+(15 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
             
-            {"x":  10+(16 * 56)+42, "y": 10, "w": 84, "h": 53, "label": "F1"  , "ll": "0" },
+            {"x":  10+(16 * 56)+42, "y": 10, "w": 84, "h": 53, "label": "F1"  , "ll": "0", "sub_chars": ["!", "@"]  },
             
             #
-            {"x":  10,           "y": 64, "w": 90, "h": 53, "label": "CTRL", "ll": "" },
+            {"x":  10,           "y": 64, "w": 90, "h": 53, "label": "CTRL", "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": 105,           "y": 64, "w": 53, "h": 53, "label": "Q" , "ll": "" },
-            {"x": 105+( 1 * 56), "y": 64, "w": 53, "h": 53, "label": "W" , "ll": "" },
-            {"x": 105+( 2 * 56), "y": 64, "w": 53, "h": 53, "label": "E" , "ll": "" },
-            {"x": 105+( 3 * 56), "y": 64, "w": 53, "h": 53, "label": "R" , "ll": "" },
-            {"x": 105+( 4 * 56), "y": 64, "w": 53, "h": 53, "label": "T" , "ll": "" },
-            {"x": 105+( 5 * 56), "y": 64, "w": 53, "h": 53, "label": "Y" , "ll": "" },
-            {"x": 105+( 6 * 56), "y": 64, "w": 53, "h": 53, "label": "U" , "ll": "" },
-            {"x": 105+( 7 * 56), "y": 64, "w": 53, "h": 53, "label": "I" , "ll": "" },
-            {"x": 105+( 8 * 56), "y": 64, "w": 53, "h": 53, "label": "O" , "ll": "" },
-            {"x": 105+( 9 * 56), "y": 64, "w": 53, "h": 53, "label": "P" , "ll": "" },
-            {"x": 105+(10 * 56), "y": 64, "w": 53, "h": 53, "label": "@" , "ll": "" },
-            {"x": 105+(11 * 56), "y": 64, "w": 53, "h": 53, "label": "*" , "ll": "" },
-            {"x": 105+(12 * 56), "y": 64, "w": 53, "h": 53, "label": "!" , "ll": "" },
+            {"x": 105,           "y": 64, "w": 53, "h": 53, "label": "Q" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 1 * 56), "y": 64, "w": 53, "h": 53, "label": "W" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 2 * 56), "y": 64, "w": 53, "h": 53, "label": "E" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 3 * 56), "y": 64, "w": 53, "h": 53, "label": "R" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 4 * 56), "y": 64, "w": 53, "h": 53, "label": "T" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 5 * 56), "y": 64, "w": 53, "h": 53, "label": "Y" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 6 * 56), "y": 64, "w": 53, "h": 53, "label": "U" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 7 * 56), "y": 64, "w": 53, "h": 53, "label": "I" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 8 * 56), "y": 64, "w": 53, "h": 53, "label": "O" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+( 9 * 56), "y": 64, "w": 53, "h": 53, "label": "P" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+(10 * 56), "y": 64, "w": 53, "h": 53, "label": "@" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+(11 * 56), "y": 64, "w": 53, "h": 53, "label": "*" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105+(12 * 56), "y": 64, "w": 53, "h": 53, "label": "!" , "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": 106+(13 * 56), "y": 64, "w": 84, "h": 53, "label": "RESTORE"   , "ll": "" },
-            {"x": 106+(13 * 56)+84+30, "y": 64, "w": 84, "h": 53, "label": "F3"  , "ll": "0" },
+            {"x": 106+(13 * 56), "y": 64, "w": 84, "h": 53, "label": "RESTORE"   , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 106+(13 * 56)+84+30, "y": 64, "w": 84, "h": 53, "label": "F3"  , "ll": "0", "sub_chars": ["!", "@"]  },
             #
-            {"x":  0, "y": 117, "w": 53, "h": 53, "label": "RUN\nSTOP"  , "ll": "" },
-            {"x": 56, "y": 117, "w": 53, "h": 53, "label": "SHIFT\nLOCK", "ll": "" },
+            {"x":  0, "y": 117, "w": 53, "h": 53, "label": "RUN\nSTOP"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56, "y": 117, "w": 53, "h": 53, "label": "SHIFT\nLOCK", "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": 56+( 1 * 56), "y": 117, "w": 53, "h": 53, "label": "A", "ll": "" },
-            {"x": 56+( 2 * 56), "y": 117, "w": 53, "h": 53, "label": "S", "ll": "" },
-            {"x": 56+( 3 * 56), "y": 117, "w": 53, "h": 53, "label": "D", "ll": "" },
-            {"x": 56+( 4 * 56), "y": 117, "w": 53, "h": 53, "label": "F", "ll": "" },
-            {"x": 56+( 5 * 56), "y": 117, "w": 53, "h": 53, "label": "G", "ll": "" },
-            {"x": 56+( 6 * 56), "y": 117, "w": 53, "h": 53, "label": "H", "ll": "" },
-            {"x": 56+( 7 * 56), "y": 117, "w": 53, "h": 53, "label": "J", "ll": "" },
-            {"x": 56+( 8 * 56), "y": 117, "w": 53, "h": 53, "label": "K", "ll": "" },
-            {"x": 56+( 9 * 56), "y": 117, "w": 53, "h": 53, "label": "L", "ll": "" },
+            {"x": 56+( 1 * 56), "y": 117, "w": 53, "h": 53, "label": "A", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+( 2 * 56), "y": 117, "w": 53, "h": 53, "label": "S", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+( 3 * 56), "y": 117, "w": 53, "h": 53, "label": "D", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+( 4 * 56), "y": 117, "w": 53, "h": 53, "label": "F", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+( 5 * 56), "y": 117, "w": 53, "h": 53, "label": "G", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+( 6 * 56), "y": 117, "w": 53, "h": 53, "label": "H", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+( 7 * 56), "y": 117, "w": 53, "h": 53, "label": "J", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+( 8 * 56), "y": 117, "w": 53, "h": 53, "label": "K", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+( 9 * 56), "y": 117, "w": 53, "h": 53, "label": "L", "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": 56+(10 * 56), "y": 117, "w": 53, "h": 53, "label": "[", "ll": "" },
-            {"x": 56+(11 * 56), "y": 117, "w": 53, "h": 53, "label": "]", "ll": "" },
-            {"x": 56+(12 * 56), "y": 117, "w": 53, "h": 53, "label": "=", "ll": "" },
+            {"x": 56+(10 * 56), "y": 117, "w": 53, "h": 53, "label": "[", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+(11 * 56), "y": 117, "w": 53, "h": 53, "label": "]", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+(12 * 56), "y": 117, "w": 53, "h": 53, "label": "=", "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": 56+(13 * 56), "y": 117, "w": 129, "h": 53, "label": "RETURN", "ll": "" },
-            {"x": 56+(13 * 56)+129+36, "y": 117, "w": 84, "h": 53, "label": "F5"  , "ll": "0" },
+            {"x": 56+(13 * 56), "y": 117, "w": 129, "h": 53, "label": "RETURN", "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 56+(13 * 56)+129+36, "y": 117, "w": 84, "h": 53, "label": "F5"  , "ll": "0", "sub_chars": ["!", "@"]  },
             #
-            {"x":  0, "y": 117+54, "w": 53, "h": 53, "label": "CBM"  , "ll": ""},
-            {"x": 56, "y": 117+54, "w": 79, "h": 53, "label": "SHIFT"  , "ll": ""},
+            {"x":  0, "y": 117+54, "w": 53, "h": 53, "label": "CBM"  , "ll": "", "sub_chars": ["!", "@"] },
+            {"x": 56, "y": 117+54, "w": 79, "h": 53, "label": "SHIFT"  , "ll": "", "sub_chars": ["!", "@"] },
             #
-            {"x": ( 1 * 56)+80+3, "y": 117+54, "w": 53, "h": 53, "label": "Z"  , "ll": "" },
-            {"x": ( 2 * 56)+80+3, "y": 117+54, "w": 53, "h": 53, "label": "X"  , "ll": "" },
-            {"x": ( 3 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "C"  , "ll": ""},
-            {"x": ( 4 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "V"  , "ll": "" },
-            {"x": ( 5 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "B"  , "ll": "" },
-            {"x": ( 6 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "N"  , "ll": "" },
-            {"x": ( 7 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "M"  , "ll": "" },
+            {"x": ( 1 * 56)+80+3, "y": 117+54, "w": 53, "h": 53, "label": "Z"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": ( 2 * 56)+80+3, "y": 117+54, "w": 53, "h": 53, "label": "X"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": ( 3 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "C"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": ( 4 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "V"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": ( 5 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "B"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": ( 6 * 56)+80+4, "y": 117+54, "w": 53, "h": 53, "label": "N"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": ( 7 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "M"  , "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": ( 8 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "<"  , "ll": "" },
-            {"x": ( 9 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": ">"  , "ll": "" },
-            {"x": (10 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "?"  , "ll": "" },
+            {"x": ( 8 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "<"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": ( 9 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": ">"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": (10 * 56)+80+5, "y": 117+54, "w": 53, "h": 53, "label": "?"  , "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": (11 * 56)+80+5, "y": 117+54, "w": 84, "h": 53, "label": "SHIFT"  , "ll": "" },
+            {"x": (11 * 56)+80+5, "y": 117+54, "w": 84, "h": 53, "label": "SHIFT"  , "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": (11 * 56)+80+9+84, "y": 117+54, "w": 60, "h": 53, "label": "CRSR"  , "ll": "" },
-            {"x": (11 * 56)+80+13+84+60, "y": 117+54, "w": 60, "h": 53, "label": "CRSR"  , "ll": ""},
+            {"x": (11 * 56)+80+9+84, "y": 117+54, "w": 60, "h": 53, "label": "CRSR"  , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": (11 * 56)+80+13+84+60, "y": 117+54, "w": 60, "h": 53, "label": "CRSR"  , "ll": "", "sub_chars": ["!", "@"]  },
             
-            {"x": (11 * 56)+80+13+84+158, "y": 117+54, "w": 84, "h": 53, "label": "F7"  , "ll": "0" },
+            {"x": (11 * 56)+80+13+84+158, "y": 117+54, "w": 84, "h": 53, "label": "F7"  , "ll": "0", "sub_chars": ["!", "@"]  },
             #
-            {"x": ( 1 * 56)+100+3, "y": 117+110, "w": 500, "h": 53, "label": "SPACE"  , "ll": ""},
+            {"x": ( 1 * 56)+100+3, "y": 117+110, "w": 500, "h": 53, "label": "SPACE"  , "ll": "", "sub_chars": ["!", "@"]  },
         ]
         #
         self.load_c64_font()
@@ -9816,9 +9816,15 @@ class C64Keyboard(QWidget):
     
     def draw_keyboard(self):
         for i, key in enumerate(self.keys):
-            self.draw_key(key["x"], key["y"], key["w"], key["h"], key["label"], i)
+            self.draw_key(
+                key["x"],
+                key["y"],
+                key["w"],
+                key["h"],
+                key["label"],
+                key["sub_chars"], i)
     
-    def draw_key(self, x, y, width, height, label, index):
+    def draw_key(self, x, y, width, height, label, sub_chars, index):
         key_path = QPainterPath()
         key_path.addRoundedRect(QRectF(x, y, width, height), 5, 5)
         
@@ -9833,14 +9839,14 @@ class C64Keyboard(QWidget):
         #
         small_rect_width  = width - 9 - 5
         small_rect_height = height - 9 - 5
-
+        
         small_rect_path = QPainterPath()
         small_rect_path.addRect(QRectF(
             small_rect_x,
             small_rect_y,
             small_rect_width,
             small_rect_height))
-
+        print("111121222222")
         small_rect = QGraphicsPathItem(small_rect_path)
         small_rect.setBrush(QBrush(QColor(255, 255, 255)))  # Weiß
         small_rect.setPen(QPen(Qt.NoPen))
@@ -9854,6 +9860,32 @@ class C64Keyboard(QWidget):
         
         # Speichern des Index im Key-Daten
         key_rect.setData(0, index)  # Speichert den Index im Datenfeld des Items
+        
+        # Zusätzliche Zeichen mit Rahmen
+        sub_char_width   = 15  # Breite und Höhe eines Char-Rahmens
+        sub_char_height  = 15
+        sub_char_spacing =  5  # Abstand zwischen den beiden Zeichen
+        print("22222")
+        for i, char in enumerate(sub_chars):
+            # Berechnen der Position
+            sub_x = x + 10 + i * (sub_char_width + sub_char_spacing)
+            sub_y = y + height - sub_char_height - 5
+            
+            # Rahmen zeichnen
+            sub_char_path = QPainterPath()
+            sub_char_path.addRect(QRectF(sub_x, sub_y, sub_char_width, sub_char_height))
+            
+            sub_char_rect = QGraphicsPathItem(sub_char_path)
+            sub_char_rect.setBrush(QBrush(QColor(255, 255, 255)))  # Weißer Hintergrund
+            sub_char_rect.setPen(QPen(QColor(0, 0, 0), 1))  # Schwarzer Rahmen
+            self.graphics_scene.addItem(sub_char_rect)
+            
+            # Zeichen im Rahmen
+            sub_text = QGraphicsTextItem(char)
+            sub_text.setDefaultTextColor(Qt.black)
+            sub_text.setFont(QFont("Arial", 8))
+            sub_text.setPos(sub_x + 2, sub_y + 2)  # Etwas eingerückt
+            self.graphics_scene.addItem(sub_text)
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
