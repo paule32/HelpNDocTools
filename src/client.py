@@ -526,6 +526,8 @@ class globalEnv:
         self.end_idx   = 1
         
         self.header_code = ""
+        
+        self.worker_thread = None
 
         # ------------------------------------------------------------------------
         # constants, and varibales that are used multiple times ...
@@ -6780,9 +6782,9 @@ class myIconLabel(QLabel):
         parent.settings_tabs.hide()
     
     def btn_clicked(self,btn,tabs):
-        if not self.parent.parent.c64_screen.worker_thread == None:
-            self.parent.parent.c64_screen.worker_thread.stop()
-            self.parent.parent.c64_screen.worker_thread = None
+        if not genv.worker_thread == None:
+            genv.worker_thread.stop()
+            genv.worker_thread = None
         
         self.hide_tabs()
         tabs.show()
@@ -8252,6 +8254,8 @@ class myExitDialog(QDialog):
         return
     def exit_click(self):
         print("exit")
+        if not genv.worker_thread == None:
+            genv.worker_thread.stop()
         self.disconnectEvents()
         
         sys.exit(0)
@@ -8485,6 +8489,46 @@ class SourceCodeEditorBase(QSyntaxHighlighter):
         # Definiere die Muster für mehrzeilige Kommentare
         self.multiLineCommentFormat = QTextCharFormat()
         self.multiLineCommentFormat.setForeground(self.dark_green)
+
+class BasicHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super().__init__(document)
+        self.highlighting_rules = []
+        
+        # Format für Schlüsselwörter
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("blue"))
+        keyword_format.setFontWeight(QFont.Bold)
+        keywords = [
+            r"\bDIM\b", r"\bPRINT\b", r"\bINPUT\b", r"\bIF\b", r"\bTHEN\b",
+            r"\bELSE\b", r"\bFOR\b", r"\bTO\b", r"\bNEXT\b", r"\bWHILE\b",
+            r"\bWEND\b", r"\bGOTO\b", r"\bREM\b", r"\bEND\b", r"\bSUB\b",
+            r"\bFUNCTION\b", r"\bRETURN\b"
+        ]
+        self.highlighting_rules += [(re.compile(keyword), keyword_format) for keyword in keywords]
+        
+        # Format für Strings
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor("darkgreen"))
+        self.highlighting_rules.append((re.compile(r'"[^"]*"'), string_format))
+        
+        # Format für Kommentare
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor("darkgray"))
+        comment_format.setFontItalic(True)
+        self.highlighting_rules.append((re.compile(r"'.*"), comment_format))
+        
+        # Format für Zahlen
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor("darkred"))
+        self.highlighting_rules.append((re.compile(r'\b\d+(\.\d+)?\b'), number_format))
+    
+    def highlightBlock(self, text):
+        for pattern, format in self.highlighting_rules:
+            for match in re.finditer(pattern, text):
+                start, end = match.start(), match.end()
+                self.setFormat(start, end - start, format)
+        self.setCurrentBlockState(0)
 
 class CppSyntaxHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
@@ -9639,17 +9683,17 @@ class c64WorkerThread(threading.Thread):
     
 
 class c64Bildschirm(QWidget):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent=None):
+        super(c64Bildschirm, self).__init__(parent)
         #
         self.parent  = parent
         self.painter = QPainter()
         #
-        self.setMinimumWidth ( 620 )
-        self.setMaximumWidth ( 620 )
+        self.setMinimumWidth ( 640 )
+        self.setMaximumWidth ( 640 )
         #
-        self.setMinimumHeight( 515 )
-        self.setMaximumHeight( 515 )
+        self.setMinimumHeight( 315 )
+        self.setMaximumHeight( 315 )
         
         self.setStyleSheet("background-color:blue;")
         
@@ -9663,7 +9707,7 @@ class c64Bildschirm(QWidget):
         self.painter.setBrush(QBrush(QColor(0, 108, 255)))
         self.painter.drawRect(20,20,320 + 44, 200 + 64 + 14)
         
-        font = QFont("C64 Elite Mono",11)
+        font = QFont("C64 Elite Mono",9)
         font.setBold(True)
         
         self.painter.setPen(QColor(200, 228, 255))  # Blaue Schrift
@@ -9684,21 +9728,22 @@ class C64Keyboard(QWidget):
         super(C64Keyboard, self).__init__(parent)
         layout = QVBoxLayout()
         
-        self.setMinimumWidth(1050)
-        self.setMinimumHeight(320)
+        self.setMinimumWidth(700)
+        self.setMinimumHeight(270)
         #
         self.graphics_view  = QGraphicsView (self)
         self.graphics_scene = QGraphicsScene(self)
+        
         #
         self.graphics_view.setScene(self.graphics_scene)
-        self.graphics_view.setSceneRect(0, 0, 1050, 300)
+        self.graphics_view.setSceneRect(0, 0, 1400, 270)
         #
         self.highlight_layer = None
         
         # ScrollArea erstellen
         scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
-        scroll_area.resize(1120,310)
+        scroll_area.resize(900,310)
         #
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setVerticalScrollBarPolicy  (Qt.ScrollBarAsNeeded)
@@ -9706,12 +9751,12 @@ class C64Keyboard(QWidget):
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
         
-        content_widget.setMinimumWidth(1050)
-        content_widget.setMinimumHeight(310)
+        content_widget.setMinimumWidth(1000)
+        content_widget.setMinimumHeight(280)
         
         # Beispielhaftes Layout für Tasten der C64-Tastatur
         self.keys = [
-            {"x":  10, "y": 10, "w": 53, "h": 53, "label": "<-", "ll": ""},
+            {"x":  10, "y": 10,           "w": 53, "h": 53, "label": "<-", "ll": "" , "sub_chars": ["!", "@"] },
             {"x":  10+( 1 * 56), "y": 10, "w": 53, "h": 53, "label": "!" , "ll": "1", "sub_chars": ["!", "@"] },
             {"x":  10+( 2 * 56), "y": 10, "w": 53, "h": 53, "label": "\"", "ll": "2", "sub_chars": ["!", "@"]  },
             {"x":  10+( 3 * 56), "y": 10, "w": 53, "h": 53, "label": "#" , "ll": "3", "sub_chars": ["!", "@"]  },
@@ -9846,7 +9891,7 @@ class C64Keyboard(QWidget):
             small_rect_y,
             small_rect_width,
             small_rect_height))
-        print("111121222222")
+        
         small_rect = QGraphicsPathItem(small_rect_path)
         small_rect.setBrush(QBrush(QColor(255, 255, 255)))  # Weiß
         small_rect.setPen(QPen(Qt.NoPen))
@@ -9862,10 +9907,10 @@ class C64Keyboard(QWidget):
         key_rect.setData(0, index)  # Speichert den Index im Datenfeld des Items
         
         # Zusätzliche Zeichen mit Rahmen
-        sub_char_width   = 15  # Breite und Höhe eines Char-Rahmens
-        sub_char_height  = 15
+        sub_char_width   = 16  # Breite und Höhe eines Char-Rahmens
+        sub_char_height  = 16
         sub_char_spacing =  5  # Abstand zwischen den beiden Zeichen
-        print("22222")
+        
         for i, char in enumerate(sub_chars):
             # Berechnen der Position
             sub_x = x + 10 + i * (sub_char_width + sub_char_spacing)
@@ -9883,8 +9928,8 @@ class C64Keyboard(QWidget):
             # Zeichen im Rahmen
             sub_text = QGraphicsTextItem(char)
             sub_text.setDefaultTextColor(Qt.black)
-            sub_text.setFont(QFont("Arial", 8))
-            sub_text.setPos(sub_x + 2, sub_y + 2)  # Etwas eingerückt
+            sub_text.setFont(QFont("C64 Pro Mono", 8))
+            sub_text.setPos(sub_x-2, sub_y - 1)  # Etwas eingerückt
             self.graphics_scene.addItem(sub_text)
     
     def mousePressEvent(self, event):
@@ -17570,16 +17615,16 @@ class FileWatcherGUI(QDialog):
     def onC64TabChanged(self, index):
         if index == 0 or index == 1 or index == 3:
             print("end")
-            if not self.c64_screen.worker_thread == None:
-                self.c64_screen.worker_thread.stop()
+            if not genv.worker_thread == None:
+                genv.worker_thread.stop()
             self.worker_hasFocus = False
         elif index == 2:
             print("start")
-            if not self.c64_screen.worker_thread == None:
-                self.c64_screen.worker_thread.stop()
-            self.c64_screen.worker_thread = None
-            self.c64_screen.worker_thread = c64WorkerThread(self)
-            self.c64_screen.worker_thread.start()
+            if not genv.worker_thread == None:
+                genv.worker_thread.stop()
+            genv.worker_thread = None
+            genv.worker_thread = c64WorkerThread(self)
+            genv.worker_thread.start()
             self.worker_hasFocus = True
     
     def handleCommodoreC64(self):
@@ -17602,83 +17647,71 @@ class FileWatcherGUI(QDialog):
         self.c64_editors = ApplicationEditorsPage(self, self.c64_tabs_basic___widget, "c64")
         ####
         
-        self.c64_tabs_editors_widget.setMinimumWidth(1050)
+        #self.c64_tabs_editors_widget.setMinimumWidth(1050)
         
-        self.c64_layout = QVBoxLayout()
-        self.c64_frame_oben  = QFrame()
-        self.c64_frame_unten = QFrame()
         
-        self.c64_frame_oben .setMinimumHeight(320)
-        self.c64_frame_oben .setMaximumHeight(320)
+        
+        clayout = QVBoxLayout()
+        hlayout = QHBoxLayout()
         #
-        self.c64_frame_unten.setMinimumWidth(1050)
-        
-        self.c64_frame_oben .setStyleSheet("background-color:lightgray;")
-        self.c64_frame_unten.setStyleSheet("background-color:lightgray;")
-        
-        self.c64_keyboard = C64Keyboard(self.c64_frame_unten)
-                
-        #self.c64_keyboard_label = QLabel(self.c64_frame_unten)
-        #self.c64_keyboard_pixmap = QPixmap(genv.v__app__keybc64__)
-        #self.c64_keyboard_label.setPixmap(self.c64_keyboard_pixmap)
-        
-        #####
-        c64_logo_label  = QLabel(self.c64_frame_unten)
-        c64_logo_label_pixmap = QPixmap(genv.v__app__logoc64__)
-        c64_logo_label.setPixmap(c64_logo_label_pixmap)
-        c64_logo_label.move(4,402)
-        #####
-        
-        
-        self.c64_screen = c64Bildschirm(self.c64_frame_oben)
-        
-        self.c64_tabs.currentChanged.connect(self.onC64TabChanged)
-        
-        _listpush_apps = QPushButton(_("Applications"))
-        _listpush_game = QPushButton(_("Games"))
-        
-        _listwidget = QListWidget()
-        _listwidget.setViewMode  (QListView.IconMode)
-        _listwidget.setResizeMode(QListView.Adjust)
-        _listwidget.setStyleSheet("background-color:white;")
-        
-        _listwidget   .setParent(self.c64_frame_oben)
-        _listpush_apps.setParent(self.c64_frame_oben)
-        _listpush_game.setParent(self.c64_frame_oben)
-        
-        font = QFont(genv.v__app__font, 11)
-        font.setBold(True)
-        
-        _listwidget   .move(430,40); _listwidget   .resize(400,200)
-        _listpush_apps.move(430,10); _listpush_apps.resize(100,30)
-        _listpush_game.move(540,10); _listpush_game.resize(100,30)
+        self.c64_screen = c64Bildschirm()
         #
-        _listpush_apps.setFont(font)
-        _listpush_game.setFont(font)
         
-        c64_disc1_label  = QLabel(self.c64_frame_oben)
+        hpLayout = QHBoxLayout()
+        #
+        apps = QPushButton(_("Applications"))
+        game = QPushButton(_("Games"))
+        #
+        apps.setMinimumHeight(32)
+        game.setMinimumHeight(32)
+        #
+        hpLayout.addWidget(apps)
+        hpLayout.addWidget(game)
+        #
+        vlayout = QVBoxLayout()
+        listbox = QListWidget()
+        #
+        listbox.setViewMode  (QListView.IconMode)
+        listbox.setResizeMode(QListView.Adjust)
+        listbox.setStyleSheet("background-color:white;")
+        listbox.setMaximumHeight(300)
+        #
+        dhLayout = QHBoxLayout()
+        
+        c64_disc1_label  = QLabel()
         c64_disc1_pixmap = QPixmap(genv.v__app__discc64__)
         c64_disc1_label.setPixmap(c64_disc1_pixmap)
+        c64_disc1_label.setMaximumHeight(100)
         #
-        c64_disc2_label  = QLabel(self.c64_frame_oben)
+        c64_disc2_label  = QLabel()
         c64_disc2_pixmap = QPixmap(genv.v__app__discc64__)
         c64_disc2_label.setPixmap(c64_disc2_pixmap)
+        c64_disc2_label.setMaximumHeight(100)
         #
-        c64_mc1_label  = QLabel(self.c64_frame_oben)
+        c64_mc1_label  = QLabel()
         c64_mc1_pixmap = QPixmap(genv.v__app__datmc64__)
         c64_mc1_label.setPixmap(c64_mc1_pixmap)
+        c64_mc1_label.setMaximumHeight(100)
         #
+        dhLayout.addWidget(c64_disc1_label)
+        dhLayout.addWidget(c64_disc2_label)
+        dhLayout.addWidget(c64_mc1_label)
         
-        #
-        c64_disc1_label.move(440,240)
-        c64_disc2_label.move(540,240)
-        c64_mc1_label  .move(690,240)
+        vlayout.addLayout(hpLayout)
+        vlayout.addWidget(listbox)
+        vlayout.addLayout(dhLayout)
         
+        hlayout.addWidget(self.c64_screen)
+        hlayout.addLayout(vlayout)
         
-        self.c64_layout.addWidget(self.c64_frame_oben)
-        self.c64_layout.addWidget(self.c64_frame_unten)
+        self.c64_keyboard = C64Keyboard()
+        self.c64_keyboard.graphics_view.scale(1/1.2, 1/1.2)
         
-        self.c64_tabs_editors_widget.setLayout(self.c64_layout)
+        clayout.addLayout(hlayout)
+        clayout.addWidget(self.c64_keyboard)
+        
+        self.c64_tabs_editors_widget.setLayout(clayout)
+        self.c64_tabs.currentChanged.connect(self.onC64TabChanged)
         
         ####
         self.main_layout.addWidget(self.c64_tabs)
@@ -17696,8 +17729,8 @@ class FileWatcherGUI(QDialog):
         result = msg.exec_()
         
         if result == QMessageBox.Yes:
-            if not self.c64_screen.worker_thread == None:
-                self.c64_screen.worker_thread.stop()
+            if not genv.worker_thread == None:
+                genv.worker_thread.stop()
             event.accept()
         else:
             event.ignore()
