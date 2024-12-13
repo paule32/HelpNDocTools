@@ -16,6 +16,8 @@ import subprocess
 import sys            # system specifies
 import os             # operating system stuff
 
+from   io     import StringIO
+
 import ctypes
 from   ctypes import wintypes
 
@@ -311,6 +313,7 @@ except Exception as e:
 # ------------------------------------------------------------------------
 import re             # regular expression handling
 import requests       # get external url stuff
+import itertools
 
 import time           # thread count
 import datetime       # date, and time routines
@@ -410,6 +413,32 @@ class e_expr_empty(Exception):
 
 class IgnoreOuterException(Exception):
     pass
+
+# ------------------------------------------------------------------------
+# \brief Generates all case variations of the input string.
+# ------------------------------------------------------------------------
+def gen_case_var(input_string):
+    # --------------------------------------------------
+    # Separate characters into a list
+    # --------------------------------------------------
+    chars = list(input_string)
+    
+    # --------------------------------------------------
+    # Generate combinations of lower and upper case for
+    # alphabetic characters
+    # --------------------------------------------------
+    variations = [
+        [c.lower(), c.upper()] if re.match(r'[a-zA-Z]', c) else [c]
+        for c in chars
+    ]
+    
+    # --------------------------------------------------
+    # Create all combinations
+    # --------------------------------------------------
+    all_variations = [''.join(variation) for variation \
+    in itertools.product(*variations)]
+    
+    return all_variations
 
 # ------------------------------------------------------------------------
 # message box code place holder ...
@@ -516,6 +545,7 @@ class globalEnv:
         self.v__app__logging      = None
         
         self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
+        self.v__app__helprojects  = []
         
         im_path = self.v__app__img__int__ + "/"
         
@@ -7204,8 +7234,7 @@ class customScrollView_1(myCustomScrollArea):
         layout = QVBoxLayout(content_widget)
         layout.setAlignment(Qt.AlignLeft)
         
-        font = QFont(genv.v__app__font)
-        font.setPointSize(10)
+        font = QFont("Consolas", 10)
         
         w_layout_0 = QHBoxLayout()
         w_layout_0.setAlignment(Qt.AlignLeft)
@@ -7233,9 +7262,9 @@ class customScrollView_1(myCustomScrollArea):
         v_layout_2 = QVBoxLayout()
         v_widget_2 = QWidget()
         
-        e_field_1 = self.addLineEdit("PROJECT_NAME:1"  , "", v_layout_2)
-        e_field_2 = self.addLineEdit("PROJECT_AUTHOR:1", "", v_layout_2)
-        e_field_3 = self.addLineEdit("PROJECT_NUMBER:1", "", v_layout_2)
+        e_field_1 = self.addLineEdit("doxygen_project_name"  , "", v_layout_2)
+        e_field_2 = self.addLineEdit("doxygen_project_author", "", v_layout_2)
+        e_field_3 = self.addLineEdit("doxygen_project_number", "", v_layout_2)
         
         ##
         h_layout_1.addLayout(v_layout_1)
@@ -7256,6 +7285,8 @@ class customScrollView_1(myCustomScrollArea):
         widget_4_pushb_1.setMinimumWidth(84)
         widget_4_pushb_1.setMaximumWidth(84)  ; font.setBold(True)
         widget_4_pushb_1.setFont(font)        ; font.setBold(False)
+        
+        widget_4_pushb_1.clicked.connect(self.widget_4_pushb_1_click)
         #
         widget_4_licon_1 = self.addLabel("", False, layout_4)
         widget_4_licon_1.setPixmap(QIcon(os.path.join(
@@ -7282,7 +7313,7 @@ class customScrollView_1(myCustomScrollArea):
         widget_6_label_1.setMaximumWidth(100)
         widget_6_label_1.setFont(font)
         #
-        widget_6_edit_1  = self.addLineEdit("SOURCE_DIR:1",
+        widget_6_edit_1  = self.addLineEdit("doxygen_project_srcdir",
             os.path.join(genv.v__app__app_dir__, "/examples/doxygen/"),
             layout_6)
         widget_6_edit_1.setMinimumWidth(280)
@@ -7295,6 +7326,8 @@ class customScrollView_1(myCustomScrollArea):
         widget_6_pushb_1.setMinimumWidth(84)
         widget_6_pushb_1.setMaximumWidth(84) ; font.setBold(True)
         widget_6_pushb_1.setFont(font)       ; font.setBold(False)
+        
+        widget_6_pushb_1.clicked.connect(self.widget_6_pushb_1_click)
         ##
         layout.addLayout(layout_6)
         
@@ -7305,7 +7338,7 @@ class customScrollView_1(myCustomScrollArea):
         widget_7_label_1.setMaximumWidth(100)
         widget_7_label_1.setFont(font)
         #
-        widget_7_edit_1  = self.addLineEdit("DEST_DIR:1","E:/temp/src/html", layout_7)
+        widget_7_edit_1  = self.addLineEdit("doxygen_project_dstdir","E:/temp/src/html", layout_7)
         widget_7_edit_1.setMinimumWidth(280)
         widget_7_edit_1.setMaximumWidth(280)
         widget_7_edit_1.setFont(font)
@@ -7316,6 +7349,8 @@ class customScrollView_1(myCustomScrollArea):
         widget_7_pushb_1.setMinimumWidth(84)
         widget_7_pushb_1.setMaximumWidth(84) ; font.setBold(True)
         widget_7_pushb_1.setFont(font)       ; font.setBold(False)
+        
+        widget_7_pushb_1.clicked.connect(self.widget_7_pushb_1_click)
         ##
         layout.addLayout(layout_7)
         
@@ -7351,7 +7386,14 @@ class customScrollView_1(myCustomScrollArea):
         
         #self.setWidgetResizable(False)
         self.setWidget(content_widget)
-            
+    
+    def widget_4_pushb_1_click(self):
+        showInfo("select logo")
+    def widget_6_pushb_1_click(self):
+        showInfo("select src dir")
+    def widget_7_pushb_1_click(self):
+        showInfo("select dst dur")
+    
     def widget_10_button_1_click(self):
         if genv.HelpAuthoringConverterMode == 0:
             msg = QMessageBox()
@@ -7410,9 +7452,13 @@ class customScrollView_2(myCustomScrollArea):
         label_2.setMinimumHeight(30)
         label_2.setMinimumWidth(200)
         
-        self.addRadioButton(_("opti01"))
-        self.addRadioButton(_("opti02"))
-        self.addCheckBox   (" ",_("opti03"))
+        rb1 = self.addRadioButton(_("opti01"))
+        rb2 = self.addRadioButton(_("opti02"))
+        cb1 = self.addCheckBox   (" ",_("opti03"))
+        
+        rb1.setObjectName("doxygen_mode_document_entries_only")
+        rb2.setObjectName("doxygen_mode_all_entries")
+        cb1.setObjectName("doxygen_mode_cross_ref")
         
         self.addFrame()
         
@@ -9726,6 +9772,8 @@ class c64Bildschirm(QWidget):
 class C64Keyboard(QWidget):
     def __init__(self, parent=None):
         super(C64Keyboard, self).__init__(parent)
+        
+        self.setMouseTracking(True)
         layout = QVBoxLayout()
         
         self.setMinimumWidth(700)
@@ -9903,9 +9951,6 @@ class C64Keyboard(QWidget):
         text.setFont(self.ari_font)
         text.setPos(x + 10, y + 5)
         
-        # Speichern des Index im Key-Daten
-        key_rect.setData(0, index)  # Speichert den Index im Datenfeld des Items
-        
         # Zusätzliche Zeichen mit Rahmen
         sub_char_width   = 16  # Breite und Höhe eines Char-Rahmens
         sub_char_height  = 16
@@ -9931,6 +9976,9 @@ class C64Keyboard(QWidget):
             sub_text.setFont(QFont("C64 Pro Mono", 8))
             sub_text.setPos(sub_x-2, sub_y - 1)  # Etwas eingerückt
             self.graphics_scene.addItem(sub_text)
+            
+        # Speichern des Index im Key-Daten
+        key_rect.setData(0, index)  # Speichert den Index im Datenfeld des Items
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -9943,9 +9991,10 @@ class C64Keyboard(QWidget):
                     self.handle_key_press(key_index, key)
                     return
     
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event: QMouseEvent):
         pos = event.pos()
         x, y = pos.x(), pos.y()
+        print("X: " + str(x) + ", Y: " + str(y))
         
         # Prüfen, ob die Maus über einer Taste ist
         for key in self.keys:
@@ -9965,7 +10014,7 @@ class C64Keyboard(QWidget):
             self.highlight_layer = QGraphicsPathItem(highlight_path)
             self.highlight_layer.setBrush(QBrush(QColor(255, 255, 0, 128)))  # Gelb mit Transparenz
             self.highlight_layer.setPen(QPen(Qt.NoPen))  # Kein Rahmen
-            self.graphics_scene .addItem(self.highlight_layer)
+            self.graphics_scene.addItem(self.highlight_layer)
         else:
             # Highlight-Layer aktualisieren
             highlight_path = QPainterPath()
@@ -15097,6 +15146,11 @@ class FileWatcherGUI(QDialog):
         self.tab_widget_tabs.setMinimumWidth(830)
         self.tab_widget_tabs.setMinimumHeight(650)
         
+        self.help_tabs.removeTab(3)
+        self.help_tabs.removeTab(3)
+        self.help_tabs.removeTab(2)
+        self.help_tabs.removeTab(1)
+        
         self.tab_html   = QWidget()
         
         self.tab_widget_tabs.addTab(self.tab2, "Topics")
@@ -15679,7 +15733,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_help_list3.setIconSize(QSize(34,34))
         self.tab0_help_list3.setFont(QFont(genv.v__app__font, 12))
         self.tab0_help_list3.font().setBold(True)
-        self.tab0_help_list3.itemClicked.connect(self.tab0_help_list3_item_click)
+        self.tab0_help_list3.itemDoubleClicked.connect(self.tab0_help_list3_item_click)
         
         self.list_blue_item3 = QListWidgetItem(_("Projects:"))
         self.list_blue_item3.setBackground(QColor("navy"))
@@ -15688,6 +15742,20 @@ class FileWatcherGUI(QDialog):
         self.list_blue_item3.flags() & ~Qt.ItemIsSelectable)
         self.tab0_help_list3.addItem(self.list_blue_item3)
         ##
+        genv.v__app__config.read(genv.v__app__config_ini)
+        genv.v__app__helprojects = []
+        i = 1
+        try:
+            while True:
+                if i == 10:
+                    break
+                item = genv.v__app__config.get("helprojects", "help" + str(i))
+                genv.v__app__helprojects.append(item)
+                list_item = QListWidgetItem(item)
+                self.tab0_help_list3.addItem(list_item)
+                i += 1
+        except Exception as e:
+            print(e)
         
         self.tab0_help_layout = QVBoxLayout()
         self.tab0_help_layout.addWidget(self.tab0_help_list1)
@@ -15944,7 +16012,308 @@ class FileWatcherGUI(QDialog):
         return True
     
     def tab0_help_list3_item_click(self, item):
-        text = item.text()
+        found = False
+        file  = item.text()
+        for name in genv.v__app__helprojects:
+            if file.lower() == name.lower():
+                found = True
+                break
+        if not found:
+            showError(_("Error:\nproject name item error."))
+            return False
+        
+        file_path = item.text()
+        
+        try:
+            print(file_path)
+            genv.v__app__config.read(file_path)
+        except:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+        try:
+            value = genv.v__app__config.get("common", "framework")
+            text1 = _("Error:\ncould not found object:\n")
+            if int(value) == genv.DOC_PROJECT_DOXYGEN:
+                if genv.img_doxygen.bordercolor == "lime":
+                    self.trigger_mouse_press(genv.img_doxygen)
+                    self.trigger_mouse_press(genv.img_doxygen)
+                else:
+                    self.trigger_mouse_press(genv.img_doxygen)
+                    #
+                self.help_tabs.removeTab(3)
+                self.help_tabs.removeTab(2)
+                self.help_tabs.removeTab(1)
+                self.help_tabs.insertTab(1, self.tab3, _("DoxyGen"))
+                self.help_tabs.setCurrentIndex(1)
+                #
+                txt2 = "doxygen_project_name"
+                item = self.findChild(myLineEdit, txt2)
+                if item:
+                    name = genv.v__app__config.get("project", "name")
+                    item.setText(name)
+                    item.repaint()
+                    #
+                else:
+                    showError(text1 + txt2)
+                    return False
+                
+                txt2 = "doxygen_project_author"
+                item = self.findChild(myLineEdit, txt2)
+                if item:
+                    name = genv.v__app__config.get("project", "author")
+                    item.setText(name)
+                    item.repaint()
+                    #
+                else:
+                    showError(text1 + txt2)
+                    return False
+                    
+                txt2 = "doxygen_project_number"
+                item = self.findChild(myLineEdit, txt2)
+                if item:
+                    name = genv.v__app__config.get("project", "number")
+                    item.setText(name)
+                    item.repaint()
+                    #
+                else:
+                    showError(text1 + txt2)
+                    return False
+                    
+                item1 = self.findChild(myLineEdit, "doxygen_project_srcdir")
+                item2 = self.findChild(myLineEdit, "doxygen_project_dstdir")
+                
+                found = True
+                if item1:
+                    name = genv.v__app__config.get("project", "srcdir")
+                    if not os.path.exists(name):
+                        msg = QMessageBox()
+                        msg.setWindowTitle(_("Confirmation"))
+                        msg.setText(_(""
+                        + "Error:\nsource dir is not a valid directorie item.\n"
+                        + "Either it is not a directory or the path to the\n"
+                        + "directory does not exists.\n\n"
+                        + "Would you create create the directory ?"))
+                        
+                        msg.setIcon(QMessageBox.Question)
+                        
+                        btn_yes = msg.addButton(QMessageBox.Yes)
+                        btn_no  = msg.addButton(QMessageBox.No)
+                        
+                        msg.setStyleSheet(_("msgbox_css"))
+                        result = msg.exec_()
+                        
+                        if result == QMessageBox.Yes:
+                            try:
+                                os.makedirs(name, exist_ok=True)
+                            except FileNotFoundError as e:
+                                showError(_("Error:\nsource directory could not be found/created."))
+                                return False
+                            except PermissionError as e:
+                                showError(_("Error:\nno permissions to create the source directory."))
+                                return False
+                            except Exception as e:
+                                showError(_("Error:\nsource directory could not be created."))
+                                return False
+                                
+                        elif result == QMessageBox.No:
+                            showError(_("Error:\nuser aborted creeat the directory."))
+                            found = False
+                            
+                    if (not os.path.isdir(name)) or (os.path.isfile(name)):
+                        showError(_(""
+                        + "Error:\nsource dir is not a valid directorie item.\n"
+                        + "Either it is not a directory or the path to the\n"
+                        + "directory does not exists."))
+                        found = False
+                    
+                    if not found:
+                        item1.setText("") ; item2.setText("")
+                        item1.repaint()   ; item2.repaint()
+                        return False
+                        
+                    item1.setText(name)
+                    item1.repaint()
+                    #
+                else:
+                    showError(text1 + txt2)
+                    return False
+                    
+                found = True
+                if item2:
+                    name = genv.v__app__config.get("project", "dstdir")
+                    if not os.path.exists(name):
+                        msg = QMessageBox()
+                        msg.setWindowTitle(_("Confirmation"))
+                        msg.setText(_(""
+                        + "Error:\ntarget dir is not a valid directorie item.\n"
+                        + "Either it is not a directory or the path to the\n"
+                        + "directory does not exists.\n\n"
+                        + "Would you create create the directory ?"))
+                        
+                        msg.setIcon(QMessageBox.Question)
+                        
+                        btn_yes = msg.addButton(QMessageBox.Yes)
+                        btn_no  = msg.addButton(QMessageBox.No)
+                        
+                        msg.setStyleSheet(_("msgbox_css"))
+                        result = msg.exec_()
+                        
+                        if result == QMessageBox.Yes:
+                            try:
+                                os.makedirs(name, exist_ok=True)
+                            except FileNotFoundError as e:
+                                showError(_("Error:\ntarget directory could not be found/created."))
+                                return False
+                            except PermissionError as e:
+                                showError(_("Error:\nno permissions to create the target directory."))
+                                return False
+                            except Exception as e:
+                                showError(_("Error:\ntarget directory could not be created."))
+                                return False
+                                
+                        elif result == QMessageBox.No:
+                            showError(_("Error:\nuser aborted creeat the directory."))
+                            found = False
+                    else:
+                        msg = QMessageBox()
+                        msg.setWindowTitle(_("Confirmation"))
+                        msg.setText(_(""
+                        + "Error:\ntarget dir already exists.\n"
+                        + "Would you DELETE and RE-CREATE the directory ?"))
+                        
+                        msg.setIcon(QMessageBox.Question)
+                        
+                        btn_yes = msg.addButton(QMessageBox.Yes)
+                        btn_no  = msg.addButton(QMessageBox.No)
+                        
+                        msg.setStyleSheet(_("msgbox_css"))
+                        result = msg.exec_()
+                        
+                        if result == QMessageBox.Yes:
+                            try:
+                                shutil.rmtree(name)
+                                os.makedirs(name, exist_ok=True)
+                            except FileNotFoundError as e:
+                                showError(_("Error:\ndirectory could not be found/created."))
+                                return False
+                            except PermissionError as e:
+                                showError(_("Error:\nno permissions to create the target directory."))
+                                return False
+                            except Exception as e:
+                                showError(_("Error:\ntarget directory could not be created."))
+                                return False
+                        
+                    if (not os.path.isdir(name)) or (os.path.isfile(name)):
+                        showError(_(""
+                        + "Error:\ntarget dir is not a valid directorie item.\n"
+                        + "Either it is not a directory or the path to the\n"
+                        + "directory does not exists."))
+                        found = False
+                    
+                    if not found:
+                        item1.setText("") ; item2.setText("")
+                        item1.repaint()   ; item2.repaint()
+                        return False
+                        
+                    item2.setText(name)
+                    item2.repaint()
+                else:
+                    showError(text1 + txt2)
+                    return False
+                    
+                radio_check = genv.v__app__config.get("mode", "doc_entries")
+                combo_check = genv.v__app__config.get("mode", "cross")
+                #
+                textA = "doxygen_mode_document_entries_only"
+                textB = "doxygen_mode_all_entries"
+                textC = "doxygen_mode_cross_ref"
+                
+                item1 = self.findChild(QRadioButton, textA)
+                item2 = self.findChild(QRadioButton, textB)
+                item3 = self.findChild(QCheckBox,    textC)
+                
+                if item1 and item2:
+                    if int(radio_check) == 0:
+                        item1.setChecked(True)
+                    elif int(radio_check) == 1:
+                        item2.setChecked(True)
+                    else:
+                        showError(_("Error:\ndocument entries check logic error."))
+                        return False
+                else:
+                    showError(text1 + textA + "\n" + textB)
+                    return False
+                
+                if item3:
+                    if int(combo_check) == 0:
+                        item3.setCbecked(False)
+                    elif int(combo_check) == 1:
+                        item3.setChecked(True)
+                    else:
+                        showError(_("Error:\ncross ref check logic error."))
+                        return False
+                else:
+                    showError(text1 + textC)
+                    return False
+                
+            elif int(value) == genv.DOC_PROJECT_HELPNDOC:
+                if genv.img_hlpndoc.bordercolor == "lime":
+                    self.trigger_mouse_press(genv.img_doxygen)
+                    self.trigger_mouse_press(genv.img_hlpndoc)
+                else:
+                    self.trigger_mouse_press(genv.img_hlpndoc)
+                self.help_tabs.removeTab(2)
+                self.help_tabs.removeTab(1)
+                self.help_tabs.insertTab(1, self.tab1_0, _("Pre-/Post Actions"))
+                self.help_tabs.insertTab(2, self.tab2  , _("Topics"))
+                self.help_tabs.insertTab(3, self.tab4  , _("Content"))
+            else:
+                showError(_("Error:\nframework have no valid setting options."))
+                return False
+        except Exception as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+            
+        try:
+            value = genv.v__app__config.get("common", "lang")
+            if int(value) == genv.DOC_LANG_CPP:
+                genv.radio_cpp.setChecked(True)
+            
+            elif int(value) == genv.DOC_LANG_JAVA:
+                genv.radio_java.setChecked(True)
+            
+            elif int(value) == genv.DOC_LANG_JAVASCRIPT:
+                genv.radio_javascript.setChecked(True)
+            
+            elif int(value) == genv.DOC_LANG_PYTHON:
+                genv.radio_python.setChecked(True)
+            
+            elif int(value) == genv.DOC_LANG_PHP:
+                genv.radio_php.setChecked(True)
+            
+            elif int(value) == genv.DOC_LANG_FORTRAN:
+                genv.radio_fortran.setChecked(True)
+        except Exception as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+        
+        try:
+            value = genv.v__app__config.get("common", "template")
+            item  = self.tab0_help_list2.item(int(value))
+            self.tab0_help_list2.setCurrentItem(item)
+            item.setSelected(True)
+        except Exception as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+        
+        try:
+            value = genv.v__app__config.get("common", "kind")
+            item  = self.tab0_help_list1.item(int(value))
+            self.tab0_help_list1.setCurrentItem(item)
+            item.setSelected(True)
+        except:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
     
     def tab0_help_list1_item_click(self, item):
         text = item.text()
@@ -16004,8 +16373,24 @@ class FileWatcherGUI(QDialog):
             showError(_("Error:\ngiven file not a file type (is dir)."))
             return False
         if file_path.exists():
-            showError(path_error)
-            return False
+            # ------------------------------------------
+            # prüfe alle Einträge aus der QListWidget
+            # ------------------------------------------
+            items = []
+            for i in range(self.tab0_help_list3.count()):
+                items.append(self.tab0_help_list3.item(i))
+            
+            for item in items:
+                if item.text() == genv.v__app__config_project_ini:
+                    #showError(_("Error:\nproject already exists."))
+                    showError(path_error)
+                    return False
+            
+            list_item = QListWidgetItem(genv.v__app__config_project_ini)
+            list_item.setIcon(QIcon(os.path.join(genv.v__app__img__int__, "project.png")))
+            list_item.setFont(self.tab0_help_list2.font())
+            self.tab0_help_list3.addItem(list_item)
+            
         # ------------------------------
         if genv.radio_cpp.isChecked():
             genv.doc_lang = genv.DOC_LANG_CPP
@@ -17290,9 +17675,10 @@ class FileWatcherGUI(QDialog):
         #
         font2 = QFont(genv.v__app__font_edit, 10)
         edit1 = QLineEdit()
+        edit1.setObjectName("doxygen_project_name")
         edit1.setFont(font2)
         edit1.setStyleSheet(edit_css)
-        edit1.setPlaceholderText("Example Project")
+        edit1.setPlaceholderText(_("Example Project"))
         vlayout1.addWidget(edit1)
         #
         lblA = QLabel("Project File:")
