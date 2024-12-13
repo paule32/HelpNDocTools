@@ -1021,6 +1021,9 @@ msgid "opti03"
 msgstr "Include cross referenced source code in the output:"
 # msgstr "Aufnehmen von cross referenzierten Quellcode in die Ausgabe:"
 
+msgid "opti0010"
+msgstr "Scan rekursively"
+
 msgid "opti04"
 msgstr "Optimize for C++ output"
 # msgstr "optimiert für C++ Ausgabe"
