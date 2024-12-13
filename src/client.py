@@ -7066,7 +7066,7 @@ class myCustomScrollArea(QScrollArea):
     
     def addCheckBox(self, object_name = "", text = "", bold=False):
         w = QCheckBox(text)
-        w.setObjectName(object_name + ':QCheckBox')
+        w.setObjectName(object_name)
         
         if bold == True:
             self.setElementBold(w)
@@ -7289,10 +7289,11 @@ class customScrollView_1(myCustomScrollArea):
         widget_4_pushb_1.clicked.connect(self.widget_4_pushb_1_click)
         #
         widget_4_licon_1 = self.addLabel("", False, layout_4)
+        widget_4_licon_1.setObjectName("doxygen_project_logo")
         widget_4_licon_1.setPixmap(QIcon(os.path.join(
             genv.v__app__img__int__,
             "floppy-disk" + genv.v__app__img_ext__)).pixmap(42,42))
-        widget_4_licon_1.setObjectName("PROJECT_LOGO:1")
+        #widget_4_licon_1.setObjectName("PROJECT_LOGO:1")
         #
         layout.addLayout(layout_4)
         
@@ -7367,7 +7368,7 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_9 = QHBoxLayout()
         layout_9.setAlignment(Qt.AlignLeft)
-        widget_9_checkbutton_1 = self.addCheckBox(" ",_("Scan recursive"))
+        widget_9_checkbutton_1 = self.addCheckBox("doxygen_project_scan_recursiv",_("Scan recursive"))
         widget_9_checkbutton_1.setMaximumWidth(300)
         widget_9_checkbutton_1.setFont(font)
         layout_9.addWidget(widget_9_checkbutton_1)
@@ -7388,11 +7389,75 @@ class customScrollView_1(myCustomScrollArea):
         self.setWidget(content_widget)
     
     def widget_4_pushb_1_click(self):
-        showInfo("select logo")
+        if genv.HelpAuthoringConverterMode == 0:
+            dialog       = QFileDialog()
+            dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+            options      = dialog.options()
+            file_filter  = "PNG Picture (*.png);;All Files (*)"
+            file_name, p = dialog.getOpenFileName(
+                None,
+                _("Select Picture"),
+                "",
+                file_filter,
+                options=options
+            )
+            if file_name:
+                item = self.findChild(QLabel, "doxygen_project_logo")
+                if item:
+                    pixa = QPixmap(file_name)
+                    item.setPixmap(pixa)
+                else:
+                    showError(_("Error:\nlogo pixmap object not found."))
+                    return False
+            else:
+                showError(_("Error:\ncould not select picture"))
+                return False
+            return True
+        
     def widget_6_pushb_1_click(self):
-        showInfo("select src dir")
+        if genv.HelpAuthoringConverterMode == 0:
+            dialog = QFileDialog()
+            
+            dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+            dialog.setOption(QFileDialog.ShowDirsOnly, True)
+            
+            options = dialog.Options()
+            srcdir  = dialog.getExistingDirectory(
+                None,
+                _("Select directory"),
+                options=options)
+                
+            item = self.findChild(myLineEdit, "doxygen_project_srcdir")
+            
+            if not item:
+                showError(_("Error:\ncould not found source directory object."))
+                return False
+                
+            if not srcdir:
+                showError(_("Error:\ncould not select directory"))
+                return False
+            else:
+                item.setText(srcdir)
+            return True
+            
     def widget_7_pushb_1_click(self):
-        showInfo("select dst dur")
+        if genv.HelpAuthoringConverterMode == 0:
+            dialog = QFileDialog()
+            dialog.setOption(QFileDialog.DontUseNativeDialog, True) 
+            
+            dstdir = dialog.getExistingDirectory(None, _("Select directory"))
+            item   = self.findChild(myLineEdit, "doxygen_project_dstdir")
+            
+            if not item:
+                showError(_("Error:\ncould not found target directory object."))
+                return False
+                
+            if not dstdir:
+                showError(_("Error:\ncould not select directory"))
+                return False
+            else:
+                item.setText(dstdir)
+            return True
     
     def widget_10_button_1_click(self):
         if genv.HelpAuthoringConverterMode == 0:
@@ -7405,7 +7470,7 @@ class customScrollView_1(myCustomScrollArea):
             
             btn_ok = msg.addButton(QMessageBox.Ok)
             result = msg.exec_()            
-            return
+            return False
         if len(genv.doxygen_project_file) < 2:
             msg = QMessageBox()
             msg.setWindowTitle("Error")
@@ -7415,7 +7480,7 @@ class customScrollView_1(myCustomScrollArea):
             
             btn_ok = msg.addButton(QMessageBox.Ok)
             result = msg.exec_()            
-            return
+            return False
         
         try:
             genv.v__app__config.read(genv.doxygen_project_file)
@@ -7999,7 +8064,7 @@ class doxygenImageTracker(QWidget):
                 self.bordercolor = "lightgray";
                 self.set_style()
                 genv.doc_project = -1
-            genv.HelpAuthoringConverterMode = 1
+            genv.HelpAuthoringConverterMode = 0
             print("doxygen")
     
     def enterEvent(self, event):
@@ -8062,7 +8127,7 @@ class helpNDocImageTracker(QWidget):
                 self.bordercolor = "lightgray";
                 self.set_style()
                 genv.doc_project = -1
-            genv.HelpAuthoringConverterMode = 2
+            genv.HelpAuthoringConverterMode = 1
             print("helpNDoc")
     
     def enterEvent(self, event):
@@ -16079,13 +16144,18 @@ class FileWatcherGUI(QDialog):
                     showError(text1 + txt2)
                     return False
                     
-                item1 = self.findChild(myLineEdit, "doxygen_project_srcdir")
-                item2 = self.findChild(myLineEdit, "doxygen_project_dstdir")
+                item1  = self.findChild(myLineEdit, "doxygen_project_srcdir")
+                item2  = self.findChild(myLineEdit, "doxygen_project_dstdir")
                 
-                found = True
+                srcdir = genv.v__app__config.get("project", "srcdir")
+                dstdir = genv.v__app__config.get("project", "dstdir")
+                
+                item1.setText(srcdir)
+                item2.setText(dstdir)
+                
+                found  = True
                 if item1:
-                    name = genv.v__app__config.get("project", "srcdir")
-                    if not os.path.exists(name):
+                    if not os.path.exists(srcdir):
                         msg = QMessageBox()
                         msg.setWindowTitle(_("Confirmation"))
                         msg.setText(_(""
@@ -16104,34 +16174,56 @@ class FileWatcherGUI(QDialog):
                         
                         if result == QMessageBox.Yes:
                             try:
-                                os.makedirs(name, exist_ok=True)
+                                os.makedirs(srcdir, exist_ok=True)
+                                item1.setText(srcdir)
+                                item2.setText(dstdir)
+                                #
+                                item1.repaint()
+                                item2.repaint()
+                                #
                             except FileNotFoundError as e:
                                 showError(_("Error:\nsource directory could not be found/created."))
+                                item1.setText(srcdir)
+                                item2.setText(dstdir)
+                                #
+                                item1.repaint()
+                                item2.repaint()
+                                #
                                 return False
                             except PermissionError as e:
                                 showError(_("Error:\nno permissions to create the source directory."))
+                                item1.setText(srcdir)
+                                item2.setText(dstdir)
+                                #
+                                item1.repaint()
+                                item2.repaint()
+                                #
                                 return False
                             except Exception as e:
                                 showError(_("Error:\nsource directory could not be created."))
+                                item1.setText(srcdir)
+                                item2.setText(dstdir)
+                                #
+                                item1.repaint()
+                                item2.repaint()
+                                #
                                 return False
                                 
                         elif result == QMessageBox.No:
                             showError(_("Error:\nuser aborted creeat the directory."))
                             found = False
                             
-                    if (not os.path.isdir(name)) or (os.path.isfile(name)):
+                    if (not os.path.isdir(srcdir)) or (os.path.isfile(srcdir)):
                         showError(_(""
                         + "Error:\nsource dir is not a valid directorie item.\n"
                         + "Either it is not a directory or the path to the\n"
                         + "directory does not exists."))
-                        found = False
-                    
-                    if not found:
+                        #
                         item1.setText("") ; item2.setText("")
                         item1.repaint()   ; item2.repaint()
                         return False
                         
-                    item1.setText(name)
+                    item1.setText(srcdir)
                     item1.repaint()
                     #
                 else:
@@ -16140,8 +16232,7 @@ class FileWatcherGUI(QDialog):
                     
                 found = True
                 if item2:
-                    name = genv.v__app__config.get("project", "dstdir")
-                    if not os.path.exists(name):
+                    if not os.path.exists(dstdir):
                         msg = QMessageBox()
                         msg.setWindowTitle(_("Confirmation"))
                         msg.setText(_(""
@@ -16160,15 +16251,23 @@ class FileWatcherGUI(QDialog):
                         
                         if result == QMessageBox.Yes:
                             try:
-                                os.makedirs(name, exist_ok=True)
+                                os.makedirs(dstdir, exist_ok=True)
+                                item2.setText(dstdir)
                             except FileNotFoundError as e:
                                 showError(_("Error:\ntarget directory could not be found/created."))
+                                item1.setText(""); item1.repaint()
+                                item2.setText(""); item2.repaint()
+                                #
                                 return False
                             except PermissionError as e:
                                 showError(_("Error:\nno permissions to create the target directory."))
+                                item1.setText(""); item1.repaint()
+                                item2.setText(""); item2.repaint()
                                 return False
                             except Exception as e:
                                 showError(_("Error:\ntarget directory could not be created."))
+                                item1.setText(""); item1.repaint()
+                                item2.setText(""); item2.repaint()
                                 return False
                                 
                         elif result == QMessageBox.No:
@@ -16191,8 +16290,8 @@ class FileWatcherGUI(QDialog):
                         
                         if result == QMessageBox.Yes:
                             try:
-                                shutil.rmtree(name)
-                                os.makedirs(name, exist_ok=True)
+                                shutil.rmtree(dstdir)
+                                os.makedirs(dstdir, exist_ok=True)
                             except FileNotFoundError as e:
                                 showError(_("Error:\ndirectory could not be found/created."))
                                 return False
@@ -16203,19 +16302,17 @@ class FileWatcherGUI(QDialog):
                                 showError(_("Error:\ntarget directory could not be created."))
                                 return False
                         
-                    if (not os.path.isdir(name)) or (os.path.isfile(name)):
+                    if (not os.path.isdir(dstdir)) or (os.path.isfile(dstdir)):
                         showError(_(""
                         + "Error:\ntarget dir is not a valid directorie item.\n"
                         + "Either it is not a directory or the path to the\n"
                         + "directory does not exists."))
-                        found = False
-                    
-                    if not found:
+                        
                         item1.setText("") ; item2.setText("")
                         item1.repaint()   ; item2.repaint()
                         return False
                         
-                    item2.setText(name)
+                    item2.setText(dstdir)
                     item2.repaint()
                 else:
                     showError(text1 + txt2)
@@ -16227,10 +16324,12 @@ class FileWatcherGUI(QDialog):
                 textA = "doxygen_mode_document_entries_only"
                 textB = "doxygen_mode_all_entries"
                 textC = "doxygen_mode_cross_ref"
+                textD = "doxygen_project_scan_recursiv"
                 
                 item1 = self.findChild(QRadioButton, textA)
                 item2 = self.findChild(QRadioButton, textB)
                 item3 = self.findChild(QCheckBox,    textC)
+                item4 = self.findChild(QCheckBox,    textD)
                 
                 if item1 and item2:
                     if int(radio_check) == 0:
@@ -16255,6 +16354,16 @@ class FileWatcherGUI(QDialog):
                 else:
                     showError(text1 + textC)
                     return False
+                
+                if item4:
+                    check_box = genv.v__app__config.get("mode", "scan_recursiv")
+                    if int(check_box) == 0:
+                        item4.setChecked(False)
+                    elif int(check_box) == 1:
+                        item4.setChecked(True)
+                    else:
+                        showError(_("Error:\nscan recursiv check logic error."))
+                        return False
                 
             elif int(value) == genv.DOC_PROJECT_HELPNDOC:
                 if genv.img_hlpndoc.bordercolor == "lime":
