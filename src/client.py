@@ -383,6 +383,16 @@ from PyQt5.QtNetwork            import *
 if getattr(sys, 'frozen', False):
     import pyi_splash
 
+# ------------------------------------------------------------------------
+# \brief  Überprüft, ob der String Unicode-Zeichen enthält, die nicht
+#         ASCII sind.
+#
+# \param  input_string: Der zu prüfende String
+# \return True, wenn Unicode-Zeichen enthalten sind, ansonsten False
+# ------------------------------------------------------------------------
+def contains_unicode(input_string):
+    return any(ord(char) > 127 for char in input_string)
+
 # ---------------------------------------------------------------------------
 class unexpectedParserException(Exception):
     def __init__(self, text, value=1):
@@ -9906,18 +9916,44 @@ class c64Bildschirm(QWidget):
             line += 11
         self.painter.end()
 
+class C64GraphicsView(QGraphicsView):
+    def __init__(self, parent=None):
+        super(C64GraphicsView, self).__init__(parent)
+        self.parent = parent
+    
+    def mouseMoveEvent(self, event):
+        # Konvertiere die Mausposition in Szenenkoordinaten
+        scene_pos = self.mapToScene(event.pos())
+        self.parent.mouseMove(
+            scene_pos.x(),
+            scene_pos.y())
+        super().mouseMoveEvent(event)
+
+class C64GraphicScene(QGraphicsScene):
+    def __init__(self, parent=None):
+        super(C64GraphicScene, self).__init__(parent)
+        self.parent = parent
+    
+    def mouseMoveEvent(self, event):
+        # Mausposition direkt aus Szenenereignis
+        scene_pos = event.scenePos()
+        self.parent.mouseMove(
+            scene_pos.x(),
+            scene_pos.y())
+        super().mouseMoveEvent(event)
+        
 class C64Keyboard(QWidget):
     def __init__(self, parent=None):
         super(C64Keyboard, self).__init__(parent)
         
-        self.setMouseTracking(True)
+        #self.setMouseTracking(True)
         layout = QVBoxLayout()
         
         self.setMinimumWidth(700)
         self.setMinimumHeight(270)
         #
-        self.graphics_view  = QGraphicsView (self)
-        self.graphics_scene = QGraphicsScene(self)
+        self.graphics_view  = C64GraphicsView(self)
+        self.graphics_scene = C64GraphicScene(self)
         
         #
         self.graphics_view.setScene(self.graphics_scene)
@@ -9941,31 +9977,31 @@ class C64Keyboard(QWidget):
         
         # Beispielhaftes Layout für Tasten der C64-Tastatur
         self.keys = [
-            {"x":  10, "y": 10,           "w": 53, "h": 53, "label": "<-", "ll": "" , "sub_chars": ["!", "@"] },
-            {"x":  10+( 1 * 56), "y": 10, "w": 53, "h": 53, "label": "!" , "ll": "1", "sub_chars": ["!", "@"] },
-            {"x":  10+( 2 * 56), "y": 10, "w": 53, "h": 53, "label": "\"", "ll": "2", "sub_chars": ["!", "@"]  },
-            {"x":  10+( 3 * 56), "y": 10, "w": 53, "h": 53, "label": "#" , "ll": "3", "sub_chars": ["!", "@"]  },
-            {"x":  10+( 4 * 56), "y": 10, "w": 53, "h": 53, "label": "$" , "ll": "4", "sub_chars": ["!", "@"]  },
-            {"x":  10+( 5 * 56), "y": 10, "w": 53, "h": 53, "label": "%" , "ll": "5", "sub_chars": ["!", "@"]  },
-            {"x":  10+( 6 * 56), "y": 10, "w": 53, "h": 53, "label": "&" , "ll": "6", "sub_chars": ["!", "@"]  },
-            {"x":  10+( 7 * 56), "y": 10, "w": 53, "h": 53, "label": "\'", "ll": "7", "sub_chars": ["!", "@"]  },
-            {"x":  10+( 8 * 56), "y": 10, "w": 53, "h": 53, "label": "(" , "ll": "8", "sub_chars": ["!", "@"]  },
-            {"x":  10+( 9 * 56), "y": 10, "w": 53, "h": 53, "label": ")" , "ll": "9", "sub_chars": ["!", "@"]  },
-            {"x":  10+(10 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
+            {"x":  10, "y": 10,           "w": 53, "h": 53, "label": "<-" , "ll": "" , "sub_chars": ["<-", ""] },
+            {"x":  10+( 1 * 56), "y": 10, "w": 53, "h": 53, "label": "!"  , "ll": "1", "sub_chars": ["1", "BLK"] },
+            {"x":  10+( 2 * 56), "y": 10, "w": 53, "h": 53, "label": "\"" , "ll": "2", "sub_chars": ["2", "WHT"]  },
+            {"x":  10+( 3 * 56), "y": 10, "w": 53, "h": 53, "label": "#"  , "ll": "3", "sub_chars": ["3", "RED"]  },
+            {"x":  10+( 4 * 56), "y": 10, "w": 53, "h": 53, "label": "$"  , "ll": "4", "sub_chars": ["4", "CYN"]  },
+            {"x":  10+( 5 * 56), "y": 10, "w": 53, "h": 53, "label": "%"  , "ll": "5", "sub_chars": ["5", "PUR"]  },
+            {"x":  10+( 6 * 56), "y": 10, "w": 53, "h": 53, "label": "&"  , "ll": "6", "sub_chars": ["6", "GRN"]  },
+            {"x":  10+( 7 * 56), "y": 10, "w": 53, "h": 53, "label": "\'" , "ll": "7", "sub_chars": ["7", "BLU"]  },
+            {"x":  10+( 8 * 56), "y": 10, "w": 53, "h": 53, "label": "("  , "ll": "8", "sub_chars": ["8", "YEL"]  },
+            {"x":  10+( 9 * 56), "y": 10, "w": 53, "h": 53, "label": ")"  , "ll": "9", "sub_chars": ["9", "ON" ]  },
+            {"x":  10+(10 * 56), "y": 10, "w": 53, "h": 53, "label": "RVS", "ll": "0", "sub_chars": ["0", "OFF"]  },
             
-            {"x":  10+(11 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
-            {"x":  10+(12 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
-            {"x":  10+(13 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
-            {"x":  10+(14 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
-            {"x":  10+(15 * 56), "y": 10, "w": 53, "h": 53, "label": ""  , "ll": "0", "sub_chars": ["!", "@"]  },
+            {"x":  10+(11 * 56), "y": 10, "w": 53, "h": 53, "label": "+"        , "ll": "0", "sub_chars": [chr(0x00b2), chr(0x253c) ]  },
+            {"x":  10+(12 * 56), "y": 10, "w": 53, "h": 53, "label": "-"        , "ll": "0", "sub_chars": [chr(0xe07c), chr(0x00b3) ]  },
+            {"x":  10+(13 * 56), "y": 10, "w": 53, "h": 53, "label": chr(0x00a3), "ll": "0", "sub_chars": [chr(0xe0e8), chr(0x25e4) ]  },
+            {"x":  10+(14 * 56), "y": 10, "w": 53, "h": 53, "label": "CLR\nHOME", "ll": "0", "sub_chars": ["!", "@"]  },
+            {"x":  10+(15 * 56), "y": 10, "w": 53, "h": 53, "label": "INST\nDEL", "ll": "0", "sub_chars": ["!", "@"]  },
             
             {"x":  10+(16 * 56)+42, "y": 10, "w": 84, "h": 53, "label": "F1"  , "ll": "0", "sub_chars": ["!", "@"]  },
             
             #
             {"x":  10,           "y": 64, "w": 90, "h": 53, "label": "CTRL", "ll": "", "sub_chars": ["!", "@"]  },
             #
-            {"x": 105,           "y": 64, "w": 53, "h": 53, "label": "Q" , "ll": "", "sub_chars": ["!", "@"]  },
-            {"x": 105+( 1 * 56), "y": 64, "w": 53, "h": 53, "label": "W" , "ll": "", "sub_chars": ["!", "@"]  },
+            {"x": 105,           "y": 64, "w": 53, "h": 53, "label": "Q" , "ll": "", "sub_chars": [chr(0xe0ab), chr(0xe071) ]  },
+            {"x": 105+( 1 * 56), "y": 64, "w": 53, "h": 53, "label": "W" , "ll": "", "sub_chars": [chr(0xe0b3), chr(0xe077) ]  },
             {"x": 105+( 2 * 56), "y": 64, "w": 53, "h": 53, "label": "E" , "ll": "", "sub_chars": ["!", "@"]  },
             {"x": 105+( 3 * 56), "y": 64, "w": 53, "h": 53, "label": "R" , "ll": "", "sub_chars": ["!", "@"]  },
             {"x": 105+( 4 * 56), "y": 64, "w": 53, "h": 53, "label": "T" , "ll": "", "sub_chars": ["!", "@"]  },
@@ -10093,29 +10129,63 @@ class C64Keyboard(QWidget):
         sub_char_height  = 16
         sub_char_spacing =  5  # Abstand zwischen den beiden Zeichen
         
-        for i, char in enumerate(sub_chars):
-            # Berechnen der Position
-            sub_x = x + 10 + i * (sub_char_width + sub_char_spacing)
-            sub_y = y + height - sub_char_height - 5
-            
-            # Rahmen zeichnen
-            sub_char_path = QPainterPath()
-            sub_char_path.addRect(QRectF(sub_x, sub_y, sub_char_width, sub_char_height))
-            
-            sub_char_rect = QGraphicsPathItem(sub_char_path)
-            sub_char_rect.setBrush(QBrush(QColor(255, 255, 255)))  # Weißer Hintergrund
-            sub_char_rect.setPen(QPen(QColor(0, 0, 0), 1))  # Schwarzer Rahmen
-            self.graphics_scene.addItem(sub_char_rect)
-            
-            # Zeichen im Rahmen
-            sub_text = QGraphicsTextItem(char)
-            sub_text.setDefaultTextColor(Qt.black)
-            sub_text.setFont(QFont("C64 Pro Mono", 8))
-            sub_text.setPos(sub_x-2, sub_y - 1)  # Etwas eingerückt
-            self.graphics_scene.addItem(sub_text)
-            
+        lbl_list = [
+            "<-", "CTRL", "RUN\nSTOP", "SHIFT\nLOCK", "CBM", "SHIFT",
+            "SPACE", "RETURN", "RESTORE", "CLR\nHOME", "INST\nDEL",
+            "F1","F2","F3","F4","F5","F6","F7","F8",
+        ]
+        if label in lbl_list:
+            key_rect.setData(0, index)  # Speichert den Index im Datenfeld des Items
+            return True
+        try:
+            achr = [
+                "1","2","3","4","5","6","7","8","9","0",
+                "BLK","WHT","RED","CYN","PUR","GRN","BLU","YEL","ON","OFF"
+            ]
+            for i, char in enumerate(sub_chars):
+                if char in achr:
+                    sub_char_spacing = 1
+                    # Berechnen der Position
+                    sub_x = x + 6  + i * (sub_char_width + sub_char_spacing)
+                    sub_y = y + height - sub_char_height - 5
+                    
+                    sub_text = QGraphicsTextItem(char)
+                    sub_text.setDefaultTextColor(Qt.black)
+                    sub_text.setFont(QFont("C64 Pro Mono", 8))
+                    sub_text.setPos(sub_x-6, sub_y - 3)
+                    
+                    self.graphics_scene.addItem(sub_text)
+                    #
+                else:
+                    sub_char_spacing = 5
+                    # Berechnen der Position
+                    sub_x = x + 10 + i * (sub_char_width + sub_char_spacing)
+                    sub_y = y + height - sub_char_height - 5
+                    
+                    # Rahmen zeichnen
+                    sub_char_path = QPainterPath()
+                    sub_char_path.addRect(QRectF(sub_x, sub_y, sub_char_width, sub_char_height))
+                    
+                    sub_char_rect = QGraphicsPathItem(sub_char_path)
+                    sub_char_rect.setBrush(QBrush(QColor(255, 255, 255)))  # Weißer Hintergrund
+                    sub_char_rect.setPen(QPen(QColor(0, 0, 0), 1))  # Schwarzer Rahmen
+                    self.graphics_scene.addItem(sub_char_rect)
+                    
+                    # Zeichen im Rahmen
+                    sub_text = QGraphicsTextItem(char)
+                    sub_text.setDefaultTextColor(Qt.black)
+                    sub_text.setFont(QFont("C64 Pro Mono", 8))
+                    sub_text.setPos(sub_x-2, sub_y - 1)
+                    
+                    self.graphics_scene.addItem(sub_text)
+                    #
+        except Exception as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+        
         # Speichern des Index im Key-Daten
         key_rect.setData(0, index)  # Speichert den Index im Datenfeld des Items
+        return True
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -10128,18 +10198,18 @@ class C64Keyboard(QWidget):
                     self.handle_key_press(key_index, key)
                     return
     
-    def mouseMoveEvent(self, event: QMouseEvent):
-        pos = event.pos()
-        x, y = pos.x(), pos.y()
-        print("X: " + str(x) + ", Y: " + str(y))
-        
-        # Prüfen, ob die Maus über einer Taste ist
+    # ------------------------------------------
+    # Prüfen, ob die Maus über einer Taste ist
+    # ------------------------------------------
+    def mouseMove(self, x,y):
         for key in self.keys:
             if key["x"] <= x <= key["x"] + key["w"] and key["y"] <= y <= key["y"] + key["h"]:
                 self.show_highlight(key["x"], key["y"], key["w"], key["h"], key["label"])
                 return
         
+        # --------------------------------------
         # Kein Treffer, Layer ausblenden
+        # --------------------------------------
         self.hide_highlight()
     
     def show_highlight(self, x, y, width, height, label):
