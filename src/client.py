@@ -6681,11 +6681,12 @@ class findWidgetHelper():
 #
 # ------------------------------------------------------------------------
 class myLineEdit(QLineEdit):
-    def __init__(self, name="", name_object=""):
-        super().__init__()
+    def __init__(self, name="", name_object="", callback=None):
+        super(myLineEdit, self).__init__()
         
         if name_object:
             self.setObjectName(name_object)
+            self.callback = callback
             #register_instance(self, name_object)
             #print(">> " + self.objectName())
         
@@ -6698,6 +6699,10 @@ class myLineEdit(QLineEdit):
         self.setText(self.name)
         self.cssColor = _("edit_css")
         self.setStyleSheet(self.cssColor)
+    
+    def mouseDoubleClickEvent(self, event):
+        if not self.callback == None:
+            self.callback()
 
 # ------------------------------------------------------------------------
 #
@@ -7120,8 +7125,8 @@ class myCustomScrollArea(QScrollArea):
         self.layout.addWidget(w)
         return w
     
-    def addLineEdit(self, object_name = "", text = "", lh = None):
-        w = myLineEdit(text, object_name)
+    def addLineEdit(self, callback=None, object_name = "", text = "", lh = None):
+        w = myLineEdit(text, object_name, callback)
         w.setMinimumHeight(21)
         w.setFont(self.font_a)
         if not lh == None:
@@ -7151,7 +7156,7 @@ class myCustomScrollArea(QScrollArea):
             vw_1.setMinimumWidth(200)
             
             if elements[i][1] == self.type_edit:
-                w = self.addLineEdit(tokennum, "",lh_0)
+                w = self.addLineEdit(None, tokennum, "",lh_0)
                 w.setObjectName(tokennum + ':' + str(number))
                 genv.DoxyGenElementLayoutList.append(w)
                 
@@ -7262,9 +7267,9 @@ class customScrollView_1(myCustomScrollArea):
         v_layout_2 = QVBoxLayout()
         v_widget_2 = QWidget()
         
-        e_field_1 = self.addLineEdit("doxygen_project_name"  , "", v_layout_2)
-        e_field_2 = self.addLineEdit("doxygen_project_author", "", v_layout_2)
-        e_field_3 = self.addLineEdit("doxygen_project_number", "", v_layout_2)
+        e_field_1 = self.addLineEdit(None, "doxygen_project_name"  , "", v_layout_2)
+        e_field_2 = self.addLineEdit(None, "doxygen_project_author", "", v_layout_2)
+        e_field_3 = self.addLineEdit(None, "doxygen_project_number", "", v_layout_2)
         
         ##
         h_layout_1.addLayout(v_layout_1)
@@ -7314,8 +7319,12 @@ class customScrollView_1(myCustomScrollArea):
         widget_6_label_1.setMaximumWidth(100)
         widget_6_label_1.setFont(font)
         #
-        widget_6_edit_1  = self.addLineEdit("doxygen_project_srcdir",
-            os.path.join(genv.v__app__app_dir__, "/examples/doxygen/"),
+        widget_6_edit_1  = self.addLineEdit(
+            self.widget_6_edit_1_dblclick,
+            "doxygen_project_srcdir",
+            os.path.join(
+            genv.v__app__app_dir__,
+                "/examples/doxygen/"),
             layout_6)
         widget_6_edit_1.setMinimumWidth(280)
         widget_6_edit_1.setMaximumWidth(280)
@@ -7339,7 +7348,12 @@ class customScrollView_1(myCustomScrollArea):
         widget_7_label_1.setMaximumWidth(100)
         widget_7_label_1.setFont(font)
         #
-        widget_7_edit_1  = self.addLineEdit("doxygen_project_dstdir","E:/temp/src/html", layout_7)
+        widget_7_edit_1  = self.addLineEdit(
+            self.widget_7_edit_1_dblclick,
+            "doxygen_project_dstdir",
+            "E:/temp/src/html",
+            layout_7)
+            
         widget_7_edit_1.setMinimumWidth(280)
         widget_7_edit_1.setMaximumWidth(280)
         widget_7_edit_1.setFont(font)
@@ -7388,6 +7402,56 @@ class customScrollView_1(myCustomScrollArea):
         #self.setWidgetResizable(False)
         self.setWidget(content_widget)
     
+    def widget_6_edit_1_dblclick(self):
+        if genv.HelpAuthoringConverterMode == 0:
+            dialog  = QFileDialog()
+            
+            dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+            dialog.setOption(QFileDialog.ShowDirsOnly, True)
+            
+            options = dialog.options()
+            srcdir  = dialog.getExistingDirectory(
+                None,
+                _("Select source directory"),
+                options=options)
+            
+            if len(srcdir.strip()) < 1:
+                showError(_("Error:\ncould not select source directory."))
+                return False
+                
+            item = self.findChild(myLineEdit, "doxygen_project_srcdir")
+            if not item:
+                showError(_("Error:\ncould not found source directory object."))
+                return False
+            
+            item.setText(srcdir)
+            return True
+    
+    def widget_7_edit_1_dblclick(self):
+        if genv.HelpAuthoringConverterMode == 0:
+            dialog  = QFileDialog()
+            
+            dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+            dialog.setOption(QFileDialog.ShowDirsOnly, True)
+            
+            options = dialog.options()
+            dstdir  = dialog.getExistingDirectory(
+                None,
+                _("Select target directory"),
+                options=options)
+            
+            if len(dstdir.strip()) < 1:
+                showError(_("Error:\ncould not select target directory."))
+                return False
+                
+            item = self.findChild(myLineEdit, "doxygen_project_dstdir")
+            if not item:
+                showError(_("Error:\ncould not found source directory object."))
+                return False
+            
+            item.setText(dstdir)
+            return True
+                
     def widget_4_pushb_1_click(self):
         if genv.HelpAuthoringConverterMode == 0:
             dialog       = QFileDialog()
@@ -7421,23 +7485,22 @@ class customScrollView_1(myCustomScrollArea):
             dialog.setOption(QFileDialog.DontUseNativeDialog, True)
             dialog.setOption(QFileDialog.ShowDirsOnly, True)
             
-            options = dialog.Options()
+            options = dialog.options()
             srcdir  = dialog.getExistingDirectory(
                 None,
                 _("Select directory"),
                 options=options)
                 
+            if not srcdir:
+                showError(_("Error:\ncould not select source directory"))
+                return False
+                
             item = self.findChild(myLineEdit, "doxygen_project_srcdir")
-            
             if not item:
                 showError(_("Error:\ncould not found source directory object."))
                 return False
-                
-            if not srcdir:
-                showError(_("Error:\ncould not select directory"))
-                return False
-            else:
-                item.setText(srcdir)
+            
+            item.setText(srcdir)
             return True
             
     def widget_7_pushb_1_click(self):
@@ -7445,18 +7508,27 @@ class customScrollView_1(myCustomScrollArea):
             dialog = QFileDialog()
             dialog.setOption(QFileDialog.DontUseNativeDialog, True) 
             
-            dstdir = dialog.getExistingDirectory(None, _("Select directory"))
-            item   = self.findChild(myLineEdit, "doxygen_project_dstdir")
+            dialog = QFileDialog()
             
+            dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+            dialog.setOption(QFileDialog.ShowDirsOnly, True)
+            
+            options = dialog.options()
+            dstdir  = dialog.getExistingDirectory(
+                None,
+                _("Select directory"),
+                options=options)
+            
+            if not dstdir:
+                showError(_("Error:\ncould not select directory"))
+                return False
+            
+            item = self.findChild(myLineEdit, "doxygen_project_dstdir")
             if not item:
                 showError(_("Error:\ncould not found target directory object."))
                 return False
                 
-            if not dstdir:
-                showError(_("Error:\ncould not select directory"))
-                return False
-            else:
-                item.setText(dstdir)
+            item.setText(dstdir)
             return True
     
     def widget_10_button_1_click(self):
