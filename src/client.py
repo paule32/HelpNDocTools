@@ -7,6 +7,8 @@
 # ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
+global v__app_object
+v__app_object = None    # application windows instance
 
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
@@ -451,14 +453,24 @@ def gen_case_var(input_string):
     return all_variations
 
 # ------------------------------------------------------------------------
+# check, if the gui application is initialized by an instance of app ...
+# ------------------------------------------------------------------------
+def isApplicationInit():
+    if genv.v__app_object == None:
+        genv.v__app_object = QApplication(sys.argv)
+        return True
+    # ----------------------------------------------
+    if genv.v__app_object.instance() == None:
+        genv.v__app_object = QApplication(sys.argv)
+        return True
+    return False
+
+# ------------------------------------------------------------------------
 # message box code place holder ...
 # ------------------------------------------------------------------------
 class showMessage(QDialog):
     def __init__(self, text="", msgtype=0):
         super(showMessage, self).__init__()
-        
-        if not isApplicationInit():
-            genv.v__app_object = QApplication(sys.argv)
         #
         msgtypes = [
             [ QMessageBox.Information, "Information" ],
@@ -893,20 +905,24 @@ class globalEnv:
         self.v__app__config_project_ini = "unknown.pro"
         self.v__app__pro_config    = ""
         #
-        self.doc_framework          = -1
-        self.doc_template           = -1
-        self.doc_type               = -1
-        self.doc_lang               = -1
-        self.doc_kind               = -1
+        self.doc_framework   = -1
+        self.doc_template    = -1
+        self.doc_type        = -1
+        self.doc_lang        = -1
+        self.doc_kind        = -1
+        self.doc_type        = -1
         
-        self.doc_srcdir  = ""
-        self.doc_dstdir  = ""
+        self.doc_srcdir   = ""
+        self.doc_dstdir   = ""
 
-        self.doc_logo    = ""
-        self.doc_name    = ""
-        self.doc_number  = ""
-        self.doc_author  = ""
-        self.doc_entries = ""
+        self.doc_logo     = ""
+        self.doc_name     = ""
+        self.doc_number   = ""
+        self.doc_author   = ""
+        
+        self.doc_entries  = "0"
+        self.doc_optimize = "0"
+        self.doc_cross    = "0"
         
         self.doc_recursiv = ""
         
@@ -955,7 +971,7 @@ class globalEnv:
         
         self.doxyfile   = os.path.join(self.v__app__internal__, "Doxyfile")
 
-        self.project_type = ""
+        self.doc_type = ""
         self.error_fail = False
         self.byte_code = None
         
@@ -1013,12 +1029,16 @@ genv = globalEnv()
 def read_gzfile_to_memory(file_path):
     check_file = Path(file_path)
     if not check_file.exists():
-        print("Error: gzfile directory exists, but file could not found.")
-        print("abort.")
+        showError(""
+        + "Error:\n"
+        + "gzfile directory exists, but file could not found.\n"
+        + "aborted.")
         sys.exit(1)
     if not check_file.is_file():
-        print("Error: gzfile is not a file.")
-        print("abort.")
+        showError(""
+        + "Error:\n"
+        + "gzfile is not a file.\n"
+        + "aborted.")
         sys.exit(1)
     if check_file.is_file():
         with open(check_file, "rb") as file:
@@ -1045,8 +1065,14 @@ def read_gzfile_to_memory(file_path):
                 return _
             else:
                 file.close()
-                print("Error: language mo file could not be load.")
-                print("abort.")
+                showError(""
+                + "Error:\n"
+                + "language mo file could not be load.\n"
+                + "aborted.\n\n"
+                + "Python-Error: "
+                + str(e)
+                + "\nDetails:\n"
+                + traceback.format_exc())
                 sys.exit(1)
     return None
 
@@ -1068,14 +1094,14 @@ def handle_language(lang):
         exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
         tb = traceback.extract_tb(e.__traceback__)[-1]
         
-        print(f"Exception occur during handle language:")
-        print(f"type : {exc_type.__name__}")
-        print(f"value: {exc_value}")
-        print(("-" * 40))
-        #
-        print(f"file : {tb.filename}")
-        print(f"llline : {tb.lineno}")
-        #
+        error_str = (""
+        + "Exception occur during handle language:\n"
+        + "type    : " + exc_type.__name__ + "\n"
+        + "value   : " + exc_value         + "\n" + ("-" * 40) + "\n"
+        + "file    : " + tb.filename       + "\n"
+        + "at line : " + tb.lineno         + "\n")
+        
+        showError(error_str)
         sys.exit(genv.EXIT_FAILURE)
  
 def handle_help(lang):
@@ -1086,14 +1112,14 @@ def handle_help(lang):
         exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
         tb = traceback.extract_tb(e.__traceback__)[-1]
         
-        print(f"Exception occur during handle language:")
-        print(f"type : {exc_type.__name__}")
-        print(f"value: {exc_value}")
-        print(("-" * 40))
-        #
-        print(f"file : {tb.filename}")
-        print(f"llline : {tb.lineno}")
-        #
+        error_str = (""
+        + "Exception occur during handle language:\n"
+        + "type    : " + exc_type.__name__ + "\n"
+        + "value   : " + str(exc_value)    + "\n" + ("-" * 40) + "\n"
+        + "file    : " + tb.filename       + "\n"
+        + "at line : " + str(tb.lineno)    + "\n")
+        
+        showError(error_str)
         sys.exit(genv.EXIT_FAILURE)
 
 # ---------------------------------------------------------------------------
@@ -1159,7 +1185,7 @@ try:
     # ------------------------------------------------------------------------
     genv.v__app__config = configparser.ConfigParser()
     genv.v__app__config.read(genv.v__app__config_ini)
-
+    
     try:
         genv.v__app__config.read(genv.v__app__config_ini)
         ini_lang = genv.v__app__config.get("common", "language")
@@ -1198,7 +1224,7 @@ try:
         
     _  = handle_language(ini_lang)
     _h = handle_help    (ini_lang)
-    
+    print("1111111")
     # ------------------------------------------------------------------------
     # determine on which operating the application script runs ...
     # ------------------------------------------------------------------------
@@ -6554,17 +6580,6 @@ class doxygenDSL:
         return
 
 # ------------------------------------------------------------------------
-# check, if the gui application is initialized by an instance of app ...
-# ------------------------------------------------------------------------
-def isApplicationInit():
-    if genv.v__app_object == None:
-        genv.v__app_object = QApplication(sys.argv)
-    # ----------------------------------------------
-    if genv.v__app_object.instance() == None:
-        genv.v__app_object = QApplication(sys.argv)
-    return True
-
-# ------------------------------------------------------------------------
 # methode to show information about this application script ...
 # ------------------------------------------------------------------------
 def showApplicationInformation(text):
@@ -6709,6 +6724,7 @@ class myLineEdit(QLineEdit):
     def __init__(self, name="", name_object="", callback=None):
         super(myLineEdit, self).__init__()
         
+        self.callback = callback
         if name_object:
             self.setObjectName(name_object)
             self.callback = callback
@@ -7453,6 +7469,7 @@ class customScrollView_1(myCustomScrollArea):
                 return False
             
             item.setText(genv.doc_srcdir)
+            genv.v__app_win.write_config_part()
             return True
     
     def widget_7_edit_1_dblclick(self):
@@ -7478,6 +7495,9 @@ class customScrollView_1(myCustomScrollArea):
                 return False
             
             item.setText(genv.doc_dstdir)
+            genv.doc_dstdir = item.text()
+            genv.v__app_win.write_config_part()
+            
             return True
                 
     def widget_4_pushb_1_click(self):
@@ -8361,12 +8381,12 @@ class MyProjectOption():
     
     def on_doxy_clicked(self):
         print("doxy")
-        genv.project_type = "doxygen"
+        genv.doc_type = "doxygen"
         return True
     
     def on_help_clicked(self):
         print("help")
-        genv.project_type = "helpndoc"
+        genv.doc_type = "helpndoc"
         return True
     
     def on_hide_clicked(self):
@@ -8440,14 +8460,14 @@ class OpenProjectButton(QPushButton):
             genv.v__app__config_ini = file_path
             genv.v__app__config.read( file_path )
         
-            genv.project_type = genv.v__app__config.get("common", "type")
+            genv.doc_type = genv.v__app__config.get("common", "type")
         except configparser.NoOptionError as error:
             MyProjectOption()
         
-        if genv.project_type.lower() == "doxygen":
+        if genv.doc_type.lower() == "doxygen":
             genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
             self.parent.trigger_mouse_press(genv.img_doxygen)
-        elif genv.project_type.lower() == "helpndoc":
+        elif genv.doc_type.lower() == "helpndoc":
             genv.doc_framework = genv.DOC_FRAMEWORK_HELPNDOC
             self.parent.trigger_mouse_press(genv.img_hlpndoc)
         else:
@@ -8459,6 +8479,7 @@ class myExitDialog(QDialog):
     def __init__(self, title, parent=None):
         super(myExitDialog, self).__init__(parent)
         
+        self.parent = parent
         self.setWindowTitle(title)
         
         font = QFont(genv.v__app__font, 10)
@@ -8518,7 +8539,9 @@ class myExitDialog(QDialog):
         print("exit")
         if not genv.worker_thread == None:
             genv.worker_thread.stop()
+            
         self.disconnectEvents()
+        genv.v__app_win.write_config_part()
         
         sys.exit(0)
 
@@ -16285,10 +16308,15 @@ class FileWatcherGUI(QDialog):
             else:
                 showError(_("Error:\nunknown help project language."))
                 return False
+        
+        genv.v__app_win.write_config_part()
         return True
     
     def write_config_part(self):
         try:
+            if not genv.doc_project_open:
+                return False
+                
             genv.doc_author   = self.findChild(myLineEdit, "doxygen_project_author").text()
             genv.doc_name     = self.findChild(myLineEdit, "doxygen_project_name"  ).text()
             genv.doc_number   = self.findChild(myLineEdit, "doxygen_project_number").text()
@@ -16316,18 +16344,19 @@ class FileWatcherGUI(QDialog):
                 + "kind = "          + str(genv.doc_kind)      + "\n"
                 + "\n"
                 + "[project]\n"
-                + "logo = "          + genv.doc_logo     + "\n"
-                + "name = "          + genv.doc_name     + "\n"
-                + "author = "        + genv.doc_author   + "\n"
-                + "number = "        + genv.doc_number   + "\n"
-                + "srcdir = "        + genv.doc_srcdir   + "\n"
-                + "dstdir = "        + genv.doc_dstdir   + "\n"
-                + "scan_recursiv = " + genv.doc_recursiv + "\n"
+                + "type = "          + str(genv.doc_type)  + "\n"
+                + "logo = "          + genv.doc_logo       + "\n"
+                + "name = "          + genv.doc_name       + "\n"
+                + "author = "        + genv.doc_author     + "\n"
+                + "number = "        + genv.doc_number     + "\n"
+                + "srcdir = "        + genv.doc_srcdir     + "\n"
+                + "dstdir = "        + genv.doc_dstdir     + "\n"
+                + "scan_recursiv = " + genv.doc_recursiv   + "\n"
                 + "\n"
                 + "[mode]\n"
-                + "optimized = 0\n"
-                + "doc_entries = " + genv.doc_entries + "\n"
-                + "cross = 0\n")
+                + "optimized = "     + genv.doc_optimize   + "\n"
+                + "doc_entries = "   + genv.doc_entries    + "\n"
+                + "cross = "         + str(genv.doc_cross) + "\n")
                 config_file.write(content)
                 config_file.close()
             return True
@@ -16350,24 +16379,34 @@ class FileWatcherGUI(QDialog):
         file_path = item.text()
         
         try:
-            genv.v__app__config_ini_help = file_path
-            
-            if genv.v__app__config_help == None:
-                genv.v__app__config_help = configparser.ConfigParser()
+            if not genv.doc_project_open:
+                genv.doc_project_open = True
+                genv.v__app__config_ini_help = file_path
+                
+                if genv.v__app__config_help == None:
+                    genv.v__app__config_help = configparser.ConfigParser()
+                    genv.v__app__config_help.read(genv.v__app__config_ini_help)
+            else:
+                genv.v__app_win.write_config_part()
                 genv.v__app__config_help.read(genv.v__app__config_ini_help)
+                
         except configparser.DuplicateSectionError as e:
-            if not self.write_config_part():
+            if not genv.v__app_win.write_config_part():
+                showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
                 return False
+            else:
+                genv.v__app__config_help.read(genv.v__app__config_ini_help)
         except Exception as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             return False
             
-        framework        = ""
-        author           = ""
-        project_name     = ""
-        
         try:
-            genv.doc_framework = genv.v__app__config_help.get("common", "framework")
+            try:
+                genv.doc_framework = genv.v__app__config_help.get("common", "framework")
+            except configparser.NoSectionError as e:
+                genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
+                genv.v__app_win.write_config_part()
+                
             text1 = _("Error:\ncould not found object:\n")
             if int(genv.doc_framework) == genv.DOC_FRAMEWORK_DOXYGEN:
                 if genv.img_doxygen.bordercolor == "lime":
@@ -16385,9 +16424,13 @@ class FileWatcherGUI(QDialog):
                 txt2 = "doxygen_project_name"
                 item = self.findChild(myLineEdit, txt2)
                 if item:
-                    project_name = genv.v__app__config_help.get("project", "name")
-                    item.setText(project_name)
-                    item.repaint()
+                    try:
+                        genv.doc_name = genv.v__app__config_help.get("project", "name")
+                        item.setText(genv.doc_name)
+                        item.repaint()
+                    except configparser.NoSectionError as e:
+                        genv.v__app_win.write_config_part()
+                        genv.v__app__config_help.read(genv.v__app__config_ini_help)
                     #
                 else:
                     showError(text1 + txt2)
@@ -16396,8 +16439,8 @@ class FileWatcherGUI(QDialog):
                 txt2 = "doxygen_project_author"
                 item = self.findChild(myLineEdit, txt2)
                 if item:
-                    author = genv.v__app__config_help.get("project", "author")
-                    item.setText(author)
+                    genv.doc_author = genv.v__app__config_help.get("project", "author")
+                    item.setText(genv.doc_author)
                     item.repaint()
                     #
                 else:
@@ -16423,6 +16466,10 @@ class FileWatcherGUI(QDialog):
                 
                 item1.setText(genv.doc_srcdir)
                 item2.setText(genv.doc_dstdir)
+                
+                if len(genv.doc_srcdir.split()) < 1\
+                or len(genv.doc_dstdir.split()) < 1:
+                    return False
                 
                 found  = True
                 if item1:
@@ -16612,37 +16659,18 @@ class FileWatcherGUI(QDialog):
                     check_box   = genv.v__app__config_help.get("project", "scan_recursiv")
                     #
                     radio_item  = self.findChild(QRadioButton, "mode_opti0" + str(int(radio_no) + 4))
+                    
                 except configparser.NoOptionError as e:
-                    try:
-                        with open(genv.v__app__config_ini_help, "a", encoding="utf-8") as config_file:
-                            config_file.write(""
-                            + "[project]\n"
-                            + "scan_recursiv = 1\n"
-                            + "\n[mode]\n"
-                            + "optimized = 1\n"
-                            + "doc_entries = 0\n"
-                            + "cross = 0\n")
-                            config_file.close()
-                        genv.v__app__config_help.read(genv.v__app__config_ini_help)
-                        radio_item = self.findChild(
-                            QRadioButton,
-                            "mode_opti0" + str(int(radio_no) + 4))
-                    except configparser.DuplicateSectionError as e:
-                        if not self.write_config_part():
-                            return False
-                        genv.v__app__config_help.read(genv.v__app__config_ini_help)
-                    except FileNotFoundError as e:
-                        showError(_("Error:\nfile could not be found/created."))
-                        return False
-                    except PermissionError as e:
-                        showError(_("Error:\nno permissions to read/write file."))
-                        return False
-                    except Exception as e:
-                        showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
-                        return False
+                    genv.v__app_win.write_config_part()
+                    genv.v__app__config_help.read(genv.v__app__config_ini_help)
+                    
+                    radio_item = self.findChild(
+                        QRadioButton,
+                        "mode_opti0" + str(int(radio_no) + 4))
+                            
                 except configparser.NoSectionError as e:
                     try:
-                        if not self.write_config_part():
+                        if not genv.v__app_win.write_config_part():
                             return False
                         
                         genv.v__app__config_help.read(genv.v__app__config_ini_help)
@@ -16685,12 +16713,20 @@ class FileWatcherGUI(QDialog):
                 if item3:
                     if int(combo_check) == 0:
                         item3.setChecked(False)
+                        genv.doc_cross = 0
+                        genv.v__app_win.write_config_part()
                     elif int(combo_check) == 1:
                         item3.setChecked(True)
+                        genv.doc_cross = 1
+                        genv.v__app_win.write_config_part()
                     else:
+                        genv.doc_cross = -1
+                        genv.v__app_win.write_config_part()
                         showError(_("Error:\ncross ref check logic error."))
                         return False
                 else:
+                    genv.doc_cross = -1
+                    genv.v__app_win.write_config_part()
                     showError(text1 + textC)
                     return False
                 
@@ -16698,9 +16734,15 @@ class FileWatcherGUI(QDialog):
                     check_box = genv.v__app__config_help.get("project", "scan_recursiv")
                     if int(check_box) == 0:
                         item4.setChecked(False)
+                        genv.doc_recursiv = 0
+                        genv.v__app_win.write_config_part()
                     elif int(check_box) == 1:
                         item4.setChecked(True)
+                        genv.doc_recursiv = 1
+                        genv.v__app_win.write_config_part()
                     else:
+                        genv.doc_recursiv = -1
+                        genv.v__app_win.write_config_part()
                         showError(_("Error:\nscan recursiv check logic error."))
                         return False
                 
@@ -16774,12 +16816,15 @@ class FileWatcherGUI(QDialog):
         print("---> " + text)
         if text.startswith("HTML"):
             genv.doc_type = genv.DOC_DOCUMENT_HTML
+            genv.v__app_win.write_config_part()
             return True
         elif text.startswith("PDF"):
             genv.doc_type = genv.DOC_DOCUMENT_PDF
+            genv.v__app_win.write_config_part()
             return True
         else:
             genv.doc_type = -1
+            genv.v__app_win.write_config_part()
             return False
     
     def tab0_help_list2_item_click(self, item):
@@ -16787,18 +16832,23 @@ class FileWatcherGUI(QDialog):
         print(text)
         if text == _("Empty Project"):
             genv.doc_template = genv.DOC_TEMPLATE_EMPTY
+            genv.v__app_win.write_config_part()
             return True
         elif text == _("Recipe"):
             genv.doc_template = genv.DOC_TEMPLATE_RECIPE
+            genv.v__app_win.write_config_part()
             return True
         elif text == _("API Project"):
             genv.doc_template = genv.DOC_TEMPLATE_API
+            genv.v__app_win.write_config_part()
             return True
         elif text == _("Software Documentation"):
             genv.doc_template = genv.DOC_TEMPLATE_SOFTWARE
+            genv.v__app_win.write_config_part()
             return True
         else:
             genv.doc_template = -1
+            genv.v__app_win.write_config_part()
             return False
     
     def repro_project_clicked(self):
@@ -17009,13 +17059,13 @@ class FileWatcherGUI(QDialog):
             genv.v__app__config_ini = file_path
             genv.v__app__config.read( file_path )
         
-            genv.project_type = genv.v__app__config.get("common", "type")
+            genv.doc_type = genv.v__app__config.get("common", "type")
         except configparser.NoOptionError as error:
             MyProjectOption()
         
-        if genv.project_type.lower() == "doxygen":
+        if genv.doc_type.lower() == "doxygen":
             self.trigger_mouse_press(genv.img_doxygen)
-        elif genv.project_type.lower() == "helpndoc":
+        elif genv.doc_type.lower() == "helpndoc":
             self.trigger_mouse_press(genv.img_hlpndoc)
         else:
             showInfo(_("Error: help framework not known."))
