@@ -552,6 +552,7 @@ class globalEnv:
         #
         self.v__app__logfile      = os.path.join(self.v__app__internal__, self.v__app__name) + ".log"
         self.v__app__config_ini   = os.path.join(self.v__app__internal__, self.v__app__name) + ".ini"
+        self.v__app__config_ini_help    = ""
         self.v__app__logging      = None
         
         self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
@@ -836,7 +837,7 @@ class globalEnv:
         
         self.v__app__scriptname__ = "./examples/dbase/example1.prg"
         self.v__app__favorites    = self.v__app__internal__ + "/favorites.ini"
-        
+
         self.saved_style = ""
         self.window_login = None
         self.client = None
@@ -845,7 +846,9 @@ class globalEnv:
         self.DoxyGenElementLayoutList = []
         
         # ------------------------------------------------------------------------
-        self.v__app__config   = None
+        self.v__app__config      = None
+        self.v__app__config_help = None
+        # ------------------------------------------------------------------------
         self.v__app__devmode  = -1
         
         self.toolbar_css      = "toolbar_css"
@@ -890,10 +893,22 @@ class globalEnv:
         self.v__app__config_project_ini = "unknown.pro"
         self.v__app__pro_config    = ""
         #
-        self.doc_project            = -1
+        self.doc_framework          = -1
         self.doc_template           = -1
-        self.doc_document_type      = -1
+        self.doc_type               = -1
         self.doc_lang               = -1
+        self.doc_kind               = -1
+        
+        self.doc_srcdir  = ""
+        self.doc_dstdir  = ""
+
+        self.doc_logo    = ""
+        self.doc_name    = ""
+        self.doc_number  = ""
+        self.doc_author  = ""
+        self.doc_entries = ""
+        
+        self.doc_recursiv = ""
         
         self.doc_project_open       = False
         
@@ -912,8 +927,8 @@ class globalEnv:
         self.DOC_DOCUMENT_HTML      = 0
         self.DOC_DOCUMENT_PDF       = 1
         
-        self.DOC_PROJECT_DOXYGEN    = 0
-        self.DOC_PROJECT_HELPNDOC   = 1
+        self.DOC_FRAMEWORK_DOXYGEN  = 0
+        self.DOC_FRAMEWORK_HELPNDOC = 1
         
         self.tr = None
         self.sv_help = None
@@ -7303,11 +7318,14 @@ class customScrollView_1(myCustomScrollArea):
         
         widget_4_pushb_1.clicked.connect(self.widget_4_pushb_1_click)
         #
+        pixmap_name = os.path.join(genv.v__app__img__int__, "floppy-disk" + genv.v__app__img_ext__)
+        
         widget_4_licon_1 = self.addLabel("", False, layout_4)
         widget_4_licon_1.setObjectName("doxygen_project_logo")
-        widget_4_licon_1.setPixmap(QIcon(os.path.join(
-            genv.v__app__img__int__,
-            "floppy-disk" + genv.v__app__img_ext__)).pixmap(42,42))
+        widget_4_licon_1.setPixmap(QIcon(pixmap_name)
+                        .pixmap(42,42))
+        widget_4_licon_1.pixmap_name = pixmap_name
+        
         #widget_4_licon_1.setObjectName("PROJECT_LOGO:1")
         #
         layout.addLayout(layout_4)
@@ -7419,13 +7437,13 @@ class customScrollView_1(myCustomScrollArea):
             dialog.setOption(QFileDialog.DontUseNativeDialog, True)
             dialog.setOption(QFileDialog.ShowDirsOnly, True)
             
-            options = dialog.options()
-            srcdir  = dialog.getExistingDirectory(
+            options         = dialog.options()
+            genv.doc_srcdir = dialog.getExistingDirectory(
                 None,
                 _("Select source directory"),
                 options=options)
             
-            if len(srcdir.strip()) < 1:
+            if len(genv.doc_srcdir.strip()) < 1:
                 showError(_("Error:\ncould not select source directory."))
                 return False
                 
@@ -7434,7 +7452,7 @@ class customScrollView_1(myCustomScrollArea):
                 showError(_("Error:\ncould not found source directory object."))
                 return False
             
-            item.setText(srcdir)
+            item.setText(genv.doc_srcdir)
             return True
     
     def widget_7_edit_1_dblclick(self):
@@ -7444,13 +7462,13 @@ class customScrollView_1(myCustomScrollArea):
             dialog.setOption(QFileDialog.DontUseNativeDialog, True)
             dialog.setOption(QFileDialog.ShowDirsOnly, True)
             
-            options = dialog.options()
-            dstdir  = dialog.getExistingDirectory(
+            options         = dialog.options()
+            genv.doc_dstdir = dialog.getExistingDirectory(
                 None,
                 _("Select target directory"),
                 options=options)
             
-            if len(dstdir.strip()) < 1:
+            if len(genv.doc_dstdir.strip()) < 1:
                 showError(_("Error:\ncould not select target directory."))
                 return False
                 
@@ -7459,7 +7477,7 @@ class customScrollView_1(myCustomScrollArea):
                 showError(_("Error:\ncould not found source directory object."))
                 return False
             
-            item.setText(dstdir)
+            item.setText(genv.doc_dstdir)
             return True
                 
     def widget_4_pushb_1_click(self):
@@ -7495,13 +7513,13 @@ class customScrollView_1(myCustomScrollArea):
             dialog.setOption(QFileDialog.DontUseNativeDialog, True)
             dialog.setOption(QFileDialog.ShowDirsOnly, True)
             
-            options = dialog.options()
-            srcdir  = dialog.getExistingDirectory(
+            options         = dialog.options()
+            genv.doc_srcdir = dialog.getExistingDirectory(
                 None,
                 _("Select directory"),
                 options=options)
                 
-            if not srcdir:
+            if not genv.doc_srcdir:
                 showError(_("Error:\ncould not select source directory"))
                 return False
                 
@@ -7510,7 +7528,7 @@ class customScrollView_1(myCustomScrollArea):
                 showError(_("Error:\ncould not found source directory object."))
                 return False
             
-            item.setText(srcdir)
+            item.setText(genv.doc_srcdir)
             return True
             
     def widget_7_pushb_1_click(self):
@@ -7523,13 +7541,13 @@ class customScrollView_1(myCustomScrollArea):
             dialog.setOption(QFileDialog.DontUseNativeDialog, True)
             dialog.setOption(QFileDialog.ShowDirsOnly, True)
             
-            options = dialog.options()
-            dstdir  = dialog.getExistingDirectory(
+            options         = dialog.options()
+            genv.doc_dstdir = dialog.getExistingDirectory(
                 None,
                 _("Select directory"),
                 options=options)
             
-            if not dstdir:
+            if not genv.doc_dstdir:
                 showError(_("Error:\ncould not select directory"))
                 return False
             
@@ -7538,7 +7556,7 @@ class customScrollView_1(myCustomScrollArea):
                 showError(_("Error:\ncould not found target directory object."))
                 return False
                 
-            item.setText(dstdir)
+            item.setText(genv.doc_dstdir)
             return True
     
     def widget_10_button_1_click(self):
@@ -7599,20 +7617,71 @@ class customScrollView_2(myCustomScrollArea):
         label_2.setMinimumHeight(30)
         label_2.setMinimumWidth(200)
         
-        rb1 = self.addRadioButton(_("opti01"))
-        rb2 = self.addRadioButton(_("opti02"))
-        cb1 = self.addCheckBox   (" ",_("opti03"))
-        
-        rb1.setObjectName("doxygen_mode_document_entries_only")
-        rb2.setObjectName("doxygen_mode_all_entries")
-        cb1.setObjectName("doxygen_mode_cross_ref")
-        
-        self.addFrame()
-        
-        self.addLabel("Select programming language to optimize the results for:", True)
-        
-        for x in range(2,9):
-            self.addRadioButton(_("opti0" + str(x+1)))
+        try:
+            group_box = QGroupBox("")
+            group_layout = QVBoxLayout()
+            
+            rb1 = self.addRadioButton (_("opti01"))
+            rb2 = self.addRadioButton (_("opti02"))
+            cb1 = self.addCheckBox(" ",_("opti03"))
+            
+            rb1.setObjectName("doxygen_mode_document_entries_only")
+            rb2.setObjectName("doxygen_mode_all_entries")
+            cb1.setObjectName("doxygen_mode_cross_ref")
+            
+            group_layout.addWidget(rb1)
+            group_layout.addWidget(rb2)
+            group_layout.addWidget(cb1)
+            
+            group_box.setLayout(group_layout)
+            #
+            widget = self.addLabel("Select programming language to optimize the results for:", True)
+            
+            self.layout.addWidget(group_box)
+            self.layout.addWidget(widget)
+                
+            group_box = QGroupBox("")
+            group_layout = QVBoxLayout()
+            
+            for x in range(4,11):
+                widget = self.addRadioButton(_("opti0" + str(x)))
+                widget.setObjectName("mode_opti0" + str(x))
+                widget.clicked.connect(self.radio_button_clicked)
+                group_layout.addWidget(widget)
+                
+            group_box.setLayout(group_layout)
+            self.layout.addWidget(group_box)
+            
+        except Exception as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+    
+    def radio_button_clicked(self):
+        try:
+            item = self.sender()
+            opti = item.objectName()[-1]
+            
+            if not isinstance(item, QRadioButton):
+                showError(_("Error:\nradio button internal error."))
+                return False
+            
+            if genv.v__app__config_help == None:
+                genv.v__app__config_help = configparser.ConfigParser()
+                genv.v__app__config_help.read(genv.v__app__config_ini_help)
+                
+            genv.v__app__config_help["mode"]["optimized"] = str(int(opti) - 4)
+            with open(genv.v__app__config_ini_help, "w") as config_file:
+                genv.v__app__config.write(config_file)
+                config_file.close()
+                
+            with open(genv.v__app__config_ini_help, "r") as config_file:
+                genv.v__app__config.read(config_file)
+                config_file.close()
+            
+            return True
+        except Exception as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
 
 # ------------------------------------------------------------------------
 # create a scroll view for the output tab on left side of application ...
@@ -8140,12 +8209,12 @@ class doxygenImageTracker(QWidget):
                 self.state = 2
                 self.bordercolor = "lime";
                 self.set_style()
-                genv.doc_project = genv.DOC_PROJECT_DOXYGEN
+                genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
             else:
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
-                genv.doc_project = -1
+                genv.doc_framework = -1
             genv.HelpAuthoringConverterMode = 0
             print("doxygen")
     
@@ -8203,12 +8272,12 @@ class helpNDocImageTracker(QWidget):
                 self.state = 2
                 self.bordercolor = "lime";
                 self.set_style()
-                genv.doc_project = genv.DOC_PROJECT_HELPNDOC
+                genv.doc_framework = genv.DOC_FRAMEWORK_HELPNDOC
             else:
                 self.state = 0
                 self.bordercolor = "lightgray";
                 self.set_style()
-                genv.doc_project = -1
+                genv.doc_framework = -1
             genv.HelpAuthoringConverterMode = 1
             print("helpNDoc")
     
@@ -8376,10 +8445,10 @@ class OpenProjectButton(QPushButton):
             MyProjectOption()
         
         if genv.project_type.lower() == "doxygen":
-            genv.doc_project = genv.DOC_PROJECT_DOXYGEN
+            genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
             self.parent.trigger_mouse_press(genv.img_doxygen)
         elif genv.project_type.lower() == "helpndoc":
-            genv.doc_project = genv.DOC_PROJECT_HELPNDOC
+            genv.doc_framework = genv.DOC_FRAMEWORK_HELPNDOC
             self.parent.trigger_mouse_press(genv.img_hlpndoc)
         else:
             showInfo(_("Error: help framework not known."))
@@ -16218,6 +16287,55 @@ class FileWatcherGUI(QDialog):
                 return False
         return True
     
+    def write_config_part(self):
+        try:
+            genv.doc_author   = self.findChild(myLineEdit, "doxygen_project_author").text()
+            genv.doc_name     = self.findChild(myLineEdit, "doxygen_project_name"  ).text()
+            genv.doc_number   = self.findChild(myLineEdit, "doxygen_project_number").text()
+            
+            genv.doc_logo     = self.findChild(QLabel,     "doxygen_project_logo"  )
+            genv.doc_recursiv = self.findChild(QCheckBox,  "doxygen_project_scan_recursiv")
+            
+            if not hasattr(genv.doc_logo, "pixmap_name"):
+                showError(_("Error:\ncan not get pixmap name."))
+                return False
+            genv.doc_logo = genv.doc_logo.pixmap_name
+            
+            if not genv.doc_recursiv.isChecked():
+                genv.doc_recursiv = "0"
+            else:
+                genv.doc_recursiv = "1"
+            
+            with open(genv.v__app__config_ini_help, "w") as config_file:
+                content = (""
+                + "[common]\n"
+                + "language = en_us\n"
+                + "framework = "     + str(genv.doc_framework) + "\n"
+                + "lang = "          + str(genv.doc_lang)      + "\n"
+                + "template = "      + str(genv.doc_template)  + "\n"
+                + "kind = "          + str(genv.doc_kind)      + "\n"
+                + "\n"
+                + "[project]\n"
+                + "logo = "          + genv.doc_logo     + "\n"
+                + "name = "          + genv.doc_name     + "\n"
+                + "author = "        + genv.doc_author   + "\n"
+                + "number = "        + genv.doc_number   + "\n"
+                + "srcdir = "        + genv.doc_srcdir   + "\n"
+                + "dstdir = "        + genv.doc_dstdir   + "\n"
+                + "scan_recursiv = " + genv.doc_recursiv + "\n"
+                + "\n"
+                + "[mode]\n"
+                + "optimized = 0\n"
+                + "doc_entries = " + genv.doc_entries + "\n"
+                + "cross = 0\n")
+                config_file.write(content)
+                config_file.close()
+            return True
+            
+        except PermissionError as e:
+            showError(_("Error:\nyou have no permissions to write config file."))
+            return False
+            
     def tab0_help_list3_item_click(self, item):
         found = False
         file  = item.text()
@@ -16232,15 +16350,26 @@ class FileWatcherGUI(QDialog):
         file_path = item.text()
         
         try:
-            print(file_path)
-            genv.v__app__config.read(file_path)
-        except:
+            genv.v__app__config_ini_help = file_path
+            
+            if genv.v__app__config_help == None:
+                genv.v__app__config_help = configparser.ConfigParser()
+                genv.v__app__config_help.read(genv.v__app__config_ini_help)
+        except configparser.DuplicateSectionError as e:
+            if not self.write_config_part():
+                return False
+        except Exception as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             return False
+            
+        framework        = ""
+        author           = ""
+        project_name     = ""
+        
         try:
-            value = genv.v__app__config.get("common", "framework")
+            genv.doc_framework = genv.v__app__config_help.get("common", "framework")
             text1 = _("Error:\ncould not found object:\n")
-            if int(value) == genv.DOC_PROJECT_DOXYGEN:
+            if int(genv.doc_framework) == genv.DOC_FRAMEWORK_DOXYGEN:
                 if genv.img_doxygen.bordercolor == "lime":
                     self.trigger_mouse_press(genv.img_doxygen)
                     self.trigger_mouse_press(genv.img_doxygen)
@@ -16256,8 +16385,8 @@ class FileWatcherGUI(QDialog):
                 txt2 = "doxygen_project_name"
                 item = self.findChild(myLineEdit, txt2)
                 if item:
-                    name = genv.v__app__config.get("project", "name")
-                    item.setText(name)
+                    project_name = genv.v__app__config_help.get("project", "name")
+                    item.setText(project_name)
                     item.repaint()
                     #
                 else:
@@ -16267,8 +16396,8 @@ class FileWatcherGUI(QDialog):
                 txt2 = "doxygen_project_author"
                 item = self.findChild(myLineEdit, txt2)
                 if item:
-                    name = genv.v__app__config.get("project", "author")
-                    item.setText(name)
+                    author = genv.v__app__config_help.get("project", "author")
+                    item.setText(author)
                     item.repaint()
                     #
                 else:
@@ -16278,7 +16407,7 @@ class FileWatcherGUI(QDialog):
                 txt2 = "doxygen_project_number"
                 item = self.findChild(myLineEdit, txt2)
                 if item:
-                    name = genv.v__app__config.get("project", "number")
+                    name = genv.v__app__config_help.get("project", "number")
                     item.setText(name)
                     item.repaint()
                     #
@@ -16289,15 +16418,15 @@ class FileWatcherGUI(QDialog):
                 item1  = self.findChild(myLineEdit, "doxygen_project_srcdir")
                 item2  = self.findChild(myLineEdit, "doxygen_project_dstdir")
                 
-                srcdir = genv.v__app__config.get("project", "srcdir")
-                dstdir = genv.v__app__config.get("project", "dstdir")
+                genv.doc_srcdir = genv.v__app__config_help.get("project", "srcdir")
+                genv.doc_dstdir = genv.v__app__config_help.get("project", "dstdir")
                 
-                item1.setText(srcdir)
-                item2.setText(dstdir)
+                item1.setText(genv.doc_srcdir)
+                item2.setText(genv.doc_dstdir)
                 
                 found  = True
                 if item1:
-                    if not os.path.exists(srcdir):
+                    if not os.path.exists(genv.doc_srcdir):
                         msg = QMessageBox()
                         msg.setWindowTitle(_("Confirmation"))
                         msg.setText(_(""
@@ -16316,17 +16445,17 @@ class FileWatcherGUI(QDialog):
                         
                         if result == QMessageBox.Yes:
                             try:
-                                os.makedirs(srcdir, exist_ok=True)
-                                item1.setText(srcdir)
-                                item2.setText(dstdir)
+                                os.makedirs(genv.doc_srcdir, exist_ok=True)
+                                item1.setText(genv.doc_srcdir)
+                                item2.setText(genv.doc_dstdir)
                                 #
                                 item1.repaint()
                                 item2.repaint()
                                 #
                             except FileNotFoundError as e:
                                 showError(_("Error:\nsource directory could not be found/created."))
-                                item1.setText(srcdir)
-                                item2.setText(dstdir)
+                                item1.setText(genv.doc_srcdir)
+                                item2.setText(genv.doc_dstdir)
                                 #
                                 item1.repaint()
                                 item2.repaint()
@@ -16334,8 +16463,8 @@ class FileWatcherGUI(QDialog):
                                 return False
                             except PermissionError as e:
                                 showError(_("Error:\nno permissions to create the source directory."))
-                                item1.setText(srcdir)
-                                item2.setText(dstdir)
+                                item1.setText(genv.doc_srcdir)
+                                item2.setText(genv.doc_dstdir)
                                 #
                                 item1.repaint()
                                 item2.repaint()
@@ -16343,8 +16472,8 @@ class FileWatcherGUI(QDialog):
                                 return False
                             except Exception as e:
                                 showError(_("Error:\nsource directory could not be created."))
-                                item1.setText(srcdir)
-                                item2.setText(dstdir)
+                                item1.setText(genv.doc_srcdir)
+                                item2.setText(genv.doc_dstdir)
                                 #
                                 item1.repaint()
                                 item2.repaint()
@@ -16355,7 +16484,7 @@ class FileWatcherGUI(QDialog):
                             showError(_("Error:\nuser aborted creeat the directory."))
                             found = False
                             
-                    if (not os.path.isdir(srcdir)) or (os.path.isfile(srcdir)):
+                    if (not os.path.isdir(genv.doc_srcdir)) or (os.path.isfile(genv.doc_srcdir)):
                         showError(_(""
                         + "Error:\nsource dir is not a valid directorie item.\n"
                         + "Either it is not a directory or the path to the\n"
@@ -16365,7 +16494,7 @@ class FileWatcherGUI(QDialog):
                         item1.repaint()   ; item2.repaint()
                         return False
                         
-                    item1.setText(srcdir)
+                    item1.setText(genv.doc_srcdir)
                     item1.repaint()
                     #
                 else:
@@ -16374,7 +16503,7 @@ class FileWatcherGUI(QDialog):
                     
                 found = True
                 if item2:
-                    if not os.path.exists(dstdir):
+                    if not os.path.exists(genv.doc_dstdir):
                         msg = QMessageBox()
                         msg.setWindowTitle(_("Confirmation"))
                         msg.setText(_(""
@@ -16393,8 +16522,8 @@ class FileWatcherGUI(QDialog):
                         
                         if result == QMessageBox.Yes:
                             try:
-                                os.makedirs(dstdir, exist_ok=True)
-                                item2.setText(dstdir)
+                                os.makedirs  (genv.doc_dstdir, exist_ok=True)
+                                item2.setText(genv.doc_dstdir)
                             except FileNotFoundError as e:
                                 showError(_("Error:\ntarget directory could not be found/created."))
                                 item1.setText(""); item1.repaint()
@@ -16432,8 +16561,8 @@ class FileWatcherGUI(QDialog):
                         
                         if result == QMessageBox.Yes:
                             try:
-                                shutil.rmtree(dstdir)
-                                os.makedirs(dstdir, exist_ok=True)
+                                shutil.rmtree(genv.doc_dstdir)
+                                os.makedirs  (genv.doc_dstdir, exist_ok=True)
                             except FileNotFoundError as e:
                                 showError(_("Error:\ndirectory could not be found/created."))
                                 return False
@@ -16444,7 +16573,7 @@ class FileWatcherGUI(QDialog):
                                 showError(_("Error:\ntarget directory could not be created."))
                                 return False
                         
-                    if (not os.path.isdir(dstdir)) or (os.path.isfile(dstdir)):
+                    if (not os.path.isdir(genv.doc_dstdir)) or (os.path.isfile(genv.doc_dstdir)):
                         showError(_(""
                         + "Error:\ntarget dir is not a valid directorie item.\n"
                         + "Either it is not a directory or the path to the\n"
@@ -16454,14 +16583,82 @@ class FileWatcherGUI(QDialog):
                         item1.repaint()   ; item2.repaint()
                         return False
                         
-                    item2.setText(dstdir)
+                    item2.setText(genv.doc_dstdir)
                     item2.repaint()
                 else:
                     showError(text1 + txt2)
                     return False
+                
+                radio_check = "0"
+                combo_check = "0"
+                radio_no    = "3"
+                check_box   = "0"
+                radio_item  = None
+                #
+                try:
+                    if genv.v__app__config_help == None:
+                        genv.v__app__config_help = configparser.ConfigParser()
+                        genv.v__app__config_help.read(genv.v__app__config_ini_help)
                     
-                radio_check = genv.v__app__config.get("mode", "doc_entries")
-                combo_check = genv.v__app__config.get("mode", "cross")
+                    if not "mode" in genv.v__app__config_help:
+                        raise configparser.NoSectionError
+                    #
+                    if not "project" in genv.v__app__config_help:
+                        raise configparser.NoSectionError
+                        
+                    radio_check = genv.v__app__config_help.get("mode"   , "doc_entries")
+                    combo_check = genv.v__app__config_help.get("mode"   , "cross")
+                    radio_no    = genv.v__app__config_help.get("mode"   , "optimized")
+                    check_box   = genv.v__app__config_help.get("project", "scan_recursiv")
+                    #
+                    radio_item  = self.findChild(QRadioButton, "mode_opti0" + str(int(radio_no) + 4))
+                except configparser.NoOptionError as e:
+                    try:
+                        with open(genv.v__app__config_ini_help, "a", encoding="utf-8") as config_file:
+                            config_file.write(""
+                            + "[project]\n"
+                            + "scan_recursiv = 1\n"
+                            + "\n[mode]\n"
+                            + "optimized = 1\n"
+                            + "doc_entries = 0\n"
+                            + "cross = 0\n")
+                            config_file.close()
+                        genv.v__app__config_help.read(genv.v__app__config_ini_help)
+                        radio_item = self.findChild(
+                            QRadioButton,
+                            "mode_opti0" + str(int(radio_no) + 4))
+                    except configparser.DuplicateSectionError as e:
+                        if not self.write_config_part():
+                            return False
+                        genv.v__app__config_help.read(genv.v__app__config_ini_help)
+                    except FileNotFoundError as e:
+                        showError(_("Error:\nfile could not be found/created."))
+                        return False
+                    except PermissionError as e:
+                        showError(_("Error:\nno permissions to read/write file."))
+                        return False
+                    except Exception as e:
+                        showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+                        return False
+                except configparser.NoSectionError as e:
+                    try:
+                        if not self.write_config_part():
+                            return False
+                        
+                        genv.v__app__config_help.read(genv.v__app__config_ini_help)
+                        radio_item = self.findChild(
+                            QRadioButton,
+                            "mode_opti0" + str(int(radio_no) + 4))
+                            
+                    except FileNotFoundError as e:
+                        showError(_("Error:\nfile could not be found/created."))
+                        return False
+                    except PermissionError as e:
+                        showError(_("Error:\nno permissions to read/write file."))
+                        return False
+                    except Exception as e:
+                        showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+                        return False
                 #
                 textA = "doxygen_mode_document_entries_only"
                 textB = "doxygen_mode_all_entries"
@@ -16487,7 +16684,7 @@ class FileWatcherGUI(QDialog):
                 
                 if item3:
                     if int(combo_check) == 0:
-                        item3.setCbecked(False)
+                        item3.setChecked(False)
                     elif int(combo_check) == 1:
                         item3.setChecked(True)
                     else:
@@ -16498,7 +16695,7 @@ class FileWatcherGUI(QDialog):
                     return False
                 
                 if item4:
-                    check_box = genv.v__app__config.get("mode", "scan_recursiv")
+                    check_box = genv.v__app__config_help.get("project", "scan_recursiv")
                     if int(check_box) == 0:
                         item4.setChecked(False)
                     elif int(check_box) == 1:
@@ -16507,7 +16704,13 @@ class FileWatcherGUI(QDialog):
                         showError(_("Error:\nscan recursiv check logic error."))
                         return False
                 
-            elif int(value) == genv.DOC_PROJECT_HELPNDOC:
+                if not radio_item:
+                    showError(_("Error:\ncan not get opti radio button"))
+                    return False
+                    
+                radio_item.setChecked(True)
+                
+            elif int(genv.doc_framework) == genv.DOC_FRAMEWORK_HELPNDOC:
                 if genv.img_hlpndoc.bordercolor == "lime":
                     self.trigger_mouse_press(genv.img_doxygen)
                     self.trigger_mouse_press(genv.img_hlpndoc)
@@ -16526,7 +16729,7 @@ class FileWatcherGUI(QDialog):
             return False
             
         try:
-            value = genv.v__app__config.get("common", "lang")
+            value = genv.v__app__config_help.get("common", "lang")
             if int(value) == genv.DOC_LANG_CPP:
                 genv.radio_cpp.setChecked(True)
             
@@ -16549,7 +16752,7 @@ class FileWatcherGUI(QDialog):
             return False
         
         try:
-            value = genv.v__app__config.get("common", "template")
+            value = genv.v__app__config_help.get("common", "template")
             item  = self.tab0_help_list2.item(int(value))
             self.tab0_help_list2.setCurrentItem(item)
             item.setSelected(True)
@@ -16558,7 +16761,7 @@ class FileWatcherGUI(QDialog):
             return False
         
         try:
-            value = genv.v__app__config.get("common", "kind")
+            value = genv.v__app__config_help.get("common", "kind")
             item  = self.tab0_help_list1.item(int(value))
             self.tab0_help_list1.setCurrentItem(item)
             item.setSelected(True)
@@ -16570,13 +16773,13 @@ class FileWatcherGUI(QDialog):
         text = item.text()
         print("---> " + text)
         if text.startswith("HTML"):
-            genv.doc_document_type = genv.DOC_DOCUMENT_HTML
+            genv.doc_type = genv.DOC_DOCUMENT_HTML
             return True
         elif text.startswith("PDF"):
-            genv.doc_document_type = genv.DOC_DOCUMENT_PDF
+            genv.doc_type = genv.DOC_DOCUMENT_PDF
             return True
         else:
-            genv.doc_document_type = -1
+            genv.doc_type = -1
             return False
     
     def tab0_help_list2_item_click(self, item):
@@ -16664,12 +16867,12 @@ class FileWatcherGUI(QDialog):
         else:
             bool_flagA = False
         # ------------------------------
-        if genv.doc_document_type >= 0:
+        if genv.doc_type >= 0:
             bool_flagB = True
         else:
             bool_flagB = False
         # ------------------------------
-        if genv.doc_project >= 0:
+        if genv.doc_framework >= 0:
             bool_flagC = True
         else:
             bool_flagC = False
@@ -16702,7 +16905,7 @@ class FileWatcherGUI(QDialog):
                     + "[common]"
                     + "\ntype = helpdoc"
                     + "\nlanguage = en_us"
-                    + "\ndoc_doctype = "    + str(genv.doc_document_type)
+                    + "\ndoc_doctype = "    + str(genv.doc_type)
                     + "\ndoc_template = "   + str(genv.doc_template)
                     + "\ndoc_project = "    + str(genv.doc_project)
                     + "\ndoc_lang = "       + str(genv.doc_lang)
@@ -16748,6 +16951,9 @@ class FileWatcherGUI(QDialog):
         
         return True
     
+    # todo: if genv.v__app__config_help == None:
+    #            genv.v__app__config_help = configparser.ConfigParser()
+    #            genv.v__app__config_help.read(genv.v__app__config_ini_help)
     def open_project_clicked(self):
         dialog  = QFileDialog()
         file_path = ""
