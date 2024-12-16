@@ -7,8 +7,6 @@
 # ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
-global v__app_object
-v__app_object = None    # application windows instance
 
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
@@ -907,10 +905,10 @@ class globalEnv:
         #
         self.doc_framework   = -1
         self.doc_template    = -1
-        self.doc_type        = -1
         self.doc_lang        = -1
         self.doc_kind        = -1
         self.doc_type        = -1
+        self.doc_type_out    = -1
         
         self.doc_srcdir   = ""
         self.doc_dstdir   = ""
@@ -919,10 +917,10 @@ class globalEnv:
         self.doc_name     = ""
         self.doc_number   = ""
         self.doc_author   = ""
-        
-        self.doc_entries  = "0"
-        self.doc_optimize = "0"
-        self.doc_cross    = "0"
+
+        self.doc_entries     = "0"
+        self.doc_optimize    = "0"
+        self.doc_cross       = "0"
         
         self.doc_recursiv = ""
         
@@ -971,7 +969,6 @@ class globalEnv:
         
         self.doxyfile   = os.path.join(self.v__app__internal__, "Doxyfile")
 
-        self.doc_type = ""
         self.error_fail = False
         self.byte_code = None
         
@@ -7468,9 +7465,16 @@ class customScrollView_1(myCustomScrollArea):
                 showError(_("Error:\ncould not found source directory object."))
                 return False
             
-            item.setText(genv.doc_srcdir)
-            genv.v__app_win.write_config_part()
-            return True
+            if "_internal" in genv.doc_dstdir \
+            or "_internal" in genv.doc_srcdir:
+                showError(_("Error:\n_internal dir tree can not be delete."))
+                _internal = True
+                item.setText("")
+                return False
+            else:
+                item.setText(genv.doc_srcdir)
+                genv.v__app_win.write_config_part()
+                return True
     
     def widget_7_edit_1_dblclick(self):
         if genv.HelpAuthoringConverterMode == 0:
@@ -7494,9 +7498,24 @@ class customScrollView_1(myCustomScrollArea):
                 showError(_("Error:\ncould not found source directory object."))
                 return False
             
-            item.setText(genv.doc_dstdir)
-            genv.doc_dstdir = item.text()
-            genv.v__app_win.write_config_part()
+            if "_internal" in genv.doc_dstdir \
+            or "_internal" in genv.doc_srcdir:
+                showError(_("Error:\n_Internal dir tree can not be delete."))
+                _internal = True
+                item.setText("")
+                return False
+            
+            if len(genv.doc_dstdir.split()) < 1:
+                showError(_("Error:\ndirectory string is empty."))
+                return False
+            else:
+                item.setText(genv.doc_dstdir)
+                genv.v__app_win.write_config_part()
+                return True
+                
+            #item.setText(genv.doc_dstdir)
+            #genv.doc_dstdir = item.text()
+            #genv.v__app_win.write_config_part()
             
             return True
                 
@@ -7548,6 +7567,12 @@ class customScrollView_1(myCustomScrollArea):
                 showError(_("Error:\ncould not found source directory object."))
                 return False
             
+            if "_internal" in genv.doc_srcdir:
+                showError(_("Error:\n_Internal dir tree can not be delete."))
+                _internal = True
+                item.setText("")
+                return False
+                
             item.setText(genv.doc_srcdir)
             return True
             
@@ -7574,6 +7599,12 @@ class customScrollView_1(myCustomScrollArea):
             item = self.findChild(myLineEdit, "doxygen_project_dstdir")
             if not item:
                 showError(_("Error:\ncould not found target directory object."))
+                return False
+            
+            if "_internal" in genv.doc_dstdir:
+                showError(_("Error:\n_Internal dir tree can not be delete."))
+                _internal = True
+                item.setText("")
                 return False
                 
             item.setText(genv.doc_dstdir)
@@ -7641,17 +7672,21 @@ class customScrollView_2(myCustomScrollArea):
             group_box = QGroupBox("")
             group_layout = QVBoxLayout()
             
-            rb1 = self.addRadioButton (_("opti01"))
-            rb2 = self.addRadioButton (_("opti02"))
-            cb1 = self.addCheckBox(" ",_("opti03"))
+            self.rb1 = self.addRadioButton (_("opti01"))
+            self.rb2 = self.addRadioButton (_("opti02"))
+            self.cb1 = self.addCheckBox(" ",_("opti03"))
             
-            rb1.setObjectName("doxygen_mode_document_entries_only")
-            rb2.setObjectName("doxygen_mode_all_entries")
-            cb1.setObjectName("doxygen_mode_cross_ref")
+            self.rb1.setObjectName("doxygen_mode_document_entries_only")
+            self.rb2.setObjectName("doxygen_mode_all_entries")
+            self.cb1.setObjectName("doxygen_mode_cross_ref")
             
-            group_layout.addWidget(rb1)
-            group_layout.addWidget(rb2)
-            group_layout.addWidget(cb1)
+            self.rb1.clicked.connect(self.rb1_on_clicked)
+            self.rb2.clicked.connect(self.rb2_on_clicked)
+            self.cb1.clicked.connect(self.cb1_on_clicked)
+            
+            group_layout.addWidget(self.rb1)
+            group_layout.addWidget(self.rb2)
+            group_layout.addWidget(self.cb1)
             
             group_box.setLayout(group_layout)
             #
@@ -7675,6 +7710,27 @@ class customScrollView_2(myCustomScrollArea):
         except Exception as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             return False
+    
+    def rb1_on_clicked(self):
+        if self.rb1.isChecked():
+            genv.doc_entries = str(1)
+        else:
+            genv.doc_entries = str(0)
+        genv.v__app_win.write_config_part()
+            
+    def rb2_on_clicked(self):
+        if self.rb2.isChecked():
+            genv.doc_entries = str(1)
+        else:
+            genv.doc_entries = str(0)
+        genv.v__app_win.write_config_part()
+            
+    def cb1_on_clicked(self):
+        if self.cb1.isChecked():
+            genv.doc_cross = str(1)
+        else:
+            genv.doc_cross = str(0)
+        genv.v__app_win.write_config_part()
     
     def radio_button_clicked(self):
         try:
@@ -8381,12 +8437,12 @@ class MyProjectOption():
     
     def on_doxy_clicked(self):
         print("doxy")
-        genv.doc_type = "doxygen"
+        genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
         return True
     
     def on_help_clicked(self):
         print("help")
-        genv.doc_type = "helpndoc"
+        genv.doc_framework = genv.DOC_FRAMEWORK_HELPNDOC
         return True
     
     def on_hide_clicked(self):
@@ -8460,14 +8516,23 @@ class OpenProjectButton(QPushButton):
             genv.v__app__config_ini = file_path
             genv.v__app__config.read( file_path )
         
-            genv.doc_type = genv.v__app__config.get("common", "type")
+            genv.doc_type = int(genv.v__app__config.get("project", "type"))
+            
+            if genv.doc_type == 0:
+                genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
+            elif genv.doc_type == 1:
+                genv.doc_framework = genv.DOC_FRAMEWORK_HELPNDOC
+            else:
+                showError(_("Error:\ncan not determine doc type."))
+                return False
+        
         except configparser.NoOptionError as error:
             MyProjectOption()
         
-        if genv.doc_type.lower() == "doxygen":
+        if genv.doc_type == 0:
             genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
             self.parent.trigger_mouse_press(genv.img_doxygen)
-        elif genv.doc_type.lower() == "helpndoc":
+        elif genv.doc_type == 1:
             genv.doc_framework = genv.DOC_FRAMEWORK_HELPNDOC
             self.parent.trigger_mouse_press(genv.img_hlpndoc)
         else:
@@ -16334,29 +16399,37 @@ class FileWatcherGUI(QDialog):
             else:
                 genv.doc_recursiv = "1"
             
+            if genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:
+                genv.doc_type = 0
+            elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC:
+                genv.doc_type = 1
+            else:
+                genv.doc_type = -1
+            
             with open(genv.v__app__config_ini_help, "w") as config_file:
                 content = (""
                 + "[common]\n"
                 + "language = en_us\n"
-                + "framework = "     + str(genv.doc_framework) + "\n"
-                + "lang = "          + str(genv.doc_lang)      + "\n"
-                + "template = "      + str(genv.doc_template)  + "\n"
-                + "kind = "          + str(genv.doc_kind)      + "\n"
+                + "framework = "     + str(genv.doc_framework)  + "\n"
+                + "lang = "          + str(genv.doc_lang)       + "\n"
+                + "template = "      + str(genv.doc_template)   + "\n"
+                + "kind = "          + str(genv.doc_kind)       + "\n"
                 + "\n"
                 + "[project]\n"
-                + "type = "          + str(genv.doc_type)  + "\n"
-                + "logo = "          + genv.doc_logo       + "\n"
-                + "name = "          + genv.doc_name       + "\n"
-                + "author = "        + genv.doc_author     + "\n"
-                + "number = "        + genv.doc_number     + "\n"
-                + "srcdir = "        + genv.doc_srcdir     + "\n"
-                + "dstdir = "        + genv.doc_dstdir     + "\n"
-                + "scan_recursiv = " + genv.doc_recursiv   + "\n"
+                + "type = "          + str(genv.doc_type)       + "\n"
+                + "doc_out = "       + str(genv.doc_type_out)   + "\n"
+                + "logo = "          + genv.doc_logo            + "\n"
+                + "name = "          + genv.doc_name            + "\n"
+                + "author = "        + genv.doc_author          + "\n"
+                + "number = "        + genv.doc_number          + "\n"
+                + "srcdir = "        + genv.doc_srcdir          + "\n"
+                + "dstdir = "        + genv.doc_dstdir          + "\n"
+                + "scan_recursiv = " + str(genv.doc_recursiv)   + "\n"
                 + "\n"
                 + "[mode]\n"
-                + "optimized = "     + genv.doc_optimize   + "\n"
-                + "doc_entries = "   + genv.doc_entries    + "\n"
-                + "cross = "         + str(genv.doc_cross) + "\n")
+                + "optimized = "     + str(genv.doc_optimize)   + "\n"
+                + "doc_entries = "   + str(genv.doc_entries)    + "\n"
+                + "cross = "         + str(genv.doc_cross)      + "\n")
                 config_file.write(content)
                 config_file.close()
             return True
@@ -16377,6 +16450,7 @@ class FileWatcherGUI(QDialog):
             return False
         
         file_path = item.text()
+        _internal = False
         
         try:
             if not genv.doc_project_open:
@@ -16402,13 +16476,89 @@ class FileWatcherGUI(QDialog):
             
         try:
             try:
-                genv.doc_framework = genv.v__app__config_help.get("common", "framework")
-            except configparser.NoSectionError as e:
+                genv.doc_framework = int(genv.v__app__config_help.get("common" , "framework"))
+                genv.doc_template  = int(genv.v__app__config_help.get("common" , "template"))
+                genv.doc_type      = int(genv.v__app__config_help.get("project", "type"))
+                genv.doc_type_out  = int(genv.v__app__config_help.get("project", "doc_out"))
+                #
+                item1 = self.tab0_help_list1.item(genv.doc_type_out+1)
+                item2 = self.tab0_help_list2.item(genv.doc_template)
+                #
+                self.tab0_help_list1.setCurrentItem(item1)
+                self.tab0_help_list2.setCurrentItem(item2)
+                #
+                genv.v__app_win.write_config_part()
+                
+                item1 = self.tab0_help_list1.item(genv.doc_type_out + 1)
+                
+            except configparser.NoOptionError as e:
+                content = (""
+                + _("Error:\nset default values\n\n")
+                + "Error: " + str(e) + "\n"
+                + "Details:\n"       + traceback.format_exc())
+                showError(content)
                 genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
+                genv.doc_template  = 0
+                
+                if genv.doc_type_out == 0:
+                    item = self.tab0_help_list1.item(0)
+                    self.tab0_help_list1.setCurrentItem(item)
+                elif genv.doc_type_out == 1:
+                    item = self.tab0_help_list1.item(1)
+                    self.tab0_help_list1.setCurrentItem(item)
+                else:
+                    item = self.tab0_help_list1.item(0)
+                    self.tab0_help_list1.setCurrentItem(item)
+                    genv.doc_type_out = -2
+                
+                if genv.doc_type == 0:
+                    item = self.tab0_help_list2.item(0)
+                    self.tab0_help_list2.setCurrentItem(item)
+                elif genv.doc_type == 1:
+                    item = self.tab0_help_list2.item(1)
+                    self.tab0_help_list2.setCurrentItem(item)
+                else:
+                    item = self.tab0_help_list2.item(0)
+                    self.tab0_help_list2.setCurrentItem(item)
+                    genv.doc_type = -3
+                #
+                genv.v__app_win.write_config_part()
+                
+            except configparser.NoSectionError as e:
+                content = (""
+                + _("Error:\nset default values\n\n")
+                + "Error: " + str(e) + "\n"
+                + "Details:\n"       + traceback.format_exc())
+                showError(content)
+                genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
+                genv.doc_template  = 0
+                
+                if genv.doc_type_out == 0:
+                    item = self.tab0_help_list1.item(0)
+                    self.tab0_help_list1.setCurrentItem(item)
+                elif genv.doc_type_out == 1:
+                    item = self.tab0_help_list1.item(1)
+                    self.tab0_help_list1.setCurrentItem(item)
+                else:
+                    item = self.tab0_help_list1.item(0)
+                    self.tab0_help_list1.setCurrentItem(item)
+                    genv.doc_type_out = -4
+                
+                if genv.doc_type == 0:
+                    item = self.tab0_help_list2.item(0)
+                    self.tab0_help_list2.setCurrentItem(item)
+                elif genv.doc_type == 1:
+                    item = self.tab0_help_list2.item(1)
+                    self.tab0_help_list2.setCurrentItem(item)
+                else:
+                    item = self.tab0_help_list2.item(0)
+                    self.tab0_help_list2.setCurrentItem(item)
+                    genv.doc_type = -5
+                #
                 genv.v__app_win.write_config_part()
                 
             text1 = _("Error:\ncould not found object:\n")
-            if int(genv.doc_framework) == genv.DOC_FRAMEWORK_DOXYGEN:
+            if genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:
                 if genv.img_doxygen.bordercolor == "lime":
                     self.trigger_mouse_press(genv.img_doxygen)
                     self.trigger_mouse_press(genv.img_doxygen)
@@ -16608,8 +16758,15 @@ class FileWatcherGUI(QDialog):
                         
                         if result == QMessageBox.Yes:
                             try:
-                                shutil.rmtree(genv.doc_dstdir)
-                                os.makedirs  (genv.doc_dstdir, exist_ok=True)
+                                if "_internal" in genv.doc_dstdir \
+                                or "_internal" in genv.doc_srcdir:
+                                    showError(_("Error:\n_internal dir tree can not be delete."))
+                                    _internal = True
+                                else:
+                                    _internal = False
+                                    shutil.rmtree(genv.doc_dstdir)
+                                    os.makedirs  (genv.doc_dstdir, exist_ok=True)
+                                    
                             except FileNotFoundError as e:
                                 showError(_("Error:\ndirectory could not be found/created."))
                                 return False
@@ -16629,9 +16786,15 @@ class FileWatcherGUI(QDialog):
                         item1.setText("") ; item2.setText("")
                         item1.repaint()   ; item2.repaint()
                         return False
-                        
-                    item2.setText(genv.doc_dstdir)
-                    item2.repaint()
+                    
+                    if "_internal" in genv.doc_dstdir \
+                    or "_internal" in genv.doc_srcdir:
+                        showError(_("Error:\n_internal dir tree can not be delete."))
+                        _internal = True
+                        return False
+                    else:
+                        item2.setText(genv.doc_dstdir)
+                        item2.repaint()
                 else:
                     showError(text1 + txt2)
                     return False
@@ -16701,8 +16864,10 @@ class FileWatcherGUI(QDialog):
                 if item1 and item2:
                     if int(radio_check) == 0:
                         item1.setChecked(True)
+                        genv.doc_entries = 0
                     elif int(radio_check) == 1:
                         item2.setChecked(True)
+                        genv.doc_entries = 1
                     else:
                         showError(_("Error:\ndocument entries check logic error."))
                         return False
@@ -16752,7 +16917,7 @@ class FileWatcherGUI(QDialog):
                     
                 radio_item.setChecked(True)
                 
-            elif int(genv.doc_framework) == genv.DOC_FRAMEWORK_HELPNDOC:
+            elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC:
                 if genv.img_hlpndoc.bordercolor == "lime":
                     self.trigger_mouse_press(genv.img_doxygen)
                     self.trigger_mouse_press(genv.img_hlpndoc)
@@ -16797,17 +16962,22 @@ class FileWatcherGUI(QDialog):
             value = genv.v__app__config_help.get("common", "template")
             item  = self.tab0_help_list2.item(int(value))
             self.tab0_help_list2.setCurrentItem(item)
-            item.setSelected(True)
+            #item.setSelected(True)
         except Exception as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             return False
         
         try:
-            value = genv.v__app__config_help.get("common", "kind")
-            item  = self.tab0_help_list1.item(int(value))
+            genv.doc_type_out = int(genv.v__app__config_help.get("project", "doc_out"))
+            item = self.tab0_help_list1.item(genv.doc_type_out)
             self.tab0_help_list1.setCurrentItem(item)
-            item.setSelected(True)
-        except:
+            #item.setSelected(True)
+        except configparser.NoOptionError as e:
+            genv.doc_type_out = 0
+            genv.v__app_win.write_config_part()
+            item = self.tab0_help_list1.item(genv.doc_type_out)
+            self.tab0_help_list1.setCurrentItem(item)
+        except Exception as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             return False
     
@@ -16815,15 +16985,15 @@ class FileWatcherGUI(QDialog):
         text = item.text()
         print("---> " + text)
         if text.startswith("HTML"):
-            genv.doc_type = genv.DOC_DOCUMENT_HTML
+            genv.doc_type_out = genv.DOC_DOCUMENT_HTML
             genv.v__app_win.write_config_part()
             return True
         elif text.startswith("PDF"):
-            genv.doc_type = genv.DOC_DOCUMENT_PDF
+            genv.doc_type_out = genv.DOC_DOCUMENT_PDF
             genv.v__app_win.write_config_part()
             return True
         else:
-            genv.doc_type = -1
+            genv.doc_type_out = -1
             genv.v__app_win.write_config_part()
             return False
     
@@ -16917,7 +17087,7 @@ class FileWatcherGUI(QDialog):
         else:
             bool_flagA = False
         # ------------------------------
-        if genv.doc_type >= 0:
+        if genv.doc_type_out >= 0:
             bool_flagB = True
         else:
             bool_flagB = False
@@ -16955,7 +17125,7 @@ class FileWatcherGUI(QDialog):
                     + "[common]"
                     + "\ntype = helpdoc"
                     + "\nlanguage = en_us"
-                    + "\ndoc_doctype = "    + str(genv.doc_type)
+                    + "\ndoc_doctype = "    + str(genv.doc_type_out)
                     + "\ndoc_template = "   + str(genv.doc_template)
                     + "\ndoc_project = "    + str(genv.doc_project)
                     + "\ndoc_lang = "       + str(genv.doc_lang)
@@ -17059,13 +17229,13 @@ class FileWatcherGUI(QDialog):
             genv.v__app__config_ini = file_path
             genv.v__app__config.read( file_path )
         
-            genv.doc_type = genv.v__app__config.get("common", "type")
+            genv.doc_type = int(genv.v__app__config.get("project", "type"))
         except configparser.NoOptionError as error:
             MyProjectOption()
         
-        if genv.doc_type.lower() == "doxygen":
+        if genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:
             self.trigger_mouse_press(genv.img_doxygen)
-        elif genv.doc_type.lower() == "helpndoc":
+        elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC:
             self.trigger_mouse_press(genv.img_hlpndoc)
         else:
             showInfo(_("Error: help framework not known."))
