@@ -20062,6 +20062,8 @@ if __name__ == '__main__':
             else:
                 if item.endswith(".exe"):
                     print("check: " + item)
+                    analyze_pe(item)
+                    
                     sys.exit(1)
         else:
             print("parameter unknown.")
