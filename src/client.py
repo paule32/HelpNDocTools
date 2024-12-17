@@ -359,6 +359,8 @@ import gc             # garbage collector
 import logging
 import dbf            # good old data base file
 
+import pefile         # MS-Windows PE executable image
+
 # ------------------------------------------------------------------------
 # windows os stuff ...
 # ------------------------------------------------------------------------
@@ -622,6 +624,9 @@ class globalEnv:
         self.v__app__javadoc__  = im_path + "javadoc"
         self.v__app__freepas__  = im_path + "freepas"
         self.v__app__locales__  = im_path + "locales"
+        self.v__app__basicbe__  = im_path + "basic"
+        self.v__app__pewin32__  = im_path + "windows"
+        self.v__app__elfin32__  = im_path + "linux"
         self.v__app__console__  = im_path + "console"
         self.v__app__todopro__  = im_path + "todo"
         self.v__app__setupro__  = im_path + "setup"
@@ -1887,6 +1892,131 @@ class SSLClient:
     def read(self):
         data = self.socket.readAll().data().decode()
         print(f"Empfangene Daten vom Server: {data}")
+
+class ExecutableExplorer(QWidget):
+    def __init__(self, parent=None):
+        try:
+            super(ExecutableExplorer, self).__init__(parent)
+                        
+            # Hauptlayout mit vertikalem Splitter
+            main_layout = QVBoxLayout(self)
+            
+            tab_widget = QTabWidget()
+            tab_widget.setTabPosition(QTabWidget.North)
+            tab_widget.setTabShape(QTabWidget.Rounded)
+            
+            vertical_splitter = QSplitter(Qt.Vertical)
+            upper_splitter    = QSplitter(Qt.Horizontal)
+            
+            # Links: QListTree für EXE und DLL Dateien
+            self.exe_dll_tree = QTreeView()
+            self.exe_dll_tree.setHeaderHidden(False)
+            
+            header = self.exe_dll_tree.header()
+            
+            self.exe_dll_tree.setModel(self._create_file_tree_model())
+            self.exe_dll_tree.setToolTip("EXE und DLL Dateien")
+            
+            header.setSectionResizeMode(0, QHeaderView.Stretch)  # Dynamisch
+            header.setSectionResizeMode(1, QHeaderView.Fixed)  # Fest
+            header.setSectionResizeMode(2, QHeaderView.Fixed)  # Fest
+            
+            header.resizeSection(1, 42)
+            header.resizeSection(2, 42)
+            
+            
+            # Rechts: QListTree für Symbole und Funktionen
+            self.symbols_tree = QTreeView()
+            self.symbols_tree.setHeaderHidden(False)
+            
+            self.symbols_tree.setModel(self._create_symbols_model())
+            self.symbols_tree.setToolTip("Symbole und Funktionen")
+            
+            header = self.symbols_tree.header()
+            header.setSectionResizeMode(0, QHeaderView.Stretch)  # Dynamisch
+            header.setSectionResizeMode(1, QHeaderView.Stretch)  # Fest
+            
+            # Unterer Bereich: QListTree für Pfade und Verzeichnisse
+            self.paths_tree = QTreeView()
+            self.paths_tree.setHeaderHidden(False)
+            
+            
+            self.paths_tree.setModel(self._create_paths_model())
+            self.paths_tree.setToolTip("DLL-Pfade und Verzeichnisse")
+            
+            header = self.paths_tree.header()
+            header.setSectionResizeMode(0, QHeaderView.Stretch)
+            
+            # Layout zusammenfügen
+            upper_splitter.addWidget(self.exe_dll_tree)
+            upper_splitter.addWidget(self.symbols_tree)
+            
+            vertical_splitter.addWidget(upper_splitter)
+            vertical_splitter.addWidget(self.paths_tree)
+            
+            #
+            mz_info = QWidget()
+            pe_info = QWidget()
+            
+            # Tab einfügen
+            tab_widget.addTab(vertical_splitter, _("Files"))
+            tab_widget.addTab(mz_info, _("MZ-Info"))
+            tab_widget.addTab(pe_info, _("PE-Info"))
+            
+            main_layout.addWidget(tab_widget)
+            
+            # Beispiel-Daten eintragen
+            self.populate_example_data()
+        except Exception as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            sys.exit(1)
+
+    def _create_file_tree_model(self):
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(["Dateien", "PE EXE", "MZ EXE"])
+        return model
+
+    def _create_symbols_model(self):
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(["Funktion", "Offset"])
+        return model
+
+    def _create_paths_model(self):
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(["DLL-Pfade"])
+        return model
+
+    def populate_example_data(self):
+        # EXE/DLL Dateien einfügen
+        print("popppp")
+        
+        exe_item = QStandardItem("Programme (EXE)")
+        dll_item = QStandardItem("Bibliotheken (DLL)")
+        
+        exe_item.appendRow([QStandardItem("test.exe"), QStandardItem("42"), QStandardItem("Info")])
+        dll_item.appendRow([QStandardItem("test.dll"), QStandardItem("42"), QStandardItem("Info")])
+        
+        self.exe_dll_tree.model().appendRow(exe_item)
+        self.exe_dll_tree.model().appendRow(dll_item)
+        
+        # Symbole und Funktionen einfügen
+        sym_item1 = QStandardItem("Funktionen in explorer.exe")
+        sym_item1.appendRow([QStandardItem("CreateWindow"),   QStandardItem("0x1000")])
+        sym_item1.appendRow([QStandardItem("ShowWindow"),     QStandardItem("0x1000")])
+        
+        sym_item2 = QStandardItem("Funktionen in kernel32.dll")
+        sym_item2.appendRow([QStandardItem("LoadLibrary"),    QStandardItem("0x1000")])
+        sym_item2.appendRow([QStandardItem("GetProcAddress"), QStandardItem("0x1000")])
+        
+        self.symbols_tree.model().appendRow(sym_item1)
+        self.symbols_tree.model().appendRow(sym_item2)
+        
+        # DLL-Pfade einfügen
+        path_item = QStandardItem("DLL-Pfade")
+        path_item.appendRow(QStandardItem("C:\\Windows\\System32\\kernel32.dll"))
+        path_item.appendRow(QStandardItem("C:\\Windows\\System32\\user32.dll"))
+        
+        self.paths_tree.model().appendRow(path_item)
 
 
 if genv.GENERATE_DOC:
@@ -6841,8 +6971,11 @@ class myIconLabel(QLabel):
         parent.prolog_tabs.hide()
         parent.fortran_tabs.hide()
         parent.lisp_tabs.hide()
-        parent.locale_tabs.hide()
+        parent.basic_tabs.hide()
+        parent.pe_windows_tabs.hide()
+        parent.elf_linux_tabs.hide()
         parent.console_tabs.hide()
+        parent.locale_tabs.hide()
         parent.todo_tabs.hide()
         parent.setup_tabs.hide()
         parent.certssl_tabs.hide()
@@ -6891,6 +7024,10 @@ class myIconLabel(QLabel):
             parent.side_btn19,
             parent.side_btn20,
             parent.side_btn21,
+            parent.side_btn21,
+            parent.side_btn22,
+            parent.side_btn23,
+            parent.side_btn24
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -6957,8 +7094,11 @@ class myIconButton(QWidget):
             genv.v__app__prologm__,
             genv.v__app__fortran__,
             genv.v__app__lispmod__,
-            genv.v__app__locales__,
+            genv.v__app__basicbe__,
+            genv.v__app__pewin32__,
+            genv.v__app__elfin32__,
             genv.v__app__console__,
+            genv.v__app__locales__,
             genv.v__app__todopro__,
             genv.v__app__setupro__,
             genv.v__app__certssl__,
@@ -11609,6 +11749,10 @@ class CustomWidget0(QWidget):
         self.parent_class.prolog_tabs.hide()
         self.parent_class.fortran_tabs.hide()
         self.parent_class.lisp_tabs.hide()
+        self.parent_class.basic_tabs.hide()
+        self.parent_class.pe_windows_tabs.hide()
+        self.parent_class.elf_linux_tabs.hide()
+        self.parent_class.console_tabs.hide()
         self.parent_class.locale_tabs.hide()
         self.parent_class.setup_tabs.hide()
         self.parent_class.certssl_tabs.hide()
@@ -11651,6 +11795,9 @@ class CustomWidget0(QWidget):
             parent.side_btn19,
             parent.side_btn20,
             parent.side_btn21,
+            parent.side_btn22,
+            parent.side_btn23,
+            parent.side_btn24
         ]
         for btn in side_buttons:
             btn.state = 0
@@ -14847,8 +14994,11 @@ class FileWatcherGUI(QDialog):
             self.prolog_tabs,
             self.fortran_tabs,
             self.lisp_tabs,
-            self.locale_tabs,
+            self.basic_tabs,
+            self.pe_windows_tabs,
+            self.elf_linux_tabs,
             self.console_tabs,
+            self.locale_tabs,
             self.todo_tabs,
             self.setup_tabs,
             self.certssl_tabs,
@@ -15484,33 +15634,37 @@ class FileWatcherGUI(QDialog):
         self.side_widget.setContentsMargins(0,0,0,0)
         self.side_scroll.setContentsMargins(0,0,0,0)
         
-        self.side_btn0  = myIconButton(self,   0, _("Help")      , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
-        self.side_btn1  = myIconButton(self,   1, _("dBASE")     , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
-        self.side_btn2  = myIconButton(self,   2, _("Pascal")    , _("Pascal old school programming\no Delphi\no FPC"))
-        self.side_btn3  = myIconButton(self,   3, _("ISO C")     , _("C / C++ embeded programming\nor cross platform"))
-        self.side_btn4  = myIconButton(self,   4, _("Java")      , _("Java modern cross programming\nfor any device"))
-        self.side_btn5  = myIconButton(self,   5, _("JavaScript"), _("JavaScript programming"))
-        self.side_btn6  = myIconButton(self,   6, _("Python")    , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
-        self.side_btn7  = myIconButton(self,   7, _("Prolog")    , _("Prolog - logical programming."))
-        self.side_btn8  = myIconButton(self,   8, _("Fortran")   , _("Fortran old school"))
-        self.side_btn9  = myIconButton(self,   9, _("LISP")      , _("LISP traditional programming\nultimate old school"))
+        self.side_btn0  = myIconButton(self,  0, _("Help")      , _("Help Authoring for/with:\no doxygen\no HelpNDoc"))
+        self.side_btn1  = myIconButton(self,  1, _("dBASE")     , _("dBASE data base programming\nlike in the old days...\nbut with SQLite -- dBase keep alive !"))
+        self.side_btn2  = myIconButton(self,  2, _("Pascal")    , _("Pascal old school programming\no Delphi\no FPC"))
+        self.side_btn3  = myIconButton(self,  3, _("ISO C")     , _("C / C++ embeded programming\nor cross platform"))
+        self.side_btn4  = myIconButton(self,  4, _("Java")      , _("Java modern cross programming\nfor any device"))
+        self.side_btn5  = myIconButton(self,  5, _("JavaScript"), _("JavaScript programming"))
+        self.side_btn6  = myIconButton(self,  6, _("Python")    , _("Python modern GUI programming\nlets rock AI\nand TensorFlow"))
+        self.side_btn7  = myIconButton(self,  7, _("Prolog")    , _("Prolog - logical programming."))
+        self.side_btn8  = myIconButton(self,  8, _("Fortran")   , _("Fortran old school"))
+        self.side_btn9  = myIconButton(self,  9, _("LISP")      , _("LISP traditional programming\nultimate old school"))
+        self.side_btn10 = myIconButton(self, 10, _("BASIC")     , _("Beginner programmer"))
         #
-        self.side_btn10 = myIconButton(self,  10, _("Locales"), _(""
+        self.side_btn11 = myIconButton(self, 11, _("PE-Win32")  , _("Microsoft Windows PE"))
+        self.side_btn12 = myIconButton(self, 12, _("ELF-Linux") , _("ELF-Linux"))
+        self.side_btn13 = myIconButton(self, 13, _("Console")   , _("Your classical style of commands"))
+        #
+        self.side_btn14 = myIconButton(self, 14, _("Locales"), _(""
             + "Localization your Application with different supported languages\n"
             + "around the World.\n"
             + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
         #
-        self.side_btn11 = myIconButton(self, 11, "Console", "Your classical style of commands")
-        self.side_btn12 = myIconButton(self, 12, "Todo / Tasks", "Your todo's")
-        self.side_btn13 = myIconButton(self, 13, "Setup", "Setup your Project")
-        self.side_btn14 = myIconButton(self, 14, "SSL Certs", "Setup SSL")
-        self.side_btn15 = myIconButton(self, 15, "GitHub.com", "Publish Project")
-        self.side_btn16 = myIconButton(self, 16, "Web Server", "Configure Web Server")
-        self.side_btn17 = myIconButton(self, 17, "MySQL", "Configure MySQL")
-        self.side_btn18 = myIconButton(self, 18, "Squid", "Configure Squid")
-        self.side_btn19 = myIconButton(self, 19, "Electro", "electronic simulations")
-        self.side_btn20 = myIconButton(self, 20, "C-64", "The most popular Commodore C-64\from int the 1980er")
-        self.side_btn21 = myIconButton(self, 21, _("Settings")   , _("Settings for this Application\n\n"))
+        self.side_btn15 = myIconButton(self, 15, "Todo / Tasks", "Your todo's")
+        self.side_btn16 = myIconButton(self, 16, "Setup", "Setup your Project")
+        self.side_btn17 = myIconButton(self, 17, "SSL Certs", "Setup SSL")
+        self.side_btn18 = myIconButton(self, 18, "GitHub.com", "Publish Project")
+        self.side_btn19 = myIconButton(self, 19, "Web Server", "Configure Web Server")
+        self.side_btn20 = myIconButton(self, 20, "MySQL", "Configure MySQL")
+        self.side_btn21 = myIconButton(self, 21, "Squid", "Configure Squid")
+        self.side_btn22 = myIconButton(self, 22, "Electro", "electronic simulations")
+        self.side_btn23 = myIconButton(self, 23, "C-64", "The most popular Commodore C-64\from int the 1980er")
+        self.side_btn24 = myIconButton(self, 24, _("Settings")   , _("Settings for this Application\n\n"))
         
         self.side_btn0.bordercolor = "lime"
         self.side_btn0.state       = 2
@@ -15540,8 +15694,11 @@ class FileWatcherGUI(QDialog):
         self.handleProlog()
         self.handleFortran()
         self.handleLISP()
-        self.handleLocales()
+        self.handleBasic()
+        self.handlePEWindows()
+        self.handleELFLinux()
         self.handleConsole()
+        self.handleLocales()
         self.handleTodo()
         self.handleSetup()
         self.handleCertSSL()
@@ -17662,6 +17819,50 @@ class FileWatcherGUI(QDialog):
     def downloadCHMTool(self):
         QDesktopServices.openUrl(QUrl("https://learn.microsoft.com/en-us/previous-versions/windows/desktop/htmlhelp/microsoft-html-help-downloads"))
     
+    def handlePEWindows(self):
+        self.pe_windows_tabs = QTabWidget()
+        self.pe_windows_tabs.setStyleSheet(_(genv.css_tabs))
+        self.pe_windows_tabs.hide()
+        
+        self.pe_windows_tabs_project_widget = QWidget()
+        self.pe_windows_tabs_editors_widget = QWidget()
+        self.pe_windows_tabs_designs_widget = QWidget()
+        #
+        self.pe_windows_tabs_exe_dll_viewer = ExecutableExplorer()
+        #
+        self.pe_windows_tabs.addTab(self.pe_windows_tabs_project_widget, _("Win32 Project"))
+        self.pe_windows_tabs.addTab(self.pe_windows_tabs_editors_widget, _("Editor"))
+        self.pe_windows_tabs.addTab(self.pe_windows_tabs_designs_widget, _("Console"))
+        self.pe_windows_tabs.addTab(self.pe_windows_tabs_exe_dll_viewer, _("Tools"))
+        ####
+        self.main_layout.addWidget(self.pe_windows_tabs)
+            
+    def handleELFLinux(self):
+        self.elf_linux_tabs = QTabWidget()
+        self.elf_linux_tabs.setStyleSheet(_(genv.css_tabs))
+        self.elf_linux_tabs.hide()
+        
+        self.elf_linux_tabs_project_widget = QWidget()
+        self.elf_linux_tabs_editors_widget = QWidget()
+        self.elf_linux_tabs_designs_widget = QWidget()
+        #
+        self.elf_linux_tabs.addTab(self.elf_linux_tabs_project_widget, _("ELF Project"))
+        self.elf_linux_tabs.addTab(self.elf_linux_tabs_editors_widget, _("Editor"))
+        self.elf_linux_tabs.addTab(self.elf_linux_tabs_designs_widget, _("Console"))
+        ####
+        self.main_layout.addWidget(self.elf_linux_tabs)
+    
+    def handleBasic(self):
+        self.basic_tabs = ApplicationTabWidget([
+            _("BASIC Project"),
+            _("Editor"),
+            _("Console")])
+        self.basic_tabs_project_widget = ApplicationProjectPage(self, self.basic_tabs.getTab(0), "basic")
+        self.basic_tabs_editors_widget = ApplicationEditorsPage(self, self.basic_tabs.getTab(1), "basic")
+        self.basic_tabs_designs_widget = QWidget()
+        ####
+        self.main_layout.addWidget(self.basic_tabs)
+        
     def handleConsole(self):
         self.console_tabs = QTabWidget()
         self.console_tabs.setStyleSheet(_(genv.css_tabs))
@@ -19749,6 +19950,51 @@ class parserPascalPoint:
             self.finalize()
             print("\nend of data")
 
+def analyze_pe(file_path):
+    try:
+        # PE-Datei öffnen
+        pe = pefile.PE(file_path)
+        
+        print("\n--- PE-Header Informationen ---")
+        print(f"Machine: 0x{pe.FILE_HEADER.Machine:04x}")
+        print(f"Number of Sections: {pe.FILE_HEADER.NumberOfSections}")
+        print(f"TimeDateStamp: {pe.FILE_HEADER.TimeDateStamp}")
+        print(f"PointerToSymbolTable: {pe.FILE_HEADER.PointerToSymbolTable}")
+        print(f"Characteristics: 0x{pe.FILE_HEADER.Characteristics:04x}")
+        
+        print("\n--- Optional Header ---")
+        print(f"ImageBase: 0x{pe.OPTIONAL_HEADER.ImageBase:x}")
+        print(f"EntryPoint: 0x{pe.OPTIONAL_HEADER.AddressOfEntryPoint:x}")
+        print(f"SectionAlignment: {pe.OPTIONAL_HEADER.SectionAlignment}")
+        print(f"FileAlignment: {pe.OPTIONAL_HEADER.FileAlignment}")
+        print(f"Subsystem: {pe.OPTIONAL_HEADER.Subsystem}")
+        
+        print("\n--- Sektionen ---")
+        for section in pe.sections:
+            print(f"Name: {section.Name.decode().strip()}")
+            print(f"Virtual Address: 0x{section.VirtualAddress:x}")
+            print(f"Size of Raw Data: 0x{section.SizeOfRawData:x}")
+            print(f"Pointer to Raw Data: 0x{section.PointerToRawData:x}")
+            print("Characteristics: 0x{:08x}".format(section.Characteristics))
+            print("-" * 30)
+        
+        print("\n--- Importierte DLLs und Funktionen ---")
+        if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT'):
+            for entry in pe.DIRECTORY_ENTRY_IMPORT:
+                print(f"Library: {entry.dll.decode()}")
+                for imp in entry.imports:
+                    print(f"  {hex(imp.address)}: {imp.name.decode() if imp.name else 'N/A'}")
+        
+        print("\n--- Exportierte Funktionen (falls vorhanden) ---")
+        if hasattr(pe, 'DIRECTORY_ENTRY_EXPORT'):
+            for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+                print(f"{hex(pe.OPTIONAL_HEADER.ImageBase + exp.address)}: {exp.name.decode() if exp.name else 'N/A'}")
+    
+    except FileNotFoundError:
+        print("Datei wurde nicht gefunden. Bitte den Dateipfad überprüfen.")
+    except Exception as e:
+        print(f"Ein Fehler ist aufgetreten: {str(e)}")
+
 # ---------------------------------------------------------------------------
 # the mother of all: the __main__ start point ...
 # ---------------------------------------------------------------------------
@@ -19813,6 +20059,10 @@ if __name__ == '__main__':
                 genv.v__app__scriptname__ = sys.argv[2]
                 handleExceptionApplication(parserPascalPoint,sys.argv[idx])
                 sys.exit(0)
+            else:
+                if item.endswith(".exe"):
+                    print("check: " + item)
+                    sys.exit(1)
         else:
             print("parameter unknown.")
             print(genv.v__app__parameter)
