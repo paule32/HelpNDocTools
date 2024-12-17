@@ -9279,6 +9279,69 @@ class PascalSyntaxHighlighter(SourceCodeEditorBase):
                 if self.previousBlockState() != 1 and not in_comment:
                     self.setFormat(start, length, self.boldFormat)
 
+class JavaScriptHighlighter(SourceCodeEditorBase):
+    def __init__(self, document):
+        super().__init__(document)
+        self.highlight_rules = []
+
+        # Format für Schlüsselwörter
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("#0000FF"))
+        keyword_format.setFontWeight(QFont.Bold)
+        keywords = [
+            "var", "let", "const", "function", "return", "if", "else", "while",
+            "for", "break", "continue", "switch", "case", "default", "throw",
+            "try", "catch", "finally", "new", "this", "typeof", "instanceof",
+            "true", "false", "null", "undefined", "class", "extends", "constructor"
+        ]
+        for keyword in keywords:
+            pattern = QRegularExpression(r"\b" + keyword + r"\b")
+            self.highlight_rules.append((pattern, keyword_format))
+
+        # Format für Zeichenketten
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor("#008000"))
+        self.highlight_rules.append((QRegularExpression(r"\".*?\"|'.*?'"), string_format))
+
+        # Format für Zahlen
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor("#FF4500"))
+        self.highlight_rules.append((QRegularExpression(r"\b\d+\b"), number_format))
+
+        # Format für einzeilige Kommentare
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor("#808080"))
+        self.highlight_rules.append((QRegularExpression(r"//[^\n]*"), comment_format))
+
+        # Format für mehrzeilige Kommentare
+        multi_comment_format = QTextCharFormat()
+        multi_comment_format.setForeground(QColor("#808080"))
+        self.comment_start = QRegularExpression(r"/\*")
+        self.comment_end = QRegularExpression(r"\*/")
+        self.comment_format = multi_comment_format
+
+    def highlightBlock(self, text):
+        # Syntax-Hervorhebung mit den Regeln
+        for pattern, format in self.highlight_rules:
+            expression = QRegularExpression(pattern)
+            match_iterator = expression.globalMatch(text)
+            while match_iterator.hasNext():
+                match = match_iterator.next()
+                self.setFormat(match.capturedStart(), match.capturedLength(), format)
+
+        # Mehrzeilige Kommentare hervorheben
+        self.setCurrentBlockState(0)
+        start_index = 0 if self.previousBlockState() != 1 else self.comment_start.match(text).capturedStart()
+        while start_index >= 0:
+            match = self.comment_end.match(text, start_index)
+            end_index = match.capturedStart() if match.hasMatch() else -1
+            comment_length = (end_index - start_index + match.capturedLength()) if match.hasMatch() else len(text) - start_index
+            self.setFormat(start_index, comment_length, self.comment_format)
+            if end_index == -1:
+                self.setCurrentBlockState(1)
+                break
+            start_index = self.comment_start.match(text, end_index).capturedStart()
+
 class EditorTranslate(QWidget):
     def __init__(self, parent):
         super().__init__()
@@ -9389,19 +9452,23 @@ class EditorTextEdit(QPlainTextEdit):
         self.cursorPositionChanged.connect(self.highlightCurrentLine)
         
         if edit_type == "dbase":
-            self.highlighter = dBaseSyntaxHighlighter (self.document())
+            self.highlighter = dBaseSyntaxHighlighter       (self.document())
         elif edit_type == "pascal":
-            self.highlighter = PascalSyntaxHighlighter(self.document())
+            self.highlighter = PascalSyntaxHighlighter      (self.document())
         elif edit_type == "isoc":
-            self.highlighter = CppSyntaxHighlighter   (self.document())
+            self.highlighter = CppSyntaxHighlighter         (self.document())
         elif edit_type == "java":
-            self.highlighter = JavaSyntaxHighlighter  (self.document())
+            self.highlighter = JavaSyntaxHighlighter        (self.document())
+        elif edit_type == "javascript":
+            self.highlighter = JavaScriptSyntaxHighlighter  (self.document())
+        elif edit_type == "basic":
+            self.highlighter = BasicSyntaxHighlighter       (self.document())
         elif edit_type == "lisp":
-            self.highlighter = LispSyntaxHighlighter  (self.document())
+            self.highlighter = LispSyntaxHighlighter        (self.document())
         elif edit_type == "prolog":
-            self.highlighter = PrologSyntaxHighlighter(self.document())
+            self.highlighter = PrologSyntaxHighlighter      (self.document())
         elif edit_type == "python":
-            self.highlighter = PythonSyntaxHighlighter(self.document())
+            self.highlighter = PythonSyntaxHighlighter      (self.document())
         
         # Schriftgröße und Schriftart setzen
         self.setFont(QFont(genv.v__app__font_edit, 12))
@@ -16481,8 +16548,8 @@ class FileWatcherGUI(QDialog):
                 genv.doc_type      = int(genv.v__app__config_help.get("project", "type"))
                 genv.doc_type_out  = int(genv.v__app__config_help.get("project", "doc_out"))
                 #
-                item1 = self.tab0_help_list1.item(genv.doc_type_out+1)
-                item2 = self.tab0_help_list2.item(genv.doc_template)
+                item1 = self.tab0_help_list1.item(genv.doc_type_out + 1)
+                item2 = self.tab0_help_list2.item(genv.doc_template + 1)
                 #
                 self.tab0_help_list1.setCurrentItem(item1)
                 self.tab0_help_list2.setCurrentItem(item2)
@@ -16490,6 +16557,7 @@ class FileWatcherGUI(QDialog):
                 genv.v__app_win.write_config_part()
                 
                 item1 = self.tab0_help_list1.item(genv.doc_type_out + 1)
+                item2 = self.tab0_help_list2.item(genv.doc_template + 1)
                 
             except configparser.NoOptionError as e:
                 content = (""
