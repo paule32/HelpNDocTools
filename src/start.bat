@@ -24,8 +24,8 @@ if errorlevel 1 ( goto error_bytecode )
 if errorlevel 1 ( goto error_bytecode )
 ::goto end
 cd __pycache__
-::%PY% %BASEDIR%\__pycache__\%CLTAPP%.%VERSION%.pyc --port=2300 --gui
-%PY% %BASEDIR%\__pycache__\%CLTAPP%.%VERSION%.pyc --port=2300 test.exe
+%PY% %BASEDIR%\__pycache__\%CLTAPP%.%VERSION%.pyc --port=2300 --gui
+::%PY% %BASEDIR%\__pycache__\%CLTAPP%.%VERSION%.pyc --port=2300 test.exe
 if errorlevel 1 ( goto error_observer)
 cd ..
 goto all_done

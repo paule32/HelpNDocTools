@@ -196,3 +196,4 @@ src/c646.py.bak
 src/tools.pro/windows/status.py.bak
 src/tools.pro/windows/data/WinLastStatus.db.bak
 src/tools.pro/windows/data/WinLastError.db.bak
+src/test.exe

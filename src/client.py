@@ -1893,6 +1893,44 @@ class SSLClient:
         data = self.socket.readAll().data().decode()
         print(f"Empfangene Daten vom Server: {data}")
 
+class FileExplorer(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        self.setWindowTitle("Dateien und Laufwerke Explorer mit Dateigröße")
+        self.resize(800, 600)
+        
+        # Layout erstellen
+        layout = QVBoxLayout(self)
+        
+        # QTreeView erstellen
+        self.tree_view = QTreeView(self)
+        layout.addWidget(self.tree_view)
+        
+        # QFileSystemModel erstellen
+        self.file_system_model = QFileSystemModel()
+        self.file_system_model.setRootPath("")  # RootPath auf das Dateisystem setzen
+        
+        # Nur .exe und .dll Dateien anzeigen
+        self.file_system_model.setNameFilters(["*.exe", "*.dll"])
+        self.file_system_model.setNameFilterDisables(False)  # Nur gefilterte Dateien anzeigen
+        
+        # Model an die QTreeView binden
+        self.tree_view.setModel(self.file_system_model)
+        
+        # Root-Index auf das Hauptlaufwerk setzen
+        self.tree_view.setRootIndex(self.file_system_model.index(self.file_system_model.rootPath()))
+        
+        # Spalten anpassen
+        self.tree_view.setColumnWidth(0, 300)  # Spaltenbreite für den Dateinamen
+        self.tree_view.setColumnWidth(1, 100)  # Spaltenbreite für Dateigröße
+        self.tree_view.setColumnWidth(2, 150)  # Spaltenbreite für den Typ
+        self.tree_view.setColumnWidth(3, 150)  # Spaltenbreite für das Änderungsdatum
+        
+        # Optional: Header anpassen (z. B. Schriftart oder Stil)
+        header = self.tree_view.header()
+        header.setDefaultSectionSize(150)  # Standard-Spaltenbreite setzen
+
 class ExecutableExplorer(QWidget):
     def __init__(self, parent=None):
         try:
@@ -1904,6 +1942,9 @@ class ExecutableExplorer(QWidget):
             tab_widget = QTabWidget()
             tab_widget.setTabPosition(QTabWidget.North)
             tab_widget.setTabShape(QTabWidget.Rounded)
+            
+            self.file_tree = FileExplorer()
+            
             
             vertical_splitter = QSplitter(Qt.Vertical)
             upper_splitter    = QSplitter(Qt.Horizontal)
@@ -1948,6 +1989,7 @@ class ExecutableExplorer(QWidget):
             header.setSectionResizeMode(0, QHeaderView.Stretch)
             
             # Layout zusammenfügen
+            upper_splitter.addWidget(self.file_tree)
             upper_splitter.addWidget(self.exe_dll_tree)
             upper_splitter.addWidget(self.symbols_tree)
             
@@ -20063,7 +20105,6 @@ if __name__ == '__main__':
                 if item.endswith(".exe"):
                     print("check: " + item)
                     analyze_pe(item)
-                    
                     sys.exit(1)
         else:
             print("parameter unknown.")
