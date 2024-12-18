@@ -1930,6 +1930,19 @@ class FileExplorer(QWidget):
         # Optional: Header anpassen (z. B. Schriftart oder Stil)
         header = self.tree_view.header()
         header.setDefaultSectionSize(150)  # Standard-Spaltenbreite setzen
+        
+        # Signal für Doppelklick verbinden
+        self.tree_view.doubleClicked.connect(self.on_double_click)
+    
+    def on_double_click(self, index):
+        # Dateipfad aus dem Model ermitteln
+        file_path = self.file_system_model.filePath(index)
+        
+        # Datei- oder Ordnername
+        file_name = self.file_system_model.fileName(index)
+        
+        # Nachricht anzeigen
+        QMessageBox.information(self, "Datei Doppelklick", f"Dateiname: {file_name}\nPfad: {file_path}")
 
 class ExecutableExplorer(QWidget):
     def __init__(self, parent=None):
