@@ -1893,9 +1893,26 @@ class SSLClient:
         data = self.socket.readAll().data().decode()
         print(f"Empfangene Daten vom Server: {data}")
 
+# ---------------------------------------------------------------------------
+# \brief Überschreibe die Datenmethode, um den Dateityp anzupassen.
+# ---------------------------------------------------------------------------
+class CustomFileSystemModel(QFileSystemModel):
+    def data(self, index, role):
+        if role == Qt.DisplayRole and index.column() == 2:  # Spalte 2 ist "Type"
+            file_info = self.fileInfo(index)
+            if file_info.isDir():
+                return _("Directory")
+            elif file_info.isFile():
+                # Benutzerdefinierte Dateityp-Anzeige
+                file_str = _("File")
+                return f"{file_info.suffix().upper()}-{file_str}"
+            else:
+                return _("Unknown")
+        return super().data(index, role)
+
 class FileExplorer(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super(FileExplorer, self).__init__(parent)
         
         self.setWindowTitle("Dateien und Laufwerke Explorer mit Dateigröße")
         self.resize(800, 600)
@@ -1908,7 +1925,7 @@ class FileExplorer(QWidget):
         layout.addWidget(self.tree_view)
         
         # QFileSystemModel erstellen
-        self.file_system_model = QFileSystemModel()
+        self.file_system_model = CustomFileSystemModel()
         self.file_system_model.setRootPath("")  # RootPath auf das Dateisystem setzen
         
         # Nur .exe und .dll Dateien anzeigen
@@ -1935,14 +1952,29 @@ class FileExplorer(QWidget):
         self.tree_view.doubleClicked.connect(self.on_double_click)
     
     def on_double_click(self, index):
-        # Dateipfad aus dem Model ermitteln
-        file_path = self.file_system_model.filePath(index)
+        if index.isValid():
+            # ----------------------------------
+            # Dateipfad aus dem Model ermitteln
+            # ----------------------------------
+            file_path = self.file_system_model.filePath(index)
+            
+            # ----------------------------------
+            # Datei- oder Ordnername
+            # ----------------------------------
+            file_name = self.file_system_model.filePath(
+                index.sibling(
+                index.row(),
+                0))
         
-        # Datei- oder Ordnername
-        file_name = self.file_system_model.fileName(index)
-        
-        # Nachricht anzeigen
-        QMessageBox.information(self, "Datei Doppelklick", f"Dateiname: {file_name}\nPfad: {file_path}")
+            # ----------------------------------
+            # Nachricht anzeigen
+            # ----------------------------------
+            if file_name.lower().endswith(".exe") \
+            or file_name.lower().endswith(".dll"):
+                QMessageBox.information(
+                    self,
+                    "Datei Doppelklick",
+                    f"Dateiname: {file_name}\nPfad: {file_path}")
 
 class ExecutableExplorer(QWidget):
     def __init__(self, parent=None):
@@ -1991,15 +2023,23 @@ class ExecutableExplorer(QWidget):
             header.setSectionResizeMode(1, QHeaderView.Stretch)  # Fest
             
             # Unterer Bereich: QListTree für Pfade und Verzeichnisse
-            self.paths_tree = QTreeView()
-            self.paths_tree.setHeaderHidden(False)
+            splitter = QSplitter(Qt.Horizontal)
             
+            # Untere Ansicht: Hex-View und Binär-View
+            self.hex_view = QTextEdit()
+            self.hex_view.setReadOnly(True)
+            self.hex_view.setPlaceholderText("Hex-Ansicht wird hier angezeigt")
+            splitter.addWidget(self.hex_view)
             
-            self.paths_tree.setModel(self._create_paths_model())
-            self.paths_tree.setToolTip("DLL-Pfade und Verzeichnisse")
+            self.binary_view = QTextEdit()
+            self.binary_view.setReadOnly(True)
+            self.binary_view.setPlaceholderText("Binär-Ansicht wird hier angezeigt")
+            splitter.addWidget(self.binary_view)
             
-            header = self.paths_tree.header()
-            header.setSectionResizeMode(0, QHeaderView.Stretch)
+            self.binary_assembly = QTextEdit()
+            self.binary_assembly.setReadOnly(True)
+            self.binary_assembly.setPlaceholderText("Binär-Ansicht wird hier angezeigt")
+            splitter.addWidget(self.binary_assembly)
             
             # Layout zusammenfügen
             upper_splitter.addWidget(self.file_tree)
@@ -2007,7 +2047,7 @@ class ExecutableExplorer(QWidget):
             upper_splitter.addWidget(self.symbols_tree)
             
             vertical_splitter.addWidget(upper_splitter)
-            vertical_splitter.addWidget(self.paths_tree)
+            vertical_splitter.addWidget(splitter)
             
             #
             mz_info = QWidget()
@@ -2025,22 +2065,17 @@ class ExecutableExplorer(QWidget):
         except Exception as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             sys.exit(1)
-
+    
     def _create_file_tree_model(self):
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Dateien", "PE EXE", "MZ EXE"])
         return model
-
+    
     def _create_symbols_model(self):
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Funktion", "Offset"])
         return model
-
-    def _create_paths_model(self):
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["DLL-Pfade"])
-        return model
-
+    
     def populate_example_data(self):
         # EXE/DLL Dateien einfügen
         print("popppp")
@@ -2070,9 +2105,6 @@ class ExecutableExplorer(QWidget):
         path_item = QStandardItem("DLL-Pfade")
         path_item.appendRow(QStandardItem("C:\\Windows\\System32\\kernel32.dll"))
         path_item.appendRow(QStandardItem("C:\\Windows\\System32\\user32.dll"))
-        
-        self.paths_tree.model().appendRow(path_item)
-
 
 if genv.GENERATE_DOC:
     word = win32com.client.Dispatch("Word.Application")
