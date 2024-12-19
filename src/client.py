@@ -74,7 +74,7 @@ try:
     def check_and_install_module():
         required_modules = [
             "dbf", "polib", "requests", "timer", "datetime", "gmpy2", "webbrowser",
-            "locale", "io", "random", "string",
+            "locale", "io", "random", "string", "capstone",
             "ctypes", "sqlite3", "configparser", "traceback", "marshal", "inspect",
             "logging", "PyQt5", "pathlib", "rich", "string", "codecs" ]
         
@@ -115,6 +115,7 @@ try:
     # check, if font installed ...
     # ---------------------------------------------------------
     def font_check_callback(lpelfe, lpntme, font_type, lparam):
+        font_name = "Consolas"
         lf = ctypes.cast(lpelfe, ctypes.POINTER(LOGFONT)).contents
         if font_name.lower() == lf.lfFaceName.decode("utf-8").lower():
             lparam[0] = True
@@ -360,6 +361,7 @@ import logging
 import dbf            # good old data base file
 
 import pefile         # MS-Windows PE executable image
+import capstone       # disassembly
 
 # ------------------------------------------------------------------------
 # windows os stuff ...
@@ -381,6 +383,11 @@ from PyQt5.QtWidgets            import *
 from PyQt5.QtCore               import *
 from PyQt5.QtGui                import *
 from PyQt5.QtNetwork            import *
+
+# ------------------------------------------------------------------------
+# disassembly library
+# ------------------------------------------------------------------------
+from capstone                   import Cs, CS_ARCH_X86, CS_MODE_64
 
 if getattr(sys, 'frozen', False):
     import pyi_splash
@@ -1965,7 +1972,7 @@ class FileExplorer(QWidget):
                 index.sibling(
                 index.row(),
                 0))
-        
+            
             # ----------------------------------
             # Nachricht anzeigen
             # ----------------------------------
@@ -1975,6 +1982,25 @@ class FileExplorer(QWidget):
                     self,
                     "Datei Doppelklick",
                     f"Dateiname: {file_name}\nPfad: {file_path}")
+
+class AssemblerViewer(QPlainTextEdit):
+    def __init__(self, parent=None):
+        super(AssemblerViewer, self).__init__(parent)
+        
+        self.setReadOnly(True)
+        self.setFont(QFont("Consolas", 10))  # Monospace-Schriftart
+        
+        # Beispiel: Bytes analysieren und anzeigen
+        byte_sequence = b"\x55\x48\x89\xe5\xb8\x04\x00\x00\x00\x5d\xc3"
+        asm_code = self.generate_assembler(byte_sequence)
+        self.setPlainText(asm_code)
+    
+    def generate_assembler(self, byte_sequence):
+        md = Cs(CS_ARCH_X86, CS_MODE_64)
+        asm_lines = []
+        for instr in md.disasm(byte_sequence, 0x1000):
+            asm_lines.append(f"0x{instr.address:08x}:\t{instr.mnemonic}\t{instr.op_str}")
+        return "\n".join(asm_lines)
 
 class HexEditComponent(QPlainTextEdit):
     def __init__(self, parent=None):
@@ -2005,11 +2031,11 @@ class HexEditComponent(QPlainTextEdit):
         cursor = self.cursorForPosition(event.pos())
         cursor.select(QTextCursor.WordUnderCursor)
         selected_text = cursor.selectedText()
-
+        
         # Finde den Index des angeklickten Bytes
         if len(selected_text) == 2 and all(c in "0123456789ABCDEFabcdef" for c in selected_text):
             # Konvertiere Zeilen und Spalten in einen linearen Index
-            block_number = cursor.blockNumber()
+            block_number  = cursor.blockNumber()
             column_number = cursor.columnNumber()
 
             # Berücksichtige die Trennung nach Spalte 4
@@ -2213,9 +2239,7 @@ class ExecutableExplorer(QWidget):
             self.hex_view.setStyleSheet("QWidget{padding:0px;}")
             self.hex_view.set_data(data)
             
-            self.asm_view = QTextEdit()
-            self.asm_view.setReadOnly(True)
-            self.asm_view.setPlaceholderText("Binär-Ansicht wird hier angezeigt")
+            self.asm_view = AssemblerViewer()
             
             splitter.addWidget(self.hex_view)
             splitter.addWidget(self.asm_view)
