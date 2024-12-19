@@ -1976,12 +1976,186 @@ class FileExplorer(QWidget):
                     "Datei Doppelklick",
                     f"Dateiname: {file_name}\nPfad: {file_path}")
 
+class HexEditComponent(QPlainTextEdit):
+    def __init__(self, parent=None):
+        super(HexEditComponent, self).__init__(parent)
+        
+        self.setReadOnly(True)
+        self.setFont(QFont("Consolas", 10))
+        self.setStyleSheet("QPlainTextEdit{padding:0px;}")
+        
+        self.hex_data = ""
+        self.selected_index = -1  # Index des aktuell markierten Bytes
+    
+    def set_hex_data(self, data):
+        self.hex_data = data.hex()
+        formatted_lines = []
+        
+        # 8 Spalten zu je 2 Zeichen mit Trennzeichen nach Spalte 4
+        for i in range(0, len(self.hex_data), 16):  # 8 Spalten * 2 Zeichen = 16
+            line = " ".join(self.hex_data[j:j+2] for j in range(i, i+16, 2))
+            # Füge Trennzeichen nach Spalte 4 ein
+            split_line = line.split(" ")
+            formatted_line = " ".join(split_line[:4]) + " | " + " ".join(split_line[4:])
+            formatted_lines.append(formatted_line)
+        
+        self.setPlainText("\n".join(formatted_lines))
+    
+    def mousePressEvent(self, event):
+        cursor = self.cursorForPosition(event.pos())
+        cursor.select(QTextCursor.WordUnderCursor)
+        selected_text = cursor.selectedText()
+
+        # Finde den Index des angeklickten Bytes
+        if len(selected_text) == 2 and all(c in "0123456789ABCDEFabcdef" for c in selected_text):
+            # Konvertiere Zeilen und Spalten in einen linearen Index
+            block_number = cursor.blockNumber()
+            column_number = cursor.columnNumber()
+
+            # Berücksichtige die Trennung nach Spalte 4
+            if column_number > 14:  # Spalten 5, 6, 7, 8
+                adjusted_column = column_number - 3  # Verschiebung um die Länge von " | "
+            else:
+                adjusted_column = column_number
+
+            byte_index = block_number * 8 + (adjusted_column // 3)
+
+            if 0 <= byte_index < len(self.hex_data) // 2:
+                self.selected_index = byte_index
+                self.highlight_selection()
+        else:
+            super().mousePressEvent(event)
+    
+    def highlight_selection(self):
+        cursor = self.textCursor()
+        cursor.movePosition(QTextCursor.Start)
+        
+        # Entferne alte Markierungen
+        fmt_clear = QTextCharFormat()
+        
+        cursor.select(QTextCursor.Document)
+        cursor.setCharFormat(fmt_clear)
+        
+        if self.selected_index >= 0:
+            cursor.movePosition(QTextCursor.Start)
+            cursor.movePosition(QTextCursor.NextBlock    , QTextCursor.MoveAnchor,  self.selected_index // 8)
+            cursor.movePosition(QTextCursor.NextCharacter, QTextCursor.MoveAnchor, (self.selected_index %  8) * 3)
+            cursor.movePosition(QTextCursor.NextCharacter, QTextCursor.KeepAnchor, 2)
+            
+            if 0 <= self.selected_index % 8 <= 3:  # Spalten 1, 2, 3, 4
+                # Kürze Markierung um 2 Zeichen von rechts
+                cursor.movePosition(QTextCursor.NextCharacter, QTextCursor.KeepAnchor, 0)
+                #cursor.movePosition(QTextCursor.KeepAnchor, 0)
+            elif 4 <= self.selected_index % 8 <= 6:  # Spalten 5, 6, 7
+                # Verschiebe Markierung um 1 Zeichen nach rechts
+                cursor.movePosition(QTextCursor.NextCharacter, QTextCursor.MoveAnchor, 1)
+                cursor.movePosition(QTextCursor.NextCharacter, QTextCursor.KeepAnchor, 2)
+            elif self.selected_index % 8 == 7:  # Spalte 8
+                # Kürze Markierung um 2 Zeichen von links
+                cursor.movePosition(QTextCursor.NextCharacter, QTextCursor.MoveAnchor, 2)
+                cursor.movePosition(QTextCursor.NextCharacter, QTextCursor.KeepAnchor, 2)
+            
+            # Setze das Hintergrundhighlight
+            fmt = QTextCursor().charFormat()
+            fmt.setBackground(QColor("yellow"))
+            cursor.setCharFormat(fmt) 
+    
+    # --------------------------------------------------
+    # Zeichnet eine vertikale Linie nach der 4. Spalte.
+    # --------------------------------------------------
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        
+        painter = QPainter(self.viewport())
+        painter.setPen(QColor("gray"))
+        
+        # Position der vertikalen Linie berechnen
+        font_metrics = self.fontMetrics()
+        space_width  = font_metrics.horizontalAdvance(" ")
+        char_width   = font_metrics.horizontalAdvance("0")
+        
+        # --------------------------------------------------
+        # Nach der 4. Spalte (4x2 Zeichen + 3 Leerzeichen)
+        # --------------------------------------------------
+        line_x = (3 * (2 * char_width + space_width) + space_width * 3) + 6
+        
+        painter.drawLine(QPoint(line_x, 0), QPoint(line_x, self.height()))
+        painter.end()
+
+class AsciiEditComponent(QPlainTextEdit):
+    def __init__(self, parent=None):
+        super(AsciiEditComponent, self).__init__(parent)
+        
+        self.setReadOnly(True)
+        self.setFont(QFont("Consolas", 10))
+        self.setStyleSheet("QWidget{padding:0px;}")
+        
+        self.asc_data = ""
+    
+    def set_asc_data(self, data):
+        self.asc_data = data
+        def to_printable(byte):
+            if 0x20 <= byte <= 0x7E:  # Printable ASCII
+                return chr(byte)
+            elif byte == 0x09:  # Tab
+                return "\t"
+            elif byte == 0x0A:  # Line Feed
+                return "\n"
+            elif byte == 0x0D:  # Carriage Return
+                return "\r"
+            else:
+                return f"<{byte:02X}>"
+        
+        # Konvertiere die Bytes
+        printable_text = "".join(to_printable(b) for b in data)
+        
+        # Setze den Text in die QPlainTextEdit
+        self.setPlainText(printable_text)
+
+class HexViewer(QWidget):
+    def __init__(self, parent=None):
+        super(HexViewer, self).__init__(parent)
+        
+        self.setStyleSheet("QWidget{padding:0px;}")
+        layout = QVBoxLayout()
+        
+        # Splitter für Hex- und ASCII-Ansicht
+        splitter = QSplitter(Qt.Vertical)
+        
+        # Hex-Ansicht
+        self.hex_edit = HexEditComponent()
+        self.hex_edit.setReadOnly(True)
+        
+        # ASCII/Unicode-Ansicht
+        self.asc_edit = AsciiEditComponent()
+        self.asc_edit.setReadOnly(True)
+        
+        splitter.addWidget(self.hex_edit)
+        splitter.addWidget(self.asc_edit)
+        
+        layout.addWidget(splitter)
+        
+        # Initialisierung der Daten
+        self.hex_data = ""
+        self.selected_index = -1
+        
+        # Verbinde Mausklicks in der Hex-Ansicht
+        self.hex_edit.mousePressEvent = self.hex_edit.mousePressEvent
+        
+        self.setLayout(layout)
+    
+    def set_data(self, dat):
+        self.hex_edit.set_hex_data(dat)
+        self.asc_edit.set_asc_data(dat)
+
 class ExecutableExplorer(QWidget):
     def __init__(self, parent=None):
         try:
             super(ExecutableExplorer, self).__init__(parent)
-                        
+            
+            # ----------------------------------------------
             # Hauptlayout mit vertikalem Splitter
+            # ----------------------------------------------
             main_layout = QVBoxLayout(self)
             
             tab_widget = QTabWidget()
@@ -1994,7 +2168,9 @@ class ExecutableExplorer(QWidget):
             vertical_splitter = QSplitter(Qt.Vertical)
             upper_splitter    = QSplitter(Qt.Horizontal)
             
+            # ----------------------------------------------
             # Links: QListTree für EXE und DLL Dateien
+            # ----------------------------------------------
             self.exe_dll_tree = QTreeView()
             self.exe_dll_tree.setHeaderHidden(False)
             
@@ -2010,8 +2186,9 @@ class ExecutableExplorer(QWidget):
             header.resizeSection(1, 42)
             header.resizeSection(2, 42)
             
-            
+            # ----------------------------------------------
             # Rechts: QListTree für Symbole und Funktionen
+            # ----------------------------------------------
             self.symbols_tree = QTreeView()
             self.symbols_tree.setHeaderHidden(False)
             
@@ -2022,26 +2199,30 @@ class ExecutableExplorer(QWidget):
             header.setSectionResizeMode(0, QHeaderView.Stretch)  # Dynamisch
             header.setSectionResizeMode(1, QHeaderView.Stretch)  # Fest
             
-            # Unterer Bereich: QListTree für Pfade und Verzeichnisse
+            # ----------------------------------------------
+            # Unterer Bereich: QListTree für Pfade und
+            # Verzeichnisse
+            # ----------------------------------------------
             splitter = QSplitter(Qt.Horizontal)
             
-            # Untere Ansicht: Hex-View und Binär-View
-            self.hex_view = QTextEdit()
-            self.hex_view.setReadOnly(True)
-            self.hex_view.setPlaceholderText("Hex-Ansicht wird hier angezeigt")
+            # ----------------------------------------------
+            # Untere Ansicht: Hex-View und bin-View
+            # ----------------------------------------------
+            data = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            self.hex_view = HexViewer()
+            self.hex_view.setStyleSheet("QWidget{padding:0px;}")
+            self.hex_view.set_data(data)
+            
+            self.asm_view = QTextEdit()
+            self.asm_view.setReadOnly(True)
+            self.asm_view.setPlaceholderText("Binär-Ansicht wird hier angezeigt")
+            
             splitter.addWidget(self.hex_view)
+            splitter.addWidget(self.asm_view)
             
-            self.binary_view = QTextEdit()
-            self.binary_view.setReadOnly(True)
-            self.binary_view.setPlaceholderText("Binär-Ansicht wird hier angezeigt")
-            splitter.addWidget(self.binary_view)
-            
-            self.binary_assembly = QTextEdit()
-            self.binary_assembly.setReadOnly(True)
-            self.binary_assembly.setPlaceholderText("Binär-Ansicht wird hier angezeigt")
-            splitter.addWidget(self.binary_assembly)
-            
+            # ----------------------------------------------
             # Layout zusammenfügen
+            # ----------------------------------------------
             upper_splitter.addWidget(self.file_tree)
             upper_splitter.addWidget(self.exe_dll_tree)
             upper_splitter.addWidget(self.symbols_tree)
@@ -2053,15 +2234,20 @@ class ExecutableExplorer(QWidget):
             mz_info = QWidget()
             pe_info = QWidget()
             
+            # ----------------------------------------------
             # Tab einfügen
+            # ----------------------------------------------
             tab_widget.addTab(vertical_splitter, _("Files"))
             tab_widget.addTab(mz_info, _("MZ-Info"))
             tab_widget.addTab(pe_info, _("PE-Info"))
             
             main_layout.addWidget(tab_widget)
             
+            # ----------------------------------------------
             # Beispiel-Daten eintragen
+            # ----------------------------------------------
             self.populate_example_data()
+            
         except Exception as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             sys.exit(1)
@@ -2077,9 +2263,9 @@ class ExecutableExplorer(QWidget):
         return model
     
     def populate_example_data(self):
+        # ----------------------------------------------
         # EXE/DLL Dateien einfügen
-        print("popppp")
-        
+        # ----------------------------------------------
         exe_item = QStandardItem("Programme (EXE)")
         dll_item = QStandardItem("Bibliotheken (DLL)")
         
@@ -2089,7 +2275,9 @@ class ExecutableExplorer(QWidget):
         self.exe_dll_tree.model().appendRow(exe_item)
         self.exe_dll_tree.model().appendRow(dll_item)
         
+        # ----------------------------------------------
         # Symbole und Funktionen einfügen
+        # ----------------------------------------------
         sym_item1 = QStandardItem("Funktionen in explorer.exe")
         sym_item1.appendRow([QStandardItem("CreateWindow"),   QStandardItem("0x1000")])
         sym_item1.appendRow([QStandardItem("ShowWindow"),     QStandardItem("0x1000")])
@@ -2101,7 +2289,9 @@ class ExecutableExplorer(QWidget):
         self.symbols_tree.model().appendRow(sym_item1)
         self.symbols_tree.model().appendRow(sym_item2)
         
+        # ----------------------------------------------
         # DLL-Pfade einfügen
+        # ----------------------------------------------
         path_item = QStandardItem("DLL-Pfade")
         path_item.appendRow(QStandardItem("C:\\Windows\\System32\\kernel32.dll"))
         path_item.appendRow(QStandardItem("C:\\Windows\\System32\\user32.dll"))
