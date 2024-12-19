@@ -74,9 +74,10 @@ try:
     def check_and_install_module():
         required_modules = [
             "dbf", "polib", "requests", "timer", "datetime", "gmpy2", "webbrowser",
-            "locale", "io", "random", "string", "capstone",
-            "ctypes", "sqlite3", "configparser", "traceback", "marshal", "inspect",
-            "logging", "PyQt5", "pathlib", "rich", "string", "codecs" ]
+            "locale", "io", "random", "ipapi", "ipcore", "string", "capstone",
+            "httpx", "httpx-auth", "ctypes", "sqlite3", "configparser", "traceback",
+            "marshal", "inspect", "logging", "PyQt5", "pathlib", "rich", "string",
+            "codecs" ]
         
         for module in required_modules:
             try:
@@ -388,6 +389,12 @@ from PyQt5.QtNetwork            import *
 # disassembly library
 # ------------------------------------------------------------------------
 from capstone                   import Cs, CS_ARCH_X86, CS_MODE_64
+
+# ------------------------------------------------------------------------
+# query IP addresses ...
+# ------------------------------------------------------------------------
+import ipapi
+import httpx
 
 if getattr(sys, 'frozen', False):
     import pyi_splash
