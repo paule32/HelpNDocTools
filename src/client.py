@@ -54,6 +54,12 @@ try:
     if 'PYTHONPATH' in os.environ:
         del os.environ['PYTHONPATH']
     
+    # -----------------------------------------------------------------------
+    # error output function
+    # -----------------------------------------------------------------------
+    def DebugPrint(data):
+        print(data)
+    
     # ------------------------------------------------------------------------
     # before we start the application core, we try to update the pip installer
     # ------------------------------------------------------------------------
@@ -63,9 +69,9 @@ try:
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
-        print("pip is up to date.")
+        DebugPrint("pip is up to date.")
     except subprocess.CalledProcessError as ex:
-        print(f"error: pip installer update fail. {ex.returncode}")
+        DebugP(f"error: pip installer update fail. {ex.returncode}")
         sys.exit(1)
     
     # ------------------------------------------------------------------------
@@ -82,34 +88,34 @@ try:
         for module in required_modules:
             try:
                 importlib.import_module(module)
-                print(f"{module} is already installed.")
+                DebugPrint(f"{module} is already installed.")
             except ImportError:
                 try:
-                    print(f"error: {module} not found. Installing...")
+                    DebugPrint(f"error: {module} not found. Installing...")
                     result = subprocess.run(
                     [sys.executable, "-m", "pip", "install", "--user", module],
                     check=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE)
-                    print(f"{module} installed successfully.")
+                    DebugPrint(f"{module} installed successfully.")
                 except:
                     try:
-                        print(f"error: upgrade pip...")
+                        DebugPrint(f"error: upgrade pip...")
                         result = subprocess.run(
                         [sys.executable, "-m", "pip", "--upgrade", "pip"],
                         check=True,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)
-                        print(f"info: pip installer upgrade ok.")
+                        DebugPrint(f"info: pip installer upgrade ok.")
                         #
                         result = subprocess.run(
                         [sys.executable, "-m", "pip", "install", "--user", module],
                         check=True,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)
-                        print(f"{module} installed successfully.")
+                        DebugPrint(f"{module} installed successfully.")
                     except:
-                        print(f"error: module: install fail.")
+                        DebugPrint(f"error: module: install fail.")
                         sys.exit(1)
     
     # ---------------------------------------------------------
@@ -169,10 +175,10 @@ try:
             ctypes.windll.shell32.IsUserAnAdmin()
             shell_exec = ctypes.windll.shell32.ShellExecuteW
             shell_exec(None, "open", sys.executable, ' '.join(sys.argv), None, 1)
-            print("Neuer Prozess ohne Administratorrechte gestartet.")
+            DebugPrint("Neuer Prozess ohne Administratorrechte gestartet.")
             sys.exit(0)
         except Exception as e:
-            print(f"Fehler beim Entfernen der Administratorrechte: {e}")
+            DebugPrint(f"Fehler beim Entfernen der Administratorrechte: {e}")
             sys.exit(1)
     
     # ---------------------------------------------------------
@@ -190,7 +196,7 @@ try:
                 #sys.exit(0)
                 raise Exception("TODO: Admin")
             except Exception as e:
-                print(f"Error: could not switch to admin: {e}")
+                DebugPrint(f"Error: could not switch to admin: {e}")
                 sys.exit(1)
     
     # ---------------------------------------------------------
@@ -207,7 +213,7 @@ try:
         hwnd_broadcast = 0xFFFF
         ctypes.windll.user32.SendMessageW(hwnd_broadcast, WM_FONTCHANGE, 0, 0)
         
-        print(f"SUCCESSFUL: font installed: {font_path}")
+        DebugPrint(f"SUCCESSFUL: font installed: {font_path}")
         
     # ---------------------------------------------------------------------
     # Fügt den Font dauerhaft zur Windows-Schriftartenliste hinzu,
@@ -220,7 +226,7 @@ try:
         try:
             with reg.OpenKey(reg.HKEY_LOCAL_MACHINE, fonts_key, 0, reg.KEY_SET_VALUE) as key:
                 reg.SetValueEx(key, font_name, 0, reg.REG_SZ, font_path)
-                print(f"Font in Registry eingetragen: {font_name}")
+                DebugPrint(f"Font in Registry eingetragen: {font_name}")
         except PermissionError:
             raise PermissionError(""
             + "Administratorrechte erforderlich, um den Font "
@@ -261,10 +267,10 @@ try:
             import winreg as reg
             
             if not is_admin():
-                print("ATTENTION: Admin rights requered for first start.")
+                DebugPrint("ATTENTION: Admin rights requered for first start.")
                 #run_as_admin()
             else:
-                print("ATTENTION: Application run in Admin mode !")
+                DebugPrint("ATTENTION: Application run in Admin mode !")
             
             c64_normal = "/_internal/fonts/C64_Pro-STYLE.ttf"
             c64_mono   = "/_internal/fonts/C64_Pro_Mono-STYLE.ttf"
@@ -275,127 +281,136 @@ try:
             install_font(font_file)
             #add_font_to_registry(font_display_name, font_file)
             
-            print("font OK")
+            DebugPrint("font OK")
     
     # ---------------------------------------------------------------------
     # we try not to use admin rights for the application ...
     # ---------------------------------------------------------------------
     if ctypes.windll.shell32.IsUserAnAdmin():
-        print("Das Programm läuft mit Administratorrechten.")
+        DebugPrint("Das Programm läuft mit Administratorrechten.")
         drop_admin_privileges()
     
     if is_admin():
-        print("Error: Application runs in Admin Mode")
+        DebugPrint("Error: Application runs in Admin Mode")
         sys.exit(1)
 
 except FileNotFoundError as e:
-    print(e)
+    DebugPrint(e)
     sys.exit(1)
 except PermissionError as e:
-    print(e)
+    DebugPrint(e)
     sys.exit(1)
 except RuntimeError as e:
-    print(e)
+    DebugPrint(e)
     sys.exit(1)
 except Exception as e:
     exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     tb = traceback.extract_tb(e.__traceback__)[-1]
     
-    print(f"Exception occur:")
-    print(f"type : {exc_type.__name__}")
-    print(f"value: {exc_value}")
-    print(("-" * 40))
+    DebugPrint(f"Exception occur:")
+    DebugPrint(f"type : {exc_type.__name__}")
+    DebugPrint(f"value: {exc_value}")
+    DebugPrint(("-" * 40))
     #
-    print(f"file : {tb.filename}")
-    print(f"line : {tb.lineno}")
+    DebugPrint(f"file : {tb.filename}")
+    DebugPrint(f"line : {tb.lineno}")
     sys.exit(1)
 
 # ------------------------------------------------------------------------
 # this is a double check for application imports ...
 # ------------------------------------------------------------------------
-import re             # regular expression handling
-import requests       # get external url stuff
-import itertools
+try:
+    import re             # regular expression handling
+    import requests       # get external url stuff
+    import itertools
 
-import time           # thread count
-import datetime       # date, and time routines
+    import time           # thread count
+    import datetime       # date, and time routines
 
-import threading      # multiple action simulator
+    import threading      # multiple action simulator
 
-import glob           # directory search
-import atexit         # clean up
-import subprocess     # start sub processes
-import platform       # Windows ?
+    import glob           # directory search
+    import atexit         # clean up
+    import subprocess     # start sub processes
+    import platform       # Windows ?
 
-import gzip           # pack/de-pack data
-import base64         # base64 encoded data
-import shutil         # shell utils
+    import gzip           # pack/de-pack data
+    import base64         # base64 encoded data
+    import shutil         # shell utils
 
-import pkgutil        # attached binary data utils
-import ast            # string to list
-import json           # json lists
-import csv            # simplest data format
+    import pkgutil        # attached binary data utils
+    import ast            # string to list
+    import json           # json lists
+    import csv            # simplest data format
 
-import gettext        # localization
-import locale         # internal system locale
-import polib          # create .mo locales files from .po files
+    import gettext        # localization
+    import locale         # internal system locale
+    import polib          # create .mo locales files from .po files
 
-import io             # memory streams
+    import io             # memory streams
 
-import random         # randome numbers
-import string
+    import random         # randome numbers
+    import string
 
-import ctypes         # windows ip info
+    import ctypes         # windows ip info
 
-import sqlite3        # database: sqlite
-import configparser   # .ini files
+    import sqlite3        # database: sqlite
+    import configparser   # .ini files
 
-import traceback      # stack exception trace back
-import webbrowser
+    import traceback      # stack exception trace back
+    import webbrowser
 
-import textwrap
-import marshal        # bytecode exec
-import inspect        # stack
-import gc             # garbage collector
+    import textwrap
+    import marshal        # bytecode exec
+    import inspect        # stack
+    import gc             # garbage collector
 
-import logging
-import dbf            # good old data base file
+    import logging
+    import dbf            # good old data base file
 
-import pefile         # MS-Windows PE executable image
-import capstone       # disassembly
+    import pefile         # MS-Windows PE executable image
+    import capstone       # disassembly
 
-# ------------------------------------------------------------------------
-# windows os stuff ...
-# ------------------------------------------------------------------------
-import win32api
-import win32con
+    # ------------------------------------------------------------------------
+    # windows os stuff ...
+    # ------------------------------------------------------------------------
+    import win32api
+    import win32con
 
-# ------------------------------------------------------------------------
-# gnu multi precision version 2 (gmp2 for python)
-# ------------------------------------------------------------------------
-import gmpy2
-from   gmpy2 import mpz, mpq, mpfr, mpc
+    # ------------------------------------------------------------------------
+    # gnu multi precision version 2 (gmp2 for python)
+    # ------------------------------------------------------------------------
+    import gmpy2
+    from   gmpy2 import mpz, mpq, mpfr, mpc
 
-# ------------------------------------------------------------------------
-# Qt5 gui framework
-# ------------------------------------------------------------------------
-from PyQt5.QtWebEngineWidgets   import *
-from PyQt5.QtWidgets            import *
-from PyQt5.QtCore               import *
-from PyQt5.QtGui                import *
-from PyQt5.QtNetwork            import *
+    # ------------------------------------------------------------------------
+    # Qt5 gui framework
+    # ------------------------------------------------------------------------
+    from PyQt5.QtWebEngineWidgets   import *
+    from PyQt5.QtWidgets            import *
+    from PyQt5.QtCore               import *
+    from PyQt5.QtGui                import *
+    from PyQt5.QtNetwork            import *
 
-# ------------------------------------------------------------------------
-# disassembly library
-# ------------------------------------------------------------------------
-from capstone                   import Cs, CS_ARCH_X86, CS_MODE_64
+    # ------------------------------------------------------------------------
+    # disassembly library
+    # ------------------------------------------------------------------------
+    from capstone                   import Cs, CS_ARCH_X86, CS_MODE_64
 
-# ------------------------------------------------------------------------
-# query IP addresses ...
-# ------------------------------------------------------------------------
-import ipapi
-import httpx
-
+    # ------------------------------------------------------------------------
+    # query IP addresses ...
+    # ------------------------------------------------------------------------
+    import ipapi
+    import httpx
+except ImportError as e:
+    # Extrahiere den Modulnamen aus der Fehlermeldung
+    match = re.search(r"No module named '([^']+)'", str(e))
+    if match:
+        missing_module = match.group(1)
+        DebugPrint(f"ImportError: Modul '{missing_module}' konnte nicht gefunden werden.")
+    else:
+        DebugPrint(f"Ein ImportError ist aufgetreten: {e}")
+    
 if getattr(sys, 'frozen', False):
     import pyi_splash
 
@@ -1165,9 +1180,9 @@ try:
         genv.run_in_gui = False
     
     if genv.run_in_console:
-        print("run in terminal")
+        DebugPrint("run in terminal")
     if genv.run_in_gui:
-        print("run in gui")
+        DebugPrint("run in gui")
     
     from pathlib import Path
     
@@ -1219,11 +1234,11 @@ try:
     
     check_path = Path(genv.v__locale__)
     if not check_path.is_dir():
-        print("Error: loacles directory not found.")
-        print("abort.")
+        DebugPrint("Error: loacles directory not found.")
+        DebugPrint("abort.")
         sys.exit(1)
 
-    print(genv.v__app__config["common"]["language"])
+    DebugPrint(genv.v__app__config["common"]["language"])
     genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
     genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
     
@@ -1234,26 +1249,27 @@ try:
     genv.v__app__locales_help     = os.path.join(genv.v__app__locales_help    , genv.v__app__help_mo + ".gz")
     #
     if len(genv.v__app__locales) < 5:
-        print("Error: locale out of seed.")
-        print("abort.")
+        DebugPrint("Error: locale out of seed.")
+        DebugPrint("abort.")
         sys.exit(1)
         
     _  = handle_language(ini_lang)
     _h = handle_help    (ini_lang)
-    print("1111111")
+    
     # ------------------------------------------------------------------------
     # determine on which operating the application script runs ...
     # ------------------------------------------------------------------------
     genv.os_name = platform.system()
-    print("OS: ", genv.os_name)
+    DebugPrint("OS: " + genv.os_name)
     if genv.os_name == 'Windows':
-        print("The Application runs under Windows.")
+        DebugPrint("The Application runs under Windows.")
     elif genv.os_name == 'Linux':
-        print("The Application runs under Linux.")
+        DebugPrint("The Application runs under Linux.")
     elif genv.os_name == 'Darwin':
-        print("The Application runs under macOS.")
+        DebugPrint("The Application runs under macOS.")
     else:
-        print(f"Unknown Operating System: {genv.os_name}")
+        DebugPrint(f"Unknown Operating System: {genv.os_name}")
+        sys.exit(1)
     
     # -------------------------------------------------------------------
     # for debuging, we use python logging library ...
@@ -1279,37 +1295,37 @@ try:
         myappid = 'kallup-nonprofit.helpndoc.observer.1'
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except ImportError:
-        print(_("windll error"))
+        DebugPrint(_("windll error"))
     except Exception:
-        print(_("common exception occur"))
+        DebugPrint(_("common exception occur"))
 
 except IgnoreOuterException:
-    print(genv.v__app__locales)
+    DebugPrint(genv.v__app__locales)
     pass
 except configparser.NoOptionError as e:
-    print("Exception: option 'language' not found.")
-    print("abort.")
+    DebugPrint("Exception: option 'language' not found.")
+    DebugPrint("abort.")
     sys.exit(1)
 except configparser.NoSectionError as e:
-    print("Exception: section not found.\n")
-    print(e)
-    print("abort.")
+    DebugPrint("Exception: section not found.\n")
+    DebugPrint(e)
+    DebugPrint("abort.")
     sys.exit(1)
 except configparser.Error as e:
-    print("Exception: config error occur.")
-    print("abort.")
+    DebugPrint("Exception: config error occur.")
+    DebugPrint("abort.")
     sys.exit(1)
 except SyntaxError as e:
     exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     tb = traceback.extract_tb(e.__traceback__)[-1]
     
-    print(f"Exception occur at module import:")
-    print(f"type : {exc_type.__name__}")
-    print(f"value: {exc_value}")
-    print(("-" * 40))
+    DebugPrint(f"Exception occur at module import:")
+    DebugPrint(f"type : {exc_type.__name__}")
+    DebugPrint(f"value: {exc_value}")
+    DebugPrint(("-" * 40))
     #
-    print(f"file : {tb.filename}")
-    print(f"line : {tb.lineno}")
+    DebugPrint(f"file : {tb.filename}")
+    DebugPrint(f"line : {tb.lineno}")
     sys.exit(1)
 except Exception as e:
     exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
@@ -1321,13 +1337,13 @@ except Exception as e:
         #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
         pass
     else:
-        print(f"Exception occur at module import:")
-        print(f"type : {exc_type.__name__}")
-        print(f"value: {exc_value}")
-        print(("-"*40))
+        DebugPrint(f"Exception occur at module import:")
+        DebugPrint(f"type : {exc_type.__name__}")
+        DebugPrint(f"value: {exc_value}")
+        DebugPrint(("-"*40))
         #
-        print(f"file : {tb.filename}")
-        print(f"line : {tb.lineno}")
+        DebugPrint(f"file : {tb.filename}")
+        DebugPrint(f"line : {tb.lineno}")
         sys.exit(1)
 
 # ---------------------------------------------------------------------------
@@ -1414,8 +1430,8 @@ class TObject:
         ClassObjects.append(child_node)
     
     def test(self):
-        print(ClassObjects[0]["class"]["hash"])
-        print(ClassObjects[1]["class"]["hash"])
+        DebugPrint(ClassObjects[0]["class"]["hash"])
+        DebugPrint(ClassObjects[1]["class"]["hash"])
     
     # --------------------------------------------------------------------
     # check for None and call destructor
@@ -1438,7 +1454,7 @@ class TObject:
                     break
                 
             except Exception as err:
-                print("error during element del.")
+                DebugPrint("error during element del.")
         
         # force garbage collector to remove allocated memory space
         gc.collect()
@@ -1623,13 +1639,13 @@ class TList(TObject):
     def Add(self, AItem):
         try:
             if isinstance(AItem, str):
-                print("item is string")
+                DebugPrint("item is string")
                 return True
             elif isinstance(AItem, int):
-                print("item is integer")
+                DebugPrint("item is integer")
                 return True
             elif isinstance(AItem, float):
-                print("item is float")
+                DebugPrint("item is float")
                 return True
             elif isinstance(AItme, None):
                 raise TypeError("None is not allowed there.")
@@ -1905,7 +1921,7 @@ class SSLClient:
 
     def read(self):
         data = self.socket.readAll().data().decode()
-        print(f"Empfangene Daten vom Server: {data}")
+        DebugPrint(f"Empfangene Daten vom Server: {data}")
 
 # ---------------------------------------------------------------------------
 # \brief Überschreibe die Datenmethode, um den Dateityp anzupassen.
@@ -2609,7 +2625,7 @@ def Pass1_OnToken(token):
             try:
                 output.write('<a href="%s%s">' % (LINKS[link_to],link_to))
             except:
-                print(f"Warning, link '{link_to}' invalid or external.")
+                DebugPrint(f"Warning, link '{link_to}' invalid or external.")
             return
     
     # table handling BEGIN ----------------------------------
@@ -2693,7 +2709,7 @@ def Pass1_OnToken(token):
         filename = os.path.join(genv.TARGET_DIRECTORY,filename)
         if genv.GENERATE_DOC:
             doc.Content.InsertAfter("\n")
-            print("DATEINAME=" + filename)
+            DebugPrint("DATEINAME=" + filename)
             picture = doc.InlineShapes.AddPicture( filename, 1, 0,Range=doc.Range(doc_index,doc_index) )
             doc.Content.InsertAfter("\n")
             doc_index = doc.Range().End-1
@@ -2782,7 +2798,7 @@ def Pass0_OnToken(token):
         if x >= 0:
             token = token[:x]
         if LINKS.has_key(token):
-            print(f"Warning, link '{token}' is used more than once.")
+            DebugPrint(f"Warning, link '{token}' is used more than once.")
             
         LINKS[token] = last_filename
     
@@ -2900,7 +2916,7 @@ class createHTMLproject():
             os.chdir(saved_working_dir)
             
         except Exception as e:
-            print(e)
+            DebugPrint(e)
     
     def handle_stdout(self):
         datas  = self.process.readAllStandardOutput()
@@ -3043,14 +3059,14 @@ class RunTimeLibrary:
 class TMenu:
     struct = [];
     def __init__(self,parent):
-        print(parent);
+        DebugPrint(parent);
         return
     def add(self, menu_list):
         self.struct.append(menu_list)
         return
     def show(self, make_visible=True):
         if make_visible:
-            print(self.struct);
+            DebugPrint(self.struct);
         return
 
 # ---------------------------------------------------------------------------
@@ -3168,7 +3184,7 @@ class FileSystemWatcher(QObject):
 
 class ListInstructionError(Exception):
     def __init__(self):
-        print((""
+        DebugPrint((""
         + "Exception: List instructions error.\n"
         + "note: Did you miss a parameter ?\n"
         + "note: Add more information."))
@@ -3177,12 +3193,12 @@ class ListInstructionError(Exception):
 
 class ListMustBeInstructionError(Exception):
     def __init__(self):
-        print("Exception: List must be of class type: InstructionItem")
+        DebugPrint("Exception: List must be of class type: InstructionItem")
         error_result = 1
         return
 class ListIndexOutOfBoundsError(Exception):
     def __init__(self):
-        print("Exception: List index out of bounds.")
+        DebugPrint("Exception: List index out of bounds.")
         error_result = 1
         return
 
@@ -3216,8 +3232,8 @@ class EParserErrorEOF(Exception):
 
 class EParserErrorUnknowID(Exception):
     def __init__(self, message, lineno):
-        print("Exception: unknown id: " + message)
-        print("Line     : " + str(lineno))
+        DebugPrint("Exception: unknown id: " + message)
+        DebugPrint("Line     : " + str(lineno))
         error_result = 1
         return
 
@@ -3244,7 +3260,7 @@ class Weekday:
         self.SUNDAY    = 7
     
     def today(cls):
-        print('today is %s' % cls(date.today().isoweekday()).name)
+        DebugPrint('today is %s' % cls(date.today().isoweekday()).name)
 
 # ------------------------------------------------------------------------
 # convert the os path seperator depend ond the os system ...
@@ -3398,7 +3414,7 @@ class DOSConsoleWindow(QTextEdit):
                 text_html += "<br>"
             self.setHtml(text_html)
         except Exception as e:
-            print(e)
+            DebugPrint(e)
     
     # ---------------------------------------------------------
     # \brief  This definition try to get the color value by the
@@ -3668,7 +3684,7 @@ class ParserDSL:
             # no argument given.
             # --------------------------
             if argument == None:
-                print("info: current scope without "
+                DebugPrint("info: current scope without "
                 + "comments initialized.")
             # --------------------------
             # argument type is a class
@@ -3676,12 +3692,12 @@ class ParserDSL:
             elif argument == ParserDSL:
                 self.parent = argument
                 if self.parent.name != argument.name:
-                    print("info: current scope with: "
+                    DebugPrint("info: current scope with: "
                     + argument.name
                     + " comments overwrite.")
                     self.parent.name = argument.name
                 else:
-                    print("info: current scope not touched, because"
+                    DebugPrint("info: current scope not touched, because"
                     + " comments already initialized with: "
                     + argument.name
                     + ".")
@@ -3697,7 +3713,7 @@ class ParserDSL:
                 # dsl is in supported list:
                 # --------------------------
                 if argument in supported_dsl:
-                    print("info: current scope with: "
+                    DebugPrint("info: current scope with: "
                     + argument
                     + " comments initialized.")
                     self.parent.name = argument
@@ -3705,7 +3721,7 @@ class ParserDSL:
                 # dsl not in supported list
                 # --------------------------
                 else:
-                    print("info: current scope with custom "
+                    DebugPrint("info: current scope with custom "
                     + "comments initialized.")
                     self.parent.name = argument
         
@@ -4134,7 +4150,7 @@ print = builtins.print
         with open(self.script_name, 'r', encoding="utf-8") as file:
             file.seek(0); self.source = file.read()
             file.close()
-        print("source: ", self.source)
+        DebugPrint("source: ", self.source)
     
     # -----------------------------------------------------------------------
     # \brief  get one char from the input stream/source line.
@@ -4780,7 +4796,7 @@ class interpreter_dBase(interpreter_base):
             if c == '(':
                 c = self.skip_white_spaces(self.dbase_parser)
                 if c == ')':
-                    print("strrr")
+                    DebugPrint("strrr")
                     self.command_ok = True
                 else:
                     genv.unexpectedChar(c)
@@ -6848,16 +6864,16 @@ class interpreter_DoxyGen(interpreter_base):
     
     def parse(self):
         if len(self.source) < 1:
-            print("no data available.")
+            DebugPrint("no data available.")
             return
         
         while True:
             c = self.getChar()
             if c.isalpha() or c == '_':
                 self.getIdent(c)
-                print("token: ", self.token_str)
+                DebugPrint("token: ", self.token_str)
                 if self.check_token():
-                    print("OK")
+                    DebugPrint("OK")
             elif c == '\r':
                 c = self.getChar()
                 if not c == '\n':
@@ -6964,7 +6980,7 @@ class interpreter_DoxyGen(interpreter_base):
         res = json.loads(_("doxytoken"))
         result = False
         if self.token_str in res:
-            print(f"token: {self.token_str} is okay.")
+            DebugPrint(f"token: {self.token_str} is okay.")
             result = True
             c = self.getChar()
             if c == '=':
@@ -7005,7 +7021,7 @@ class doxygenDSL:
             #prg.run()
         except ENoParserError as noerror:
             #prg.finalize()
-            print("\nend of data")
+            DebugPrint("\nend of data")
             chm = createHTMLproject()
     
     def parse(self):
@@ -7022,7 +7038,7 @@ def showApplicationInformation(text):
         genv.v__app_object = QApplication(sys.argv)
         showInfo(text)
     else:
-        print(text)
+        DebugPrint(text)
 
 # ------------------------------------------------------------------------
 # methode to show error about this application script ...
@@ -7032,7 +7048,7 @@ def showApplicationError(text):
         genv.v__app_object = QApplication(sys.argv)
         showError(text)
     else:
-        print(text)
+        DebugPrint(text)
 
 # ------------------------------------------------------------------------
 # get current time, and date measured on "now" ...
@@ -7050,38 +7066,38 @@ def handleExceptionApplication(func,arg1=""):
     try:
         func(arg1)
     except NoOptionError:
-        print("no ption error")
+        DebugPrint("no ption error")
         #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__locale__sys[0])
         #genv.v__app__locales = os.path.join(genv.v__aoo__locales, "LC_MESSAGES")
         #genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__name_mo)
     except ListInstructionError as ex:
         ex.add_note("Did you miss a parameter ?")
         ex.add_note("Add more information.")
-        print("List instructions error.")
+        DebugPrint("List instructions error.")
         error_result = 1
     except ZeroDivisionError as ex:
         ex.add_note("1/0 not allowed !")
-        print("Handling run-time error:", ex)
+        DebugPrint("Handling run-time error:", ex)
         error_result = 1
     except OSError as ex:
-        print("OS error:", ex)
+        DebugPrint("OS error:", ex)
         error_result = 1
     except ValueError as ex:
-        print("Could not convert data:", ex)
+        DebugPrint("Could not convert data:", ex)
         error_result = 1
     except Exception as ex:
         exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
         tb = traceback.extract_tb(ex.__traceback__)[-1]
         
-        print(f"Exception occur:")
-        print(f"type : {exc_type.__name__}")
-        print(f"value: {exc_value}")
-        print(("-"*40))
+        DebugPrint(f"Exception occur:")
+        DebugPrint(f"type : {exc_type.__name__}")
+        DebugPrint(f"value: {exc_value}")
+        DebugPrint(("-"*40))
         #
-        print(f"file : {tb.filename}")
-        print(f"line : {tb.lineno}")
+        DebugPrint(f"file : {tb.filename}")
+        DebugPrint(f"line : {tb.lineno}")
         #
-        print(("-"*40))
+        DebugPrint(("-"*40))
         
         s = f"{ex.args}"
         parts = [part.strip() for part in s.split("'") if part.strip()]
@@ -7103,16 +7119,16 @@ def handleExceptionApplication(func,arg1=""):
         
         error_result = 1
         error_fail   = True
-        print(ex)
+        DebugPrint(ex)
     finally:
         # ---------------------------------------------------------
         # when all is gone, stop the running script ...
         # ---------------------------------------------------------
         if error_result > 0:
-            print("abort.")
+            DebugPrint("abort.")
             sys.exit(error_result)
         
-        print("Done.")
+        DebugPrint("Done.")
         sys.exit(0)
 
 # ------------------------------------------------------------------------
@@ -7150,7 +7166,7 @@ class findWidgetHelper():
                         item.setText(value)
             return
         except Exception as e:
-            print(e)
+            DebugPrint(e)
 
 # ------------------------------------------------------------------------
 #
@@ -7164,7 +7180,7 @@ class myLineEdit(QLineEdit):
             self.setObjectName(name_object)
             self.callback = callback
             #register_instance(self, name_object)
-            #print(">> " + self.objectName())
+            #DebugPrint(">> " + self.objectName())
         
         self.name = name
         self.init_ui()
@@ -7256,7 +7272,7 @@ class myIconLabel(QLabel):
         parent = self.parent.parent
         genv.active_side_button = self.mode
         if event.button() == Qt.LeftButton:
-            #print(self.caption)
+            #DebugPrint(self.caption)
             self.btn_clicked(self.parent,
             genv.parent_array[self.mode])
     
@@ -7487,7 +7503,7 @@ class myCustomLabel(QLabel):
 class myCustomScrollArea(QScrollArea):
     def __init__(self, parent, number, name):
         super().__init__()
-        #print(name)
+        #DebugPrint(name)
         
         self.number = number
         self.name   = name
@@ -8740,7 +8756,7 @@ class doxygenImageTracker(QWidget):
                 self.set_style()
                 genv.doc_framework = -1
             genv.HelpAuthoringConverterMode = 0
-            print("doxygen")
+            DebugPrint("doxygen")
     
     def enterEvent(self, event):
         if self.state == 2:
@@ -8803,7 +8819,7 @@ class helpNDocImageTracker(QWidget):
                 self.set_style()
                 genv.doc_framework = -1
             genv.HelpAuthoringConverterMode = 1
-            print("helpNDoc")
+            DebugPrint("helpNDoc")
     
     def enterEvent(self, event):
         if self.state == 2:
@@ -8884,12 +8900,12 @@ class MyProjectOption():
         return
     
     def on_doxy_clicked(self):
-        print("doxy")
+        DebugPrint("doxy")
         genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
         return True
     
     def on_help_clicked(self):
-        print("help")
+        DebugPrint("help")
         genv.doc_framework = genv.DOC_FRAMEWORK_HELPNDOC
         return True
     
@@ -9033,23 +9049,23 @@ class myExitDialog(QDialog):
             self.prevButton.clicked.disconnect(self.prev_click)
             self.exitButton.clicked.disconnect(self.exit_click)
         except TypeError as e:
-            print(e)
+            DebugPrint(e)
         except Exception as e:
-            print(e)
+            DebugPrint(e)
     
     def on_finished(self):
         self.disconnectEvents()
     
     def help_click(self):
-        print("help button")
+        DebugPrint("help button")
         self.close()
         return
     def prev_click(self):
-        print("reje")
+        DebugPrint("reje")
         self.close()
         return
     def exit_click(self):
-        print("exit")
+        DebugPrint("exit")
         if not genv.worker_thread == None:
             genv.worker_thread.stop()
             
@@ -9077,13 +9093,13 @@ class myMoveButton(QPushButton):
     
     def dragEnterEvent(self, event):
         event.accept()
-        print("enter")
+        DebugPrint("enter")
     
     def dropEvent(self, event):
         pos = event.pos()
         widget = event.source()
         event.accept()
-        print("drop")
+        DebugPrint("drop")
     
 
 class myGridViewerOverlay(QWidget):
@@ -9922,7 +9938,7 @@ class EditorTextEdit(QPlainTextEdit):
         self.setFont(QFont(genv.v__app__font_edit, 12))
         
         if not os.path.exists(file_name):
-            print(f"Error: file does not exists: {file_name}")
+            DebugPrint(f"Error: file does not exists: {file_name}")
             return
         
         # Datei einlesen und Text setzen
@@ -10537,7 +10553,7 @@ class c64WorkerThread(threading.Thread):
                 count = 0
             count += 1
             time.sleep(0.75)
-            print("debug text")
+            DebugPrint("debug text")
     
     def start(self):
         self.running = True
@@ -10745,12 +10761,12 @@ class C64Keyboard(QWidget):
     def load_c64_font(self):
         font_id = QFontDatabase.addApplicationFont("C64_Pro-STYLE.ttf")
         if font_id == -1:
-            print("Fehler beim Laden des C64 Pro Fonts.")
+            DebugPrint("Fehler beim Laden des C64 Pro Fonts.")
             sys.exit(1)
         else:
             self.c64_font = QFont("C64 Pro Mono", 12)
             self.ari_font = QFont("Arial", 8)
-            print("C64 Pro Font erfolgreich geladen.")
+            DebugPrint("C64 Pro Font erfolgreich geladen.")
     
     def draw_keyboard(self):
         for i, key in enumerate(self.keys):
@@ -10920,7 +10936,7 @@ class C64Keyboard(QWidget):
                 self.graphics_scene.removeItem(item)
     
     def handle_key_press(self, index, key):
-        print(f"Taste {key['label']} gedrückt (Index: {index})")
+        DebugPrint(f"Taste {key['label']} gedrückt (Index: {index})")
 
 class addDataSourceDialog(QDialog):
     def __init__(self, parent):
@@ -11071,7 +11087,7 @@ class myAddTableDialog(QDialog):
         ###
     
     def btn_add_clicked(self):
-        print("add")
+        DebugPrint("add")
         return
     
     def btn_addsrc_clicked(self):
@@ -11297,7 +11313,7 @@ class myDataTabWidget(QWidget):
         self.del_row(self.table_widget)
     
     def table_btn_clearall_clicked(self):
-        print("clr all")
+        DebugPrint("clr all")
 
 class MyCountryProject(QWidget):
     def __init__(self, class_parent, parent, itemA, itemB):
@@ -11842,7 +11858,7 @@ class OpenProFileDialog(QDialog):
         setting_dialog = setLocalesProjectSetting(self, item.text(0),item.text(1))
         setting_dialog.exec_()
         
-        #print(self.property_name + " : " + self.property_value)
+        #DebugPrint(self.property_name + " : " + self.property_value)
         
         if self.project_tree.currentItem == None:
             if not self.favorites_tree.currentItem == None:
@@ -11921,7 +11937,7 @@ class OpenProFileDialog(QDialog):
     def open_file(self):
         selected_file = self.label.text().replace('Selected file: ', '')
         if selected_file:
-            print(f'Opening file: {selected_file}')
+            DebugPrint(f'Opening file: {selected_file}')
             self.accept()
         else:
             self.label.setText('No file selected.')
@@ -12303,7 +12319,7 @@ class myProjectLineEdit(QLineEdit):
         if event.button() == Qt.LeftButton:
             folder = QFileDialog.getExistingDirectory(self, 'Ordner auswählen')
             if folder:
-                print(f"Ausgewählter Ordner: {folder}")
+                DebugPrint(f"Ausgewählter Ordner: {folder}")
             
         super(myProjectLineEdit, self).mouseDoubleClickEvent(event)
 
@@ -13247,7 +13263,7 @@ class applicationProjectWidget(QWidget):
                         if child:
                             db[0].appendRow(child)
         except Exception as e:
-            print(e)
+            DebugPrint(e)
             self.messageBox(""
             + "Error: .pro file have not the needed format.\n"
             + file_path + "\n"
@@ -13613,12 +13629,12 @@ class applicationProjectWidget(QWidget):
                             genv.v__app__config.write(configfile)
                             configfile.close()
                     except Exception as e:
-                        print(e)
+                        DebugPrint(e)
                         self.messageBox(path_mess)
                         return
-                    print("set " + conf[1] + " path")
+                    DebugPrint("set " + conf[1] + " path")
             except Exception as e:
-                print(e)
+                DebugPrint(e)
                 genv.v__app__config[self.db_pro] = {
                     conf[1]: path_name
                 }
@@ -13627,8 +13643,8 @@ class applicationProjectWidget(QWidget):
                         genv.v__app__config.write(configfile)
                         configfile.close()
                 except Exception as e:
-                    print("bbb")
-                    print(e)
+                    DebugPrint("bbb")
+                    DebugPrint(e)
                     self.messageBox(path_mess)
     
     # -----------------------------------------------
@@ -14181,7 +14197,7 @@ class ApplicationEditorsPage(QObject):
             showException(traceback.format_exc())
     
     def on_editor_menu_item_clicked(self, item):
-        print("self: ", self.objectName())
+        DebugPrint("self: ", self.objectName())
         widget = self.tabs_editor_menu.itemWidget(item)
         if widget:
             text = widget.objectName()
@@ -14288,9 +14304,9 @@ class ApplicationEditorsPage(QObject):
                         prg = interpreter_C64(script_name)
                         prg.parse()
                     
-                    print("\nend of data\n")
+                    DebugPrint("\nend of data\n")
                     
-                    print(genv.text_code)
+                    DebugPrint(genv.text_code)
                     prg.run()
                     
                 except AttributeError as e:
@@ -14342,7 +14358,7 @@ class ApplicationEditorsPage(QObject):
             if self.focused_widget:
                 if isinstance(self.focused_widget, QPlainTextEdit):
                     script_name = self.focused_widget.objectName()
-                    print(script_name)
+                    DebugPrint(script_name)
                     if not os.path.exists(script_name):
                         msg = None
                         msg = QMessageBox()
@@ -14353,7 +14369,7 @@ class ApplicationEditorsPage(QObject):
                         
                         msg.setStyleSheet(_("msgbox_css"))
                         result = msg.exec_()
-                        print(f"Error: file does not exists: {script_name}.")
+                        DebugPrint(f"Error: file does not exists: {script_name}.")
                         return
                     file_path = script_name.replace("\\", "/")
                     #
@@ -15122,7 +15138,7 @@ class GradientButton(QPushButton):
         self.is_hovered = False
     
     def on_button_click(self):
-        print("jjjj")
+        DebugPrint("jjjj")
     
     def enterEvent(self, event):
         self.is_hovered = True
@@ -15177,7 +15193,7 @@ class ClickableImage(QPushButton):
         self.is_hovered = False  # Hover-Zustand
     
     def on_button_click(self):
-        print("jjjj")
+        DebugPrint("jjjj")
         html_code = _("paypaldonate")
         with open("temp_form.html", "w") as file:
             file.write(html_code)
@@ -15253,7 +15269,7 @@ class MovableIcon(QWindow):
                 switch_to_default_desktop()
                 sys.exit()  # Beende die Anwendung
             except Exception as e:
-                print(f"Fehler beim Wechsel zurück: {e}")
+                DebugPrint(f"Fehler beim Wechsel zurück: {e}")
 
 # ---------------------------------------------------------------------------
 # \brief  This is the GUI-Entry point for our application.
@@ -15348,7 +15364,7 @@ class FileWatcherGUI(QDialog):
         elif event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
             if self.worker_hasFocus == True:
                 # c64
-                print("xxx")
+                DebugPrint("xxx")
         else:
             super().keyPressEvent(event)
     
@@ -15378,7 +15394,7 @@ class FileWatcherGUI(QDialog):
         col  = index.column()
         item = self.tab2_tree_model.itemFromIndex(index)
         text = item.text()
-        print(f"Clicked row: {row}, col: {col}, text: {text}")
+        DebugPrint(f"Clicked row: {row}, col: {col}, text: {text}")
     
     def on_data_changed(self, top_left, bottom_right, roles):
         if Qt.EditRole in roles:
@@ -15425,7 +15441,7 @@ class FileWatcherGUI(QDialog):
                     item3 = QStandardItem(" ") #; item3.setIcon(QIcon(icon))
                     item4 = QStandardItem(" ") #; item4.setIcon(QIcon(icon))
                 except Exception as e:
-                    print(e)
+                    DebugPrint(e)
                 
                 self.my_list.add(self.topic_counter, item1)
                 
@@ -15443,28 +15459,28 @@ class FileWatcherGUI(QDialog):
         parent_item.appendRow(new_item)
     
     def helpMenuClicked_about(self):
-        print("about")
+        DebugPrint("about")
         return
     
     def menu_file_clicked_new_help(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_HELP
         parent = genv.parent_array[genv.SIDE_BUTTON_HELP]
@@ -15475,23 +15491,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_dbase(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_DBASE
         parent = genv.parent_array[genv.SIDE_BUTTON_DBASE]
@@ -15502,23 +15518,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_pascal(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_PASCAL
         parent = genv.parent_array[genv.SIDE_BUTTON_PASCAL]
@@ -15529,23 +15545,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_cpp(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_CPP
         parent = genv.parent_array[genv.SIDE_BUTTON_CPP]
@@ -15556,23 +15572,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_java(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_JAVA
         parent = genv.parent_array[genv.SIDE_BUTTON_JAVA]
@@ -15583,23 +15599,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_javascript(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_JAVASCRIPT
         parent = genv.parent_array[genv.SIDE_BUTTON_JAVASCRIPT]
@@ -15610,23 +15626,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_python(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_PYTHON
         parent = genv.parent_array[genv.SIDE_BUTTON_PYTHON]
@@ -15637,23 +15653,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_prolog(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_PROLOG
         parent = genv.parent_array[genv.SIDE_BUTTON_PROLOG]
@@ -15664,23 +15680,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_fortran(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_FORTRAN
         parent = genv.parent_array[genv.SIDE_BUTTON_FORTRAN]
@@ -15691,23 +15707,23 @@ class FileWatcherGUI(QDialog):
     
     def menu_file_clicked_new_lisp(self):
         if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            print("help")
+            DebugPrint("help")
         if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            print("dbase")
+            DebugPrint("dbase")
         if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            print("pascal")
+            DebugPrint("pascal")
         if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            print("cpp")
+            DebugPrint("cpp")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            print("java")
+            DebugPrint("java")
         if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            print("java script")
+            DebugPrint("java script")
         if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            print("python")
+            DebugPrint("python")
         if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            print("lisp")
+            DebugPrint("lisp")
         if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            print("fortran")
+            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_LISP
         parent = genv.parent_array[genv.SIDE_BUTTON_LISP]
@@ -15773,7 +15789,7 @@ class FileWatcherGUI(QDialog):
         index = self.tab2_tree_view.indexAt(position)
         if index.isValid():
             item_text = self.tab2_tree_model.itemFromIndex(index).text()
-            print(f"Item text: {item_text}")
+            DebugPrint(f"Item text: {item_text}")
             # Context menu for tree items
             menu = QMenu()
             menu.setStyleSheet(_("css_menu_button"))
@@ -16293,7 +16309,7 @@ class FileWatcherGUI(QDialog):
         if not os.path.exists(self.tab2_file_path):
             showError("Error: file does not exists:\n" + self.tab2_file_path)
             sys.exit(1)
-        print("---> " + self.tab2_file_path)
+        DebugPrint("---> " + self.tab2_file_path)
         
         self.tab2_tree_view = QTreeView()
         self.tab2_tree_view.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
@@ -16462,7 +16478,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_topB_vlayout.addWidget(server)
         #
         image_path = genv.v__app__donate1__
-        print(image_path)
+        DebugPrint(image_path)
         #url = "https://kallup.dev/paypal/observer.html"
         
         donate = ClickableImage()
@@ -16651,7 +16667,7 @@ class FileWatcherGUI(QDialog):
                 self.tab0_help_list3.addItem(list_item)
                 i += 1
         except Exception as e:
-            print(e)
+            DebugPrint(e)
         
         self.tab0_help_layout = QVBoxLayout()
         self.tab0_help_layout.addWidget(self.tab0_help_list1)
@@ -17516,7 +17532,7 @@ class FileWatcherGUI(QDialog):
     
     def tab0_help_list1_item_click(self, item):
         text = item.text()
-        print("---> " + text)
+        DebugPrint("---> " + text)
         if text.startswith("HTML"):
             genv.doc_type_out = genv.DOC_DOCUMENT_HTML
             genv.v__app_win.write_config_part()
@@ -17532,7 +17548,7 @@ class FileWatcherGUI(QDialog):
     
     def tab0_help_list2_item_click(self, item):
         text = item.text()
-        print(text)
+        DebugPrint(text)
         if text == _("Empty Project"):
             genv.doc_template = genv.DOC_TEMPLATE_EMPTY
             genv.v__app_win.write_config_part()
@@ -17650,7 +17666,7 @@ class FileWatcherGUI(QDialog):
             showError(_("Error:\nproject file does not fit requierements."))
             return False
         genv.v__app__config_project_ini = new
-        print(new)
+        DebugPrint(new)
         if not os.path.exists(new):
             try:
                 with open(genv.v__app__config_project_ini, "w", encoding="utf-8") as f:
@@ -17666,7 +17682,7 @@ class FileWatcherGUI(QDialog):
                     f.write(content)
                     f.close()
             except Exception as e:
-                print(e)
+                DebugPrint(e)
                 showError(_("Error:\nproject file could not create."))
                 genv.doc_project_open = False
                 return False
@@ -17680,7 +17696,7 @@ class FileWatcherGUI(QDialog):
             genv.doc_project_open = True
             
         except Exception as e:
-            print(e)
+            DebugPrint(e)
             showError(_("Error:\ncofigparser module error."))
             genv.doc_project_open = False
             return False
@@ -18502,23 +18518,23 @@ class FileWatcherGUI(QDialog):
         return
     
     def on_click_cert_new(self):
-        print("cert new")
+        DebugPrint("cert new")
     def on_click_cert_add(self):
-        print("cert add")
+        DebugPrint("cert add")
     def on_click_cert_del(self):
-        print("cert del")
+        DebugPrint("cert del")
     
     def on_click_saveca_ca(self):
-        print("saveca ca")
+        DebugPrint("saveca ca")
     
     def on_click_create_ca(self):
-        print("create ca")
+        DebugPrint("create ca")
     
     def on_click_delete_ca(self):
-        print("delete ca")
+        DebugPrint("delete ca")
     
     def on_click_cleara_ca(self):
-        print("clear all ca")
+        DebugPrint("clear all ca")
     
     def handleGitHub(self):
         self.github_tabs = ApplicationTabWidget([
@@ -18531,31 +18547,31 @@ class FileWatcherGUI(QDialog):
         return
     
     def iis_server_start(self):
-        print("start iis")
+        DebugPrint("start iis")
     
     def apache_server_start(self):
-        print("start apache")
+        DebugPrint("start apache")
     
     def tomcat_server_start(self):
-        print("start tomcat")
+        DebugPrint("start tomcat")
     
     def iis_server_stop(self):
-        print("stop iis")
+        DebugPrint("stop iis")
     
     def apache_server_stop(self):
-        print("stop apache")
+        DebugPrint("stop apache")
     
     def tomcat_server_stop(self):
-        print("stop tomcat")
+        DebugPrint("stop tomcat")
     
     def iis_send_clients(self):
-        print("send to iis clients")
+        DebugPrint("send to iis clients")
     
     def apache_send_clients(self):
-        print("send to apache clients")
+        DebugPrint("send to apache clients")
     
     def tomcat_send_clients(self):
-        print("send to tomcat clients")
+        DebugPrint("send to tomcat clients")
     
     def handleApache(self):
         self.apache_tabs = ApplicationTabWidget([
@@ -18737,7 +18753,7 @@ class FileWatcherGUI(QDialog):
         padded_strings_iis = [s.center(max_length_iss) for s in strings_iss]
         i = 0
         for s in padded_strings_iis:
-            print(s)
+            DebugPrint(s)
             icon_items_iis[i][0] = s
             i = i + 1
         for item_text, item_icon in icon_items_iis:
@@ -18764,7 +18780,7 @@ class FileWatcherGUI(QDialog):
         padded_strings_apache = [s.center(max_length_apache) for s in strings_apache]
         i = 0
         for s in padded_strings_apache:
-            print(s)
+            DebugPrint(s)
             icon_items_apache[i][0] = s
             i = i + 1
         for item_text, item_icon in icon_items_apache:
@@ -18897,7 +18913,7 @@ class FileWatcherGUI(QDialog):
         index = self.countryList.row(item)
         el = genv.v__app__cdn_flags[index][1][-7:]
         el = el[:3]
-        print(el)
+        DebugPrint(el)
     
     def handleLocalesProject(self):
         edit_css = _("edit_css")
@@ -19131,11 +19147,11 @@ class FileWatcherGUI(QDialog):
                     with open(file_full, "rb") as file:
                         header = file.read(3)
                         if header == b"\x1f\x8b\x08":
-                            print("file: " + file_name + " is packed.")
+                            DebugPrint("file: " + file_name + " is packed.")
                         else:
-                            print("file: " + file_name + " is not packed.")
+                            DebugPrint("file: " + file_name + " is not packed.")
                         file.close()
-                    #print(self.localeliste[0][0].text())
+                    #DebugPrint(self.localeliste[0][0].text())
         return
     
     def load_drives(self):
@@ -19222,44 +19238,44 @@ class FileWatcherGUI(QDialog):
             menu.exec_(self.treeLocales.viewport().mapToGlobal(position))
     
     def newoneLocales(self, filepath):
-        print(filepath)
+        DebugPrint(filepath)
         return
     def openexLocales(self, filepath):
-        print(filepath)
+        DebugPrint(filepath)
         return
     def renameLocales(self, filepath):
-        print(filepath)
+        DebugPrint(filepath)
         return
     def tempelLocales(self, filepath):
-        print(filepath)
+        DebugPrint(filepath)
         return
     
     def openFile(self, file_path):
-        print(f"Opening file: {file_path}")
+        DebugPrint(f"Opening file: {file_path}")
         # Hier können Sie den Code hinzufügen, um die Datei zu öffnen
     
     def deleteFile(self, file_path):
-        print(f"Deleting file: {file_path}")
+        DebugPrint(f"Deleting file: {file_path}")
         # Hier können Sie den Code hinzufügen, um die Datei zu löschen
     
     
     def btnOpenLocales_clicked(self):
-        print("open locales")
+        DebugPrint("open locales")
         return
     
     def btnSaveLocales_clicked(self):
-        print("save locales")
+        DebugPrint("save locales")
         return
     
     # commodore c64
     def onC64TabChanged(self, index):
         if index == 0 or index == 1 or index == 3:
-            print("end")
+            DebugPrint("end")
             if not genv.worker_thread == None:
                 genv.worker_thread.stop()
             self.worker_hasFocus = False
         elif index == 2:
-            print("start")
+            DebugPrint("start")
             if not genv.worker_thread == None:
                 genv.worker_thread.stop()
             genv.worker_thread = None
@@ -19384,7 +19400,7 @@ class FileWatcherGUI(QDialog):
         if tab_index == 1:
             for i in range(0, len(self.list_widget_2_elements)):
                 if item.data(0) == self.list_widget_2_elements[i]:
-                    print("t: " + str(i) + ": " + self.list_widget_2_elements[i])
+                    DebugPrint("t: " + str(i) + ": " + self.list_widget_2_elements[i])
                     self.hideTabItems_2(i)
                     s = "sv_2_" + str(i+1)
                     w = getattr(self, f"{s}")
@@ -19505,10 +19521,10 @@ class FileWatcherGUI(QDialog):
     def checkFileExistence(self):
         filePath = self.tab1_path_lineEdit.text()
         if os.path.exists(filePath):
-            print(f"File {filePath} exists.")
+            DebugPrint(f"File {filePath} exists.")
             # weitere Aktionen durchführen, wenn die Datei existiert
         else:
-            print(f"File {filePath} not found.")
+            DebugPrint(f"File {filePath} not found.")
             # ktionen durchführen, wenn die Datei nicht existiert
     
     
@@ -19654,7 +19670,7 @@ class licenseWindow(QDialog):
 # atexit: callback when sys.exit() is handled, and come back to console...
 # ------------------------------------------------------------------------
 def ApplicationAtExit():
-    print("Thank's for using.")
+    DebugPrint("Thank's for using.")
     return
 
 class CustomWebEnginePage(QWebEnginePage):
@@ -19961,7 +19977,7 @@ def EntryPoint(arg1=None):
             os.environ["DOXYGEN_PATH"] = "E:/doxygen/bin"
         else:
             try:
-                print(genv.v__app__config.get("doxygen","path"))
+                DebugPrint(genv.v__app__config.get("doxygen","path"))
             except Exception as e:
                 # -------------------------------
                 # close tje splash screen ...
@@ -20078,20 +20094,20 @@ def EntryPoint(arg1=None):
     # and create a default template for doxygen 1.10.0
     # ---------------------------------------------------------
     if not os.path.exists(genv.doxyfile):
-        print("info: config: '" \
+        DebugPrint("info: config: '" \
         + f"{genv.doxyfile}" + "' does not exists. I will fix this by create a default file.")
         
         file_content      = json.loads(_("doxyfile_content"))
-        #print(file_content)
+        #DebugPrint(file_content)
         
         try:
             file_content_warn = json.loads(_("doxyfile_content_warn"))
-            #print(file_content_warn)
+            #DebugPrint(file_content_warn)
         except Exception as e:
-            print(e)
-        print(">>>")
-        #print(file_content)
-        print("<<<")
+            DebugPrint(e)
+        DebugPrint(">>>")
+        #DebugPrint(file_content)
+        DebugPrint("<<<")
         with open(genv.doxyfile, 'w') as file:
             file.write(genv.v__app__comment_hdr)
             file.write("# File: Doxyfile\n")
@@ -20146,11 +20162,11 @@ def EntryPoint(arg1=None):
         tb = traceback.extract_tb(e.__traceback__)
         filename, lineno, funcname, text = tb[-1]
         if genv.v__app_win == None:
-            print(f"Exception: {e}")
-            print(f"Error occurred in file: {filename}")
-            print(f"Function: {funcname}")
-            print(f"Line number: {lineno}")
-            print(f"Line text: {text}")
+            DebugPrint(f"Exception: {e}")
+            DebugPrint(f"Error occurred in file: {filename}")
+            DebugPrint(f"Function: {funcname}")
+            DebugPrint(f"Line number: {lineno}")
+            DebugPrint(f"Line text: {text}")
         else:
             txt = (
                 f"Exception: {e}\n"
@@ -20256,52 +20272,52 @@ class parserPascalPoint:
             #self.prg.run()
         except ENoParserError as noerror:
             self.finalize()
-            print("\nend of data")
+            DebugPrint("\nend of data")
 
 def analyze_pe(file_path):
     try:
         # PE-Datei öffnen
         pe = pefile.PE(file_path)
         
-        print("\n--- PE-Header Informationen ---")
-        print(f"Machine: 0x{pe.FILE_HEADER.Machine:04x}")
-        print(f"Number of Sections: {pe.FILE_HEADER.NumberOfSections}")
-        print(f"TimeDateStamp: {pe.FILE_HEADER.TimeDateStamp}")
-        print(f"PointerToSymbolTable: {pe.FILE_HEADER.PointerToSymbolTable}")
-        print(f"Characteristics: 0x{pe.FILE_HEADER.Characteristics:04x}")
+        DebugPrint("\n--- PE-Header Informationen ---")
+        DebugPrint(f"Machine: 0x{pe.FILE_HEADER.Machine:04x}")
+        DebugPrint(f"Number of Sections: {pe.FILE_HEADER.NumberOfSections}")
+        DebugPrint(f"TimeDateStamp: {pe.FILE_HEADER.TimeDateStamp}")
+        DebugPrint(f"PointerToSymbolTable: {pe.FILE_HEADER.PointerToSymbolTable}")
+        DebugPrint(f"Characteristics: 0x{pe.FILE_HEADER.Characteristics:04x}")
         
-        print("\n--- Optional Header ---")
-        print(f"ImageBase: 0x{pe.OPTIONAL_HEADER.ImageBase:x}")
-        print(f"EntryPoint: 0x{pe.OPTIONAL_HEADER.AddressOfEntryPoint:x}")
-        print(f"SectionAlignment: {pe.OPTIONAL_HEADER.SectionAlignment}")
-        print(f"FileAlignment: {pe.OPTIONAL_HEADER.FileAlignment}")
-        print(f"Subsystem: {pe.OPTIONAL_HEADER.Subsystem}")
+        DebugPrint("\n--- Optional Header ---")
+        DebugPrint(f"ImageBase: 0x{pe.OPTIONAL_HEADER.ImageBase:x}")
+        DebugPrint(f"EntryPoint: 0x{pe.OPTIONAL_HEADER.AddressOfEntryPoint:x}")
+        DebugPrint(f"SectionAlignment: {pe.OPTIONAL_HEADER.SectionAlignment}")
+        DebugPrint(f"FileAlignment: {pe.OPTIONAL_HEADER.FileAlignment}")
+        DebugPrint(f"Subsystem: {pe.OPTIONAL_HEADER.Subsystem}")
         
-        print("\n--- Sektionen ---")
+        DebugPrint("\n--- Sektionen ---")
         for section in pe.sections:
-            print(f"Name: {section.Name.decode().strip()}")
-            print(f"Virtual Address: 0x{section.VirtualAddress:x}")
-            print(f"Size of Raw Data: 0x{section.SizeOfRawData:x}")
-            print(f"Pointer to Raw Data: 0x{section.PointerToRawData:x}")
-            print("Characteristics: 0x{:08x}".format(section.Characteristics))
-            print("-" * 30)
+            DebugPrint(f"Name: {section.Name.decode().strip()}")
+            DebugPrint(f"Virtual Address: 0x{section.VirtualAddress:x}")
+            DebugPrint(f"Size of Raw Data: 0x{section.SizeOfRawData:x}")
+            DebugPrint(f"Pointer to Raw Data: 0x{section.PointerToRawData:x}")
+            DebugPrint("Characteristics: 0x{:08x}".format(section.Characteristics))
+            DebugPrint("-" * 30)
         
-        print("\n--- Importierte DLLs und Funktionen ---")
+        DebugPrint("\n--- Importierte DLLs und Funktionen ---")
         if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT'):
             for entry in pe.DIRECTORY_ENTRY_IMPORT:
-                print(f"Library: {entry.dll.decode()}")
+                DebugPrint(f"Library: {entry.dll.decode()}")
                 for imp in entry.imports:
-                    print(f"  {hex(imp.address)}: {imp.name.decode() if imp.name else 'N/A'}")
+                    DebugPrint(f"  {hex(imp.address)}: {imp.name.decode() if imp.name else 'N/A'}")
         
-        print("\n--- Exportierte Funktionen (falls vorhanden) ---")
+        DebugPrint("\n--- Exportierte Funktionen (falls vorhanden) ---")
         if hasattr(pe, 'DIRECTORY_ENTRY_EXPORT'):
             for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
-                print(f"{hex(pe.OPTIONAL_HEADER.ImageBase + exp.address)}: {exp.name.decode() if exp.name else 'N/A'}")
+                DebugPrint(f"{hex(pe.OPTIONAL_HEADER.ImageBase + exp.address)}: {exp.name.decode() if exp.name else 'N/A'}")
     
     except FileNotFoundError:
-        print("Datei wurde nicht gefunden. Bitte den Dateipfad überprüfen.")
+        DebugPrint("Datei wurde nicht gefunden. Bitte den Dateipfad überprüfen.")
     except Exception as e:
-        print(f"Ein Fehler ist aufgetreten: {str(e)}")
+        DebugPrint(f"Ein Fehler ist aufgetreten: {str(e)}")
 
 # ---------------------------------------------------------------------------
 # the mother of all: the __main__ start point ...
@@ -20312,7 +20328,7 @@ if __name__ == '__main__':
     major = sys.version_info[0]
     minor = sys.version_info[1]
     if (major < 3 and minor < 12):
-        print("Python 3.12+ are required for the script")
+        DebugPrint("Python 3.12+ are required for the script")
         sys.exit(1)
     
     # Determine the path to the script and its name.
@@ -20332,8 +20348,8 @@ if __name__ == '__main__':
     
     genv.v__app__tmp3 = "parse..."
     if len(sys.argv) < 2:
-        print("no arguments given.")
-        #print(genv.v__app__parameter)
+        DebugPrint("no arguments given.")
+        #DebugPrint(genv.v__app__parameter)
         sys.exit(1)
         
     idx = 1
@@ -20355,7 +20371,7 @@ if __name__ == '__main__':
                 handleExceptionApplication(parserBinary,sys.argv[idx])
             elif item == "--dbase":
                 idx += 1
-                print(genv.v__app__tmp3)
+                DebugPrint(genv.v__app__tmp3)
                 try:
                     handleExceptionApplication(parserDBasePoint,sys.argv[idx])
                     sys.exit(0)
@@ -20363,18 +20379,18 @@ if __name__ == '__main__':
                     sys.exit(1)
             elif item == "--pascal":
                 idx += 1
-                print(genv.v__app__tmp3)
+                DebugPrint(genv.v__app__tmp3)
                 genv.v__app__scriptname__ = sys.argv[2]
                 handleExceptionApplication(parserPascalPoint,sys.argv[idx])
                 sys.exit(0)
             else:
                 if item.endswith(".exe"):
-                    print("check: " + item)
+                    DebugPrint("check: " + item)
                     analyze_pe(item)
                     sys.exit(1)
         else:
-            print("parameter unknown.")
-            print(genv.v__app__parameter)
+            DebugPrint("parameter unknown.")
+            DebugPrint(genv.v__app__parameter)
             sys.exit(1)
         
 # ----------------------------------------------------------------------------
