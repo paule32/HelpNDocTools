@@ -680,12 +680,7 @@ class globalEnv:
         self.v__app__discc64__  = im_path + "disk2.png"
         self.v__app__datmc64__  = im_path + "mc2.png"
         self.v__app__logoc64__  = im_path + "logo2.png"
-        
-        # ------------------------------------------------------------------------
-        # objects
-        # ------------------------------------------------------------------------
-        self.doxygen_output_navi = None
-        
+
         # ------------------------------------------------------------------------
         # dBase parser error code's:
         # ------------------------------------------------------------------------
@@ -978,9 +973,15 @@ class globalEnv:
         self.doc_output_prepare_chm = 0
         self.doc_output_search_func = 0
         
+        self.doc_output_latex       = 0
         self.doc_output_latex_pdf   = 0
         self.doc_output_latex_imm   = 0
         self.doc_output_latex_ps    = 0
+        
+        self.doc_output_man = 0
+        self.doc_output_rtf = 0
+        self.doc_output_doc = 0
+        self.doc_output_xml = 0
         
         self.doc_project_open       = False
         
@@ -7727,6 +7728,7 @@ class myCustomScrollArea(QScrollArea):
     def __init__(self, parent, number, name):
         super().__init__()
         #DebugPrint(name)
+        self.setWidgetResizable(True)
         
         self.number = number
         self.name   = name
@@ -8092,13 +8094,13 @@ class customScrollView_1(myCustomScrollArea):
         
         layout_9 = QHBoxLayout()
         layout_9.setAlignment(Qt.AlignLeft)
-        print("111111 aaa")
+
         widget_9_checkbutton_1 = addCheckBox("doxygen_project_scan_recursiv",_("Scan recursive"))
-        print("222222")
         widget_9_checkbutton_1.setMaximumWidth(300)
         widget_9_checkbutton_1.setFont(font)
+        
         layout_9.addWidget(widget_9_checkbutton_1)
-        layout.addLayout(layout_9)
+        layout  .addLayout(layout_9)
         
         layout_10 = QVBoxLayout()
         widget_10_button_1 = QPushButton(_("Convert") ,self); widget_10_button_1.setStyleSheet(_(genv.css_button_style))
@@ -8429,42 +8431,35 @@ class customScrollView_2(myCustomScrollArea):
 class customScrollView_3(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_3, self).__init__(parent, 3, name)
-        self.setMinimumHeight(370)
+        self.content_widget.setMinimumHeight(420)
+        self.setWidgetResizable(True)
         self.init_ui()
     
     def init_ui(self):
         self.label_1.hide()
         
-        layout = QVBoxLayout()
-        
-        # ScrollArea
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        
-        # Scrollbares Widget
-        scrollable_widget = QWidget()
-        scrollable_layout = QVBoxLayout(scrollable_widget)
-        
         label = self.addLabel(_("Select the output format(s) to generate:"), True)
         
-        self.group_box1 = QGroupBox("")
-        self.group_box1.setFont(self.font)
+        self.group_box1 = QGroupBox(" ")
+        self.group_box1.setFont(QFont("Arial", 10))
+        self.group_box1.setFixedHeight(120)
+        
         self.group_layout1 = QVBoxLayout()
         
         # HTML
         self.w0 = addCheckBox("output_html","HTML", True)
         #
-        genv.doxygen_output_navi = addRadioButton("output_plain_html",  _("plain HTML"))
+        self.w1 = addRadioButton("output_plain_html",  _("plain HTML"))
         self.w2 = addRadioButton("output_navi",        _("with navigation Panel"))
         self.w3 = addRadioButton("output_prepare_chm", _("prepare for compressed HTML .chm"))
         self.w4 = addCheckBox   ("output_search_func", _("with search function"))
         
-        genv.doxygen_output_navi.setEnabled(False)
+        self.w1.setEnabled(False)
         self.w2.setEnabled(False)
         self.w3.setEnabled(False)
         self.w4.setEnabled(False)
         
-        genv.doxygen_output_navi.clicked.connect(self.html_on_clicked)
+        self.w0.clicked.connect(self.html_on_clicked)
         #
         self.w1.clicked.connect(self.html_on_clicked)
         self.w2.clicked.connect(self.html_on_clicked)
@@ -8496,6 +8491,9 @@ class customScrollView_3(myCustomScrollArea):
         self.l3.setEnabled(False)
         
         self.l0.clicked.connect(self.cbl0_on_clicked)
+        self.l1.clicked.connect(self.cbl0_on_clicked)
+        self.l2.clicked.connect(self.cbl0_on_clicked)
+        self.l3.clicked.connect(self.cbl0_on_clicked)
         
         self.group_layout2.addWidget(self.l0)
         self.group_layout2.addWidget(self.l1)
@@ -8518,26 +8516,64 @@ class customScrollView_3(myCustomScrollArea):
         self.group_layout3.addWidget(self.m2)
         self.group_layout3.addWidget(self.m3)
         self.group_layout3.addWidget(self.m4)
+        
+        self.m1.clicked.connect(self.misc_on_clicked)
+        self.m2.clicked.connect(self.misc_on_clicked)
+        self.m3.clicked.connect(self.misc_on_clicked)
+        self.m4.clicked.connect(self.misc_on_clicked)
         #
         self.group_box3.setLayout(self.group_layout3)
         
-        layout = QVBoxLayout()
+        #group_layout = QVBoxLayout()
+        #
+        self.layout.addWidget(label)
+        self.layout.addWidget(self.group_box1)
+        self.layout.addWidget(self.group_box2)
+        self.layout.addWidget(self.group_box3)
         
-        scrollable_layout.addWidget(label)
-        scrollable_layout.addWidget(self.group_box1)
-        scrollable_layout.addWidget(self.group_box2)
-        scrollable_layout.addWidget(self.group_box3)
+        self.content_widget.setLayout(self.layout)
+        self.setWidget(self.content_widget)
         
-        # Scrollable Widget in die ScrollArea setzen
-        scroll_area.setLayout(scrollable_layout)
-        
-        #self.setLayout(layout)
+        #self.setLayout(group_layout)
     
+    def misc_on_clicked(self):
+        have_errors = False
+        try:
+            if self.sender().objectName() == "output_man":
+                if self.sender().isChecked():
+                    genv.doc_output_man = 1
+                else:
+                    genv.doc_output_man = 0
+            
+            if self.sender().objectName() == "output_rtf":
+                if self.sender().isChecked():
+                    genv.doc_output_rtf = 1
+                else:
+                    genv.doc_output_rtf = 0
+            
+            if self.sender().objectName() == "output_xml":
+                if self.sender().isChecked():
+                    genv.doc_output_xml = 1
+                else:
+                    genv.doc_output_xml = 0
+            
+            if self.sender().objectName() == "output_doc":
+                if self.sender().isChecked():
+                    genv.doc_output_doc = 1
+                else:
+                    genv.doc_output_doc = 0
+            
+            genv.v__app_win.write_config_part()
+            
+        except Exception as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+        
     def html_decheck(self):
         genv.doc_output_plain_html  = 0
         genv.doc_output_navi        = 0
         genv.doc_output_prepare_chm = 0
-        #genv.doc_output_search_func = 0
+        genv.doc_output_search_func = 0
             
     def html_on_clicked(self):
         have_errors = False
@@ -8570,7 +8606,6 @@ class customScrollView_3(myCustomScrollArea):
                     
             elif self.sender().objectName() == "output_navi":
                 if self.sender().isChecked():
-                    genv.doxygen_output_navi = self.sender()
                     self.html_decheck()
                     genv.doc_output_navi = 1
                 else:
@@ -8605,65 +8640,66 @@ class customScrollView_3(myCustomScrollArea):
             genv.doc_output_plain_html  = 0
             genv.doc_output_navi        = 0
             genv.doc_output_prepare_chm = 0
-            genv.doc_output_search_func = 5
+            genv.doc_output_search_func = 0
             
         genv.v__app_win.write_config_part()
     
     def cbl0_on_clicked(self):
         have_errors = False
+        
+        item0 = self.findChild(QCheckBox   , "output_latex")
+        item1 = self.findChild(QRadioButton, "output_latex_pdf")
+        item2 = self.findChild(QRadioButton, "output_latex_imm")
+        item3 = self.findChild(QRadioButton, "output_latex_ps")
+        
         try:
-            check1 = genv.v__app__config_help.get("output", "doc_latex_pdf")
-            check2 = genv.v__app__config_help.get("output", "doc_latex_imm")
-            check3 = genv.v__app__config_help.get("output", "doc_latex_ps")
-            
-            genv.doc_output_latex_pdf = int(check1)
-            genv.doc_output_latex_imm = int(check2)
-            genv.doc_output_latex_ps  = int(check3)
-            
-            if self.sender().isChecked():
-                self.l1.setEnabled(True)
-                self.l2.setEnabled(True)
-                self.l3.setEnabled(True)
-                #
-                if check1 == 0:
-                    self.l1.setChecked(False)
-                if check2 == 0:
-                    self.l2.setChecked(False)
-                if check3 == 0:
-                    self.l3.setChecked(False)
-            else:
-                self.l1.setEnabled(False)
-                self.l2.setEnabled(False)
-                self.l3.setEnabled(False)
-                #
-                if check1 == 0:
-                    self.l1.setChecked(True)
-                if check2 == 0:
-                    self.l2.setChecked(True)
-                if check3 == 0:
-                    self.l3.setChecked(True)
-            genv.v__app_win.write_config_part()
+            genv.doc_output_latex     = int(genv.v__app__config_help.get("output", "doc_latex"))
+            genv.doc_output_latex_pdf = int(genv.v__app__config_help.get("output", "doc_latex_pdf"))
+            genv.doc_output_latex_imm = int(genv.v__app__config_help.get("output", "doc_latex_imm"))
+            genv.doc_output_latex_ps  = int(genv.v__app__config_help.get("output", "doc_latex_ps"))
             
         except configparser.NoSectionError:
-            genv.doc_output_latex_pdf = 0
-            genv.doc_output_latex_imm = 0
-            genv.doc_output_latex_ps  = 0
-            #
-            genv.v__app_win.write_config_part()
             have_errors = True
             
         except configparser.NoOptionError:
-            genv.doc_output_latex_pdf = 0
-            genv.doc_output_latex_imm = 0
-            genv.doc_output_latex_ps  = 0
-            #
-            genv.v__app_win.write_config_part()
             have_errors = True
         
         if have_errors:
-            self.l1.setEnabled(False)
-            self.l2.setEnabled(False)
-            self.l3.setEnabled(False)
+            genv.doc_output_latex_pdf = 0
+            genv.doc_output_latex_imm = 0
+            genv.doc_output_latex_ps  = 0
+        
+        genv.v__app_win.write_config_part()
+        
+        if item0.isChecked():
+            genv.doc_output_latex = 1
+            
+            item1.setEnabled(True)
+            item2.setEnabled(True)
+            item3.setEnabled(True)
+        else:
+            genv.doc_output_latex = 0
+            
+            item1.setEnabled(False)
+            item2.setEnabled(False)
+            item3.setEnabled(False)
+        
+        if item1.isChecked():
+            genv.doc_output_latex_pdf = 1
+        else:
+            genv.doc_output_latex_pdf = 0
+        
+        if item2.isChecked():
+            genv.doc_output_latex_imm = 1
+        else:
+            genv.doc_output_latex_imm = 0
+        
+        if item3.isChecked():
+            genv.doc_output_latex_ps = 1
+        else:
+            genv.doc_output_latex_ps = 0
+            
+        genv.v__app_win.write_config_part()
 
 # ------------------------------------------------------------------------
 # create a scroll view for the diagrams tab on left side of application ...
@@ -8671,21 +8707,31 @@ class customScrollView_3(myCustomScrollArea):
 class customScrollView_4(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_4, self).__init__(parent, 4, name)
+        self.content_widget.setMinimumHeight(420)
+        self.setWidgetResizable(True)
         self.init_ui()
     
     def init_ui(self):
         self.label_1.hide()
         
-        self.addLabel(_("Diagrams to generate:"), True)
+        lbl1 = self.addLabel(_("Diagrams to generate:"), True)
+        #
+        btn1 = addRadioButton("dia_not", _("No diagrams"))
+        btn2 = addRadioButton("dia_txt", _("Text only"))
+        btn3 = addRadioButton("dia_bin", _("Use built-in diagram generator"))
+        btn4 = addRadioButton("dia_dot", _("Use Dot-Tool from the GrappVz package"))
+        #
+        lbl2 = self.addLabel(_("Dot graphs to generate:"), True)
         
-        addRadioButton("dia_not", _("No diagrams"))
-        addRadioButton("dia_txt", _("Text only"))
-        addRadioButton("dia_bin", _("Use built-in diagram generator"))
-        addRadioButton("dia_dot", _("Use Dot-Tool from the GrappVz package"))
         
-        self.addFrame()
+        #self.layout = QVBoxLayout()
         
-        self.addLabel(_("Dot graphs to generate:"), True)
+        self.layout.addWidget(lbl1)
+        self.layout.addWidget(btn1)
+        self.layout.addWidget(btn2)
+        self.layout.addWidget(btn3)
+        self.layout.addWidget(btn4)
+        self.layout.addWidget(lbl2)
         
         check_array = [
             ["graph_class" , _("Class graph")],
@@ -8697,7 +8743,11 @@ class customScrollView_4(myCustomScrollArea):
             ["graph_callby", _("Called-by graphs")]
         ]
         for chk in check_array:
-            addCheckBox(chk[0], chk[1])
+            check_box = addCheckBox(chk[0], chk[1])
+            self.layout.addWidget(check_box)
+        
+        self.content_widget.setLayout(self.layout)
+        self.setWidget(self.content_widget)
 
 class customScrollView_5(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -17367,6 +17417,7 @@ class FileWatcherGUI(QDialog):
                 + "template = "      + str(genv.doc_template)   + "\n"
                 + "kind = "          + str(genv.doc_kind)       + "\n"
                 + "\n"
+                
                 + "[project]\n"
                 + "type = "          + str(genv.doc_type)       + "\n"
                 + "doc_out = "       + str(genv.doc_type_out)   + "\n"
@@ -17378,17 +17429,30 @@ class FileWatcherGUI(QDialog):
                 + "dstdir = "        + genv.doc_dstdir          + "\n"
                 + "scan_recursiv = " + str(genv.doc_recursiv)   + "\n"
                 + "\n"
+                
                 + "[mode]\n"
                 + "optimized = "     + str(genv.doc_optimize)   + "\n"
                 + "doc_entries = "   + str(genv.doc_entries)    + "\n"
                 + "cross = "         + str(genv.doc_cross)      + "\n"
                 + "\n"
+                
                 + "[output]\n"
                 + "doc_html = "        + str(genv.doc_output_html)        + "\n"
                 + "doc_plain_html  = " + str(genv.doc_output_plain_html)  + "\n"
-                + "doc_navi        = " + str(genv.doc_output_navi)        + "\n"
+                + "doc_navi = "        + str(genv.doc_output_navi)        + "\n"
                 + "doc_prepare_chm = " + str(genv.doc_output_prepare_chm) + "\n"
                 + "doc_search_func = " + str(genv.doc_output_search_func) + "\n"
+                
+                + "doc_latex = "       + str(genv.doc_output_latex)     + "\n"
+                + "doc_latex_pdf = "   + str(genv.doc_output_latex_pdf) + "\n"
+                + "doc_latex_imm = "   + str(genv.doc_output_latex_imm) + "\n"
+                + "doc_latex_ps = "    + str(genv.doc_output_latex_ps)  + "\n"
+                
+                + "doc_man = " + str(genv.doc_output_man) + "\n"
+                + "doc_rtf = " + str(genv.doc_output_rtf) + "\n"
+                + "doc_xml = " + str(genv.doc_output_xml) + "\n"
+                + "doc_doc = " + str(genv.doc_output_doc) + "\n"
+                
                 + "\n")
                 config_file.write(content)
                 config_file.close()
@@ -17893,72 +17957,185 @@ class FileWatcherGUI(QDialog):
                     genv.doc_output_search_func = int(genv.v__app__config_help.get("output", "doc_search_func"))
                     
                 except configparser.NoSectionError as e:
-                    genv.doc_output_html        = 0
-                    genv.doc_output_plain_html  = 0
-                    genv.doc_output_navi        = 0
-                    genv.doc_output_prepare_chm = 0
-                    genv.doc_output_search_func = 0
-                    #
                     have_errors = True
                     
                 except configparser.NoOptionError as e:
+                    have_errors = True
+                
+                if have_errors:
                     genv.doc_output_html        = 0
                     genv.doc_output_plain_html  = 0
                     genv.doc_output_navi        = 0
                     genv.doc_output_prepare_chm = 0
                     genv.doc_output_search_func = 0
                     #
-                    have_errors = True
+                    genv.v__app_win.write_config_part()
+                    
+                    for item in items:
+                        item.setChecked(False)
                 
+                genv.doc_output_html        = int(genv.v__app__config_help.get("output", "doc_html"))
+                genv.doc_output_plain_html  = int(genv.v__app__config_help.get("output", "doc_plain_html"))
+                genv.doc_output_navi        = int(genv.v__app__config_help.get("output", "doc_navi"))
+                genv.doc_output_prepare_chm = int(genv.v__app__config_help.get("output", "doc_prepare_chm"))
+                genv.doc_output_search_func = int(genv.v__app__config_help.get("output", "doc_search_func"))
+                
+                print("----> " + str(genv.doc_output_html))
+                
+                item0 = self.findChild(QCheckBox   , "output_html")
                 item1 = self.findChild(QRadioButton, "output_plain_html")
-                #item2 = self.findChild(QRadioButton, "output_navi")
+                item2 = self.findChild(QRadioButton, "output_navi")
                 item3 = self.findChild(QRadioButton, "output_prepare_chm")
                 item4 = self.findChild(QCheckBox   , "output_search_func")
                 
-                if genv.doc_output_html == 0:
-                    item0 = self.findChild(QCheckBox, "output_html")
-                    item0.setChecked(False)
+                if genv.doc_output_html == 1:
+                    item0.setEnabled(True)
+                    item1.setEnabled(True)
+                    item2.setEnabled(True)
+                    item3.setEnabled(True)
+                    item4.setEnabled(True)
                     
+                    item0.setChecked(True)
+                else:
+                    item0.setEnabled(False)
                     item1.setEnabled(False)
-                    genv.doxygen_output_navi.setEnabled(False)
+                    item2.setEnabled(False)
                     item3.setEnabled(False)
                     item4.setEnabled(False)
-                    
-                elif genv.doc_output_html == 1:
-                    items = self.findChildren(QCheckBox, "output_html")
-                    found = False
-                    for item in items:
-                        if item.onjectName() == "output_html":
-                            showInfo("OOOOO")
-                            item.setChecked(True)
-                            found = True
-                            break
-                    if found:
-                        item1 = self.findChild(QRadioButton, "output_plain_html")
-                        #item2 = self.findChild(QRadioButton, "output_navi")
-                        item3 = self.findChild(QRadioButton, "output_prepare_chm")
-                        item4 = self.findChild(QCheckBox   , "output_search_func")
-                        
-                        item1.setEnabled(True)
-                        genv.doxygen_output_navi.setEnabled(True)
-                        item3.setEnabled(True)
-                        item4.setEnabled(True)
                 
                 if genv.doc_output_plain_html == 1:
-                    item1 = self.findChild(QRadioButton, "output_plain_html")
-                    item1.setChecked(True)
-                    
-                if genv.doc_output_navi == 1:
-                    genv.doxygen_output_navi.setChecked(True)
-                    
-                if genv.doc_output_prepare_chm == 1:
-                    item3 = self.findChild(QRadioButton, "output_prepare_chm")
-                    item3.setChecked(True)
-                    
-                if genv.doc_output_search_func == 1:
-                    item4 = self.findChild(QCheckBox   , "output_search_func")
-                    item4.setChecked(True)
+                    if item0.isChecked():
+                        item1.setChecked(True)
+                else:
+                    if item0.isChecked():
+                        item1.setChecked(False)
                 
+                if genv.doc_output_navi == 1:
+                    if item0.isChecked():
+                        item2.setChecked(True)
+                else:
+                    if item0.isChecked():
+                        item2.setChecked(False)
+                
+                if genv.doc_output_prepare_chm == 1:
+                    if item0.isChecked():
+                        item3.setChecked(True)
+                else:
+                    if item0.isChecked():
+                        item3.setChecked(False)
+                
+                if genv.doc_output_search_func == 1:
+                    if item0.isChecked():
+                        item4.setChecked(True)
+                else:
+                    if item0.isChecked():
+                        item4.setChecked(False)
+                
+                # output latex
+                item0 = self.findChild(QCheckBox   , "output_latex")
+                item1 = self.findChild(QRadioButton, "output_latex_pdf")
+                item2 = self.findChild(QRadioButton, "output_latex_imm")
+                item3 = self.findChild(QRadioButton, "output_latex_ps")
+                
+                have_errors = False
+                try:
+                    genv.doc_output_latex     = int(genv.v__app__config_help.get("output", "doc_latex"))
+                    genv.doc_output_latex_pdf = int(genv.v__app__config_help.get("output", "doc_latex_pdf"))
+                    genv.doc_output_latex_imm = int(genv.v__app__config_help.get("output", "doc_latex_imm"))
+                    genv.doc_output_latex_ps  = int(genv.v__app__config_help.get("output", "doc_latex_ps"))
+                except configparser.NoSectionError as e:
+                    have_errors = True
+                    
+                except configparser.NoOptionError as e:
+                    have_errors = True
+                
+                if have_errors:
+                    genv.doc_output_latex     = 0
+                    genv.doc_output_latex_pdf = 0
+                    genv.doc_output_latex_imm = 0
+                    genv.doc_output_latex_ps  = 0
+                
+                genv.v__app_win.write_config_part()
+                
+                if genv.doc_output_latex == 0:
+                    item0.setChecked(False)
+                    item1.setEnabled(False)
+                    item2.setEnabled(False)
+                    item3.setEnabled(False)
+                else:
+                    item0.setChecked(True)
+                    item1.setEnabled(True)
+                    item2.setEnabled(True)
+                    item3.setEnabled(True)
+                
+                if item0.isChecked():
+                    if genv.doc_output_latex == 0:
+                        item0.setChecked(False)
+                    else:
+                        item0.setChecked(True)
+                    
+                    if genv.doc_output_latex_pdf == 0:
+                        item1.setChecked(False)
+                    else:
+                        item1.setChecked(True)
+                    
+                    if genv.doc_output_latex_imm == 0:
+                        item2.setChecked(False)
+                    else:
+                        item2.setChecked(True)
+                    
+                    if genv.doc_output_latex_ps == 0:
+                        item3.setChecked(False)
+                    else:
+                        item3.setChecked(True)
+                
+                # out misc
+                item1 = self.findChild(QCheckBox, "output_man")
+                item2 = self.findChild(QCheckBox, "output_rtf")
+                item3 = self.findChild(QCheckBox, "output_xml")
+                item4 = self.findChild(QCheckBox, "output_doc")
+                
+                have_errors = False
+                try:
+                    genv.doc_output_man = int(genv.v__app__config_help.get("output", "doc_man"))
+                    genv.doc_output_rtf = int(genv.v__app__config_help.get("output", "doc_rtf"))
+                    genv.doc_output_xml = int(genv.v__app__config_help.get("output", "doc_xml"))
+                    genv.doc_output_doc = int(genv.v__app__config_help.get("output", "doc_doc"))
+                    
+                except configparser.NoSectionError as e:
+                    have_errors = True
+                    
+                except configparser.NoOptionError as e:
+                    have_errors = True
+                
+                if have_errors:
+                    genv.doc_output_man = 0
+                    genv.doc_output_rtf = 0
+                    genv.doc_output_xml = 0
+                    genv.doc_output_doc = 0
+                
+                genv.v__app_win.write_config_part()
+                
+                if genv.doc_output_man == 1:
+                    item1.setChecked(True)
+                else:
+                    item1.setChecked(False)
+                
+                if genv.doc_output_rtf == 1:
+                    item2.setChecked(True)
+                else:
+                    item2.setChecked(False)
+                
+                if genv.doc_output_xml == 1:
+                    item3.setChecked(True)
+                else:
+                    item3.setChecked(False)
+                
+                if genv.doc_output_doc == 1:
+                    item4.setChecked(True)
+                else:
+                    item4.setChecked(False)
+            
             # framework
             elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC:
                 if genv.img_hlpndoc.bordercolor == "lime":
