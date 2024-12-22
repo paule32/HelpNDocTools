@@ -988,7 +988,7 @@ class globalEnv:
         self.doc_dia_bin = 0
         self.doc_dia_dot = 0
         
-        self.doc_dia_graph  = 0
+        self.doc_dia_class  = 0
         self.doc_dia_colab  = 0
         self.doc_dia_overh  = 0
         self.doc_dia_inc    = 0
@@ -7948,7 +7948,7 @@ class myCustomScrollArea(QScrollArea):
 class customScrollView_1(myCustomScrollArea):
     def __init__(self, parent, name="uuuu"):
         super(customScrollView_1, self).__init__(parent, 1, name)
-        
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.parent = parent
         self.name   = name
         
@@ -8345,6 +8345,7 @@ class customScrollView_1(myCustomScrollArea):
 class customScrollView_2(myCustomScrollArea):
     def __init__(self, parent, name):
         super(customScrollView_2, self).__init__(parent, 2, name)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -8446,6 +8447,7 @@ class customScrollView_3(myCustomScrollArea):
         super(customScrollView_3, self).__init__(parent, 3, name)
         self.content_widget.setMinimumHeight(420)
         self.setWidgetResizable(True)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -8722,6 +8724,7 @@ class customScrollView_4(myCustomScrollArea):
         super(customScrollView_4, self).__init__(parent, 4, name)
         self.content_widget.setMinimumHeight(420)
         self.setWidgetResizable(True)
+        self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
@@ -8750,15 +8753,16 @@ class customScrollView_4(myCustomScrollArea):
         
         check_array = [
             ["graph_class" , _("Class graph")],
-            ["graph_cola"  , _("Colaboration diagram")],
-            ["graph_over"  , _("Overall Class hiearchy")],
-            ["graph_incdep", _("Include dependcy graphs")],
-            ["graph_adddep", _("Included by dependcy graphs")],
+            ["graph_colab" , _("Colaboration diagram")],
+            ["graph_overh" , _("Overall Class hiearchy")],
+            ["graph_inc"   , _("Include dependcy graphs")],
+            ["graph_incby" , _("Included by dependcy graphs")],
             ["graph_call"  , _("Call graphs")],
             ["graph_callby", _("Called-by graphs")]
         ]
         for chk in check_array:
             check_box = addCheckBox(chk[0], chk[1])
+            check_box.clicked.connect(self.check_box_on_click)
             self.layout.addWidget(check_box)
         
         self.content_widget.setLayout(self.layout)
@@ -8810,16 +8814,62 @@ class customScrollView_4(myCustomScrollArea):
             genv.doc_dia_dot = 0
         
         genv.v__app_win.write_config_part()
+    
+    def check_box_on_click(self):
+        if self.sender().objectName() == "graph_class":
+            if self.sender().isChecked():
+                genv.doc_dia_class = 1
+            else:
+                genv.doc_dia_class = 0
+                
+        if self.sender().objectName() == "graph_colab":
+            if self.sender().isChecked():
+                genv.doc_dia_colab = 1
+            else:
+                genv.doc_dia_colab = 0
+                    
+        if self.sender().objectName() == "graph_overh":
+            if self.sender().isChecked():
+                genv.doc_dia_overh = 1
+            else:
+                genv.doc_dia_overh = 0
+                
+        if self.sender().objectName() == "graph_inc":
+            if self.sender().isChecked():
+                genv.doc_dia_inc = 1
+            else:
+                genv.doc_dia_inc = 0
+                
+        if self.sender().objectName() == "graph_incby":
+            if self.sender().isChecked():
+                genv.doc_dia_incby = 1
+            else:
+                genv.doc_dia_incby = 0
+                
+        if self.sender().objectName() == "graph_call":
+            if self.sender().isChecked():
+                genv.doc_dia_call = 1
+            else:
+                genv.doc_dia_call = 0
+                
+        if self.sender().objectName() == "graph_callby":
+            if self.sender().isChecked():
+                genv.doc_dia_callby = 1
+            else:
+                genv.doc_dia_callby = 0
+        
+        genv.v__app_win.write_config_part()
 
 class customScrollView_5(myCustomScrollArea):
     def __init__(self, parent, name):
         super().__init__(parent, 5, name)
+        self.content_widget.setMinimumHeight(2200)
+        self.setWidgetResizable(True)
         self.setStyleSheet(_("ScrollBarCSS"))
         self.init_ui()
     
     def init_ui(self):
         self.label_1.hide()
-        self.content_widget.setMinimumHeight(2000)
         
         ## 0xA0100
         label_5_elements = eval(_("label_5_elements"))
@@ -9585,7 +9635,7 @@ class myExitDialog(QDialog):
         if not genv.worker_thread == None:
             genv.worker_thread.stop()
             
-        self.disconnectEvents()
+        #self.disconnectEvents()
         genv.v__app_win.write_config_part()
         
         sys.exit(0)
@@ -17521,14 +17571,16 @@ class FileWatcherGUI(QDialog):
                 + "dia_txt = " + str(genv.doc_dia_txt) + "\n"
                 + "dia_bin = " + str(genv.doc_dia_bin) + "\n"
                 + "dia_dot = " + str(genv.doc_dia_dot) + "\n"
+                + "\n"
                 
-                + "dia_graph = "  + str(genv.doc_dia_graph)  + "\n"
-                + "dia_colab = "  + str(genv.doc_dia_colab)  + "\n"
-                + "dia_overh = "  + str(genv.doc_dia_overh)  + "\n"
-                + "dia_inc = "    + str(genv.doc_dia_inc)    + "\n"
-                + "dia_incby = "  + str(genv.doc_dia_incby)  + "\n"
-                + "dia_call = "   + str(genv.doc_dia_call)   + "\n"
-                + "dia_callby = " + str(genv.doc_dia_callby) + "\n"
+                + "[graph]\n"
+                + "class = "  + str(genv.doc_dia_class)  + "\n"
+                + "colab = "  + str(genv.doc_dia_colab)  + "\n"
+                + "overh = "  + str(genv.doc_dia_overh)  + "\n"
+                + "inc = "    + str(genv.doc_dia_inc)    + "\n"
+                + "incby = "  + str(genv.doc_dia_incby)  + "\n"
+                + "call = "   + str(genv.doc_dia_call)   + "\n"
+                + "callby = " + str(genv.doc_dia_callby) + "\n"
                 
                 + "\n")
                 config_file.write(content)
@@ -18057,7 +18109,6 @@ class FileWatcherGUI(QDialog):
                 genv.doc_output_prepare_chm = int(genv.v__app__config_help.get("output", "doc_prepare_chm"))
                 genv.doc_output_search_func = int(genv.v__app__config_help.get("output", "doc_search_func"))
                 
-                print("----> " + str(genv.doc_output_html))
                 
                 item0 = self.findChild(QCheckBox   , "output_html")
                 item1 = self.findChild(QRadioButton, "output_plain_html")
@@ -18259,6 +18310,79 @@ class FileWatcherGUI(QDialog):
                 else:
                     item4.setChecked(True)
                     
+                genv.v__app_win.write_config_part()
+                
+                # graphs
+                have_errors = False
+                try:
+                    genv.doc_dia_class  = int(genv.v__app__config_help.get("graph", "class"))
+                    genv.doc_dia_colab  = int(genv.v__app__config_help.get("graph", "colab"))
+                    genv.doc_dia_overh  = int(genv.v__app__config_help.get("graph", "overh"))
+                    genv.doc_dia_inc    = int(genv.v__app__config_help.get("graph", "inc"))
+                    genv.doc_dia_incby  = int(genv.v__app__config_help.get("graph", "incby"))
+                    genv.doc_dia_call   = int(genv.v__app__config_help.get("graph", "call"))
+                    genv.doc_dia_callby = int(genv.v__app__config_help.get("graph", "callby"))
+                    
+                except configparser.NoSectionError:
+                    have_errors = True
+                    
+                except configparser.NoOptionError:
+                    have_errors = True
+                
+                if have_errors:
+                    genv.doc_dia_class  = 0
+                    genv.doc_dia_colab  = 0
+                    genv.doc_dia_overh  = 0
+                    genv.doc_dia_inc    = 0
+                    genv.doc_dia_incby  = 0
+                    genv.doc_dia_call   = 0
+                    genv.doc_dia_callby = 0
+                
+                genv.v__app_win.write_config_part()
+                
+                item1 = self.findChild(QCheckBox, "graph_class")
+                item2 = self.findChild(QCheckBox, "graph_colab")
+                item3 = self.findChild(QCheckBox, "graph_overh")
+                item4 = self.findChild(QCheckBox, "graph_inc")
+                item5 = self.findChild(QCheckBox, "graph_incby")
+                item6 = self.findChild(QCheckBox, "graph_call")
+                item7 = self.findChild(QCheckBox, "graph_callby")
+                
+                if genv.doc_dia_class  == 0:
+                    item1.setChecked(False)
+                else:
+                    item1.setChecked(True)
+                    
+                if genv.doc_dia_colab  == 0:
+                    item2.setChecked(False)
+                else:
+                    item2.setChecked(True)
+                    
+                if genv.doc_dia_overh  == 0:
+                    item3.setChecked(False)
+                else:
+                    item3.setChecked(True)
+                    
+                if genv.doc_dia_inc    == 0:
+                    item4.setChecked(False)
+                else:
+                    item4.setChecked(True)
+                    
+                if genv.doc_dia_incby  == 0:
+                    item5.setChecked(False)
+                else:
+                    item5.setChecked(True)
+                    
+                if genv.doc_dia_call   == 0:
+                    item6.setChecked(False)
+                else:
+                    item6.setChecked(True)
+                    
+                if genv.doc_dia_callby == 0:
+                    item7.setChecked(False)
+                else:
+                    item7.setChecked(True)
+                
                 genv.v__app_win.write_config_part()
                 
             # framework
