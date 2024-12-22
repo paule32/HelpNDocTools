@@ -983,6 +983,19 @@ class globalEnv:
         self.doc_output_doc = 0
         self.doc_output_xml = 0
         
+        self.doc_dia_not = 0
+        self.doc_dia_txt = 0
+        self.doc_dia_bin = 0
+        self.doc_dia_dot = 0
+        
+        self.doc_dia_graph  = 0
+        self.doc_dia_colab  = 0
+        self.doc_dia_overh  = 0
+        self.doc_dia_inc    = 0
+        self.doc_dia_incby  = 0
+        self.doc_dia_call   = 0
+        self.doc_dia_callby = 0
+        
         self.doc_project_open       = False
         
         self.DOC_LANG_CPP           = 0
@@ -8723,15 +8736,17 @@ class customScrollView_4(myCustomScrollArea):
         #
         lbl2 = self.addLabel(_("Dot graphs to generate:"), True)
         
-        
-        #self.layout = QVBoxLayout()
-        
         self.layout.addWidget(lbl1)
         self.layout.addWidget(btn1)
         self.layout.addWidget(btn2)
         self.layout.addWidget(btn3)
         self.layout.addWidget(btn4)
         self.layout.addWidget(lbl2)
+        
+        btn1.clicked.connect(self.radiobtn_on_click)
+        btn2.clicked.connect(self.radiobtn_on_click)
+        btn3.clicked.connect(self.radiobtn_on_click)
+        btn4.clicked.connect(self.radiobtn_on_click)
         
         check_array = [
             ["graph_class" , _("Class graph")],
@@ -8748,6 +8763,53 @@ class customScrollView_4(myCustomScrollArea):
         
         self.content_widget.setLayout(self.layout)
         self.setWidget(self.content_widget)
+    
+    def items_decheck(self):
+        item1 = self.findChild(QRadioButton, "dia_not")
+        item2 = self.findChild(QRadioButton, "dia_txt")
+        item3 = self.findChild(QRadioButton, "dia_bin")
+        item4 = self.findChild(QRadioButton, "dia_dot")
+        
+        item1.setChecked(False)
+        item2.setChecked(False)
+        item3.setChecked(False)
+        item4.setChecked(False)
+        
+    def radiobtn_on_click(self):
+        item1 = self.findChild(QRadioButton, "dia_not")
+        item2 = self.findChild(QRadioButton, "dia_txt")
+        item3 = self.findChild(QRadioButton, "dia_bin")
+        item4 = self.findChild(QRadioButton, "dia_dot")
+        
+        if item1.isChecked():
+            self.items_decheck()
+            item1.setChecked(True)
+            genv.doc_dia_not = 1
+        else:
+            genv.doc_dia_not = 0
+            
+        if item2.isChecked():
+            self.items_decheck()
+            item2.setChecked(True)
+            genv.doc_dia_txt = 1
+        else:
+            genv.doc_dia_txt = 0
+        
+        if item3.isChecked():
+            self.items_decheck()
+            item3.setChecked(True)
+            genv.doc_dia_bin = 1
+        else:
+            genv.doc_dia_bin = 0
+        
+        if item4.isChecked():
+            self.items_decheck()
+            item4.setChecked(True)
+            genv.doc_dia_dot = 1
+        else:
+            genv.doc_dia_dot = 0
+        
+        genv.v__app_win.write_config_part()
 
 class customScrollView_5(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -17452,6 +17514,21 @@ class FileWatcherGUI(QDialog):
                 + "doc_rtf = " + str(genv.doc_output_rtf) + "\n"
                 + "doc_xml = " + str(genv.doc_output_xml) + "\n"
                 + "doc_doc = " + str(genv.doc_output_doc) + "\n"
+                + "\n"
+                
+                + "[diagrams]\n"
+                + "dia_not = " + str(genv.doc_dia_not) + "\n"
+                + "dia_txt = " + str(genv.doc_dia_txt) + "\n"
+                + "dia_bin = " + str(genv.doc_dia_bin) + "\n"
+                + "dia_dot = " + str(genv.doc_dia_dot) + "\n"
+                
+                + "dia_graph = "  + str(genv.doc_dia_graph)  + "\n"
+                + "dia_colab = "  + str(genv.doc_dia_colab)  + "\n"
+                + "dia_overh = "  + str(genv.doc_dia_overh)  + "\n"
+                + "dia_inc = "    + str(genv.doc_dia_inc)    + "\n"
+                + "dia_incby = "  + str(genv.doc_dia_incby)  + "\n"
+                + "dia_call = "   + str(genv.doc_dia_call)   + "\n"
+                + "dia_callby = " + str(genv.doc_dia_callby) + "\n"
                 
                 + "\n")
                 config_file.write(content)
@@ -18135,7 +18212,55 @@ class FileWatcherGUI(QDialog):
                     item4.setChecked(True)
                 else:
                     item4.setChecked(False)
-            
+                
+                # diagrams
+                have_errors = False
+                
+                item1 = self.findChild(QRadioButton, "dia_not")
+                item2 = self.findChild(QRadioButton, "dia_txt")
+                item3 = self.findChild(QRadioButton, "dia_bin")
+                item4 = self.findChild(QRadioButton, "dia_dot")
+                
+                try:
+                    genv.doc_dia_not = int(genv.v__app__config_help.get("diagrams", "dia_not"))
+                    genv.doc_dia_txt = int(genv.v__app__config_help.get("diagrams", "dia_txt"))
+                    genv.doc_dia_bin = int(genv.v__app__config_help.get("diagrams", "dia_bin"))
+                    genv.doc_dia_dot = int(genv.v__app__config_help.get("diagrams", "dia_dot"))
+                    
+                except configparser.NoSectionError:
+                    have_errors = True
+                    
+                except configparser.NoOptionError:
+                    have_errors = True
+                
+                if have_errors:
+                    genv.doc_dia_not = 0
+                    genv.doc_dia_txt = 0
+                    genv.doc_dia_bin = 0
+                    genv.doc_dia_dot = 0
+                
+                if genv.doc_dia_not == 0:
+                    item1.setChecked(False)
+                else:
+                    item1.setChecked(True)
+                
+                if genv.doc_dia_txt == 0:
+                    item2.setChecked(False)
+                else:
+                    item2.setChecked(True)
+                
+                if genv.doc_dia_bin == 0:
+                    item3.setChecked(False)
+                else:
+                    item3.setChecked(True)
+                
+                if genv.doc_dia_dot == 0:
+                    item4.setChecked(False)
+                else:
+                    item4.setChecked(True)
+                    
+                genv.v__app_win.write_config_part()
+                
             # framework
             elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC:
                 if genv.img_hlpndoc.bordercolor == "lime":
