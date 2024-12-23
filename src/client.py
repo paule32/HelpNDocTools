@@ -8978,10 +8978,7 @@ class customScrollView_10(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA0600
-        label_10_elements = [
-            [0xA0601, genv.type_check_box, 0, True ],
-            [0xA0602, genv.type_edit,      3 ]
-        ]
+        label_10_elements = eval(_("label_10_elements"))
         self.addElements(10, label_10_elements, 0x0600)
 
 class customScrollView_11(myCustomScrollArea):
@@ -9065,10 +9062,7 @@ class customScrollView_16(myCustomScrollArea):
         self.content_widget.setMinimumHeight(1400)
         
         ## 0xA1200
-        label_16_elements = [
-            [0xA1201, genv.type_check_box, 0, False ],
-            [0xA1202, genv.type_edit,      1 ],
-        ]
+        label_16_elements = eval(_("label_16_elements"))
         self.addElements(16, label_16_elements, 0x1200)
 
 class customScrollView_17(myCustomScrollArea):
@@ -9082,9 +9076,7 @@ class customScrollView_17(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1300
-        label_17_elements = [
-            [0xA1301,  genv.type_check_box, 0, False ]
-        ]
+        label_17_elements = eval(_("label_17_elements"))
         self.addElements(17, label_17_elements, 0x1300)
 
 class customScrollView_18(myCustomScrollArea):
@@ -9098,11 +9090,7 @@ class customScrollView_18(myCustomScrollArea):
         self.content_widget.setMinimumHeight(400)
         
         ## 0xA1400
-        label_18_elements = [
-            [0xA1401, genv.type_check_box, 0, False ],
-            [0xA1402, genv.type_edit,      1 ],
-            [0xA1403, genv.type_check_box, 0, True  ],
-        ]
+        label_18_elements = eval(_("label_18_elements"))
         self.addElements(18, label_18_elements, 0x1400)
 
 class customScrollView_19(myCustomScrollArea):
@@ -17614,22 +17602,29 @@ class FileWatcherGUI(QDialog):
             )
             
             ## 0xA0100
-            content += "[expert]\n"
-            elements = eval(_("label_5_elements"))
-            hid      = 0x100
-            
-            doc5     = "doc_5_"
-            gen5     = "genv." + doc5
-            
-            for i in range(0, len(elements)):
-                helpID   = hid + i + 1
-                helpText = _("h" + f"{helpID:04X}")
-                tokenID  = _("A" + f"{helpID:04X}")
+            hid = 0
+            for idx in range(5, 22):
+                content += "[expert_"      + str(idx) + "]\n"
+                elements = eval(_("label_" + str(idx) + "_elements"))
+                hid     += 0x100
                 
-                content += (
-                    doc5 + tokenID.lower()   + " = " + str(eval(
-                    gen5 + tokenID.lower())) + "\n"
-                )
+                if hid == 0xa00:
+                    hid = 0x1000
+                
+                doc5 = "doc_"  + str(idx) + "_"
+                gen5 = "genv." + doc5
+                
+                for i in range(0, len(elements)):
+                    helpID   = hid + i + 1
+                    helpText = _("h" + f"{helpID:04X}")
+                    tokenID  = _("A" + f"{helpID:04X}")
+                    
+                    content += (
+                        doc5 + tokenID.lower()   + " = " + str(eval(
+                        gen5 + tokenID.lower())) + "\n"
+                    )
+                
+                content += "\n"
             
             content += "\n"
             with open(genv.v__app__config_ini_help, "w") as config_file:
@@ -17637,6 +17632,10 @@ class FileWatcherGUI(QDialog):
                 config_file.close()
                 
             return True
+            
+        except configparser.DuplicateSectionError as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
             
         except PermissionError as e:
             showError(_("Error:\nyou have no permissions to write config file."))
