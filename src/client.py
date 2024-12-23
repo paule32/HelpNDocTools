@@ -996,6 +996,14 @@ class globalEnv:
         self.doc_dia_call   = 0
         self.doc_dia_callby = 0
         
+        self.type_label        = 1
+        self.type_edit         = 2
+        self.type_spin         = 3
+        self.type_combo_box    = 4
+        self.type_check_box    = 5
+        self.type_push_button  = 6
+        self.type_radio_button = 7
+        
         self.doc_project_open       = False
         
         self.DOC_LANG_CPP           = 0
@@ -7567,7 +7575,6 @@ class myIconLabel(QLabel):
             parent.side_btn19,
             parent.side_btn20,
             parent.side_btn21,
-            parent.side_btn21,
             parent.side_btn22,
             parent.side_btn23,
             parent.side_btn24
@@ -7748,14 +7755,6 @@ class myCustomScrollArea(QScrollArea):
         self.font   = QFont(genv.v__app__font)
         self.font.setPointSize(10)
         
-        self.type_label        = 1
-        self.type_edit         = 2
-        self.type_spin         = 3
-        self.type_combo_box    = 4
-        self.type_check_box    = 5
-        self.type_push_button  = 6
-        self.type_radio_button = 7
-        
         font_primary   = genv.v__app__font_edit
         font_secondary = "Courier New"
         
@@ -7857,6 +7856,17 @@ class myCustomScrollArea(QScrollArea):
             self.layout.addWidget(w)
         return w
     
+    def el_check_box_on_click(self):
+        sender_object_name = self.sender().objectName()
+        sender_object      = self.sender()
+        
+        if sender_object.isChecked():
+            sender_object.setText(" YES")
+        else:
+            sender_object.setText(" NO")
+        
+        showInfo(sender_object_name)
+        
     def addElements(self, number, elements, hid):
         for i in range(0, len(elements)):
             lv_0 = QVBoxLayout()
@@ -7877,10 +7887,13 @@ class myCustomScrollArea(QScrollArea):
             vw_1.setMinimumHeight(14)
             vw_1.setMinimumWidth(200)
             
-            if elements[i][1] == self.type_edit:
+            if elements[i][1] == genv.type_edit:
                 w = self.addLineEdit(None, tokennum, "",lh_0)
                 w.setObjectName(tokennum + ':' + str(number))
                 genv.DoxyGenElementLayoutList.append(w)
+                #
+                doc0 = ("doc_" + str(number) + "_" + tokennum.lower())
+                setattr(genv, doc0, "")
                 
                 if elements[i][2] == 1:
                     self.addPushButton("+",lh_0)
@@ -7896,19 +7909,32 @@ class myCustomScrollArea(QScrollArea):
                     vw_3.setMaximumHeight(96)
                     lv_0.addWidget(vw_3)
             
-            elif elements[i][1] == self.type_check_box:
+            elif elements[i][1] == genv.type_check_box:
                 vw_2 = addCheckBox(tokennum, "", False)
                 vw_2.setMinimumHeight(21)
                 vw_2.setFont(self.font_a)
                 vw_2.setChecked(elements[i][3])
+                vw_2.clicked.connect(self.el_check_box_on_click)
+                #
+                doc0 = ("doc_" + str(number) + "_" + tokennum.lower())
+                if vw_2.isChecked():
+                    setattr(genv, doc0, 1)
+                    vw_2.setText(" YES")
+                else:
+                    setattr(genv, doc0, 0)
+                    vw_2.setText(" NO")
+                #
                 lh_0.addWidget(vw_2)
             
-            elif elements[i][1] == self.type_combo_box:
+            elif elements[i][1] == genv.type_combo_box:
                 vw_2 = self.addComboBox(tokennum)
                 vw_2.setMinimumHeight(26)
                 vw_2.setFont(self.font)
                 vw_2.font().setPointSize(14)
                 lh_0.addWidget(vw_2)
+                #
+                doc0 = ("doc_" + str(number) + "_" + tokennum.lower())
+                setattr(genv, doc0, "")
                 
                 if elements[i][2] == 4:
                     data = json.loads(self.supported_langs)
@@ -7932,11 +7958,15 @@ class myCustomScrollArea(QScrollArea):
                     for j in range(0, len(elements[i][3])):
                         vw_2.addItem(elements[i][3][j])
             
-            elif elements[i][1] == self.type_spin:
+            elif elements[i][1] == genv.type_spin:
                 vw_2 = QSpinBox()
+                vw_2.setObjectName(tokennum)
                 vw_2.setFont(self.font_a)
                 vw_2.setMinimumHeight(21)
                 lh_0.addWidget(vw_2)
+                #
+                doc0 = ("doc_" + str(number) + "_" + tokennum.lower())
+                setattr(genv, doc0, 0)
             
             lv_0.addLayout(lh_0)
             self.layout.addLayout(lv_0)
@@ -8949,8 +8979,8 @@ class customScrollView_10(myCustomScrollArea):
         
         ## 0xA0600
         label_10_elements = [
-            [0xA0601, self.type_check_box, 0, True ],
-            [0xA0602, self.type_edit,      3 ]
+            [0xA0601, genv.type_check_box, 0, True ],
+            [0xA0602, genv.type_edit,      3 ]
         ]
         self.addElements(10, label_10_elements, 0x0600)
 
@@ -9036,8 +9066,8 @@ class customScrollView_16(myCustomScrollArea):
         
         ## 0xA1200
         label_16_elements = [
-            [0xA1201, self.type_check_box, 0, False ],
-            [0xA1202, self.type_edit,      1 ],
+            [0xA1201, genv.type_check_box, 0, False ],
+            [0xA1202, genv.type_edit,      1 ],
         ]
         self.addElements(16, label_16_elements, 0x1200)
 
@@ -9053,7 +9083,7 @@ class customScrollView_17(myCustomScrollArea):
         
         ## 0xA1300
         label_17_elements = [
-            [0xA1301,  self.type_check_box, 0, False ]
+            [0xA1301,  genv.type_check_box, 0, False ]
         ]
         self.addElements(17, label_17_elements, 0x1300)
 
@@ -9069,9 +9099,9 @@ class customScrollView_18(myCustomScrollArea):
         
         ## 0xA1400
         label_18_elements = [
-            [0xA1401, self.type_check_box, 0, False ],
-            [0xA1402, self.type_edit,      1 ],
-            [0xA1403, self.type_check_box, 0, True  ],
+            [0xA1401, genv.type_check_box, 0, False ],
+            [0xA1402, genv.type_edit,      1 ],
+            [0xA1403, genv.type_check_box, 0, True  ],
         ]
         self.addElements(18, label_18_elements, 0x1400)
 
@@ -17520,71 +17550,92 @@ class FileWatcherGUI(QDialog):
             else:
                 genv.doc_type = -1
             
+            content = (""
+            + "[common]\n"
+            + "language = en_us\n"
+            + "framework = "     + str(genv.doc_framework)  + "\n"
+            + "lang = "          + str(genv.doc_lang)       + "\n"
+            + "template = "      + str(genv.doc_template)   + "\n"
+            + "kind = "          + str(genv.doc_kind)       + "\n"
+            + "\n"
+            
+            + "[project]\n"
+            + "type = "          + str(genv.doc_type)       + "\n"
+            + "doc_out = "       + str(genv.doc_type_out)   + "\n"
+            + "logo = "          + genv.doc_logo            + "\n"
+            + "name = "          + genv.doc_name            + "\n"
+            + "author = "        + genv.doc_author          + "\n"
+            + "number = "        + genv.doc_number          + "\n"
+            + "srcdir = "        + genv.doc_srcdir          + "\n"
+            + "dstdir = "        + genv.doc_dstdir          + "\n"
+            + "scan_recursiv = " + str(genv.doc_recursiv)   + "\n"
+            + "\n"
+            
+            + "[mode]\n"
+            + "optimized = "     + str(genv.doc_optimize)   + "\n"
+            + "doc_entries = "   + str(genv.doc_entries)    + "\n"
+            + "cross = "         + str(genv.doc_cross)      + "\n"
+            + "\n"
+            
+            + "[output]\n"
+            + "doc_html = "        + str(genv.doc_output_html)        + "\n"
+            + "doc_plain_html  = " + str(genv.doc_output_plain_html)  + "\n"
+            + "doc_navi = "        + str(genv.doc_output_navi)        + "\n"
+            + "doc_prepare_chm = " + str(genv.doc_output_prepare_chm) + "\n"
+            + "doc_search_func = " + str(genv.doc_output_search_func) + "\n"
+            
+            + "doc_latex = "       + str(genv.doc_output_latex)     + "\n"
+            + "doc_latex_pdf = "   + str(genv.doc_output_latex_pdf) + "\n"
+            + "doc_latex_imm = "   + str(genv.doc_output_latex_imm) + "\n"
+            + "doc_latex_ps = "    + str(genv.doc_output_latex_ps)  + "\n"
+            
+            + "doc_man = " + str(genv.doc_output_man) + "\n"
+            + "doc_rtf = " + str(genv.doc_output_rtf) + "\n"
+            + "doc_xml = " + str(genv.doc_output_xml) + "\n"
+            + "doc_doc = " + str(genv.doc_output_doc) + "\n"
+            + "\n"
+            
+            + "[diagrams]\n"
+            + "dia_not = " + str(genv.doc_dia_not) + "\n"
+            + "dia_txt = " + str(genv.doc_dia_txt) + "\n"
+            + "dia_bin = " + str(genv.doc_dia_bin) + "\n"
+            + "dia_dot = " + str(genv.doc_dia_dot) + "\n"
+            + "\n"
+            
+            + "[graph]\n"
+            + "class = "  + str(genv.doc_dia_class)  + "\n"
+            + "colab = "  + str(genv.doc_dia_colab)  + "\n"
+            + "overh = "  + str(genv.doc_dia_overh)  + "\n"
+            + "inc = "    + str(genv.doc_dia_inc)    + "\n"
+            + "incby = "  + str(genv.doc_dia_incby)  + "\n"
+            + "call = "   + str(genv.doc_dia_call)   + "\n"
+            + "callby = " + str(genv.doc_dia_callby) + "\n"
+            + "\n"
+            )
+            
+            ## 0xA0100
+            content += "[expert]\n"
+            elements = eval(_("label_5_elements"))
+            hid      = 0x100
+            
+            doc5     = "doc_5_"
+            gen5     = "genv." + doc5
+            
+            for i in range(0, len(elements)):
+                helpID   = hid + i + 1
+                helpText = _("h" + f"{helpID:04X}")
+                tokenID  = _("A" + f"{helpID:04X}")
+                
+                content += (
+                    doc5 + tokenID.lower()   + " = " + str(eval(
+                    gen5 + tokenID.lower())) + "\n"
+                )
+            
+            content += "\n"
             with open(genv.v__app__config_ini_help, "w") as config_file:
-                content = (""
-                + "[common]\n"
-                + "language = en_us\n"
-                + "framework = "     + str(genv.doc_framework)  + "\n"
-                + "lang = "          + str(genv.doc_lang)       + "\n"
-                + "template = "      + str(genv.doc_template)   + "\n"
-                + "kind = "          + str(genv.doc_kind)       + "\n"
-                + "\n"
-                
-                + "[project]\n"
-                + "type = "          + str(genv.doc_type)       + "\n"
-                + "doc_out = "       + str(genv.doc_type_out)   + "\n"
-                + "logo = "          + genv.doc_logo            + "\n"
-                + "name = "          + genv.doc_name            + "\n"
-                + "author = "        + genv.doc_author          + "\n"
-                + "number = "        + genv.doc_number          + "\n"
-                + "srcdir = "        + genv.doc_srcdir          + "\n"
-                + "dstdir = "        + genv.doc_dstdir          + "\n"
-                + "scan_recursiv = " + str(genv.doc_recursiv)   + "\n"
-                + "\n"
-                
-                + "[mode]\n"
-                + "optimized = "     + str(genv.doc_optimize)   + "\n"
-                + "doc_entries = "   + str(genv.doc_entries)    + "\n"
-                + "cross = "         + str(genv.doc_cross)      + "\n"
-                + "\n"
-                
-                + "[output]\n"
-                + "doc_html = "        + str(genv.doc_output_html)        + "\n"
-                + "doc_plain_html  = " + str(genv.doc_output_plain_html)  + "\n"
-                + "doc_navi = "        + str(genv.doc_output_navi)        + "\n"
-                + "doc_prepare_chm = " + str(genv.doc_output_prepare_chm) + "\n"
-                + "doc_search_func = " + str(genv.doc_output_search_func) + "\n"
-                
-                + "doc_latex = "       + str(genv.doc_output_latex)     + "\n"
-                + "doc_latex_pdf = "   + str(genv.doc_output_latex_pdf) + "\n"
-                + "doc_latex_imm = "   + str(genv.doc_output_latex_imm) + "\n"
-                + "doc_latex_ps = "    + str(genv.doc_output_latex_ps)  + "\n"
-                
-                + "doc_man = " + str(genv.doc_output_man) + "\n"
-                + "doc_rtf = " + str(genv.doc_output_rtf) + "\n"
-                + "doc_xml = " + str(genv.doc_output_xml) + "\n"
-                + "doc_doc = " + str(genv.doc_output_doc) + "\n"
-                + "\n"
-                
-                + "[diagrams]\n"
-                + "dia_not = " + str(genv.doc_dia_not) + "\n"
-                + "dia_txt = " + str(genv.doc_dia_txt) + "\n"
-                + "dia_bin = " + str(genv.doc_dia_bin) + "\n"
-                + "dia_dot = " + str(genv.doc_dia_dot) + "\n"
-                + "\n"
-                
-                + "[graph]\n"
-                + "class = "  + str(genv.doc_dia_class)  + "\n"
-                + "colab = "  + str(genv.doc_dia_colab)  + "\n"
-                + "overh = "  + str(genv.doc_dia_overh)  + "\n"
-                + "inc = "    + str(genv.doc_dia_inc)    + "\n"
-                + "incby = "  + str(genv.doc_dia_incby)  + "\n"
-                + "call = "   + str(genv.doc_dia_call)   + "\n"
-                + "callby = " + str(genv.doc_dia_callby) + "\n"
-                
-                + "\n")
                 config_file.write(content)
                 config_file.close()
+                
             return True
             
         except PermissionError as e:
