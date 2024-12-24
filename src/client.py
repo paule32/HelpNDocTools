@@ -7497,9 +7497,14 @@ class myIconLabel(QLabel):
     
     def mousePressEvent(self, event):
         parent = self.parent.parent
-        genv.active_side_button = self.mode
         if event.button() == Qt.LeftButton:
-            #DebugPrint(self.caption)
+            if self.mode == 0:
+                genv.devices_scroll.hide()
+                genv.servers_scroll.show()
+            else:
+                genv.servers_scroll.hide()
+                genv.devices_scroll.show()
+            
             self.btn_clicked(self.parent,
             genv.parent_array[self.mode])
     
@@ -16061,24 +16066,7 @@ class FileWatcherGUI(QDialog):
         return
     
     def menu_file_clicked_new_help(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("help")
         #
         genv.active_side_button = genv.SIDE_BUTTON_HELP
         parent = genv.parent_array[genv.SIDE_BUTTON_HELP]
@@ -16088,24 +16076,7 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_dbase(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("dbase")
         #
         genv.active_side_button = genv.SIDE_BUTTON_DBASE
         parent = genv.parent_array[genv.SIDE_BUTTON_DBASE]
@@ -16115,24 +16086,7 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_pascal(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        elif genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        elif genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        elif genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        elif genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        elif genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        elif genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        elif genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("pascal")
         #
         genv.active_side_button = genv.SIDE_BUTTON_PASCAL
         parent = genv.parent_array[genv.SIDE_BUTTON_PASCAL]
@@ -16142,24 +16096,7 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_cpp(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("cpp")
         #
         genv.active_side_button = genv.SIDE_BUTTON_CPP
         parent = genv.parent_array[genv.SIDE_BUTTON_CPP]
@@ -16169,24 +16106,7 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_java(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("java")
         #
         genv.active_side_button = genv.SIDE_BUTTON_JAVA
         parent = genv.parent_array[genv.SIDE_BUTTON_JAVA]
@@ -16196,24 +16116,7 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_javascript(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("java script")
         #
         genv.active_side_button = genv.SIDE_BUTTON_JAVASCRIPT
         parent = genv.parent_array[genv.SIDE_BUTTON_JAVASCRIPT]
@@ -16223,24 +16126,7 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_python(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("python")
         #
         genv.active_side_button = genv.SIDE_BUTTON_PYTHON
         parent = genv.parent_array[genv.SIDE_BUTTON_PYTHON]
@@ -16250,24 +16136,6 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_prolog(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_PROLOG
         parent = genv.parent_array[genv.SIDE_BUTTON_PROLOG]
@@ -16277,24 +16145,7 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_fortran(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("fortran")
         #
         genv.active_side_button = genv.SIDE_BUTTON_FORTRAN
         parent = genv.parent_array[genv.SIDE_BUTTON_FORTRAN]
@@ -16304,24 +16155,7 @@ class FileWatcherGUI(QDialog):
         return True
     
     def menu_file_clicked_new_lisp(self):
-        if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-            DebugPrint("help")
-        if genv.active_side_button == genv.SIDE_BUTTON_DBASE:
-            DebugPrint("dbase")
-        if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
-            DebugPrint("pascal")
-        if genv.active_side_button == genv.SIDE_BUTTON_CPP:
-            DebugPrint("cpp")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVA:
-            DebugPrint("java")
-        if genv.active_side_button == genv.SIDE_BUTTON_JAVASCRIPT:
-            DebugPrint("java script")
-        if genv.active_side_button == genv.SIDE_BUTTON_PYTHON:
-            DebugPrint("python")
-        if genv.active_side_button == genv.SIDE_BUTTON_LISP:
-            DebugPrint("lisp")
-        if genv.active_side_button == genv.SIDE_BUTTON_FORTRAN:
-            DebugPrint("fortran")
+        DebugPrint("lisp")
         #
         genv.active_side_button = genv.SIDE_BUTTON_LISP
         parent = genv.parent_array[genv.SIDE_BUTTON_LISP]
@@ -16434,7 +16268,164 @@ class FileWatcherGUI(QDialog):
         
         # Sende das Ereignis an den Button
         QApplication.postEvent(obj, mouse_event)
+    
+    def handle_right_bar_servers(self):
+        # servers
+        font = QFont(genv.v__app__font,14)
+        font.setBold(True)
         
+        ####
+        setattr(genv, "servers_scroll", QScrollArea())
+        setattr(genv, "servers_widget", QWidget())
+        setattr(genv, "servers_layout", QVBoxLayout())
+        
+        #
+        genv.servers_scroll.setMinimumWidth(230)
+        genv.servers_scroll.setMaximumWidth(230)
+        #
+        genv.servers_widget.setMinimumWidth(230)
+        genv.servers_widget.setMaximumWidth(230)
+        #
+        genv.servers_widget.setContentsMargins(1,0,0,1)
+        genv.servers_layout.setContentsMargins(1,0,0,1)
+        
+        self.servers_label_servers = QPushButton(" Servers: ")
+        self.servers_label_servers.setMinimumWidth(180)
+        self.servers_label_servers.setMaximumWidth(180)
+        self.servers_label_servers.setFont(font)
+        genv.servers_layout.addWidget(self.servers_label_servers)
+        #
+        self.servers_list_servers = QListWidget()
+        self.servers_list_servers.setIconSize(QSize(40,40))
+        self.servers_list_servers.setFont(font)
+        genv.servers_layout.addWidget(self.servers_list_servers)
+        
+        self.servers_add_button = QPushButton("Add")
+        self.servers_del_button = QPushButton("Del")
+        self.servers_con_button = QPushButton("Connect")
+        #
+        self.servers_add_button.setMinimumHeight(26)
+        self.servers_del_button.setMinimumHeight(26)
+        self.servers_con_button.setMinimumHeight(26)
+        
+        genv.servers_layout.addWidget(self.servers_add_button)
+        genv.servers_layout.addWidget(self.servers_del_button)
+        genv.servers_layout.addWidget(self.servers_con_button)
+        
+        genv.servers_widget.setLayout(genv.servers_layout)
+        
+        genv.servers_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        genv.servers_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        genv.servers_scroll.setWidgetResizable(True)
+        genv.servers_scroll.setLayout(genv.servers_layout)
+        
+        self.dl2 = QVBoxLayout()
+        self.dl2.setContentsMargins(1,0,0,1)
+        self.dl2.addWidget(genv.servers_scroll)
+        ##
+        self.main_layout.addLayout(self.dl2)
+        genv.servers_scroll.hide()
+        
+    def handle_right_bar_devices(self):
+        # devices
+        font = QFont(genv.v__app__font,14)
+        font.setBold(True)
+        
+        ####
+        setattr(genv, "devices_scroll", QScrollArea())
+        setattr(genv, "devices_widget", QWidget())
+        setattr(genv, "devices_layout", QVBoxLayout())
+        
+        #
+        genv.devices_scroll.setMinimumWidth(240)
+        genv.devices_scroll.setMaximumWidth(240)
+        #
+        genv.devices_widget.setMinimumWidth(240)
+        genv.devices_widget.setMaximumWidth(240)
+        #
+        genv.devices_widget.setContentsMargins(1,0,0,1)
+        genv.devices_layout.setContentsMargins(1,0,0,1)
+        
+        self.devices_label_printers = QPushButton("  Printers:  ")
+        self.devices_label_printers.setMinimumWidth(240)
+        self.devices_label_printers.setMaximumWidth(240)
+        self.devices_label_printers.setFont(font)
+        genv.devices_layout.addWidget(self.devices_label_printers)
+        #
+        self.devices_list_printers = QListWidget()
+        self.devices_list_printers.setIconSize(QSize(40,40))
+        self.devices_list_printers.setFont(font)
+        genv.devices_layout.addWidget(self.devices_list_printers)
+        
+        #
+        items = [
+            {"text": "Printer p:1", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) },
+            {"text": "Printer p:2", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) },
+            {"text": "Printer p:3", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) }
+        ]
+        for item in items:
+            devices_list_item = QListWidgetItem(item["text"])
+            devices_list_item.setIcon(QIcon(item["icon"]))
+            self.devices_list_printers.addItem(devices_list_item)
+        #
+        
+        self.devices_tabs_storages = QPushButton()
+        self.devices_tabs_storages.setText("  Storages:  ")
+        self.devices_tabs_storages.setFont(font)
+        genv.devices_layout.addWidget(self.devices_tabs_storages)
+        #
+        self.devices_list_storages = QListWidget()
+        self.devices_list_storages.move(0,264)
+        self.devices_list_storages.setIconSize(QSize(40,40))
+        self.devices_list_storages.setFont(font)
+        genv.devices_layout.addWidget(self.devices_list_storages)
+        #
+        items = [
+            {"text": "Storage  s:1", "icon": os.path.join(genv.v__app__img__int__, "storage"  + genv.v__app__img_ext__) },
+            {"text": "Database d:2", "icon": os.path.join(genv.v__app__img__int__, "database" + genv.v__app__img_ext__) },
+            {"text": "Database d:3", "icon": os.path.join(genv.v__app__img__int__, "database" + genv.v__app__img_ext__) }
+        ]
+        for item in items:
+            devices_list_item = QListWidgetItem(item["text"])
+            devices_list_item.setIcon(QIcon(item["icon"]))
+            self.devices_list_storages.addItem(devices_list_item)
+        #
+        
+        self.devices_tabs_label3 = QPushButton()
+        self.devices_tabs_label3.setText("  Team Server:  ")
+        self.devices_tabs_label3.setFont(font)
+        genv.devices_layout.addWidget(self.devices_tabs_label3)
+        #
+        self.devices_list_widget3 = QListWidget()
+        self.devices_list_widget3.setMaximumHeight(100)
+        self.devices_list_widget3.setIconSize(QSize(40,40))
+        self.devices_list_widget3.setFont(font)
+        genv.devices_layout.addWidget(self.devices_list_widget3)
+        #
+        items = [
+            {"text": "Meeting m:1", "icon": os.path.join(genv.v__app__img__int__, "meeting" + genv.v__app__img_ext__) },
+            {"text": "Session c:2", "icon": os.path.join(genv.v__app__img__int__, "session" + genv.v__app__img_ext__) }
+        ]
+        for item in items:
+            devices_list_item = QListWidgetItem(item["text"])
+            devices_list_item.setIcon(QIcon(item["icon"]))
+            self.devices_list_widget3.addItem(devices_list_item)
+        #
+        
+        genv.devices_widget.setLayout(genv.devices_layout)
+        
+        genv.devices_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        genv.devices_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        genv.devices_scroll.setWidgetResizable(True)
+        genv.devices_scroll.setLayout(genv.devices_layout)
+        
+        self.dl = QVBoxLayout()
+        self.dl.setContentsMargins(1,0,0,1)
+        self.dl.addWidget(genv.devices_scroll)
+        ##
+        self.main_layout.addLayout(self.dl)
+        genv.devices_scroll.hide()
+            
     def init_ui(self):
         # mouse tracking
         self.setMouseTracking(True)
@@ -16678,106 +16669,8 @@ class FileWatcherGUI(QDialog):
         self.tab4_top_layout = QHBoxLayout(self.tab_widget_tabs)
         self.tab5_top_layout = QHBoxLayout(self.tab_html)
         
-        ####
-        # devices
-        font = QFont(genv.v__app__font,14)
-        font.setBold(True)
-        
-        ####
-        self.devices_scroll = QScrollArea()
-        self.devices_widget = QWidget()
-        self.devices_layout = QVBoxLayout()
-        
-        #
-        self.devices_scroll.setMinimumWidth(240)
-        self.devices_scroll.setMaximumWidth(240)
-        #
-        self.devices_widget.setMinimumWidth(240)
-        self.devices_widget.setMaximumWidth(240)
-        #
-        self.devices_widget.setContentsMargins(1,0,0,1)
-        self.devices_layout.setContentsMargins(1,0,0,1)
-        
-        self.devices_label_printers = QPushButton("  Printers:  ")
-        self.devices_label_printers.setMinimumWidth(240)
-        self.devices_label_printers.setMaximumWidth(240)
-        self.devices_label_printers.setFont(font)
-        self.devices_layout.addWidget(self.devices_label_printers)
-        #
-        self.devices_list_printers = QListWidget()
-        self.devices_list_printers.setIconSize(QSize(40,40))
-        self.devices_list_printers.setFont(font)
-        self.devices_layout.addWidget(self.devices_list_printers)
-        
-        #
-        items = [
-            {"text": "Printer p:1", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) },
-            {"text": "Printer p:2", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) },
-            {"text": "Printer p:3", "icon": os.path.join(genv.v__app__img__int__, "printer" + genv.v__app__img_ext__) }
-        ]
-        for item in items:
-            devices_list_item = QListWidgetItem(item["text"])
-            devices_list_item.setIcon(QIcon(item["icon"]))
-            self.devices_list_printers.addItem(devices_list_item)
-        #
-        
-        
-        self.devices_tabs_storages = QPushButton()
-        self.devices_tabs_storages.setText("  Storages:  ")
-        self.devices_tabs_storages.setFont(font)
-        self.devices_layout.addWidget(self.devices_tabs_storages)
-        #
-        self.devices_list_storages = QListWidget()
-        self.devices_list_storages.move(0,264)
-        self.devices_list_storages.setIconSize(QSize(40,40))
-        self.devices_list_storages.setFont(font)
-        self.devices_layout.addWidget(self.devices_list_storages)
-        #
-        items = [
-            {"text": "Storage  s:1", "icon": os.path.join(genv.v__app__img__int__, "storage"  + genv.v__app__img_ext__) },
-            {"text": "Database d:2", "icon": os.path.join(genv.v__app__img__int__, "database" + genv.v__app__img_ext__) },
-            {"text": "Database d:3", "icon": os.path.join(genv.v__app__img__int__, "database" + genv.v__app__img_ext__) }
-        ]
-        for item in items:
-            devices_list_item = QListWidgetItem(item["text"])
-            devices_list_item.setIcon(QIcon(item["icon"]))
-            self.devices_list_storages.addItem(devices_list_item)
-        #
-        
-        self.devices_tabs_label3 = QPushButton()
-        self.devices_tabs_label3.setText("  Team Server:  ")
-        self.devices_tabs_label3.setFont(font)
-        self.devices_layout.addWidget(self.devices_tabs_label3)
-        #
-        self.devices_list_widget3 = QListWidget()
-        self.devices_list_widget3.setMaximumHeight(100)
-        self.devices_list_widget3.setIconSize(QSize(40,40))
-        self.devices_list_widget3.setFont(font)
-        self.devices_layout.addWidget(self.devices_list_widget3)
-        #
-        items = [
-            {"text": "Meeting m:1", "icon": os.path.join(genv.v__app__img__int__, "meeting" + genv.v__app__img_ext__) },
-            {"text": "Session c:2", "icon": os.path.join(genv.v__app__img__int__, "session" + genv.v__app__img_ext__) }
-        ]
-        for item in items:
-            devices_list_item = QListWidgetItem(item["text"])
-            devices_list_item.setIcon(QIcon(item["icon"]))
-            self.devices_list_widget3.addItem(devices_list_item)
-        #
-        
-        self.devices_widget.setLayout(self.devices_layout)
-        
-        self.devices_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.devices_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.devices_scroll.setWidgetResizable(True)
-        self.devices_scroll.setLayout(self.devices_layout)
-        #
-        #
-        self.dl = QVBoxLayout()
-        self.dl.setContentsMargins(1,0,0,1)
-        self.dl.addWidget(self.devices_scroll)
-        ####
-        self.main_layout.addLayout(self.dl)
+        self.handle_right_bar_devices()
+        self.handle_right_bar_servers()
         
         ################
         ##self.tab1_layout = QHBoxLayout()
@@ -17034,6 +16927,7 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_text1.setFont(font)
         
         self.tab0_fold_edit1 = myLineEdit()
+        self.tab0_fold_edit1.setMinimumWidth(274)
         self.tab0_fold_edit1.returnPressed.connect(self.tab0_fold_edit1_return)
         
         self.tab0_fold_push1 = OpenProjectButton(self, font)
@@ -17049,7 +16943,9 @@ class FileWatcherGUI(QDialog):
         self.tab0_fold_edit1.setText(self.tab0_fold_userd)
         
         self.tab0_fold_scroll1 = QScrollArea()
+        self.tab0_fold_scroll1.setWidgetResizable(True)
         self.tab0_fold_scroll1.setMinimumWidth(300)
+        self.tab0_fold_scroll1.setMaximumWidth(300)
         self.tab0_fold_scroll1.setMinimumHeight(215)
         
         self.tab0_fold_push11  = MyPushButton(self, "Create", 1, self.create_project_clicked)
@@ -17059,7 +16955,9 @@ class FileWatcherGUI(QDialog):
         #        
         #
         self.tab0_fold_scroll2 = QScrollArea()
-        self.tab0_fold_scroll2.setMinimumWidth(310)
+        self.tab0_fold_scroll2.setWidgetResizable(True)
+        self.tab0_fold_scroll2.setMinimumWidth(300)
+        self.tab0_fold_scroll2.setMaximumWidth(300)
         #
         lyfont = QFont("Arial",10)
         
@@ -17085,18 +16983,18 @@ class FileWatcherGUI(QDialog):
         self.tab0_topB_vlayout.addWidget(donate)
         self.tab0_topB_vlayout.addWidget(button)
         #
-        self.tab0_topB_hlayout.addWidget(self.tab0_fold_scroll2)
+        self.tab0_topB_hlayout.addWidget(self.tab0_fold_scroll2, alignment=Qt.AlignLeft)
         #
-        self.tab0_top1_hlayout.addWidget(self.tab0_fold_text1)
-        self.tab0_top1_hlayout.addWidget(self.tab0_fold_edit1)
-        self.tab0_top1_hlayout.addWidget(self.tab0_fold_push1)
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_text1, alignment=Qt.AlignLeft)
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_edit1, alignment=Qt.AlignLeft)
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_push1, alignment=Qt.AlignLeft)
         #
         #
-        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push11)
-        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push12)
-        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push13)
-        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push14)
-        self.tab0_topA_hlayout.addWidget(self.tab0_fold_scroll1)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push11 , alignment=Qt.AlignLeft)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push12 , alignment=Qt.AlignLeft)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push13 , alignment=Qt.AlignLeft)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push14 , alignment=Qt.AlignLeft)
+        self.tab0_topA_hlayout.addWidget(self.tab0_fold_scroll1, alignment=Qt.AlignLeft)
         #
         self.tab0_topC_hlayout.addLayout(self.tab0_topA_vlayout)
         self.tab0_topC_hlayout.addLayout(self.tab0_topA_hlayout)
@@ -17116,14 +17014,7 @@ class FileWatcherGUI(QDialog):
         #
         #
         self.tab0_fold_scroll1_contentWidget = QWidget()
-        #self.tab0_fold_scroll1_contentWidget.setGeometry(QRect(10,10,297,235))
-        #self.tab0_fold_scroll1_contentWidget.setStyleSheet("background-color:gray;")
-        #
-        #
-        #
         self.tab0_fold_scroll2_contentWidget = QWidget()
-        #self.tab0_fold_scroll2_contentWidget.setGeometry(QRect(10,10,297,235))
-        #self.tab0_fold_scroll2_contentWidget.setStyleSheet("background-color:gray;")
         #
         self.tab0_fold_scroll1.setWidget(self.tab0_fold_scroll1_contentWidget)
         self.tab0_fold_scroll2.setWidget(self.tab0_fold_scroll2_contentWidget)
@@ -17144,6 +17035,7 @@ class FileWatcherGUI(QDialog):
         
         # ScrollArea
         scroll_area = QScrollArea()
+        scroll_area.setStyleSheet(_("ScrollBarCSS"))
         scroll_area.setWidgetResizable(True)
         scro_layout.addWidget(scroll_area)
         
@@ -17193,8 +17085,10 @@ class FileWatcherGUI(QDialog):
         self.tab0_path = QDir.homePath()
         
         self.tab0_help_list1   = QListWidget()
-        self.tab0_help_list1.setMinimumWidth(260)
-        self.tab0_help_list1.setMaximumHeight(110)
+        self.tab0_help_list1.setStyleSheet(_("ScrollBarCSS"))
+        self.tab0_help_list1.setMinimumWidth(320)
+        self.tab0_help_list1.setMaximumWidth(320)
+        self.tab0_help_list1.setMaximumHeight(150)
         self.tab0_help_list1.setIconSize(QSize(34,34))
         self.tab0_help_list1.setFont(QFont(genv.v__app__font, 12))
         self.tab0_help_list1.font().setBold(True)
@@ -17225,7 +17119,9 @@ class FileWatcherGUI(QDialog):
         
         ###
         self.tab0_help_list2   = QListWidget()
-        self.tab0_help_list2.setMinimumWidth(260)
+        self.tab0_help_list2.setStyleSheet(_("ScrollBarCSS"))
+        self.tab0_help_list2.setMinimumWidth(320)
+        self.tab0_help_list2.setMaximumWidth(320)
         self.tab0_help_list2.setIconSize(QSize(34,34))
         self.tab0_help_list2.setFont(QFont(genv.v__app__font, 12))
         self.tab0_help_list2.font().setBold(True)
@@ -17252,7 +17148,9 @@ class FileWatcherGUI(QDialog):
         
         ###
         self.tab0_help_list3   = QListWidget()
-        self.tab0_help_list3.setMinimumWidth(260)
+        self.tab0_help_list3.setStyleSheet(_("ScrollBarCSS"))
+        self.tab0_help_list3.setMinimumWidth(320)
+        self.tab0_help_list3.setMaximumWidth(320)
         self.tab0_help_list3.setIconSize(QSize(34,34))
         self.tab0_help_list3.setFont(QFont(genv.v__app__font, 12))
         self.tab0_help_list3.font().setBold(True)
@@ -17508,6 +17406,8 @@ class FileWatcherGUI(QDialog):
         # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
+        
+        genv.servers_scroll.show()
         
         self.interval = 0
         self.currentTime = 0
@@ -20586,13 +20486,16 @@ class FileWatcherGUI(QDialog):
             self.resizing = self.getCursorPosition(event.pos())
     
     def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            if self.resizing:
-                self.resizeWindow(event.globalPos())
+        try:
+            if event.buttons() == Qt.LeftButton:
+                if self.resizing:
+                    self.resizeWindow(event.globalPos())
+                else:
+                    self.move(event.globalPos() - self.mouse_move_pos)
             else:
-                self.move(event.globalPos() - self.mouse_move_pos)
-        else:
-            self.updateCursor(event.pos())
+                self.updateCursor(event.pos())
+        except Exception as e:
+            pass
     
     def mouseReleaseEvent(self, event):
         self.resizing = None
@@ -20750,34 +20653,46 @@ class HelpWindow(QMainWindow):
         
         super(HelpWindow, self).__init__(parent)
         
+        # Splitter erstellen
+        splitter = QSplitter(Qt.Horizontal)
+        
+        
         self.hide()
+        self.setContentsMargins(0,0,0,0)
+        self.setStyleSheet("background-color:gray;")
         self.setWindowTitle(_("CHM Help Dialog"))
         self.setGeometry(100, 100, 700, 600)
         
         # Hauptlayout des Dialogs
         layout = QVBoxLayout()
+        layout.setContentsMargins(1,0,0,1)
         
         # Navigation Panel erstellen
         navigation_container = QVBoxLayout()
         navigation_widget = QWidget()
         navigation_layout = QHBoxLayout()
+        #
+        navigation_widget.setMaximumHeight(56)
+        navigation_widget.setContentsMargins(1,1,1,1)
         
         # Buttons: Home, Prev, Next
-        self.home_button = QPushButton("Home")
-        self.prev_button = QPushButton("Prev")
-        self.next_button = QPushButton("Next")
+        self.home_button = QPushButton(_("Home"))
+        self.prev_button = QPushButton(_("Prev"))
+        self.next_button = QPushButton(_("Next"))
         
-        self.home_button.setMinimumHeight(49)
-        self.prev_button.setMinimumHeight(49)
-        self.next_button.setMinimumHeight(49)
+        self.home_button.setMinimumHeight(40)
+        self.prev_button.setMinimumHeight(40)
+        self.next_button.setMinimumHeight(40)
         
         self.home_button.setCursor(Qt.PointingHandCursor)
         self.prev_button.setCursor(Qt.PointingHandCursor)
         self.next_button.setCursor(Qt.PointingHandCursor)
         
-        self.home_button.setFont(QFont("Arial", 12))
-        self.prev_button.setFont(QFont("Arial", 12))
-        self.next_button.setFont(QFont("Arial", 12))
+        font = QFont("Arial", 12)
+        #
+        self.home_button.setFont(font)
+        self.prev_button.setFont(font)
+        self.next_button.setFont(font)
         
         navigation_widget.setStyleSheet("background-color:lightgray;")
         navigation_layout.setAlignment(Qt.AlignTop)
@@ -20790,18 +20705,28 @@ class HelpWindow(QMainWindow):
         # Setze das Layout für das Navigations-Widget
         navigation_widget.setLayout(navigation_layout)
         
-        hlayout = QHBoxLayout()
+        # Erstes Widget
+        widget1 = QWidget()
+        widget1.setContentsMargins(0,0,0,0)
+        
+        layout1 = QVBoxLayout()
+        layout1.setContentsMargins(0,0,0,0)
         
         # WebView Widget zum Anzeigen der CHM-Datei
         self.browser = QWebEngineView()
         self.topics  = QWebEngineView()
         
-        self.topics.setMinimumWidth(180)
-        self.topics.setMaximumWidth(180)
+        self.topics.setMinimumWidth(100)
+        
+        self.topics .setContentsMargins(0,0,0,0)
+        self.browser.setContentsMargins(0,0,0,0)
         
         self.topics.setStyleSheet("""
         background-color: white;
         """)
+        
+        layout1.addWidget(self.topics)
+        widget1.setLayout(layout1)
 
         page = CustomWebEnginePage(self.topics)
         page.set_parent_view(self.browser)
@@ -20813,13 +20738,28 @@ class HelpWindow(QMainWindow):
         self.topics.setHtml(html_content)
         
         
-        hlayout.addWidget(self.topics)
-        hlayout.addWidget(self.browser)
+        # Zweites Widget
+        widget2 = QWidget()
+        widget2.setContentsMargins(0,0,0,0)
         
-        navigation_container.addWidget(navigation_widget)
-        navigation_container.addLayout(hlayout)
+        layout2 = QVBoxLayout()
+        layout2.setContentsMargins(1,0,0,1)
         
-        layout.addLayout(navigation_container)
+        layout2.addWidget(self.browser)
+        layout2.setContentsMargins(0,0,0,0)
+        widget2.setLayout(layout2)
+        
+        # Widgets zum Splitter hinzufügen
+        splitter.addWidget(widget1)
+        splitter.addWidget(widget2)
+        
+        #navigation_container.addWidget(navigation_widget)
+        #navigation_container.addWidget(splitter)
+        
+        layout.addWidget(navigation_widget)
+        layout.addWidget(splitter)
+        
+        #layout.addLayout(navigation_container)
         
         
         # topic content
@@ -20870,7 +20810,9 @@ class HelpWindow(QMainWindow):
         genv.window_login.setStyleSheet(genv.saved_style)
         
         container = QWidget()
+        container.setContentsMargins(0,0,0,0)
         container.setLayout(layout)
+        
         self.setCentralWidget(container)
         self.show()
     
@@ -20887,6 +20829,20 @@ class HelpWindow(QMainWindow):
     
     def on_close(self):
         self.close()
+    
+    def paintEvent(self, event):
+        # Zeichnet einen Rahmen um das Hauptfenster
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        pen = QPen(Qt.green)  # Grün
+        pen.setWidth(5)  # Rahmenbreite
+        painter.setPen(pen)
+
+        # Rechteck für den Rahmen definieren
+        rect = self.rect()
+        rect = rect.adjusted(2, 2, -2, -2)  # Den Rahmen leicht nach innen verschieben
+        painter.drawRect(rect)
 
 class LoginDialog(QDialog):
     def __init__(self):
