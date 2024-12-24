@@ -7774,7 +7774,7 @@ class myCustomScrollArea(QScrollArea):
         
         self.content_widget = QWidget(self)
         self.content_widget.setMinimumHeight(self.height()-150)
-        self.content_widget.setMinimumWidth (self.width()-50)
+        self.content_widget.setMinimumWidth (self.width()-150)
         self.content_widget.setFont(self.font)
         
         self.layout = QVBoxLayout(self.content_widget)
@@ -7857,16 +7857,20 @@ class myCustomScrollArea(QScrollArea):
         return w
     
     def el_check_box_on_click(self):
-        sender_object_name = self.sender().objectName()
+        sender_object_name = self.sender().objectName().lower()
         sender_object      = self.sender()
         
         if sender_object.isChecked():
             sender_object.setText(" YES")
+            setattr(genv, f"doc_{sender_object_name}", 1)
+            #showInfo("einser: " + str(getattr(genv, f"genv.doc_{sender_object_name}", 3)))
         else:
             sender_object.setText(" NO")
+            setattr(genv, f"doc_{sender_object_name}", 0)
+            #showInfo("nuller: " + str(getattr(genv, f"doc_{sender_object_name}", 5)))
         
-        showInfo(sender_object_name)
-        
+        genv.v__app_win.write_config_part()
+    
     def addElements(self, number, elements, hid):
         for i in range(0, len(elements)):
             lv_0 = QVBoxLayout()
@@ -7892,8 +7896,10 @@ class myCustomScrollArea(QScrollArea):
                 w.setObjectName(tokennum + ':' + str(number))
                 genv.DoxyGenElementLayoutList.append(w)
                 #
-                doc0 = ("doc_" + str(number) + "_" + tokennum.lower())
+                doc0 = ("doc_" + tokennum.lower())
                 setattr(genv, doc0, "")
+                setattr(genv, doc0 + "_object", w)
+                setattr(genv, doc0 + "_type"  , genv.type_edit)
                 
                 if elements[i][2] == 1:
                     self.addPushButton("+",lh_0)
@@ -7916,7 +7922,11 @@ class myCustomScrollArea(QScrollArea):
                 vw_2.setChecked(elements[i][3])
                 vw_2.clicked.connect(self.el_check_box_on_click)
                 #
-                doc0 = ("doc_" + str(number) + "_" + tokennum.lower())
+                doc0 = ("doc_" + tokennum.lower())
+                setattr(genv, doc0, 0)
+                setattr(genv, doc0 + "_object", vw_2)
+                setattr(genv, doc0 + "_type"  , genv.type_check_box)
+                
                 if vw_2.isChecked():
                     setattr(genv, doc0, 1)
                     vw_2.setText(" YES")
@@ -7933,8 +7943,10 @@ class myCustomScrollArea(QScrollArea):
                 vw_2.font().setPointSize(14)
                 lh_0.addWidget(vw_2)
                 #
-                doc0 = ("doc_" + str(number) + "_" + tokennum.lower())
+                doc0 = ("doc_" + tokennum.lower())
                 setattr(genv, doc0, "")
+                setattr(genv, doc0 + "_object", vw_2)
+                setattr(genv, doc0 + "_type"  , genv.type_combo_box)
                 
                 if elements[i][2] == 4:
                     data = json.loads(self.supported_langs)
@@ -7965,8 +7977,10 @@ class myCustomScrollArea(QScrollArea):
                 vw_2.setMinimumHeight(21)
                 lh_0.addWidget(vw_2)
                 #
-                doc0 = ("doc_" + str(number) + "_" + tokennum.lower())
+                doc0 = ("doc_" + tokennum.lower())
                 setattr(genv, doc0, 0)
+                setattr(genv, doc0 + "_object", vw_2)
+                setattr(genv, doc0 + "_type"  , genv.type_spin)
             
             lv_0.addLayout(lh_0)
             self.layout.addLayout(lv_0)
@@ -17126,9 +17140,19 @@ class FileWatcherGUI(QDialog):
         self.img_scroll1_layout.addWidget(genv.img_hlpndoc)
         #
 
-        self.img_scroll2_layout = QVBoxLayout(self.tab0_fold_scroll2)
+        scro_layout = QVBoxLayout(self.tab0_fold_scroll2)
+        
+        # ScrollArea
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scro_layout.addWidget(scroll_area)
+        
+        # Scrollbares Widget
+        scrollable_widget = QWidget()
+        scrollable_layout = QVBoxLayout(scrollable_widget)
         
         radio_font = QFont("Consolas",11)
+        
         genv.radio_cpp        = QRadioButton("C++        Documentation")
         genv.radio_java       = QRadioButton("Java       Documentation")
         genv.radio_javascript = QRadioButton("JavaScript Documentation")
@@ -17149,12 +17173,15 @@ class FileWatcherGUI(QDialog):
         genv.radio_python    .toggled.connect(self.radio_button_toggled)
         genv.radio_fortran   .toggled.connect(self.radio_button_toggled)
         
-        self.img_scroll2_layout.addWidget(genv.radio_cpp)
-        self.img_scroll2_layout.addWidget(genv.radio_java)
-        self.img_scroll2_layout.addWidget(genv.radio_javascript)
-        self.img_scroll2_layout.addWidget(genv.radio_python)
-        self.img_scroll2_layout.addWidget(genv.radio_php)
-        self.img_scroll2_layout.addWidget(genv.radio_fortran)
+        scrollable_layout.addWidget(genv.radio_cpp)
+        scrollable_layout.addWidget(genv.radio_java)
+        scrollable_layout.addWidget(genv.radio_javascript)
+        scrollable_layout.addWidget(genv.radio_python)
+        scrollable_layout.addWidget(genv.radio_php)
+        scrollable_layout.addWidget(genv.radio_fortran)
+        
+        # Scrollable Widget in die ScrollArea setzen
+        scroll_area.setWidget(scrollable_widget)
         
         #
         #
@@ -17539,71 +17566,71 @@ class FileWatcherGUI(QDialog):
                 genv.doc_type = -1
             
             content = (""
-            + "[common]\n"
-            + "language = en_us\n"
-            + "framework = "     + str(genv.doc_framework)  + "\n"
-            + "lang = "          + str(genv.doc_lang)       + "\n"
-            + "template = "      + str(genv.doc_template)   + "\n"
-            + "kind = "          + str(genv.doc_kind)       + "\n"
-            + "\n"
-            
-            + "[project]\n"
-            + "type = "          + str(genv.doc_type)       + "\n"
-            + "doc_out = "       + str(genv.doc_type_out)   + "\n"
-            + "logo = "          + genv.doc_logo            + "\n"
-            + "name = "          + genv.doc_name            + "\n"
-            + "author = "        + genv.doc_author          + "\n"
-            + "number = "        + genv.doc_number          + "\n"
-            + "srcdir = "        + genv.doc_srcdir          + "\n"
-            + "dstdir = "        + genv.doc_dstdir          + "\n"
-            + "scan_recursiv = " + str(genv.doc_recursiv)   + "\n"
-            + "\n"
-            
-            + "[mode]\n"
-            + "optimized = "     + str(genv.doc_optimize)   + "\n"
-            + "doc_entries = "   + str(genv.doc_entries)    + "\n"
-            + "cross = "         + str(genv.doc_cross)      + "\n"
-            + "\n"
-            
-            + "[output]\n"
-            + "doc_html = "        + str(genv.doc_output_html)        + "\n"
-            + "doc_plain_html  = " + str(genv.doc_output_plain_html)  + "\n"
-            + "doc_navi = "        + str(genv.doc_output_navi)        + "\n"
-            + "doc_prepare_chm = " + str(genv.doc_output_prepare_chm) + "\n"
-            + "doc_search_func = " + str(genv.doc_output_search_func) + "\n"
-            
-            + "doc_latex = "       + str(genv.doc_output_latex)     + "\n"
-            + "doc_latex_pdf = "   + str(genv.doc_output_latex_pdf) + "\n"
-            + "doc_latex_imm = "   + str(genv.doc_output_latex_imm) + "\n"
-            + "doc_latex_ps = "    + str(genv.doc_output_latex_ps)  + "\n"
-            
-            + "doc_man = " + str(genv.doc_output_man) + "\n"
-            + "doc_rtf = " + str(genv.doc_output_rtf) + "\n"
-            + "doc_xml = " + str(genv.doc_output_xml) + "\n"
-            + "doc_doc = " + str(genv.doc_output_doc) + "\n"
-            + "\n"
-            
-            + "[diagrams]\n"
-            + "dia_not = " + str(genv.doc_dia_not) + "\n"
-            + "dia_txt = " + str(genv.doc_dia_txt) + "\n"
-            + "dia_bin = " + str(genv.doc_dia_bin) + "\n"
-            + "dia_dot = " + str(genv.doc_dia_dot) + "\n"
-            + "\n"
-            
-            + "[graph]\n"
-            + "class = "  + str(genv.doc_dia_class)  + "\n"
-            + "colab = "  + str(genv.doc_dia_colab)  + "\n"
-            + "overh = "  + str(genv.doc_dia_overh)  + "\n"
-            + "inc = "    + str(genv.doc_dia_inc)    + "\n"
-            + "incby = "  + str(genv.doc_dia_incby)  + "\n"
-            + "call = "   + str(genv.doc_dia_call)   + "\n"
-            + "callby = " + str(genv.doc_dia_callby) + "\n"
-            + "\n"
+                + "[common]\n"
+                + "language = en_us\n"
+                + "framework = "     + str(genv.doc_framework)  + "\n"
+                + "lang = "          + str(genv.doc_lang)       + "\n"
+                + "template = "      + str(genv.doc_template)   + "\n"
+                + "kind = "          + str(genv.doc_kind)       + "\n"
+                + "\n"
+                
+                + "[project]\n"
+                + "type = "          + str(genv.doc_type)       + "\n"
+                + "doc_out = "       + str(genv.doc_type_out)   + "\n"
+                + "logo = "          + genv.doc_logo            + "\n"
+                + "name = "          + genv.doc_name            + "\n"
+                + "author = "        + genv.doc_author          + "\n"
+                + "number = "        + genv.doc_number          + "\n"
+                + "srcdir = "        + genv.doc_srcdir          + "\n"
+                + "dstdir = "        + genv.doc_dstdir          + "\n"
+                + "scan_recursiv = " + str(genv.doc_recursiv)   + "\n"
+                + "\n"
+                
+                + "[mode]\n"
+                + "optimized = "     + str(genv.doc_optimize)   + "\n"
+                + "doc_entries = "   + str(genv.doc_entries)    + "\n"
+                + "cross = "         + str(genv.doc_cross)      + "\n"
+                + "\n"
+                
+                + "[output]\n"
+                + "doc_html = "        + str(genv.doc_output_html)        + "\n"
+                + "doc_plain_html  = " + str(genv.doc_output_plain_html)  + "\n"
+                + "doc_navi = "        + str(genv.doc_output_navi)        + "\n"
+                + "doc_prepare_chm = " + str(genv.doc_output_prepare_chm) + "\n"
+                + "doc_search_func = " + str(genv.doc_output_search_func) + "\n"
+                
+                + "doc_latex = "       + str(genv.doc_output_latex)     + "\n"
+                + "doc_latex_pdf = "   + str(genv.doc_output_latex_pdf) + "\n"
+                + "doc_latex_imm = "   + str(genv.doc_output_latex_imm) + "\n"
+                + "doc_latex_ps = "    + str(genv.doc_output_latex_ps)  + "\n"
+                
+                + "doc_man = " + str(genv.doc_output_man) + "\n"
+                + "doc_rtf = " + str(genv.doc_output_rtf) + "\n"
+                + "doc_xml = " + str(genv.doc_output_xml) + "\n"
+                + "doc_doc = " + str(genv.doc_output_doc) + "\n"
+                + "\n"
+                
+                + "[diagrams]\n"
+                + "dia_not = " + str(genv.doc_dia_not) + "\n"
+                + "dia_txt = " + str(genv.doc_dia_txt) + "\n"
+                + "dia_bin = " + str(genv.doc_dia_bin) + "\n"
+                + "dia_dot = " + str(genv.doc_dia_dot) + "\n"
+                + "\n"
+                
+                + "[graph]\n"
+                + "class = "  + str(genv.doc_dia_class)  + "\n"
+                + "colab = "  + str(genv.doc_dia_colab)  + "\n"
+                + "overh = "  + str(genv.doc_dia_overh)  + "\n"
+                + "inc = "    + str(genv.doc_dia_inc)    + "\n"
+                + "incby = "  + str(genv.doc_dia_incby)  + "\n"
+                + "call = "   + str(genv.doc_dia_call)   + "\n"
+                + "callby = " + str(genv.doc_dia_callby) + "\n"
+                + "\n"
             )
             
             ## 0xA0100
             hid = 0
-            for idx in range(5, 22):
+            for idx in range(5, 23):
                 content += "[expert_"      + str(idx) + "]\n"
                 elements = eval(_("label_" + str(idx) + "_elements"))
                 hid     += 0x100
@@ -17611,26 +17638,24 @@ class FileWatcherGUI(QDialog):
                 if hid == 0xa00:
                     hid = 0x1000
                 
-                doc5 = "doc_"  + str(idx) + "_"
-                gen5 = "genv." + doc5
-                
-                for i in range(0, len(elements)):
+                i = 0
+                for item in elements:
                     helpID   = hid + i + 1
                     helpText = _("h" + f"{helpID:04X}")
-                    tokenID  = _("A" + f"{helpID:04X}")
+                    tokenID  = _("A" + f"{helpID:04X}").lower()
+                    
+                    value = getattr(genv, "doc_" + tokenID, 3)
                     
                     content += (
-                        doc5 + tokenID.lower()   + " = " + str(eval(
-                        gen5 + tokenID.lower())) + "\n"
+                        tokenID + " = " + str(value) + "\n"
                     )
-                
+                    i += 1
+                    
                 content += "\n"
             
-            content += "\n"
             with open(genv.v__app__config_ini_help, "w") as config_file:
                 config_file.write(content)
                 config_file.close()
-                
             return True
             
         except configparser.DuplicateSectionError as e:
@@ -18433,6 +18458,62 @@ class FileWatcherGUI(QDialog):
                 else:
                     item7.setChecked(True)
                 
+                try:
+                    ## 0xA0100
+                    hid = 0
+                    for idx in range(5, 23):
+                        elements = eval(_("label_" + str(idx) + "_elements"))
+                        hid     += 0x100
+                        
+                        if hid == 0xa00:
+                            hid = 0x1000
+                        
+                        i = 0
+                        for item in elements:
+                            helpID  = hid + i + 1
+                            tokenID = _("A" + f"{helpID:04X}").lower()
+                            intstr  = genv.v__app__config_help.get(f"expert_{idx}", tokenID)
+                            
+                            tok_type   = getattr(genv, "doc_" + tokenID + "_type", 3)
+                            tok_object = getattr(genv, "doc_" + tokenID + "_object", None)
+                            
+                            if tok_type == genv.type_check_box:
+                                if int(intstr) == 0:
+                                    #showInfo("checkbox: " + tokenID + "\nis not check")
+                                    setattr(genv, "doc_" + tokenID, 0)
+                                    tok_object.setChecked(False)
+                                    tok_object.setText(_(" NO"))
+                                else:
+                                    #showInfo("checkbox: " + tokenID + "\nis checked")
+                                    setattr(genv, "doc_" + tokenID, 1)
+                                    tok_object.setChecked(True)
+                                    tok_object.setText(_(" YES"))
+                                    
+                            i += 1
+                            
+                except AttributeError as e:
+                    showInfo("TODO: list3")
+                    return False
+                    ## 0xA0100
+                    hid = 0
+                    for idx in range(5, 23):
+                        elements = eval(_("label_" + str(idx) + "_elements"))
+                        hid     += 0x100
+                        
+                        if hid == 0xa00:
+                            hid = 0x1000
+                        
+                        i = 0
+                        for item in elements:
+                            helpID  = hid + i + 1
+                            tokenID = _("A" + f"{helpID:04X}").lower()
+                            
+                            value = getattr(genv, "doc_" + tokenID + "_type")
+                            
+                            #if value == genv.type_check_box:
+                            setattr(genv, "doc_" + tokenID, 3)
+                            i += 1
+                    
                 genv.v__app_win.write_config_part()
                 
             # framework
