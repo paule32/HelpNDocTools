@@ -94,7 +94,8 @@ try:
             "locale", "io", "random", "ipapi", "ipcore", "string", "capstone",
             "httpx", "httpx-auth", "ctypes", "sqlite3", "configparser", "traceback",
             "marshal", "inspect", "logging", "PyQt5", "pathlib", "rich", "string",
-            "codecs" ]
+            "codecs"
+        ]
         
         for module in required_modules:
             try:
@@ -124,9 +125,10 @@ try:
                         check=True,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)
-                        DebugPrint(f"{module} installed successfully.")
-                    except:
-                        DebugPrint(f"error: module: install fail.")
+                        #
+                    except Exception as e:
+                        print(e)
+                        DebugPrint(f"error: {module}: install fail.")
                         sys.exit(1)
     
     # ---------------------------------------------------------
@@ -358,6 +360,12 @@ try:
 
     import pefile         # MS-Windows PE executable image
     import capstone       # disassembly
+    
+    # ------------------------------------------------------------------------
+    # asmjit for Python ...
+    # ------------------------------------------------------------------------
+    from peachpy        import *
+    from peachpy.x86_64 import *
 
     # ------------------------------------------------------------------------
     # windows os stuff ...
@@ -1991,7 +1999,7 @@ class FileExplorer(QWidget):
         super(FileExplorer, self).__init__(parent)
         
         self.setWindowTitle("Dateien und Laufwerke Explorer mit Dateigröße")
-        self.resize(800, 600)
+        self.resize(400, 600)
         
         # Layout erstellen
         layout = QVBoxLayout(self)
@@ -2015,7 +2023,7 @@ class FileExplorer(QWidget):
         self.tree_view.setRootIndex(self.file_system_model.index(self.file_system_model.rootPath()))
         
         # Spalten anpassen
-        self.tree_view.setColumnWidth(0, 300)  # Spaltenbreite für den Dateinamen
+        self.tree_view.setColumnWidth(0, 200)  # Spaltenbreite für den Dateinamen
         self.tree_view.setColumnWidth(1, 100)  # Spaltenbreite für Dateigröße
         self.tree_view.setColumnWidth(2, 150)  # Spaltenbreite für den Typ
         self.tree_view.setColumnWidth(3, 150)  # Spaltenbreite für das Änderungsdatum
@@ -2051,6 +2059,119 @@ class FileExplorer(QWidget):
                     self,
                     "Datei Doppelklick",
                     f"Dateiname: {file_name}\nPfad: {file_path}")
+
+class CPUWorker(QThread):
+    update_signal = pyqtSignal(dict, dict)  # Signal: Updated Registers and Flags
+    
+    def __init__(self, parent=None):
+        super(CPUWorker, self).__init__(parent)
+        self.running = True  # Control flag
+    
+    def run(self):
+        while self.running:
+            # Simuliere CPU-Register und Flags (hier zufällige Werte)
+            registers = {
+                "AX": 0x1234,
+                "BX": 0x5678,
+                "CX": 0x9ABC,
+                "DX": 0xDEF0,
+                "SP": 0xFFFE,
+                "BP": 0x8000,
+                "SI": 0x4000,
+                "DI": 0x2000,
+            }
+            flags = {
+                "Carry (CF)": 0,
+                "Zero (ZF)": 1,
+                "Sign (SF)": 0,
+                "Overflow (OF)": 1,
+                "Parity (PF)": 1,
+                "Aux Carry (AF)": 0,
+            }
+            
+            # Sende die aktualisierten Werte an die GUI
+            self.update_signal.emit(registers, flags)
+            time.sleep(1)  # 1 Sekunde warten (anpassbar)
+    
+    def stop(self):
+        self.running = False
+
+class CPUView(QWidget):
+    def __init__(self, parent=None):
+        super(CPUView, self).__init__(parent)
+        
+        self.registers = {
+            "EAX": 0x1000,
+            "EBX": 0x1000,
+            "ECX": 0x1000,
+            "EDX": 0x1000,
+            "ESP": 0x1000,
+            "EBP": 0x1000,
+            "ESI": 0x1000,
+            "EDI": 0x1000,
+            "AX" : 0x1234,
+            "BX" : 0x5678,
+            "CX" : 0x9ABC,
+            "DX" : 0xDEF0,
+            "SP" : 0xFFFE,
+            "BP" : 0x8000,
+            "SI" : 0x4000,
+            "DI" : 0x2000,
+        }
+        
+        self.flags = {
+            "Carry (CF)": 0,
+            "Zero (ZF)": 1,
+            "Sign (SF)": 0,
+            "Overflow (OF)": 1,
+            "Parity (PF)": 1,
+            "Aux Carry (AF)": 0,
+        }
+        
+        # Setup UI
+        self.layout = QVBoxLayout(self)
+        self.register_table = QTableWidget(self)
+        self.flags_table = QTableWidget(self)
+        
+        # Configure tables
+        self.setup_table(self.register_table, "Register", "Value", len(self.registers))
+        self.setup_table(self.flags_table, "Flag", "State", len(self.flags))
+        
+        self.layout.addWidget(QLabel("Registers", self))
+        self.layout.addWidget(self.register_table)
+        self.layout.addWidget(QLabel("Flags", self))
+        self.layout.addWidget(self.flags_table)
+        
+        # Timer for dynamic updates
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_view)
+        self.timer.start(1000)  # Update every second
+        
+        self.update_view()  # Initialize view with current values
+    
+    def setup_table(self, table, column1, column2, row_count):
+        table.setColumnCount(2)
+        table.setRowCount(row_count)
+        table.setHorizontalHeaderLabels([column1, column2])
+        table.horizontalHeader().setStretchLastSection(True)
+        table.verticalHeader().setVisible(False)
+        table.setEditTriggers(QTableWidget.NoEditTriggers)
+    
+    def update_view(self):
+        try:
+            self.register_table.setRowCount(len(self.registers))
+            for i, (reg, value) in enumerate(self.registers.items()):
+                #print(f"Setting register {reg} to {value}")
+                self.register_table.setItem(i, 0, QTableWidgetItem(reg))
+                self.register_table.setItem(i, 1, QTableWidgetItem(f"0x{value:04X}"))
+            self.flags_table.setRowCount(len(self.flags))
+            for i, (flag, state) in enumerate(self.flags.items()):
+                #print(f"Setting flag {flag} to {state}")
+                self.flags_table.setItem(i, 0, QTableWidgetItem(flag))
+                self.flags_table.setItem(i, 1, QTableWidgetItem("1" if state else "0"))
+                
+        except Exception as e:
+            print(f"Error in update_view: {e}")
 
 class AssemblerLineNumberArea(QWidget):
     def __init__(self, editor):
@@ -2447,31 +2568,36 @@ class ExecutableExplorer(QWidget):
             # ----------------------------------------------
             self.exe_dll_tree = QTreeView()
             self.exe_dll_tree.setHeaderHidden(False)
+            self.exe_dll_tree.setMaximumWidth(200)
             
             header = self.exe_dll_tree.header()
             
             self.exe_dll_tree.setModel(self._create_file_tree_model())
             self.exe_dll_tree.setToolTip("EXE und DLL Dateien")
             
-            header.setSectionResizeMode(0, QHeaderView.Stretch)  # Dynamisch
-            header.setSectionResizeMode(1, QHeaderView.Fixed)  # Fest
-            header.setSectionResizeMode(2, QHeaderView.Fixed)  # Fest
+            header.setSectionResizeMode(0, header.Stretch)  # Dynamisch
+            #header.setSectionResizeMode(1, header.Stretch)  #
+            #header.setSectionResizeMode(2, header.Stretch)  #
             
-            header.resizeSection(1, 42)
-            header.resizeSection(2, 42)
+            header.resizeSection(0, 222)
+            #header.resizeSection(1, 122)
             
             # ----------------------------------------------
             # Rechts: QListTree für Symbole und Funktionen
             # ----------------------------------------------
             self.symbols_tree = QTreeView()
             self.symbols_tree.setHeaderHidden(False)
+            self.symbols_tree.setMinimumWidth(320)
             
             self.symbols_tree.setModel(self._create_symbols_model())
             self.symbols_tree.setToolTip("Symbole und Funktionen")
             
             header = self.symbols_tree.header()
-            header.setSectionResizeMode(0, QHeaderView.Stretch)  # Dynamisch
-            header.setSectionResizeMode(1, QHeaderView.Stretch)  # Fest
+            header.setSectionResizeMode(0, header.Stretch)  # Dynamisch
+            header.setSectionResizeMode(1, header.Stretch)  #
+            
+            #header.resizeSection(0, 122)
+            #header.resizeSection(1, 122)
             
             # ----------------------------------------------
             # Unterer Bereich: QListTree für Pfade und
@@ -2528,7 +2654,7 @@ class ExecutableExplorer(QWidget):
     
     def _create_file_tree_model(self):
         model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Dateien", "PE EXE", "MZ EXE"])
+        model.setHorizontalHeaderLabels(["Dateien"])
         return model
     
     def _create_symbols_model(self):
@@ -7500,9 +7626,15 @@ class myIconLabel(QLabel):
         if event.button() == Qt.LeftButton:
             if self.mode == 0:
                 genv.devices_scroll.hide()
+                genv.cpuview_scroll.hide()
                 genv.servers_scroll.show()
+            if self.mode == 11:
+                genv.devices_scroll.hide()
+                genv.servers_scroll.hide()
+                genv.cpuview_scroll.show()
             else:
                 genv.servers_scroll.hide()
+                genv.cpuview_scroll.hide()
                 genv.devices_scroll.show()
             
             self.btn_clicked(self.parent,
@@ -16269,6 +16401,45 @@ class FileWatcherGUI(QDialog):
         # Sende das Ereignis an den Button
         QApplication.postEvent(obj, mouse_event)
     
+    def handle_right_bar_cpuview(self):
+        # ScrollArea erstellen
+        ####
+        setattr(genv, "cpuview_scroll", QScrollArea())
+        setattr(genv, "cpuview_widget", QWidget())
+        setattr(genv, "cpuview_layout", QVBoxLayout())
+        
+        # Layout und Widget konfigurieren
+        genv.cpuview_scroll.setMinimumWidth(230)
+        genv.cpuview_scroll.setMaximumWidth(230)
+        genv.cpuview_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        genv.cpuview_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        genv.cpuview_scroll.setWidgetResizable(True)
+        
+        genv.cpuview_widget.setMinimumWidth(230)
+        genv.cpuview_widget.setMaximumWidth(230)
+        genv.cpuview_widget.setContentsMargins(1, 0, 0, 1)
+        
+        genv.cpuview_layout.setContentsMargins(1, 0, 0, 1)
+        
+        # CPUView-Widget hinzufügen
+        self.cpuview = CPUView()
+        genv.cpuview_layout.addWidget(self.cpuview)
+        
+        # Layout dem Widget zuweisen
+        genv.cpuview_widget.setLayout(genv.cpuview_layout)
+        genv.cpuview_scroll.setWidget(genv.cpuview_widget)  # Set widget instead of layout
+        
+        # Hauptlayout konfigurieren
+        dl2 = QVBoxLayout()
+        dl2.setContentsMargins(1, 0, 0, 1)
+        dl2.addWidget(genv.cpuview_scroll)
+        
+        # Zum Hauptlayout hinzufügen
+        self.main_layout.addLayout(dl2)
+        
+        # ScrollArea ausblenden
+        genv.cpuview_scroll.hide()
+        
     def handle_right_bar_servers(self):
         # servers
         font = QFont(genv.v__app__font,14)
@@ -16671,6 +16842,7 @@ class FileWatcherGUI(QDialog):
         
         self.handle_right_bar_devices()
         self.handle_right_bar_servers()
+        self.handle_right_bar_cpuview()
         
         ################
         ##self.tab1_layout = QHBoxLayout()
