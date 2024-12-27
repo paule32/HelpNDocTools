@@ -102,7 +102,7 @@ try:
             "locale", "io", "random", "ipapi", "ipcore", "string", "capstone",
             "httpx", "httpx-auth", "ctypes", "sqlite3", "configparser", "traceback",
             "marshal", "inspect", "logging", "PyQt5", "pathlib", "rich", "string",
-            "codecs"
+            "codecs", 'screeninfo'
         ]
         
         for module in required_modules:
@@ -380,6 +380,8 @@ try:
     # ------------------------------------------------------------------------
     import win32api
     import win32con
+    
+    from screeninfo import get_monitors
 
     # ------------------------------------------------------------------------
     # gnu multi precision version 2 (gmp2 for python)
@@ -696,7 +698,12 @@ class globalEnv:
         self.v__app__discc64__  = im_path + "disk2.png"
         self.v__app__datmc64__  = im_path + "mc2.png"
         self.v__app__logoc64__  = im_path + "logo2.png"
-
+        
+        monitor = get_monitors()[0]
+        self.monitor_width  = monitor.width
+        self.monitor_height = monitor.height
+        self.monitor_scale  = monitor.width_mm / monitor.width
+        
         # ------------------------------------------------------------------------
         # dBase parser error code's:
         # ------------------------------------------------------------------------
@@ -827,6 +834,13 @@ class globalEnv:
         
         self.parser_op = ['-','+','*','/']
         self.parser_token = False
+        
+        self.token_str   = ""
+        self.digit_array = [chr(i) for i in range(ord('0'), ord('9') + 1)]
+        
+        self.TOK_NUMBER = 2000
+        self.TOK_IDENT  = 2001
+        self.TOK_SAY    = 2002
         
         # ------------------------------------------------------------------------
         # dbase reserved keywords ...
@@ -959,6 +973,8 @@ class globalEnv:
         self.line_row = 1
         
         self.c64_painter = None
+        
+        self.current_pushedit = None
 
         self.v__app__config_project_ini = "unknown.pro"
         self.v__app__pro_config    = ""
@@ -1020,6 +1036,7 @@ class globalEnv:
         self.type_check_box    = 5
         self.type_push_button  = 6
         self.type_radio_button = 7
+        self.type_textedit     = 8
         
         self.doc_project_open       = False
         
@@ -5010,7 +5027,28 @@ print = builtins.print
             or   genv.char_curr == ' ':
                 continue
             elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                return genv.char_curr
+                self.token_str = genv.char_curr
+                while True:
+                    genv.char_curr = self.getChar()
+                    if genv.char_curr.isalpha():
+                        self.token_str += genv.char_curr
+                        continue
+                    else:
+                        break
+                return genv.TOK_IDENT
+            elif genv.char_curr == '@':
+                return genv.TOK_SAY
+            elif genv.char_curr in genv.digit_array:
+                self.token_str = genv.char_curr
+                while True:
+                    genv.char_curr = self.getChar()
+                    if genv.char_curr in genv.digit_array:
+                        self.token_str += genv.char_curr
+                    else:
+                        self.ungetChar(1)
+                        break
+                showInfo(self.token_str)
+                return genv.TOK_NUMBER
             else:
                 return genv.char_curr
     
@@ -7963,13 +8001,14 @@ class myCustomScrollArea(QScrollArea):
         self.font.setBold(True); w.setFont(self.font)
         self.font.setBold(False)
         
-    def addPushButton(self, text, l = None):
+    def addPushButton(self, text, l=None):
         w = QPushButton(text)
         w.setFont(self.font_a)
         w.font().setPointSize(14)
         w.font().setBold(True)
         w.setMinimumWidth(32)
         w.setMinimumHeight(32)
+        
         if not l == None:
             l.addWidget(w)
         else:
@@ -8060,12 +8099,11 @@ class myCustomScrollArea(QScrollArea):
             vw_1.setMinimumWidth(200)
             
             if elements[i][1] == genv.type_edit:
-                w = self.addLineEdit(None, tokennum, "",lh_0)
-                w.setObjectName(tokennum + ':' + str(number))
+                doc0 = ("doc_" + tokennum.lower())
+                w    = self.addLineEdit(None, tokennum, "",lh_0)
+                w.setObjectName(doc0 + "_object")
                 genv.DoxyGenElementLayoutList.append(w)
                 #
-                doc0 = ("doc_" + tokennum.lower())
-                setattr(genv, doc0, "")
                 setattr(genv, doc0 + "_object", w)
                 setattr(genv, doc0 + "_type"  , genv.type_edit)
                 
@@ -8073,14 +8111,30 @@ class myCustomScrollArea(QScrollArea):
                     self.addPushButton("+",lh_0)
                 
                 elif elements[i][2] == 3:
-                    self.addPushButton("+",lh_0)
-                    self.addPushButton("-",lh_0)
-                    self.addPushButton("R",lh_0)
-                    
+                    ob_3 = (doc0 + "_textedit")
                     vw_3 = myTextEdit()
+                    vw_3.setObjectName(ob_3)
+                    #
+                    setattr(genv, ob_3 + "_object", vw_3)
+                    setattr(genv, ob_3 + "_source", w)
+                    setattr(genv, ob_3 + "_type",   genv.type_textedit)
+                    
+                    p1 = self.addPushButton("+",lh_0)
+                    p1.clicked.connect(self.addText2Edit)
+                    p1.setObjectName(ob_3)
+                    
+                    p2 = self.addPushButton("-",lh_0)
+                    p2.clicked.connect(self.delText2Edit)
+                    p2.setObjectName(ob_3)
+                    
+                    p3 = self.addPushButton("R",lh_0)
+                    p3.clicked.connect(self.clrText2Edit)
+                    p3.setObjectName(ob_3)
+                    
                     vw_3.setFont(self.font_a)
                     vw_3.setMinimumHeight(96)
                     vw_3.setMaximumHeight(96)
+                    
                     lv_0.addWidget(vw_3)
             
             elif elements[i][1] == genv.type_check_box:
@@ -8152,7 +8206,46 @@ class myCustomScrollArea(QScrollArea):
             
             lv_0.addLayout(lh_0)
             self.layout.addLayout(lv_0)
+    
+    def addText2Edit(self):
+        obj_name1 = self.sender().objectName() + "_object"
+        obj_name2 = self.sender().objectName() + "_source"
+        
+        obj_dst  = getattr(genv, obj_name1)
+        obj_src  = getattr(genv, obj_name2)
+        
+        if len(obj_src.text().strip()) < 1:
+            showInfo(_("Error:\nsource input line is empty."))
+            return False
+        
+        obj_dst.insertPlainText(obj_src.text() + "\r\n")
+        return True
+    
+    def delText2Edit(self):
+        obj_name1 = self.sender().objectName() + "_object"
+        edit_box  = getattr(genv, obj_name1)
+        
+        text     = edit_box.toPlainText()
+        lines    = text.splitlines()
+        
+        try:
+            if len(lines) > 0:
+                cursor = edit_box.textCursor()
+                current_line = cursor.blockNumber()
+                del lines[current_line]
+                
+        except IndexError:
+            showInfo(_("Warning:\nIndex out of bounds.\nDid you set the right focus ?"))
+            return False
             
+        edit_box.setPlainText("\n".join(lines))
+        return True
+        
+    def clrText2Edit(self):
+        obj_name1 = self.sender().objectName() + "_object"
+        edit_box  = getattr(genv, obj_name1)
+        edit_box.setPlainText("")
+        return True
 
 # ------------------------------------------------------------------------
 # create a scroll view for the project tab on left side of application ...
@@ -17778,13 +17871,51 @@ class FileWatcherGUI(QDialog):
                     helpText = _("h" + f"{helpID:04X}")
                     tokenID  = _("A" + f"{helpID:04X}").lower()
                     
-                    value = getattr(genv, "doc_" + tokenID, 3)
+                    try:
+                        obj_dst  = getattr(genv, "doc_" + tokenID + "_textedit_object")
+                        if not obj_dst == None:
+                            value = obj_dst.toPlainText()
+                            value = value.replace("\n", "\n    ")
+                            content += (
+                                tokenID + " = " + value + "\n"
+                            )
+                            i += 1
+                            continue
+                        
+                        try:
+                            value = getattr(genv, "doc_" + tokenID, 3)
+                            content += (
+                                tokenID + " = " + str(value) + "\n"
+                            )
+                        except:
+                            showInfo("doc_  " + tokenID)
+                        i += 1
                     
-                    content += (
-                        tokenID + " = " + str(value) + "\n"
-                    )
-                    i += 1
-                    
+                    except configparser.NoSectionError as e:
+                        showError(_("Error:\nsomething went wrong during saving settings (section)."))
+                        return False
+                        
+                    except configparser.NoOptionError as e:
+                        showError(_("Error:\nsomething went wrong during saving settings (option)."))
+                        return False
+                        
+                    except configparser.DuplicateSectionError as e:
+                        showError(_((""
+                        + "Error:\nsetting file logic error.\n"
+                        + "You can try to fix this error by remove all double section's."
+                        )))
+                        return False
+                        
+                    except configparser.DuplicateOptionError as e:
+                        showError(_((""
+                        + "Error:\nsetting file logic error.\n"
+                        + "You can try to fix this error by remove all double options."
+                        )))
+                        return False
+                        
+                    except AttributeError as e:
+                        continue
+                        
                 content += "\n"
             
             with open(genv.v__app__config_ini_help, "w") as config_file:
@@ -17825,13 +17956,26 @@ class FileWatcherGUI(QDialog):
             else:
                 genv.v__app_win.write_config_part()
                 genv.v__app__config_help.read(genv.v__app__config_ini_help)
-                
+        
+        except PermissionError:
+            showError(_("Error:\nyou have not enough permissions to read/write files."))
+            return False
+            
+        except configparser.NoSectionError as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+            
+        except confugparser.NoOptionError as e:
+            showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
+            return False
+        
         except configparser.DuplicateSectionError as e:
             if not genv.v__app_win.write_config_part():
                 showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
                 return False
             else:
                 genv.v__app__config_help.read(genv.v__app__config_ini_help)
+                
         except Exception as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             return False
@@ -18606,23 +18750,56 @@ class FileWatcherGUI(QDialog):
                         for item in elements:
                             helpID  = hid + i + 1
                             tokenID = _("A" + f"{helpID:04X}").lower()
-                            intstr  = genv.v__app__config_help.get(f"expert_{idx}", tokenID)
-                            
+                            print(tokenID)
+                            value = ""
+                            try:
+                                intstr = genv.v__app__config_help.get(f"expert_{idx}", tokenID)
+                            except configparser.NoOptionError as e:
+                                #genv.v__app__config_help.set(f"expert_{idx}", tokenID, "")
+                                #value = genv.v__app__config_help.get(f"expert_{idx}", tokenID)
+                                
+                                content  = _("doxygen_template")
+                                content += _("expert_5")
+                                content += _("expert_6")
+                                content += _("expert_7")
+                                content += _("expert_8")
+                                content += _("expert_9")
+                                content += _("expert_10")
+                                content += _("expert_11")
+                                content += _("expert_12")
+                                content += _("expert_13")
+                                content += _("expert_14")
+                                content += _("expert_15")
+                                content += _("expert_16")
+                                content += _("expert_17")
+                                content += _("expert_18")
+                                content += _("expert_19")
+                                content += _("expert_20")
+                                content += _("expert_21")
+                                content += _("expert_22")
+                                
+                                with open(genv.v__app__config_ini_help, "w", encoding="utf-8") as file:
+                                    file.write(content)
+                                    file.close()
+                                
                             tok_type   = getattr(genv, "doc_" + tokenID + "_type", 3)
                             tok_object = getattr(genv, "doc_" + tokenID + "_object", None)
                             
                             if tok_type == genv.type_check_box:
-                                if int(intstr) == 0:
-                                    #showInfo("checkbox: " + tokenID + "\nis not check")
-                                    setattr(genv, "doc_" + tokenID, 0)
+                                if isinstance(value, int):
+                                    if int(value) == 0:
+                                        #showInfo("checkbox: " + tokenID + "\nis not check")
+                                        setattr(genv, "doc_" + tokenID, 0)
+                                        tok_object.setChecked(False)
+                                        tok_object.setText(_(" NO"))
+                                    else:
+                                        #showInfo("checkbox: " + tokenID + "\nis checked")
+                                        setattr(genv, "doc_" + tokenID, 1)
+                                        tok_object.setChecked(True)
+                                        tok_object.setText(_(" YES"))
+                                elif isinstance(value, str):
                                     tok_object.setChecked(False)
                                     tok_object.setText(_(" NO"))
-                                else:
-                                    #showInfo("checkbox: " + tokenID + "\nis checked")
-                                    setattr(genv, "doc_" + tokenID, 1)
-                                    tok_object.setChecked(True)
-                                    tok_object.setText(_(" YES"))
-                                    
                             i += 1
                             
                 except AttributeError as e:
