@@ -902,7 +902,13 @@ class globalEnv:
         self.helpButton_connected = False
         self.prevButton_connected = False
         self.exitButton_connected = False
-        
+
+        self.list_widget_2_elements = [                                  \
+            "Project", "Build", "Messages", "Input", "Source Browser",   \
+            "Index", "HTML", "LaTeX", "RTF", "Man", "XML", "DocBook",    \
+            "AutoGen", "SQLite3", "PerlMod", "Preprocessor", "External", \
+            "Dot" ]
+            
         self.v__app_object        = None
         self.v__app_win           = None
         #
@@ -1085,7 +1091,142 @@ class globalEnv:
 
         self.error_fail = False
         self.byte_code = None
-        
+    
+    def save_config_file(self):
+        try:
+            ## 0xA0100
+            content = (""
+            + "[common]\n"
+            + "language = en_us\n"
+            + "framework = "     + str(self.doc_framework)  + "\n"
+            + "lang = "          + str(self.doc_lang)       + "\n"
+            + "template = "      + str(self.doc_template)   + "\n"
+            + "kind = "          + str(self.doc_kind)       + "\n"
+            + "\n"
+            
+            + "[project]\n"
+            + "type = "          + str(self.doc_type)       + "\n"
+            + "doc_out = "       + str(self.doc_type_out)   + "\n"
+            + "logo = "          + self.doc_logo            + "\n"
+            + "name = "          + self.doc_name            + "\n"
+            + "author = "        + self.doc_author          + "\n"
+            + "number = "        + self.doc_number          + "\n"
+            + "srcdir = "        + self.doc_srcdir          + "\n"
+            + "dstdir = "        + self.doc_dstdir          + "\n"
+            + "scan_recursiv = " + str(self.doc_recursiv)   + "\n"
+            + "\n"
+            
+            + "[mode]\n"
+            + "optimized = "     + str(self.doc_optimize)   + "\n"
+            + "doc_entries = "   + str(self.doc_entries)    + "\n"
+            + "cross = "         + str(self.doc_cross)      + "\n"
+            + "\n"
+            
+            + "[output]\n"
+            + "doc_html = "        + str(self.doc_output_html)        + "\n"
+            + "doc_plain_html  = " + str(self.doc_output_plain_html)  + "\n"
+            + "doc_navi = "        + str(self.doc_output_navi)        + "\n"
+            + "doc_prepare_chm = " + str(self.doc_output_prepare_chm) + "\n"
+            + "doc_search_func = " + str(self.doc_output_search_func) + "\n"
+            
+            + "doc_latex = "       + str(self.doc_output_latex)     + "\n"
+            + "doc_latex_pdf = "   + str(self.doc_output_latex_pdf) + "\n"
+            + "doc_latex_imm = "   + str(self.doc_output_latex_imm) + "\n"
+            + "doc_latex_ps = "    + str(self.doc_output_latex_ps)  + "\n"
+            
+            + "doc_man = " + str(self.doc_output_man) + "\n"
+            + "doc_rtf = " + str(self.doc_output_rtf) + "\n"
+            + "doc_xml = " + str(self.doc_output_xml) + "\n"
+            + "doc_doc = " + str(self.doc_output_doc) + "\n"
+            + "\n"
+            
+            + "[diagrams]\n"
+            + "dia_not = " + str(self.doc_dia_not) + "\n"
+            + "dia_txt = " + str(self.doc_dia_txt) + "\n"
+            + "dia_bin = " + str(self.doc_dia_bin) + "\n"
+            + "dia_dot = " + str(self.doc_dia_dot) + "\n"
+            + "\n"
+            
+            + "[graph]\n"
+            + "class = "  + str(self.doc_dia_class)  + "\n"
+            + "colab = "  + str(self.doc_dia_colab)  + "\n"
+            + "overh = "  + str(self.doc_dia_overh)  + "\n"
+            + "inc = "    + str(self.doc_dia_inc)    + "\n"
+            + "incby = "  + str(self.doc_dia_incby)  + "\n"
+            + "call = "   + str(self.doc_dia_call)   + "\n"
+            + "callby = " + str(self.doc_dia_callby) + "\n"
+            + "\n"
+            )
+            hid = 0
+            print("121212")
+            for idx in range(5, 23):
+                content += "\n[expert_"    + str(idx) + "]\n"
+                elements = eval(_("label_" + str(idx) + "_elements"))
+                
+                for item in elements:
+                    hexer = _(hex(item[0]).upper()[2:]).lower()
+                    typso = getattr(genv, "doc_" + hexer + "_object")
+                    infos = getattr(gemv, "doc_" + hexer + "_type")
+                    
+                    if typso == None:
+                        showError(_("Error:\nelement item can not get object type."))
+                        return False
+                        
+                    if isinstance(typso, QCheckBox):
+                        if typso.isChecked():
+                            setattr(genv, "doc_" + hexer, 1)
+                        else:
+                            setattr(genv, "doc_" + hexer, 0)
+                        value = getattr(genv, "doc_" + hexer)
+                        content += hexer + " = " + value + "\n"
+                        continue
+                    elif isinstance(typso, QRadioButton):
+                        if typso.isChecked():
+                            setattr(genv, "doc_" + hexer, 1)
+                        else:
+                            setattr(genv, "doc_" + hexer, 0)
+                        value = getattr(genv, "doc_" + hexer)
+                        content += hexer + " = " + value + "\n"
+                        continue
+                    else:
+                        if int(infos) == genv.type_edit:
+                            setattr(genv, "dbc_" + hexer, typso.text())
+                        elif int(infos) == genv.type_textedit:
+                            setattr(genv, "dbc_" + hexer, typso.toPlainText())
+                        value = typso.toPlainText()
+                        content += hexer + " = " + value + "\n"
+                        continue
+                            
+            with open(self.v__app__config_ini_help, "w") as config_file:
+                config_file.write(content)
+                config_file.close()
+            return True
+        except configparser.NoSectionError as e:
+            showError(_("Error:\nsomething went wrong during saving settings (section)."))
+            return False
+            
+        except configparser.NoOptionError as e:
+            showError(_("Error:\nsomething went wrong during saving settings (option)."))
+            return False
+            
+        except configparser.DuplicateSectionError as e:
+            showError(_((""
+            + "Error:\nsetting file logic error.\n"
+            + "You can try to fix this error by remove all double section's."
+            )))
+            return False
+            
+        except configparser.DuplicateOptionError as e:
+            showError(_((""
+            + "Error:\nsetting file logic error.\n"
+            + "You can try to fix this error by remove all double options."
+            )))
+            return False
+            
+        except AttributeError as e:
+            showInfo("Warrning: Attribure Error")
+            return False
+    
     def unexpectedToken(self, text):
         self.msg = f"unexpected token: '{text}'"
         self.unexpectedError(self.msg)
@@ -7951,7 +8092,7 @@ class addCheckBox(QCheckBox):
         self.font().setBold(bold)
 
 class myCustomScrollArea(QScrollArea):
-    def __init__(self, parent, number, name):
+    def __init__(self, parent, number, name=""):
         super().__init__()
         #DebugPrint(name)
         self.setWidgetResizable(True)
@@ -8068,15 +8209,17 @@ class myCustomScrollArea(QScrollArea):
         sender_object      = self.sender()
         
         if sender_object.isChecked():
-            sender_object.setText(" YES")
+            sender_object.setText(" YES 1")
             setattr(genv, f"doc_{sender_object_name}", 1)
+            genv.save_config_file()
             #showInfo("einser: " + str(getattr(genv, f"genv.doc_{sender_object_name}", 3)))
         else:
             sender_object.setText(" NO")
             setattr(genv, f"doc_{sender_object_name}", 0)
+            genv.save_config_file()
             #showInfo("nuller: " + str(getattr(genv, f"doc_{sender_object_name}", 5)))
         
-        genv.v__app_win.write_config_part()
+        #genv.v__app_win.write_config_part()
     
     def addElements(self, number, elements, hid):
         for i in range(0, len(elements)):
@@ -8098,10 +8241,14 @@ class myCustomScrollArea(QScrollArea):
             vw_1.setMinimumHeight(14)
             vw_1.setMinimumWidth(200)
             
+            
+            doc0 = ("doc_" + tokennum.lower())    
+            if not hasattr(genv, doc0):
+                setattr(genv, doc0, 0)
+            
             if elements[i][1] == genv.type_edit:
-                doc0 = ("doc_" + tokennum.lower())
-                w    = self.addLineEdit(None, tokennum, "",lh_0)
-                w.setObjectName(doc0 + "_object")
+                w = self.addLineEdit(None, tokennum, "",lh_0)
+                w.setObjectName(doc0)
                 genv.DoxyGenElementLayoutList.append(w)
                 #
                 setattr(genv, doc0 + "_object", w)
@@ -8111,53 +8258,54 @@ class myCustomScrollArea(QScrollArea):
                     self.addPushButton("+",lh_0)
                 
                 elif elements[i][2] == 3:
-                    ob_3 = (doc0 + "_textedit")
                     vw_3 = myTextEdit()
                     vw_3.setObjectName(ob_3)
                     #
-                    setattr(genv, ob_3 + "_object", vw_3)
-                    setattr(genv, ob_3 + "_source", w)
-                    setattr(genv, ob_3 + "_type",   genv.type_textedit)
+                    setattr(genv, doc0 + "_object", vw_3)
+                    setattr(genv, doc0 + "_source", w)
+                    setattr(genv, doc0 + "_type",   genv.type_textedit)
                     
                     p1 = self.addPushButton("+",lh_0)
                     p1.clicked.connect(self.addText2Edit)
-                    p1.setObjectName(ob_3)
+                    p1.setObjectName(doc0)
                     
                     p2 = self.addPushButton("-",lh_0)
                     p2.clicked.connect(self.delText2Edit)
-                    p2.setObjectName(ob_3)
+                    p2.setObjectName(doc0)
                     
                     p3 = self.addPushButton("R",lh_0)
                     p3.clicked.connect(self.clrText2Edit)
-                    p3.setObjectName(ob_3)
+                    p3.setObjectName(doc0)
                     
                     vw_3.setFont(self.font_a)
                     vw_3.setMinimumHeight(96)
                     vw_3.setMaximumHeight(96)
                     
                     lv_0.addWidget(vw_3)
-            
+                    return 1000
+                    
             elif elements[i][1] == genv.type_check_box:
                 vw_2 = addCheckBox(tokennum, "", False)
                 vw_2.setMinimumHeight(21)
                 vw_2.setFont(self.font_a)
                 vw_2.setChecked(elements[i][3])
                 vw_2.clicked.connect(self.el_check_box_on_click)
+                
                 #
                 doc0 = ("doc_" + tokennum.lower())
-                setattr(genv, doc0, 0)
                 setattr(genv, doc0 + "_object", vw_2)
                 setattr(genv, doc0 + "_type"  , genv.type_check_box)
                 
                 if vw_2.isChecked():
                     setattr(genv, doc0, 1)
-                    vw_2.setText(" YES")
+                    vw_2.setText(_(" YES"))
                 else:
                     setattr(genv, doc0, 0)
-                    vw_2.setText(" NO")
+                    vw_2.setText(_(" NO"))
                 #
                 lh_0.addWidget(vw_2)
-            
+                return 2000
+                
             elif elements[i][1] == genv.type_combo_box:
                 vw_2 = self.addComboBox(tokennum)
                 vw_2.setMinimumHeight(26)
@@ -8166,7 +8314,6 @@ class myCustomScrollArea(QScrollArea):
                 lh_0.addWidget(vw_2)
                 #
                 doc0 = ("doc_" + tokennum.lower())
-                setattr(genv, doc0, "")
                 setattr(genv, doc0 + "_object", vw_2)
                 setattr(genv, doc0 + "_type"  , genv.type_combo_box)
                 
@@ -8187,10 +8334,12 @@ class myCustomScrollArea(QScrollArea):
                         #    color: black;
                         #}
                         #""")
-                
+                    return 3000
+                    
                 elif elements[i][2] == 2:
                     for j in range(0, len(elements[i][3])):
                         vw_2.addItem(elements[i][3][j])
+                    return 4000
             
             elif elements[i][1] == genv.type_spin:
                 vw_2 = QSpinBox()
@@ -8200,12 +8349,12 @@ class myCustomScrollArea(QScrollArea):
                 lh_0.addWidget(vw_2)
                 #
                 doc0 = ("doc_" + tokennum.lower())
-                setattr(genv, doc0, 0)
                 setattr(genv, doc0 + "_object", vw_2)
                 setattr(genv, doc0 + "_type"  , genv.type_spin)
             
             lv_0.addLayout(lh_0)
             self.layout.addLayout(lv_0)
+            return 5000
     
     def addText2Edit(self):
         obj_name1 = self.sender().objectName() + "_object"
@@ -9165,6 +9314,29 @@ class customScrollView_4(myCustomScrollArea):
         
         genv.v__app_win.write_config_part()
 
+class customScrollViewDoxygen(myCustomScrollArea):
+    def __init__(self, parent, number):
+        super().__init__(parent, number)
+        self.content_widget.setMinimumHeight(2200)
+        self.setWidgetResizable(True)
+        self.setStyleSheet(_("ScrollBarCSS"))
+        self.number = number
+        
+    def init_ui(self, num):
+        #self.label_1.hide()
+        print("------")
+        print(hex(num))
+        ## 0xA0100
+        label_elements = eval(_("label_" + str(self.number) + "_elements"))
+        popo = self.addElements(self.number, "label_" + str(self.number) + "elements", num)
+        print("popo " + str(self.number) + ": " + str(popo))
+        
+    # ----------------------------------------------
+    # show help text when mouse move over the label
+    # ----------------------------------------------
+    def label_enter_event(self, text):
+        genv.sv_help.setText(text)
+
 class customScrollView_5(myCustomScrollArea):
     def __init__(self, parent, name):
         super().__init__(parent, 5, name)
@@ -9178,8 +9350,9 @@ class customScrollView_5(myCustomScrollArea):
         
         ## 0xA0100
         label_5_elements = eval(_("label_5_elements"))
-        self.addElements(5, label_5_elements, 0x100)
-    
+        popo = self.addElements(5, label_5_elements, 0x100)
+        print("popo 5: " + str(popo))
+        
     # ----------------------------------------------
     # show help text when mouse move over the label
     # ----------------------------------------------
@@ -9198,7 +9371,8 @@ class customScrollView_6(myCustomScrollArea):
         
         ## 0xA0200
         label_6_elements = eval(_("label_6_elements"))
-        self.addElements(6, label_6_elements, 0x200)
+        popo = self.addElements(6, label_6_elements, 0x200)
+        print("popo 6: " + str(popo))
 
 class customScrollView_7(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9212,7 +9386,8 @@ class customScrollView_7(myCustomScrollArea):
         
         ## 0xA0300
         label_7_elements = eval(_("label_7_elements"))
-        self.addElements(7, label_7_elements, 0x0300)
+        popo = self.addElements(7, label_7_elements, 0x0300)
+        print("popo 7: " + str(popo))
 
 class customScrollView_8(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9226,7 +9401,8 @@ class customScrollView_8(myCustomScrollArea):
         
         ## 0xA0400
         label_8_elements = eval(_("label_8_elements"))
-        self.addElements(8, label_8_elements, 0x0400)
+        popo = self.addElements(8, label_8_elements, 0x0400)
+        print("popo 8: " + str(popo))
 
 class customScrollView_9(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9240,7 +9416,8 @@ class customScrollView_9(myCustomScrollArea):
         
         ## 0xA0500
         label_9_elements = eval(_("label_9_elements"))
-        self.addElements(9, label_9_elements, 0x0500)
+        popo = self.addElements(9, label_9_elements, 0x0500)
+        print("popo 9: " + str(popo))
 
 class customScrollView_10(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9254,7 +9431,8 @@ class customScrollView_10(myCustomScrollArea):
         
         ## 0xA0600
         label_10_elements = eval(_("label_10_elements"))
-        self.addElements(10, label_10_elements, 0x0600)
+        popo = self.addElements(10, label_10_elements, 0x0600)
+        print("popo 10: " + str(popo))
 
 class customScrollView_11(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9268,7 +9446,8 @@ class customScrollView_11(myCustomScrollArea):
         
         ## 0xA0700
         label_11_elements = eval(_("label_11_elements"))
-        self.addElements(11, label_11_elements, 0x0700)
+        popo = self.addElements(11, label_11_elements, 0x0700)
+        print("popo 11: " + str(popo))
 
 class customScrollView_12(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9282,7 +9461,8 @@ class customScrollView_12(myCustomScrollArea):
         
         ## 0xA0800
         label_12_elements = eval(_("label_12_elements"))
-        self.addElements(12, label_12_elements, 0x0800)
+        popo = self.addElements(12, label_12_elements, 0x0800)
+        print("popo 12: " + str(popo))
 
 class customScrollView_13(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9296,7 +9476,8 @@ class customScrollView_13(myCustomScrollArea):
         
         ## 0xA0900
         label_13_elements = eval(_("label_13_elements"))
-        self.addElements(13, label_13_elements, 0x0900)
+        popo = self.addElements(13, label_13_elements, 0x0900)
+        print("popo 13: " + str(popo))
 
 class customScrollView_14(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9310,7 +9491,8 @@ class customScrollView_14(myCustomScrollArea):
         
         ## 0xA1000
         label_14_elements = eval(_("label_14_elements"))
-        self.addElements(14, label_14_elements, 0x1000)
+        popo = self.addElements(14, label_14_elements, 0x1000)
+        print("popo 14: " + str(popo))
 
 class customScrollView_15(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9324,7 +9506,8 @@ class customScrollView_15(myCustomScrollArea):
         
         ## 0xA1100
         label_15_elements = eval(_("label_15_elements"))
-        self.addElements(15, label_15_elements, 0x1100)
+        popo = self.addElements(15, label_15_elements, 0x1100)
+        print("popo 15: " + str(popo))
 
 class customScrollView_16(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9338,7 +9521,8 @@ class customScrollView_16(myCustomScrollArea):
         
         ## 0xA1200
         label_16_elements = eval(_("label_16_elements"))
-        self.addElements(16, label_16_elements, 0x1200)
+        popo = self.addElements(16, label_16_elements, 0x1200)
+        print("popo 16: " + str(popo))
 
 class customScrollView_17(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9352,7 +9536,8 @@ class customScrollView_17(myCustomScrollArea):
         
         ## 0xA1300
         label_17_elements = eval(_("label_17_elements"))
-        self.addElements(17, label_17_elements, 0x1300)
+        popo = self.addElements(17, label_17_elements, 0x1300)
+        print("popo 17: " + str(popo))
 
 class customScrollView_18(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9366,7 +9551,8 @@ class customScrollView_18(myCustomScrollArea):
         
         ## 0xA1400
         label_18_elements = eval(_("label_18_elements"))
-        self.addElements(18, label_18_elements, 0x1400)
+        popo = self.addElements(18, label_18_elements, 0x1400)
+        print("popo 18: " + str(popo))
 
 class customScrollView_19(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9380,7 +9566,8 @@ class customScrollView_19(myCustomScrollArea):
         
         ## 0xA1500
         label_19_elements = eval(_("label_19_elements"))
-        self.addElements(19, label_19_elements, 0x1500)
+        popo = self.addElements(19, label_19_elements, 0x1500)
+        print("popo 19: " + str(popo))
 
 class customScrollView_20(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9394,7 +9581,8 @@ class customScrollView_20(myCustomScrollArea):
         
         ## 0xA1600
         label_20_elements = eval(_("label_20_elements"))
-        self.addElements(20, label_20_elements, 0x1600)
+        popo = self.addElements(20, label_20_elements, 0x1600)
+        print("popo 20: " + str(popo))
 
 class customScrollView_21(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9408,7 +9596,8 @@ class customScrollView_21(myCustomScrollArea):
         
         ## 0xA1700
         label_21_elements = eval(_("label_21_elements"))
-        self.addElements(21, label_21_elements, 0x1700)
+        popo = self.addElements(21, label_21_elements, 0x1700)
+        print("popo 21: " + str(popo))
 
 class customScrollView_22(myCustomScrollArea):
     def __init__(self, parent, name):
@@ -9422,7 +9611,8 @@ class customScrollView_22(myCustomScrollArea):
         
         ## 0xA1800
         label_22_elements = eval(_("label_22_elements"))
-        self.addElements(22, label_22_elements, 0x1800)
+        popo = self.addElements(22, label_22_elements, 0x1800)
+        print("popo 22: " + str(popo))
 
 class customScrollView_help(QTextEdit):
     def __init__(self):
@@ -17080,14 +17270,9 @@ class FileWatcherGUI(QDialog):
         list_widget_2.setMinimumHeight(300)
         list_widget_2.setMaximumWidth(200)
         
-        self.list_widget_2_elements = [                                     \
-            _("Project"), _("Build"), _("Messages"), _("Input"), _("Source Browser"),      \
-            "Index", "HTML", "LaTeX", "RTF", "Man", "XML", "DocBook",       \
-            "AutoGen", "SQLite3", "PerlMod", "Preprocessor", _("External"),    \
-            "Dot" ]
         #
         #
-        for element in self.list_widget_2_elements:
+        for element in genv.list_widget_2_elements:
             list_item = customQListWidgetItem(element, list_widget_2)
         
         list_widget_2.setCurrentRow(0)
@@ -17095,28 +17280,44 @@ class FileWatcherGUI(QDialog):
         list_layout_2.addWidget(list_widget_2)
         
         tab1_classes = []
-        i = 5
-        while i < 23:
-            s = "customScrollView_" + str(i)
-            i = i + 1
-            tab1_classes.append(s)
-        
-        objs = []
-        i    = 0
-        for item in tab1_classes:
-            s = "sv_2_" + str(i+1)
-            #print("sv_2: ", item)
-            v1 = eval(item + "(self,'')")
-            v1.setName(self.list_widget_2_elements[i])
-            v1.setObjectName(self.list_widget_2_elements[i])
-            objs.append(v1)
-            setattr(self, s, v1)
-            list_layout_2.addWidget(v1)
-            v1.hide()
-            i += 1
+        hid = 0x0
+        print("ZZZZZZZZZ")
+        for i in range(5, 22):
+            hid += 0x100
+            
+            if hid == 0xa00:
+                hid = 0x1000
+                
+            print("UUUUUUUU")
+            setattr(genv, "scrollview_" + str(i), customScrollViewDoxygen)
+            print("TTTTTTTTT")
+            setattr(genv, "sv_2_" + str(i - 4)  , customScrollViewDoxygen)
+            #
+            view = getattr(genv, "scroilview_" + str(i))
+            print("aaaaa")
+            view.init_ui(hid)
+            #
+            list_layout_2.addWidget(view)
+            view.hide()
+            
+            #tab1_classes.append(view)
+        print("ooooooooooo")
+        #objs = []
+        #i    = 0
+        #for item in tab1_classes:
+        #    s = "sv_2_" + str(i+1)
+        #    #print("sv_2: ", item)
+        #    v1 = eval(item + "(self,'')")
+        #    v1.setName(genv.list_widget_2_elements[i])
+        #    v1.setObjectName(genv.list_widget_2_elements[i])
+        #    objs.append(v1)
+        #    setattr(self, s, v1)
+        #    list_layout_2.addWidget(v1)
+        #    v1.hide()
+        #    i += 1
         
         self.sv_2_1.show()
-        self.hw_2 = QWidget()
+        #self.hw_2 = QWidget()
         
         list_layout_b.addWidget(genv.sv_help)
         ########################
@@ -17792,136 +17993,7 @@ class FileWatcherGUI(QDialog):
             else:
                 genv.doc_type = -1
             
-            content = (""
-                + "[common]\n"
-                + "language = en_us\n"
-                + "framework = "     + str(genv.doc_framework)  + "\n"
-                + "lang = "          + str(genv.doc_lang)       + "\n"
-                + "template = "      + str(genv.doc_template)   + "\n"
-                + "kind = "          + str(genv.doc_kind)       + "\n"
-                + "\n"
-                
-                + "[project]\n"
-                + "type = "          + str(genv.doc_type)       + "\n"
-                + "doc_out = "       + str(genv.doc_type_out)   + "\n"
-                + "logo = "          + genv.doc_logo            + "\n"
-                + "name = "          + genv.doc_name            + "\n"
-                + "author = "        + genv.doc_author          + "\n"
-                + "number = "        + genv.doc_number          + "\n"
-                + "srcdir = "        + genv.doc_srcdir          + "\n"
-                + "dstdir = "        + genv.doc_dstdir          + "\n"
-                + "scan_recursiv = " + str(genv.doc_recursiv)   + "\n"
-                + "\n"
-                
-                + "[mode]\n"
-                + "optimized = "     + str(genv.doc_optimize)   + "\n"
-                + "doc_entries = "   + str(genv.doc_entries)    + "\n"
-                + "cross = "         + str(genv.doc_cross)      + "\n"
-                + "\n"
-                
-                + "[output]\n"
-                + "doc_html = "        + str(genv.doc_output_html)        + "\n"
-                + "doc_plain_html  = " + str(genv.doc_output_plain_html)  + "\n"
-                + "doc_navi = "        + str(genv.doc_output_navi)        + "\n"
-                + "doc_prepare_chm = " + str(genv.doc_output_prepare_chm) + "\n"
-                + "doc_search_func = " + str(genv.doc_output_search_func) + "\n"
-                
-                + "doc_latex = "       + str(genv.doc_output_latex)     + "\n"
-                + "doc_latex_pdf = "   + str(genv.doc_output_latex_pdf) + "\n"
-                + "doc_latex_imm = "   + str(genv.doc_output_latex_imm) + "\n"
-                + "doc_latex_ps = "    + str(genv.doc_output_latex_ps)  + "\n"
-                
-                + "doc_man = " + str(genv.doc_output_man) + "\n"
-                + "doc_rtf = " + str(genv.doc_output_rtf) + "\n"
-                + "doc_xml = " + str(genv.doc_output_xml) + "\n"
-                + "doc_doc = " + str(genv.doc_output_doc) + "\n"
-                + "\n"
-                
-                + "[diagrams]\n"
-                + "dia_not = " + str(genv.doc_dia_not) + "\n"
-                + "dia_txt = " + str(genv.doc_dia_txt) + "\n"
-                + "dia_bin = " + str(genv.doc_dia_bin) + "\n"
-                + "dia_dot = " + str(genv.doc_dia_dot) + "\n"
-                + "\n"
-                
-                + "[graph]\n"
-                + "class = "  + str(genv.doc_dia_class)  + "\n"
-                + "colab = "  + str(genv.doc_dia_colab)  + "\n"
-                + "overh = "  + str(genv.doc_dia_overh)  + "\n"
-                + "inc = "    + str(genv.doc_dia_inc)    + "\n"
-                + "incby = "  + str(genv.doc_dia_incby)  + "\n"
-                + "call = "   + str(genv.doc_dia_call)   + "\n"
-                + "callby = " + str(genv.doc_dia_callby) + "\n"
-                + "\n"
-            )
-            
-            ## 0xA0100
-            hid = 0
-            for idx in range(5, 23):
-                content += "[expert_"      + str(idx) + "]\n"
-                elements = eval(_("label_" + str(idx) + "_elements"))
-                hid     += 0x100
-                
-                if hid == 0xa00:
-                    hid = 0x1000
-                
-                i = 0
-                for item in elements:
-                    helpID   = hid + i + 1
-                    helpText = _("h" + f"{helpID:04X}")
-                    tokenID  = _("A" + f"{helpID:04X}").lower()
-                    
-                    try:
-                        obj_dst  = getattr(genv, "doc_" + tokenID + "_textedit_object")
-                        if not obj_dst == None:
-                            value = obj_dst.toPlainText()
-                            value = value.replace("\n", "\n    ")
-                            content += (
-                                tokenID + " = " + value + "\n"
-                            )
-                            i += 1
-                            continue
-                        
-                        try:
-                            value = getattr(genv, "doc_" + tokenID, 3)
-                            content += (
-                                tokenID + " = " + str(value) + "\n"
-                            )
-                        except:
-                            showInfo("doc_  " + tokenID)
-                        i += 1
-                    
-                    except configparser.NoSectionError as e:
-                        showError(_("Error:\nsomething went wrong during saving settings (section)."))
-                        return False
-                        
-                    except configparser.NoOptionError as e:
-                        showError(_("Error:\nsomething went wrong during saving settings (option)."))
-                        return False
-                        
-                    except configparser.DuplicateSectionError as e:
-                        showError(_((""
-                        + "Error:\nsetting file logic error.\n"
-                        + "You can try to fix this error by remove all double section's."
-                        )))
-                        return False
-                        
-                    except configparser.DuplicateOptionError as e:
-                        showError(_((""
-                        + "Error:\nsetting file logic error.\n"
-                        + "You can try to fix this error by remove all double options."
-                        )))
-                        return False
-                        
-                    except AttributeError as e:
-                        continue
-                        
-                content += "\n"
-            
-            with open(genv.v__app__config_ini_help, "w") as config_file:
-                config_file.write(content)
-                config_file.close()
-            return True
+            genv.save_config_file()
             
         except configparser.DuplicateSectionError as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
@@ -17950,6 +18022,9 @@ class FileWatcherGUI(QDialog):
                 genv.doc_project_open = True
                 genv.v__app__config_ini_help = file_path
                 
+                ## 0xA0100
+                genv.save_config_file()
+                    
                 if genv.v__app__config_help == None:
                     genv.v__app__config_help = configparser.ConfigParser()
                     genv.v__app__config_help.read(genv.v__app__config_ini_help)
@@ -17965,7 +18040,7 @@ class FileWatcherGUI(QDialog):
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             return False
             
-        except confugparser.NoOptionError as e:
+        except configparser.NoOptionError as e:
             showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
             return False
         
@@ -18736,95 +18811,66 @@ class FileWatcherGUI(QDialog):
                 else:
                     item7.setChecked(True)
                 
-                try:
-                    ## 0xA0100
-                    hid = 0
-                    for idx in range(5, 23):
+                ## 0xA0100
+                hid = 0x100
+                i   = 1
+                for idx in range(5, 23):
+                    try:
                         elements = eval(_("label_" + str(idx) + "_elements"))
-                        hid     += 0x100
+                        helpID   = hid + i
+                        tokenID  = _("A" + f"{helpID:04X}")
+                        
+                        hid += 0x100
+                        i   += 1
                         
                         if hid == 0xa00:
                             hid = 0x1000
                         
-                        i = 0
-                        for item in elements:
-                            helpID  = hid + i + 1
-                            tokenID = _("A" + f"{helpID:04X}").lower()
-                            print(tokenID)
-                            value = ""
-                            try:
-                                intstr = genv.v__app__config_help.get(f"expert_{idx}", tokenID)
-                            except configparser.NoOptionError as e:
-                                #genv.v__app__config_help.set(f"expert_{idx}", tokenID, "")
-                                #value = genv.v__app__config_help.get(f"expert_{idx}", tokenID)
-                                
-                                content  = _("doxygen_template")
-                                content += _("expert_5")
-                                content += _("expert_6")
-                                content += _("expert_7")
-                                content += _("expert_8")
-                                content += _("expert_9")
-                                content += _("expert_10")
-                                content += _("expert_11")
-                                content += _("expert_12")
-                                content += _("expert_13")
-                                content += _("expert_14")
-                                content += _("expert_15")
-                                content += _("expert_16")
-                                content += _("expert_17")
-                                content += _("expert_18")
-                                content += _("expert_19")
-                                content += _("expert_20")
-                                content += _("expert_21")
-                                content += _("expert_22")
-                                
-                                with open(genv.v__app__config_ini_help, "w", encoding="utf-8") as file:
-                                    file.write(content)
-                                    file.close()
-                                
-                            tok_type   = getattr(genv, "doc_" + tokenID + "_type", 3)
-                            tok_object = getattr(genv, "doc_" + tokenID + "_object", None)
-                            
-                            if tok_type == genv.type_check_box:
-                                if isinstance(value, int):
-                                    if int(value) == 0:
-                                        #showInfo("checkbox: " + tokenID + "\nis not check")
-                                        setattr(genv, "doc_" + tokenID, 0)
-                                        tok_object.setChecked(False)
-                                        tok_object.setText(_(" NO"))
-                                    else:
-                                        #showInfo("checkbox: " + tokenID + "\nis checked")
-                                        setattr(genv, "doc_" + tokenID, 1)
-                                        tok_object.setChecked(True)
-                                        tok_object.setText(_(" YES"))
-                                elif isinstance(value, str):
-                                    tok_object.setChecked(False)
-                                    tok_object.setText(_(" NO"))
-                            i += 1
-                            
-                except AttributeError as e:
-                    showInfo("TODO: list3")
-                    return False
-                    ## 0xA0100
-                    hid = 0
-                    for idx in range(5, 23):
-                        elements = eval(_("label_" + str(idx) + "_elements"))
-                        hid     += 0x100
+                        tok_type   = getattr(genv, "doc_" + tokenID.lower() + "_type", 3)
+                        tok_object = getattr(genv, "doc_" + tokenID.lower() + "_object", None)
                         
-                        if hid == 0xa00:
-                            hid = 0x1000
+                        value = genv.v__app__config_help.get(f"expert_{idx}", tokenID)
                         
-                        i = 0
-                        for item in elements:
-                            helpID  = hid + i + 1
-                            tokenID = _("A" + f"{helpID:04X}").lower()
+                        if tok_type == genv.type_check_box:
+                            if value.strip() == "0":
+                                #showInfo("checkbox: " + tokenID + "\nis not check")
+                                setattr(genv, "doc_" + tokenID, 0)
+                                tok_object.setChecked(False)
+                                tok_object.setText(_(" NO"))
+                            else:
+                                #showInfo("checkbox: " + tokenID + "\nis checked")
+                                setattr(genv, "doc_" + tokenID, 1)
+                                tok_object.setChecked(True)
+                                tok_object.setText(_(" YES 3"))
+                        print(tokenID)
+                        
+                    except configparser.NoOptionError:
+                        genv.v__app__config_help.set(f"expert_{idx}", tokenID.lower(), "0")
+                        genv.v__app__config_help[f"expert_{idx}"][tokenID.lower()] = "0"
+                        
+                    except AttributeError as e:
+                        showInfo("TODO: list3")
+                        return False
+                        ## 0xA0100
+                        hid = 0
+                        for idx in range(5, 23):
+                            elements = eval(_("label_" + str(idx) + "_elements"))
+                            hid     += 0x100
                             
-                            value = getattr(genv, "doc_" + tokenID + "_type")
+                            if hid == 0xa00:
+                                hid = 0x1000
                             
-                            #if value == genv.type_check_box:
-                            setattr(genv, "doc_" + tokenID, 3)
-                            i += 1
-                    
+                            i = 0
+                            for item in elements:
+                                helpID  = hid + i + 1
+                                tokenID = _("A" + f"{helpID:04X}")
+                                
+                                value = getattr(genv, "doc_" + tokenID + "_type")
+                                
+                                #if value == genv.type_check_box:
+                                setattr(genv, "doc_" + tokenID, 3)
+                                i += 1
+                        
                 genv.v__app_win.write_config_part()
                 
             # framework
@@ -20760,9 +20806,9 @@ class FileWatcherGUI(QDialog):
     def handle_item_click(self, item):
         tab_index = self.tab_widget_1.currentIndex()
         if tab_index == 1:
-            for i in range(0, len(self.list_widget_2_elements)):
-                if item.data(0) == self.list_widget_2_elements[i]:
-                    DebugPrint("t: " + str(i) + ": " + self.list_widget_2_elements[i])
+            for i in range(0, len(genv.list_widget_2_elements)):
+                if item.data(0) == genv.list_widget_2_elements[i]:
+                    DebugPrint("t: " + str(i) + ": " + genv.list_widget_2_elements[i])
                     self.hideTabItems_2(i)
                     s = "sv_2_" + str(i+1)
                     w = getattr(self, f"{s}")
@@ -20786,7 +20832,7 @@ class FileWatcherGUI(QDialog):
                 w.show()
     
     def hideTabItems_2(self, it):
-        for i in range(0, len(self.list_widget_2_elements)):
+        for i in range(0, len(genv.list_widget_2_elements)):
             s = "sv_2_" + str(i+1)
             w = getattr(self, f"{s}")
             w.hide()
