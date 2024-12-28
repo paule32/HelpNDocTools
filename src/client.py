@@ -8221,141 +8221,154 @@ class myCustomScrollArea(QScrollArea):
         
         #genv.v__app_win.write_config_part()
     
-    def addElements(self, number, elements, hid):
-        for i in range(0, len(elements)):
+    def addElements(self, number, elements, hid=0x100):
+        hid = 0x0
+        print("ffffffffff")
+        print(elements)
+        #print(len(elements))
+        print("---___---")
+        for i in range(0, elements):
             lv_0 = QVBoxLayout()
             lh_0 = QHBoxLayout()
             
             # -----------------------------------------
             # the help string for a doxygen tag ...
             # -----------------------------------------
+            hid += 0x100
+            if hid == 0xa00:
+                hid = 0x1000
+            
             helpID   = hid + i + 1
             helpText = _("h" + f"{helpID:04X}")
             tokennum = _("A" + f"{helpID:04X}")
             
-            vw_1 = self.addHelpLabel(   \
-                tokennum,  \
-                helpID,    \
-                helpText,  \
-                lh_0)
-            vw_1.setMinimumHeight(14)
-            vw_1.setMinimumWidth(200)
-            
-            
-            doc0 = ("doc_" + tokennum.lower())    
-            if not hasattr(genv, doc0):
-                setattr(genv, doc0, 0)
-            
-            if elements[i][1] == genv.type_edit:
-                w = self.addLineEdit(None, tokennum, "",lh_0)
-                w.setObjectName(doc0)
-                genv.DoxyGenElementLayoutList.append(w)
-                #
-                setattr(genv, doc0 + "_object", w)
-                setattr(genv, doc0 + "_type"  , genv.type_edit)
+            try:
+                vw_1 = self.addHelpLabel(   \
+                    tokennum,  \
+                    helpID,    \
+                    helpText,  \
+                    lh_0)
+                vw_1.setMinimumHeight(14)
+                vw_1.setMinimumWidth(200)
                 
-                if elements[i][2] == 1:
-                    self.addPushButton("+",lh_0)
                 
-                elif elements[i][2] == 3:
-                    vw_3 = myTextEdit()
-                    vw_3.setObjectName(ob_3)
-                    #
-                    setattr(genv, doc0 + "_object", vw_3)
-                    setattr(genv, doc0 + "_source", w)
-                    setattr(genv, doc0 + "_type",   genv.type_textedit)
-                    
-                    p1 = self.addPushButton("+",lh_0)
-                    p1.clicked.connect(self.addText2Edit)
-                    p1.setObjectName(doc0)
-                    
-                    p2 = self.addPushButton("-",lh_0)
-                    p2.clicked.connect(self.delText2Edit)
-                    p2.setObjectName(doc0)
-                    
-                    p3 = self.addPushButton("R",lh_0)
-                    p3.clicked.connect(self.clrText2Edit)
-                    p3.setObjectName(doc0)
-                    
-                    vw_3.setFont(self.font_a)
-                    vw_3.setMinimumHeight(96)
-                    vw_3.setMaximumHeight(96)
-                    
-                    lv_0.addWidget(vw_3)
-                    return 1000
-                    
-            elif elements[i][1] == genv.type_check_box:
-                vw_2 = addCheckBox(tokennum, "", False)
-                vw_2.setMinimumHeight(21)
-                vw_2.setFont(self.font_a)
-                vw_2.setChecked(elements[i][3])
-                vw_2.clicked.connect(self.el_check_box_on_click)
-                
-                #
-                doc0 = ("doc_" + tokennum.lower())
-                setattr(genv, doc0 + "_object", vw_2)
-                setattr(genv, doc0 + "_type"  , genv.type_check_box)
-                
-                if vw_2.isChecked():
-                    setattr(genv, doc0, 1)
-                    vw_2.setText(_(" YES"))
-                else:
+                doc0 = ("doc_" + tokennum.lower())    
+                if not hasattr(genv, doc0):
                     setattr(genv, doc0, 0)
-                    vw_2.setText(_(" NO"))
-                #
-                lh_0.addWidget(vw_2)
-                return 2000
                 
-            elif elements[i][1] == genv.type_combo_box:
-                vw_2 = self.addComboBox(tokennum)
-                vw_2.setMinimumHeight(26)
-                vw_2.setFont(self.font)
-                vw_2.font().setPointSize(14)
-                lh_0.addWidget(vw_2)
-                #
-                doc0 = ("doc_" + tokennum.lower())
-                setattr(genv, doc0 + "_object", vw_2)
-                setattr(genv, doc0 + "_type"  , genv.type_combo_box)
-                
-                if elements[i][2] == 4:
-                    data = json.loads(self.supported_langs)
-                    elements[i][3] = data
-                    for j in range(0, len(data)):
-                        img = os.path.join(genv.v__app__img__int__, "flag_"  \
-                        + elements[i][3][j]    \
-                        + genv.v__app__img_ext__)
-                        img = img.lower()
-                        
-                        vw_2.addItem(QIcon(img), elements[i][3][j-1])
-                        #vw_2.setStyleSheet("""
-                        #QComboBox QAbstractItemView {
-                        #    selection-background-color: lightGray;
-                        #    selection-color: black;
-                        #    color: black;
-                        #}
-                        #""")
-                    return 3000
+                if elements[i][1] == genv.type_edit:
+                    w = self.addLineEdit(None, tokennum, "",lh_0)
+                    w.setObjectName(doc0)
+                    genv.DoxyGenElementLayoutList.append(w)
+                    #
+                    setattr(genv, doc0 + "_object", w)
+                    setattr(genv, doc0 + "_type"  , genv.type_edit)
                     
-                elif elements[i][2] == 2:
-                    for j in range(0, len(elements[i][3])):
-                        vw_2.addItem(elements[i][3][j])
-                    return 4000
+                    if elements[i][2] == 1:
+                        self.addPushButton("+",lh_0)
+                    
+                    elif elements[i][2] == 3:
+                        vw_3 = myTextEdit()
+                        vw_3.setObjectName(ob_3)
+                        #
+                        setattr(genv, doc0 + "_object", vw_3)
+                        setattr(genv, doc0 + "_source", w)
+                        setattr(genv, doc0 + "_type",   genv.type_textedit)
+                        
+                        p1 = self.addPushButton("+",lh_0)
+                        p1.clicked.connect(self.addText2Edit)
+                        p1.setObjectName(doc0)
+                        
+                        p2 = self.addPushButton("-",lh_0)
+                        p2.clicked.connect(self.delText2Edit)
+                        p2.setObjectName(doc0)
+                        
+                        p3 = self.addPushButton("R",lh_0)
+                        p3.clicked.connect(self.clrText2Edit)
+                        p3.setObjectName(doc0)
+                        
+                        vw_3.setFont(self.font_a)
+                        vw_3.setMinimumHeight(96)
+                        vw_3.setMaximumHeight(96)
+                        
+                        lv_0.addWidget(vw_3)
+                        return 1000
+                        
+                elif elements[i][1] == genv.type_check_box:
+                    vw_2 = addCheckBox(tokennum, "", False)
+                    vw_2.setMinimumHeight(21)
+                    vw_2.setFont(self.font_a)
+                    vw_2.setChecked(elements[i][3])
+                    vw_2.clicked.connect(self.el_check_box_on_click)
+                    
+                    #
+                    doc0 = ("doc_" + tokennum.lower())
+                    setattr(genv, doc0 + "_object", vw_2)
+                    setattr(genv, doc0 + "_type"  , genv.type_check_box)
+                    
+                    if vw_2.isChecked():
+                        setattr(genv, doc0, 1)
+                        vw_2.setText(_(" YES"))
+                    else:
+                        setattr(genv, doc0, 0)
+                        vw_2.setText(_(" NO"))
+                    #
+                    lh_0.addWidget(vw_2)
+                    return 2000
+                    
+                elif elements[i][1] == genv.type_combo_box:
+                    vw_2 = self.addComboBox(tokennum)
+                    vw_2.setMinimumHeight(26)
+                    vw_2.setFont(self.font)
+                    vw_2.font().setPointSize(14)
+                    lh_0.addWidget(vw_2)
+                    #
+                    doc0 = ("doc_" + tokennum.lower())
+                    setattr(genv, doc0 + "_object", vw_2)
+                    setattr(genv, doc0 + "_type"  , genv.type_combo_box)
+                    
+                    if elements[i][2] == 4:
+                        data = json.loads(self.supported_langs)
+                        elements[i][3] = data
+                        for j in range(0, len(data)):
+                            img = os.path.join(genv.v__app__img__int__, "flag_"  \
+                            + elements[i][3][j]    \
+                            + genv.v__app__img_ext__)
+                            img = img.lower()
+                            
+                            vw_2.addItem(QIcon(img), elements[i][3][j-1])
+                            #vw_2.setStyleSheet("""
+                            #QComboBox QAbstractItemView {
+                            #    selection-background-color: lightGray;
+                            #    selection-color: black;
+                            #    color: black;
+                            #}
+                            #""")
+                        return 3000
+                        
+                    elif elements[i][2] == 2:
+                        for j in range(0, len(elements[i][3])):
+                            vw_2.addItem(elements[i][3][j])
+                        return 4000
+                
+                elif elements[i][1] == genv.type_spin:
+                    vw_2 = QSpinBox()
+                    vw_2.setObjectName(tokennum)
+                    vw_2.setFont(self.font_a)
+                    vw_2.setMinimumHeight(21)
+                    lh_0.addWidget(vw_2)
+                    #
+                    doc0 = ("doc_" + tokennum.lower())
+                    setattr(genv, doc0 + "_object", vw_2)
+                    setattr(genv, doc0 + "_type"  , genv.type_spin)
+                
+                lv_0.addLayout(lh_0)
+                self.layout.addLayout(lv_0)
+                return 5000
+            except Exception as e:
+                print(e)
+                return 98900
             
-            elif elements[i][1] == genv.type_spin:
-                vw_2 = QSpinBox()
-                vw_2.setObjectName(tokennum)
-                vw_2.setFont(self.font_a)
-                vw_2.setMinimumHeight(21)
-                lh_0.addWidget(vw_2)
-                #
-                doc0 = ("doc_" + tokennum.lower())
-                setattr(genv, doc0 + "_object", vw_2)
-                setattr(genv, doc0 + "_type"  , genv.type_spin)
-            
-            lv_0.addLayout(lh_0)
-            self.layout.addLayout(lv_0)
-            return 5000
-    
     def addText2Edit(self):
         obj_name1 = self.sender().objectName() + "_object"
         obj_name2 = self.sender().objectName() + "_source"
@@ -9315,21 +9328,23 @@ class customScrollView_4(myCustomScrollArea):
         genv.v__app_win.write_config_part()
 
 class customScrollViewDoxygen(myCustomScrollArea):
-    def __init__(self, parent, number):
-        super().__init__(parent, number)
+    def __init__(self, parent, number, name=""):
+        super(customScrollViewDoxygen, self).__init__(parent, number, name)
         self.content_widget.setMinimumHeight(2200)
         self.setWidgetResizable(True)
         self.setStyleSheet(_("ScrollBarCSS"))
         self.number = number
         
-    def init_ui(self, num):
+    def init_ui(self, num1, num2):
         #self.label_1.hide()
         print("------")
-        print(hex(num))
+        print(hex(num1))
         ## 0xA0100
-        label_elements = eval(_("label_" + str(self.number) + "_elements"))
-        popo = self.addElements(self.number, "label_" + str(self.number) + "elements", num)
-        print("popo " + str(self.number) + ": " + str(popo))
+        label_elements = eval(_("label_" + str(num1) + "_elements"))
+        print("UOOO")
+        print(num2)
+        popo = self.addElements(num1, label_elements, num2)
+        print("popo " + str(num1) + ": " + str(popo))
         
     # ----------------------------------------------
     # show help text when mouse move over the label
@@ -17280,22 +17295,25 @@ class FileWatcherGUI(QDialog):
         list_layout_2.addWidget(list_widget_2)
         
         tab1_classes = []
-        hid = 0x0
-        print("ZZZZZZZZZ")
+        hid0 = 0
+        view = None
         for i in range(5, 22):
-            hid += 0x100
+            hid0 += 0x100
             
-            if hid == 0xa00:
-                hid = 0x1000
+            if hid0 == 0xa00:
+                hid  = 0x1000
                 
             print("UUUUUUUU")
             setattr(genv, "scrollview_" + str(i), customScrollViewDoxygen)
             print("TTTTTTTTT")
             setattr(genv, "sv_2_" + str(i - 4)  , customScrollViewDoxygen)
             #
-            view = getattr(genv, "scroilview_" + str(i))
-            print("aaaaa")
-            view.init_ui(hid)
+            try:
+                view = getattr(genv, "scrollview_" + str(i))
+                print("aaaaa")
+                view.init_ui(customScrollViewDoxygen,num1=i, num2=0x100)
+            except Exception as e:
+                print(e)
             #
             list_layout_2.addWidget(view)
             view.hide()
