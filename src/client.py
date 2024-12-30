@@ -2935,8 +2935,6 @@ class HTMLHelpSubject:
         return result
 
 class HTMLHelpProject:
-    """a help project is a collection of topics and options that will be compiled
-    to a HTMLHelp file (.chm)"""
     def __init__(self,subject,filename="default.html",title=None):
         
         if title is None:
@@ -16179,7 +16177,11 @@ class FileWatcherGUI(QDialog):
     # --------------------
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F1:
-            genv.help_dialog = HelpWindow(self)
+            os.chdir("T:/a/Qt_FPC/doc/dox/chm")
+            genv.help_dialog = HelpWindow(self,
+                "T:/a/Qt_FPC/doc/dox/chm/index.hhc",
+                "T:/a/Qt_FPC/doc/dox/chm/index.html"
+            )
             genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
             #help_chm = "help.chm"
             #if os.path.exists(help_chm):
@@ -20855,20 +20857,23 @@ class CustomWebEnginePage(QWebEnginePage):
 # chm help window ...
 # ------------------------------------------------------------------------
 class HelpWindow(QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, fileTOC="index.hhc", fileIDX="index.html"):
+        
         genv.saved_style = genv.window_login.styleSheet()
         genv.window_login.setStyleSheet("")
         
         super(HelpWindow, self).__init__(parent)
         
+        self.fileTOC = fileTOC
+        self.fileIDX = fileIDX
+        
         # Splitter erstellen
         splitter = QSplitter(Qt.Horizontal)
-        
         
         self.hide()
         self.setContentsMargins(0,0,0,0)
         self.setStyleSheet("background-color:gray;")
-        self.setWindowTitle(_("CHM Help Dialog"))
+        self.setWindowTitle(_("Help Dialog"))
         self.setGeometry(100, 100, 700, 600)
         
         # Hauptlayout des Dialogs
@@ -20901,6 +20906,10 @@ class HelpWindow(QMainWindow):
         self.home_button.setFont(font)
         self.prev_button.setFont(font)
         self.next_button.setFont(font)
+        
+        self.home_button.clicked.connect(self.home_click)
+        self.prev_button.clicked.connect(self.prev_click)
+        self.next_button.clicked.connect(self.next_click)
         
         navigation_widget.setStyleSheet("background-color:lightgray;")
         navigation_layout.setAlignment(Qt.AlignTop)
@@ -20942,7 +20951,25 @@ class HelpWindow(QMainWindow):
         
         
         # table of contents - TOC
-        html_content = _h("TOC")
+        html_content = ""
+        try:
+            with open(self.fileTOC, "r") as toc_file:
+                html_content = toc_file.read()
+                toc_file.close()
+                
+        except PermissionError as e:
+            showError(_("Error:\nyou have no permissions to read the file."))
+            return None
+            
+        except FileNotFoundError as e:
+            showError(_("Error:\nfile not found: ") + self.fileTOC)
+            return None
+            
+        except Exception as e:
+            print(e)
+            showError(_("Error:\ncommon exception."))
+            return None
+            
         self.topics.setHtml(html_content)
         
         
@@ -20971,7 +20998,25 @@ class HelpWindow(QMainWindow):
         
         
         # topic content
-        html_content = _h("home")
+        html_content = ""
+        try:
+            with open(self.fileIDX, "r", encoding="utf-8") as idx_file:
+                html_content = idx_file.read()
+                idx_file.close()
+                
+        except PermissionError as e:
+            showError(_("Error:\nyou have no permissions to read the file: " + self.fileIDX))
+            return None
+            
+        except FileNotFoundError as e:
+            showError(_("Error:\nfile not found: ") + self.fileIDX)
+            return None
+            
+        except Exception as e:
+            print(e)
+            showError(_("Error:\ncommon exception."))
+            return None
+            
         self.browser.setHtml(html_content)
         
         #self.browser.setUrl(QUrl(chm_file_url))
@@ -21024,6 +21069,15 @@ class HelpWindow(QMainWindow):
         self.setCentralWidget(container)
         self.show()
     
+    def home_click(self):
+        pass
+    
+    def next_click(self):
+        pass
+    
+    def prev_click(self):
+        pass
+        
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
             self.close()
@@ -21120,7 +21174,10 @@ class LoginDialog(QDialog):
         if event.key() == Qt.Key_Escape:
             sys.exit(0)
         elif event.key() == Qt.Key_F1:
-            genv.help_dialog = HelpWindow(self)
+            genv.help_dialog = HelpWindow(self,
+                "file:///T:/a/Qt_FPC/doc/dox/chm/index.hhc",
+                "file:///T:/a/Qt_FPC/doc/dox/chm/index.html"
+            )
             genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
     
     def on_close(self):
