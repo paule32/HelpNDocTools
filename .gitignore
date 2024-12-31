@@ -198,3 +198,6 @@ src/tools.pro/windows/data/WinLastStatus.db.bak
 src/tools.pro/windows/data/WinLastError.db.bak
 src/test.exe
 src/bak.txt
+src/setup/setup.bat.bak
+src/setup/CheckHostsFile.ps1.bak
+src/setup/AddHostsEntry.ps1.bak
