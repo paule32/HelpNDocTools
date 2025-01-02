@@ -16179,8 +16179,8 @@ class FileWatcherGUI(QDialog):
         if event.key() == Qt.Key_F1:
             os.chdir("T:/a/Qt_FPC/doc/dox/chm")
             genv.help_dialog = HelpWindow(self,
-                "T:/a/Qt_FPC/doc/dox/chm/index.hhc",
-                "T:/a/Qt_FPC/doc/dox/chm/index.html"
+                "http://help/index.hho",
+                "http://help/index.html"
             )
             genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
             #help_chm = "help.chm"
@@ -20864,8 +20864,8 @@ class HelpWindow(QMainWindow):
         
         super(HelpWindow, self).__init__(parent)
         
-        self.fileTOC = fileTOC
-        self.fileIDX = fileIDX
+        self.fileTOC = QUrl(fileTOC)
+        self.fileIDX = QUrl(fileIDX)
         
         # Splitter erstellen
         splitter = QSplitter(Qt.Horizontal)
@@ -20929,7 +20929,6 @@ class HelpWindow(QMainWindow):
         layout1 = QVBoxLayout()
         layout1.setContentsMargins(0,0,0,0)
         
-        # WebView Widget zum Anzeigen der CHM-Datei
         self.browser = QWebEngineView()
         self.topics  = QWebEngineView()
         
@@ -20947,30 +20946,13 @@ class HelpWindow(QMainWindow):
 
         page = CustomWebEnginePage(self.topics)
         page.set_parent_view(self.browser)
-        self.topics.setPage(page)
+        
+        self.topics.load(QUrl("http://help/index.hhc"))
+        
+        #self.topics.setPage(page)
         
         
-        # table of contents - TOC
-        html_content = ""
-        try:
-            with open(self.fileTOC, "r") as toc_file:
-                html_content = toc_file.read()
-                toc_file.close()
-                
-        except PermissionError as e:
-            showError(_("Error:\nyou have no permissions to read the file."))
-            return None
-            
-        except FileNotFoundError as e:
-            showError(_("Error:\nfile not found: ") + self.fileTOC)
-            return None
-            
-        except Exception as e:
-            print(e)
-            showError(_("Error:\ncommon exception."))
-            return None
-            
-        self.topics.setHtml(html_content)
+        #self.topics.setHtml(html_content)
         
         
         # Zweites Widget
@@ -20996,28 +20978,8 @@ class HelpWindow(QMainWindow):
         
         #layout.addLayout(navigation_container)
         
-        
-        # topic content
-        html_content = ""
-        try:
-            with open(self.fileIDX, "r", encoding="utf-8") as idx_file:
-                html_content = idx_file.read()
-                idx_file.close()
-                
-        except PermissionError as e:
-            showError(_("Error:\nyou have no permissions to read the file: " + self.fileIDX))
-            return None
             
-        except FileNotFoundError as e:
-            showError(_("Error:\nfile not found: ") + self.fileIDX)
-            return None
-            
-        except Exception as e:
-            print(e)
-            showError(_("Error:\ncommon exception."))
-            return None
-            
-        self.browser.setHtml(html_content)
+        #self.browser.setHtml(html_content)
         
         #self.browser.setUrl(QUrl(chm_file_url))
         #layout.addWidget(self.browser)
