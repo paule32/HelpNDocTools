@@ -201,3 +201,5 @@ src/bak.txt
 src/setup/setup.bat.bak
 src/setup/CheckHostsFile.ps1.bak
 src/setup/AddHostsEntry.ps1.bak
+/src/html
+src/start-server.bat.bak

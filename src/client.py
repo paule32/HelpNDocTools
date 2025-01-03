@@ -2098,83 +2098,116 @@ class ClientHandlerThread(QThread):
     def handle_disconnection(self):
         self.client_disconnected.emit(self.client_socket)
 
-class SSLClient:
+class SSLClient(QObject):
+    # Eigene Signale (nur falls du sie brauchst, zur Weiterverarbeitung)
+    connected        = pyqtSignal()
+    disconnected     = pyqtSignal()
+    newData          = pyqtSignal(str)
+    sslErrorOccurred = pyqtSignal(str)
+
     def __init__(
         self,
-        host          = 'localhost',
-        port          = 1234,
-        crt_file      = './ssl/client.crt',
-        key_file      = './ssl/client.key'):
-        self.socket   = QSslSocket()
+        host     = 'localhost',
+        port     = 1234,
+        crt_file = os.getcwd() + '/_internal/ssl/client.crt',
+        key_file = os.getcwd() + '/_internal/ssl/client.key'
+    ):
+        super(SSLClient, self).__init__()
         
-        self.crt_file = crt_file
-        self.key_file = key_file
-        
-        self.host     = host
-        self.port     = port
-    
-    def set_host(self, addr):
-        self.host = addr
-        return True
-    
-    def set_port(self, port):
+        self.host = host
         self.port = port
-        return True
-    
-    def set_crt_file(self, crt_file):
+        
         self.crt_file = crt_file
-        return True
-    
-    def set_key_file(self, key_file):
         self.key_file = key_file
-        return True
-    
-    def get_host(self):
-        return self.host
-    def get_port(self):
-        return self.port
-    def get_crt_file(self):
-        return self.crt_file
-    def get_key_file(self):
-        return self.key_file
-    
+        
+        self.socket = QSslSocket()
+        
+        # Wichtige Signal-Verbindungen
+        self.socket.encrypted    .connect(self.on_encrypted)
+        self.socket.readyRead    .connect(self.on_ready_read)
+        self.socket.disconnected .connect(self.on_disconnected)
+        self.socket.sslErrors    .connect(self.on_ssl_errors)
+        self.socket.errorOccurred.connect(self.on_error_occurred)
+        
     def connect(self):
-        # SSL-Konfiguration
-        certificates = QSslCertificate.fromPath(cert_file)
-        if not certificates:
-            showInfo(_("Error:\nThe 'client.csr' file could not be found or it is wrong."))
-            return False
-        
-        cert = certificates[0]
-        self.socket.setLocalCertificate(cert)
-
-        with open(self.key_file, "rb") as key_file:
-            key = QSslKey(
-            key_file.read(),
-            QSsl.KeyAlgorithm.Rsa,
-            QSsl.EncodingFormat.Pem,
-            QSsl.PrivateKey)
-            key_file.close()
-        
-        self.socket.setPrivateKey(key)
-        self.socket.connectToHostEncrypted(self.host, self.port)
-
-        if not self.socket.waitForEncrypted():
-            showInfo(f"SSL Error:\n{self.socket.errorString()}")
-            return False
-        else:
-            showInfo(_("SSL encrypted connection established."))
+        try:
+            # Zertifikat laden
+            certificates = QSslCertificate.fromPath(self.crt_file)
+            if not certificates:
+                showInfo(_("Error:\nclient.crt not found or invalid."))
+                sys.exit(1)
             
-        # Signal-Verbindungen
-        self.socket.readyRead.connect(self.read_data)
+            # SSL konfigurieren
+            cert = certificates[0]
+            self.socket.setLocalCertificate(cert)
+            
+            with open(self.key_file, "rb") as f:
+                key = QSslKey(
+                    f.read(),
+                    QSsl.KeyAlgorithm.Rsa,
+                    QSsl.EncodingFormat.Pem,
+                    QSsl.PrivateKey
+                )
+            self.socket.setPrivateKey(key)
+            
+            # Non-blocking Verbindungsaufbau
+            print("verbinde...")
+            self.socket.connectToHostEncrypted(self.host, self.port)
+            # --> Ab hier blockiert nichts mehr:
+            #     Sobald die SSL-Verschlüsselung fertig ist, wird `on_encrypted()` ausgelöst.
+            
+        except PermissionError as e:
+            showInfo(_("Error:\nyou have no permissions to open socket."))
+            sys.exit(1)
+        
+        except FileNotFoundError as e:
+            showInf(_("Error:\ncertificate file not found."))
+            sys.exit(1)
+            
+        except Exception as e:
+            showInfo(_("Error:\ncommon exception occur during certificate load"))
+            sys.exit(1)
+            
+    def on_encrypted(self):
+        """Wird aufgerufen, sobald der SSL-Handschlag fertig ist."""
+        print("handshake ok.")
+        showInfo("SSL encrypted connection established.")
+        self.connected.emit()
+
+    def on_ready_read(self):
+        """Wird aufgerufen, sobald Daten ankommen."""
+        data = self.socket.readAll().data().decode()
+        print(data)
+        showInfo(f"Empfangene Daten vom Server: {data}")
+        self.newData.emit(data)
+
+    def on_disconnected(self):
+        """Wird aufgerufen, wenn die Verbindung getrennt wurde."""
+        showInfo("Verbindung zum Server wurde getrennt.")
+        self.disconnected.emit()
+
+    def on_ssl_errors(self, errors):
+        """Wird aufgerufen, wenn SSL-Fehler auftreten (Zertifikatfehler etc.)."""
+        for err in errors:
+            showInfo(f"SSL Error: {err.errorString()}")
+        # Je nach Bedarf kann man hier via self.socket.ignoreSslErrors() bestimmte Fehler ignorieren
+        # oder die Verbindung abbrechen.
+
+    def on_error_occurred(self, socketError):
+        """Allgemeine Socket-Fehlerbehandlung."""
+        showInfo( f"Socket Error: {self.socket.errorString()}")
+        self.sslErrorOccurred.emit(self.socket.errorString())
 
     def send(self, message):
-        self.socket.write(message.encode())
-        self.socket.flush()
-
-    def read(self):
-        data = self.socket.readAll().data().decode()
-        DebugPrint(f"Empfangene Daten vom Server: {data}")
+        if self.socket.state() == QSslSocket.ConnectedState:
+            print("xxxxxxx")
+            try:
+                self.socket.write(message.encode())
+                self.socket.flush()
+            except Exception as e:
+                print(e)
+        else:
+            showInfo("Fehler: Socket nicht verbunden.")
 
 # ---------------------------------------------------------------------------
 # \brief Überschreibe die Datenmethode, um den Dateityp anzupassen.
@@ -16178,26 +16211,8 @@ class FileWatcherGUI(QDialog):
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F1:
             os.chdir("T:/a/Qt_FPC/doc/dox/chm")
-            genv.help_dialog = HelpWindow(self,
-                "http://help/index.hho",
-                "http://help/index.html"
-            )
+            genv.help_dialog = HelpWindow(self,"http://help/index.html")
             genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
-            #help_chm = "help.chm"
-            #if os.path.exists(help_chm):
-            #    os.startfile(help_chm)
-            #else:
-            #    msg = QMessageBox()
-            #    msg.setWindowTitle("Warnin")
-            #    msg.setText(
-            #        _("The help file for the Application\n"
-            #        + "Could not be found !"))
-            #    msg.setIcon(QMessageBox.Warning)
-            #    
-            #    btn_ok = msg.addButton(QMessageBox.Ok)
-            #    
-            #    msg.setStyleSheet(_("msgbox_css"))
-            #    result = msg.exec_()
         
         elif event.key() == Qt.Key_Escape:
             exitBox = myExitDialog(_("Exit Dialog"))
@@ -20857,15 +20872,14 @@ class CustomWebEnginePage(QWebEnginePage):
 # chm help window ...
 # ------------------------------------------------------------------------
 class HelpWindow(QMainWindow):
-    def __init__(self, parent=None, fileTOC="index.hhc", fileIDX="index.html"):
+    def __init__(self, parent=None, file="index.html"):
         
         genv.saved_style = genv.window_login.styleSheet()
         genv.window_login.setStyleSheet("")
         
         super(HelpWindow, self).__init__(parent)
         
-        self.fileTOC = QUrl(fileTOC)
-        self.fileIDX = QUrl(fileIDX)
+        self.file = QUrl(file)
         
         # Splitter erstellen
         splitter = QSplitter(Qt.Horizontal)
@@ -20924,65 +20938,37 @@ class HelpWindow(QMainWindow):
         
         # Erstes Widget
         widget1 = QWidget()
-        widget1.setContentsMargins(0,0,0,0)
+        #widget1.setContentsMargins(0,0,0,0)
         
         layout1 = QVBoxLayout()
-        layout1.setContentsMargins(0,0,0,0)
+        #layout1.setContentsMargins(0,0,0,0)
         
         self.browser = QWebEngineView()
-        self.topics  = QWebEngineView()
+        #self.browser.setContentsMargins(0,0,0,0)
+        #self.browser.setStyleSheet("background-color: black;")
         
-        self.topics.setMinimumWidth(100)
-        
-        self.topics .setContentsMargins(0,0,0,0)
-        self.browser.setContentsMargins(0,0,0,0)
-        
-        self.topics.setStyleSheet("""
-        background-color: white;
-        """)
-        
-        layout1.addWidget(self.topics)
+        layout1.addWidget(self.browser)
         widget1.setLayout(layout1)
-
-        page = CustomWebEnginePage(self.topics)
-        page.set_parent_view(self.browser)
         
-        self.topics.load(QUrl("http://help/index.hhc"))
-        
-        #self.topics.setPage(page)
-        
-        
-        #self.topics.setHtml(html_content)
-        
+        self.browser.load(self.file)
         
         # Zweites Widget
-        widget2 = QWidget()
-        widget2.setContentsMargins(0,0,0,0)
+        #widget2 = QWidget()
+        #widget2.setContentsMargins(0,0,0,0)
         
-        layout2 = QVBoxLayout()
-        layout2.setContentsMargins(1,0,0,1)
+        #layout2 = QVBoxLayout()
+        #layout2.setContentsMargins(1,0,0,1)
         
-        layout2.addWidget(self.browser)
-        layout2.setContentsMargins(0,0,0,0)
-        widget2.setLayout(layout2)
+        #layout2.addWidget(self.browser)
+        #layout2.setContentsMargins(0,0,0,0)
+        #widget2.setLayout(layout2)
         
         # Widgets zum Splitter hinzufügen
-        splitter.addWidget(widget1)
-        splitter.addWidget(widget2)
-        
-        #navigation_container.addWidget(navigation_widget)
-        #navigation_container.addWidget(splitter)
+        #splitter.addWidget(widget1)
+        #splitter.addWidget(widget2)
         
         layout.addWidget(navigation_widget)
-        layout.addWidget(splitter)
-        
-        #layout.addLayout(navigation_container)
-        
-            
-        #self.browser.setHtml(html_content)
-        
-        #self.browser.setUrl(QUrl(chm_file_url))
-        #layout.addWidget(self.browser)
+        layout.addWidget(widget1)
         
         # Schließen-Button
         button_widget = QWidget()
@@ -21068,14 +21054,61 @@ class HelpWindow(QMainWindow):
         rect = rect.adjusted(2, 2, -2, -2)  # Den Rahmen leicht nach innen verschieben
         painter.drawRect(rect)
 
+class ClientSocketWindow(QDialog):
+    def __init__(self, parent=None):
+        super(ClientSocketWindow, self).__init__(parent)
+        
+        vlayout = QVBoxLayout()
+        vbutton = QPushButton("send data")
+        vbutton.clicked.connect(self.vbutton_clicked)
+        vlayout.addWidget(vbutton)
+        
+        self.setLayout(vlayout)
+        
+        self.client_socket = SSLClient()
+        self.client_socket.connect()
+        
+    def vbutton_clicked(self):
+        print("data")
+        self.client_socket.send("test data")
+
+class ClickableComboBox(QComboBox):
+    # Neues Signal definieren
+    clicked = pyqtSignal()
+    
+    def mousePressEvent(self, event):
+        # Signal vor dem "normalen" Verhalten auslösen
+        self.clicked.emit()
+        # Original-Implementierung weiterhin aufrufen,
+        # damit das Dropdown korrekt funktioniert
+        super().mousePressEvent(event)
+
 class LoginDialog(QDialog):
     def __init__(self):
         super().__init__()
         
+        # Bildschirm ermitteln
+        # Falls du mehrere Bildschirme hast, kannst du auch
+        # 'app.screens()[0]' oder 'app.primaryScreen()' verwenden.
+        screen = QApplication.primaryScreen()
+        
         self.setWindowTitle("Login")
-        self.setGeometry(100, 100, 450, 400)
         self.setStyleSheet(_("login_dialog_style"))
 
+        # Verfügbare Geometrie holen
+        screen_rect = screen.availableGeometry()
+        
+        # Breite und Höhe als Bruchteil der verfügbaren Bildschirmgröße
+        win_width  = int(screen_rect.width () * 0.25) # z.B. 50% der Bildschirmbreite
+        win_height = int(screen_rect.height() * 0.5) # z.B. 50% der Bildschirmhöhe
+        
+        # Koordinaten berechnen, um das Fenster mittig zu platzieren
+        x = screen_rect.x() + (screen_rect.width () - win_width ) // 4
+        y = screen_rect.y() + (screen_rect.height() - win_height) // 2
+        
+        # Dynamische Geometrie anwenden: (x, y, width, height)
+        self.setGeometry(x, y, win_width, win_height)
+        
         # Hauptlayout des Dialogs
         layout = QVBoxLayout()
 
@@ -21088,19 +21121,21 @@ class LoginDialog(QDialog):
         layout.addWidget(self.title_label)
 
         # ComboBox zur Auswahl
-        self.combo_box = QComboBox()
-        self.combo_box.addItems(["Option 1", "Option 2", "Option 3"])
-        self.combo_box.setStyleSheet(_("login_dialog_combobox"))
+        self.combo_box = ClickableComboBox()
+        self.combo_box.addItems(["Localhost - User: paule32", "192.168.10.10 - User: horst", "Option 3"])
+        self.combo_box.setStyleSheet(_("login_screen"))
+        self.combo_box.clicked.connect(self.on_combobox_clicked)
+        self.combo_box.currentIndexChanged.connect(self.on_selection_change)
         
         layout.addWidget(self.combo_box)
 
         # Eingabefeld unter der ComboBox
-        self.additional_field = QLineEdit()
-        self.additional_field.setPlaceholderText(_("type in server"))
-        self.additional_field.setStyleSheet(_("login_dialog_edit1"))
-        self.additional_field.mouseDoubleClickEvent = self.open_additional_dialog
+        self.server___field = QLineEdit()
+        self.server___field.setPlaceholderText(_("type in server"))
+        self.server___field.setStyleSheet(_("login_dialog_edit1"))
+        self.server___field.mouseDoubleClickEvent = self.open_additional_dialog
         
-        layout.addWidget(self.additional_field)
+        layout.addWidget(self.server___field)
 
         # Eingabe für Benutzername
         self.username_field = QLineEdit()
@@ -21120,12 +21155,26 @@ class LoginDialog(QDialog):
         self.login_button = QPushButton(_("Login into the System"))
         self.login_button.setStyleSheet(_("login_dialog_push"))
         self.login_button.setCursor(Qt.PointingHandCursor)
-        self.login_button.clicked.connect(self.on_close)
+        self.login_button.clicked.connect(self.on_login)
         layout.addWidget(self.login_button)
 
         # Setze das Layout
         self.setLayout(layout)
-
+    
+    def on_combobox_clicked(self):
+        selected_text = self.combo_box.currentText()
+        if selected_text.startswith("Localhost"):
+            self.server___field.setText("192.168.10.10")
+            self.username_field.setText("paule32")
+            self.password_field.setText("test123")
+    
+    def on_selection_change(self, index):
+        selected_text = self.combo_box.currentText()
+        if selected_text.startswith("Localhost"):
+            self.server___field.setText("192.168.10.10")
+            self.username_field.setText("paule32")
+            self.password_field.setText("test123")
+    
     def open_additional_dialog(self, event):
         additional_dialog = QDialog(self)
         additional_dialog.setWindowTitle("Zusätzlicher Dialog")
@@ -21136,14 +21185,14 @@ class LoginDialog(QDialog):
         if event.key() == Qt.Key_Escape:
             sys.exit(0)
         elif event.key() == Qt.Key_F1:
-            genv.help_dialog = HelpWindow(self,
-                "file:///T:/a/Qt_FPC/doc/dox/chm/index.hhc",
-                "file:///T:/a/Qt_FPC/doc/dox/chm/index.html"
-            )
+            genv.help_dialog = HelpWindow(self,"http://help/index.html")
             genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
     
-    def on_close(self):
+    def on_login(self):
         self.close()
+        self.client_window = ClientSocketWindow()
+        self.client_window.exec_()
+        sys.exit(0)
 
 # ------------------------------------------------------------------------
 # this is our "main" entry point, where the application will start.
