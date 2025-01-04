@@ -397,6 +397,7 @@ try:
     from PyQt5.QtCore               import *
     from PyQt5.QtGui                import *
     from PyQt5.QtNetwork            import *
+    from PyQt5.QtWebChannel         import QWebChannel
 
     # ------------------------------------------------------------------------
     # disassembly library
@@ -2108,106 +2109,60 @@ class SSLClient(QObject):
     def __init__(
         self,
         host     = 'localhost',
-        port     = 1234,
-        crt_file = os.getcwd() + '/_internal/ssl/client.crt',
-        key_file = os.getcwd() + '/_internal/ssl/client.key'
+        port     = 1234
+        #crt_file = os.getcwd() + '/_internal/ssl/client.crt',
+        #key_file = os.getcwd() + '/_internal/ssl/client.key'
     ):
         super(SSLClient, self).__init__()
         
         self.host = host
         self.port = port
         
-        self.crt_file = crt_file
-        self.key_file = key_file
+        #self.crt_file = crt_file
+        #self.key_file = key_file
         
-        self.socket = QSslSocket()
+        self.socket = QTcpSocket()
         
-        # Wichtige Signal-Verbindungen
-        self.socket.encrypted    .connect(self.on_encrypted)
-        self.socket.readyRead    .connect(self.on_ready_read)
-        self.socket.disconnected .connect(self.on_disconnected)
-        self.socket.sslErrors    .connect(self.on_ssl_errors)
+        # Signale verbinden
+        self.socket.connected.connect(self.on_connected)
+        self.socket.readyRead.connect(self.on_ready_read)
+        self.socket.disconnected.connect(self.on_disconnected)
         self.socket.errorOccurred.connect(self.on_error_occurred)
-        
-    def connect(self):
-        try:
-            # Zertifikat laden
-            certificates = QSslCertificate.fromPath(self.crt_file)
-            if not certificates:
-                showInfo(_("Error:\nclient.crt not found or invalid."))
-                sys.exit(1)
-            
-            # SSL konfigurieren
-            cert = certificates[0]
-            self.socket.setLocalCertificate(cert)
-            
-            with open(self.key_file, "rb") as f:
-                key = QSslKey(
-                    f.read(),
-                    QSsl.KeyAlgorithm.Rsa,
-                    QSsl.EncodingFormat.Pem,
-                    QSsl.PrivateKey
-                )
-            self.socket.setPrivateKey(key)
-            
-            # Non-blocking Verbindungsaufbau
-            print("verbinde...")
-            self.socket.connectToHostEncrypted(self.host, self.port)
-            # --> Ab hier blockiert nichts mehr:
-            #     Sobald die SSL-Verschlüsselung fertig ist, wird `on_encrypted()` ausgelöst.
-            
-        except PermissionError as e:
-            showInfo(_("Error:\nyou have no permissions to open socket."))
-            sys.exit(1)
-        
-        except FileNotFoundError as e:
-            showInf(_("Error:\ncertificate file not found."))
-            sys.exit(1)
-            
-        except Exception as e:
-            showInfo(_("Error:\ncommon exception occur during certificate load"))
-            sys.exit(1)
-            
-    def on_encrypted(self):
-        """Wird aufgerufen, sobald der SSL-Handschlag fertig ist."""
-        print("handshake ok.")
-        showInfo("SSL encrypted connection established.")
-        self.connected.emit()
+
+    def connect_to_server(self):
+        """Stellt eine Verbindung zum Server her (non-blocking)."""
+        print(f"Verbinde zu {self.host}:{self.port}...")
+        self.socket.connectToHost(self.host, self.port)
+        # Ab hier wird asynchron verbunden.
+        # Wenn die Verbindung steht, wird 'on_connected' ausgelöst.
+
+    def on_connected(self):
+        print("Client: Verbindung hergestellt.")
+
+        # Sobald wir verbunden sind, können wir Daten senden.
+        test_message = "Hallo vom Client!"
+        self.send_data(test_message)
+
+    def send_data(self, message):
+        """Daten an den Server senden (non-blocking)."""
+        if self.socket.state() == QTcpSocket.ConnectedState:
+            print(f"Client sendet: {message}")
+            self.socket.write(message.encode())
+            self.socket.flush()
+        else:
+            print("Client: Keine aktive Verbindung zum Server.")
 
     def on_ready_read(self):
-        """Wird aufgerufen, sobald Daten ankommen."""
+        """Wird aufgerufen, sobald Daten vom Server angekommen sind."""
         data = self.socket.readAll().data().decode()
-        print(data)
-        showInfo(f"Empfangene Daten vom Server: {data}")
-        self.newData.emit(data)
+        print(f"Client hat empfangen: {data}")
 
     def on_disconnected(self):
-        """Wird aufgerufen, wenn die Verbindung getrennt wurde."""
-        showInfo("Verbindung zum Server wurde getrennt.")
-        self.disconnected.emit()
+        print("Client: Verbindung wurde getrennt.")
 
-    def on_ssl_errors(self, errors):
-        """Wird aufgerufen, wenn SSL-Fehler auftreten (Zertifikatfehler etc.)."""
-        for err in errors:
-            showInfo(f"SSL Error: {err.errorString()}")
-        # Je nach Bedarf kann man hier via self.socket.ignoreSslErrors() bestimmte Fehler ignorieren
-        # oder die Verbindung abbrechen.
-
-    def on_error_occurred(self, socketError):
-        """Allgemeine Socket-Fehlerbehandlung."""
-        showInfo( f"Socket Error: {self.socket.errorString()}")
-        self.sslErrorOccurred.emit(self.socket.errorString())
-
-    def send(self, message):
-        if self.socket.state() == QSslSocket.ConnectedState:
-            print("xxxxxxx")
-            try:
-                self.socket.write(message.encode())
-                self.socket.flush()
-            except Exception as e:
-                print(e)
-        else:
-            showInfo("Fehler: Socket nicht verbunden.")
+    def on_error_occurred(self, error):
+        if error != QAbstractSocket.RemoteHostClosedError:
+            print(f"Client-Socket-Fehler: {self.socket.errorString()}")
 
 # ---------------------------------------------------------------------------
 # \brief Überschreibe die Datenmethode, um den Dateityp anzupassen.
@@ -21054,9 +21009,11 @@ class HelpWindow(QMainWindow):
         rect = rect.adjusted(2, 2, -2, -2)  # Den Rahmen leicht nach innen verschieben
         painter.drawRect(rect)
 
-class ClientSocketWindow(QDialog):
+class ClientSocketWindow_old(QDialog):
     def __init__(self, parent=None):
         super(ClientSocketWindow, self).__init__(parent)
+        
+        self.setGeometry(100,100,800,600)
         
         vlayout = QVBoxLayout()
         vbutton = QPushButton("send data")
@@ -21066,11 +21023,155 @@ class ClientSocketWindow(QDialog):
         self.setLayout(vlayout)
         
         self.client_socket = SSLClient()
-        self.client_socket.connect()
+        self.client_socket.connect_to_server()
         
     def vbutton_clicked(self):
         print("data")
-        self.client_socket.send("test data")
+        self.client_socket.send_data("test data")
+
+class Bridge(QObject):
+    # Signal, das gesendet wird, wenn ein Element angeklickt wurde
+    elementClicked = pyqtSignal(str)
+
+    @pyqtSlot(str)
+    def report_element_id(self, element_id):
+        # Signal mit der ID des angeklickten Elements senden
+        print(f"Element mit ID '{element_id}' wurde angeklickt.")
+        self.elementClicked.emit(element_id)
+
+class ClientSocketWindow(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent, flags=Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
+
+        self._mouse_press_pos = None
+        self._is_dragging = False
+
+        self.setWindowTitle("Remote Desktop")
+        #self.setStyleSheet("background-color:black;")
+        self.resize(1024, 800)
+
+        # --- Titelzeilen-Widget erstellen (als Container für Layout und Styles) ---
+        self.title_bar_widget = QWidget()
+        self.title_bar_widget.setObjectName("TitleBar")  # Für gezieltes Styling
+        self.title_bar_widget.setStyleSheet("background-color:navy;")
+        self.title_bar_widget.setMaximumHeight(32)
+
+        # Layout für die Titelzeile erzeugen und ins Widget setzen
+        self.title_layout = QHBoxLayout(self.title_bar_widget)
+        self.title_layout.setContentsMargins(10, 1, 1, 1)
+        self.title_layout.setSpacing(2)
+
+        # Titel-Label
+        self.title_label = QLabel("Remote Desktop")
+        self.title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+
+        # Buttons
+        self.btn_minimize = QPushButton("-")
+        self.btn_close = QPushButton("x")
+        self.btn_minimize.setFixedSize(26, 26)
+        self.btn_close.setFixedSize(26, 26)
+        self.btn_minimize.clicked.connect(self.showMinimized)
+        self.btn_close.clicked.connect(self.close)
+
+        # Titelzeilen-Layout zusammenbauen
+        self.title_layout.addWidget(self.title_label, 1)
+        self.title_layout.addWidget(self.btn_minimize)
+        self.title_layout.addWidget(self.btn_close)
+        
+        # Statusleiste
+        #self.statusbar = QWidget()
+        #self.statusbar.setMaximumHeight(28)
+
+        # --- Hauptinhalt (zentraler Bereich) ---
+        content_layout = QVBoxLayout()
+        
+        file_path = os.getcwd() + "/_internal/bootstrap/index.html"
+        file_path = "file:///"  + file_path.replace('\\', '/')
+        
+        self.browser = QWebEngineView()
+        self.browser.setContentsMargins(0,0,0,0)
+        self.browser.setStyleSheet("background-color: black;")
+        
+        try:
+            self.channel = QWebChannel()
+            self.bridge  = Bridge()
+            self.bridge.elementClicked.connect(self.handle_element_click)
+            
+            # Verbinde die WebChannel-Schnittstelle mit Python
+            self.channel.registerObject("bridge", self.bridge)
+            self.browser.page().setWebChannel(self.channel)
+            
+            # HTML-Seite mit WebChannel-Integration
+            self.browser.setUrl(QUrl(file_path))
+            
+        except Exception as e:
+            print(e)
+        
+        self.scale_factor = 0.84
+        self.browser.setZoomFactor(self.scale_factor)
+        
+        #self.browser.load(QUrl(file_path))
+        
+        
+        content_layout.addWidget(self.browser)
+        #ontent_layout.addWidget(self.statusbar)
+
+        # --- Gesamtlayout auf QDialog anwenden ---
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        main_layout.addWidget(self.title_bar_widget)  # Titelbereich oben
+        main_layout.addLayout(content_layout)         # Inhalt darunter
+        
+        self.setLayout(main_layout)
+
+        # --- Stylesheet für navy-blaue Titelleiste mit gelber Schrift und vertieftem Rahmen ---
+        self.title_bar_widget.setStyleSheet("""
+            QWidget#TitleBar {
+                background-color: navy;
+                border: 2px inset #555;        /* Vertiefter (inset) 3D-Rahmen */
+            }
+            QWidget#TitleBar QLabel {
+                color: yellow;                 /* Schriftfarbe Label */
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QWidget#TitleBar QPushButton {
+                color: yellow;                 /* Schriftfarbe Buttons */
+                background-color: navy;        /* Gleiche Hintergrundfarbe */
+                border: none;
+            }
+            QWidget#TitleBar QPushButton:hover {
+                background-color: #001f5b;     /* Leicht dunkler beim Hover */
+            }
+        """)
+    
+    def handle_element_click(self, element_id):
+        print(f"Das angeklickte Element hat die ID: {element_id}")
+    
+    # --- Methoden für Fensterbewegung (Titelbereich) ---
+    def mousePressEvent(self, event):
+        """ Speichert die Position der Maus beim Drücken für ein Verschieben. """
+        if event.button() == Qt.LeftButton:
+            # Prüfen, ob in der Titelzeile gedrückt wurde (nicht auf Buttons)
+            # => boundingRect des title_bar_widget vs. event.pos()?
+            # In diesem einfachen Beispiel nehmen wir an, dass überall verschoben werden kann.
+            self._mouse_press_pos = event.globalPos() - self.frameGeometry().topLeft()
+            self._is_dragging = True
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        """ Verschiebt das Fenster, wenn linke Maustaste gedrückt gehalten wird. """
+        if self._is_dragging and event.buttons() & Qt.LeftButton:
+            new_pos = event.globalPos() - self._mouse_press_pos
+            self.move(new_pos)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        """ Setzt die Variable zurück, wenn die Maus losgelassen wird. """
+        if event.button() == Qt.LeftButton:
+            self._is_dragging = False
+            event.accept()
 
 class ClickableComboBox(QComboBox):
     # Neues Signal definieren
@@ -21084,112 +21185,9 @@ class ClickableComboBox(QComboBox):
         super().mousePressEvent(event)
 
 class LoginDialog(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super(LoginDialog, self).__init__(parent)
         
-        # Bildschirm ermitteln
-        # Falls du mehrere Bildschirme hast, kannst du auch
-        # 'app.screens()[0]' oder 'app.primaryScreen()' verwenden.
-        screen = QApplication.primaryScreen()
-        
-        self.setWindowTitle("Login")
-        self.setStyleSheet(_("login_dialog_style"))
-
-        # Verfügbare Geometrie holen
-        screen_rect = screen.availableGeometry()
-        
-        # Breite und Höhe als Bruchteil der verfügbaren Bildschirmgröße
-        win_width  = int(screen_rect.width () * 0.25) # z.B. 50% der Bildschirmbreite
-        win_height = int(screen_rect.height() * 0.5) # z.B. 50% der Bildschirmhöhe
-        
-        # Koordinaten berechnen, um das Fenster mittig zu platzieren
-        x = screen_rect.x() + (screen_rect.width () - win_width ) // 4
-        y = screen_rect.y() + (screen_rect.height() - win_height) // 2
-        
-        # Dynamische Geometrie anwenden: (x, y, width, height)
-        self.setGeometry(x, y, win_width, win_height)
-        
-        # Hauptlayout des Dialogs
-        layout = QVBoxLayout()
-
-        # Titel: Login
-        self.title_label = QLabel("Login")
-        self.title_label.setAlignment(Qt.AlignCenter)
-        self.title_label.setFont(QFont("Arial", 18, QFont.Bold))
-        self.title_label.setStyleSheet("color: #ffffff;")
-        self.title_label.setMaximumHeight(100)
-        layout.addWidget(self.title_label)
-
-        # ComboBox zur Auswahl
-        self.combo_box = ClickableComboBox()
-        self.combo_box.addItems(["Localhost - User: paule32", "192.168.10.10 - User: horst", "Option 3"])
-        self.combo_box.setStyleSheet(_("login_screen"))
-        self.combo_box.clicked.connect(self.on_combobox_clicked)
-        self.combo_box.currentIndexChanged.connect(self.on_selection_change)
-        
-        layout.addWidget(self.combo_box)
-
-        # Eingabefeld unter der ComboBox
-        self.server___field = QLineEdit()
-        self.server___field.setPlaceholderText(_("type in server"))
-        self.server___field.setStyleSheet(_("login_dialog_edit1"))
-        self.server___field.mouseDoubleClickEvent = self.open_additional_dialog
-        
-        layout.addWidget(self.server___field)
-
-        # Eingabe für Benutzername
-        self.username_field = QLineEdit()
-        self.username_field.setPlaceholderText(_("type in username"))
-        self.username_field.setStyleSheet(_("login_dialog_edit2"))
-        
-        layout.addWidget(self.username_field)
-
-        # Eingabe für Passwort
-        self.password_field = QLineEdit()
-        self.password_field.setPlaceholderText(_("type in password"))
-        self.password_field.setEchoMode(QLineEdit.Password)
-        self.password_field.setStyleSheet(_("login_dialog_pass"))
-        layout.addWidget(self.password_field)
-
-        # Login-Button
-        self.login_button = QPushButton(_("Login into the System"))
-        self.login_button.setStyleSheet(_("login_dialog_push"))
-        self.login_button.setCursor(Qt.PointingHandCursor)
-        self.login_button.clicked.connect(self.on_login)
-        layout.addWidget(self.login_button)
-
-        # Setze das Layout
-        self.setLayout(layout)
-    
-    def on_combobox_clicked(self):
-        selected_text = self.combo_box.currentText()
-        if selected_text.startswith("Localhost"):
-            self.server___field.setText("192.168.10.10")
-            self.username_field.setText("paule32")
-            self.password_field.setText("test123")
-    
-    def on_selection_change(self, index):
-        selected_text = self.combo_box.currentText()
-        if selected_text.startswith("Localhost"):
-            self.server___field.setText("192.168.10.10")
-            self.username_field.setText("paule32")
-            self.password_field.setText("test123")
-    
-    def open_additional_dialog(self, event):
-        additional_dialog = QDialog(self)
-        additional_dialog.setWindowTitle("Zusätzlicher Dialog")
-        additional_dialog.setGeometry(150, 150, 300, 200)
-        additional_dialog.exec_()
-    
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            sys.exit(0)
-        elif event.key() == Qt.Key_F1:
-            genv.help_dialog = HelpWindow(self,"http://help/index.html")
-            genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
-    
-    def on_login(self):
-        self.close()
         self.client_window = ClientSocketWindow()
         self.client_window.exec_()
         sys.exit(0)
@@ -21354,7 +21352,7 @@ def EntryPoint(arg1=None):
     window_license.exec_()
     
     genv.window_login = LoginDialog()
-    genv.window_login.exec_()
+    #genv.window_login.exec_()
     
     # ------------------------------------------------------------------------
     # selected list of flags for translation localization display ...

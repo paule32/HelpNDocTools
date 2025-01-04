@@ -103,6 +103,7 @@ try:
         def __init__(self):
             self.app = None
             self.sub_window = None
+            self.sub_window_list = []
     global genv
     genv = globalEnv()
 
@@ -149,85 +150,215 @@ try:
                         print(f"error: module: install fail.")
                         sys.exit(1)
     
-    class SSLServer(QTcpServer):
-        def __init__(self, cert_file, key_file, parent=None):
-            super().__init__(parent)
-            self.cert_file = cert_file
-            self.key_file = key_file
+    class ClientHandlerThread(QThread):
+        new_data = pyqtSignal(QTcpSocket, str)
+        client_disconnected = pyqtSignal(QTcpSocket)
+
+        def __init__(self, client_socket):
+            super().__init__()
+            self.client_socket = client_socket
+            self.client_socket.readyRead.connect(self.read_data)
+            self.client_socket.disconnected.connect(self.handle_disconnection)
+
+        def read_data(self):
+            try:
+                if self.client_socket.state() == QTcpSocket.ConnectedState:
+                    if self.client_socket.bytesAvailable() > 0:
+                        data = self.client_socket.readAll().data().decode()
+                        self.new_data.emit(self.client_socket, data)
+                    else:
+                        print("Keine Daten verfügbar, schließe die Verbindung.")
+                        self.client_socket.disconnectFromHost()
+            except Exception as e:
+                print(f"Fehler beim Lesen der Daten: {e}")
+
+        def handle_disconnection(self):
+            self.client_disconnected.emit(self.client_socket)
             
-            # Hier speichern wir unsere verbundenen Sockets:
-            # Key: eine eindeutige ID (z.B. socketDescriptor oder einfach ein int-Counter)
-            # Value: das jeweilige QSslSocket-Objekt
-            self.clients = {}
-
-            # Zähler, um jedem neuen Socket eine eindeutige ID zu geben
-            self.client_counter = 0
-
-        def incomingConnection(self, socketDescriptor):
-            """Wird von Qt aufgerufen, wenn eine neue Verbindung reinkommt."""
-            sslSocket = QSslSocket(self)
-
+    class DataWindow(QMdiSubWindow):
+        def __init__(self, parent=None, socket=None, title=""):
+            super(DataWindow, self).__init__(parent)
+            
+            self.parent    = parent
+            self.socket    = socket
+            
+            self.client_address = socket.peerAddress().toString()
+            self.client_port    = socket.peerPort()
+            
+            self.text_edit = QTextEdit()
+            
+            self.setWidget(self.text_edit)
+            self.setWindowTitle(title)
+            self.setObjectName(f"client:{socket.peerAddress().toString()}:{socket.peerPort()}")
+            
+        def add_text(self, text):
+            self.text_edit.append(f"{text}")
+    
+    class NonBlockingServer(QMainWindow):
+        def __init__(self, port=1234):
+            super().__init__()
+            
+            self.crt_file = os.getcwd() + "/_internal/server.crt"
+            self.key_file = os.getcwd() + "/_internal/server.key"
+            
             # Zertifikat und Schlüssel laden
-            certificate = QSslCertificate.fromPath(self.cert_file)[0]
-            sslSocket.setLocalCertificate(certificate)
+            #certificate = QSslCertificate.fromPath(self.cert_file)[0]
+            #sslSocket.setLocalCertificate(certificate)
+        
+            self.init_ui()
+            
+            # Erstelle einen TCP Server
+            self.server = QTcpServer()
+            self.server.listen(QHostAddress.Any, port)
+            self.server.newConnection.connect(self.handle_new_connection)
+            
+            # Speichert die Verbindungen nach Adresse und Port
+            self.connections = {}
+            self.threads = []
+            
+            print(f"Server gestartet. Lauscht auf Port {port}...")
 
-            with open(self.key_file, "rb") as f:
-                key = QSslKey(
-                    f.read(),
-                    QSslKey.Rsa,
-                    QSslKey.Pem,
-                    QSslSocket.PrivateKey
-                )
-            sslSocket.setPrivateKey(key)
+        def init_ui(self):
+            self.setWindowTitle("MDI Server")
+            self.setGeometry(100, 100, 800, 600)
+            
+            self.mdi_area = QMdiArea()
+            self.setCentralWidget(self.mdi_area)
+            
+            self.statusBar().showMessage("Server bereit...")
+            
+            # Menü und Aktionen
+            menubar = self.menuBar()
+            file_menu = menubar.addMenu("&Datei")
+            exit_action = QAction("Beenden", self)
+            exit_action.triggered.connect(self.close)
+            file_menu.addAction(exit_action)
+        
+        def delete_subwindow(self, title):
+            # Alle Subfenster ermitteln
+            for sub_window in self.mdi_area.subWindowList():
+                # Vergleich mit dem gesuchten Titel
+                if sub_window.windowTitle() == title:
+                    sub_window.close()
+                    # Wenn Sie nur das erste gefundene Fenster schließen möchten,
+                    # beenden Sie hier die Schleife
+                    break
+            
+        def handle_new_connection(self):
+            # Hole den eingehenden Socket
+            
+            client_socket  = self.server.nextPendingConnection()
+            client_address = client_socket.peerAddress().toString()
+            client_port    = client_socket.peerPort()
+            
+            # -------------------------------------
+            # Neues MDI-Fenster für die Verbindung
+            # -------------------------------------
+            sub_window = DataWindow(self,
+                client_socket,
+                f"Client: {client_address}:{client_port}")
+            
+            # Überprüfen, ob eine Verbindung von derselben Adresse bereits existiert
+            if client_address in self.connections:
+                print(f"Vorhandene Verbindung von {client_address} erkannt. Öffne virtuellen Port.")
+                virtual_port = client_port + 1
+                self.connections[(client_address, virtual_port)] = client_socket
+            else:
+                # Speichere die neue Verbindung
+                self.connections[(client_address, client_port )] = client_socket
+            
+            # SubWindow dem MdiArea hinzufügen
+            self.mdi_area.addSubWindow(sub_window)
+            sub_window.show()
+            
+            # Erstelle und starte einen neuen Thread zur Bearbeitung des Clients
+            thread = ClientHandlerThread(client_socket)
+            thread.new_data.connect(self.display_data)
+            thread.client_disconnected.connect(self.handle_disconnection)
+            thread.start()
+            self.threads.append(thread)
+        
+        def display_data(self, client_socket, data):
+            try:
+                # Überprüfe, ob das Fenster existiert und nicht gelöscht wurde
+                #if client_socket is None:
+                # Fenster wurde gelöscht, erstelle es neu
+                sub_window = DataWindow(self, client_socket)
+                
+                found = False
+                for win in genv.sub_window_list:
+                    if win.socket == client_socket:
+                        found = True
+                        break
+                if not found:
+                    genv.sub_window_list.append(sub_window)
+                    print("Neues Verbindungsfenster erstellt.")
+                
+                # -----------------------
+                # Ausgabe im MDI-Fenster
+                # -----------------------
+                for win in self.mdi_area.subWindowList():
+                    if win.objectName() == f"client:{client_socket.peerAddress().toString()}:{client_socket.peerPort()}":
+                        for res in genv.sub_window_list:
+                            if res.objectName() == win.objectName():
+                                print(f"11Empfangen: {data}")
+                                win.text_edit.append(f"Empfangen: {data}")
+                                break
+                
+                # Sende eine Antwort zurück
+                #response = f"Server: Deine Nachricht war '{data}'"
+                #client_socket.write(response.encode())
+                #client_socket.flush()
+                
+                
+            except Exception as e:
+                print(f"Fehler beim Verarbeiten der Daten: {e}")
+                print(f"22Empfangene Daten: {data}")
+                
+                # Ausgabe im MDI-Fenster
+                data = f"22Empfangen: {data}"
+                client_socket.write(data.encode())
+                client_socket.flush()
+                
+                # Sende eine Antwort zurück
+                #response = f"Server: Deine Nachricht war '{data}'"
+                #client_socket.write(response.encode())
+                #client_socket.flush()
+                #client_socket.sub_window_ref.append(f"Gesendet: {response}")
+        
+        def handle_disconnection(self, client_socket):
+            try:
+                # Entferne die Verbindung aus der Liste
+                client_address = client_socket.peerAddress().toString()
+                client_port    = client_socket.peerPort()
+                
+                self.delete_subwindow(f"Client: {client_address}:{client_port}")
+                
+                # Finde die richtige Verbindung und entferne sie
+                for key in list(self.connections.keys()):
+                    if key[0] == client_address and self.connections[key] == client_socket:
+                        print(f"Verbindung von {client_address} wurde getrennt.")
+                        del self.connections[key]
+                        break
+                
+                # Entferne den zugehörigen Thread aus der Thread-Liste
+                for thread in self.threads:
+                    if thread.client_socket == client_socket:
+                        self.threads.remove(thread)
+                        thread.quit()
+                        thread.wait()
+                        break
+                
+                client_socket.deleteLater()
+                #client_socket.sub_window_ref = None
+                print("Client-Socket erfolgreich gelöscht und der Server bleibt in Betrieb.")
+                self.statusBar().showMessage("Verbindung geschlossen. Warte auf neue Verbindungen...")
+            except Exception as e:
+                print(f"Fehler beim Verarbeiten der Trennung: {e}")
 
-            # Socket-Descriptor übernehmen
-            if not sslSocket.setSocketDescriptor(socketDescriptor):
-                sslSocket.deleteLater()
-                return
-
-            # SSL-Handshake starten
-            sslSocket.startServerEncryption()
-
-            # Unsere interne ID vergeben:
-            client_id = self.client_counter
-            self.client_counter += 1
-
-            # Im Dictionary speichern
-            self.clients[client_id] = sslSocket
-
-            # Signals verbinden
-            sslSocket.encrypted.connect(lambda: self.on_encrypted(client_id))
-            sslSocket.readyRead.connect(lambda: self.on_ready_read(client_id))
-            sslSocket.disconnected.connect(lambda: self.on_disconnected(client_id))
-            sslSocket.sslErrors.connect(self.on_ssl_errors)
-
-            print(f"Neuer Client verbunden: {client_id}")
-
-        def on_encrypted(self, client_id):
-            print(f"Client {client_id} ist nun verschlüsselt verbunden.")
-
-        def on_ready_read(self, client_id):
-            sslSocket = self.clients.get(client_id)
-            if not sslSocket:
-                return
-
-            data = sslSocket.readAll().data().decode()
-            print(f"Server hat von Client {client_id} empfangen: {data}")
-            # Hier kann man z. B. eine Antwort schicken
-            # sslSocket.write("Nachricht an den Client".encode())
-
-        def on_disconnected(self, client_id):
-            """Wird aufgerufen, wenn der Client die Verbindung trennt."""
-            sslSocket = self.clients.pop(client_id, None)
-            if sslSocket:
-                print(f"Client {client_id} disconnected.")
-                sslSocket.deleteLater()
-
-        def on_ssl_errors(self, errors):
-            """Wird aufgerufen, wenn SSL-Fehler auftreten."""
-            for err in errors:
-                print(f"SSL Error: {err.errorString()}")
-            # sslSocket.ignoreSslErrors() wäre eine Möglichkeit, bestimmte Fehler zu ignorieren
+        def run(self):
+            # Starte die Qt Event Schleife
+            self.show()
     
     # ---------------------------------------------------------------------------
     # the mother of all: the __main__ start point ...

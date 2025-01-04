@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.5">
+    <title>Windows XP</title>
+    <link rel="stylesheet" href="./styles/style.css">
+</head>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Windows XP</title>
+    <link rel="stylesheet" href="./styles/style.css">
+</head>
+<body>
+  <div class="container">
+    <header></header>
+    <main>
+        <div class="img">
+            <img src="./assets/winlogo.png" alt="Windows XP Logo" />
+            <h1>To begin, click your user name</h1>
+        </div>
+        <div class="line"></div>
+        <div class="users" style="overflow-y: auto;width:500px;height:300px;">
+            <section class="paule32">
+                <div class="iconA" style="background-image:url('./assets/icon0.png');"></div>
+                <div class="user">
+                    <h3>Blacky Cat</h3>
+                    <p>Type your password</p>
+                    <div id="userpass_1" class="input">
+                        <input id="userpass_1" type="password">
+                        <button id="btn_green_1" class="green"><img id="btn_green_1" src="./assets/arrow-right.png"   alt=""> </button>
+                        <button id="btn_blue_1"  class="blue" ><img id="btn_blue_1"  src="./assets/question-mark.png" alt=""> </button>
+                    </div>
+                </div>
+            </section>
+            <section class="paule32">
+                <div class="iconA" style="background-image:url('./assets/icon1.png');"></div>
+                <div class="user">
+                    <h3>paule32</h3>
+                    <p>Type your password</p>
+                    <div id="userpass_2" class="input">
+                        <input id="userpass_2" type="password">
+                        <button id="btn_green_2" class="green"><img id="btn_green_2" src="./assets/arrow-right.png"   alt=""> </button>
+                        <button id="btn_blue_2"  class="blue" ><img id="btn_blue_2"  src="./assets/question-mark.png" alt=""> </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <footer>
+        <div id="btn_logout" class="btn">
+            <button id="btn_logout"><img src="./assets/logout.png" alt=""> </button>
+            <p>Turn off computer</p>
+        </div>
+        <div class="informations">
+            <p>After you log on, you can add or change accounts</p>
+            <p>Just go to your Control Panel and click User Accounts</p>
+        </div>
+    </footer>
+  </div>
+</body>
+
+<script type="text/javascript" src="../javascript/jquery/jquery-3.7.1.js"></script>
+<script type="text/javascript" src="../javascript/easyui/jquery.easyui.min.js"></script-->
+<script type="text/javascript" src="../javascript/qwebchannel.js"></script>
+
+<script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        window.bridge = channel.objects.bridge;
+    });
+    document.addEventListener("click", function(event) {
+        var element = event.target;
+        var id = element.id || "keine ID";
+        // ID an Python melden
+        if (window.bridge) {
+            window.bridge.report_element_id(id);
+        }
+    });
+});
+</script>
+</html>

@@ -1,0 +1,38 @@
+[common]
+language = en_us
+framework = 0
+lang = 3
+template = 1
+kind = -1
+
+[project]
+type = 0
+doc_out = 1
+logo = T:\a\HelpNDocTools\HelpNDocTools\src\__pycache__\_internal\img\floppy-disk.png
+name = A Test Project
+author = paule32
+number = 1.0.0
+srcdir = T:/examples/src
+dstdir = T:/examples/dst
+scan_recursiv = 1
+
+[mode]
+optimized = 1
+doc_entries = 1
+cross = 1
+
+[output]
+doc_html = 1
+doc_plain_html  = 0
+doc_navi = 1
+doc_prepare_chm = 0
+doc_search_func = 1
+doc_latex = 1
+doc_latex_pdf = 0
+doc_latex_imm = 0
+doc_latex_ps = 1
+doc_man = 1
+doc_rtf = 0
+doc_xml = 1
+doc_doc = 0
+

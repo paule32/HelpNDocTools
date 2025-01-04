@@ -1,0 +1,387 @@
+[common]
+language = en_us
+framework = 0
+lang = 1
+template = 1
+kind = -1
+
+[project]
+type = 0
+doc_out = 0
+logo = T:\a\HelpNDocTools\HelpNDocTools\src\__pycache__\_internal\img\floppy-disk.png
+name = A Test Project
+author = paule32
+number = 1.0.0
+srcdir = T:/examples/src
+dstdir = T:/examples/dst
+scan_recursiv = 1
+
+[mode]
+optimized = 2
+doc_entries = 1
+cross = 1
+
+[output]
+doc_html = 0
+doc_plain_html  = 0
+doc_navi = 0
+doc_prepare_chm = 0
+doc_search_func = 0
+doc_latex = 0
+doc_latex_pdf = 0
+doc_latex_imm = 0
+doc_latex_ps = 0
+doc_man = 0
+doc_rtf = 0
+doc_xml = 0
+doc_doc = 0
+
+[diagrams]
+dia_not = 0
+dia_txt = 1
+dia_bin = 0
+dia_dot = 0
+
+[graph]
+class = 0
+colab = 1
+overh = 1
+inc = 0
+incby = 0
+call = 0
+callby = 0
+
+
+[expert_5]
+doxyfile_encoding = 0
+input_encoding = 0
+input_file_encoding = 0
+project_name = 0
+project_number = 0
+project_brief = 0
+project_logo = 0
+project_icon = 0
+output_directory = 0
+create_subdirs = 0
+create_subdirs_level = 0
+allow_unicode_names = 0
+output_language = 0
+brief_member_desc = 0
+repeat_brief = 0
+abbreviate_brief = 0
+always_detailed_sec = 0
+inline_inherited_memb = 0
+full_path_names = 0
+strip_from_path = 0
+strip_from_inc_path = 0
+short_names = 0
+javadoc_autobrief = 0
+javadoc_banner = 0
+qt_autobrief = 0
+multiline_cpp_is_brief = 0
+python_docstring = 0
+inherited_docs = 0
+seperate_member_pages = 0
+tab_size = 0
+aliases = 0
+optimize_output_for_c = 0
+optimize_output_java = 0
+optimize_for_fortran = 0
+optimize_output_vhcl = 0
+optimize_output_slice = 0
+external_mapping = 0
+markdown_support = 0
+toc_include_headings = 0
+markdown_id_style = 0
+autolink_support = 0
+builtin_stl_support = 0
+cpp_cli_support = 0
+sip_support = 0
+idl_property_support = 0
+destribute_group_doc = 0
+group_nested_compounds = 0
+subgrouping = 0
+inline_grouped_classes = 0
+inline_simple_structs = 0
+typedef_hides_struct = 0
+lookup_cache_size = 0
+num_proc_threads = 0
+timestamp = 0
+
+[expert_6]
+extract_all = 0
+extract_private = 0
+extract_priv_virtual = 0
+extract_package = 0
+extract_static = 0
+extract_local_classes = 0
+extract_local_methods = 0
+extract_anon_nspaces = 0
+recursive_unnamed_params = 0
+hide_undoc_members = 0
+hide_undoc_classes = 0
+hide_friend_compounds = 0
+hide_in_body_docs = 0
+internal_docs = 0
+case_sense_names = 0
+hide_scope_names = 0
+hide_compound_reference = 0
+show_headerfile = 0
+show_include_files = 0
+show_grouped_memb_inc = 0
+force_local_includes = 0
+inline_info = 0
+sort_member_docs = 0
+sort_brief_docs = 0
+sort_members_ctors_1st = 0
+sort_group_names = 0
+sort_by_scope_name = 0
+strict_proto_matching = 0
+generate_todolist = 0
+generate_testlist = 0
+generate_buglist = 0
+generate_deprecatedlist = 0
+enabled_sections = 0
+max_initializer_lines = 0
+show_used_files = 0
+show_files = 0
+show_namespaces = 0
+file_version_filter = 0
+layout_file = 0
+cite_bib_files = 0
+
+[expert_7]
+quiet = 0
+warnings = 0
+warn_if_undocumented = 0
+warn_if_doc_error = 0
+warn_if_incomplete_doc = 0
+warn_no_paramdoc = 0
+warn_if_undoc_enum_val = 0
+warn_as_error = 0
+warn_format = 0
+warn_line_format = 0
+warn_logfile = 0
+
+[expert_8]
+input = 0
+input_encoding = 0
+input_file_encoding = 0
+file_patterns = 0
+recursive = 0
+exclude = 0
+exclude_symlinks = 0
+exclude_patterns = 0
+exclude_symbols = 0
+example_path = 0
+example_patterns = 0
+example_recursive = 0
+image_path = 0
+input_filter = 0
+filter_patterns = 0
+filter_source_files = 0
+filter_source_patterns = 0
+use_mdfile_as_mainpage = 0
+implicite_dir_docs = 0
+fortran_comment_after = 0
+
+[expert_9]
+source_browser = 0
+inline_sources = 0
+strip_code_comments = 0
+referenced_by_relation = 0
+references_relation = 0
+references_link_source = 0
+source_tooltips = 0
+use_htags = 0
+verbatim_headers = 0
+clang_assisted_parsing = 0
+clang_add_inc_paths = 0
+clang_options = 0
+clang_database_path = 0
+
+[expert_10]
+alphabetical_index = 0
+ignore_prefix = 0
+
+[expert_11]
+generate_html = 0
+html_output = 0
+html_file_extension = 0
+html_header = 0
+html_footer = 0
+html_stylesheet = 0
+html_extra_stylesheet = 0
+html_extra_files = 0
+html_colorstyle = 0
+html_colorstyle_hue = 0
+html_colorstyle_sat = 0
+html_colorstyle_gamma = 0
+html_dynamic_menus = 0
+html_dynamic_sections = 0
+html_code_folding = 0
+html_copy_clipboard = 0
+html_project_cookie = 0
+html_index_num_entries = 0
+generate_docset = 0
+docset_feedname = 0
+docset_feedurl = 0
+docset_bundle_id = 0
+docset_publisher_id = 0
+docset_publisher_name = 0
+generate_htmlhelp = 0
+chm_file = 0
+hhc_location = 0
+generate_chi = 0
+chm_index_encoding = 0
+binary_toc = 0
+toc_expand = 0
+sitemap_url = 0
+generate_qhp = 0
+qch_file = 0
+qhp_virtual_folder = 0
+qhp_cust_filter_name = 0
+qhp_cust_filter_attrs = 0
+qhp_sect_filter_attrs = 0
+qhg_location = 0
+generate_eclipsehelp = 0
+eclipse_doc_id = 0
+disable_index = 0
+generate_treeview = 0
+full_sidebar = 0
+enum_values_per_line = 0
+treeview_width = 0
+ext_links_in_window = 0
+obfuscate_emails = 0
+html_formula_format = 0
+formula_fontsize = 0
+formula_macrofile = 0
+use_mathjax = 0
+mathjax_version = 0
+mathjax_format = 0
+mathjax_relpath = 0
+mathjax_extensions = 0
+mathjax_codefile = 0
+searchengine = 0
+server_based_search = 0
+external_search = 0
+searchengine_url = 0
+searchdata_file = 0
+external_search_id = 0
+extra_search_mappings = 0
+
+[expert_12]
+generate_latex = 0
+latex_output = 0
+latex_cmd_namet = 0
+latex_makeindex_cmdt = 0
+compact_latex = 0
+paper_type = 0
+extra_packages = 0
+latex_header = 0
+latex_footer = 0
+latex_extra_stylesheet = 0
+latex_extra_files = 0
+pdf_hyperlinks = 0
+use_pdflatex = 0
+latex_batchmode = 0
+a080f = 0
+latex_hide_indices = 0
+latex_bib_style = 0
+
+[expert_13]
+generate_rtf = 0
+rtf_output = 0
+compact_rtf = 0
+rtf_hyperlinks = 0
+rtf_stylesheet_file = 0
+rtf_extensions_file = 0
+
+[expert_14]
+generate_man = 0
+man_output = 0
+man_extension = 0
+man_subdir = 0
+man_links = 0
+
+[expert_15]
+generate_xml = 0
+xml_output = 0
+xml_programlisting = 0
+xml_ns_memb_file_scope = 0
+
+[expert_16]
+generate_docbook = 0
+docbook_output = 0
+
+[expert_17]
+generate_autogen_def = 0
+
+[expert_18]
+generate_sqlite3 = 0
+sqlite3_output = 0
+sqlite3_recreate_db = 0
+
+[expert_19]
+generate_perlmod = 0
+perlmod_latex = 0
+perlmod_pretty = 0
+perlmod_makevar_prefix = 0
+
+[expert_20]
+enable_preprocessing = 0
+macro_expansion = 0
+expand_only_predef = 0
+search_includes = 0
+include_path = 0
+include_file_patterns = 0
+predefined = 0
+expand_as_defined = 0
+skip_function_macros = 0
+
+[expert_21]
+tagfiles = 0
+generate_tagfile = 0
+allexternals = 0
+external_groups = 0
+external_pages = 0
+
+[expert_22]
+hide_undoc_relations = 0
+have_dot = 0
+dot_num_threads = 0
+dot_common_attr = 0
+dot_edge_attr = 0
+dot_node_attr = 0
+dot_fontpath = 0
+class_graph = 0
+collaboration_graph = 0
+group_graphs = 0
+uml_look = 0
+uml_limit_num_fields = 0
+dot_uml_details = 0
+dot_wrap_threshold = 0
+template_relations = 0
+include_graph = 0
+included_by_graph = 0
+call_graph = 0
+caller_graph = 0
+graphical_hierarchy = 0
+directory_graph = 0
+dir_graph_max_depth = 0
+dot_image_format = 0
+interactive_svg = 0
+dot_path = 0
+dotfile_dirs = 0
+dia_path = 0
+diafile_dirs = 0
+plantuml_jar_path = 0
+plantuml_cfg_file = 0
+plantuml_include_path = 0
+dot_graph_max_nodes = 0
+max_dot_graph_depth = 0
+dot_multi_targets = 0
+generate_legend = 0
+dot_cleanup = 0
+mscgen_tool = 0
+mscfile_dirs = 0

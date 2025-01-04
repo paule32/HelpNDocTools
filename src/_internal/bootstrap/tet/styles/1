@@ -1,0 +1,266 @@
+$franklin: 'Franklin Gothic', sans-serif; 
+$tahoma: 'Tahoma', sans-serif;
+$verdana: 'Verdana', sans-serif;
+$source: 'Source Sans Pro', sans-serif;
+$blackBlue: #084DA3;
+
+@mixin flex($justify, $align) {
+    display: flex;
+    justify-content: $justify;
+    align-items: $align;
+}
+
+@mixin myBtn($bg, $color){
+    width: 40px;
+    height: 40px;
+
+    background-color: $bg;
+    border: 1px solid #fff;
+    box-shadow: inset 4px 2px 8px rgba(255, 255, 255, 0.6), inset -2px -3px 5px $color;
+    border-radius: 4px;
+
+    outline: none;
+    cursor: pointer;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    min-height: 112px;
+    width: 100%;
+
+    background-color: $blackBlue;
+
+    position: relative;
+
+    &::before{
+        content: "";
+
+        width: 100%;
+        height: 7px;
+
+        position: absolute;
+        top: 110px;
+
+        background: linear-gradient(270deg, #084DA3 -33.4%, #084DA3 6.07%, #FFFFFF 49.56%, #084DA3 82.59%, #084DA3 121.25%);
+    }
+}
+
+footer {
+    min-height: 12.5vh;
+    width: 100%;
+
+    background-color: $blackBlue;
+
+    position: relative;
+
+    @include flex(space-between, center);
+
+        &::before{
+            content: "";
+
+            width: 100%;
+            height: 7px;
+
+            position: absolute;
+            align-self: flex-start;
+
+            background: linear-gradient(270deg, #084DA3 -33.4%, #084DA3 6.07%, #FF9933 49.56%, #084DA3 82.59%, #084DA3 121.25%);
+        }
+
+        .btn {
+            margin-left: 50px;
+
+            @include flex(center, center);
+
+                button {
+                    @include myBtn(#E55022, #AA2300);
+                }
+
+                p {
+                    color: #fff;
+                    margin-left: 20px;
+                    font-size: 18px;
+                    font-family: $source;
+                    font-weight: 400;
+                }
+        }
+
+        .informations {
+            margin-right: 50px;
+
+            color: #fff;
+
+            font-family: $source;
+            font-size: 13px;
+            text-align: center;
+            letter-spacing: 0.5px;
+            font-weight: 400;
+        }
+
+}
+
+main {
+    height: 75vh;
+    background: radial-gradient(19.48% 42.48% at 10% 22.48%, #9CC0E9 0%, #508FD9 100%);
+
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+
+        .img {
+            @include flex(center, flex-end);
+            flex-direction: column;
+
+            position: relative;
+            top: -40px;
+                h1 {
+                    font-family: $source;
+                    color: white;
+                    font-weight: 500;
+                    margin-top: 30px;
+                    margin-right: 40px;
+                }
+        }
+
+        .line {
+            width: 2px;
+            height: 80%;
+
+            margin: 0 42px;
+
+            background: linear-gradient(180deg, #508FD9 0%, #FFFFFF 47.4%, #508FD9 98.96%);
+        }
+
+        .users {
+
+            section {
+                padding: 15px 20px;
+                width: 445px;
+                height: 112.5px;
+
+                background: linear-gradient(90deg, #084DA3 0%, #508FD9 100%);
+                border-radius: 4px 0px 0px 4px;
+
+                position: relative;
+
+                background: url('/assets/Rectangle\ 73\ \(1\).png');
+
+                display: flex;
+                    
+                    .iconA, .iconB {
+                        width: 81px;
+                        height: 81px;
+                        border: 2px solid #FFCC00;
+                        border-radius: 4px;
+                    }
+
+            }
+
+            .lucas {
+
+                
+                .iconA {
+                    background: url('./assets/icon0.jpg') no-repeat center center;
+                    background-size: cover;
+                }
+                
+                .user {
+                    margin-left: 20px;
+                    position: relative;
+                    color: #fff;
+
+                    h3 {
+                        font-family: $source;
+                        font-weight: 400;
+                        font-size: 20px;
+
+                    }
+                    
+                    p {
+                        font-family: $verdana;
+                        margin-top: 20px;
+                        font-size: 13px;
+                    }
+
+                    .input {
+                        
+                        position: absolute;
+                        @include flex(center, center);
+
+                        bottom: -24px;
+
+                        input {
+
+                            padding: 0 0.4rem;
+                            outline: none;
+
+                            height: 40px;
+                            width: 200px;
+
+                            background: #FFFFFF;
+                            border: 0.5px solid #333333;
+                            border-radius: 4px;
+                        }
+
+                        .green {
+                            @include myBtn(#23B221, #267C08);
+                            @include flex(center, center);
+                            margin: 0 10px;
+                            position: relative;
+
+                            img {
+                                position: absolute;
+                                top: 7px;
+                            }
+                        }
+    
+                        .blue {
+                            @include myBtn(#2266F5, #0844C3);
+                            @include flex(center, center);
+                            position: relative;
+
+                            img {
+                                position: absolute;
+                                top: 5px;
+
+                            }
+
+                        }
+                    }
+
+                }
+            }
+
+            .crystal {
+
+                margin-top: 40px;
+                opacity: 0.6;
+
+                .iconB {
+                    background: url('./assets/icon.png') no-repeat center center;
+                    background-size: cover;
+                    border-color: #fff;
+                }
+
+                .user {
+                    margin-left: 20px;
+
+                    color: #fff;
+                    font-family: $source;
+                    font-size: 20px;
+                }
+
+            }
+        }
+}

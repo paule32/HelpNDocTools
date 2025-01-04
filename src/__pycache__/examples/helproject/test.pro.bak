@@ -1,0 +1,6 @@
+; help project file
+[common]
+framework = 1
+lang = 0
+template = 2
+kind = 2

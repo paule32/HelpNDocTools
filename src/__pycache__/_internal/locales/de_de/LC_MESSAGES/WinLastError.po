@@ -1,0 +1,9800 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0.0\n"
+"POT-Creation-Date: 2024-04-06 20:33+0100\n"
+"PO-Revision-Date: 2024-04-06 20:15+0100\n"
+"Last-Translator: Jens Kallup <paule32@gmail.com>\n"
+"Language-Team: German <paule32@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "0"
+msgstr "ERROR_SUCCESS"
+
+msgid "1"
+msgstr "ERROR_INVALID_FUNCTION"
+
+msgid "2"
+msgstr "ERROR_FILE_NOT_FOUND"
+
+msgid "3"
+msgstr "ERROR_PATH_NOT_FOUND"
+
+msgid "4"
+msgstr "ERROR_TOO_MANY_OPEN_FILES"
+
+msgid "5"
+msgstr "ERROR_ACCESS_DENIED"
+
+msgid "6"
+msgstr "ERROR_INVALID_HANDLE"
+
+msgid "7"
+msgstr "ERROR_ARENA_TRASHED"
+
+msgid "8"
+msgstr "ERROR_NOT_ENOUGH_MEMORY"
+
+msgid "9"
+msgstr "ERROR_INVALID_BLOCK"
+
+msgid "10"
+msgstr "ERROR_BAD_ENVIRONMENT"
+
+msgid "11"
+msgstr "ERROR_BAD_FORMAT"
+
+msgid "12"
+msgstr "ERROR_INVALID_ACCESS"
+
+msgid "13"
+msgstr "ERROR_INVALID_DATA"
+
+msgid "14"
+msgstr "ERROR_OUTOFMEMORY"
+
+msgid "15"
+msgstr "ERROR_INVALID_DRIVE"
+
+msgid "16"
+msgstr "ERROR_CURRENT_DIRECTORY"
+
+msgid "17"
+msgstr "ERROR_NOT_SAME_DEVICE"
+
+msgid "18"
+msgstr "ERROR_NO_MORE_FILES"
+
+msgid "19"
+msgstr "ERROR_WRITE_PROTECT"
+
+msgid "20"
+msgstr "ERROR_BAD_UNIT"
+
+msgid "21"
+msgstr "ERROR_NOT_READY"
+
+msgid "22"
+msgstr "ERROR_BAD_COMMAND"
+
+msgid "23"
+msgstr "ERROR_CRC"
+
+msgid "24"
+msgstr "ERROR_BAD_LENGTH"
+
+msgid "25"
+msgstr "ERROR_SEEK"
+
+msgid "26"
+msgstr "ERROR_NOT_DOS_DISK"
+
+msgid "27"
+msgstr "ERROR_SECTOR_NOT_FOUND"
+
+msgid "28"
+msgstr "ERROR_OUT_OF_PAPER"
+
+msgid "29"
+msgstr "ERROR_WRITE_FAULT"
+
+msgid "30"
+msgstr "ERROR_READ_FAULT"
+
+msgid "31"
+msgstr "ERROR_GEN_FAILURE"
+
+msgid "32"
+msgstr "ERROR_SHARING_VIOLATION"
+
+msgid "33"
+msgstr "ERROR_LOCK_VIOLATION"
+
+msgid "34"
+msgstr "ERROR_WRONG_DISK"
+
+msgid "36"
+msgstr "ERROR_SHARING_BUFFER_EXCEEDED"
+
+msgid "38"
+msgstr "ERROR_HANDLE_EOF"
+
+msgid "39"
+msgstr "ERROR_HANDLE_DISK_FULL"
+
+msgid "50"
+msgstr "ERROR_NOT_SUPPORTED"
+
+msgid "51"
+msgstr "ERROR_REM_NOT_LIST"
+
+msgid "52"
+msgstr "ERROR_DUP_NAME"
+
+msgid "53"
+msgstr "ERROR_BAD_NETPATH"
+
+msgid "54"
+msgstr "ERROR_NETWORK_BUSY"
+
+msgid "55"
+msgstr "ERROR_DEV_NOT_EXIST"
+
+msgid "56"
+msgstr "ERROR_TOO_MANY_CMDS"
+
+msgid "57"
+msgstr "ERROR_ADAP_HDW_ERR"
+
+msgid "58"
+msgstr "ERROR_BAD_NET_RESP"
+
+msgid "59"
+msgstr "ERROR_UNEXP_NET_ERR"
+
+msgid "60"
+msgstr "ERROR_BAD_REM_ADAP"
+
+msgid "61"
+msgstr "ERROR_PRINTQ_FULL"
+
+msgid "62"
+msgstr "ERROR_NO_SPOOL_SPACE"
+
+msgid "63"
+msgstr "ERROR_PRINT_CANCELLED"
+
+msgid "64"
+msgstr "ERROR_NETNAME_DELETED"
+
+msgid "65"
+msgstr "ERROR_NETWORK_ACCESS_DENIED"
+
+msgid "66"
+msgstr "ERROR_BAD_DEV_TYPE"
+
+msgid "67"
+msgstr "ERROR_BAD_NET_NAME"
+
+msgid "68"
+msgstr "ERROR_TOO_MANY_NAMES"
+
+msgid "69"
+msgstr "ERROR_TOO_MANY_SESS"
+
+msgid "70"
+msgstr "ERROR_SHARING_PAUSED"
+
+msgid "71"
+msgstr "ERROR_REQ_NOT_ACCEP"
+
+msgid "72"
+msgstr "ERROR_REDIR_PAUSED"
+
+msgid "80"
+msgstr "ERROR_FILE_EXISTS"
+
+msgid "82"
+msgstr "ERROR_CANNOT_MAKE"
+
+msgid "83"
+msgstr "ERROR_FAIL_I24"
+
+msgid "84"
+msgstr "ERROR_OUT_OF_STRUCTURES"
+
+msgid "85"
+msgstr "ERROR_ALREADY_ASSIGNED"
+
+msgid "86"
+msgstr "ERROR_INVALID_PASSWORD"
+
+msgid "87"
+msgstr "ERROR_INVALID_PARAMETER"
+
+msgid "88"
+msgstr "ERROR_NET_WRITE_FAULT"
+
+msgid "89"
+msgstr "ERROR_NO_PROC_SLOTS"
+
+msgid "100"
+msgstr "ERROR_TOO_MANY_SEMAPHORES"
+
+msgid "101"
+msgstr "ERROR_EXCL_SEM_ALREADY_OWNED"
+
+msgid "102"
+msgstr "ERROR_SEM_IS_SET"
+
+msgid "103"
+msgstr "ERROR_TOO_MANY_SEM_REQUESTS"
+
+msgid "104"
+msgstr "ERROR_INVALID_AT_INTERRUPT_TIME"
+
+msgid "105"
+msgstr "ERROR_SEM_OWNER_DIED"
+
+msgid "106"
+msgstr "ERROR_SEM_USER_LIMIT"
+
+msgid "107"
+msgstr "ERROR_DISK_CHANGE"
+
+msgid "108"
+msgstr "ERROR_DRIVE_LOCKED"
+
+msgid "109"
+msgstr "ERROR_BROKEN_PIPE"
+
+msgid "110"
+msgstr "ERROR_OPEN_FAILED"
+
+msgid "111"
+msgstr "ERROR_BUFFER_OVERFLOW"
+
+msgid "112"
+msgstr "ERROR_DISK_FULL"
+
+msgid "113"
+msgstr "ERROR_NO_MORE_SEARCH_HANDLES"
+
+msgid "114"
+msgstr "ERROR_INVALID_TARGET_HANDLE"
+
+msgid "117"
+msgstr "ERROR_INVALID_CATEGORY"
+
+msgid "118"
+msgstr "ERROR_INVALID_VERIFY_SWITCH"
+
+msgid "119"
+msgstr "ERROR_BAD_DRIVER_LEVEL"
+
+msgid "120"
+msgstr "ERROR_CALL_NOT_IMPLEMENTED"
+
+msgid "121"
+msgstr "ERROR_SEM_TIMEOUT"
+
+msgid "122"
+msgstr "ERROR_INSUFFICIENT_BUFFER"
+
+msgid "123"
+msgstr "ERROR_INVALID_NAME"
+
+msgid "124"
+msgstr "ERROR_INVALID_LEVEL"
+
+msgid "125"
+msgstr "ERROR_NO_VOLUME_LABEL"
+
+msgid "126"
+msgstr "ERROR_MOD_NOT_FOUND"
+
+msgid "127"
+msgstr "ERROR_PROC_NOT_FOUND"
+
+msgid "128"
+msgstr "ERROR_WAIT_NO_CHILDREN"
+
+msgid "129"
+msgstr "ERROR_CHILD_NOT_COMPLETE"
+
+msgid "130"
+msgstr "ERROR_DIRECT_ACCESS_HANDLE"
+
+msgid "131"
+msgstr "ERROR_NEGATIVE_SEEK"
+
+msgid "132"
+msgstr "ERROR_SEEK_ON_DEVICE"
+
+msgid "133"
+msgstr "ERROR_IS_JOIN_TARGET"
+
+msgid "134"
+msgstr "ERROR_IS_JOINED"
+
+msgid "135"
+msgstr "ERROR_IS_SUBSTED"
+
+msgid "136"
+msgstr "ERROR_NOT_JOINED"
+
+msgid "137"
+msgstr "ERROR_NOT_SUBSTED"
+
+msgid "138"
+msgstr "ERROR_JOIN_TO_JOIN"
+
+msgid "139"
+msgstr "ERROR_SUBST_TO_SUBST"
+
+msgid "140"
+msgstr "ERROR_JOIN_TO_SUBST"
+
+msgid "141"
+msgstr "ERROR_SUBST_TO_JOIN"
+
+msgid "142"
+msgstr "ERROR_BUSY_DRIVE"
+
+msgid "143"
+msgstr "ERROR_SAME_DRIVE"
+
+msgid "144"
+msgstr "ERROR_DIR_NOT_ROOT"
+
+msgid "145"
+msgstr "ERROR_DIR_NOT_EMPTY"
+
+msgid "146"
+msgstr "ERROR_IS_SUBST_PATH"
+
+msgid "147"
+msgstr "ERROR_IS_JOIN_PATH"
+
+msgid "148"
+msgstr "ERROR_PATH_BUSY"
+
+msgid "149"
+msgstr "ERROR_IS_SUBST_TARGET"
+
+msgid "150"
+msgstr "ERROR_SYSTEM_TRACE"
+
+msgid "151"
+msgstr "ERROR_INVALID_EVENT_COUNT"
+
+msgid "152"
+msgstr "ERROR_TOO_MANY_MUXWAITERS"
+
+msgid "153"
+msgstr "ERROR_INVALID_LIST_FORMAT"
+
+msgid "154"
+msgstr "ERROR_LABEL_TOO_LONG"
+
+msgid "155"
+msgstr "ERROR_TOO_MANY_TCBS"
+
+msgid "156"
+msgstr "ERROR_SIGNAL_REFUSED"
+
+msgid "157"
+msgstr "ERROR_DISCARDED"
+
+msgid "158"
+msgstr "ERROR_NOT_LOCKED"
+
+msgid "159"
+msgstr "ERROR_BAD_THREADID_ADDR"
+
+msgid "160"
+msgstr "ERROR_BAD_ARGUMENTS"
+
+msgid "161"
+msgstr "ERROR_BAD_PATHNAME"
+
+msgid "162"
+msgstr "ERROR_SIGNAL_PENDING"
+
+msgid "164"
+msgstr "ERROR_MAX_THRDS_REACHED"
+
+msgid "167"
+msgstr "ERROR_LOCK_FAILED"
+
+msgid "170"
+msgstr "ERROR_BUSY"
+
+msgid "171"
+msgstr "ERROR_DEVICE_SUPPORT_IN_PROGRESS"
+
+msgid "173"
+msgstr "ERROR_CANCEL_VIOLATION"
+
+msgid "174"
+msgstr "ERROR_ATOMIC_LOCKS_NOT_SUPPORTED"
+
+msgid "180"
+msgstr "ERROR_INVALID_SEGMENT_NUMBER"
+
+msgid "182"
+msgstr "ERROR_INVALID_ORDINAL"
+
+msgid "183"
+msgstr "ERROR_ALREADY_EXISTS"
+
+msgid "186"
+msgstr "ERROR_INVALID_FLAG_NUMBER"
+
+msgid "187"
+msgstr "ERROR_SEM_NOT_FOUND"
+
+msgid "188"
+msgstr "ERROR_INVALID_STARTING_CODESEG"
+
+msgid "189"
+msgstr "ERROR_INVALID_STACKSEG"
+
+msgid "190"
+msgstr "ERROR_INVALID_MODULETYPE"
+
+msgid "191"
+msgstr "ERROR_INVALID_EXE_SIGNATURE"
+
+msgid "192"
+msgstr "ERROR_EXE_MARKED_INVALID"
+
+msgid "193"
+msgstr "ERROR_BAD_EXE_FORMAT"
+
+msgid "194"
+msgstr "ERROR_ITERATED_DATA_EXCEEDS_64k"
+
+msgid "195"
+msgstr "ERROR_INVALID_MINALLOCSIZE"
+
+msgid "196"
+msgstr "ERROR_DYNLINK_FROM_INVALID_RING"
+
+msgid "197"
+msgstr "ERROR_IOPL_NOT_ENABLED"
+
+msgid "198"
+msgstr "ERROR_INVALID_SEGDPL"
+
+msgid "199"
+msgstr "ERROR_AUTODATASEG_EXCEEDS_64k"
+
+msgid "200"
+msgstr "ERROR_RING2SEG_MUST_BE_MOVABLE"
+
+msgid "201"
+msgstr "ERROR_RELOC_CHAIN_XEEDS_SEGLIM"
+
+msgid "202"
+msgstr "ERROR_INFLOOP_IN_RELOC_CHAIN"
+
+msgid "203"
+msgstr "ERROR_ENVVAR_NOT_FOUND"
+
+msgid "205"
+msgstr "ERROR_NO_SIGNAL_SENT"
+
+msgid "206"
+msgstr "ERROR_FILENAME_EXCED_RANGE"
+
+msgid "207"
+msgstr "ERROR_RING2_STACK_IN_USE"
+
+msgid "208"
+msgstr "ERROR_META_EXPANSION_TOO_LONG"
+
+msgid "209"
+msgstr "ERROR_INVALID_SIGNAL_NUMBER"
+
+msgid "210"
+msgstr "ERROR_THREAD_1_INACTIVE"
+
+msgid "212"
+msgstr "ERROR_LOCKED"
+
+msgid "214"
+msgstr "ERROR_TOO_MANY_MODULES"
+
+msgid "215"
+msgstr "ERROR_NESTING_NOT_ALLOWED"
+
+msgid "216"
+msgstr "ERROR_EXE_MACHINE_TYPE_MISMATCH"
+
+msgid "217"
+msgstr "ERROR_EXE_CANNOT_MODIFY_SIGNED_BINARY"
+
+msgid "218"
+msgstr "ERROR_EXE_CANNOT_MODIFY_STRONG_SIGNED_BINARY"
+
+msgid "220"
+msgstr "ERROR_FILE_CHECKED_OUT"
+
+msgid "221"
+msgstr "ERROR_CHECKOUT_REQUIRED"
+
+msgid "222"
+msgstr "ERROR_BAD_FILE_TYPE"
+
+msgid "223"
+msgstr "ERROR_FILE_TOO_LARGE"
+
+msgid "224"
+msgstr "ERROR_FORMS_AUTH_REQUIRED"
+
+msgid "225"
+msgstr "ERROR_VIRUS_INFECTED"
+
+msgid "226"
+msgstr "ERROR_VIRUS_DELETED"
+
+msgid "229"
+msgstr "ERROR_PIPE_LOCAL"
+
+msgid "230"
+msgstr "ERROR_BAD_PIPE"
+
+msgid "231"
+msgstr "ERROR_PIPE_BUSY"
+
+msgid "232"
+msgstr "ERROR_NO_DATA"
+
+msgid "233"
+msgstr "ERROR_PIPE_NOT_CONNECTED"
+
+msgid "234"
+msgstr "ERROR_MORE_DATA"
+
+msgid "235"
+msgstr "ERROR_NO_WORK_DONE"
+
+msgid "240"
+msgstr "ERROR_VC_DISCONNECTED"
+
+msgid "254"
+msgstr "ERROR_INVALID_EA_NAME"
+
+msgid "255"
+msgstr "ERROR_EA_LIST_INCONSISTENT"
+
+msgid "258"
+msgstr "WAIT_TIMEOUT"
+
+msgid "259"
+msgstr "ERROR_NO_MORE_ITEMS"
+
+msgid "266"
+msgstr "ERROR_CANNOT_COPY"
+
+msgid "267"
+msgstr "ERROR_DIRECTORY"
+
+msgid "275"
+msgstr "ERROR_EAS_DIDNT_FIT"
+
+msgid "276"
+msgstr "ERROR_EA_FILE_CORRUPT"
+
+msgid "277"
+msgstr "ERROR_EA_TABLE_FULL"
+
+msgid "278"
+msgstr "ERROR_INVALID_EA_HANDLE"
+
+msgid "282"
+msgstr "ERROR_EAS_NOT_SUPPORTED"
+
+msgid "288"
+msgstr "ERROR_NOT_OWNER"
+
+msgid "298"
+msgstr "ERROR_TOO_MANY_POSTS"
+
+msgid "299"
+msgstr "ERROR_PARTIAL_COPY"
+
+msgid "300"
+msgstr "ERROR_OPLOCK_NOT_GRANTED"
+
+msgid "301"
+msgstr "ERROR_INVALID_OPLOCK_PROTOCOL"
+
+msgid "302"
+msgstr "ERROR_DISK_TOO_FRAGMENTED"
+
+msgid "303"
+msgstr "ERROR_DELETE_PENDING"
+
+msgid "304"
+msgstr "ERROR_INCOMPATIBLE_WITH_GLOBAL_SHORT_NAME_REGISTRY_SETTING"
+
+msgid "305"
+msgstr "ERROR_SHORT_NAMES_NOT_ENABLED_ON_VOLUME"
+
+msgid "306"
+msgstr "ERROR_SECURITY_STREAM_IS_INCONSISTENT"
+
+msgid "307"
+msgstr "ERROR_INVALID_LOCK_RANGE"
+
+msgid "308"
+msgstr "ERROR_IMAGE_SUBSYSTEM_NOT_PRESENT"
+
+msgid "309"
+msgstr "ERROR_NOTIFICATION_GUID_ALREADY_DEFINED"
+
+msgid "310"
+msgstr "ERROR_INVALID_EXCEPTION_HANDLER"
+
+msgid "311"
+msgstr "ERROR_DUPLICATE_PRIVILEGES"
+
+msgid "312"
+msgstr "ERROR_NO_RANGES_PROCESSED"
+
+msgid "313"
+msgstr "ERROR_NOT_ALLOWED_ON_SYSTEM_FILE"
+
+msgid "314"
+msgstr "ERROR_DISK_RESOURCES_EXHAUSTED"
+
+msgid "315"
+msgstr "ERROR_INVALID_TOKEN"
+
+msgid "316"
+msgstr "ERROR_DEVICE_FEATURE_NOT_SUPPORTED"
+
+msgid "317"
+msgstr "ERROR_MR_MID_NOT_FOUND"
+
+msgid "318"
+msgstr "ERROR_SCOPE_NOT_FOUND"
+
+msgid "319"
+msgstr "ERROR_UNDEFINED_SCOPE"
+
+msgid "320"
+msgstr "ERROR_INVALID_CAP"
+
+msgid "321"
+msgstr "ERROR_DEVICE_UNREACHABLE"
+
+msgid "322"
+msgstr "ERROR_DEVICE_NO_RESOURCES"
+
+msgid "323"
+msgstr "ERROR_DATA_CHECKSUM_ERROR"
+
+msgid "324"
+msgstr "ERROR_INTERMIXED_KERNEL_EA_OPERATION"
+
+msgid "326"
+msgstr "ERROR_FILE_LEVEL_TRIM_NOT_SUPPORTED"
+
+msgid "327"
+msgstr "ERROR_OFFSET_ALIGNMENT_VIOLATION"
+
+msgid "328"
+msgstr "ERROR_INVALID_FIELD_IN_PARAMETER_LIST"
+
+msgid "329"
+msgstr "ERROR_OPERATION_IN_PROGRESS"
+
+msgid "330"
+msgstr "ERROR_BAD_DEVICE_PATH"
+
+msgid "331"
+msgstr "ERROR_TOO_MANY_DESCRIPTORS"
+
+msgid "332"
+msgstr "ERROR_SCRUB_DATA_DISABLED"
+
+msgid "333"
+msgstr "ERROR_NOT_REDUNDANT_STORAGE"
+
+msgid "334"
+msgstr "ERROR_RESIDENT_FILE_NOT_SUPPORTED"
+
+msgid "335"
+msgstr "ERROR_COMPRESSED_FILE_NOT_SUPPORTED"
+
+msgid "336"
+msgstr "ERROR_DIRECTORY_NOT_SUPPORTED"
+
+msgid "337"
+msgstr "ERROR_NOT_READ_FROM_COPY"
+
+msgid "338"
+msgstr "ERROR_FT_WRITE_FAILURE"
+
+msgid "339"
+msgstr "ERROR_FT_DI_SCAN_REQUIRED"
+
+msgid "340"
+msgstr "ERROR_INVALID_KERNEL_INFO_VERSION"
+
+msgid "341"
+msgstr "ERROR_INVALID_PEP_INFO_VERSION"
+
+msgid "342"
+msgstr "ERROR_OBJECT_NOT_EXTERNALLY_BACKED"
+
+msgid "343"
+msgstr "ERROR_EXTERNAL_BACKING_PROVIDER_UNKNOWN"
+
+msgid "344"
+msgstr "ERROR_COMPRESSION_NOT_BENEFICIAL"
+
+msgid "345"
+msgstr "ERROR_STORAGE_TOPOLOGY_ID_MISMATCH"
+
+msgid "346"
+msgstr "ERROR_BLOCKED_BY_PARENTAL_CONTROLS"
+
+msgid "347"
+msgstr "ERROR_BLOCK_TOO_MANY_REFERENCES"
+
+msgid "348"
+msgstr "ERROR_MARKED_TO_DISALLOW_WRITES"
+
+msgid "349"
+msgstr "ERROR_ENCLAVE_FAILURE"
+
+msgid "350"
+msgstr "ERROR_FAIL_NOACTION_REBOOT"
+
+msgid "351"
+msgstr "ERROR_FAIL_SHUTDOWN"
+
+msgid "352"
+msgstr "ERROR_FAIL_RESTART"
+
+msgid "353"
+msgstr "ERROR_MAX_SESSIONS_REACHED"
+
+msgid "354"
+msgstr "ERROR_NETWORK_ACCESS_DENIED_EDP"
+
+msgid "355"
+msgstr "ERROR_DEVICE_HINT_NAME_BUFFER_TOO_SMALL"
+
+msgid "356"
+msgstr "ERROR_EDP_POLICY_DENIES_OPERATION"
+
+msgid "357"
+msgstr "ERROR_EDP_DPL_POLICY_CANT_BE_SATISFIED"
+
+msgid "358"
+msgstr "ERROR_CLOUD_FILE_SYNC_ROOT_METADATA_CORRUPT"
+
+msgid "359"
+msgstr "ERROR_DEVICE_IN_MAINTENANCE"
+
+msgid "360"
+msgstr "ERROR_NOT_SUPPORTED_ON_DAX"
+
+msgid "361"
+msgstr "ERROR_DAX_MAPPING_EXISTS"
+
+msgid "362"
+msgstr "ERROR_CLOUD_FILE_PROVIDER_NOT_RUNNING"
+
+msgid "363"
+msgstr "ERROR_CLOUD_FILE_METADATA_CORRUPT"
+
+msgid "364"
+msgstr "ERROR_CLOUD_FILE_METADATA_TOO_LARGE"
+
+msgid "365"
+msgstr "ERROR_CLOUD_FILE_PROPERTY_BLOB_TOO_LARGE"
+
+msgid "366"
+msgstr "ERROR_CLOUD_FILE_PROPERTY_BLOB_CHECKSUM_MISMATCH"
+
+msgid "367"
+msgstr "ERROR_CHILD_PROCESS_BLOCKED"
+
+msgid "368"
+msgstr "ERROR_STORAGE_LOST_DATA_PERSISTENCE"
+
+msgid "369"
+msgstr "ERROR_FILE_SYSTEM_VIRTUALIZATION_UNAVAILABLE"
+
+msgid "370"
+msgstr "ERROR_FILE_SYSTEM_VIRTUALIZATION_METADATA_CORRUPT"
+
+msgid "371"
+msgstr "ERROR_FILE_SYSTEM_VIRTUALIZATION_BUSY"
+
+msgid "372"
+msgstr "ERROR_FILE_SYSTEM_VIRTUALIZATION_PROVIDER_UNKNOWN"
+
+msgid "373"
+msgstr "ERROR_GDI_HANDLE_LEAK"
+
+msgid "374"
+msgstr "ERROR_CLOUD_FILE_TOO_MANY_PROPERTY_BLOBS"
+
+msgid "375"
+msgstr "ERROR_CLOUD_FILE_PROPERTY_VERSION_NOT_SUPPORTED"
+
+msgid "376"
+msgstr "ERROR_NOT_A_CLOUD_FILE"
+
+msgid "377"
+msgstr "ERROR_CLOUD_FILE_NOT_IN_SYNC"
+
+msgid "378"
+msgstr "ERROR_CLOUD_FILE_ALREADY_CONNECTED"
+
+msgid "379"
+msgstr "ERROR_CLOUD_FILE_NOT_SUPPORTED"
+
+msgid "380"
+msgstr "ERROR_CLOUD_FILE_INVALID_REQUEST"
+
+msgid "381"
+msgstr "ERROR_CLOUD_FILE_READ_ONLY_VOLUME"
+
+msgid "382"
+msgstr "ERROR_CLOUD_FILE_CONNECTED_PROVIDER_ONLY"
+
+msgid "383"
+msgstr "ERROR_CLOUD_FILE_VALIDATION_FAILED"
+
+msgid "384"
+msgstr "ERROR_SMB1_NOT_AVAILABLE"
+
+msgid "385"
+msgstr "ERROR_FILE_SYSTEM_VIRTUALIZATION_INVALID_OPERATION"
+
+msgid "386"
+msgstr "ERROR_CLOUD_FILE_AUTHENTICATION_FAILED"
+
+msgid "387"
+msgstr "ERROR_CLOUD_FILE_INSUFFICIENT_RESOURCES"
+
+msgid "388"
+msgstr "ERROR_CLOUD_FILE_NETWORK_UNAVAILABLE"
+
+msgid "389"
+msgstr "ERROR_CLOUD_FILE_UNSUCCESSFUL"
+
+msgid "390"
+msgstr "ERROR_CLOUD_FILE_NOT_UNDER_SYNC_ROOT"
+
+msgid "391"
+msgstr "ERROR_CLOUD_FILE_IN_USE"
+
+msgid "392"
+msgstr "ERROR_CLOUD_FILE_PINNED"
+
+msgid "393"
+msgstr "ERROR_CLOUD_FILE_REQUEST_ABORTED"
+
+msgid "394"
+msgstr "ERROR_CLOUD_FILE_PROPERTY_CORRUPT"
+
+msgid "395"
+msgstr "ERROR_CLOUD_FILE_ACCESS_DENIED"
+
+msgid "396"
+msgstr "ERROR_CLOUD_FILE_INCOMPATIBLE_HARDLINKS"
+
+msgid "397"
+msgstr "ERROR_CLOUD_FILE_PROPERTY_LOCK_CONFLICT"
+
+msgid "398"
+msgstr "ERROR_CLOUD_FILE_REQUEST_CANCELED"
+
+msgid "399"
+msgstr "ERROR_EXTERNAL_SYSKEY_NOT_SUPPORTED"
+
+msgid "400"
+msgstr "ERROR_THREAD_MODE_ALREADY_BACKGROUND"
+
+msgid "401"
+msgstr "ERROR_THREAD_MODE_NOT_BACKGROUND"
+
+msgid "402"
+msgstr "ERROR_PROCESS_MODE_ALREADY_BACKGROUND"
+
+msgid "403"
+msgstr "ERROR_PROCESS_MODE_NOT_BACKGROUND"
+
+msgid "404"
+msgstr "ERROR_CLOUD_FILE_PROVIDER_TERMINATED"
+
+msgid "405"
+msgstr "ERROR_NOT_A_CLOUD_SYNC_ROOT"
+
+msgid "406"
+msgstr "ERROR_FILE_PROTECTED_UNDER_DPL"
+
+msgid "407"
+msgstr "ERROR_VOLUME_NOT_CLUSTER_ALIGNED"
+
+msgid "408"
+msgstr "ERROR_NO_PHYSICALLY_ALIGNED_FREE_SPACE_FOUND"
+
+msgid "409"
+msgstr "ERROR_APPX_FILE_NOT_ENCRYPTED"
+
+msgid "410"
+msgstr "ERROR_RWRAW_ENCRYPTED_FILE_NOT_ENCRYPTED"
+
+msgid "411"
+msgstr "ERROR_RWRAW_ENCRYPTED_INVALID_EDATAINFO_FILEOFFSET"
+
+msgid "412"
+msgstr "ERROR_RWRAW_ENCRYPTED_INVALID_EDATAINFO_FILERANGE"
+
+msgid "413"
+msgstr "ERROR_RWRAW_ENCRYPTED_INVALID_EDATAINFO_PARAMETER"
+
+msgid "414"
+msgstr "ERROR_LINUX_SUBSYSTEM_NOT_PRESENT"
+
+msgid "415"
+msgstr "ERROR_FT_READ_FAILURE"
+
+msgid "416"
+msgstr "ERROR_STORAGE_RESERVE_ID_INVALID"
+
+msgid "417"
+msgstr "ERROR_STORAGE_RESERVE_DOES_NOT_EXIST"
+
+msgid "418"
+msgstr "ERROR_STORAGE_RESERVE_ALREADY_EXISTS"
+
+msgid "419"
+msgstr "ERROR_STORAGE_RESERVE_NOT_EMPTY"
+
+msgid "420"
+msgstr "ERROR_NOT_A_DAX_VOLUME"
+
+msgid "421"
+msgstr "ERROR_NOT_DAX_MAPPABLE"
+
+msgid "422"
+msgstr "ERROR_TIME_SENSITIVE_THREAD"
+
+msgid "423"
+msgstr "ERROR_DPL_NOT_SUPPORTED_FOR_USER"
+
+msgid "424"
+msgstr "ERROR_CASE_DIFFERING_NAMES_IN_DIR"
+
+msgid "425"
+msgstr "ERROR_FILE_NOT_SUPPORTED"
+
+msgid "426"
+msgstr "ERROR_CLOUD_FILE_REQUEST_TIMEOUT"
+
+msgid "427"
+msgstr "ERROR_NO_TASK_QUEUE"
+
+msgid "428"
+msgstr "ERROR_SRC_SRV_DLL_LOAD_FAILED"
+
+msgid "429"
+msgstr "ERROR_NOT_SUPPORTED_WITH_BTT"
+
+msgid "430"
+msgstr "ERROR_ENCRYPTION_DISABLED"
+
+msgid "431"
+msgstr "ERROR_ENCRYPTING_METADATA_DISALLOWED"
+
+msgid "432"
+msgstr "ERROR_CANT_CLEAR_ENCRYPTION_FLAG"
+
+msgid "433"
+msgstr "ERROR_NO_SUCH_DEVICE"
+
+msgid "434"
+msgstr "ERROR_CLOUD_FILE_DEHYDRATION_DISALLOWED"
+
+msgid "435"
+msgstr "ERROR_FILE_SNAP_IN_PROGRESS"
+
+msgid "436"
+msgstr "ERROR_FILE_SNAP_USER_SECTION_NOT_SUPPORTED"
+
+msgid "437"
+msgstr "ERROR_FILE_SNAP_MODIFY_NOT_SUPPORTED"
+
+msgid "438"
+msgstr "ERROR_FILE_SNAP_IO_NOT_COORDINATED"
+
+msgid "439"
+msgstr "ERROR_FILE_SNAP_UNEXPECTED_ERROR"
+
+msgid "440"
+msgstr "ERROR_FILE_SNAP_INVALID_PARAMETER"
+
+msgid "441"
+msgstr "ERROR_UNSATISFIED_DEPENDENCIES"
+
+msgid "442"
+msgstr "ERROR_CASE_SENSITIVE_PATH"
+
+msgid "443"
+msgstr "ERROR_UNEXPECTED_NTCACHEMANAGER_ERROR"
+
+msgid "444"
+msgstr "ERROR_LINUX_SUBSYSTEM_UPDATE_REQUIRED"
+
+msgid "445"
+msgstr "ERROR_DLP_POLICY_WARNS_AGAINST_OPERATION"
+
+msgid "446"
+msgstr "ERROR_DLP_POLICY_DENIES_OPERATION"
+
+msgid "447"
+msgstr "ERROR_SECURITY_DENIES_OPERATION"
+
+msgid "448"
+msgstr "ERROR_UNTRUSTED_MOUNT_POINT"
+
+msgid "449"
+msgstr "ERROR_DLP_POLICY_SILENTLY_FAIL"
+
+msgid "450"
+msgstr "ERROR_CAPAUTHZ_NOT_DEVUNLOCKED"
+
+msgid "451"
+msgstr "ERROR_CAPAUTHZ_CHANGE_TYPE"
+
+msgid "452"
+msgstr "ERROR_CAPAUTHZ_NOT_PROVISIONED"
+
+msgid "453"
+msgstr "ERROR_CAPAUTHZ_NOT_AUTHORIZED"
+
+msgid "454"
+msgstr "ERROR_CAPAUTHZ_NO_POLICY"
+
+msgid "455"
+msgstr "ERROR_CAPAUTHZ_DB_CORRUPTED"
+
+msgid "456"
+msgstr "ERROR_CAPAUTHZ_SCCD_INVALID_CATALOG"
+
+msgid "457"
+msgstr "ERROR_CAPAUTHZ_SCCD_NO_AUTH_ENTITY"
+
+msgid "458"
+msgstr "ERROR_CAPAUTHZ_SCCD_PARSE_ERROR"
+
+msgid "459"
+msgstr "ERROR_CAPAUTHZ_SCCD_DEV_MODE_REQUIRED"
+
+msgid "460"
+msgstr "ERROR_CAPAUTHZ_SCCD_NO_CAPABILITY_MATCH"
+
+msgid "470"
+msgstr "ERROR_CIMFS_IMAGE_CORRUPT"
+
+msgid "471"
+msgstr "ERROR_CIMFS_IMAGE_VERSION_NOT_SUPPORTED"
+
+msgid "472"
+msgstr "ERROR_STORAGE_STACK_ACCESS_DENIED"
+
+msgid "473"
+msgstr "ERROR_INSUFFICIENT_VIRTUAL_ADDR_RESOURCES"
+
+msgid "474"
+msgstr "ERROR_INDEX_OUT_OF_BOUNDS"
+
+msgid "475"
+msgstr "ERROR_CLOUD_FILE_US_MESSAGE_TIMEOUT"
+
+msgid "480"
+msgstr "ERROR_PNP_QUERY_REMOVE_DEVICE_TIMEOUT"
+
+msgid "481"
+msgstr "ERROR_PNP_QUERY_REMOVE_RELATED_DEVICE_TIMEOUT"
+
+msgid "482"
+msgstr "ERROR_PNP_QUERY_REMOVE_UNRELATED_DEVICE_TIMEOUT"
+
+msgid "483"
+msgstr "ERROR_DEVICE_HARDWARE_ERROR"
+
+msgid "487"
+msgstr "ERROR_INVALID_ADDRESS"
+
+msgid "488"
+msgstr "ERROR_HAS_SYSTEM_CRITICAL_FILES"
+
+msgid "489"
+msgstr "ERROR_ENCRYPTED_FILE_NOT_SUPPORTED"
+
+msgid "490"
+msgstr "ERROR_SPARSE_FILE_NOT_SUPPORTED"
+
+msgid "491"
+msgstr "ERROR_PAGEFILE_NOT_SUPPORTED"
+
+msgid "492"
+msgstr "ERROR_VOLUME_NOT_SUPPORTED"
+
+msgid "493"
+msgstr "ERROR_NOT_SUPPORTED_WITH_BYPASSIO"
+
+msgid "494"
+msgstr "ERROR_NO_BYPASSIO_DRIVER_SUPPORT"
+
+msgid "495"
+msgstr "ERROR_NOT_SUPPORTED_WITH_ENCRYPTION"
+
+msgid "496"
+msgstr "ERROR_NOT_SUPPORTED_WITH_COMPRESSION"
+
+msgid "497"
+msgstr "ERROR_NOT_SUPPORTED_WITH_REPLICATION"
+
+msgid "498"
+msgstr "ERROR_NOT_SUPPORTED_WITH_DEDUPLICATION"
+
+msgid "499"
+msgstr "ERROR_NOT_SUPPORTED_WITH_AUDITING"
+
+msgid "500"
+msgstr "ERROR_USER_PROFILE_LOAD"
+
+msgid "501"
+msgstr "ERROR_SESSION_KEY_TOO_SHORT"
+
+msgid "502"
+msgstr "ERROR_ACCESS_DENIED_APPDATA"
+
+msgid "503"
+msgstr "ERROR_NOT_SUPPORTED_WITH_MONITORING"
+
+msgid "504"
+msgstr "ERROR_NOT_SUPPORTED_WITH_SNAPSHOT"
+
+msgid "505"
+msgstr "ERROR_NOT_SUPPORTED_WITH_VIRTUALIZATION"
+
+msgid "506"
+msgstr "ERROR_BYPASSIO_FLT_NOT_SUPPORTED"
+
+msgid "507"
+msgstr "ERROR_DEVICE_RESET_REQUIRED"
+
+msgid "508"
+msgstr "ERROR_VOLUME_WRITE_ACCESS_DENIED"
+
+msgid "509"
+msgstr "ERROR_NOT_SUPPORTED_WITH_CACHED_HANDLE"
+
+msgid "510"
+msgstr "ERROR_FS_METADATA_INCONSISTENT"
+
+msgid "534"
+msgstr "ERROR_ARITHMETIC_OVERFLOW"
+
+msgid "535"
+msgstr "ERROR_PIPE_CONNECTED"
+
+msgid "536"
+msgstr "ERROR_PIPE_LISTENING"
+
+msgid "537"
+msgstr "ERROR_VERIFIER_STOP"
+
+msgid "538"
+msgstr "ERROR_ABIOS_ERROR"
+
+msgid "539"
+msgstr "ERROR_WX86_WARNING"
+
+msgid "540"
+msgstr "ERROR_WX86_ERROR"
+
+msgid "541"
+msgstr "ERROR_TIMER_NOT_CANCELED"
+
+msgid "542"
+msgstr "ERROR_UNWIND"
+
+msgid "543"
+msgstr "ERROR_BAD_STACK"
+
+msgid "544"
+msgstr "ERROR_INVALID_UNWIND_TARGET"
+
+msgid "545"
+msgstr "ERROR_INVALID_PORT_ATTRIBUTES"
+
+msgid "546"
+msgstr "ERROR_PORT_MESSAGE_TOO_LONG"
+
+msgid "547"
+msgstr "ERROR_INVALID_QUOTA_LOWER"
+
+msgid "548"
+msgstr "ERROR_DEVICE_ALREADY_ATTACHED"
+
+msgid "549"
+msgstr "ERROR_INSTRUCTION_MISALIGNMENT"
+
+msgid "550"
+msgstr "ERROR_PROFILING_NOT_STARTED"
+
+msgid "551"
+msgstr "ERROR_PROFILING_NOT_STOPPED"
+
+msgid "552"
+msgstr "ERROR_COULD_NOT_INTERPRET"
+
+msgid "553"
+msgstr "ERROR_PROFILING_AT_LIMIT"
+
+msgid "554"
+msgstr "ERROR_CANT_WAIT"
+
+msgid "555"
+msgstr "ERROR_CANT_TERMINATE_SELF"
+
+msgid "556"
+msgstr "ERROR_UNEXPECTED_MM_CREATE_ERR"
+
+msgid "557"
+msgstr "ERROR_UNEXPECTED_MM_MAP_ERROR"
+
+msgid "558"
+msgstr "ERROR_UNEXPECTED_MM_EXTEND_ERR"
+
+msgid "559"
+msgstr "ERROR_BAD_FUNCTION_TABLE"
+
+msgid "560"
+msgstr "ERROR_NO_GUID_TRANSLATION"
+
+msgid "561"
+msgstr "ERROR_INVALID_LDT_SIZE"
+
+msgid "563"
+msgstr "ERROR_INVALID_LDT_OFFSET"
+
+msgid "564"
+msgstr "ERROR_INVALID_LDT_DESCRIPTOR"
+
+msgid "565"
+msgstr "ERROR_TOO_MANY_THREADS"
+
+msgid "566"
+msgstr "ERROR_THREAD_NOT_IN_PROCESS"
+
+msgid "567"
+msgstr "ERROR_PAGEFILE_QUOTA_EXCEEDED"
+
+msgid "568"
+msgstr "ERROR_LOGON_SERVER_CONFLICT"
+
+msgid "569"
+msgstr "ERROR_SYNCHRONIZATION_REQUIRED"
+
+msgid "570"
+msgstr "ERROR_NET_OPEN_FAILED"
+
+msgid "571"
+msgstr "ERROR_IO_PRIVILEGE_FAILED"
+
+msgid "572"
+msgstr "ERROR_CONTROL_C_EXIT"
+
+msgid "573"
+msgstr "ERROR_MISSING_SYSTEMFILE"
+
+msgid "574"
+msgstr "ERROR_UNHANDLED_EXCEPTION"
+
+msgid "575"
+msgstr "ERROR_APP_INIT_FAILURE"
+
+msgid "576"
+msgstr "ERROR_PAGEFILE_CREATE_FAILED"
+
+msgid "577"
+msgstr "ERROR_INVALID_IMAGE_HASH"
+
+msgid "578"
+msgstr "ERROR_NO_PAGEFILE"
+
+msgid "579"
+msgstr "ERROR_ILLEGAL_FLOAT_CONTEXT"
+
+msgid "580"
+msgstr "ERROR_NO_EVENT_PAIR"
+
+msgid "581"
+msgstr "ERROR_DOMAIN_CTRLR_CONFIG_ERROR"
+
+msgid "582"
+msgstr "ERROR_ILLEGAL_CHARACTER"
+
+msgid "583"
+msgstr "ERROR_UNDEFINED_CHARACTER"
+
+msgid "584"
+msgstr "ERROR_FLOPPY_VOLUME"
+
+msgid "585"
+msgstr "ERROR_BIOS_FAILED_TO_CONNECT_INTERRUPT"
+
+msgid "586"
+msgstr "ERROR_BACKUP_CONTROLLER"
+
+msgid "587"
+msgstr "ERROR_MUTANT_LIMIT_EXCEEDED"
+
+msgid "588"
+msgstr "ERROR_FS_DRIVER_REQUIRED"
+
+msgid "589"
+msgstr "ERROR_CANNOT_LOAD_REGISTRY_FILE"
+
+msgid "590"
+msgstr "ERROR_DEBUG_ATTACH_FAILED"
+
+msgid "591"
+msgstr "ERROR_SYSTEM_PROCESS_TERMINATED"
+
+msgid "592"
+msgstr "ERROR_DATA_NOT_ACCEPTED"
+
+msgid "593"
+msgstr "ERROR_VDM_HARD_ERROR"
+
+msgid "594"
+msgstr "ERROR_DRIVER_CANCEL_TIMEOUT"
+
+msgid "595"
+msgstr "ERROR_REPLY_MESSAGE_MISMATCH"
+
+msgid "596"
+msgstr "ERROR_LOST_WRITEBEHIND_DATA"
+
+msgid "597"
+msgstr "ERROR_CLIENT_SERVER_PARAMETERS_INVALID"
+
+msgid "598"
+msgstr "ERROR_NOT_TINY_STREAM"
+
+msgid "599"
+msgstr "ERROR_STACK_OVERFLOW_READ"
+
+msgid "600"
+msgstr "ERROR_CONVERT_TO_LARGE"
+
+msgid "601"
+msgstr "ERROR_FOUND_OUT_OF_SCOPE"
+
+msgid "602"
+msgstr "ERROR_ALLOCATE_BUCKET"
+
+msgid "603"
+msgstr "ERROR_MARSHALL_OVERFLOW"
+
+msgid "604"
+msgstr "ERROR_INVALID_VARIANT"
+
+msgid "605"
+msgstr "ERROR_BAD_COMPRESSION_BUFFER"
+
+msgid "606"
+msgstr "ERROR_AUDIT_FAILED"
+
+msgid "607"
+msgstr "ERROR_TIMER_RESOLUTION_NOT_SET"
+
+msgid "608"
+msgstr "ERROR_INSUFFICIENT_LOGON_INFO"
+
+msgid "609"
+msgstr "ERROR_BAD_DLL_ENTRYPOINT"
+
+msgid "610"
+msgstr "ERROR_BAD_SERVICE_ENTRYPOINT"
+
+msgid "611"
+msgstr "ERROR_IP_ADDRESS_CONFLICT1"
+
+msgid "612"
+msgstr "ERROR_IP_ADDRESS_CONFLICT2"
+
+msgid "613"
+msgstr "ERROR_REGISTRY_QUOTA_LIMIT"
+
+msgid "614"
+msgstr "ERROR_NO_CALLBACK_ACTIVE"
+
+msgid "615"
+msgstr "ERROR_PWD_TOO_SHORT"
+
+msgid "616"
+msgstr "ERROR_PWD_TOO_RECENT"
+
+msgid "617"
+msgstr "ERROR_PWD_HISTORY_CONFLICT"
+
+msgid "618"
+msgstr "ERROR_UNSUPPORTED_COMPRESSION"
+
+msgid "619"
+msgstr "ERROR_INVALID_HW_PROFILE"
+
+msgid "620"
+msgstr "ERROR_INVALID_PLUGPLAY_DEVICE_PATH"
+
+msgid "621"
+msgstr "ERROR_QUOTA_LIST_INCONSISTENT"
+
+msgid "622"
+msgstr "ERROR_EVALUATION_EXPIRATION"
+
+msgid "623"
+msgstr "ERROR_ILLEGAL_DLL_RELOCATION"
+
+msgid "624"
+msgstr "ERROR_DLL_INIT_FAILED_LOGOFF"
+
+msgid "625"
+msgstr "ERROR_VALIDATE_CONTINUE"
+
+msgid "626"
+msgstr "ERROR_NO_MORE_MATCHES"
+
+msgid "627"
+msgstr "ERROR_RANGE_LIST_CONFLICT"
+
+msgid "628"
+msgstr "ERROR_SERVER_SID_MISMATCH"
+
+msgid "629"
+msgstr "ERROR_CANT_ENABLE_DENY_ONLY"
+
+msgid "630"
+msgstr "ERROR_FLOAT_MULTIPLE_FAULTS"
+
+msgid "631"
+msgstr "ERROR_FLOAT_MULTIPLE_TRAPS"
+
+msgid "632"
+msgstr "ERROR_NOINTERFACE"
+
+msgid "633"
+msgstr "ERROR_DRIVER_FAILED_SLEEP"
+
+msgid "634"
+msgstr "ERROR_CORRUPT_SYSTEM_FILE"
+
+msgid "635"
+msgstr "ERROR_COMMITMENT_MINIMUM"
+
+msgid "636"
+msgstr "ERROR_PNP_RESTART_ENUMERATION"
+
+msgid "637"
+msgstr "ERROR_SYSTEM_IMAGE_BAD_SIGNATURE"
+
+msgid "638"
+msgstr "ERROR_PNP_REBOOT_REQUIRED"
+
+msgid "639"
+msgstr "ERROR_INSUFFICIENT_POWER"
+
+msgid "640"
+msgstr "ERROR_MULTIPLE_FAULT_VIOLATION"
+
+msgid "641"
+msgstr "ERROR_SYSTEM_SHUTDOWN"
+
+msgid "642"
+msgstr "ERROR_PORT_NOT_SET"
+
+msgid "643"
+msgstr "ERROR_DS_VERSION_CHECK_FAILURE"
+
+msgid "644"
+msgstr "ERROR_RANGE_NOT_FOUND"
+
+msgid "646"
+msgstr "ERROR_NOT_SAFE_MODE_DRIVER"
+
+msgid "647"
+msgstr "ERROR_FAILED_DRIVER_ENTRY"
+
+msgid "648"
+msgstr "ERROR_DEVICE_ENUMERATION_ERROR"
+
+msgid "649"
+msgstr "ERROR_MOUNT_POINT_NOT_RESOLVED"
+
+msgid "650"
+msgstr "ERROR_INVALID_DEVICE_OBJECT_PARAMETER"
+
+msgid "651"
+msgstr "ERROR_MCA_OCCURED"
+
+msgid "652"
+msgstr "ERROR_DRIVER_DATABASE_ERROR"
+
+msgid "653"
+msgstr "ERROR_SYSTEM_HIVE_TOO_LARGE"
+
+msgid "654"
+msgstr "ERROR_DRIVER_FAILED_PRIOR_UNLOAD"
+
+msgid "655"
+msgstr "ERROR_VOLSNAP_PREPARE_HIBERNATE"
+
+msgid "656"
+msgstr "ERROR_HIBERNATION_FAILURE"
+
+msgid "657"
+msgstr "ERROR_PWD_TOO_LONG"
+
+msgid "665"
+msgstr "ERROR_FILE_SYSTEM_LIMITATION"
+
+msgid "668"
+msgstr "ERROR_ASSERTION_FAILURE"
+
+msgid "669"
+msgstr "ERROR_ACPI_ERROR"
+
+msgid "670"
+msgstr "ERROR_WOW_ASSERTION"
+
+msgid "671"
+msgstr "ERROR_PNP_BAD_MPS_TABLE"
+
+msgid "672"
+msgstr "ERROR_PNP_TRANSLATION_FAILED"
+
+msgid "673"
+msgstr "ERROR_PNP_IRQ_TRANSLATION_FAILED"
+
+msgid "674"
+msgstr "ERROR_PNP_INVALID_ID"
+
+msgid "675"
+msgstr "ERROR_WAKE_SYSTEM_DEBUGGER"
+
+msgid "676"
+msgstr "ERROR_HANDLES_CLOSED"
+
+msgid "677"
+msgstr "ERROR_EXTRANEOUS_INFORMATION"
+
+msgid "678"
+msgstr "ERROR_RXACT_COMMIT_NECESSARY"
+
+msgid "679"
+msgstr "ERROR_MEDIA_CHECK"
+
+msgid "680"
+msgstr "ERROR_GUID_SUBSTITUTION_MADE"
+
+msgid "681"
+msgstr "ERROR_STOPPED_ON_SYMLINK"
+
+msgid "682"
+msgstr "ERROR_LONGJUMP"
+
+msgid "683"
+msgstr "ERROR_PLUGPLAY_QUERY_VETOED"
+
+msgid "684"
+msgstr "ERROR_UNWIND_CONSOLIDATE"
+
+msgid "685"
+msgstr "ERROR_REGISTRY_HIVE_RECOVERED"
+
+msgid "686"
+msgstr "ERROR_DLL_MIGHT_BE_INSECURE"
+
+msgid "687"
+msgstr "ERROR_DLL_MIGHT_BE_INCOMPATIBLE"
+
+msgid "688"
+msgstr "ERROR_DBG_EXCEPTION_NOT_HANDLED"
+
+msgid "689"
+msgstr "ERROR_DBG_REPLY_LATER"
+
+msgid "690"
+msgstr "ERROR_DBG_UNABLE_TO_PROVIDE_HANDLE"
+
+msgid "691"
+msgstr "ERROR_DBG_TERMINATE_THREAD"
+
+msgid "692"
+msgstr "ERROR_DBG_TERMINATE_PROCESS"
+
+msgid "693"
+msgstr "ERROR_DBG_CONTROL_C"
+
+msgid "694"
+msgstr "ERROR_DBG_PRINTEXCEPTION_C"
+
+msgid "695"
+msgstr "ERROR_DBG_RIPEXCEPTION"
+
+msgid "696"
+msgstr "ERROR_DBG_CONTROL_BREAK"
+
+msgid "697"
+msgstr "ERROR_DBG_COMMAND_EXCEPTION"
+
+msgid "698"
+msgstr "ERROR_OBJECT_NAME_EXISTS"
+
+msgid "699"
+msgstr "ERROR_THREAD_WAS_SUSPENDED"
+
+msgid "700"
+msgstr "ERROR_IMAGE_NOT_AT_BASE"
+
+msgid "701"
+msgstr "ERROR_RXACT_STATE_CREATED"
+
+msgid "702"
+msgstr "ERROR_SEGMENT_NOTIFICATION"
+
+msgid "703"
+msgstr "ERROR_BAD_CURRENT_DIRECTORY"
+
+msgid "704"
+msgstr "ERROR_FT_READ_RECOVERY_FROM_BACKUP"
+
+msgid "705"
+msgstr "ERROR_FT_WRITE_RECOVERY"
+
+msgid "706"
+msgstr "ERROR_IMAGE_MACHINE_TYPE_MISMATCH"
+
+msgid "707"
+msgstr "ERROR_RECEIVE_PARTIAL"
+
+msgid "708"
+msgstr "ERROR_RECEIVE_EXPEDITED"
+
+msgid "709"
+msgstr "ERROR_RECEIVE_PARTIAL_EXPEDITED"
+
+msgid "710"
+msgstr "ERROR_EVENT_DONE"
+
+msgid "711"
+msgstr "ERROR_EVENT_PENDING"
+
+msgid "712"
+msgstr "ERROR_CHECKING_FILE_SYSTEM"
+
+msgid "713"
+msgstr "ERROR_FATAL_APP_EXIT"
+
+msgid "714"
+msgstr "ERROR_PREDEFINED_HANDLE"
+
+msgid "715"
+msgstr "ERROR_WAS_UNLOCKED"
+
+msgid "716"
+msgstr "ERROR_SERVICE_NOTIFICATION"
+
+msgid "717"
+msgstr "ERROR_WAS_LOCKED"
+
+msgid "718"
+msgstr "ERROR_LOG_HARD_ERROR"
+
+msgid "719"
+msgstr "ERROR_ALREADY_WIN32"
+
+msgid "720"
+msgstr "ERROR_IMAGE_MACHINE_TYPE_MISMATCH_EXE"
+
+msgid "721"
+msgstr "ERROR_NO_YIELD_PERFORMED"
+
+msgid "722"
+msgstr "ERROR_TIMER_RESUME_IGNORED"
+
+msgid "723"
+msgstr "ERROR_ARBITRATION_UNHANDLED"
+
+msgid "724"
+msgstr "ERROR_CARDBUS_NOT_SUPPORTED"
+
+msgid "725"
+msgstr "ERROR_MP_PROCESSOR_MISMATCH"
+
+msgid "726"
+msgstr "ERROR_HIBERNATED"
+
+msgid "727"
+msgstr "ERROR_RESUME_HIBERNATION"
+
+msgid "728"
+msgstr "ERROR_FIRMWARE_UPDATED"
+
+msgid "729"
+msgstr "ERROR_DRIVERS_LEAKING_LOCKED_PAGES"
+
+msgid "730"
+msgstr "ERROR_WAKE_SYSTEM"
+
+msgid "731"
+msgstr "ERROR_WAIT_1"
+
+msgid "732"
+msgstr "ERROR_WAIT_2"
+
+msgid "733"
+msgstr "ERROR_WAIT_3"
+
+msgid "734"
+msgstr "ERROR_WAIT_63"
+
+msgid "735"
+msgstr "ERROR_ABANDONED_WAIT_0"
+
+msgid "736"
+msgstr "ERROR_ABANDONED_WAIT_63"
+
+msgid "737"
+msgstr "ERROR_USER_APC"
+
+msgid "738"
+msgstr "ERROR_KERNEL_APC"
+
+msgid "739"
+msgstr "ERROR_ALERTED"
+
+msgid "740"
+msgstr "ERROR_ELEVATION_REQUIRED"
+
+msgid "741"
+msgstr "ERROR_REPARSE"
+
+msgid "742"
+msgstr "ERROR_OPLOCK_BREAK_IN_PROGRESS"
+
+msgid "743"
+msgstr "ERROR_VOLUME_MOUNTED"
+
+msgid "744"
+msgstr "ERROR_RXACT_COMMITTED"
+
+msgid "745"
+msgstr "ERROR_NOTIFY_CLEANUP"
+
+msgid "746"
+msgstr "ERROR_PRIMARY_TRANSPORT_CONNECT_FAILED"
+
+msgid "747"
+msgstr "ERROR_PAGE_FAULT_TRANSITION"
+
+msgid "748"
+msgstr "ERROR_PAGE_FAULT_DEMAND_ZERO"
+
+msgid "749"
+msgstr "ERROR_PAGE_FAULT_COPY_ON_WRITE"
+
+msgid "750"
+msgstr "ERROR_PAGE_FAULT_GUARD_PAGE"
+
+msgid "751"
+msgstr "ERROR_PAGE_FAULT_PAGING_FILE"
+
+msgid "752"
+msgstr "ERROR_CACHE_PAGE_LOCKED"
+
+msgid "753"
+msgstr "ERROR_CRASH_DUMP"
+
+msgid "754"
+msgstr "ERROR_BUFFER_ALL_ZEROS"
+
+msgid "755"
+msgstr "ERROR_REPARSE_OBJECT"
+
+msgid "756"
+msgstr "ERROR_RESOURCE_REQUIREMENTS_CHANGED"
+
+msgid "757"
+msgstr "ERROR_TRANSLATION_COMPLETE"
+
+msgid "758"
+msgstr "ERROR_NOTHING_TO_TERMINATE"
+
+msgid "759"
+msgstr "ERROR_PROCESS_NOT_IN_JOB"
+
+msgid "760"
+msgstr "ERROR_PROCESS_IN_JOB"
+
+msgid "761"
+msgstr "ERROR_VOLSNAP_HIBERNATE_READY"
+
+msgid "762"
+msgstr "ERROR_FSFILTER_OP_COMPLETED_SUCCESSFULLY"
+
+msgid "763"
+msgstr "ERROR_INTERRUPT_VECTOR_ALREADY_CONNECTED"
+
+msgid "764"
+msgstr "ERROR_INTERRUPT_STILL_CONNECTED"
+
+msgid "765"
+msgstr "ERROR_WAIT_FOR_OPLOCK"
+
+msgid "766"
+msgstr "ERROR_DBG_EXCEPTION_HANDLED"
+
+msgid "767"
+msgstr "ERROR_DBG_CONTINUE"
+
+msgid "768"
+msgstr "ERROR_CALLBACK_POP_STACK"
+
+msgid "769"
+msgstr "ERROR_COMPRESSION_DISABLED"
+
+msgid "770"
+msgstr "ERROR_CANTFETCHBACKWARDS"
+
+msgid "771"
+msgstr "ERROR_CANTSCROLLBACKWARDS"
+
+msgid "772"
+msgstr "ERROR_ROWSNOTRELEASED"
+
+msgid "773"
+msgstr "ERROR_BAD_ACCESSOR_FLAGS"
+
+msgid "774"
+msgstr "ERROR_ERRORS_ENCOUNTERED"
+
+msgid "775"
+msgstr "ERROR_NOT_CAPABLE"
+
+msgid "776"
+msgstr "ERROR_REQUEST_OUT_OF_SEQUENCE"
+
+msgid "777"
+msgstr "ERROR_VERSION_PARSE_ERROR"
+
+msgid "778"
+msgstr "ERROR_BADSTARTPOSITION"
+
+msgid "779"
+msgstr "ERROR_MEMORY_HARDWARE"
+
+msgid "780"
+msgstr "ERROR_DISK_REPAIR_DISABLED"
+
+msgid "781"
+msgstr "ERROR_INSUFFICIENT_RESOURCE_FOR_SPECIFIED_SHARED_SECTION_SIZE"
+
+msgid "782"
+msgstr "ERROR_SYSTEM_POWERSTATE_TRANSITION"
+
+msgid "783"
+msgstr "ERROR_SYSTEM_POWERSTATE_COMPLEX_TRANSITION"
+
+msgid "784"
+msgstr "ERROR_MCA_EXCEPTION"
+
+msgid "785"
+msgstr "ERROR_ACCESS_AUDIT_BY_POLICY"
+
+msgid "786"
+msgstr "ERROR_ACCESS_DISABLED_NO_SAFER_UI_BY_POLICY"
+
+msgid "787"
+msgstr "ERROR_ABANDON_HIBERFILE"
+
+msgid "788"
+msgstr "ERROR_LOST_WRITEBEHIND_DATA_NETWORK_DISCONNECTED"
+
+msgid "789"
+msgstr "ERROR_LOST_WRITEBEHIND_DATA_NETWORK_SERVER_ERROR"
+
+msgid "790"
+msgstr "ERROR_LOST_WRITEBEHIND_DATA_LOCAL_DISK_ERROR"
+
+msgid "791"
+msgstr "ERROR_BAD_MCFG_TABLE"
+
+msgid "792"
+msgstr "ERROR_DISK_REPAIR_REDIRECTED"
+
+msgid "793"
+msgstr "ERROR_DISK_REPAIR_UNSUCCESSFUL"
+
+msgid "794"
+msgstr "ERROR_CORRUPT_LOG_OVERFULL"
+
+msgid "795"
+msgstr "ERROR_CORRUPT_LOG_CORRUPTED"
+
+msgid "796"
+msgstr "ERROR_CORRUPT_LOG_UNAVAILABLE"
+
+msgid "797"
+msgstr "ERROR_CORRUPT_LOG_DELETED_FULL"
+
+msgid "798"
+msgstr "ERROR_CORRUPT_LOG_CLEARED"
+
+msgid "799"
+msgstr "ERROR_ORPHAN_NAME_EXHAUSTED"
+
+msgid "800"
+msgstr "ERROR_OPLOCK_SWITCHED_TO_NEW_HANDLE"
+
+msgid "801"
+msgstr "ERROR_CANNOT_GRANT_REQUESTED_OPLOCK"
+
+msgid "802"
+msgstr "ERROR_CANNOT_BREAK_OPLOCK"
+
+msgid "803"
+msgstr "ERROR_OPLOCK_HANDLE_CLOSED"
+
+msgid "804"
+msgstr "ERROR_NO_ACE_CONDITION"
+
+msgid "805"
+msgstr "ERROR_INVALID_ACE_CONDITION"
+
+msgid "806"
+msgstr "ERROR_FILE_HANDLE_REVOKED"
+
+msgid "807"
+msgstr "ERROR_IMAGE_AT_DIFFERENT_BASE"
+
+msgid "808"
+msgstr "ERROR_ENCRYPTED_IO_NOT_POSSIBLE"
+
+msgid "809"
+msgstr "ERROR_FILE_METADATA_OPTIMIZATION_IN_PROGRESS"
+
+msgid "810"
+msgstr "ERROR_QUOTA_ACTIVITY"
+
+msgid "811"
+msgstr "ERROR_HANDLE_REVOKED"
+
+msgid "812"
+msgstr "ERROR_CALLBACK_INVOKE_INLINE"
+
+msgid "813"
+msgstr "ERROR_CPU_SET_INVALID"
+
+msgid "814"
+msgstr "ERROR_ENCLAVE_NOT_TERMINATED"
+
+msgid "815"
+msgstr "ERROR_ENCLAVE_VIOLATION"
+
+msgid "816"
+msgstr "ERROR_SERVER_TRANSPORT_CONFLICT"
+
+msgid "817"
+msgstr "ERROR_CERTIFICATE_VALIDATION_PREFERENCE_CONFLICT"
+
+msgid "818"
+msgstr "ERROR_FT_READ_FROM_COPY_FAILURE"
+
+msgid "819"
+msgstr "ERROR_SECTION_DIRECT_MAP_ONLY"
+
+msgid "994"
+msgstr "ERROR_EA_ACCESS_DENIED"
+
+msgid "995"
+msgstr "ERROR_OPERATION_ABORTED"
+
+msgid "996"
+msgstr "ERROR_IO_INCOMPLETE"
+
+msgid "997"
+msgstr "ERROR_IO_PENDING"
+
+msgid "998"
+msgstr "ERROR_NOACCESS"
+
+msgid "999"
+msgstr "ERROR_SWAPERROR"
+
+msgid "1001"
+msgstr "ERROR_STACK_OVERFLOW"
+
+msgid "1002"
+msgstr "ERROR_INVALID_MESSAGE"
+
+msgid "1003"
+msgstr "ERROR_CAN_NOT_COMPLETE"
+
+msgid "1004"
+msgstr "ERROR_INVALID_FLAGS"
+
+msgid "1005"
+msgstr "ERROR_UNRECOGNIZED_VOLUME"
+
+msgid "1006"
+msgstr "ERROR_FILE_INVALID"
+
+msgid "1007"
+msgstr "ERROR_FULLSCREEN_MODE"
+
+msgid "1008"
+msgstr "ERROR_NO_TOKEN"
+
+msgid "1009"
+msgstr "ERROR_BADDB"
+
+msgid "1010"
+msgstr "ERROR_BADKEY"
+
+msgid "1011"
+msgstr "ERROR_CANTOPEN"
+
+msgid "1012"
+msgstr "ERROR_CANTREAD"
+
+msgid "1013"
+msgstr "ERROR_CANTWRITE"
+
+msgid "1014"
+msgstr "ERROR_REGISTRY_RECOVERED"
+
+msgid "1015"
+msgstr "ERROR_REGISTRY_CORRUPT"
+
+msgid "1016"
+msgstr "ERROR_REGISTRY_IO_FAILED"
+
+msgid "1017"
+msgstr "ERROR_NOT_REGISTRY_FILE"
+
+msgid "1018"
+msgstr "ERROR_KEY_DELETED"
+
+msgid "1019"
+msgstr "ERROR_NO_LOG_SPACE"
+
+msgid "1020"
+msgstr "ERROR_KEY_HAS_CHILDREN"
+
+msgid "1021"
+msgstr "ERROR_CHILD_MUST_BE_VOLATILE"
+
+msgid "1022"
+msgstr "ERROR_NOTIFY_ENUM_DIR"
+
+msgid "1051"
+msgstr "ERROR_DEPENDENT_SERVICES_RUNNING"
+
+msgid "1052"
+msgstr "ERROR_INVALID_SERVICE_CONTROL"
+
+msgid "1053"
+msgstr "ERROR_SERVICE_REQUEST_TIMEOUT"
+
+msgid "1054"
+msgstr "ERROR_SERVICE_NO_THREAD"
+
+msgid "1055"
+msgstr "ERROR_SERVICE_DATABASE_LOCKED"
+
+msgid "1056"
+msgstr "ERROR_SERVICE_ALREADY_RUNNING"
+
+msgid "1057"
+msgstr "ERROR_INVALID_SERVICE_ACCOUNT"
+
+msgid "1058"
+msgstr "ERROR_SERVICE_DISABLED"
+
+msgid "1059"
+msgstr "ERROR_CIRCULAR_DEPENDENCY"
+
+msgid "1060"
+msgstr "ERROR_SERVICE_DOES_NOT_EXIST"
+
+msgid "1061"
+msgstr "ERROR_SERVICE_CANNOT_ACCEPT_CTRL"
+
+msgid "1062"
+msgstr "ERROR_SERVICE_NOT_ACTIVE"
+
+msgid "1063"
+msgstr "ERROR_FAILED_SERVICE_CONTROLLER_CONNECT"
+
+msgid "1064"
+msgstr "ERROR_EXCEPTION_IN_SERVICE"
+
+msgid "1065"
+msgstr "ERROR_DATABASE_DOES_NOT_EXIST"
+
+msgid "1066"
+msgstr "ERROR_SERVICE_SPECIFIC_ERROR"
+
+msgid "1067"
+msgstr "ERROR_PROCESS_ABORTED"
+
+msgid "1068"
+msgstr "ERROR_SERVICE_DEPENDENCY_FAIL"
+
+msgid "1069"
+msgstr "ERROR_SERVICE_LOGON_FAILED"
+
+msgid "1070"
+msgstr "ERROR_SERVICE_START_HANG"
+
+msgid "1071"
+msgstr "ERROR_INVALID_SERVICE_LOCK"
+
+msgid "1072"
+msgstr "ERROR_SERVICE_MARKED_FOR_DELETE"
+
+msgid "1073"
+msgstr "ERROR_SERVICE_EXISTS"
+
+msgid "1074"
+msgstr "ERROR_ALREADY_RUNNING_LKG"
+
+msgid "1075"
+msgstr "ERROR_SERVICE_DEPENDENCY_DELETED"
+
+msgid "1076"
+msgstr "ERROR_BOOT_ALREADY_ACCEPTED"
+
+msgid "1077"
+msgstr "ERROR_SERVICE_NEVER_STARTED"
+
+msgid "1078"
+msgstr "ERROR_DUPLICATE_SERVICE_NAME"
+
+msgid "1079"
+msgstr "ERROR_DIFFERENT_SERVICE_ACCOUNT"
+
+msgid "1080"
+msgstr "ERROR_CANNOT_DETECT_DRIVER_FAILURE"
+
+msgid "1081"
+msgstr "ERROR_CANNOT_DETECT_PROCESS_ABORT"
+
+msgid "1082"
+msgstr "ERROR_NO_RECOVERY_PROGRAM"
+
+msgid "1083"
+msgstr "ERROR_SERVICE_NOT_IN_EXE"
+
+msgid "1084"
+msgstr "ERROR_NOT_SAFEBOOT_SERVICE"
+
+msgid "1100"
+msgstr "ERROR_END_OF_MEDIA"
+
+msgid "1101"
+msgstr "ERROR_FILEMARK_DETECTED"
+
+msgid "1102"
+msgstr "ERROR_BEGINNING_OF_MEDIA"
+
+msgid "1103"
+msgstr "ERROR_SETMARK_DETECTED"
+
+msgid "1104"
+msgstr "ERROR_NO_DATA_DETECTED"
+
+msgid "1105"
+msgstr "ERROR_PARTITION_FAILURE"
+
+msgid "1106"
+msgstr "ERROR_INVALID_BLOCK_LENGTH"
+
+msgid "1107"
+msgstr "ERROR_DEVICE_NOT_PARTITIONED"
+
+msgid "1108"
+msgstr "ERROR_UNABLE_TO_LOCK_MEDIA"
+
+msgid "1109"
+msgstr "ERROR_UNABLE_TO_UNLOAD_MEDIA"
+
+msgid "1110"
+msgstr "ERROR_MEDIA_CHANGED"
+
+msgid "1111"
+msgstr "ERROR_BUS_RESET"
+
+msgid "1112"
+msgstr "ERROR_NO_MEDIA_IN_DRIVE"
+
+msgid "1113"
+msgstr "ERROR_NO_UNICODE_TRANSLATION"
+
+msgid "1114"
+msgstr "ERROR_DLL_INIT_FAILED"
+
+msgid "1115"
+msgstr "ERROR_SHUTDOWN_IN_PROGRESS"
+
+msgid "1116"
+msgstr "ERROR_NO_SHUTDOWN_IN_PROGRESS"
+
+msgid "1117"
+msgstr "ERROR_IO_DEVICE"
+
+msgid "1118"
+msgstr "ERROR_SERIAL_NO_DEVICE"
+
+msgid "1119"
+msgstr "ERROR_IRQ_BUSY"
+
+msgid "1120"
+msgstr "ERROR_MORE_WRITES"
+
+msgid "1121"
+msgstr "ERROR_COUNTER_TIMEOUT"
+
+msgid "1122"
+msgstr "ERROR_FLOPPY_ID_MARK_NOT_FOUND"
+
+msgid "1123"
+msgstr "ERROR_FLOPPY_WRONG_CYLINDER"
+
+msgid "1124"
+msgstr "ERROR_FLOPPY_UNKNOWN_ERROR"
+
+msgid "1125"
+msgstr "ERROR_FLOPPY_BAD_REGISTERS"
+
+msgid "1126"
+msgstr "ERROR_DISK_RECALIBRATE_FAILED"
+
+msgid "1127"
+msgstr "ERROR_DISK_OPERATION_FAILED"
+
+msgid "1128"
+msgstr "ERROR_DISK_RESET_FAILED"
+
+msgid "1129"
+msgstr "ERROR_EOM_OVERFLOW"
+
+msgid "1130"
+msgstr "ERROR_NOT_ENOUGH_SERVER_MEMORY"
+
+msgid "1131"
+msgstr "ERROR_POSSIBLE_DEADLOCK"
+
+msgid "1132"
+msgstr "ERROR_MAPPED_ALIGNMENT"
+
+msgid "1140"
+msgstr "ERROR_SET_POWER_STATE_VETOED"
+
+msgid "1141"
+msgstr "ERROR_SET_POWER_STATE_FAILED"
+
+msgid "1142"
+msgstr "ERROR_TOO_MANY_LINKS"
+
+msgid "1150"
+msgstr "ERROR_OLD_WIN_VERSION"
+
+msgid "1151"
+msgstr "ERROR_APP_WRONG_OS"
+
+msgid "1152"
+msgstr "ERROR_SINGLE_INSTANCE_APP"
+
+msgid "1153"
+msgstr "ERROR_RMODE_APP"
+
+msgid "1154"
+msgstr "ERROR_INVALID_DLL"
+
+msgid "1155"
+msgstr "ERROR_NO_ASSOCIATION"
+
+msgid "1156"
+msgstr "ERROR_DDE_FAIL"
+
+msgid "1157"
+msgstr "ERROR_DLL_NOT_FOUND"
+
+msgid "1158"
+msgstr "ERROR_NO_MORE_USER_HANDLES"
+
+msgid "1159"
+msgstr "ERROR_MESSAGE_SYNC_ONLY"
+
+msgid "1160"
+msgstr "ERROR_SOURCE_ELEMENT_EMPTY"
+
+msgid "1161"
+msgstr "ERROR_DESTINATION_ELEMENT_FULL"
+
+msgid "1162"
+msgstr "ERROR_ILLEGAL_ELEMENT_ADDRESS"
+
+msgid "1163"
+msgstr "ERROR_MAGAZINE_NOT_PRESENT"
+
+msgid "1164"
+msgstr "ERROR_DEVICE_REINITIALIZATION_NEEDED"
+
+msgid "1165"
+msgstr "ERROR_DEVICE_REQUIRES_CLEANING"
+
+msgid "1166"
+msgstr "ERROR_DEVICE_DOOR_OPEN"
+
+msgid "1167"
+msgstr "ERROR_DEVICE_NOT_CONNECTED"
+
+msgid "1168"
+msgstr "ERROR_NOT_FOUND"
+
+msgid "1169"
+msgstr "ERROR_NO_MATCH"
+
+msgid "1170"
+msgstr "ERROR_SET_NOT_FOUND"
+
+msgid "1171"
+msgstr "ERROR_POINT_NOT_FOUND"
+
+msgid "1172"
+msgstr "ERROR_NO_TRACKING_SERVICE"
+
+msgid "1173"
+msgstr "ERROR_NO_VOLUME_ID"
+
+msgid "1175"
+msgstr "ERROR_UNABLE_TO_REMOVE_REPLACED"
+
+msgid "1176"
+msgstr "ERROR_UNABLE_TO_MOVE_REPLACEMENT"
+
+msgid "1177"
+msgstr "ERROR_UNABLE_TO_MOVE_REPLACEMENT_2"
+
+msgid "1178"
+msgstr "ERROR_JOURNAL_DELETE_IN_PROGRESS"
+
+msgid "1179"
+msgstr "ERROR_JOURNAL_NOT_ACTIVE"
+
+msgid "1180"
+msgstr "ERROR_POTENTIAL_FILE_FOUND"
+
+msgid "1181"
+msgstr "ERROR_JOURNAL_ENTRY_DELETED"
+
+msgid "1184"
+msgstr "ERROR_PARTITION_TERMINATING"
+
+msgid "1190"
+msgstr "ERROR_SHUTDOWN_IS_SCHEDULED"
+
+msgid "1191"
+msgstr "ERROR_SHUTDOWN_USERS_LOGGED_ON"
+
+msgid "1192"
+msgstr "ERROR_SHUTDOWN_DISKS_NOT_IN_MAINTENANCE_MODE"
+
+msgid "1200"
+msgstr "ERROR_BAD_DEVICE"
+
+msgid "1201"
+msgstr "ERROR_CONNECTION_UNAVAIL"
+
+msgid "1202"
+msgstr "ERROR_DEVICE_ALREADY_REMEMBERED"
+
+msgid "1203"
+msgstr "ERROR_NO_NET_OR_BAD_PATH"
+
+msgid "1204"
+msgstr "ERROR_BAD_PROVIDER"
+
+msgid "1205"
+msgstr "ERROR_CANNOT_OPEN_PROFILE"
+
+msgid "1206"
+msgstr "ERROR_BAD_PROFILE"
+
+msgid "1207"
+msgstr "ERROR_NOT_CONTAINER"
+
+msgid "1208"
+msgstr "ERROR_EXTENDED_ERROR"
+
+msgid "1209"
+msgstr "ERROR_INVALID_GROUPNAME"
+
+msgid "1210"
+msgstr "ERROR_INVALID_COMPUTERNAME"
+
+msgid "1211"
+msgstr "ERROR_INVALID_EVENTNAME"
+
+msgid "1212"
+msgstr "ERROR_INVALID_DOMAINNAME"
+
+msgid "1213"
+msgstr "ERROR_INVALID_SERVICENAME"
+
+msgid "1214"
+msgstr "ERROR_INVALID_NETNAME"
+
+msgid "1215"
+msgstr "ERROR_INVALID_SHARENAME"
+
+msgid "1216"
+msgstr "ERROR_INVALID_PASSWORDNAME"
+
+msgid "1217"
+msgstr "ERROR_INVALID_MESSAGENAME"
+
+msgid "1218"
+msgstr "ERROR_INVALID_MESSAGEDEST"
+
+msgid "1219"
+msgstr "ERROR_SESSION_CREDENTIAL_CONFLICT"
+
+msgid "1220"
+msgstr "ERROR_REMOTE_SESSION_LIMIT_EXCEEDED"
+
+msgid "1221"
+msgstr "ERROR_DUP_DOMAINNAME"
+
+msgid "1222"
+msgstr "ERROR_NO_NETWORK"
+
+msgid "1223"
+msgstr "ERROR_CANCELLED"
+
+msgid "1224"
+msgstr "ERROR_USER_MAPPED_FILE"
+
+msgid "1225"
+msgstr "ERROR_CONNECTION_REFUSED"
+
+msgid "1226"
+msgstr "ERROR_GRACEFUL_DISCONNECT"
+
+msgid "1227"
+msgstr "ERROR_ADDRESS_ALREADY_ASSOCIATED"
+
+msgid "1228"
+msgstr "ERROR_ADDRESS_NOT_ASSOCIATED"
+
+msgid "1229"
+msgstr "ERROR_CONNECTION_INVALID"
+
+msgid "1230"
+msgstr "ERROR_CONNECTION_ACTIVE"
+
+msgid "1231"
+msgstr "ERROR_NETWORK_UNREACHABLE"
+
+msgid "1232"
+msgstr "ERROR_HOST_UNREACHABLE"
+
+msgid "1233"
+msgstr "ERROR_PROTOCOL_UNREACHABLE"
+
+msgid "1234"
+msgstr "ERROR_PORT_UNREACHABLE"
+
+msgid "1235"
+msgstr "ERROR_REQUEST_ABORTED"
+
+msgid "1236"
+msgstr "ERROR_CONNECTION_ABORTED"
+
+msgid "1237"
+msgstr "ERROR_RETRY"
+
+msgid "1238"
+msgstr "ERROR_CONNECTION_COUNT_LIMIT"
+
+msgid "1239"
+msgstr "ERROR_LOGIN_TIME_RESTRICTION"
+
+msgid "1240"
+msgstr "ERROR_LOGIN_WKSTA_RESTRICTION"
+
+msgid "1241"
+msgstr "ERROR_INCORRECT_ADDRESS"
+
+msgid "1242"
+msgstr "ERROR_ALREADY_REGISTERED"
+
+msgid "1243"
+msgstr "ERROR_SERVICE_NOT_FOUND"
+
+msgid "1244"
+msgstr "ERROR_NOT_AUTHENTICATED"
+
+msgid "1245"
+msgstr "ERROR_NOT_LOGGED_ON"
+
+msgid "1246"
+msgstr "ERROR_CONTINUE"
+
+msgid "1247"
+msgstr "ERROR_ALREADY_INITIALIZED"
+
+msgid "1248"
+msgstr "ERROR_NO_MORE_DEVICES"
+
+msgid "1249"
+msgstr "ERROR_NO_SUCH_SITE"
+
+msgid "1250"
+msgstr "ERROR_DOMAIN_CONTROLLER_EXISTS"
+
+msgid "1251"
+msgstr "ERROR_ONLY_IF_CONNECTED"
+
+msgid "1252"
+msgstr "ERROR_OVERRIDE_NOCHANGES"
+
+msgid "1253"
+msgstr "ERROR_BAD_USER_PROFILE"
+
+msgid "1254"
+msgstr "ERROR_NOT_SUPPORTED_ON_SBS"
+
+msgid "1255"
+msgstr "ERROR_SERVER_SHUTDOWN_IN_PROGRESS"
+
+msgid "1256"
+msgstr "ERROR_HOST_DOWN"
+
+msgid "1257"
+msgstr "ERROR_NON_ACCOUNT_SID"
+
+msgid "1258"
+msgstr "ERROR_NON_DOMAIN_SID"
+
+msgid "1259"
+msgstr "ERROR_APPHELP_BLOCK"
+
+msgid "1260"
+msgstr "ERROR_ACCESS_DISABLED_BY_POLICY"
+
+msgid "1261"
+msgstr "ERROR_REG_NAT_CONSUMPTION"
+
+msgid "1262"
+msgstr "ERROR_CSCSHARE_OFFLINE"
+
+msgid "1263"
+msgstr "ERROR_PKINIT_FAILURE"
+
+msgid "1264"
+msgstr "ERROR_SMARTCARD_SUBSYSTEM_FAILURE"
+
+msgid "1265"
+msgstr "ERROR_DOWNGRADE_DETECTED"
+
+msgid "1271"
+msgstr "ERROR_MACHINE_LOCKED"
+
+msgid "1272"
+msgstr "ERROR_SMB_GUEST_LOGON_BLOCKED"
+
+msgid "1273"
+msgstr "ERROR_CALLBACK_SUPPLIED_INVALID_DATA"
+
+msgid "1274"
+msgstr "ERROR_SYNC_FOREGROUND_REFRESH_REQUIRED"
+
+msgid "1275"
+msgstr "ERROR_DRIVER_BLOCKED"
+
+msgid "1276"
+msgstr "ERROR_INVALID_IMPORT_OF_NON_DLL"
+
+msgid "1277"
+msgstr "ERROR_ACCESS_DISABLED_WEBBLADE"
+
+msgid "1278"
+msgstr "ERROR_ACCESS_DISABLED_WEBBLADE_TAMPER"
+
+msgid "1279"
+msgstr "ERROR_RECOVERY_FAILURE"
+
+msgid "1280"
+msgstr "ERROR_ALREADY_FIBER"
+
+msgid "1281"
+msgstr "ERROR_ALREADY_THREAD"
+
+msgid "1282"
+msgstr "ERROR_STACK_BUFFER_OVERRUN"
+
+msgid "1283"
+msgstr "ERROR_PARAMETER_QUOTA_EXCEEDED"
+
+msgid "1284"
+msgstr "ERROR_DEBUGGER_INACTIVE"
+
+msgid "1285"
+msgstr "ERROR_DELAY_LOAD_FAILED"
+
+msgid "1286"
+msgstr "ERROR_VDM_DISALLOWED"
+
+msgid "1287"
+msgstr "ERROR_UNIDENTIFIED_ERROR"
+
+msgid "1288"
+msgstr "ERROR_INVALID_CRUNTIME_PARAMETER"
+
+msgid "1289"
+msgstr "ERROR_BEYOND_VDL"
+
+msgid "1290"
+msgstr "ERROR_INCOMPATIBLE_SERVICE_SID_TYPE"
+
+msgid "1291"
+msgstr "ERROR_DRIVER_PROCESS_TERMINATED"
+
+msgid "1292"
+msgstr "ERROR_IMPLEMENTATION_LIMIT"
+
+msgid "1293"
+msgstr "ERROR_PROCESS_IS_PROTECTED"
+
+msgid "1294"
+msgstr "ERROR_SERVICE_NOTIFY_CLIENT_LAGGING"
+
+msgid "1295"
+msgstr "ERROR_DISK_QUOTA_EXCEEDED"
+
+msgid "1296"
+msgstr "ERROR_CONTENT_BLOCKED"
+
+msgid "1297"
+msgstr "ERROR_INCOMPATIBLE_SERVICE_PRIVILEGE"
+
+msgid "1298"
+msgstr "ERROR_APP_HANG"
+
+msgid "1299"
+msgstr "ERROR_INVALID_LABEL"
+
+msgid "1300"
+msgstr "ERROR_NOT_ALL_ASSIGNED"
+
+msgid "1301"
+msgstr "ERROR_SOME_NOT_MAPPED"
+
+msgid "1302"
+msgstr "ERROR_NO_QUOTAS_FOR_ACCOUNT"
+
+msgid "1303"
+msgstr "ERROR_LOCAL_USER_SESSION_KEY"
+
+msgid "1304"
+msgstr "ERROR_NULL_LM_PASSWORD"
+
+msgid "1305"
+msgstr "ERROR_UNKNOWN_REVISION"
+
+msgid "1306"
+msgstr "ERROR_REVISION_MISMATCH"
+
+msgid "1307"
+msgstr "ERROR_INVALID_OWNER"
+
+msgid "1308"
+msgstr "ERROR_INVALID_PRIMARY_GROUP"
+
+msgid "1309"
+msgstr "ERROR_NO_IMPERSONATION_TOKEN"
+
+msgid "1310"
+msgstr "ERROR_CANT_DISABLE_MANDATORY"
+
+msgid "1311"
+msgstr "ERROR_NO_LOGON_SERVERS"
+
+msgid "1312"
+msgstr "ERROR_NO_SUCH_LOGON_SESSION"
+
+msgid "1313"
+msgstr "ERROR_NO_SUCH_PRIVILEGE"
+
+msgid "1314"
+msgstr "ERROR_PRIVILEGE_NOT_HELD"
+
+msgid "1315"
+msgstr "ERROR_INVALID_ACCOUNT_NAME"
+
+msgid "1316"
+msgstr "ERROR_USER_EXISTS"
+
+msgid "1317"
+msgstr "ERROR_NO_SUCH_USER"
+
+msgid "1318"
+msgstr "ERROR_GROUP_EXISTS"
+
+msgid "1319"
+msgstr "ERROR_NO_SUCH_GROUP"
+
+msgid "1320"
+msgstr "ERROR_MEMBER_IN_GROUP"
+
+msgid "1321"
+msgstr "ERROR_MEMBER_NOT_IN_GROUP"
+
+msgid "1322"
+msgstr "ERROR_LAST_ADMIN"
+
+msgid "1323"
+msgstr "ERROR_WRONG_PASSWORD"
+
+msgid "1324"
+msgstr "ERROR_ILL_FORMED_PASSWORD"
+
+msgid "1325"
+msgstr "ERROR_PASSWORD_RESTRICTION"
+
+msgid "1326"
+msgstr "ERROR_LOGON_FAILURE"
+
+msgid "1327"
+msgstr "ERROR_ACCOUNT_RESTRICTION"
+
+msgid "1328"
+msgstr "ERROR_INVALID_LOGON_HOURS"
+
+msgid "1329"
+msgstr "ERROR_INVALID_WORKSTATION"
+
+msgid "1330"
+msgstr "ERROR_PASSWORD_EXPIRED"
+
+msgid "1331"
+msgstr "ERROR_ACCOUNT_DISABLED"
+
+msgid "1332"
+msgstr "ERROR_NONE_MAPPED"
+
+msgid "1333"
+msgstr "ERROR_TOO_MANY_LUIDS_REQUESTED"
+
+msgid "1334"
+msgstr "ERROR_LUIDS_EXHAUSTED"
+
+msgid "1335"
+msgstr "ERROR_INVALID_SUB_AUTHORITY"
+
+msgid "1336"
+msgstr "ERROR_INVALID_ACL"
+
+msgid "1337"
+msgstr "ERROR_INVALID_SID"
+
+msgid "1338"
+msgstr "ERROR_INVALID_SECURITY_DESCR"
+
+msgid "1340"
+msgstr "ERROR_BAD_INHERITANCE_ACL"
+
+msgid "1341"
+msgstr "ERROR_SERVER_DISABLED"
+
+msgid "1342"
+msgstr "ERROR_SERVER_NOT_DISABLED"
+
+msgid "1343"
+msgstr "ERROR_INVALID_ID_AUTHORITY"
+
+msgid "1344"
+msgstr "ERROR_ALLOTTED_SPACE_EXCEEDED"
+
+msgid "1345"
+msgstr "ERROR_INVALID_GROUP_ATTRIBUTES"
+
+msgid "1346"
+msgstr "ERROR_BAD_IMPERSONATION_LEVEL"
+
+msgid "1347"
+msgstr "ERROR_CANT_OPEN_ANONYMOUS"
+
+msgid "1348"
+msgstr "ERROR_BAD_VALIDATION_CLASS"
+
+msgid "1349"
+msgstr "ERROR_BAD_TOKEN_TYPE"
+
+msgid "1350"
+msgstr "ERROR_NO_SECURITY_ON_OBJECT"
+
+msgid "1351"
+msgstr "ERROR_CANT_ACCESS_DOMAIN_INFO"
+
+msgid "1352"
+msgstr "ERROR_INVALID_SERVER_STATE"
+
+msgid "1353"
+msgstr "ERROR_INVALID_DOMAIN_STATE"
+
+msgid "1354"
+msgstr "ERROR_INVALID_DOMAIN_ROLE"
+
+msgid "1355"
+msgstr "ERROR_NO_SUCH_DOMAIN"
+
+msgid "1356"
+msgstr "ERROR_DOMAIN_EXISTS"
+
+msgid "1357"
+msgstr "ERROR_DOMAIN_LIMIT_EXCEEDED"
+
+msgid "1358"
+msgstr "ERROR_INTERNAL_DB_CORRUPTION"
+
+msgid "1359"
+msgstr "ERROR_INTERNAL_ERROR"
+
+msgid "1360"
+msgstr "ERROR_GENERIC_NOT_MAPPED"
+
+msgid "1361"
+msgstr "ERROR_BAD_DESCRIPTOR_FORMAT"
+
+msgid "1362"
+msgstr "ERROR_NOT_LOGON_PROCESS"
+
+msgid "1363"
+msgstr "ERROR_LOGON_SESSION_EXISTS"
+
+msgid "1364"
+msgstr "ERROR_NO_SUCH_PACKAGE"
+
+msgid "1365"
+msgstr "ERROR_BAD_LOGON_SESSION_STATE"
+
+msgid "1366"
+msgstr "ERROR_LOGON_SESSION_COLLISION"
+
+msgid "1367"
+msgstr "ERROR_INVALID_LOGON_TYPE"
+
+msgid "1368"
+msgstr "ERROR_CANNOT_IMPERSONATE"
+
+msgid "1369"
+msgstr "ERROR_RXACT_INVALID_STATE"
+
+msgid "1370"
+msgstr "ERROR_RXACT_COMMIT_FAILURE"
+
+msgid "1371"
+msgstr "ERROR_SPECIAL_ACCOUNT"
+
+msgid "1372"
+msgstr "ERROR_SPECIAL_GROUP"
+
+msgid "1373"
+msgstr "ERROR_SPECIAL_USER"
+
+msgid "1374"
+msgstr "ERROR_MEMBERS_PRIMARY_GROUP"
+
+msgid "1375"
+msgstr "ERROR_TOKEN_ALREADY_IN_USE"
+
+msgid "1376"
+msgstr "ERROR_NO_SUCH_ALIAS"
+
+msgid "1377"
+msgstr "ERROR_MEMBER_NOT_IN_ALIAS"
+
+msgid "1378"
+msgstr "ERROR_MEMBER_IN_ALIAS"
+
+msgid "1379"
+msgstr "ERROR_ALIAS_EXISTS"
+
+msgid "1380"
+msgstr "ERROR_LOGON_NOT_GRANTED"
+
+msgid "1381"
+msgstr "ERROR_TOO_MANY_SECRETS"
+
+msgid "1382"
+msgstr "ERROR_SECRET_TOO_LONG"
+
+msgid "1383"
+msgstr "ERROR_INTERNAL_DB_ERROR"
+
+msgid "1384"
+msgstr "ERROR_TOO_MANY_CONTEXT_IDS"
+
+msgid "1385"
+msgstr "ERROR_LOGON_TYPE_NOT_GRANTED"
+
+msgid "1386"
+msgstr "ERROR_NT_CROSS_ENCRYPTION_REQUIRED"
+
+msgid "1387"
+msgstr "ERROR_NO_SUCH_MEMBER"
+
+msgid "1388"
+msgstr "ERROR_INVALID_MEMBER"
+
+msgid "1389"
+msgstr "ERROR_TOO_MANY_SIDS"
+
+msgid "1390"
+msgstr "ERROR_LM_CROSS_ENCRYPTION_REQUIRED"
+
+msgid "1391"
+msgstr "ERROR_NO_INHERITANCE"
+
+msgid "1392"
+msgstr "ERROR_FILE_CORRUPT"
+
+msgid "1393"
+msgstr "ERROR_DISK_CORRUPT"
+
+msgid "1394"
+msgstr "ERROR_NO_USER_SESSION_KEY"
+
+msgid "1395"
+msgstr "ERROR_LICENSE_QUOTA_EXCEEDED"
+
+msgid "1396"
+msgstr "ERROR_WRONG_TARGET_NAME"
+
+msgid "1397"
+msgstr "ERROR_MUTUAL_AUTH_FAILED"
+
+msgid "1398"
+msgstr "ERROR_TIME_SKEW"
+
+msgid "1399"
+msgstr "ERROR_CURRENT_DOMAIN_NOT_ALLOWED"
+
+msgid "1400"
+msgstr "ERROR_INVALID_WINDOW_HANDLE"
+
+msgid "1401"
+msgstr "ERROR_INVALID_MENU_HANDLE"
+
+msgid "1402"
+msgstr "ERROR_INVALID_CURSOR_HANDLE"
+
+msgid "1403"
+msgstr "ERROR_INVALID_ACCEL_HANDLE"
+
+msgid "1404"
+msgstr "ERROR_INVALID_HOOK_HANDLE"
+
+msgid "1405"
+msgstr "ERROR_INVALID_DWP_HANDLE"
+
+msgid "1406"
+msgstr "ERROR_TLW_WITH_WSCHILD"
+
+msgid "1407"
+msgstr "ERROR_CANNOT_FIND_WND_CLASS"
+
+msgid "1408"
+msgstr "ERROR_WINDOW_OF_OTHER_THREAD"
+
+msgid "1409"
+msgstr "ERROR_HOTKEY_ALREADY_REGISTERED"
+
+msgid "1410"
+msgstr "ERROR_CLASS_ALREADY_EXISTS"
+
+msgid "1411"
+msgstr "ERROR_CLASS_DOES_NOT_EXIST"
+
+msgid "1412"
+msgstr "ERROR_CLASS_HAS_WINDOWS"
+
+msgid "1413"
+msgstr "ERROR_INVALID_INDEX"
+
+msgid "1414"
+msgstr "ERROR_INVALID_ICON_HANDLE"
+
+msgid "1415"
+msgstr "ERROR_PRIVATE_DIALOG_INDEX"
+
+msgid "1416"
+msgstr "ERROR_LISTBOX_ID_NOT_FOUND"
+
+msgid "1417"
+msgstr "ERROR_NO_WILDCARD_CHARACTERS"
+
+msgid "1418"
+msgstr "ERROR_CLIPBOARD_NOT_OPEN"
+
+msgid "1419"
+msgstr "ERROR_HOTKEY_NOT_REGISTERED"
+
+msgid "1420"
+msgstr "ERROR_WINDOW_NOT_DIALOG"
+
+msgid "1421"
+msgstr "ERROR_CONTROL_ID_NOT_FOUND"
+
+msgid "1422"
+msgstr "ERROR_INVALID_COMBOBOX_MESSAGE"
+
+msgid "1423"
+msgstr "ERROR_WINDOW_NOT_COMBOBOX"
+
+msgid "1424"
+msgstr "ERROR_INVALID_EDIT_HEIGHT"
+
+msgid "1425"
+msgstr "ERROR_DC_NOT_FOUND"
+
+msgid "1426"
+msgstr "ERROR_INVALID_HOOK_FILTER"
+
+msgid "1427"
+msgstr "ERROR_INVALID_FILTER_PROC"
+
+msgid "1428"
+msgstr "ERROR_HOOK_NEEDS_HMOD"
+
+msgid "1429"
+msgstr "ERROR_GLOBAL_ONLY_HOOK"
+
+msgid "1430"
+msgstr "ERROR_JOURNAL_HOOK_SET"
+
+msgid "1431"
+msgstr "ERROR_HOOK_NOT_INSTALLED"
+
+msgid "1432"
+msgstr "ERROR_INVALID_LB_MESSAGE"
+
+msgid "1433"
+msgstr "ERROR_SETCOUNT_ON_BAD_LB"
+
+msgid "1434"
+msgstr "ERROR_LB_WITHOUT_TABSTOPS"
+
+msgid "1435"
+msgstr "ERROR_DESTROY_OBJECT_OF_OTHER_THREAD"
+
+msgid "1436"
+msgstr "ERROR_CHILD_WINDOW_MENU"
+
+msgid "1437"
+msgstr "ERROR_NO_SYSTEM_MENU"
+
+msgid "1438"
+msgstr "ERROR_INVALID_MSGBOX_STYLE"
+
+msgid "1439"
+msgstr "ERROR_INVALID_SPI_VALUE"
+
+msgid "1440"
+msgstr "ERROR_SCREEN_ALREADY_LOCKED"
+
+msgid "1441"
+msgstr "ERROR_HWNDS_HAVE_DIFF_PARENT"
+
+msgid "1442"
+msgstr "ERROR_NOT_CHILD_WINDOW"
+
+msgid "1443"
+msgstr "ERROR_INVALID_GW_COMMAND"
+
+msgid "1444"
+msgstr "ERROR_INVALID_THREAD_ID"
+
+msgid "1445"
+msgstr "ERROR_NON_MDICHILD_WINDOW"
+
+msgid "1446"
+msgstr "ERROR_POPUP_ALREADY_ACTIVE"
+
+msgid "1447"
+msgstr "ERROR_NO_SCROLLBARS"
+
+msgid "1448"
+msgstr "ERROR_INVALID_SCROLLBAR_RANGE"
+
+msgid "1449"
+msgstr "ERROR_INVALID_SHOWWIN_COMMAND"
+
+msgid "1450"
+msgstr "ERROR_NO_SYSTEM_RESOURCES"
+
+msgid "1451"
+msgstr "ERROR_NONPAGED_SYSTEM_RESOURCES"
+
+msgid "1452"
+msgstr "ERROR_PAGED_SYSTEM_RESOURCES"
+
+msgid "1453"
+msgstr "ERROR_WORKING_SET_QUOTA"
+
+msgid "1454"
+msgstr "ERROR_PAGEFILE_QUOTA"
+
+msgid "1455"
+msgstr "ERROR_COMMITMENT_LIMIT"
+
+msgid "1456"
+msgstr "ERROR_MENU_ITEM_NOT_FOUND"
+
+msgid "1457"
+msgstr "ERROR_INVALID_KEYBOARD_HANDLE"
+
+msgid "1458"
+msgstr "ERROR_HOOK_TYPE_NOT_ALLOWED"
+
+msgid "1459"
+msgstr "ERROR_REQUIRES_INTERACTIVE_WINDOWSTATION"
+
+msgid "1460"
+msgstr "ERROR_TIMEOUT"
+
+msgid "1461"
+msgstr "ERROR_INVALID_MONITOR_HANDLE"
+
+msgid "1462"
+msgstr "ERROR_INCORRECT_SIZE"
+
+msgid "1463"
+msgstr "ERROR_SYMLINK_CLASS_DISABLED"
+
+msgid "1464"
+msgstr "ERROR_SYMLINK_NOT_SUPPORTED"
+
+msgid "1465"
+msgstr "ERROR_XML_PARSE_ERROR"
+
+msgid "1466"
+msgstr "ERROR_XMLDSIG_ERROR"
+
+msgid "1467"
+msgstr "ERROR_RESTART_APPLICATION"
+
+msgid "1468"
+msgstr "ERROR_WRONG_COMPARTMENT"
+
+msgid "1469"
+msgstr "ERROR_AUTHIP_FAILURE"
+
+msgid "1470"
+msgstr "ERROR_NO_NVRAM_RESOURCES"
+
+msgid "1471"
+msgstr "ERROR_NOT_GUI_PROCESS"
+
+msgid "1500"
+msgstr "ERROR_EVENTLOG_FILE_CORRUPT"
+
+msgid "1501"
+msgstr "ERROR_EVENTLOG_CANT_START"
+
+msgid "1502"
+msgstr "ERROR_LOG_FILE_FULL"
+
+msgid "1503"
+msgstr "ERROR_EVENTLOG_FILE_CHANGED"
+
+msgid "1504"
+msgstr "ERROR_CONTAINER_ASSIGNED"
+
+msgid "1505"
+msgstr "ERROR_JOB_NO_CONTAINER"
+
+msgid "1550"
+msgstr "ERROR_INVALID_TASK_NAME"
+
+msgid "1551"
+msgstr "ERROR_INVALID_TASK_INDEX"
+
+msgid "1552"
+msgstr "ERROR_THREAD_ALREADY_IN_TASK"
+
+msgid "1601"
+msgstr "ERROR_INSTALL_SERVICE_FAILURE"
+
+msgid "1602"
+msgstr "ERROR_INSTALL_USEREXIT"
+
+msgid "1603"
+msgstr "ERROR_INSTALL_FAILURE"
+
+msgid "1604"
+msgstr "ERROR_INSTALL_SUSPEND"
+
+msgid "1605"
+msgstr "ERROR_UNKNOWN_PRODUCT"
+
+msgid "1606"
+msgstr "ERROR_UNKNOWN_FEATURE"
+
+msgid "1607"
+msgstr "ERROR_UNKNOWN_COMPONENT"
+
+msgid "1608"
+msgstr "ERROR_UNKNOWN_PROPERTY"
+
+msgid "1609"
+msgstr "ERROR_INVALID_HANDLE_STATE"
+
+msgid "1610"
+msgstr "ERROR_BAD_CONFIGURATION"
+
+msgid "1611"
+msgstr "ERROR_INDEX_ABSENT"
+
+msgid "1612"
+msgstr "ERROR_INSTALL_SOURCE_ABSENT"
+
+msgid "1613"
+msgstr "ERROR_INSTALL_PACKAGE_VERSION"
+
+msgid "1614"
+msgstr "ERROR_PRODUCT_UNINSTALLED"
+
+msgid "1615"
+msgstr "ERROR_BAD_QUERY_SYNTAX"
+
+msgid "1616"
+msgstr "ERROR_INVALID_FIELD"
+
+msgid "1617"
+msgstr "ERROR_DEVICE_REMOVED"
+
+msgid "1618"
+msgstr "ERROR_INSTALL_ALREADY_RUNNING"
+
+msgid "1619"
+msgstr "ERROR_INSTALL_PACKAGE_OPEN_FAILED"
+
+msgid "1620"
+msgstr "ERROR_INSTALL_PACKAGE_INVALID"
+
+msgid "1621"
+msgstr "ERROR_INSTALL_UI_FAILURE"
+
+msgid "1622"
+msgstr "ERROR_INSTALL_LOG_FAILURE"
+
+msgid "1623"
+msgstr "ERROR_INSTALL_LANGUAGE_UNSUPPORTED"
+
+msgid "1624"
+msgstr "ERROR_INSTALL_TRANSFORM_FAILURE"
+
+msgid "1625"
+msgstr "ERROR_INSTALL_PACKAGE_REJECTED"
+
+msgid "1626"
+msgstr "ERROR_FUNCTION_NOT_CALLED"
+
+msgid "1627"
+msgstr "ERROR_FUNCTION_FAILED"
+
+msgid "1628"
+msgstr "ERROR_INVALID_TABLE"
+
+msgid "1629"
+msgstr "ERROR_DATATYPE_MISMATCH"
+
+msgid "1630"
+msgstr "ERROR_UNSUPPORTED_TYPE"
+
+msgid "1631"
+msgstr "ERROR_CREATE_FAILED"
+
+msgid "1632"
+msgstr "ERROR_INSTALL_TEMP_UNWRITABLE"
+
+msgid "1633"
+msgstr "ERROR_INSTALL_PLATFORM_UNSUPPORTED"
+
+msgid "1634"
+msgstr "ERROR_INSTALL_NOTUSED"
+
+msgid "1635"
+msgstr "ERROR_PATCH_PACKAGE_OPEN_FAILED"
+
+msgid "1636"
+msgstr "ERROR_PATCH_PACKAGE_INVALID"
+
+msgid "1637"
+msgstr "ERROR_PATCH_PACKAGE_UNSUPPORTED"
+
+msgid "1638"
+msgstr "ERROR_PRODUCT_VERSION"
+
+msgid "1639"
+msgstr "ERROR_INVALID_COMMAND_LINE"
+
+msgid "1640"
+msgstr "ERROR_INSTALL_REMOTE_DISALLOWED"
+
+msgid "1641"
+msgstr "ERROR_SUCCESS_REBOOT_INITIATED"
+
+msgid "1642"
+msgstr "ERROR_PATCH_TARGET_NOT_FOUND"
+
+msgid "1643"
+msgstr "ERROR_PATCH_PACKAGE_REJECTED"
+
+msgid "1644"
+msgstr "ERROR_INSTALL_TRANSFORM_REJECTED"
+
+msgid "1645"
+msgstr "ERROR_INSTALL_REMOTE_PROHIBITED"
+
+msgid "1646"
+msgstr "ERROR_PATCH_REMOVAL_UNSUPPORTED"
+
+msgid "1647"
+msgstr "ERROR_UNKNOWN_PATCH"
+
+msgid "1648"
+msgstr "ERROR_PATCH_NO_SEQUENCE"
+
+msgid "1649"
+msgstr "ERROR_PATCH_REMOVAL_DISALLOWED"
+
+msgid "1650"
+msgstr "ERROR_INVALID_PATCH_XML"
+
+msgid "1651"
+msgstr "ERROR_PATCH_MANAGED_ADVERTISED_PRODUCT"
+
+msgid "1652"
+msgstr "ERROR_INSTALL_SERVICE_SAFEBOOT"
+
+msgid "1653"
+msgstr "ERROR_FAIL_FAST_EXCEPTION"
+
+msgid "1654"
+msgstr "ERROR_INSTALL_REJECTED"
+
+msgid "1655"
+msgstr "ERROR_DYNAMIC_CODE_BLOCKED"
+
+msgid "1656"
+msgstr "ERROR_NOT_SAME_OBJECT"
+
+msgid "1657"
+msgstr "ERROR_STRICT_CFG_VIOLATION"
+
+msgid "1660"
+msgstr "ERROR_SET_CONTEXT_DENIED"
+
+msgid "1661"
+msgstr "ERROR_CROSS_PARTITION_VIOLATION"
+
+msgid "1662"
+msgstr "ERROR_RETURN_ADDRESS_HIJACK_ATTEMPT"
+
+msgid "1700"
+msgstr "RPC_S_INVALID_STRING_BINDING"
+
+msgid "1701"
+msgstr "RPC_S_WRONG_KIND_OF_BINDING"
+
+msgid "1702"
+msgstr "RPC_S_INVALID_BINDING"
+
+msgid "1703"
+msgstr "RPC_S_PROTSEQ_NOT_SUPPORTED"
+
+msgid "1704"
+msgstr "RPC_S_INVALID_RPC_PROTSEQ"
+
+msgid "1705"
+msgstr "RPC_S_INVALID_STRING_UUID"
+
+msgid "1706"
+msgstr "RPC_S_INVALID_ENDPOINT_FORMAT"
+
+msgid "1707"
+msgstr "RPC_S_INVALID_NET_ADDR"
+
+msgid "1708"
+msgstr "RPC_S_NO_ENDPOINT_FOUND"
+
+msgid "1709"
+msgstr "RPC_S_INVALID_TIMEOUT"
+
+msgid "1710"
+msgstr "RPC_S_OBJECT_NOT_FOUND"
+
+msgid "1711"
+msgstr "RPC_S_ALREADY_REGISTERED"
+
+msgid "1712"
+msgstr "RPC_S_TYPE_ALREADY_REGISTERED"
+
+msgid "1713"
+msgstr "RPC_S_ALREADY_LISTENING"
+
+msgid "1714"
+msgstr "RPC_S_NO_PROTSEQS_REGISTERED"
+
+msgid "1715"
+msgstr "RPC_S_NOT_LISTENING"
+
+msgid "1716"
+msgstr "RPC_S_UNKNOWN_MGR_TYPE"
+
+msgid "1717"
+msgstr "RPC_S_UNKNOWN_IF"
+
+msgid "1718"
+msgstr "RPC_S_NO_BINDINGS"
+
+msgid "1719"
+msgstr "RPC_S_NO_PROTSEQS"
+
+msgid "1720"
+msgstr "RPC_S_CANT_CREATE_ENDPOINT"
+
+msgid "1721"
+msgstr "RPC_S_OUT_OF_RESOURCES"
+
+msgid "1722"
+msgstr "RPC_S_SERVER_UNAVAILABLE"
+
+msgid "1723"
+msgstr "RPC_S_SERVER_TOO_BUSY"
+
+msgid "1724"
+msgstr "RPC_S_INVALID_NETWORK_OPTIONS"
+
+msgid "1725"
+msgstr "RPC_S_NO_CALL_ACTIVE"
+
+msgid "1726"
+msgstr "RPC_S_CALL_FAILED"
+
+msgid "1727"
+msgstr "RPC_S_CALL_FAILED_DNE"
+
+msgid "1728"
+msgstr "RPC_S_PROTOCOL_ERROR"
+
+msgid "1729"
+msgstr "RPC_S_PROXY_ACCESS_DENIED"
+
+msgid "1730"
+msgstr "RPC_S_UNSUPPORTED_TRANS_SYN"
+
+msgid "1732"
+msgstr "RPC_S_UNSUPPORTED_TYPE"
+
+msgid "1733"
+msgstr "RPC_S_INVALID_TAG"
+
+msgid "1734"
+msgstr "RPC_S_INVALID_BOUND"
+
+msgid "1735"
+msgstr "RPC_S_NO_ENTRY_NAME"
+
+msgid "1736"
+msgstr "RPC_S_INVALID_NAME_SYNTAX"
+
+msgid "1737"
+msgstr "RPC_S_UNSUPPORTED_NAME_SYNTAX"
+
+msgid "1739"
+msgstr "RPC_S_UUID_NO_ADDRESS"
+
+msgid "1740"
+msgstr "RPC_S_DUPLICATE_ENDPOINT"
+
+msgid "1741"
+msgstr "RPC_S_UNKNOWN_AUTHN_TYPE"
+
+msgid "1742"
+msgstr "RPC_S_MAX_CALLS_TOO_SMALL"
+
+msgid "1743"
+msgstr "RPC_S_STRING_TOO_LONG"
+
+msgid "1744"
+msgstr "RPC_S_PROTSEQ_NOT_FOUND"
+
+msgid "1745"
+msgstr "RPC_S_PROCNUM_OUT_OF_RANGE"
+
+msgid "1746"
+msgstr "RPC_S_BINDING_HAS_NO_AUTH"
+
+msgid "1747"
+msgstr "RPC_S_UNKNOWN_AUTHN_SERVICE"
+
+msgid "1748"
+msgstr "RPC_S_UNKNOWN_AUTHN_LEVEL"
+
+msgid "1749"
+msgstr "RPC_S_INVALID_AUTH_IDENTITY"
+
+msgid "1750"
+msgstr "RPC_S_UNKNOWN_AUTHZ_SERVICE"
+
+msgid "1751"
+msgstr "EPT_S_INVALID_ENTRY"
+
+msgid "1752"
+msgstr "EPT_S_CANT_PERFORM_OP"
+
+msgid "1753"
+msgstr "EPT_S_NOT_REGISTERED"
+
+msgid "1754"
+msgstr "RPC_S_NOTHING_TO_EXPORT"
+
+msgid "1755"
+msgstr "RPC_S_INCOMPLETE_NAME"
+
+msgid "1756"
+msgstr "RPC_S_INVALID_VERS_OPTION"
+
+msgid "1757"
+msgstr "RPC_S_NO_MORE_MEMBERS"
+
+msgid "1758"
+msgstr "RPC_S_NOT_ALL_OBJS_UNEXPORTED"
+
+msgid "1759"
+msgstr "RPC_S_INTERFACE_NOT_FOUND"
+
+msgid "1760"
+msgstr "RPC_S_ENTRY_ALREADY_EXISTS"
+
+msgid "1761"
+msgstr "RPC_S_ENTRY_NOT_FOUND"
+
+msgid "1762"
+msgstr "RPC_S_NAME_SERVICE_UNAVAILABLE"
+
+msgid "1763"
+msgstr "RPC_S_INVALID_NAF_ID"
+
+msgid "1764"
+msgstr "RPC_S_CANNOT_SUPPORT"
+
+msgid "1765"
+msgstr "RPC_S_NO_CONTEXT_AVAILABLE"
+
+msgid "1766"
+msgstr "RPC_S_INTERNAL_ERROR"
+
+msgid "1767"
+msgstr "RPC_S_ZERO_DIVIDE"
+
+msgid "1768"
+msgstr "RPC_S_ADDRESS_ERROR"
+
+msgid "1769"
+msgstr "RPC_S_FP_DIV_ZERO"
+
+msgid "1770"
+msgstr "RPC_S_FP_UNDERFLOW"
+
+msgid "1771"
+msgstr "RPC_S_FP_OVERFLOW"
+
+msgid "1772"
+msgstr "RPC_X_NO_MORE_ENTRIES"
+
+msgid "1773"
+msgstr "RPC_X_SS_CHAR_TRANS_OPEN_FAIL"
+
+msgid "1774"
+msgstr "RPC_X_SS_CHAR_TRANS_SHORT_FILE"
+
+msgid "1775"
+msgstr "RPC_X_SS_IN_NULL_CONTEXT"
+
+msgid "1777"
+msgstr "RPC_X_SS_CONTEXT_DAMAGED"
+
+msgid "1778"
+msgstr "RPC_X_SS_HANDLES_MISMATCH"
+
+msgid "1779"
+msgstr "RPC_X_SS_CANNOT_GET_CALL_HANDLE"
+
+msgid "1780"
+msgstr "RPC_X_NULL_REF_POINTER"
+
+msgid "1781"
+msgstr "RPC_X_ENUM_VALUE_OUT_OF_RANGE"
+
+msgid "1782"
+msgstr "RPC_X_BYTE_COUNT_TOO_SMALL"
+
+msgid "1783"
+msgstr "RPC_X_BAD_STUB_DATA"
+
+msgid "1784"
+msgstr "ERROR_INVALID_USER_BUFFER"
+
+msgid "1785"
+msgstr "ERROR_UNRECOGNIZED_MEDIA"
+
+msgid "1786"
+msgstr "ERROR_NO_TRUST_LSA_SECRET"
+
+msgid "1787"
+msgstr "ERROR_NO_TRUST_SAM_ACCOUNT"
+
+msgid "1788"
+msgstr "ERROR_TRUSTED_DOMAIN_FAILURE"
+
+msgid "1789"
+msgstr "ERROR_TRUSTED_RELATIONSHIP_FAILURE"
+
+msgid "1790"
+msgstr "ERROR_TRUST_FAILURE"
+
+msgid "1791"
+msgstr "RPC_S_CALL_IN_PROGRESS"
+
+msgid "1792"
+msgstr "ERROR_NETLOGON_NOT_STARTED"
+
+msgid "1793"
+msgstr "ERROR_ACCOUNT_EXPIRED"
+
+msgid "1794"
+msgstr "ERROR_REDIRECTOR_HAS_OPEN_HANDLES"
+
+msgid "1795"
+msgstr "ERROR_PRINTER_DRIVER_ALREADY_INSTALLED"
+
+msgid "1796"
+msgstr "ERROR_UNKNOWN_PORT"
+
+msgid "1797"
+msgstr "ERROR_UNKNOWN_PRINTER_DRIVER"
+
+msgid "1798"
+msgstr "ERROR_UNKNOWN_PRINTPROCESSOR"
+
+msgid "1799"
+msgstr "ERROR_INVALID_SEPARATOR_FILE"
+
+msgid "1800"
+msgstr "ERROR_INVALID_PRIORITY"
+
+msgid "1801"
+msgstr "ERROR_INVALID_PRINTER_NAME"
+
+msgid "1802"
+msgstr "ERROR_PRINTER_ALREADY_EXISTS"
+
+msgid "1803"
+msgstr "ERROR_INVALID_PRINTER_COMMAND"
+
+msgid "1804"
+msgstr "ERROR_INVALID_DATATYPE"
+
+msgid "1805"
+msgstr "ERROR_INVALID_ENVIRONMENT"
+
+msgid "1806"
+msgstr "RPC_S_NO_MORE_BINDINGS"
+
+msgid "1807"
+msgstr "ERROR_NOLOGON_INTERDOMAIN_TRUST_ACCOUNT"
+
+msgid "1808"
+msgstr "ERROR_NOLOGON_WORKSTATION_TRUST_ACCOUNT"
+
+msgid "1809"
+msgstr "ERROR_NOLOGON_SERVER_TRUST_ACCOUNT"
+
+msgid "1810"
+msgstr "ERROR_DOMAIN_TRUST_INCONSISTENT"
+
+msgid "1811"
+msgstr "ERROR_SERVER_HAS_OPEN_HANDLES"
+
+msgid "1812"
+msgstr "ERROR_RESOURCE_DATA_NOT_FOUND"
+
+msgid "1813"
+msgstr "ERROR_RESOURCE_TYPE_NOT_FOUND"
+
+msgid "1814"
+msgstr "ERROR_RESOURCE_NAME_NOT_FOUND"
+
+msgid "1815"
+msgstr "ERROR_RESOURCE_LANG_NOT_FOUND"
+
+msgid "1816"
+msgstr "ERROR_NOT_ENOUGH_QUOTA"
+
+msgid "1817"
+msgstr "RPC_S_NO_INTERFACES"
+
+msgid "1818"
+msgstr "RPC_S_CALL_CANCELLED"
+
+msgid "1819"
+msgstr "RPC_S_BINDING_INCOMPLETE"
+
+msgid "1820"
+msgstr "RPC_S_COMM_FAILURE"
+
+msgid "1821"
+msgstr "RPC_S_UNSUPPORTED_AUTHN_LEVEL"
+
+msgid "1822"
+msgstr "RPC_S_NO_PRINC_NAME"
+
+msgid "1823"
+msgstr "RPC_S_NOT_RPC_ERROR"
+
+msgid "1824"
+msgstr "RPC_S_UUID_LOCAL_ONLY"
+
+msgid "1825"
+msgstr "RPC_S_SEC_PKG_ERROR"
+
+msgid "1826"
+msgstr "RPC_S_NOT_CANCELLED"
+
+msgid "1827"
+msgstr "RPC_X_INVALID_ES_ACTION"
+
+msgid "1828"
+msgstr "RPC_X_WRONG_ES_VERSION"
+
+msgid "1829"
+msgstr "RPC_X_WRONG_STUB_VERSION"
+
+msgid "1830"
+msgstr "RPC_X_INVALID_PIPE_OBJECT"
+
+msgid "1831"
+msgstr "RPC_X_WRONG_PIPE_ORDER"
+
+msgid "1832"
+msgstr "RPC_X_WRONG_PIPE_VERSION"
+
+msgid "1833"
+msgstr "RPC_S_COOKIE_AUTH_FAILED"
+
+msgid "1834"
+msgstr "RPC_S_DO_NOT_DISTURB"
+
+msgid "1835"
+msgstr "RPC_S_SYSTEM_HANDLE_COUNT_EXCEEDED"
+
+msgid "1836"
+msgstr "RPC_S_SYSTEM_HANDLE_TYPE_MISMATCH"
+
+msgid "1898"
+msgstr "RPC_S_GROUP_MEMBER_NOT_FOUND"
+
+msgid "1899"
+msgstr "EPT_S_CANT_CREATE"
+
+msgid "1900"
+msgstr "RPC_S_INVALID_OBJECT"
+
+msgid "1901"
+msgstr "ERROR_INVALID_TIME"
+
+msgid "1902"
+msgstr "ERROR_INVALID_FORM_NAME"
+
+msgid "1903"
+msgstr "ERROR_INVALID_FORM_SIZE"
+
+msgid "1904"
+msgstr "ERROR_ALREADY_WAITING"
+
+msgid "1905"
+msgstr "ERROR_PRINTER_DELETED"
+
+msgid "1906"
+msgstr "ERROR_INVALID_PRINTER_STATE"
+
+msgid "1907"
+msgstr "ERROR_PASSWORD_MUST_CHANGE"
+
+msgid "1908"
+msgstr "ERROR_DOMAIN_CONTROLLER_NOT_FOUND"
+
+msgid "1909"
+msgstr "ERROR_ACCOUNT_LOCKED_OUT"
+
+msgid "1910"
+msgstr "OR_INVALID_OXID"
+
+msgid "1911"
+msgstr "OR_INVALID_OID"
+
+msgid "1912"
+msgstr "OR_INVALID_SET"
+
+msgid "1913"
+msgstr "RPC_S_SEND_INCOMPLETE"
+
+msgid "1914"
+msgstr "RPC_S_INVALID_ASYNC_HANDLE"
+
+msgid "1915"
+msgstr "RPC_S_INVALID_ASYNC_CALL"
+
+msgid "1916"
+msgstr "RPC_X_PIPE_CLOSED"
+
+msgid "1917"
+msgstr "RPC_X_PIPE_DISCIPLINE_ERROR"
+
+msgid "1918"
+msgstr "RPC_X_PIPE_EMPTY"
+
+msgid "1919"
+msgstr "ERROR_NO_SITENAME"
+
+msgid "1920"
+msgstr "ERROR_CANT_ACCESS_FILE"
+
+msgid "1921"
+msgstr "ERROR_CANT_RESOLVE_FILENAME"
+
+msgid "1922"
+msgstr "RPC_S_ENTRY_TYPE_MISMATCH"
+
+msgid "1923"
+msgstr "RPC_S_NOT_ALL_OBJS_EXPORTED"
+
+msgid "1924"
+msgstr "RPC_S_INTERFACE_NOT_EXPORTED"
+
+msgid "1925"
+msgstr "RPC_S_PROFILE_NOT_ADDED"
+
+msgid "1926"
+msgstr "RPC_S_PRF_ELT_NOT_ADDED"
+
+msgid "1927"
+msgstr "RPC_S_PRF_ELT_NOT_REMOVED"
+
+msgid "1928"
+msgstr "RPC_S_GRP_ELT_NOT_ADDED"
+
+msgid "1929"
+msgstr "RPC_S_GRP_ELT_NOT_REMOVED"
+
+msgid "1930"
+msgstr "ERROR_KM_DRIVER_BLOCKED"
+
+msgid "1931"
+msgstr "ERROR_CONTEXT_EXPIRED"
+
+msgid "1932"
+msgstr "ERROR_PER_USER_TRUST_QUOTA_EXCEEDED"
+
+msgid "1933"
+msgstr "ERROR_ALL_USER_TRUST_QUOTA_EXCEEDED"
+
+msgid "1934"
+msgstr "ERROR_USER_DELETE_TRUST_QUOTA_EXCEEDED"
+
+msgid "1935"
+msgstr "ERROR_AUTHENTICATION_FIREWALL_FAILED"
+
+msgid "1936"
+msgstr "ERROR_REMOTE_PRINT_CONNECTIONS_BLOCKED"
+
+msgid "1937"
+msgstr "ERROR_NTLM_BLOCKED"
+
+msgid "1938"
+msgstr "ERROR_PASSWORD_CHANGE_REQUIRED"
+
+msgid "1939"
+msgstr "ERROR_LOST_MODE_LOGON_RESTRICTION"
+
+msgid "2000"
+msgstr "ERROR_INVALID_PIXEL_FORMAT"
+
+msgid "2001"
+msgstr "ERROR_BAD_DRIVER"
+
+msgid "2002"
+msgstr "ERROR_INVALID_WINDOW_STYLE"
+
+msgid "2003"
+msgstr "ERROR_METAFILE_NOT_SUPPORTED"
+
+msgid "2004"
+msgstr "ERROR_TRANSFORM_NOT_SUPPORTED"
+
+msgid "2005"
+msgstr "ERROR_CLIPPING_NOT_SUPPORTED"
+
+msgid "2010"
+msgstr "ERROR_INVALID_CMM"
+
+msgid "2011"
+msgstr "ERROR_INVALID_PROFILE"
+
+msgid "2012"
+msgstr "ERROR_TAG_NOT_FOUND"
+
+msgid "2013"
+msgstr "ERROR_TAG_NOT_PRESENT"
+
+msgid "2014"
+msgstr "ERROR_DUPLICATE_TAG"
+
+msgid "2015"
+msgstr "ERROR_PROFILE_NOT_ASSOCIATED_WITH_DEVICE"
+
+msgid "2016"
+msgstr "ERROR_PROFILE_NOT_FOUND"
+
+msgid "2017"
+msgstr "ERROR_INVALID_COLORSPACE"
+
+msgid "2018"
+msgstr "ERROR_ICM_NOT_ENABLED"
+
+msgid "2019"
+msgstr "ERROR_DELETING_ICM_XFORM"
+
+msgid "2020"
+msgstr "ERROR_INVALID_TRANSFORM"
+
+msgid "2021"
+msgstr "ERROR_COLORSPACE_MISMATCH"
+
+msgid "2022"
+msgstr "ERROR_INVALID_COLORINDEX"
+
+msgid "2023"
+msgstr "ERROR_PROFILE_DOES_NOT_MATCH_DEVICE"
+
+msgid "2108"
+msgstr "ERROR_CONNECTED_OTHER_PASSWORD"
+
+msgid "2109"
+msgstr "ERROR_CONNECTED_OTHER_PASSWORD_DEFAULT"
+
+msgid "2202"
+msgstr "ERROR_BAD_USERNAME"
+
+msgid "2250"
+msgstr "ERROR_NOT_CONNECTED"
+
+msgid "2401"
+msgstr "ERROR_OPEN_FILES"
+
+msgid "2402"
+msgstr "ERROR_ACTIVE_CONNECTIONS"
+
+msgid "2404"
+msgstr "ERROR_DEVICE_IN_USE"
+
+msgid "3000"
+msgstr "ERROR_UNKNOWN_PRINT_MONITOR"
+
+msgid "3001"
+msgstr "ERROR_PRINTER_DRIVER_IN_USE"
+
+msgid "3002"
+msgstr "ERROR_SPOOL_FILE_NOT_FOUND"
+
+msgid "3003"
+msgstr "ERROR_SPL_NO_STARTDOC"
+
+msgid "3004"
+msgstr "ERROR_SPL_NO_ADDJOB"
+
+msgid "3005"
+msgstr "ERROR_PRINT_PROCESSOR_ALREADY_INSTALLED"
+
+msgid "3006"
+msgstr "ERROR_PRINT_MONITOR_ALREADY_INSTALLED"
+
+msgid "3007"
+msgstr "ERROR_INVALID_PRINT_MONITOR"
+
+msgid "3008"
+msgstr "ERROR_PRINT_MONITOR_IN_USE"
+
+msgid "3009"
+msgstr "ERROR_PRINTER_HAS_JOBS_QUEUED"
+
+msgid "3010"
+msgstr "ERROR_SUCCESS_REBOOT_REQUIRED"
+
+msgid "3011"
+msgstr "ERROR_SUCCESS_RESTART_REQUIRED"
+
+msgid "3012"
+msgstr "ERROR_PRINTER_NOT_FOUND"
+
+msgid "3013"
+msgstr "ERROR_PRINTER_DRIVER_WARNED"
+
+msgid "3014"
+msgstr "ERROR_PRINTER_DRIVER_BLOCKED"
+
+msgid "3015"
+msgstr "ERROR_PRINTER_DRIVER_PACKAGE_IN_USE"
+
+msgid "3016"
+msgstr "ERROR_CORE_DRIVER_PACKAGE_NOT_FOUND"
+
+msgid "3017"
+msgstr "ERROR_FAIL_REBOOT_REQUIRED"
+
+msgid "3018"
+msgstr "ERROR_FAIL_REBOOT_INITIATED"
+
+msgid "3019"
+msgstr "ERROR_PRINTER_DRIVER_DOWNLOAD_NEEDED"
+
+msgid "3020"
+msgstr "ERROR_PRINT_JOB_RESTART_REQUIRED"
+
+msgid "3021"
+msgstr "ERROR_INVALID_PRINTER_DRIVER_MANIFEST"
+
+msgid "3022"
+msgstr "ERROR_PRINTER_NOT_SHAREABLE"
+
+msgid "3050"
+msgstr "ERROR_REQUEST_PAUSED"
+
+msgid "3060"
+msgstr "ERROR_APPEXEC_CONDITION_NOT_SATISFIED"
+
+msgid "3061"
+msgstr "ERROR_APPEXEC_HANDLE_INVALIDATED"
+
+msgid "3062"
+msgstr "ERROR_APPEXEC_INVALID_HOST_GENERATION"
+
+msgid "3063"
+msgstr "ERROR_APPEXEC_UNEXPECTED_PROCESS_REGISTRATION"
+
+msgid "3064"
+msgstr "ERROR_APPEXEC_INVALID_HOST_STATE"
+
+msgid "3065"
+msgstr "ERROR_APPEXEC_NO_DONOR"
+
+msgid "3066"
+msgstr "ERROR_APPEXEC_HOST_ID_MISMATCH"
+
+msgid "3067"
+msgstr "ERROR_APPEXEC_UNKNOWN_USER"
+
+msgid "3068"
+msgstr "ERROR_APPEXEC_APP_COMPAT_BLOCK"
+
+msgid "3069"
+msgstr "ERROR_APPEXEC_CALLER_WAIT_TIMEOUT"
+
+msgid "3070"
+msgstr "ERROR_APPEXEC_CALLER_WAIT_TIMEOUT_TERMINATION"
+
+msgid "3071"
+msgstr "ERROR_APPEXEC_CALLER_WAIT_TIMEOUT_LICENSING"
+
+msgid "3072"
+msgstr "ERROR_APPEXEC_CALLER_WAIT_TIMEOUT_RESOURCES"
+
+msgid "3080"
+msgstr "ERROR_VRF_VOLATILE_CFG_AND_IO_ENABLED"
+
+msgid "3081"
+msgstr "ERROR_VRF_VOLATILE_NOT_STOPPABLE"
+
+msgid "3082"
+msgstr "ERROR_VRF_VOLATILE_SAFE_MODE"
+
+msgid "3083"
+msgstr "ERROR_VRF_VOLATILE_NOT_RUNNABLE_SYSTEM"
+
+msgid "3084"
+msgstr "ERROR_VRF_VOLATILE_NOT_SUPPORTED_RULECLASS"
+
+msgid "3085"
+msgstr "ERROR_VRF_VOLATILE_PROTECTED_DRIVER"
+
+msgid "3086"
+msgstr "ERROR_VRF_VOLATILE_NMI_REGISTERED"
+
+msgid "3087"
+msgstr "ERROR_VRF_VOLATILE_SETTINGS_CONFLICT"
+
+msgid "3190"
+msgstr "ERROR_DIF_IOCALLBACK_NOT_REPLACED"
+
+msgid "3191"
+msgstr "ERROR_DIF_LIVEDUMP_LIMIT_EXCEEDED"
+
+msgid "3192"
+msgstr "ERROR_DIF_VOLATILE_SECTION_NOT_LOCKED"
+
+msgid "3193"
+msgstr "ERROR_DIF_VOLATILE_DRIVER_HOTPATCHED"
+
+msgid "3194"
+msgstr "ERROR_DIF_VOLATILE_INVALID_INFO"
+
+msgid "3195"
+msgstr "ERROR_DIF_VOLATILE_DRIVER_IS_NOT_RUNNING"
+
+msgid "3196"
+msgstr "ERROR_DIF_VOLATILE_PLUGIN_IS_NOT_RUNNING"
+
+msgid "3197"
+msgstr "ERROR_DIF_VOLATILE_PLUGIN_CHANGE_NOT_ALLOWED"
+
+msgid "3198"
+msgstr "ERROR_DIF_VOLATILE_NOT_ALLOWED"
+
+msgid "3199"
+msgstr "ERROR_DIF_BINDING_API_NOT_FOUND"
+
+msgid "3950"
+msgstr "ERROR_IO_REISSUE_AS_CACHED"
+
+msgid "4000"
+msgstr "ERROR_WINS_INTERNAL"
+
+msgid "4001"
+msgstr "ERROR_CAN_NOT_DEL_LOCAL_WINS"
+
+msgid "4002"
+msgstr "ERROR_STATIC_INIT"
+
+msgid "4003"
+msgstr "ERROR_INC_BACKUP"
+
+msgid "4004"
+msgstr "ERROR_FULL_BACKUP"
+
+msgid "4005"
+msgstr "ERROR_REC_NON_EXISTENT"
+
+msgid "4006"
+msgstr "ERROR_RPL_NOT_ALLOWED"
+
+msgid "4050"
+msgstr "PEERDIST_ERROR_CONTENTINFO_VERSION_UNSUPPORTED"
+
+msgid "4051"
+msgstr "PEERDIST_ERROR_CANNOT_PARSE_CONTENTINFO"
+
+msgid "4052"
+msgstr "PEERDIST_ERROR_MISSING_DATA"
+
+msgid "4053"
+msgstr "PEERDIST_ERROR_NO_MORE"
+
+msgid "4054"
+msgstr "PEERDIST_ERROR_NOT_INITIALIZED"
+
+msgid "4055"
+msgstr "PEERDIST_ERROR_ALREADY_INITIALIZED"
+
+msgid "4056"
+msgstr "PEERDIST_ERROR_SHUTDOWN_IN_PROGRESS"
+
+msgid "4057"
+msgstr "PEERDIST_ERROR_INVALIDATED"
+
+msgid "4058"
+msgstr "PEERDIST_ERROR_ALREADY_EXISTS"
+
+msgid "4059"
+msgstr "PEERDIST_ERROR_OPERATION_NOTFOUND"
+
+msgid "4060"
+msgstr "PEERDIST_ERROR_ALREADY_COMPLETED"
+
+msgid "4061"
+msgstr "PEERDIST_ERROR_OUT_OF_BOUNDS"
+
+msgid "4062"
+msgstr "PEERDIST_ERROR_VERSION_UNSUPPORTED"
+
+msgid "4063"
+msgstr "PEERDIST_ERROR_INVALID_CONFIGURATION"
+
+msgid "4064"
+msgstr "PEERDIST_ERROR_NOT_LICENSED"
+
+msgid "4065"
+msgstr "PEERDIST_ERROR_SERVICE_UNAVAILABLE"
+
+msgid "4066"
+msgstr "PEERDIST_ERROR_TRUST_FAILURE"
+
+msgid "4100"
+msgstr "ERROR_DHCP_ADDRESS_CONFLICT"
+
+msgid "4200"
+msgstr "ERROR_WMI_GUID_NOT_FOUND"
+
+msgid "4201"
+msgstr "ERROR_WMI_INSTANCE_NOT_FOUND"
+
+msgid "4202"
+msgstr "ERROR_WMI_ITEMID_NOT_FOUND"
+
+msgid "4203"
+msgstr "ERROR_WMI_TRY_AGAIN"
+
+msgid "4204"
+msgstr "ERROR_WMI_DP_NOT_FOUND"
+
+msgid "4205"
+msgstr "ERROR_WMI_UNRESOLVED_INSTANCE_REF"
+
+msgid "4206"
+msgstr "ERROR_WMI_ALREADY_ENABLED"
+
+msgid "4207"
+msgstr "ERROR_WMI_GUID_DISCONNECTED"
+
+msgid "4208"
+msgstr "ERROR_WMI_SERVER_UNAVAILABLE"
+
+msgid "4209"
+msgstr "ERROR_WMI_DP_FAILED"
+
+msgid "4210"
+msgstr "ERROR_WMI_INVALID_MOF"
+
+msgid "4211"
+msgstr "ERROR_WMI_INVALID_REGINFO"
+
+msgid "4212"
+msgstr "ERROR_WMI_ALREADY_DISABLED"
+
+msgid "4213"
+msgstr "ERROR_WMI_READ_ONLY"
+
+msgid "4214"
+msgstr "ERROR_WMI_SET_FAILURE"
+
+msgid "4250"
+msgstr "ERROR_NOT_APPCONTAINER"
+
+msgid "4251"
+msgstr "ERROR_APPCONTAINER_REQUIRED"
+
+msgid "4252"
+msgstr "ERROR_NOT_SUPPORTED_IN_APPCONTAINER"
+
+msgid "4253"
+msgstr "ERROR_INVALID_PACKAGE_SID_LENGTH"
+
+msgid "4300"
+msgstr "ERROR_INVALID_MEDIA"
+
+msgid "4301"
+msgstr "ERROR_INVALID_LIBRARY"
+
+msgid "4302"
+msgstr "ERROR_INVALID_MEDIA_POOL"
+
+msgid "4303"
+msgstr "ERROR_DRIVE_MEDIA_MISMATCH"
+
+msgid "4304"
+msgstr "ERROR_MEDIA_OFFLINE"
+
+msgid "4305"
+msgstr "ERROR_LIBRARY_OFFLINE"
+
+msgid "4306"
+msgstr "ERROR_EMPTY"
+
+msgid "4307"
+msgstr "ERROR_NOT_EMPTY"
+
+msgid "4308"
+msgstr "ERROR_MEDIA_UNAVAILABLE"
+
+msgid "4309"
+msgstr "ERROR_RESOURCE_DISABLED"
+
+msgid "4310"
+msgstr "ERROR_INVALID_CLEANER"
+
+msgid "4311"
+msgstr "ERROR_UNABLE_TO_CLEAN"
+
+msgid "4312"
+msgstr "ERROR_OBJECT_NOT_FOUND"
+
+msgid "4313"
+msgstr "ERROR_DATABASE_FAILURE"
+
+msgid "4314"
+msgstr "ERROR_DATABASE_FULL"
+
+msgid "4315"
+msgstr "ERROR_MEDIA_INCOMPATIBLE"
+
+msgid "4316"
+msgstr "ERROR_RESOURCE_NOT_PRESENT"
+
+msgid "4317"
+msgstr "ERROR_INVALID_OPERATION"
+
+msgid "4318"
+msgstr "ERROR_MEDIA_NOT_AVAILABLE"
+
+msgid "4319"
+msgstr "ERROR_DEVICE_NOT_AVAILABLE"
+
+msgid "4320"
+msgstr "ERROR_REQUEST_REFUSED"
+
+msgid "4321"
+msgstr "ERROR_INVALID_DRIVE_OBJECT"
+
+msgid "4322"
+msgstr "ERROR_LIBRARY_FULL"
+
+msgid "4323"
+msgstr "ERROR_MEDIUM_NOT_ACCESSIBLE"
+
+msgid "4324"
+msgstr "ERROR_UNABLE_TO_LOAD_MEDIUM"
+
+msgid "4325"
+msgstr "ERROR_UNABLE_TO_INVENTORY_DRIVE"
+
+msgid "4326"
+msgstr "ERROR_UNABLE_TO_INVENTORY_SLOT"
+
+msgid "4327"
+msgstr "ERROR_UNABLE_TO_INVENTORY_TRANSPORT"
+
+msgid "4328"
+msgstr "ERROR_TRANSPORT_FULL"
+
+msgid "4329"
+msgstr "ERROR_CONTROLLING_IEPORT"
+
+msgid "4330"
+msgstr "ERROR_UNABLE_TO_EJECT_MOUNTED_MEDIA"
+
+msgid "4331"
+msgstr "ERROR_CLEANER_SLOT_SET"
+
+msgid "4332"
+msgstr "ERROR_CLEANER_SLOT_NOT_SET"
+
+msgid "4333"
+msgstr "ERROR_CLEANER_CARTRIDGE_SPENT"
+
+msgid "4334"
+msgstr "ERROR_UNEXPECTED_OMID"
+
+msgid "4335"
+msgstr "ERROR_CANT_DELETE_LAST_ITEM"
+
+msgid "4336"
+msgstr "ERROR_MESSAGE_EXCEEDS_MAX_SIZE"
+
+msgid "4337"
+msgstr "ERROR_VOLUME_CONTAINS_SYS_FILES"
+
+msgid "4338"
+msgstr "ERROR_INDIGENOUS_TYPE"
+
+msgid "4339"
+msgstr "ERROR_NO_SUPPORTING_DRIVES"
+
+msgid "4340"
+msgstr "ERROR_CLEANER_CARTRIDGE_INSTALLED"
+
+msgid "4341"
+msgstr "ERROR_IEPORT_FULL"
+
+msgid "4350"
+msgstr "ERROR_FILE_OFFLINE"
+
+msgid "4351"
+msgstr "ERROR_REMOTE_STORAGE_NOT_ACTIVE"
+
+msgid "4352"
+msgstr "ERROR_REMOTE_STORAGE_MEDIA_ERROR"
+
+msgid "4390"
+msgstr "ERROR_NOT_A_REPARSE_POINT"
+
+msgid "4391"
+msgstr "ERROR_REPARSE_ATTRIBUTE_CONFLICT"
+
+msgid "4392"
+msgstr "ERROR_INVALID_REPARSE_DATA"
+
+msgid "4393"
+msgstr "ERROR_REPARSE_TAG_INVALID"
+
+msgid "4394"
+msgstr "ERROR_REPARSE_TAG_MISMATCH"
+
+msgid "4395"
+msgstr "ERROR_REPARSE_POINT_ENCOUNTERED"
+
+msgid "4400"
+msgstr "ERROR_APP_DATA_NOT_FOUND"
+
+msgid "4401"
+msgstr "ERROR_APP_DATA_EXPIRED"
+
+msgid "4402"
+msgstr "ERROR_APP_DATA_CORRUPT"
+
+msgid "4403"
+msgstr "ERROR_APP_DATA_LIMIT_EXCEEDED"
+
+msgid "4404"
+msgstr "ERROR_APP_DATA_REBOOT_REQUIRED"
+
+msgid "4420"
+msgstr "ERROR_SECUREBOOT_ROLLBACK_DETECTED"
+
+msgid "4421"
+msgstr "ERROR_SECUREBOOT_POLICY_VIOLATION"
+
+msgid "4422"
+msgstr "ERROR_SECUREBOOT_INVALID_POLICY"
+
+msgid "4423"
+msgstr "ERROR_SECUREBOOT_POLICY_PUBLISHER_NOT_FOUND"
+
+msgid "4424"
+msgstr "ERROR_SECUREBOOT_POLICY_NOT_SIGNED"
+
+msgid "4425"
+msgstr "ERROR_SECUREBOOT_NOT_ENABLED"
+
+msgid "4426"
+msgstr "ERROR_SECUREBOOT_FILE_REPLACED"
+
+msgid "4427"
+msgstr "ERROR_SECUREBOOT_POLICY_NOT_AUTHORIZED"
+
+msgid "4428"
+msgstr "ERROR_SECUREBOOT_POLICY_UNKNOWN"
+
+msgid "4429"
+msgstr "ERROR_SECUREBOOT_POLICY_MISSING_ANTIROLLBACKVERSION"
+
+msgid "4430"
+msgstr "ERROR_SECUREBOOT_PLATFORM_ID_MISMATCH"
+
+msgid "4431"
+msgstr "ERROR_SECUREBOOT_POLICY_ROLLBACK_DETECTED"
+
+msgid "4432"
+msgstr "ERROR_SECUREBOOT_POLICY_UPGRADE_MISMATCH"
+
+msgid "4433"
+msgstr "ERROR_SECUREBOOT_REQUIRED_POLICY_FILE_MISSING"
+
+msgid "4434"
+msgstr "ERROR_SECUREBOOT_NOT_BASE_POLICY"
+
+msgid "4435"
+msgstr "ERROR_SECUREBOOT_NOT_SUPPLEMENTAL_POLICY"
+
+msgid "4440"
+msgstr "ERROR_OFFLOAD_READ_FLT_NOT_SUPPORTED"
+
+msgid "4441"
+msgstr "ERROR_OFFLOAD_WRITE_FLT_NOT_SUPPORTED"
+
+msgid "4442"
+msgstr "ERROR_OFFLOAD_READ_FILE_NOT_SUPPORTED"
+
+msgid "4443"
+msgstr "ERROR_OFFLOAD_WRITE_FILE_NOT_SUPPORTED"
+
+msgid "4444"
+msgstr "ERROR_ALREADY_HAS_STREAM_ID"
+
+msgid "4445"
+msgstr "ERROR_SMR_GARBAGE_COLLECTION_REQUIRED"
+
+msgid "4446"
+msgstr "ERROR_WOF_WIM_HEADER_CORRUPT"
+
+msgid "4447"
+msgstr "ERROR_WOF_WIM_RESOURCE_TABLE_CORRUPT"
+
+msgid "4448"
+msgstr "ERROR_WOF_FILE_RESOURCE_TABLE_CORRUPT"
+
+msgid "4449"
+msgstr "ERROR_OBJECT_IS_IMMUTABLE"
+
+msgid "4500"
+msgstr "ERROR_VOLUME_NOT_SIS_ENABLED"
+
+msgid "4550"
+msgstr "ERROR_SYSTEM_INTEGRITY_ROLLBACK_DETECTED"
+
+msgid "4551"
+msgstr "ERROR_SYSTEM_INTEGRITY_POLICY_VIOLATION"
+
+msgid "4552"
+msgstr "ERROR_SYSTEM_INTEGRITY_INVALID_POLICY"
+
+msgid "4553"
+msgstr "ERROR_SYSTEM_INTEGRITY_POLICY_NOT_SIGNED"
+
+msgid "4554"
+msgstr "ERROR_SYSTEM_INTEGRITY_TOO_MANY_POLICIES"
+
+msgid "4555"
+msgstr "ERROR_SYSTEM_INTEGRITY_SUPPLEMENTAL_POLICY_NOT_AUTHORIZED"
+
+msgid "4556"
+msgstr "ERROR_SYSTEM_INTEGRITY_REPUTATION_MALICIOUS"
+
+msgid "4557"
+msgstr "ERROR_SYSTEM_INTEGRITY_REPUTATION_PUA"
+
+msgid "4558"
+msgstr "ERROR_SYSTEM_INTEGRITY_REPUTATION_DANGEROUS_EXT"
+
+msgid "4559"
+msgstr "ERROR_SYSTEM_INTEGRITY_REPUTATION_OFFLINE"
+
+msgid "4560"
+msgstr "ERROR_VSM_NOT_INITIALIZED"
+
+msgid "4561"
+msgstr "ERROR_VSM_DMA_PROTECTION_NOT_IN_USE"
+
+msgid "4570"
+msgstr "ERROR_PLATFORM_MANIFEST_NOT_AUTHORIZED"
+
+msgid "4571"
+msgstr "ERROR_PLATFORM_MANIFEST_INVALID"
+
+msgid "4572"
+msgstr "ERROR_PLATFORM_MANIFEST_FILE_NOT_AUTHORIZED"
+
+msgid "4573"
+msgstr "ERROR_PLATFORM_MANIFEST_CATALOG_NOT_AUTHORIZED"
+
+msgid "4574"
+msgstr "ERROR_PLATFORM_MANIFEST_BINARY_ID_NOT_FOUND"
+
+msgid "4575"
+msgstr "ERROR_PLATFORM_MANIFEST_NOT_ACTIVE"
+
+msgid "4576"
+msgstr "ERROR_PLATFORM_MANIFEST_NOT_SIGNED"
+
+msgid "5001"
+msgstr "ERROR_DEPENDENT_RESOURCE_EXISTS"
+
+msgid "5002"
+msgstr "ERROR_DEPENDENCY_NOT_FOUND"
+
+msgid "5003"
+msgstr "ERROR_DEPENDENCY_ALREADY_EXISTS"
+
+msgid "5004"
+msgstr "ERROR_RESOURCE_NOT_ONLINE"
+
+msgid "5005"
+msgstr "ERROR_HOST_NODE_NOT_AVAILABLE"
+
+msgid "5006"
+msgstr "ERROR_RESOURCE_NOT_AVAILABLE"
+
+msgid "5007"
+msgstr "ERROR_RESOURCE_NOT_FOUND"
+
+msgid "5008"
+msgstr "ERROR_SHUTDOWN_CLUSTER"
+
+msgid "5009"
+msgstr "ERROR_CANT_EVICT_ACTIVE_NODE"
+
+msgid "5010"
+msgstr "ERROR_OBJECT_ALREADY_EXISTS"
+
+msgid "5011"
+msgstr "ERROR_OBJECT_IN_LIST"
+
+msgid "5012"
+msgstr "ERROR_GROUP_NOT_AVAILABLE"
+
+msgid "5013"
+msgstr "ERROR_GROUP_NOT_FOUND"
+
+msgid "5014"
+msgstr "ERROR_GROUP_NOT_ONLINE"
+
+msgid "5015"
+msgstr "ERROR_HOST_NODE_NOT_RESOURCE_OWNER"
+
+msgid "5016"
+msgstr "ERROR_HOST_NODE_NOT_GROUP_OWNER"
+
+msgid "5017"
+msgstr "ERROR_RESMON_CREATE_FAILED"
+
+msgid "5018"
+msgstr "ERROR_RESMON_ONLINE_FAILED"
+
+msgid "5019"
+msgstr "ERROR_RESOURCE_ONLINE"
+
+msgid "5020"
+msgstr "ERROR_QUORUM_RESOURCE"
+
+msgid "5021"
+msgstr "ERROR_NOT_QUORUM_CAPABLE"
+
+msgid "5022"
+msgstr "ERROR_CLUSTER_SHUTTING_DOWN"
+
+msgid "5023"
+msgstr "ERROR_INVALID_STATE"
+
+msgid "5024"
+msgstr "ERROR_RESOURCE_PROPERTIES_STORED"
+
+msgid "5025"
+msgstr "ERROR_NOT_QUORUM_CLASS"
+
+msgid "5026"
+msgstr "ERROR_CORE_RESOURCE"
+
+msgid "5027"
+msgstr "ERROR_QUORUM_RESOURCE_ONLINE_FAILED"
+
+msgid "5028"
+msgstr "ERROR_QUORUMLOG_OPEN_FAILED"
+
+msgid "5029"
+msgstr "ERROR_CLUSTERLOG_CORRUPT"
+
+msgid "5030"
+msgstr "ERROR_CLUSTERLOG_RECORD_EXCEEDS_MAXSIZE"
+
+msgid "5031"
+msgstr "ERROR_CLUSTERLOG_EXCEEDS_MAXSIZE"
+
+msgid "5032"
+msgstr "ERROR_CLUSTERLOG_CHKPOINT_NOT_FOUND"
+
+msgid "5033"
+msgstr "ERROR_CLUSTERLOG_NOT_ENOUGH_SPACE"
+
+msgid "5034"
+msgstr "ERROR_QUORUM_OWNER_ALIVE"
+
+msgid "5035"
+msgstr "ERROR_NETWORK_NOT_AVAILABLE"
+
+msgid "5036"
+msgstr "ERROR_NODE_NOT_AVAILABLE"
+
+msgid "5037"
+msgstr "ERROR_ALL_NODES_NOT_AVAILABLE"
+
+msgid "5038"
+msgstr "ERROR_RESOURCE_FAILED"
+
+msgid "5039"
+msgstr "ERROR_CLUSTER_INVALID_NODE"
+
+msgid "5040"
+msgstr "ERROR_CLUSTER_NODE_EXISTS"
+
+msgid "5041"
+msgstr "ERROR_CLUSTER_JOIN_IN_PROGRESS"
+
+msgid "5042"
+msgstr "ERROR_CLUSTER_NODE_NOT_FOUND"
+
+msgid "5043"
+msgstr "ERROR_CLUSTER_LOCAL_NODE_NOT_FOUND"
+
+msgid "5044"
+msgstr "ERROR_CLUSTER_NETWORK_EXISTS"
+
+msgid "5045"
+msgstr "ERROR_CLUSTER_NETWORK_NOT_FOUND"
+
+msgid "5046"
+msgstr "ERROR_CLUSTER_NETINTERFACE_EXISTS"
+
+msgid "5047"
+msgstr "ERROR_CLUSTER_NETINTERFACE_NOT_FOUND"
+
+msgid "5048"
+msgstr "ERROR_CLUSTER_INVALID_REQUEST"
+
+msgid "5049"
+msgstr "ERROR_CLUSTER_INVALID_NETWORK_PROVIDER"
+
+msgid "5050"
+msgstr "ERROR_CLUSTER_NODE_DOWN"
+
+msgid "5051"
+msgstr "ERROR_CLUSTER_NODE_UNREACHABLE"
+
+msgid "5052"
+msgstr "ERROR_CLUSTER_NODE_NOT_MEMBER"
+
+msgid "5053"
+msgstr "ERROR_CLUSTER_JOIN_NOT_IN_PROGRESS"
+
+msgid "5054"
+msgstr "ERROR_CLUSTER_INVALID_NETWORK"
+
+msgid "5056"
+msgstr "ERROR_CLUSTER_NODE_UP"
+
+msgid "5057"
+msgstr "ERROR_CLUSTER_IPADDR_IN_USE"
+
+msgid "5058"
+msgstr "ERROR_CLUSTER_NODE_NOT_PAUSED"
+
+msgid "5059"
+msgstr "ERROR_CLUSTER_NO_SECURITY_CONTEXT"
+
+msgid "5060"
+msgstr "ERROR_CLUSTER_NETWORK_NOT_INTERNAL"
+
+msgid "5061"
+msgstr "ERROR_CLUSTER_NODE_ALREADY_UP"
+
+msgid "5062"
+msgstr "ERROR_CLUSTER_NODE_ALREADY_DOWN"
+
+msgid "5063"
+msgstr "ERROR_CLUSTER_NETWORK_ALREADY_ONLINE"
+
+msgid "5064"
+msgstr "ERROR_CLUSTER_NETWORK_ALREADY_OFFLINE"
+
+msgid "5065"
+msgstr "ERROR_CLUSTER_NODE_ALREADY_MEMBER"
+
+msgid "5066"
+msgstr "ERROR_CLUSTER_LAST_INTERNAL_NETWORK"
+
+msgid "5067"
+msgstr "ERROR_CLUSTER_NETWORK_HAS_DEPENDENTS"
+
+msgid "5068"
+msgstr "ERROR_INVALID_OPERATION_ON_QUORUM"
+
+msgid "5069"
+msgstr "ERROR_DEPENDENCY_NOT_ALLOWED"
+
+msgid "5070"
+msgstr "ERROR_CLUSTER_NODE_PAUSED"
+
+msgid "5071"
+msgstr "ERROR_NODE_CANT_HOST_RESOURCE"
+
+msgid "5072"
+msgstr "ERROR_CLUSTER_NODE_NOT_READY"
+
+msgid "5073"
+msgstr "ERROR_CLUSTER_NODE_SHUTTING_DOWN"
+
+msgid "5074"
+msgstr "ERROR_CLUSTER_JOIN_ABORTED"
+
+msgid "5075"
+msgstr "ERROR_CLUSTER_INCOMPATIBLE_VERSIONS"
+
+msgid "5076"
+msgstr "ERROR_CLUSTER_MAXNUM_OF_RESOURCES_EXCEEDED"
+
+msgid "5077"
+msgstr "ERROR_CLUSTER_SYSTEM_CONFIG_CHANGED"
+
+msgid "5078"
+msgstr "ERROR_CLUSTER_RESOURCE_TYPE_NOT_FOUND"
+
+msgid "5079"
+msgstr "ERROR_CLUSTER_RESTYPE_NOT_SUPPORTED"
+
+msgid "5080"
+msgstr "ERROR_CLUSTER_RESNAME_NOT_FOUND"
+
+msgid "5081"
+msgstr "ERROR_CLUSTER_NO_RPC_PACKAGES_REGISTERED"
+
+msgid "5082"
+msgstr "ERROR_CLUSTER_OWNER_NOT_IN_PREFLIST"
+
+msgid "5083"
+msgstr "ERROR_CLUSTER_DATABASE_SEQMISMATCH"
+
+msgid "5084"
+msgstr "ERROR_RESMON_INVALID_STATE"
+
+msgid "5085"
+msgstr "ERROR_CLUSTER_GUM_NOT_LOCKER"
+
+msgid "5086"
+msgstr "ERROR_QUORUM_DISK_NOT_FOUND"
+
+msgid "5087"
+msgstr "ERROR_DATABASE_BACKUP_CORRUPT"
+
+msgid "5088"
+msgstr "ERROR_CLUSTER_NODE_ALREADY_HAS_DFS_ROOT"
+
+msgid "5089"
+msgstr "ERROR_RESOURCE_PROPERTY_UNCHANGEABLE"
+
+msgid "5090"
+msgstr "ERROR_NO_ADMIN_ACCESS_POINT"
+
+msgid "5890"
+msgstr "ERROR_CLUSTER_MEMBERSHIP_INVALID_STATE"
+
+msgid "5891"
+msgstr "ERROR_CLUSTER_QUORUMLOG_NOT_FOUND"
+
+msgid "5892"
+msgstr "ERROR_CLUSTER_MEMBERSHIP_HALT"
+
+msgid "5893"
+msgstr "ERROR_CLUSTER_INSTANCE_ID_MISMATCH"
+
+msgid "5894"
+msgstr "ERROR_CLUSTER_NETWORK_NOT_FOUND_FOR_IP"
+
+msgid "5895"
+msgstr "ERROR_CLUSTER_PROPERTY_DATA_TYPE_MISMATCH"
+
+msgid "5896"
+msgstr "ERROR_CLUSTER_EVICT_WITHOUT_CLEANUP"
+
+msgid "5897"
+msgstr "ERROR_CLUSTER_PARAMETER_MISMATCH"
+
+msgid "5898"
+msgstr "ERROR_NODE_CANNOT_BE_CLUSTERED"
+
+msgid "5899"
+msgstr "ERROR_CLUSTER_WRONG_OS_VERSION"
+
+msgid "5900"
+msgstr "ERROR_CLUSTER_CANT_CREATE_DUP_CLUSTER_NAME"
+
+msgid "5901"
+msgstr "ERROR_CLUSCFG_ALREADY_COMMITTED"
+
+msgid "5902"
+msgstr "ERROR_CLUSCFG_ROLLBACK_FAILED"
+
+msgid "5903"
+msgstr "ERROR_CLUSCFG_SYSTEM_DISK_DRIVE_LETTER_CONFLICT"
+
+msgid "5904"
+msgstr "ERROR_CLUSTER_OLD_VERSION"
+
+msgid "5905"
+msgstr "ERROR_CLUSTER_MISMATCHED_COMPUTER_ACCT_NAME"
+
+msgid "5906"
+msgstr "ERROR_CLUSTER_NO_NET_ADAPTERS"
+
+msgid "5907"
+msgstr "ERROR_CLUSTER_POISONED"
+
+msgid "5908"
+msgstr "ERROR_CLUSTER_GROUP_MOVING"
+
+msgid "5909"
+msgstr "ERROR_CLUSTER_RESOURCE_TYPE_BUSY"
+
+msgid "5910"
+msgstr "ERROR_RESOURCE_CALL_TIMED_OUT"
+
+msgid "5911"
+msgstr "ERROR_INVALID_CLUSTER_IPV6_ADDRESS"
+
+msgid "5912"
+msgstr "ERROR_CLUSTER_INTERNAL_INVALID_FUNCTION"
+
+msgid "5913"
+msgstr "ERROR_CLUSTER_PARAMETER_OUT_OF_BOUNDS"
+
+msgid "5914"
+msgstr "ERROR_CLUSTER_PARTIAL_SEND"
+
+msgid "5915"
+msgstr "ERROR_CLUSTER_REGISTRY_INVALID_FUNCTION"
+
+msgid "5916"
+msgstr "ERROR_CLUSTER_INVALID_STRING_TERMINATION"
+
+msgid "5917"
+msgstr "ERROR_CLUSTER_INVALID_STRING_FORMAT"
+
+msgid "5918"
+msgstr "ERROR_CLUSTER_DATABASE_TRANSACTION_IN_PROGRESS"
+
+msgid "5919"
+msgstr "ERROR_CLUSTER_DATABASE_TRANSACTION_NOT_IN_PROGRESS"
+
+msgid "5920"
+msgstr "ERROR_CLUSTER_NULL_DATA"
+
+msgid "5921"
+msgstr "ERROR_CLUSTER_PARTIAL_READ"
+
+msgid "5922"
+msgstr "ERROR_CLUSTER_PARTIAL_WRITE"
+
+msgid "5923"
+msgstr "ERROR_CLUSTER_CANT_DESERIALIZE_DATA"
+
+msgid "5924"
+msgstr "ERROR_DEPENDENT_RESOURCE_PROPERTY_CONFLICT"
+
+msgid "5925"
+msgstr "ERROR_CLUSTER_NO_QUORUM"
+
+msgid "5926"
+msgstr "ERROR_CLUSTER_INVALID_IPV6_NETWORK"
+
+msgid "5927"
+msgstr "ERROR_CLUSTER_INVALID_IPV6_TUNNEL_NETWORK"
+
+msgid "5928"
+msgstr "ERROR_QUORUM_NOT_ALLOWED_IN_THIS_GROUP"
+
+msgid "5929"
+msgstr "ERROR_DEPENDENCY_TREE_TOO_COMPLEX"
+
+msgid "5930"
+msgstr "ERROR_EXCEPTION_IN_RESOURCE_CALL"
+
+msgid "5931"
+msgstr "ERROR_CLUSTER_RHS_FAILED_INITIALIZATION"
+
+msgid "5932"
+msgstr "ERROR_CLUSTER_NOT_INSTALLED"
+
+msgid "5933"
+msgstr "ERROR_CLUSTER_RESOURCES_MUST_BE_ONLINE_ON_THE_SAME_NODE"
+
+msgid "5934"
+msgstr "ERROR_CLUSTER_MAX_NODES_IN_CLUSTER"
+
+msgid "5935"
+msgstr "ERROR_CLUSTER_TOO_MANY_NODES"
+
+msgid "5936"
+msgstr "ERROR_CLUSTER_OBJECT_ALREADY_USED"
+
+msgid "5937"
+msgstr "ERROR_NONCORE_GROUPS_FOUND"
+
+msgid "5938"
+msgstr "ERROR_FILE_SHARE_RESOURCE_CONFLICT"
+
+msgid "5939"
+msgstr "ERROR_CLUSTER_EVICT_INVALID_REQUEST"
+
+msgid "5940"
+msgstr "ERROR_CLUSTER_SINGLETON_RESOURCE"
+
+msgid "5941"
+msgstr "ERROR_CLUSTER_GROUP_SINGLETON_RESOURCE"
+
+msgid "5942"
+msgstr "ERROR_CLUSTER_RESOURCE_PROVIDER_FAILED"
+
+msgid "5943"
+msgstr "ERROR_CLUSTER_RESOURCE_CONFIGURATION_ERROR"
+
+msgid "5944"
+msgstr "ERROR_CLUSTER_GROUP_BUSY"
+
+msgid "5945"
+msgstr "ERROR_CLUSTER_NOT_SHARED_VOLUME"
+
+msgid "5946"
+msgstr "ERROR_CLUSTER_INVALID_SECURITY_DESCRIPTOR"
+
+msgid "5947"
+msgstr "ERROR_CLUSTER_SHARED_VOLUMES_IN_USE"
+
+msgid "5948"
+msgstr "ERROR_CLUSTER_USE_SHARED_VOLUMES_API"
+
+msgid "5949"
+msgstr "ERROR_CLUSTER_BACKUP_IN_PROGRESS"
+
+msgid "5950"
+msgstr "ERROR_NON_CSV_PATH"
+
+msgid "5951"
+msgstr "ERROR_CSV_VOLUME_NOT_LOCAL"
+
+msgid "5952"
+msgstr "ERROR_CLUSTER_WATCHDOG_TERMINATING"
+
+msgid "5953"
+msgstr "ERROR_CLUSTER_RESOURCE_VETOED_MOVE_INCOMPATIBLE_NODES"
+
+msgid "5954"
+msgstr "ERROR_CLUSTER_INVALID_NODE_WEIGHT"
+
+msgid "5955"
+msgstr "ERROR_CLUSTER_RESOURCE_VETOED_CALL"
+
+msgid "5956"
+msgstr "ERROR_RESMON_SYSTEM_RESOURCES_LACKING"
+
+msgid "5957"
+msgstr "ERROR_CLUSTER_RESOURCE_VETOED_MOVE_NOT_ENOUGH_RESOURCES_ON_DESTINATION"
+
+msgid "5958"
+msgstr "ERROR_CLUSTER_RESOURCE_VETOED_MOVE_NOT_ENOUGH_RESOURCES_ON_SOURCE"
+
+msgid "5959"
+msgstr "ERROR_CLUSTER_GROUP_QUEUED"
+
+msgid "5960"
+msgstr "ERROR_CLUSTER_RESOURCE_LOCKED_STATUS"
+
+msgid "5961"
+msgstr "ERROR_CLUSTER_SHARED_VOLUME_FAILOVER_NOT_ALLOWED"
+
+msgid "5962"
+msgstr "ERROR_CLUSTER_NODE_DRAIN_IN_PROGRESS"
+
+msgid "5963"
+msgstr "ERROR_CLUSTER_DISK_NOT_CONNECTED"
+
+msgid "5964"
+msgstr "ERROR_DISK_NOT_CSV_CAPABLE"
+
+msgid "5965"
+msgstr "ERROR_RESOURCE_NOT_IN_AVAILABLE_STORAGE"
+
+msgid "5966"
+msgstr "ERROR_CLUSTER_SHARED_VOLUME_REDIRECTED"
+
+msgid "5967"
+msgstr "ERROR_CLUSTER_SHARED_VOLUME_NOT_REDIRECTED"
+
+msgid "5968"
+msgstr "ERROR_CLUSTER_CANNOT_RETURN_PROPERTIES"
+
+msgid "5969"
+msgstr "ERROR_CLUSTER_RESOURCE_CONTAINS_UNSUPPORTED_DIFF_AREA_FOR_SHARED_VOLUMES"
+
+msgid "5970"
+msgstr "ERROR_CLUSTER_RESOURCE_IS_IN_MAINTENANCE_MODE"
+
+msgid "5971"
+msgstr "ERROR_CLUSTER_AFFINITY_CONFLICT"
+
+msgid "5972"
+msgstr "ERROR_CLUSTER_RESOURCE_IS_REPLICA_VIRTUAL_MACHINE"
+
+msgid "5973"
+msgstr "ERROR_CLUSTER_UPGRADE_INCOMPATIBLE_VERSIONS"
+
+msgid "5974"
+msgstr "ERROR_CLUSTER_UPGRADE_FIX_QUORUM_NOT_SUPPORTED"
+
+msgid "5975"
+msgstr "ERROR_CLUSTER_UPGRADE_RESTART_REQUIRED"
+
+msgid "5976"
+msgstr "ERROR_CLUSTER_UPGRADE_IN_PROGRESS"
+
+msgid "5977"
+msgstr "ERROR_CLUSTER_UPGRADE_INCOMPLETE"
+
+msgid "5978"
+msgstr "ERROR_CLUSTER_NODE_IN_GRACE_PERIOD"
+
+msgid "5979"
+msgstr "ERROR_CLUSTER_CSV_IO_PAUSE_TIMEOUT"
+
+msgid "5980"
+msgstr "ERROR_NODE_NOT_ACTIVE_CLUSTER_MEMBER"
+
+msgid "5981"
+msgstr "ERROR_CLUSTER_RESOURCE_NOT_MONITORED"
+
+msgid "5982"
+msgstr "ERROR_CLUSTER_RESOURCE_DOES_NOT_SUPPORT_UNMONITORED"
+
+msgid "5983"
+msgstr "ERROR_CLUSTER_RESOURCE_IS_REPLICATED"
+
+msgid "5984"
+msgstr "ERROR_CLUSTER_NODE_ISOLATED"
+
+msgid "5985"
+msgstr "ERROR_CLUSTER_NODE_QUARANTINED"
+
+msgid "5986"
+msgstr "ERROR_CLUSTER_DATABASE_UPDATE_CONDITION_FAILED"
+
+msgid "5987"
+msgstr "ERROR_CLUSTER_SPACE_DEGRADED"
+
+msgid "5988"
+msgstr "ERROR_CLUSTER_TOKEN_DELEGATION_NOT_SUPPORTED"
+
+msgid "5989"
+msgstr "ERROR_CLUSTER_CSV_INVALID_HANDLE"
+
+msgid "5990"
+msgstr "ERROR_CLUSTER_CSV_SUPPORTED_ONLY_ON_COORDINATOR"
+
+msgid "5991"
+msgstr "ERROR_GROUPSET_NOT_AVAILABLE"
+
+msgid "5992"
+msgstr "ERROR_GROUPSET_NOT_FOUND"
+
+msgid "5993"
+msgstr "ERROR_GROUPSET_CANT_PROVIDE"
+
+msgid "5994"
+msgstr "ERROR_CLUSTER_FAULT_DOMAIN_PARENT_NOT_FOUND"
+
+msgid "5995"
+msgstr "ERROR_CLUSTER_FAULT_DOMAIN_INVALID_HIERARCHY"
+
+msgid "5996"
+msgstr "ERROR_CLUSTER_FAULT_DOMAIN_FAILED_S2D_VALIDATION"
+
+msgid "5997"
+msgstr "ERROR_CLUSTER_FAULT_DOMAIN_S2D_CONNECTIVITY_LOSS"
+
+msgid "5998"
+msgstr "ERROR_CLUSTER_INVALID_INFRASTRUCTURE_FILESERVER_NAME"
+
+msgid "5999"
+msgstr "ERROR_CLUSTERSET_MANAGEMENT_CLUSTER_UNREACHABLE"
+
+msgid "6000"
+msgstr "ERROR_ENCRYPTION_FAILED"
+
+msgid "6001"
+msgstr "ERROR_DECRYPTION_FAILED"
+
+msgid "6002"
+msgstr "ERROR_FILE_ENCRYPTED"
+
+msgid "6003"
+msgstr "ERROR_NO_RECOVERY_POLICY"
+
+msgid "6004"
+msgstr "ERROR_NO_EFS"
+
+msgid "6005"
+msgstr "ERROR_WRONG_EFS"
+
+msgid "6006"
+msgstr "ERROR_NO_USER_KEYS"
+
+msgid "6007"
+msgstr "ERROR_FILE_NOT_ENCRYPTED"
+
+msgid "6008"
+msgstr "ERROR_NOT_EXPORT_FORMAT"
+
+msgid "6009"
+msgstr "ERROR_FILE_READ_ONLY"
+
+msgid "6010"
+msgstr "ERROR_DIR_EFS_DISALLOWED"
+
+msgid "6011"
+msgstr "ERROR_EFS_SERVER_NOT_TRUSTED"
+
+msgid "6012"
+msgstr "ERROR_BAD_RECOVERY_POLICY"
+
+msgid "6013"
+msgstr "ERROR_EFS_ALG_BLOB_TOO_BIG"
+
+msgid "6014"
+msgstr "ERROR_VOLUME_NOT_SUPPORT_EFS"
+
+msgid "6015"
+msgstr "ERROR_EFS_DISABLED"
+
+msgid "6016"
+msgstr "ERROR_EFS_VERSION_NOT_SUPPORT"
+
+msgid "6017"
+msgstr "ERROR_CS_ENCRYPTION_INVALID_SERVER_RESPONSE"
+
+msgid "6018"
+msgstr "ERROR_CS_ENCRYPTION_UNSUPPORTED_SERVER"
+
+msgid "6019"
+msgstr "ERROR_CS_ENCRYPTION_EXISTING_ENCRYPTED_FILE"
+
+msgid "6020"
+msgstr "ERROR_CS_ENCRYPTION_NEW_ENCRYPTED_FILE"
+
+msgid "6021"
+msgstr "ERROR_CS_ENCRYPTION_FILE_NOT_CSE"
+
+msgid "6022"
+msgstr "ERROR_ENCRYPTION_POLICY_DENIES_OPERATION"
+
+msgid "6023"
+msgstr "ERROR_WIP_ENCRYPTION_FAILED"
+
+msgid "6118"
+msgstr "ERROR_NO_BROWSER_SERVERS_FOUND"
+
+msgid "6200"
+msgstr "SCHED_E_SERVICE_NOT_LOCALSYSTEM"
+
+msgid "6250"
+msgstr "ERROR_CLUSTER_OBJECT_IS_CLUSTER_SET_VM"
+
+msgid "6600"
+msgstr "ERROR_LOG_SECTOR_INVALID"
+
+msgid "6601"
+msgstr "ERROR_LOG_SECTOR_PARITY_INVALID"
+
+msgid "6602"
+msgstr "ERROR_LOG_SECTOR_REMAPPED"
+
+msgid "6603"
+msgstr "ERROR_LOG_BLOCK_INCOMPLETE"
+
+msgid "6604"
+msgstr "ERROR_LOG_INVALID_RANGE"
+
+msgid "6605"
+msgstr "ERROR_LOG_BLOCKS_EXHAUSTED"
+
+msgid "6606"
+msgstr "ERROR_LOG_READ_CONTEXT_INVALID"
+
+msgid "6607"
+msgstr "ERROR_LOG_RESTART_INVALID"
+
+msgid "6608"
+msgstr "ERROR_LOG_BLOCK_VERSION"
+
+msgid "6609"
+msgstr "ERROR_LOG_BLOCK_INVALID"
+
+msgid "6610"
+msgstr "ERROR_LOG_READ_MODE_INVALID"
+
+msgid "6611"
+msgstr "ERROR_LOG_NO_RESTART"
+
+msgid "6612"
+msgstr "ERROR_LOG_METADATA_CORRUPT"
+
+msgid "6613"
+msgstr "ERROR_LOG_METADATA_INVALID"
+
+msgid "6614"
+msgstr "ERROR_LOG_METADATA_INCONSISTENT"
+
+msgid "6615"
+msgstr "ERROR_LOG_RESERVATION_INVALID"
+
+msgid "6616"
+msgstr "ERROR_LOG_CANT_DELETE"
+
+msgid "6617"
+msgstr "ERROR_LOG_CONTAINER_LIMIT_EXCEEDED"
+
+msgid "6618"
+msgstr "ERROR_LOG_START_OF_LOG"
+
+msgid "6619"
+msgstr "ERROR_LOG_POLICY_ALREADY_INSTALLED"
+
+msgid "6620"
+msgstr "ERROR_LOG_POLICY_NOT_INSTALLED"
+
+msgid "6621"
+msgstr "ERROR_LOG_POLICY_INVALID"
+
+msgid "6622"
+msgstr "ERROR_LOG_POLICY_CONFLICT"
+
+msgid "6623"
+msgstr "ERROR_LOG_PINNED_ARCHIVE_TAIL"
+
+msgid "6624"
+msgstr "ERROR_LOG_RECORD_NONEXISTENT"
+
+msgid "6625"
+msgstr "ERROR_LOG_RECORDS_RESERVED_INVALID"
+
+msgid "6626"
+msgstr "ERROR_LOG_SPACE_RESERVED_INVALID"
+
+msgid "6627"
+msgstr "ERROR_LOG_TAIL_INVALID"
+
+msgid "6628"
+msgstr "ERROR_LOG_FULL"
+
+msgid "6629"
+msgstr "ERROR_COULD_NOT_RESIZE_LOG"
+
+msgid "6630"
+msgstr "ERROR_LOG_MULTIPLEXED"
+
+msgid "6631"
+msgstr "ERROR_LOG_DEDICATED"
+
+msgid "6632"
+msgstr "ERROR_LOG_ARCHIVE_NOT_IN_PROGRESS"
+
+msgid "6633"
+msgstr "ERROR_LOG_ARCHIVE_IN_PROGRESS"
+
+msgid "6634"
+msgstr "ERROR_LOG_EPHEMERAL"
+
+msgid "6635"
+msgstr "ERROR_LOG_NOT_ENOUGH_CONTAINERS"
+
+msgid "6636"
+msgstr "ERROR_LOG_CLIENT_ALREADY_REGISTERED"
+
+msgid "6637"
+msgstr "ERROR_LOG_CLIENT_NOT_REGISTERED"
+
+msgid "6638"
+msgstr "ERROR_LOG_FULL_HANDLER_IN_PROGRESS"
+
+msgid "6639"
+msgstr "ERROR_LOG_CONTAINER_READ_FAILED"
+
+msgid "6640"
+msgstr "ERROR_LOG_CONTAINER_WRITE_FAILED"
+
+msgid "6641"
+msgstr "ERROR_LOG_CONTAINER_OPEN_FAILED"
+
+msgid "6642"
+msgstr "ERROR_LOG_CONTAINER_STATE_INVALID"
+
+msgid "6643"
+msgstr "ERROR_LOG_STATE_INVALID"
+
+msgid "6644"
+msgstr "ERROR_LOG_PINNED"
+
+msgid "6645"
+msgstr "ERROR_LOG_METADATA_FLUSH_FAILED"
+
+msgid "6646"
+msgstr "ERROR_LOG_INCONSISTENT_SECURITY"
+
+msgid "6647"
+msgstr "ERROR_LOG_APPENDED_FLUSH_FAILED"
+
+msgid "6648"
+msgstr "ERROR_LOG_PINNED_RESERVATION"
+
+msgid "6700"
+msgstr "ERROR_INVALID_TRANSACTION"
+
+msgid "6701"
+msgstr "ERROR_TRANSACTION_NOT_ACTIVE"
+
+msgid "6702"
+msgstr "ERROR_TRANSACTION_REQUEST_NOT_VALID"
+
+msgid "6703"
+msgstr "ERROR_TRANSACTION_NOT_REQUESTED"
+
+msgid "6704"
+msgstr "ERROR_TRANSACTION_ALREADY_ABORTED"
+
+msgid "6705"
+msgstr "ERROR_TRANSACTION_ALREADY_COMMITTED"
+
+msgid "6706"
+msgstr "ERROR_TM_INITIALIZATION_FAILED"
+
+msgid "6707"
+msgstr "ERROR_RESOURCEMANAGER_READ_ONLY"
+
+msgid "6708"
+msgstr "ERROR_TRANSACTION_NOT_JOINED"
+
+msgid "6709"
+msgstr "ERROR_TRANSACTION_SUPERIOR_EXISTS"
+
+msgid "6710"
+msgstr "ERROR_CRM_PROTOCOL_ALREADY_EXISTS"
+
+msgid "6711"
+msgstr "ERROR_TRANSACTION_PROPAGATION_FAILED"
+
+msgid "6712"
+msgstr "ERROR_CRM_PROTOCOL_NOT_FOUND"
+
+msgid "6713"
+msgstr "ERROR_TRANSACTION_INVALID_MARSHALL_BUFFER"
+
+msgid "6714"
+msgstr "ERROR_CURRENT_TRANSACTION_NOT_VALID"
+
+msgid "6715"
+msgstr "ERROR_TRANSACTION_NOT_FOUND"
+
+msgid "6716"
+msgstr "ERROR_RESOURCEMANAGER_NOT_FOUND"
+
+msgid "6717"
+msgstr "ERROR_ENLISTMENT_NOT_FOUND"
+
+msgid "6718"
+msgstr "ERROR_TRANSACTIONMANAGER_NOT_FOUND"
+
+msgid "6719"
+msgstr "ERROR_TRANSACTIONMANAGER_NOT_ONLINE"
+
+msgid "6720"
+msgstr "ERROR_TRANSACTIONMANAGER_RECOVERY_NAME_COLLISION"
+
+msgid "6721"
+msgstr "ERROR_TRANSACTION_NOT_ROOT"
+
+msgid "6722"
+msgstr "ERROR_TRANSACTION_OBJECT_EXPIRED"
+
+msgid "6723"
+msgstr "ERROR_TRANSACTION_RESPONSE_NOT_ENLISTED"
+
+msgid "6724"
+msgstr "ERROR_TRANSACTION_RECORD_TOO_LONG"
+
+msgid "6725"
+msgstr "ERROR_IMPLICIT_TRANSACTION_NOT_SUPPORTED"
+
+msgid "6726"
+msgstr "ERROR_TRANSACTION_INTEGRITY_VIOLATED"
+
+msgid "6727"
+msgstr "ERROR_TRANSACTIONMANAGER_IDENTITY_MISMATCH"
+
+msgid "6728"
+msgstr "ERROR_RM_CANNOT_BE_FROZEN_FOR_SNAPSHOT"
+
+msgid "6729"
+msgstr "ERROR_TRANSACTION_MUST_WRITETHROUGH"
+
+msgid "6730"
+msgstr "ERROR_TRANSACTION_NO_SUPERIOR"
+
+msgid "6731"
+msgstr "ERROR_HEURISTIC_DAMAGE_POSSIBLE"
+
+msgid "6800"
+msgstr "ERROR_TRANSACTIONAL_CONFLICT"
+
+msgid "6801"
+msgstr "ERROR_RM_NOT_ACTIVE"
+
+msgid "6802"
+msgstr "ERROR_RM_METADATA_CORRUPT"
+
+msgid "6803"
+msgstr "ERROR_DIRECTORY_NOT_RM"
+
+msgid "6805"
+msgstr "ERROR_TRANSACTIONS_UNSUPPORTED_REMOTE"
+
+msgid "6806"
+msgstr "ERROR_LOG_RESIZE_INVALID_SIZE"
+
+msgid "6807"
+msgstr "ERROR_OBJECT_NO_LONGER_EXISTS"
+
+msgid "6808"
+msgstr "ERROR_STREAM_MINIVERSION_NOT_FOUND"
+
+msgid "6809"
+msgstr "ERROR_STREAM_MINIVERSION_NOT_VALID"
+
+msgid "6810"
+msgstr "ERROR_MINIVERSION_INACCESSIBLE_FROM_SPECIFIED_TRANSACTION"
+
+msgid "6811"
+msgstr "ERROR_CANT_OPEN_MINIVERSION_WITH_MODIFY_INTENT"
+
+msgid "6812"
+msgstr "ERROR_CANT_CREATE_MORE_STREAM_MINIVERSIONS"
+
+msgid "6814"
+msgstr "ERROR_REMOTE_FILE_VERSION_MISMATCH"
+
+msgid "6815"
+msgstr "ERROR_HANDLE_NO_LONGER_VALID"
+
+msgid "6816"
+msgstr "ERROR_NO_TXF_METADATA"
+
+msgid "6817"
+msgstr "ERROR_LOG_CORRUPTION_DETECTED"
+
+msgid "6818"
+msgstr "ERROR_CANT_RECOVER_WITH_HANDLE_OPEN"
+
+msgid "6819"
+msgstr "ERROR_RM_DISCONNECTED"
+
+msgid "6820"
+msgstr "ERROR_ENLISTMENT_NOT_SUPERIOR"
+
+msgid "6821"
+msgstr "ERROR_RECOVERY_NOT_NEEDED"
+
+msgid "6822"
+msgstr "ERROR_RM_ALREADY_STARTED"
+
+msgid "6823"
+msgstr "ERROR_FILE_IDENTITY_NOT_PERSISTENT"
+
+msgid "6824"
+msgstr "ERROR_CANT_BREAK_TRANSACTIONAL_DEPENDENCY"
+
+msgid "6825"
+msgstr "ERROR_CANT_CROSS_RM_BOUNDARY"
+
+msgid "6826"
+msgstr "ERROR_TXF_DIR_NOT_EMPTY"
+
+msgid "6827"
+msgstr "ERROR_INDOUBT_TRANSACTIONS_EXIST"
+
+msgid "6828"
+msgstr "ERROR_TM_VOLATILE"
+
+msgid "6829"
+msgstr "ERROR_ROLLBACK_TIMER_EXPIRED"
+
+msgid "6830"
+msgstr "ERROR_TXF_ATTRIBUTE_CORRUPT"
+
+msgid "6831"
+msgstr "ERROR_EFS_NOT_ALLOWED_IN_TRANSACTION"
+
+msgid "6832"
+msgstr "ERROR_TRANSACTIONAL_OPEN_NOT_ALLOWED"
+
+msgid "6833"
+msgstr "ERROR_LOG_GROWTH_FAILED"
+
+msgid "6834"
+msgstr "ERROR_TRANSACTED_MAPPING_UNSUPPORTED_REMOTE"
+
+msgid "6835"
+msgstr "ERROR_TXF_METADATA_ALREADY_PRESENT"
+
+msgid "6836"
+msgstr "ERROR_TRANSACTION_SCOPE_CALLBACKS_NOT_SET"
+
+msgid "6837"
+msgstr "ERROR_TRANSACTION_REQUIRED_PROMOTION"
+
+msgid "6838"
+msgstr "ERROR_CANNOT_EXECUTE_FILE_IN_TRANSACTION"
+
+msgid "6839"
+msgstr "ERROR_TRANSACTIONS_NOT_FROZEN"
+
+msgid "6840"
+msgstr "ERROR_TRANSACTION_FREEZE_IN_PROGRESS"
+
+msgid "6841"
+msgstr "ERROR_NOT_SNAPSHOT_VOLUME"
+
+msgid "6842"
+msgstr "ERROR_NO_SAVEPOINT_WITH_OPEN_FILES"
+
+msgid "6843"
+msgstr "ERROR_DATA_LOST_REPAIR"
+
+msgid "6844"
+msgstr "ERROR_SPARSE_NOT_ALLOWED_IN_TRANSACTION"
+
+msgid "6845"
+msgstr "ERROR_TM_IDENTITY_MISMATCH"
+
+msgid "6846"
+msgstr "ERROR_FLOATED_SECTION"
+
+msgid "6847"
+msgstr "ERROR_CANNOT_ACCEPT_TRANSACTED_WORK"
+
+msgid "6848"
+msgstr "ERROR_CANNOT_ABORT_TRANSACTIONS"
+
+msgid "6849"
+msgstr "ERROR_BAD_CLUSTERS"
+
+msgid "6850"
+msgstr "ERROR_COMPRESSION_NOT_ALLOWED_IN_TRANSACTION"
+
+msgid "6851"
+msgstr "ERROR_VOLUME_DIRTY"
+
+msgid "6852"
+msgstr "ERROR_NO_LINK_TRACKING_IN_TRANSACTION"
+
+msgid "6853"
+msgstr "ERROR_OPERATION_NOT_SUPPORTED_IN_TRANSACTION"
+
+msgid "6854"
+msgstr "ERROR_EXPIRED_HANDLE"
+
+msgid "6855"
+msgstr "ERROR_TRANSACTION_NOT_ENLISTED"
+
+msgid "7001"
+msgstr "ERROR_CTX_WINSTATION_NAME_INVALID"
+
+msgid "7002"
+msgstr "ERROR_CTX_INVALID_PD"
+
+msgid "7003"
+msgstr "ERROR_CTX_PD_NOT_FOUND"
+
+msgid "7004"
+msgstr "ERROR_CTX_WD_NOT_FOUND"
+
+msgid "7005"
+msgstr "ERROR_CTX_CANNOT_MAKE_EVENTLOG_ENTRY"
+
+msgid "7006"
+msgstr "ERROR_CTX_SERVICE_NAME_COLLISION"
+
+msgid "7007"
+msgstr "ERROR_CTX_CLOSE_PENDING"
+
+msgid "7008"
+msgstr "ERROR_CTX_NO_OUTBUF"
+
+msgid "7009"
+msgstr "ERROR_CTX_MODEM_INF_NOT_FOUND"
+
+msgid "7010"
+msgstr "ERROR_CTX_INVALID_MODEMNAME"
+
+msgid "7011"
+msgstr "ERROR_CTX_MODEM_RESPONSE_ERROR"
+
+msgid "7012"
+msgstr "ERROR_CTX_MODEM_RESPONSE_TIMEOUT"
+
+msgid "7013"
+msgstr "ERROR_CTX_MODEM_RESPONSE_NO_CARRIER"
+
+msgid "7014"
+msgstr "ERROR_CTX_MODEM_RESPONSE_NO_DIALTONE"
+
+msgid "7015"
+msgstr "ERROR_CTX_MODEM_RESPONSE_BUSY"
+
+msgid "7016"
+msgstr "ERROR_CTX_MODEM_RESPONSE_VOICE"
+
+msgid "7017"
+msgstr "ERROR_CTX_TD_ERROR"
+
+msgid "7022"
+msgstr "ERROR_CTX_WINSTATION_NOT_FOUND"
+
+msgid "7023"
+msgstr "ERROR_CTX_WINSTATION_ALREADY_EXISTS"
+
+msgid "7024"
+msgstr "ERROR_CTX_WINSTATION_BUSY"
+
+msgid "7025"
+msgstr "ERROR_CTX_BAD_VIDEO_MODE"
+
+msgid "7035"
+msgstr "ERROR_CTX_GRAPHICS_INVALID"
+
+msgid "7037"
+msgstr "ERROR_CTX_LOGON_DISABLED"
+
+msgid "7038"
+msgstr "ERROR_CTX_NOT_CONSOLE"
+
+msgid "7040"
+msgstr "ERROR_CTX_CLIENT_QUERY_TIMEOUT"
+
+msgid "7041"
+msgstr "ERROR_CTX_CONSOLE_DISCONNECT"
+
+msgid "7042"
+msgstr "ERROR_CTX_CONSOLE_CONNECT"
+
+msgid "7044"
+msgstr "ERROR_CTX_SHADOW_DENIED"
+
+msgid "7045"
+msgstr "ERROR_CTX_WINSTATION_ACCESS_DENIED"
+
+msgid "7049"
+msgstr "ERROR_CTX_INVALID_WD"
+
+msgid "7050"
+msgstr "ERROR_CTX_SHADOW_INVALID"
+
+msgid "7051"
+msgstr "ERROR_CTX_SHADOW_DISABLED"
+
+msgid "7052"
+msgstr "ERROR_CTX_CLIENT_LICENSE_IN_USE"
+
+msgid "7053"
+msgstr "ERROR_CTX_CLIENT_LICENSE_NOT_SET"
+
+msgid "7054"
+msgstr "ERROR_CTX_LICENSE_NOT_AVAILABLE"
+
+msgid "7055"
+msgstr "ERROR_CTX_LICENSE_CLIENT_INVALID"
+
+msgid "7056"
+msgstr "ERROR_CTX_LICENSE_EXPIRED"
+
+msgid "7057"
+msgstr "ERROR_CTX_SHADOW_NOT_RUNNING"
+
+msgid "7058"
+msgstr "ERROR_CTX_SHADOW_ENDED_BY_MODE_CHANGE"
+
+msgid "7059"
+msgstr "ERROR_ACTIVATION_COUNT_EXCEEDED"
+
+msgid "7060"
+msgstr "ERROR_CTX_WINSTATIONS_DISABLED"
+
+msgid "7061"
+msgstr "ERROR_CTX_ENCRYPTION_LEVEL_REQUIRED"
+
+msgid "7062"
+msgstr "ERROR_CTX_SESSION_IN_USE"
+
+msgid "7063"
+msgstr "ERROR_CTX_NO_FORCE_LOGOFF"
+
+msgid "7064"
+msgstr "ERROR_CTX_ACCOUNT_RESTRICTION"
+
+msgid "7065"
+msgstr "ERROR_RDP_PROTOCOL_ERROR"
+
+msgid "7066"
+msgstr "ERROR_CTX_CDM_CONNECT"
+
+msgid "7067"
+msgstr "ERROR_CTX_CDM_DISCONNECT"
+
+msgid "7068"
+msgstr "ERROR_CTX_SECURITY_LAYER_ERROR"
+
+msgid "7069"
+msgstr "ERROR_TS_INCOMPATIBLE_SESSIONS"
+
+msgid "7070"
+msgstr "ERROR_TS_VIDEO_SUBSYSTEM_ERROR"
+
+msgid "8001"
+msgstr "FRS_ERR_INVALID_API_SEQUENCE"
+
+msgid "8002"
+msgstr "FRS_ERR_STARTING_SERVICE"
+
+msgid "8003"
+msgstr "FRS_ERR_STOPPING_SERVICE"
+
+msgid "8004"
+msgstr "FRS_ERR_INTERNAL_API"
+
+msgid "8005"
+msgstr "FRS_ERR_INTERNAL"
+
+msgid "8006"
+msgstr "FRS_ERR_SERVICE_COMM"
+
+msgid "8007"
+msgstr "FRS_ERR_INSUFFICIENT_PRIV"
+
+msgid "8008"
+msgstr "FRS_ERR_AUTHENTICATION"
+
+msgid "8009"
+msgstr "FRS_ERR_PARENT_INSUFFICIENT_PRIV"
+
+msgid "8010"
+msgstr "FRS_ERR_PARENT_AUTHENTICATION"
+
+msgid "8011"
+msgstr "FRS_ERR_CHILD_TO_PARENT_COMM"
+
+msgid "8012"
+msgstr "FRS_ERR_PARENT_TO_CHILD_COMM"
+
+msgid "8013"
+msgstr "FRS_ERR_SYSVOL_POPULATE"
+
+msgid "8014"
+msgstr "FRS_ERR_SYSVOL_POPULATE_TIMEOUT"
+
+msgid "8015"
+msgstr "FRS_ERR_SYSVOL_IS_BUSY"
+
+msgid "8016"
+msgstr "FRS_ERR_SYSVOL_DEMOTE"
+
+msgid "8017"
+msgstr "FRS_ERR_INVALID_SERVICE_PARAMETER"
+
+msgid "8200"
+msgstr "ERROR_DS_NOT_INSTALLED"
+
+msgid "8201"
+msgstr "ERROR_DS_MEMBERSHIP_EVALUATED_LOCALLY"
+
+msgid "8202"
+msgstr "ERROR_DS_NO_ATTRIBUTE_OR_VALUE"
+
+msgid "8203"
+msgstr "ERROR_DS_INVALID_ATTRIBUTE_SYNTAX"
+
+msgid "8204"
+msgstr "ERROR_DS_ATTRIBUTE_TYPE_UNDEFINED"
+
+msgid "8205"
+msgstr "ERROR_DS_ATTRIBUTE_OR_VALUE_EXISTS"
+
+msgid "8206"
+msgstr "ERROR_DS_BUSY"
+
+msgid "8207"
+msgstr "ERROR_DS_UNAVAILABLE"
+
+msgid "8208"
+msgstr "ERROR_DS_NO_RIDS_ALLOCATED"
+
+msgid "8209"
+msgstr "ERROR_DS_NO_MORE_RIDS"
+
+msgid "8210"
+msgstr "ERROR_DS_INCORRECT_ROLE_OWNER"
+
+msgid "8211"
+msgstr "ERROR_DS_RIDMGR_INIT_ERROR"
+
+msgid "8212"
+msgstr "ERROR_DS_OBJ_CLASS_VIOLATION"
+
+msgid "8213"
+msgstr "ERROR_DS_CANT_ON_NON_LEAF"
+
+msgid "8214"
+msgstr "ERROR_DS_CANT_ON_RDN"
+
+msgid "8215"
+msgstr "ERROR_DS_CANT_MOD_OBJ_CLASS"
+
+msgid "8216"
+msgstr "ERROR_DS_CROSS_DOM_MOVE_ERROR"
+
+msgid "8217"
+msgstr "ERROR_DS_GC_NOT_AVAILABLE"
+
+msgid "8218"
+msgstr "ERROR_SHARED_POLICY"
+
+msgid "8219"
+msgstr "ERROR_POLICY_OBJECT_NOT_FOUND"
+
+msgid "8220"
+msgstr "ERROR_POLICY_ONLY_IN_DS"
+
+msgid "8221"
+msgstr "ERROR_PROMOTION_ACTIVE"
+
+msgid "8222"
+msgstr "ERROR_NO_PROMOTION_ACTIVE"
+
+msgid "8224"
+msgstr "ERROR_DS_OPERATIONS_ERROR"
+
+msgid "8225"
+msgstr "ERROR_DS_PROTOCOL_ERROR"
+
+msgid "8226"
+msgstr "ERROR_DS_TIMELIMIT_EXCEEDED"
+
+msgid "8227"
+msgstr "ERROR_DS_SIZELIMIT_EXCEEDED"
+
+msgid "8228"
+msgstr "ERROR_DS_ADMIN_LIMIT_EXCEEDED"
+
+msgid "8229"
+msgstr "ERROR_DS_COMPARE_FALSE"
+
+msgid "8230"
+msgstr "ERROR_DS_COMPARE_TRUE"
+
+msgid "8231"
+msgstr "ERROR_DS_AUTH_METHOD_NOT_SUPPORTED"
+
+msgid "8232"
+msgstr "ERROR_DS_STRONG_AUTH_REQUIRED"
+
+msgid "8233"
+msgstr "ERROR_DS_INAPPROPRIATE_AUTH"
+
+msgid "8234"
+msgstr "ERROR_DS_AUTH_UNKNOWN"
+
+msgid "8235"
+msgstr "ERROR_DS_REFERRAL"
+
+msgid "8236"
+msgstr "ERROR_DS_UNAVAILABLE_CRIT_EXTENSION"
+
+msgid "8237"
+msgstr "ERROR_DS_CONFIDENTIALITY_REQUIRED"
+
+msgid "8238"
+msgstr "ERROR_DS_INAPPROPRIATE_MATCHING"
+
+msgid "8239"
+msgstr "ERROR_DS_CONSTRAINT_VIOLATION"
+
+msgid "8240"
+msgstr "ERROR_DS_NO_SUCH_OBJECT"
+
+msgid "8241"
+msgstr "ERROR_DS_ALIAS_PROBLEM"
+
+msgid "8242"
+msgstr "ERROR_DS_INVALID_DN_SYNTAX"
+
+msgid "8243"
+msgstr "ERROR_DS_IS_LEAF"
+
+msgid "8244"
+msgstr "ERROR_DS_ALIAS_DEREF_PROBLEM"
+
+msgid "8245"
+msgstr "ERROR_DS_UNWILLING_TO_PERFORM"
+
+msgid "8246"
+msgstr "ERROR_DS_LOOP_DETECT"
+
+msgid "8247"
+msgstr "ERROR_DS_NAMING_VIOLATION"
+
+msgid "8248"
+msgstr "ERROR_DS_OBJECT_RESULTS_TOO_LARGE"
+
+msgid "8249"
+msgstr "ERROR_DS_AFFECTS_MULTIPLE_DSAS"
+
+msgid "8250"
+msgstr "ERROR_DS_SERVER_DOWN"
+
+msgid "8251"
+msgstr "ERROR_DS_LOCAL_ERROR"
+
+msgid "8252"
+msgstr "ERROR_DS_ENCODING_ERROR"
+
+msgid "8253"
+msgstr "ERROR_DS_DECODING_ERROR"
+
+msgid "8254"
+msgstr "ERROR_DS_FILTER_UNKNOWN"
+
+msgid "8255"
+msgstr "ERROR_DS_PARAM_ERROR"
+
+msgid "8256"
+msgstr "ERROR_DS_NOT_SUPPORTED"
+
+msgid "8257"
+msgstr "ERROR_DS_NO_RESULTS_RETURNED"
+
+msgid "8258"
+msgstr "ERROR_DS_CONTROL_NOT_FOUND"
+
+msgid "8259"
+msgstr "ERROR_DS_CLIENT_LOOP"
+
+msgid "8260"
+msgstr "ERROR_DS_REFERRAL_LIMIT_EXCEEDED"
+
+msgid "8261"
+msgstr "ERROR_DS_SORT_CONTROL_MISSING"
+
+msgid "8262"
+msgstr "ERROR_DS_OFFSET_RANGE_ERROR"
+
+msgid "8263"
+msgstr "ERROR_DS_RIDMGR_DISABLED"
+
+msgid "8301"
+msgstr "ERROR_DS_ROOT_MUST_BE_NC"
+
+msgid "8302"
+msgstr "ERROR_DS_ADD_REPLICA_INHIBITED"
+
+msgid "8303"
+msgstr "ERROR_DS_ATT_NOT_DEF_IN_SCHEMA"
+
+msgid "8304"
+msgstr "ERROR_DS_MAX_OBJ_SIZE_EXCEEDED"
+
+msgid "8305"
+msgstr "ERROR_DS_OBJ_STRING_NAME_EXISTS"
+
+msgid "8306"
+msgstr "ERROR_DS_NO_RDN_DEFINED_IN_SCHEMA"
+
+msgid "8307"
+msgstr "ERROR_DS_RDN_DOESNT_MATCH_SCHEMA"
+
+msgid "8308"
+msgstr "ERROR_DS_NO_REQUESTED_ATTS_FOUND"
+
+msgid "8309"
+msgstr "ERROR_DS_USER_BUFFER_TO_SMALL"
+
+msgid "8310"
+msgstr "ERROR_DS_ATT_IS_NOT_ON_OBJ"
+
+msgid "8311"
+msgstr "ERROR_DS_ILLEGAL_MOD_OPERATION"
+
+msgid "8312"
+msgstr "ERROR_DS_OBJ_TOO_LARGE"
+
+msgid "8313"
+msgstr "ERROR_DS_BAD_INSTANCE_TYPE"
+
+msgid "8314"
+msgstr "ERROR_DS_MASTERDSA_REQUIRED"
+
+msgid "8315"
+msgstr "ERROR_DS_OBJECT_CLASS_REQUIRED"
+
+msgid "8316"
+msgstr "ERROR_DS_MISSING_REQUIRED_ATT"
+
+msgid "8317"
+msgstr "ERROR_DS_ATT_NOT_DEF_FOR_CLASS"
+
+msgid "8318"
+msgstr "ERROR_DS_ATT_ALREADY_EXISTS"
+
+msgid "8320"
+msgstr "ERROR_DS_CANT_ADD_ATT_VALUES"
+
+msgid "8321"
+msgstr "ERROR_DS_SINGLE_VALUE_CONSTRAINT"
+
+msgid "8322"
+msgstr "ERROR_DS_RANGE_CONSTRAINT"
+
+msgid "8323"
+msgstr "ERROR_DS_ATT_VAL_ALREADY_EXISTS"
+
+msgid "8324"
+msgstr "ERROR_DS_CANT_REM_MISSING_ATT"
+
+msgid "8325"
+msgstr "ERROR_DS_CANT_REM_MISSING_ATT_VAL"
+
+msgid "8326"
+msgstr "ERROR_DS_ROOT_CANT_BE_SUBREF"
+
+msgid "8327"
+msgstr "ERROR_DS_NO_CHAINING"
+
+msgid "8328"
+msgstr "ERROR_DS_NO_CHAINED_EVAL"
+
+msgid "8329"
+msgstr "ERROR_DS_NO_PARENT_OBJECT"
+
+msgid "8330"
+msgstr "ERROR_DS_PARENT_IS_AN_ALIAS"
+
+msgid "8331"
+msgstr "ERROR_DS_CANT_MIX_MASTER_AND_REPS"
+
+msgid "8332"
+msgstr "ERROR_DS_CHILDREN_EXIST"
+
+msgid "8333"
+msgstr "ERROR_DS_OBJ_NOT_FOUND"
+
+msgid "8334"
+msgstr "ERROR_DS_ALIASED_OBJ_MISSING"
+
+msgid "8335"
+msgstr "ERROR_DS_BAD_NAME_SYNTAX"
+
+msgid "8336"
+msgstr "ERROR_DS_ALIAS_POINTS_TO_ALIAS"
+
+msgid "8337"
+msgstr "ERROR_DS_CANT_DEREF_ALIAS"
+
+msgid "8338"
+msgstr "ERROR_DS_OUT_OF_SCOPE"
+
+msgid "8339"
+msgstr "ERROR_DS_OBJECT_BEING_REMOVED"
+
+msgid "8340"
+msgstr "ERROR_DS_CANT_DELETE_DSA_OBJ"
+
+msgid "8341"
+msgstr "ERROR_DS_GENERIC_ERROR"
+
+msgid "8342"
+msgstr "ERROR_DS_DSA_MUST_BE_INT_MASTER"
+
+msgid "8343"
+msgstr "ERROR_DS_CLASS_NOT_DSA"
+
+msgid "8344"
+msgstr "ERROR_DS_INSUFF_ACCESS_RIGHTS"
+
+msgid "8345"
+msgstr "ERROR_DS_ILLEGAL_SUPERIOR"
+
+msgid "8346"
+msgstr "ERROR_DS_ATTRIBUTE_OWNED_BY_SAM"
+
+msgid "8347"
+msgstr "ERROR_DS_NAME_TOO_MANY_PARTS"
+
+msgid "8348"
+msgstr "ERROR_DS_NAME_TOO_LONG"
+
+msgid "8349"
+msgstr "ERROR_DS_NAME_VALUE_TOO_LONG"
+
+msgid "8350"
+msgstr "ERROR_DS_NAME_UNPARSEABLE"
+
+msgid "8351"
+msgstr "ERROR_DS_NAME_TYPE_UNKNOWN"
+
+msgid "8352"
+msgstr "ERROR_DS_NOT_AN_OBJECT"
+
+msgid "8353"
+msgstr "ERROR_DS_SEC_DESC_TOO_SHORT"
+
+msgid "8354"
+msgstr "ERROR_DS_SEC_DESC_INVALID"
+
+msgid "8355"
+msgstr "ERROR_DS_NO_DELETED_NAME"
+
+msgid "8356"
+msgstr "ERROR_DS_SUBREF_MUST_HAVE_PARENT"
+
+msgid "8357"
+msgstr "ERROR_DS_NCNAME_MUST_BE_NC"
+
+msgid "8358"
+msgstr "ERROR_DS_CANT_ADD_SYSTEM_ONLY"
+
+msgid "8359"
+msgstr "ERROR_DS_CLASS_MUST_BE_CONCRETE"
+
+msgid "8360"
+msgstr "ERROR_DS_INVALID_DMD"
+
+msgid "8361"
+msgstr "ERROR_DS_OBJ_GUID_EXISTS"
+
+msgid "8362"
+msgstr "ERROR_DS_NOT_ON_BACKLINK"
+
+msgid "8363"
+msgstr "ERROR_DS_NO_CROSSREF_FOR_NC"
+
+msgid "8364"
+msgstr "ERROR_DS_SHUTTING_DOWN"
+
+msgid "8365"
+msgstr "ERROR_DS_UNKNOWN_OPERATION"
+
+msgid "8366"
+msgstr "ERROR_DS_INVALID_ROLE_OWNER"
+
+msgid "8367"
+msgstr "ERROR_DS_COULDNT_CONTACT_FSMO"
+
+msgid "8368"
+msgstr "ERROR_DS_CROSS_NC_DN_RENAME"
+
+msgid "8369"
+msgstr "ERROR_DS_CANT_MOD_SYSTEM_ONLY"
+
+msgid "8370"
+msgstr "ERROR_DS_REPLICATOR_ONLY"
+
+msgid "8371"
+msgstr "ERROR_DS_OBJ_CLASS_NOT_DEFINED"
+
+msgid "8372"
+msgstr "ERROR_DS_OBJ_CLASS_NOT_SUBCLASS"
+
+msgid "8373"
+msgstr "ERROR_DS_NAME_REFERENCE_INVALID"
+
+msgid "8374"
+msgstr "ERROR_DS_CROSS_REF_EXISTS"
+
+msgid "8375"
+msgstr "ERROR_DS_CANT_DEL_MASTER_CROSSREF"
+
+msgid "8376"
+msgstr "ERROR_DS_SUBTREE_NOTIFY_NOT_NC_HEAD"
+
+msgid "8377"
+msgstr "ERROR_DS_NOTIFY_FILTER_TOO_COMPLEX"
+
+msgid "8378"
+msgstr "ERROR_DS_DUP_RDN"
+
+msgid "8379"
+msgstr "ERROR_DS_DUP_OID"
+
+msgid "8380"
+msgstr "ERROR_DS_DUP_MAPI_ID"
+
+msgid "8381"
+msgstr "ERROR_DS_DUP_SCHEMA_ID_GUID"
+
+msgid "8382"
+msgstr "ERROR_DS_DUP_LDAP_DISPLAY_NAME"
+
+msgid "8383"
+msgstr "ERROR_DS_SEMANTIC_ATT_TEST"
+
+msgid "8384"
+msgstr "ERROR_DS_SYNTAX_MISMATCH"
+
+msgid "8385"
+msgstr "ERROR_DS_EXISTS_IN_MUST_HAVE"
+
+msgid "8386"
+msgstr "ERROR_DS_EXISTS_IN_MAY_HAVE"
+
+msgid "8387"
+msgstr "ERROR_DS_NONEXISTENT_MAY_HAVE"
+
+msgid "8388"
+msgstr "ERROR_DS_NONEXISTENT_MUST_HAVE"
+
+msgid "8389"
+msgstr "ERROR_DS_AUX_CLS_TEST_FAIL"
+
+msgid "8390"
+msgstr "ERROR_DS_NONEXISTENT_POSS_SUP"
+
+msgid "8391"
+msgstr "ERROR_DS_SUB_CLS_TEST_FAIL"
+
+msgid "8392"
+msgstr "ERROR_DS_BAD_RDN_ATT_ID_SYNTAX"
+
+msgid "8393"
+msgstr "ERROR_DS_EXISTS_IN_AUX_CLS"
+
+msgid "8394"
+msgstr "ERROR_DS_EXISTS_IN_SUB_CLS"
+
+msgid "8395"
+msgstr "ERROR_DS_EXISTS_IN_POSS_SUP"
+
+msgid "8396"
+msgstr "ERROR_DS_RECALCSCHEMA_FAILED"
+
+msgid "8397"
+msgstr "ERROR_DS_TREE_DELETE_NOT_FINISHED"
+
+msgid "8398"
+msgstr "ERROR_DS_CANT_DELETE"
+
+msgid "8399"
+msgstr "ERROR_DS_ATT_SCHEMA_REQ_ID"
+
+msgid "8400"
+msgstr "ERROR_DS_BAD_ATT_SCHEMA_SYNTAX"
+
+msgid "8401"
+msgstr "ERROR_DS_CANT_CACHE_ATT"
+
+msgid "8402"
+msgstr "ERROR_DS_CANT_CACHE_CLASS"
+
+msgid "8403"
+msgstr "ERROR_DS_CANT_REMOVE_ATT_CACHE"
+
+msgid "8404"
+msgstr "ERROR_DS_CANT_REMOVE_CLASS_CACHE"
+
+msgid "8405"
+msgstr "ERROR_DS_CANT_RETRIEVE_DN"
+
+msgid "8406"
+msgstr "ERROR_DS_MISSING_SUPREF"
+
+msgid "8407"
+msgstr "ERROR_DS_CANT_RETRIEVE_INSTANCE"
+
+msgid "8408"
+msgstr "ERROR_DS_CODE_INCONSISTENCY"
+
+msgid "8409"
+msgstr "ERROR_DS_DATABASE_ERROR"
+
+msgid "8410"
+msgstr "ERROR_DS_GOVERNSID_MISSING"
+
+msgid "8411"
+msgstr "ERROR_DS_MISSING_EXPECTED_ATT"
+
+msgid "8412"
+msgstr "ERROR_DS_NCNAME_MISSING_CR_REF"
+
+msgid "8413"
+msgstr "ERROR_DS_SECURITY_CHECKING_ERROR"
+
+msgid "8414"
+msgstr "ERROR_DS_SCHEMA_NOT_LOADED"
+
+msgid "8415"
+msgstr "ERROR_DS_SCHEMA_ALLOC_FAILED"
+
+msgid "8416"
+msgstr "ERROR_DS_ATT_SCHEMA_REQ_SYNTAX"
+
+msgid "8417"
+msgstr "ERROR_DS_GCVERIFY_ERROR"
+
+msgid "8418"
+msgstr "ERROR_DS_DRA_SCHEMA_MISMATCH"
+
+msgid "8419"
+msgstr "ERROR_DS_CANT_FIND_DSA_OBJ"
+
+msgid "8420"
+msgstr "ERROR_DS_CANT_FIND_EXPECTED_NC"
+
+msgid "8421"
+msgstr "ERROR_DS_CANT_FIND_NC_IN_CACHE"
+
+msgid "8422"
+msgstr "ERROR_DS_CANT_RETRIEVE_CHILD"
+
+msgid "8423"
+msgstr "ERROR_DS_SECURITY_ILLEGAL_MODIFY"
+
+msgid "8424"
+msgstr "ERROR_DS_CANT_REPLACE_HIDDEN_REC"
+
+msgid "8425"
+msgstr "ERROR_DS_BAD_HIERARCHY_FILE"
+
+msgid "8426"
+msgstr "ERROR_DS_BUILD_HIERARCHY_TABLE_FAILED"
+
+msgid "8427"
+msgstr "ERROR_DS_CONFIG_PARAM_MISSING"
+
+msgid "8428"
+msgstr "ERROR_DS_COUNTING_AB_INDICES_FAILED"
+
+msgid "8429"
+msgstr "ERROR_DS_HIERARCHY_TABLE_MALLOC_FAILED"
+
+msgid "8430"
+msgstr "ERROR_DS_INTERNAL_FAILURE"
+
+msgid "8431"
+msgstr "ERROR_DS_UNKNOWN_ERROR"
+
+msgid "8432"
+msgstr "ERROR_DS_ROOT_REQUIRES_CLASS_TOP"
+
+msgid "8433"
+msgstr "ERROR_DS_REFUSING_FSMO_ROLES"
+
+msgid "8434"
+msgstr "ERROR_DS_MISSING_FSMO_SETTINGS"
+
+msgid "8435"
+msgstr "ERROR_DS_UNABLE_TO_SURRENDER_ROLES"
+
+msgid "8436"
+msgstr "ERROR_DS_DRA_GENERIC"
+
+msgid "8437"
+msgstr "ERROR_DS_DRA_INVALID_PARAMETER"
+
+msgid "8438"
+msgstr "ERROR_DS_DRA_BUSY"
+
+msgid "8439"
+msgstr "ERROR_DS_DRA_BAD_DN"
+
+msgid "8440"
+msgstr "ERROR_DS_DRA_BAD_NC"
+
+msgid "8441"
+msgstr "ERROR_DS_DRA_DN_EXISTS"
+
+msgid "8442"
+msgstr "ERROR_DS_DRA_INTERNAL_ERROR"
+
+msgid "8443"
+msgstr "ERROR_DS_DRA_INCONSISTENT_DIT"
+
+msgid "8444"
+msgstr "ERROR_DS_DRA_CONNECTION_FAILED"
+
+msgid "8445"
+msgstr "ERROR_DS_DRA_BAD_INSTANCE_TYPE"
+
+msgid "8446"
+msgstr "ERROR_DS_DRA_OUT_OF_MEM"
+
+msgid "8447"
+msgstr "ERROR_DS_DRA_MAIL_PROBLEM"
+
+msgid "8448"
+msgstr "ERROR_DS_DRA_REF_ALREADY_EXISTS"
+
+msgid "8449"
+msgstr "ERROR_DS_DRA_REF_NOT_FOUND"
+
+msgid "8450"
+msgstr "ERROR_DS_DRA_OBJ_IS_REP_SOURCE"
+
+msgid "8451"
+msgstr "ERROR_DS_DRA_DB_ERROR"
+
+msgid "8452"
+msgstr "ERROR_DS_DRA_NO_REPLICA"
+
+msgid "8453"
+msgstr "ERROR_DS_DRA_ACCESS_DENIED"
+
+msgid "8454"
+msgstr "ERROR_DS_DRA_NOT_SUPPORTED"
+
+msgid "8455"
+msgstr "ERROR_DS_DRA_RPC_CANCELLED"
+
+msgid "8456"
+msgstr "ERROR_DS_DRA_SOURCE_DISABLED"
+
+msgid "8457"
+msgstr "ERROR_DS_DRA_SINK_DISABLED"
+
+msgid "8458"
+msgstr "ERROR_DS_DRA_NAME_COLLISION"
+
+msgid "8459"
+msgstr "ERROR_DS_DRA_SOURCE_REINSTALLED"
+
+msgid "8460"
+msgstr "ERROR_DS_DRA_MISSING_PARENT"
+
+msgid "8461"
+msgstr "ERROR_DS_DRA_PREEMPTED"
+
+msgid "8462"
+msgstr "ERROR_DS_DRA_ABANDON_SYNC"
+
+msgid "8463"
+msgstr "ERROR_DS_DRA_SHUTDOWN"
+
+msgid "8464"
+msgstr "ERROR_DS_DRA_INCOMPATIBLE_PARTIAL_SET"
+
+msgid "8465"
+msgstr "ERROR_DS_DRA_SOURCE_IS_PARTIAL_REPLICA"
+
+msgid "8466"
+msgstr "ERROR_DS_DRA_EXTN_CONNECTION_FAILED"
+
+msgid "8467"
+msgstr "ERROR_DS_INSTALL_SCHEMA_MISMATCH"
+
+msgid "8468"
+msgstr "ERROR_DS_DUP_LINK_ID"
+
+msgid "8469"
+msgstr "ERROR_DS_NAME_ERROR_RESOLVING"
+
+msgid "8470"
+msgstr "ERROR_DS_NAME_ERROR_NOT_FOUND"
+
+msgid "8471"
+msgstr "ERROR_DS_NAME_ERROR_NOT_UNIQUE"
+
+msgid "8472"
+msgstr "ERROR_DS_NAME_ERROR_NO_MAPPING"
+
+msgid "8473"
+msgstr "ERROR_DS_NAME_ERROR_DOMAIN_ONLY"
+
+msgid "8474"
+msgstr "ERROR_DS_NAME_ERROR_NO_SYNTACTICAL_MAPPING"
+
+msgid "8475"
+msgstr "ERROR_DS_CONSTRUCTED_ATT_MOD"
+
+msgid "8476"
+msgstr "ERROR_DS_WRONG_OM_OBJ_CLASS"
+
+msgid "8477"
+msgstr "ERROR_DS_DRA_REPL_PENDING"
+
+msgid "8478"
+msgstr "ERROR_DS_DS_REQUIRED"
+
+msgid "8479"
+msgstr "ERROR_DS_INVALID_LDAP_DISPLAY_NAME"
+
+msgid "8480"
+msgstr "ERROR_DS_NON_BASE_SEARCH"
+
+msgid "8481"
+msgstr "ERROR_DS_CANT_RETRIEVE_ATTS"
+
+msgid "8482"
+msgstr "ERROR_DS_BACKLINK_WITHOUT_LINK"
+
+msgid "8483"
+msgstr "ERROR_DS_EPOCH_MISMATCH"
+
+msgid "8484"
+msgstr "ERROR_DS_SRC_NAME_MISMATCH"
+
+msgid "8485"
+msgstr "ERROR_DS_SRC_AND_DST_NC_IDENTICAL"
+
+msgid "8486"
+msgstr "ERROR_DS_DST_NC_MISMATCH"
+
+msgid "8487"
+msgstr "ERROR_DS_NOT_AUTHORITIVE_FOR_DST_NC"
+
+msgid "8488"
+msgstr "ERROR_DS_SRC_GUID_MISMATCH"
+
+msgid "8489"
+msgstr "ERROR_DS_CANT_MOVE_DELETED_OBJECT"
+
+msgid "8490"
+msgstr "ERROR_DS_PDC_OPERATION_IN_PROGRESS"
+
+msgid "8491"
+msgstr "ERROR_DS_CROSS_DOMAIN_CLEANUP_REQD"
+
+msgid "8492"
+msgstr "ERROR_DS_ILLEGAL_XDOM_MOVE_OPERATION"
+
+msgid "8493"
+msgstr "ERROR_DS_CANT_WITH_ACCT_GROUP_MEMBERSHPS"
+
+msgid "8494"
+msgstr "ERROR_DS_NC_MUST_HAVE_NC_PARENT"
+
+msgid "8495"
+msgstr "ERROR_DS_CR_IMPOSSIBLE_TO_VALIDATE"
+
+msgid "8496"
+msgstr "ERROR_DS_DST_DOMAIN_NOT_NATIVE"
+
+msgid "8497"
+msgstr "ERROR_DS_MISSING_INFRASTRUCTURE_CONTAINER"
+
+msgid "8498"
+msgstr "ERROR_DS_CANT_MOVE_ACCOUNT_GROUP"
+
+msgid "8499"
+msgstr "ERROR_DS_CANT_MOVE_RESOURCE_GROUP"
+
+msgid "8500"
+msgstr "ERROR_DS_INVALID_SEARCH_FLAG"
+
+msgid "8501"
+msgstr "ERROR_DS_NO_TREE_DELETE_ABOVE_NC"
+
+msgid "8502"
+msgstr "ERROR_DS_COULDNT_LOCK_TREE_FOR_DELETE"
+
+msgid "8503"
+msgstr "ERROR_DS_COULDNT_IDENTIFY_OBJECTS_FOR_TREE_DELETE"
+
+msgid "8504"
+msgstr "ERROR_DS_SAM_INIT_FAILURE"
+
+msgid "8505"
+msgstr "ERROR_DS_SENSITIVE_GROUP_VIOLATION"
+
+msgid "8506"
+msgstr "ERROR_DS_CANT_MOD_PRIMARYGROUPID"
+
+msgid "8507"
+msgstr "ERROR_DS_ILLEGAL_BASE_SCHEMA_MOD"
+
+msgid "8508"
+msgstr "ERROR_DS_NONSAFE_SCHEMA_CHANGE"
+
+msgid "8509"
+msgstr "ERROR_DS_SCHEMA_UPDATE_DISALLOWED"
+
+msgid "8510"
+msgstr "ERROR_DS_CANT_CREATE_UNDER_SCHEMA"
+
+msgid "8511"
+msgstr "ERROR_DS_INSTALL_NO_SRC_SCH_VERSION"
+
+msgid "8512"
+msgstr "ERROR_DS_INSTALL_NO_SCH_VERSION_IN_INIFILE"
+
+msgid "8513"
+msgstr "ERROR_DS_INVALID_GROUP_TYPE"
+
+msgid "8514"
+msgstr "ERROR_DS_NO_NEST_GLOBALGROUP_IN_MIXEDDOMAIN"
+
+msgid "8515"
+msgstr "ERROR_DS_NO_NEST_LOCALGROUP_IN_MIXEDDOMAIN"
+
+msgid "8516"
+msgstr "ERROR_DS_GLOBAL_CANT_HAVE_LOCAL_MEMBER"
+
+msgid "8517"
+msgstr "ERROR_DS_GLOBAL_CANT_HAVE_UNIVERSAL_MEMBER"
+
+msgid "8518"
+msgstr "ERROR_DS_UNIVERSAL_CANT_HAVE_LOCAL_MEMBER"
+
+msgid "8519"
+msgstr "ERROR_DS_GLOBAL_CANT_HAVE_CROSSDOMAIN_MEMBER"
+
+msgid "8520"
+msgstr "ERROR_DS_LOCAL_CANT_HAVE_CROSSDOMAIN_LOCAL_MEMBER"
+
+msgid "8521"
+msgstr "ERROR_DS_HAVE_PRIMARY_MEMBERS"
+
+msgid "8522"
+msgstr "ERROR_DS_STRING_SD_CONVERSION_FAILED"
+
+msgid "8523"
+msgstr "ERROR_DS_NAMING_MASTER_GC"
+
+msgid "8524"
+msgstr "ERROR_DS_DNS_LOOKUP_FAILURE"
+
+msgid "8525"
+msgstr "ERROR_DS_COULDNT_UPDATE_SPNS"
+
+msgid "8526"
+msgstr "ERROR_DS_CANT_RETRIEVE_SD"
+
+msgid "8527"
+msgstr "ERROR_DS_KEY_NOT_UNIQUE"
+
+msgid "8528"
+msgstr "ERROR_DS_WRONG_LINKED_ATT_SYNTAX"
+
+msgid "8529"
+msgstr "ERROR_DS_SAM_NEED_BOOTKEY_PASSWORD"
+
+msgid "8530"
+msgstr "ERROR_DS_SAM_NEED_BOOTKEY_FLOPPY"
+
+msgid "8531"
+msgstr "ERROR_DS_CANT_START"
+
+msgid "8532"
+msgstr "ERROR_DS_INIT_FAILURE"
+
+msgid "8533"
+msgstr "ERROR_DS_NO_PKT_PRIVACY_ON_CONNECTION"
+
+msgid "8534"
+msgstr "ERROR_DS_SOURCE_DOMAIN_IN_FOREST"
+
+msgid "8535"
+msgstr "ERROR_DS_DESTINATION_DOMAIN_NOT_IN_FOREST"
+
+msgid "8536"
+msgstr "ERROR_DS_DESTINATION_AUDITING_NOT_ENABLED"
+
+msgid "8537"
+msgstr "ERROR_DS_CANT_FIND_DC_FOR_SRC_DOMAIN"
+
+msgid "8538"
+msgstr "ERROR_DS_SRC_OBJ_NOT_GROUP_OR_USER"
+
+msgid "8539"
+msgstr "ERROR_DS_SRC_SID_EXISTS_IN_FOREST"
+
+msgid "8540"
+msgstr "ERROR_DS_SRC_AND_DST_OBJECT_CLASS_MISMATCH"
+
+msgid "8541"
+msgstr "ERROR_SAM_INIT_FAILURE"
+
+msgid "8542"
+msgstr "ERROR_DS_DRA_SCHEMA_INFO_SHIP"
+
+msgid "8543"
+msgstr "ERROR_DS_DRA_SCHEMA_CONFLICT"
+
+msgid "8544"
+msgstr "ERROR_DS_DRA_EARLIER_SCHEMA_CONFLICT"
+
+msgid "8545"
+msgstr "ERROR_DS_DRA_OBJ_NC_MISMATCH"
+
+msgid "8546"
+msgstr "ERROR_DS_NC_STILL_HAS_DSAS"
+
+msgid "8547"
+msgstr "ERROR_DS_GC_REQUIRED"
+
+msgid "8548"
+msgstr "ERROR_DS_LOCAL_MEMBER_OF_LOCAL_ONLY"
+
+msgid "8549"
+msgstr "ERROR_DS_NO_FPO_IN_UNIVERSAL_GROUPS"
+
+msgid "8550"
+msgstr "ERROR_DS_CANT_ADD_TO_GC"
+
+msgid "8551"
+msgstr "ERROR_DS_NO_CHECKPOINT_WITH_PDC"
+
+msgid "8552"
+msgstr "ERROR_DS_SOURCE_AUDITING_NOT_ENABLED"
+
+msgid "8553"
+msgstr "ERROR_DS_CANT_CREATE_IN_NONDOMAIN_NC"
+
+msgid "8554"
+msgstr "ERROR_DS_INVALID_NAME_FOR_SPN"
+
+msgid "8555"
+msgstr "ERROR_DS_FILTER_USES_CONTRUCTED_ATTRS"
+
+msgid "8556"
+msgstr "ERROR_DS_UNICODEPWD_NOT_IN_QUOTES"
+
+msgid "8557"
+msgstr "ERROR_DS_MACHINE_ACCOUNT_QUOTA_EXCEEDED"
+
+msgid "8558"
+msgstr "ERROR_DS_MUST_BE_RUN_ON_DST_DC"
+
+msgid "8559"
+msgstr "ERROR_DS_SRC_DC_MUST_BE_SP4_OR_GREATER"
+
+msgid "8560"
+msgstr "ERROR_DS_CANT_TREE_DELETE_CRITICAL_OBJ"
+
+msgid "8561"
+msgstr "ERROR_DS_INIT_FAILURE_CONSOLE"
+
+msgid "8562"
+msgstr "ERROR_DS_SAM_INIT_FAILURE_CONSOLE"
+
+msgid "8563"
+msgstr "ERROR_DS_FOREST_VERSION_TOO_HIGH"
+
+msgid "8564"
+msgstr "ERROR_DS_DOMAIN_VERSION_TOO_HIGH"
+
+msgid "8565"
+msgstr "ERROR_DS_FOREST_VERSION_TOO_LOW"
+
+msgid "8566"
+msgstr "ERROR_DS_DOMAIN_VERSION_TOO_LOW"
+
+msgid "8567"
+msgstr "ERROR_DS_INCOMPATIBLE_VERSION"
+
+msgid "8568"
+msgstr "ERROR_DS_LOW_DSA_VERSION"
+
+msgid "8569"
+msgstr "ERROR_DS_NO_BEHAVIOR_VERSION_IN_MIXEDDOMAIN"
+
+msgid "8570"
+msgstr "ERROR_DS_NOT_SUPPORTED_SORT_ORDER"
+
+msgid "8571"
+msgstr "ERROR_DS_NAME_NOT_UNIQUE"
+
+msgid "8572"
+msgstr "ERROR_DS_MACHINE_ACCOUNT_CREATED_PRENT4"
+
+msgid "8573"
+msgstr "ERROR_DS_OUT_OF_VERSION_STORE"
+
+msgid "8574"
+msgstr "ERROR_DS_INCOMPATIBLE_CONTROLS_USED"
+
+msgid "8575"
+msgstr "ERROR_DS_NO_REF_DOMAIN"
+
+msgid "8576"
+msgstr "ERROR_DS_RESERVED_LINK_ID"
+
+msgid "8577"
+msgstr "ERROR_DS_LINK_ID_NOT_AVAILABLE"
+
+msgid "8578"
+msgstr "ERROR_DS_AG_CANT_HAVE_UNIVERSAL_MEMBER"
+
+msgid "8579"
+msgstr "ERROR_DS_MODIFYDN_DISALLOWED_BY_INSTANCE_TYPE"
+
+msgid "8580"
+msgstr "ERROR_DS_NO_OBJECT_MOVE_IN_SCHEMA_NC"
+
+msgid "8581"
+msgstr "ERROR_DS_MODIFYDN_DISALLOWED_BY_FLAG"
+
+msgid "8582"
+msgstr "ERROR_DS_MODIFYDN_WRONG_GRANDPARENT"
+
+msgid "8583"
+msgstr "ERROR_DS_NAME_ERROR_TRUST_REFERRAL"
+
+msgid "8584"
+msgstr "ERROR_NOT_SUPPORTED_ON_STANDARD_SERVER"
+
+msgid "8585"
+msgstr "ERROR_DS_CANT_ACCESS_REMOTE_PART_OF_AD"
+
+msgid "8586"
+msgstr "ERROR_DS_CR_IMPOSSIBLE_TO_VALIDATE_V2"
+
+msgid "8587"
+msgstr "ERROR_DS_THREAD_LIMIT_EXCEEDED"
+
+msgid "8588"
+msgstr "ERROR_DS_NOT_CLOSEST"
+
+msgid "8589"
+msgstr "ERROR_DS_CANT_DERIVE_SPN_WITHOUT_SERVER_REF"
+
+msgid "8590"
+msgstr "ERROR_DS_SINGLE_USER_MODE_FAILED"
+
+msgid "8591"
+msgstr "ERROR_DS_NTDSCRIPT_SYNTAX_ERROR"
+
+msgid "8592"
+msgstr "ERROR_DS_NTDSCRIPT_PROCESS_ERROR"
+
+msgid "8593"
+msgstr "ERROR_DS_DIFFERENT_REPL_EPOCHS"
+
+msgid "8594"
+msgstr "ERROR_DS_DRS_EXTENSIONS_CHANGED"
+
+msgid "8595"
+msgstr "ERROR_DS_REPLICA_SET_CHANGE_NOT_ALLOWED_ON_DISABLED_CR"
+
+msgid "8596"
+msgstr "ERROR_DS_NO_MSDS_INTID"
+
+msgid "8597"
+msgstr "ERROR_DS_DUP_MSDS_INTID"
+
+msgid "8598"
+msgstr "ERROR_DS_EXISTS_IN_RDNATTID"
+
+msgid "8599"
+msgstr "ERROR_DS_AUTHORIZATION_FAILED"
+
+msgid "8600"
+msgstr "ERROR_DS_INVALID_SCRIPT"
+
+msgid "8601"
+msgstr "ERROR_DS_REMOTE_CROSSREF_OP_FAILED"
+
+msgid "8602"
+msgstr "ERROR_DS_CROSS_REF_BUSY"
+
+msgid "8603"
+msgstr "ERROR_DS_CANT_DERIVE_SPN_FOR_DELETED_DOMAIN"
+
+msgid "8604"
+msgstr "ERROR_DS_CANT_DEMOTE_WITH_WRITEABLE_NC"
+
+msgid "8605"
+msgstr "ERROR_DS_DUPLICATE_ID_FOUND"
+
+msgid "8606"
+msgstr "ERROR_DS_INSUFFICIENT_ATTR_TO_CREATE_OBJECT"
+
+msgid "8607"
+msgstr "ERROR_DS_GROUP_CONVERSION_ERROR"
+
+msgid "8608"
+msgstr "ERROR_DS_CANT_MOVE_APP_BASIC_GROUP"
+
+msgid "8609"
+msgstr "ERROR_DS_CANT_MOVE_APP_QUERY_GROUP"
+
+msgid "8610"
+msgstr "ERROR_DS_ROLE_NOT_VERIFIED"
+
+msgid "8611"
+msgstr "ERROR_DS_WKO_CONTAINER_CANNOT_BE_SPECIAL"
+
+msgid "8612"
+msgstr "ERROR_DS_DOMAIN_RENAME_IN_PROGRESS"
+
+msgid "8613"
+msgstr "ERROR_DS_EXISTING_AD_CHILD_NC"
+
+msgid "8614"
+msgstr "ERROR_DS_REPL_LIFETIME_EXCEEDED"
+
+msgid "8615"
+msgstr "ERROR_DS_DISALLOWED_IN_SYSTEM_CONTAINER"
+
+msgid "8616"
+msgstr "ERROR_DS_LDAP_SEND_QUEUE_FULL"
+
+msgid "8617"
+msgstr "ERROR_DS_DRA_OUT_SCHEDULE_WINDOW"
+
+msgid "8618"
+msgstr "ERROR_DS_POLICY_NOT_KNOWN"
+
+msgid "8619"
+msgstr "ERROR_NO_SITE_SETTINGS_OBJECT"
+
+msgid "8620"
+msgstr "ERROR_NO_SECRETS"
+
+msgid "8621"
+msgstr "ERROR_NO_WRITABLE_DC_FOUND"
+
+msgid "8622"
+msgstr "ERROR_DS_NO_SERVER_OBJECT"
+
+msgid "8623"
+msgstr "ERROR_DS_NO_NTDSA_OBJECT"
+
+msgid "8624"
+msgstr "ERROR_DS_NON_ASQ_SEARCH"
+
+msgid "8625"
+msgstr "ERROR_DS_AUDIT_FAILURE"
+
+msgid "8626"
+msgstr "ERROR_DS_INVALID_SEARCH_FLAG_SUBTREE"
+
+msgid "8627"
+msgstr "ERROR_DS_INVALID_SEARCH_FLAG_TUPLE"
+
+msgid "8628"
+msgstr "ERROR_DS_HIERARCHY_TABLE_TOO_DEEP"
+
+msgid "8629"
+msgstr "ERROR_DS_DRA_CORRUPT_UTD_VECTOR"
+
+msgid "8630"
+msgstr "ERROR_DS_DRA_SECRETS_DENIED"
+
+msgid "8631"
+msgstr "ERROR_DS_RESERVED_MAPI_ID"
+
+msgid "8632"
+msgstr "ERROR_DS_MAPI_ID_NOT_AVAILABLE"
+
+msgid "8633"
+msgstr "ERROR_DS_DRA_MISSING_KRBTGT_SECRET"
+
+msgid "8634"
+msgstr "ERROR_DS_DOMAIN_NAME_EXISTS_IN_FOREST"
+
+msgid "8635"
+msgstr "ERROR_DS_FLAT_NAME_EXISTS_IN_FOREST"
+
+msgid "8636"
+msgstr "ERROR_INVALID_USER_PRINCIPAL_NAME"
+
+msgid "8637"
+msgstr "ERROR_DS_OID_MAPPED_GROUP_CANT_HAVE_MEMBERS"
+
+msgid "8638"
+msgstr "ERROR_DS_OID_NOT_FOUND"
+
+msgid "8639"
+msgstr "ERROR_DS_DRA_RECYCLED_TARGET"
+
+msgid "8640"
+msgstr "ERROR_DS_DISALLOWED_NC_REDIRECT"
+
+msgid "8641"
+msgstr "ERROR_DS_HIGH_ADLDS_FFL"
+
+msgid "8642"
+msgstr "ERROR_DS_HIGH_DSA_VERSION"
+
+msgid "8643"
+msgstr "ERROR_DS_LOW_ADLDS_FFL"
+
+msgid "8644"
+msgstr "ERROR_DOMAIN_SID_SAME_AS_LOCAL_WORKSTATION"
+
+msgid "8645"
+msgstr "ERROR_DS_UNDELETE_SAM_VALIDATION_FAILED"
+
+msgid "8646"
+msgstr "ERROR_INCORRECT_ACCOUNT_TYPE"
+
+msgid "8647"
+msgstr "ERROR_DS_SPN_VALUE_NOT_UNIQUE_IN_FOREST"
+
+msgid "8648"
+msgstr "ERROR_DS_UPN_VALUE_NOT_UNIQUE_IN_FOREST"
+
+msgid "8649"
+msgstr "ERROR_DS_MISSING_FOREST_TRUST"
+
+msgid "8650"
+msgstr "ERROR_DS_VALUE_KEY_NOT_UNIQUE"
+
+msgid "8651"
+msgstr "ERROR_WEAK_WHFBKEY_BLOCKED"
+
+msgid "8652"
+msgstr "ERROR_DS_PER_ATTRIBUTE_AUTHZ_FAILED_DURING_ADD"
+
+msgid "8653"
+msgstr "ERROR_LOCAL_POLICY_MODIFICATION_NOT_SUPPORTED"
+
+msgid "9001"
+msgstr "DNS_ERROR_RCODE_FORMAT_ERROR"
+
+msgid "9002"
+msgstr "DNS_ERROR_RCODE_SERVER_FAILURE"
+
+msgid "9003"
+msgstr "DNS_ERROR_RCODE_NAME_ERROR"
+
+msgid "9004"
+msgstr "DNS_ERROR_RCODE_NOT_IMPLEMENTED"
+
+msgid "9005"
+msgstr "DNS_ERROR_RCODE_REFUSED"
+
+msgid "9006"
+msgstr "DNS_ERROR_RCODE_YXDOMAIN"
+
+msgid "9007"
+msgstr "DNS_ERROR_RCODE_YXRRSET"
+
+msgid "9008"
+msgstr "DNS_ERROR_RCODE_NXRRSET"
+
+msgid "9009"
+msgstr "DNS_ERROR_RCODE_NOTAUTH"
+
+msgid "9010"
+msgstr "DNS_ERROR_RCODE_NOTZONE"
+
+msgid "9016"
+msgstr "DNS_ERROR_RCODE_BADSIG"
+
+msgid "9017"
+msgstr "DNS_ERROR_RCODE_BADKEY"
+
+msgid "9018"
+msgstr "DNS_ERROR_RCODE_BADTIME"
+
+msgid "9101"
+msgstr "DNS_ERROR_KEYMASTER_REQUIRED"
+
+msgid "9102"
+msgstr "DNS_ERROR_NOT_ALLOWED_ON_SIGNED_ZONE"
+
+msgid "9103"
+msgstr "DNS_ERROR_NSEC3_INCOMPATIBLE_WITH_RSA_SHA1"
+
+msgid "9104"
+msgstr "DNS_ERROR_NOT_ENOUGH_SIGNING_KEY_DESCRIPTORS"
+
+msgid "9105"
+msgstr "DNS_ERROR_UNSUPPORTED_ALGORITHM"
+
+msgid "9106"
+msgstr "DNS_ERROR_INVALID_KEY_SIZE"
+
+msgid "9107"
+msgstr "DNS_ERROR_SIGNING_KEY_NOT_ACCESSIBLE"
+
+msgid "9108"
+msgstr "DNS_ERROR_KSP_DOES_NOT_SUPPORT_PROTECTION"
+
+msgid "9109"
+msgstr "DNS_ERROR_UNEXPECTED_DATA_PROTECTION_ERROR"
+
+msgid "9110"
+msgstr "DNS_ERROR_UNEXPECTED_CNG_ERROR"
+
+msgid "9111"
+msgstr "DNS_ERROR_UNKNOWN_SIGNING_PARAMETER_VERSION"
+
+msgid "9112"
+msgstr "DNS_ERROR_KSP_NOT_ACCESSIBLE"
+
+msgid "9113"
+msgstr "DNS_ERROR_TOO_MANY_SKDS"
+
+msgid "9114"
+msgstr "DNS_ERROR_INVALID_ROLLOVER_PERIOD"
+
+msgid "9115"
+msgstr "DNS_ERROR_INVALID_INITIAL_ROLLOVER_OFFSET"
+
+msgid "9116"
+msgstr "DNS_ERROR_ROLLOVER_IN_PROGRESS"
+
+msgid "9117"
+msgstr "DNS_ERROR_STANDBY_KEY_NOT_PRESENT"
+
+msgid "9118"
+msgstr "DNS_ERROR_NOT_ALLOWED_ON_ZSK"
+
+msgid "9119"
+msgstr "DNS_ERROR_NOT_ALLOWED_ON_ACTIVE_SKD"
+
+msgid "9120"
+msgstr "DNS_ERROR_ROLLOVER_ALREADY_QUEUED"
+
+msgid "9121"
+msgstr "DNS_ERROR_NOT_ALLOWED_ON_UNSIGNED_ZONE"
+
+msgid "9122"
+msgstr "DNS_ERROR_BAD_KEYMASTER"
+
+msgid "9123"
+msgstr "DNS_ERROR_INVALID_SIGNATURE_VALIDITY_PERIOD"
+
+msgid "9124"
+msgstr "DNS_ERROR_INVALID_NSEC3_ITERATION_COUNT"
+
+msgid "9125"
+msgstr "DNS_ERROR_DNSSEC_IS_DISABLED"
+
+msgid "9126"
+msgstr "DNS_ERROR_INVALID_XML"
+
+msgid "9127"
+msgstr "DNS_ERROR_NO_VALID_TRUST_ANCHORS"
+
+msgid "9128"
+msgstr "DNS_ERROR_ROLLOVER_NOT_POKEABLE"
+
+msgid "9129"
+msgstr "DNS_ERROR_NSEC3_NAME_COLLISION"
+
+msgid "9130"
+msgstr "DNS_ERROR_NSEC_INCOMPATIBLE_WITH_NSEC3_RSA_SHA1"
+
+msgid "9501"
+msgstr "DNS_INFO_NO_RECORDS"
+
+msgid "9502"
+msgstr "DNS_ERROR_BAD_PACKET"
+
+msgid "9503"
+msgstr "DNS_ERROR_NO_PACKET"
+
+msgid "9504"
+msgstr "DNS_ERROR_RCODE"
+
+msgid "9505"
+msgstr "DNS_ERROR_UNSECURE_PACKET"
+
+msgid "9506"
+msgstr "DNS_REQUEST_PENDING"
+
+msgid "9551"
+msgstr "DNS_ERROR_INVALID_TYPE"
+
+msgid "9552"
+msgstr "DNS_ERROR_INVALID_IP_ADDRESS"
+
+msgid "9553"
+msgstr "DNS_ERROR_INVALID_PROPERTY"
+
+msgid "9554"
+msgstr "DNS_ERROR_TRY_AGAIN_LATER"
+
+msgid "9555"
+msgstr "DNS_ERROR_NOT_UNIQUE"
+
+msgid "9556"
+msgstr "DNS_ERROR_NON_RFC_NAME"
+
+msgid "9557"
+msgstr "DNS_STATUS_FQDN"
+
+msgid "9558"
+msgstr "DNS_STATUS_DOTTED_NAME"
+
+msgid "9559"
+msgstr "DNS_STATUS_SINGLE_PART_NAME"
+
+msgid "9560"
+msgstr "DNS_ERROR_INVALID_NAME_CHAR"
+
+msgid "9561"
+msgstr "DNS_ERROR_NUMERIC_NAME"
+
+msgid "9562"
+msgstr "DNS_ERROR_NOT_ALLOWED_ON_ROOT_SERVER"
+
+msgid "9563"
+msgstr "DNS_ERROR_NOT_ALLOWED_UNDER_DELEGATION"
+
+msgid "9564"
+msgstr "DNS_ERROR_CANNOT_FIND_ROOT_HINTS"
+
+msgid "9565"
+msgstr "DNS_ERROR_INCONSISTENT_ROOT_HINTS"
+
+msgid "9566"
+msgstr "DNS_ERROR_DWORD_VALUE_TOO_SMALL"
+
+msgid "9567"
+msgstr "DNS_ERROR_DWORD_VALUE_TOO_LARGE"
+
+msgid "9568"
+msgstr "DNS_ERROR_BACKGROUND_LOADING"
+
+msgid "9569"
+msgstr "DNS_ERROR_NOT_ALLOWED_ON_RODC"
+
+msgid "9570"
+msgstr "DNS_ERROR_NOT_ALLOWED_UNDER_DNAME"
+
+msgid "9571"
+msgstr "DNS_ERROR_DELEGATION_REQUIRED"
+
+msgid "9572"
+msgstr "DNS_ERROR_INVALID_POLICY_TABLE"
+
+msgid "9573"
+msgstr "DNS_ERROR_ADDRESS_REQUIRED"
+
+msgid "9601"
+msgstr "DNS_ERROR_ZONE_DOES_NOT_EXIST"
+
+msgid "9602"
+msgstr "DNS_ERROR_NO_ZONE_INFO"
+
+msgid "9603"
+msgstr "DNS_ERROR_INVALID_ZONE_OPERATION"
+
+msgid "9604"
+msgstr "DNS_ERROR_ZONE_CONFIGURATION_ERROR"
+
+msgid "9605"
+msgstr "DNS_ERROR_ZONE_HAS_NO_SOA_RECORD"
+
+msgid "9606"
+msgstr "DNS_ERROR_ZONE_HAS_NO_NS_RECORDS"
+
+msgid "9607"
+msgstr "DNS_ERROR_ZONE_LOCKED"
+
+msgid "9608"
+msgstr "DNS_ERROR_ZONE_CREATION_FAILED"
+
+msgid "9609"
+msgstr "DNS_ERROR_ZONE_ALREADY_EXISTS"
+
+msgid "9610"
+msgstr "DNS_ERROR_AUTOZONE_ALREADY_EXISTS"
+
+msgid "9611"
+msgstr "DNS_ERROR_INVALID_ZONE_TYPE"
+
+msgid "9612"
+msgstr "DNS_ERROR_SECONDARY_REQUIRES_MASTER_IP"
+
+msgid "9613"
+msgstr "DNS_ERROR_ZONE_NOT_SECONDARY"
+
+msgid "9614"
+msgstr "DNS_ERROR_NEED_SECONDARY_ADDRESSES"
+
+msgid "9615"
+msgstr "DNS_ERROR_WINS_INIT_FAILED"
+
+msgid "9616"
+msgstr "DNS_ERROR_NEED_WINS_SERVERS"
+
+msgid "9617"
+msgstr "DNS_ERROR_NBSTAT_INIT_FAILED"
+
+msgid "9618"
+msgstr "DNS_ERROR_SOA_DELETE_INVALID"
+
+msgid "9619"
+msgstr "DNS_ERROR_FORWARDER_ALREADY_EXISTS"
+
+msgid "9620"
+msgstr "DNS_ERROR_ZONE_REQUIRES_MASTER_IP"
+
+msgid "9621"
+msgstr "DNS_ERROR_ZONE_IS_SHUTDOWN"
+
+msgid "9622"
+msgstr "DNS_ERROR_ZONE_LOCKED_FOR_SIGNING"
+
+msgid "9651"
+msgstr "DNS_ERROR_PRIMARY_REQUIRES_DATAFILE"
+
+msgid "9652"
+msgstr "DNS_ERROR_INVALID_DATAFILE_NAME"
+
+msgid "9653"
+msgstr "DNS_ERROR_DATAFILE_OPEN_FAILURE"
+
+msgid "9654"
+msgstr "DNS_ERROR_FILE_WRITEBACK_FAILED"
+
+msgid "9655"
+msgstr "DNS_ERROR_DATAFILE_PARSING"
+
+msgid "9701"
+msgstr "DNS_ERROR_RECORD_DOES_NOT_EXIST"
+
+msgid "9702"
+msgstr "DNS_ERROR_RECORD_FORMAT"
+
+msgid "9703"
+msgstr "DNS_ERROR_NODE_CREATION_FAILED"
+
+msgid "9704"
+msgstr "DNS_ERROR_UNKNOWN_RECORD_TYPE"
+
+msgid "9705"
+msgstr "DNS_ERROR_RECORD_TIMED_OUT"
+
+msgid "9706"
+msgstr "DNS_ERROR_NAME_NOT_IN_ZONE"
+
+msgid "9707"
+msgstr "DNS_ERROR_CNAME_LOOP"
+
+msgid "9708"
+msgstr "DNS_ERROR_NODE_IS_CNAME"
+
+msgid "9709"
+msgstr "DNS_ERROR_CNAME_COLLISION"
+
+msgid "9710"
+msgstr "DNS_ERROR_RECORD_ONLY_AT_ZONE_ROOT"
+
+msgid "9711"
+msgstr "DNS_ERROR_RECORD_ALREADY_EXISTS"
+
+msgid "9712"
+msgstr "DNS_ERROR_SECONDARY_DATA"
+
+msgid "9713"
+msgstr "DNS_ERROR_NO_CREATE_CACHE_DATA"
+
+msgid "9714"
+msgstr "DNS_ERROR_NAME_DOES_NOT_EXIST"
+
+msgid "9715"
+msgstr "DNS_WARNING_PTR_CREATE_FAILED"
+
+msgid "9716"
+msgstr "DNS_WARNING_DOMAIN_UNDELETED"
+
+msgid "9717"
+msgstr "DNS_ERROR_DS_UNAVAILABLE"
+
+msgid "9718"
+msgstr "DNS_ERROR_DS_ZONE_ALREADY_EXISTS"
+
+msgid "9719"
+msgstr "DNS_ERROR_NO_BOOTFILE_IF_DS_ZONE"
+
+msgid "9720"
+msgstr "DNS_ERROR_NODE_IS_DNAME"
+
+msgid "9721"
+msgstr "DNS_ERROR_DNAME_COLLISION"
+
+msgid "9722"
+msgstr "DNS_ERROR_ALIAS_LOOP"
+
+msgid "9751"
+msgstr "DNS_INFO_AXFR_COMPLETE"
+
+msgid "9752"
+msgstr "DNS_ERROR_AXFR"
+
+msgid "9753"
+msgstr "DNS_INFO_ADDED_LOCAL_WINS"
+
+msgid "9801"
+msgstr "DNS_STATUS_CONTINUE_NEEDED"
+
+msgid "9851"
+msgstr "DNS_ERROR_NO_TCPIP"
+
+msgid "9852"
+msgstr "DNS_ERROR_NO_DNS_SERVERS"
+
+msgid "9901"
+msgstr "DNS_ERROR_DP_DOES_NOT_EXIST"
+
+msgid "9902"
+msgstr "DNS_ERROR_DP_ALREADY_EXISTS"
+
+msgid "9903"
+msgstr "DNS_ERROR_DP_NOT_ENLISTED"
+
+msgid "9904"
+msgstr "DNS_ERROR_DP_ALREADY_ENLISTED"
+
+msgid "9905"
+msgstr "DNS_ERROR_DP_NOT_AVAILABLE"
+
+msgid "9906"
+msgstr "DNS_ERROR_DP_FSMO_ERROR"
+
+msgid "9911"
+msgstr "DNS_ERROR_RRL_NOT_ENABLED"
+
+msgid "9912"
+msgstr "DNS_ERROR_RRL_INVALID_WINDOW_SIZE"
+
+msgid "9913"
+msgstr "DNS_ERROR_RRL_INVALID_IPV4_PREFIX"
+
+msgid "9914"
+msgstr "DNS_ERROR_RRL_INVALID_IPV6_PREFIX"
+
+msgid "9915"
+msgstr "DNS_ERROR_RRL_INVALID_TC_RATE"
+
+msgid "9916"
+msgstr "DNS_ERROR_RRL_INVALID_LEAK_RATE"
+
+msgid "9917"
+msgstr "DNS_ERROR_RRL_LEAK_RATE_LESSTHAN_TC_RATE"
+
+msgid "9921"
+msgstr "DNS_ERROR_VIRTUALIZATION_INSTANCE_ALREADY_EXISTS"
+
+msgid "9922"
+msgstr "DNS_ERROR_VIRTUALIZATION_INSTANCE_DOES_NOT_EXIST"
+
+msgid "9923"
+msgstr "DNS_ERROR_VIRTUALIZATION_TREE_LOCKED"
+
+msgid "9924"
+msgstr "DNS_ERROR_INVAILD_VIRTUALIZATION_INSTANCE_NAME"
+
+msgid "9925"
+msgstr "DNS_ERROR_DEFAULT_VIRTUALIZATION_INSTANCE"
+
+msgid "9951"
+msgstr "DNS_ERROR_ZONESCOPE_ALREADY_EXISTS"
+
+msgid "9952"
+msgstr "DNS_ERROR_ZONESCOPE_DOES_NOT_EXIST"
+
+msgid "9953"
+msgstr "DNS_ERROR_DEFAULT_ZONESCOPE"
+
+msgid "9954"
+msgstr "DNS_ERROR_INVALID_ZONESCOPE_NAME"
+
+msgid "9955"
+msgstr "DNS_ERROR_NOT_ALLOWED_WITH_ZONESCOPES"
+
+msgid "9956"
+msgstr "DNS_ERROR_LOAD_ZONESCOPE_FAILED"
+
+msgid "9957"
+msgstr "DNS_ERROR_ZONESCOPE_FILE_WRITEBACK_FAILED"
+
+msgid "9958"
+msgstr "DNS_ERROR_INVALID_SCOPE_NAME"
+
+msgid "9959"
+msgstr "DNS_ERROR_SCOPE_DOES_NOT_EXIST"
+
+msgid "9960"
+msgstr "DNS_ERROR_DEFAULT_SCOPE"
+
+msgid "9961"
+msgstr "DNS_ERROR_INVALID_SCOPE_OPERATION"
+
+msgid "9962"
+msgstr "DNS_ERROR_SCOPE_LOCKED"
+
+msgid "9963"
+msgstr "DNS_ERROR_SCOPE_ALREADY_EXISTS"
+
+msgid "9971"
+msgstr "DNS_ERROR_POLICY_ALREADY_EXISTS"
+
+msgid "9972"
+msgstr "DNS_ERROR_POLICY_DOES_NOT_EXIST"
+
+msgid "9973"
+msgstr "DNS_ERROR_POLICY_INVALID_CRITERIA"
+
+msgid "9974"
+msgstr "DNS_ERROR_POLICY_INVALID_SETTINGS"
+
+msgid "9975"
+msgstr "DNS_ERROR_CLIENT_SUBNET_IS_ACCESSED"
+
+msgid "9976"
+msgstr "DNS_ERROR_CLIENT_SUBNET_DOES_NOT_EXIST"
+
+msgid "9977"
+msgstr "DNS_ERROR_CLIENT_SUBNET_ALREADY_EXISTS"
+
+msgid "9978"
+msgstr "DNS_ERROR_SUBNET_DOES_NOT_EXIST"
+
+msgid "9979"
+msgstr "DNS_ERROR_SUBNET_ALREADY_EXISTS"
+
+msgid "9980"
+msgstr "DNS_ERROR_POLICY_LOCKED"
+
+msgid "9981"
+msgstr "DNS_ERROR_POLICY_INVALID_WEIGHT"
+
+msgid "9982"
+msgstr "DNS_ERROR_POLICY_INVALID_NAME"
+
+msgid "9983"
+msgstr "DNS_ERROR_POLICY_MISSING_CRITERIA"
+
+msgid "9984"
+msgstr "DNS_ERROR_INVALID_CLIENT_SUBNET_NAME"
+
+msgid "9985"
+msgstr "DNS_ERROR_POLICY_PROCESSING_ORDER_INVALID"
+
+msgid "9986"
+msgstr "DNS_ERROR_POLICY_SCOPE_MISSING"
+
+msgid "9987"
+msgstr "DNS_ERROR_POLICY_SCOPE_NOT_ALLOWED"
+
+msgid "9988"
+msgstr "DNS_ERROR_SERVERSCOPE_IS_REFERENCED"
+
+msgid "9989"
+msgstr "DNS_ERROR_ZONESCOPE_IS_REFERENCED"
+
+msgid "9990"
+msgstr "DNS_ERROR_POLICY_INVALID_CRITERIA_CLIENT_SUBNET"
+
+msgid "9991"
+msgstr "DNS_ERROR_POLICY_INVALID_CRITERIA_TRANSPORT_PROTOCOL"
+
+msgid "9992"
+msgstr "DNS_ERROR_POLICY_INVALID_CRITERIA_NETWORK_PROTOCOL"
+
+msgid "9993"
+msgstr "DNS_ERROR_POLICY_INVALID_CRITERIA_INTERFACE"
+
+msgid "9994"
+msgstr "DNS_ERROR_POLICY_INVALID_CRITERIA_FQDN"
+
+msgid "9995"
+msgstr "DNS_ERROR_POLICY_INVALID_CRITERIA_QUERY_TYPE"
+
+msgid "9996"
+msgstr "DNS_ERROR_POLICY_INVALID_CRITERIA_TIME_OF_DAY"
+
+msgid "10004"
+msgstr "WSAEINTR"
+
+msgid "10009"
+msgstr "WSAEBADF"
+
+msgid "10013"
+msgstr "WSAEACCES"
+
+msgid "10014"
+msgstr "WSAEFAULT"
+
+msgid "10022"
+msgstr "WSAEINVAL"
+
+msgid "10024"
+msgstr "WSAEMFILE"
+
+msgid "10035"
+msgstr "WSAEWOULDBLOCK"
+
+msgid "10036"
+msgstr "WSAEINPROGRESS"
+
+msgid "10037"
+msgstr "WSAEALREADY"
+
+msgid "10038"
+msgstr "WSAENOTSOCK"
+
+msgid "10039"
+msgstr "WSAEDESTADDRREQ"
+
+msgid "10040"
+msgstr "WSAEMSGSIZE"
+
+msgid "10041"
+msgstr "WSAEPROTOTYPE"
+
+msgid "10042"
+msgstr "WSAENOPROTOOPT"
+
+msgid "10043"
+msgstr "WSAEPROTONOSUPPORT"
+
+msgid "10044"
+msgstr "WSAESOCKTNOSUPPORT"
+
+msgid "10045"
+msgstr "WSAEOPNOTSUPP"
+
+msgid "10046"
+msgstr "WSAEPFNOSUPPORT"
+
+msgid "10047"
+msgstr "WSAEAFNOSUPPORT"
+
+msgid "10048"
+msgstr "WSAEADDRINUSE"
+
+msgid "10049"
+msgstr "WSAEADDRNOTAVAIL"
+
+msgid "10050"
+msgstr "WSAENETDOWN"
+
+msgid "10051"
+msgstr "WSAENETUNREACH"
+
+msgid "10052"
+msgstr "WSAENETRESET"
+
+msgid "10053"
+msgstr "WSAECONNABORTED"
+
+msgid "10054"
+msgstr "WSAECONNRESET"
+
+msgid "10055"
+msgstr "WSAENOBUFS"
+
+msgid "10056"
+msgstr "WSAEISCONN"
+
+msgid "10057"
+msgstr "WSAENOTCONN"
+
+msgid "10058"
+msgstr "WSAESHUTDOWN"
+
+msgid "10059"
+msgstr "WSAETOOMANYREFS"
+
+msgid "10060"
+msgstr "WSAETIMEDOUT"
+
+msgid "10061"
+msgstr "WSAECONNREFUSED"
+
+msgid "10062"
+msgstr "WSAELOOP"
+
+msgid "10063"
+msgstr "WSAENAMETOOLONG"
+
+msgid "10064"
+msgstr "WSAEHOSTDOWN"
+
+msgid "10065"
+msgstr "WSAEHOSTUNREACH"
+
+msgid "10066"
+msgstr "WSAENOTEMPTY"
+
+msgid "10067"
+msgstr "WSAEPROCLIM"
+
+msgid "10068"
+msgstr "WSAEUSERS"
+
+msgid "10069"
+msgstr "WSAEDQUOT"
+
+msgid "10070"
+msgstr "WSAESTALE"
+
+msgid "10071"
+msgstr "WSAEREMOTE"
+
+msgid "10091"
+msgstr "WSASYSNOTREADY"
+
+msgid "10092"
+msgstr "WSAVERNOTSUPPORTED"
+
+msgid "10093"
+msgstr "WSANOTINITIALISED"
+
+msgid "10101"
+msgstr "WSAEDISCON"
+
+msgid "10102"
+msgstr "WSAENOMORE"
+
+msgid "10103"
+msgstr "WSAECANCELLED"
+
+msgid "10104"
+msgstr "WSAEINVALIDPROCTABLE"
+
+msgid "10105"
+msgstr "WSAEINVALIDPROVIDER"
+
+msgid "10106"
+msgstr "WSAEPROVIDERFAILEDINIT"
+
+msgid "10107"
+msgstr "WSASYSCALLFAILURE"
+
+msgid "10108"
+msgstr "WSASERVICE_NOT_FOUND"
+
+msgid "10109"
+msgstr "WSATYPE_NOT_FOUND"
+
+msgid "10110"
+msgstr "WSA_E_NO_MORE"
+
+msgid "10111"
+msgstr "WSA_E_CANCELLED"
+
+msgid "10112"
+msgstr "WSAEREFUSED"
+
+msgid "11001"
+msgstr "WSAHOST_NOT_FOUND"
+
+msgid "11002"
+msgstr "WSATRY_AGAIN"
+
+msgid "11003"
+msgstr "WSANO_RECOVERY"
+
+msgid "11004"
+msgstr "WSANO_DATA"
+
+msgid "11005"
+msgstr "WSA_QOS_RECEIVERS"
+
+msgid "11006"
+msgstr "WSA_QOS_SENDERS"
+
+msgid "11007"
+msgstr "WSA_QOS_NO_SENDERS"
+
+msgid "11008"
+msgstr "WSA_QOS_NO_RECEIVERS"
+
+msgid "11009"
+msgstr "WSA_QOS_REQUEST_CONFIRMED"
+
+msgid "11010"
+msgstr "WSA_QOS_ADMISSION_FAILURE"
+
+msgid "11011"
+msgstr "WSA_QOS_POLICY_FAILURE"
+
+msgid "11012"
+msgstr "WSA_QOS_BAD_STYLE"
+
+msgid "11013"
+msgstr "WSA_QOS_BAD_OBJECT"
+
+msgid "11014"
+msgstr "WSA_QOS_TRAFFIC_CTRL_ERROR"
+
+msgid "11015"
+msgstr "WSA_QOS_GENERIC_ERROR"
+
+msgid "11016"
+msgstr "WSA_QOS_ESERVICETYPE"
+
+msgid "11017"
+msgstr "WSA_QOS_EFLOWSPEC"
+
+msgid "11018"
+msgstr "WSA_QOS_EPROVSPECBUF"
+
+msgid "11019"
+msgstr "WSA_QOS_EFILTERSTYLE"
+
+msgid "11020"
+msgstr "WSA_QOS_EFILTERTYPE"
+
+msgid "11021"
+msgstr "WSA_QOS_EFILTERCOUNT"
+
+msgid "11022"
+msgstr "WSA_QOS_EOBJLENGTH"
+
+msgid "11023"
+msgstr "WSA_QOS_EFLOWCOUNT"
+
+msgid "11024"
+msgstr "WSA_QOS_EUNKOWNPSOBJ"
+
+msgid "11025"
+msgstr "WSA_QOS_EPOLICYOBJ"
+
+msgid "11026"
+msgstr "WSA_QOS_EFLOWDESC"
+
+msgid "11027"
+msgstr "WSA_QOS_EPSFLOWSPEC"
+
+msgid "11028"
+msgstr "WSA_QOS_EPSFILTERSPEC"
+
+msgid "11029"
+msgstr "WSA_QOS_ESDMODEOBJ"
+
+msgid "11030"
+msgstr "WSA_QOS_ESHAPERATEOBJ"
+
+msgid "11031"
+msgstr "WSA_QOS_RESERVED_PETYPE"
+
+msgid "11032"
+msgstr "WSA_SECURE_HOST_NOT_FOUND"
+
+msgid "11033"
+msgstr "WSA_IPSEC_NAME_POLICY_ERROR"
+
+msgid "12001"
+msgstr "ERROR_INTERNET_OUT_OF_HANDLES"
+
+msgid "12002"
+msgstr "ERROR_INTERNET_TIMEOUT"
+
+msgid "12003"
+msgstr "ERROR_INTERNET_EXTENDED_ERROR"
+
+msgid "12004"
+msgstr "ERROR_INTERNET_INTERNAL_ERROR"
+
+msgid "12005"
+msgstr "ERROR_INTERNET_INVALID_URL"
+
+msgid "12006"
+msgstr "ERROR_INTERNET_UNRECOGNIZED_SCHEME"
+
+msgid "12007"
+msgstr "ERROR_INTERNET_NAME_NOT_RESOLVED"
+
+msgid "12008"
+msgstr "ERROR_INTERNET_PROTOCOL_NOT_FOUND"
+
+msgid "12009"
+msgstr "ERROR_INTERNET_INVALID_OPTION"
+
+msgid "12010"
+msgstr "ERROR_INTERNET_BAD_OPTION_LENGTH"
+
+msgid "12011"
+msgstr "ERROR_INTERNET_OPTION_NOT_SETTABLE"
+
+msgid "12012"
+msgstr "ERROR_INTERNET_SHUTDOWN"
+
+msgid "12013"
+msgstr "ERROR_INTERNET_INCORRECT_USER_NAME"
+
+msgid "12014"
+msgstr "ERROR_INTERNET_INCORRECT_PASSWORD"
+
+msgid "12015"
+msgstr "ERROR_INTERNET_LOGIN_FAILURE"
+
+msgid "12016"
+msgstr "ERROR_INTERNET_INVALID_OPERATION"
+
+msgid "12017"
+msgstr "ERROR_INTERNET_OPERATION_CANCELLED"
+
+msgid "12018"
+msgstr "ERROR_INTERNET_INCORRECT_HANDLE_TYPE"
+
+msgid "12019"
+msgstr "ERROR_INTERNET_INCORRECT_HANDLE_STATE"
+
+msgid "12020"
+msgstr "ERROR_INTERNET_NOT_PROXY_REQUEST"
+
+msgid "12021"
+msgstr "ERROR_INTERNET_REGISTRY_VALUE_NOT_FOUND"
+
+msgid "12022"
+msgstr "ERROR_INTERNET_BAD_REGISTRY_PARAMETER"
+
+msgid "12023"
+msgstr "ERROR_INTERNET_NO_DIRECT_ACCESS"
+
+msgid "12024"
+msgstr "ERROR_INTERNET_NO_CONTEXT"
+
+msgid "12025"
+msgstr "ERROR_INTERNET_NO_CALLBACK"
+
+msgid "12026"
+msgstr "ERROR_INTERNET_REQUEST_PENDING"
+
+msgid "12027"
+msgstr "ERROR_INTERNET_INCORRECT_FORMAT"
+
+msgid "12028"
+msgstr "ERROR_INTERNET_ITEM_NOT_FOUND"
+
+msgid "12029"
+msgstr "ERROR_INTERNET_CANNOT_CONNECT"
+
+msgid "12030"
+msgstr "ERROR_INTERNET_CONNECTION_ABORTED"
+
+msgid "12031"
+msgstr "ERROR_INTERNET_CONNECTION_RESET"
+
+msgid "12032"
+msgstr "ERROR_INTERNET_FORCE_RETRY"
+
+msgid "12033"
+msgstr "ERROR_INTERNET_INVALID_PROXY_REQUEST"
+
+msgid "12034"
+msgstr "ERROR_INTERNET_NEED_UI"
+
+msgid "12036"
+msgstr "ERROR_INTERNET_HANDLE_EXISTS"
+
+msgid "12037"
+msgstr "ERROR_INTERNET_SEC_CERT_DATE_INVALID"
+
+msgid "12038"
+msgstr "ERROR_INTERNET_SEC_CERT_CN_INVALID"
+
+msgid "12039"
+msgstr "ERROR_INTERNET_HTTP_TO_HTTPS_ON_REDIR"
+
+msgid "12040"
+msgstr "ERROR_INTERNET_HTTPS_TO_HTTP_ON_REDIR"
+
+msgid "12041"
+msgstr "ERROR_INTERNET_MIXED_SECURITY"
+
+msgid "12042"
+msgstr "ERROR_INTERNET_CHG_POST_IS_NON_SECURE"
+
+msgid "12043"
+msgstr "ERROR_INTERNET_POST_IS_NON_SECURE"
+
+msgid "12044"
+msgstr "ERROR_INTERNET_CLIENT_AUTH_CERT_NEEDED"
+
+msgid "12045"
+msgstr "ERROR_INTERNET_INVALID_CA"
+
+msgid "12046"
+msgstr "ERROR_INTERNET_CLIENT_AUTH_NOT_SETUP"
+
+msgid "12047"
+msgstr "ERROR_INTERNET_ASYNC_THREAD_FAILED"
+
+msgid "12048"
+msgstr "ERROR_INTERNET_REDIRECT_SCHEME_CHANGE"
+
+msgid "12049"
+msgstr "ERROR_INTERNET_DIALOG_PENDING"
+
+msgid "12050"
+msgstr "ERROR_INTERNET_RETRY_DIALOG"
+
+msgid "12052"
+msgstr "ERROR_INTERNET_HTTPS_HTTP_SUBMIT_REDIR"
+
+msgid "12053"
+msgstr "ERROR_INTERNET_INSERT_CDROM"
+
+msgid "12054"
+msgstr "ERROR_INTERNET_FORTEZZA_LOGIN_NEEDED"
+
+msgid "12055"
+msgstr "ERROR_INTERNET_SEC_CERT_ERRORS"
+
+msgid "12056"
+msgstr "ERROR_INTERNET_SEC_CERT_NO_REV"
+
+msgid "12057"
+msgstr "ERROR_INTERNET_SEC_CERT_REV_FAILED"
+
+msgid "12060"
+msgstr "ERROR_HTTP_HSTS_REDIRECT_REQUIRED"
+
+msgid "12062"
+msgstr "ERROR_INTERNET_SEC_CERT_WEAK_SIGNATURE"
+
+msgid "12100"
+msgstr "ERROR_WINHTTP_CANNOT_CALL_BEFORE_OPEN"
+
+msgid "12101"
+msgstr "ERROR_WINHTTP_CANNOT_CALL_BEFORE_SEND"
+
+msgid "12102"
+msgstr "ERROR_WINHTTP_CANNOT_CALL_AFTER_SEND"
+
+msgid "12103"
+msgstr "ERROR_WINHTTP_CANNOT_CALL_AFTER_OPEN"
+
+msgid "12110"
+msgstr "ERROR_FTP_TRANSFER_IN_PROGRESS"
+
+msgid "12111"
+msgstr "ERROR_FTP_DROPPED"
+
+msgid "12112"
+msgstr "ERROR_FTP_NO_PASSIVE_MODE"
+
+msgid "12130"
+msgstr "ERROR_GOPHER_PROTOCOL_ERROR"
+
+msgid "12131"
+msgstr "ERROR_GOPHER_NOT_FILE"
+
+msgid "12132"
+msgstr "ERROR_GOPHER_DATA_ERROR"
+
+msgid "12133"
+msgstr "ERROR_GOPHER_END_OF_DATA"
+
+msgid "12134"
+msgstr "ERROR_GOPHER_INVALID_LOCATOR"
+
+msgid "12135"
+msgstr "ERROR_GOPHER_INCORRECT_LOCATOR_TYPE"
+
+msgid "12136"
+msgstr "ERROR_GOPHER_NOT_GOPHER_PLUS"
+
+msgid "12137"
+msgstr "ERROR_GOPHER_ATTRIBUTE_NOT_FOUND"
+
+msgid "12138"
+msgstr "ERROR_GOPHER_UNKNOWN_LOCATOR"
+
+msgid "12150"
+msgstr "ERROR_HTTP_HEADER_NOT_FOUND"
+
+msgid "12151"
+msgstr "ERROR_HTTP_DOWNLEVEL_SERVER"
+
+msgid "12152"
+msgstr "ERROR_HTTP_INVALID_SERVER_RESPONSE"
+
+msgid "12153"
+msgstr "ERROR_HTTP_INVALID_HEADER"
+
+msgid "12154"
+msgstr "ERROR_HTTP_INVALID_QUERY_REQUEST"
+
+msgid "12155"
+msgstr "ERROR_HTTP_HEADER_ALREADY_EXISTS"
+
+msgid "12156"
+msgstr "ERROR_HTTP_REDIRECT_FAILED"
+
+msgid "12157"
+msgstr "ERROR_INTERNET_SECURITY_CHANNEL_ERROR"
+
+msgid "12158"
+msgstr "ERROR_INTERNET_UNABLE_TO_CACHE_FILE"
+
+msgid "12159"
+msgstr "ERROR_INTERNET_TCPIP_NOT_INSTALLED"
+
+msgid "12160"
+msgstr "ERROR_HTTP_NOT_REDIRECTED"
+
+msgid "12161"
+msgstr "ERROR_HTTP_COOKIE_NEEDS_CONFIRMATION"
+
+msgid "12162"
+msgstr "ERROR_HTTP_COOKIE_DECLINED"
+
+msgid "12163"
+msgstr "ERROR_INTERNET_DISCONNECTED"
+
+msgid "12164"
+msgstr "ERROR_INTERNET_SERVER_UNREACHABLE"
+
+msgid "12165"
+msgstr "ERROR_INTERNET_PROXY_SERVER_UNREACHABLE"
+
+msgid "12166"
+msgstr "ERROR_INTERNET_BAD_AUTO_PROXY_SCRIPT"
+
+msgid "12167"
+msgstr "ERROR_INTERNET_UNABLE_TO_DOWNLOAD_SCRIPT"
+
+msgid "12168"
+msgstr "ERROR_HTTP_REDIRECT_NEEDS_CONFIRMATION"
+
+msgid "12169"
+msgstr "ERROR_INTERNET_SEC_INVALID_CERT"
+
+msgid "12170"
+msgstr "ERROR_INTERNET_SEC_CERT_REVOKED"
+
+msgid "12171"
+msgstr "ERROR_INTERNET_FAILED_DUETOSECURITYCHECK"
+
+msgid "12172"
+msgstr "ERROR_INTERNET_NOT_INITIALIZED"
+
+msgid "12173"
+msgstr "ERROR_INTERNET_NEED_MSN_SSPI_PKG"
+
+msgid "12174"
+msgstr "ERROR_INTERNET_LOGIN_FAILURE_DISPLAY_ENTITY_BODY"
+
+msgid "12175"
+msgstr "ERROR_INTERNET_DECODING_FAILED"
+
+msgid "12176"
+msgstr "ERROR_WINHTTP_UNHANDLED_SCRIPT_TYPE"
+
+msgid "12177"
+msgstr "ERROR_WINHTTP_SCRIPT_EXECUTION_ERROR"
+
+msgid "12178"
+msgstr "ERROR_WINHTTP_AUTO_PROXY_SERVICE_ERROR"
+
+msgid "12179"
+msgstr "ERROR_WINHTTP_SECURE_CERT_WRONG_USAGE"
+
+msgid "12180"
+msgstr "ERROR_WINHTTP_AUTODETECTION_FAILED"
+
+msgid "12181"
+msgstr "ERROR_WINHTTP_HEADER_COUNT_EXCEEDED"
+
+msgid "12182"
+msgstr "ERROR_WINHTTP_HEADER_SIZE_OVERFLOW"
+
+msgid "12183"
+msgstr "ERROR_WINHTTP_CHUNKED_ENCODING_HEADER_SIZE_OVERFLOW"
+
+msgid "12184"
+msgstr "ERROR_WINHTTP_RESPONSE_DRAIN_OVERFLOW"
+
+msgid "12185"
+msgstr "ERROR_WINHTTP_CLIENT_CERT_NO_PRIVATE_KEY"
+
+msgid "12186"
+msgstr "ERROR_WINHTTP_CLIENT_CERT_NO_ACCESS_PRIVATE_KEY"
+
+msgid "12187"
+msgstr "ERROR_INTERNET_CLIENT_AUTH_CERT_NEEDED_PROXY"
+
+msgid "12188"
+msgstr "ERROR_INTERNET_SECURE_FAILURE_PROXY"
+
+msgid "12189"
+msgstr "ERROR_WINHTTP_RESERVED_189"
+
+msgid "12190"
+msgstr "ERROR_INTERNET_HTTP_PROTOCOL_MISMATCH"
+
+msgid "12191"
+msgstr "ERROR_INTERNET_GLOBAL_CALLBACK_FAILED"
+
+msgid "12192"
+msgstr "ERROR_INTERNET_FEATURE_DISABLED"
+
+msgid "13000"
+msgstr "ERROR_IPSEC_QM_POLICY_EXISTS"
+
+msgid "13001"
+msgstr "ERROR_IPSEC_QM_POLICY_NOT_FOUND"
+
+msgid "13002"
+msgstr "ERROR_IPSEC_QM_POLICY_IN_USE"
+
+msgid "13003"
+msgstr "ERROR_IPSEC_MM_POLICY_EXISTS"
+
+msgid "13004"
+msgstr "ERROR_IPSEC_MM_POLICY_NOT_FOUND"
+
+msgid "13005"
+msgstr "ERROR_IPSEC_MM_POLICY_IN_USE"
+
+msgid "13006"
+msgstr "ERROR_IPSEC_MM_FILTER_EXISTS"
+
+msgid "13007"
+msgstr "ERROR_IPSEC_MM_FILTER_NOT_FOUND"
+
+msgid "13008"
+msgstr "ERROR_IPSEC_TRANSPORT_FILTER_EXISTS"
+
+msgid "13009"
+msgstr "ERROR_IPSEC_TRANSPORT_FILTER_NOT_FOUND"
+
+msgid "13010"
+msgstr "ERROR_IPSEC_MM_AUTH_EXISTS"
+
+msgid "13011"
+msgstr "ERROR_IPSEC_MM_AUTH_NOT_FOUND"
+
+msgid "13012"
+msgstr "ERROR_IPSEC_MM_AUTH_IN_USE"
+
+msgid "13013"
+msgstr "ERROR_IPSEC_DEFAULT_MM_POLICY_NOT_FOUND"
+
+msgid "13014"
+msgstr "ERROR_IPSEC_DEFAULT_MM_AUTH_NOT_FOUND"
+
+msgid "13015"
+msgstr "ERROR_IPSEC_DEFAULT_QM_POLICY_NOT_FOUND"
+
+msgid "13016"
+msgstr "ERROR_IPSEC_TUNNEL_FILTER_EXISTS"
+
+msgid "13017"
+msgstr "ERROR_IPSEC_TUNNEL_FILTER_NOT_FOUND"
+
+msgid "13018"
+msgstr "ERROR_IPSEC_MM_FILTER_PENDING_DELETION"
+
+msgid "13019"
+msgstr "ERROR_IPSEC_TRANSPORT_FILTER_PENDING_DELETION"
+
+msgid "13020"
+msgstr "ERROR_IPSEC_TUNNEL_FILTER_PENDING_DELETION"
+
+msgid "13021"
+msgstr "ERROR_IPSEC_MM_POLICY_PENDING_DELETION"
+
+msgid "13022"
+msgstr "ERROR_IPSEC_MM_AUTH_PENDING_DELETION"
+
+msgid "13023"
+msgstr "ERROR_IPSEC_QM_POLICY_PENDING_DELETION"
+
+msgid "13024"
+msgstr "WARNING_IPSEC_MM_POLICY_PRUNED"
+
+msgid "13025"
+msgstr "WARNING_IPSEC_QM_POLICY_PRUNED"
+
+msgid "13800"
+msgstr "ERROR_IPSEC_IKE_NEG_STATUS_BEGIN"
+
+msgid "13801"
+msgstr "ERROR_IPSEC_IKE_AUTH_FAIL"
+
+msgid "13802"
+msgstr "ERROR_IPSEC_IKE_ATTRIB_FAIL"
+
+msgid "13803"
+msgstr "ERROR_IPSEC_IKE_NEGOTIATION_PENDING"
+
+msgid "13804"
+msgstr "ERROR_IPSEC_IKE_GENERAL_PROCESSING_ERROR"
+
+msgid "13805"
+msgstr "ERROR_IPSEC_IKE_TIMED_OUT"
+
+msgid "13806"
+msgstr "ERROR_IPSEC_IKE_NO_CERT"
+
+msgid "13807"
+msgstr "ERROR_IPSEC_IKE_SA_DELETED"
+
+msgid "13808"
+msgstr "ERROR_IPSEC_IKE_SA_REAPED"
+
+msgid "13809"
+msgstr "ERROR_IPSEC_IKE_MM_ACQUIRE_DROP"
+
+msgid "13810"
+msgstr "ERROR_IPSEC_IKE_QM_ACQUIRE_DROP"
+
+msgid "13811"
+msgstr "ERROR_IPSEC_IKE_QUEUE_DROP_MM"
+
+msgid "13812"
+msgstr "ERROR_IPSEC_IKE_QUEUE_DROP_NO_MM"
+
+msgid "13813"
+msgstr "ERROR_IPSEC_IKE_DROP_NO_RESPONSE"
+
+msgid "13814"
+msgstr "ERROR_IPSEC_IKE_MM_DELAY_DROP"
+
+msgid "13815"
+msgstr "ERROR_IPSEC_IKE_QM_DELAY_DROP"
+
+msgid "13816"
+msgstr "ERROR_IPSEC_IKE_ERROR"
+
+msgid "13817"
+msgstr "ERROR_IPSEC_IKE_CRL_FAILED"
+
+msgid "13818"
+msgstr "ERROR_IPSEC_IKE_INVALID_KEY_USAGE"
+
+msgid "13819"
+msgstr "ERROR_IPSEC_IKE_INVALID_CERT_TYPE"
+
+msgid "13820"
+msgstr "ERROR_IPSEC_IKE_NO_PRIVATE_KEY"
+
+msgid "13821"
+msgstr "ERROR_IPSEC_IKE_SIMULTANEOUS_REKEY"
+
+msgid "13822"
+msgstr "ERROR_IPSEC_IKE_DH_FAIL"
+
+msgid "13823"
+msgstr "ERROR_IPSEC_IKE_CRITICAL_PAYLOAD_NOT_RECOGNIZED"
+
+msgid "13824"
+msgstr "ERROR_IPSEC_IKE_INVALID_HEADER"
+
+msgid "13825"
+msgstr "ERROR_IPSEC_IKE_NO_POLICY"
+
+msgid "13826"
+msgstr "ERROR_IPSEC_IKE_INVALID_SIGNATURE"
+
+msgid "13827"
+msgstr "ERROR_IPSEC_IKE_KERBEROS_ERROR"
+
+msgid "13828"
+msgstr "ERROR_IPSEC_IKE_NO_PUBLIC_KEY"
+
+msgid "13829"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR"
+
+msgid "13830"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_SA"
+
+msgid "13831"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_PROP"
+
+msgid "13832"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_TRANS"
+
+msgid "13833"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_KE"
+
+msgid "13834"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_ID"
+
+msgid "13835"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_CERT"
+
+msgid "13836"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_CERT_REQ"
+
+msgid "13837"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_HASH"
+
+msgid "13838"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_SIG"
+
+msgid "13839"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_NONCE"
+
+msgid "13840"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_NOTIFY"
+
+msgid "13841"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_DELETE"
+
+msgid "13842"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_VENDOR"
+
+msgid "13843"
+msgstr "ERROR_IPSEC_IKE_INVALID_PAYLOAD"
+
+msgid "13844"
+msgstr "ERROR_IPSEC_IKE_LOAD_SOFT_SA"
+
+msgid "13845"
+msgstr "ERROR_IPSEC_IKE_SOFT_SA_TORN_DOWN"
+
+msgid "13846"
+msgstr "ERROR_IPSEC_IKE_INVALID_COOKIE"
+
+msgid "13847"
+msgstr "ERROR_IPSEC_IKE_NO_PEER_CERT"
+
+msgid "13848"
+msgstr "ERROR_IPSEC_IKE_PEER_CRL_FAILED"
+
+msgid "13849"
+msgstr "ERROR_IPSEC_IKE_POLICY_CHANGE"
+
+msgid "13850"
+msgstr "ERROR_IPSEC_IKE_NO_MM_POLICY"
+
+msgid "13851"
+msgstr "ERROR_IPSEC_IKE_NOTCBPRIV"
+
+msgid "13852"
+msgstr "ERROR_IPSEC_IKE_SECLOADFAIL"
+
+msgid "13853"
+msgstr "ERROR_IPSEC_IKE_FAILSSPINIT"
+
+msgid "13854"
+msgstr "ERROR_IPSEC_IKE_FAILQUERYSSP"
+
+msgid "13855"
+msgstr "ERROR_IPSEC_IKE_SRVACQFAIL"
+
+msgid "13856"
+msgstr "ERROR_IPSEC_IKE_SRVQUERYCRED"
+
+msgid "13857"
+msgstr "ERROR_IPSEC_IKE_GETSPIFAIL"
+
+msgid "13858"
+msgstr "ERROR_IPSEC_IKE_INVALID_FILTER"
+
+msgid "13859"
+msgstr "ERROR_IPSEC_IKE_OUT_OF_MEMORY"
+
+msgid "13860"
+msgstr "ERROR_IPSEC_IKE_ADD_UPDATE_KEY_FAILED"
+
+msgid "13861"
+msgstr "ERROR_IPSEC_IKE_INVALID_POLICY"
+
+msgid "13862"
+msgstr "ERROR_IPSEC_IKE_UNKNOWN_DOI"
+
+msgid "13863"
+msgstr "ERROR_IPSEC_IKE_INVALID_SITUATION"
+
+msgid "13864"
+msgstr "ERROR_IPSEC_IKE_DH_FAILURE"
+
+msgid "13865"
+msgstr "ERROR_IPSEC_IKE_INVALID_GROUP"
+
+msgid "13866"
+msgstr "ERROR_IPSEC_IKE_ENCRYPT"
+
+msgid "13867"
+msgstr "ERROR_IPSEC_IKE_DECRYPT"
+
+msgid "13868"
+msgstr "ERROR_IPSEC_IKE_POLICY_MATCH"
+
+msgid "13869"
+msgstr "ERROR_IPSEC_IKE_UNSUPPORTED_ID"
+
+msgid "13870"
+msgstr "ERROR_IPSEC_IKE_INVALID_HASH"
+
+msgid "13871"
+msgstr "ERROR_IPSEC_IKE_INVALID_HASH_ALG"
+
+msgid "13872"
+msgstr "ERROR_IPSEC_IKE_INVALID_HASH_SIZE"
+
+msgid "13873"
+msgstr "ERROR_IPSEC_IKE_INVALID_ENCRYPT_ALG"
+
+msgid "13874"
+msgstr "ERROR_IPSEC_IKE_INVALID_AUTH_ALG"
+
+msgid "13875"
+msgstr "ERROR_IPSEC_IKE_INVALID_SIG"
+
+msgid "13876"
+msgstr "ERROR_IPSEC_IKE_LOAD_FAILED"
+
+msgid "13877"
+msgstr "ERROR_IPSEC_IKE_RPC_DELETE"
+
+msgid "13878"
+msgstr "ERROR_IPSEC_IKE_BENIGN_REINIT"
+
+msgid "13879"
+msgstr "ERROR_IPSEC_IKE_INVALID_RESPONDER_LIFETIME_NOTIFY"
+
+msgid "13880"
+msgstr "ERROR_IPSEC_IKE_INVALID_MAJOR_VERSION"
+
+msgid "13881"
+msgstr "ERROR_IPSEC_IKE_INVALID_CERT_KEYLEN"
+
+msgid "13882"
+msgstr "ERROR_IPSEC_IKE_MM_LIMIT"
+
+msgid "13883"
+msgstr "ERROR_IPSEC_IKE_NEGOTIATION_DISABLED"
+
+msgid "13884"
+msgstr "ERROR_IPSEC_IKE_QM_LIMIT"
+
+msgid "13885"
+msgstr "ERROR_IPSEC_IKE_MM_EXPIRED"
+
+msgid "13886"
+msgstr "ERROR_IPSEC_IKE_PEER_MM_ASSUMED_INVALID"
+
+msgid "13887"
+msgstr "ERROR_IPSEC_IKE_CERT_CHAIN_POLICY_MISMATCH"
+
+msgid "13888"
+msgstr "ERROR_IPSEC_IKE_UNEXPECTED_MESSAGE_ID"
+
+msgid "13889"
+msgstr "ERROR_IPSEC_IKE_INVALID_AUTH_PAYLOAD"
+
+msgid "13890"
+msgstr "ERROR_IPSEC_IKE_DOS_COOKIE_SENT"
+
+msgid "13891"
+msgstr "ERROR_IPSEC_IKE_SHUTTING_DOWN"
+
+msgid "13892"
+msgstr "ERROR_IPSEC_IKE_CGA_AUTH_FAILED"
+
+msgid "13893"
+msgstr "ERROR_IPSEC_IKE_PROCESS_ERR_NATOA"
+
+msgid "13894"
+msgstr "ERROR_IPSEC_IKE_INVALID_MM_FOR_QM"
+
+msgid "13895"
+msgstr "ERROR_IPSEC_IKE_QM_EXPIRED"
+
+msgid "13896"
+msgstr "ERROR_IPSEC_IKE_TOO_MANY_FILTERS"
+
+msgid "13897"
+msgstr "ERROR_IPSEC_IKE_NEG_STATUS_END"
+
+msgid "13898"
+msgstr "ERROR_IPSEC_IKE_KILL_DUMMY_NAP_TUNNEL"
+
+msgid "13899"
+msgstr "ERROR_IPSEC_IKE_INNER_IP_ASSIGNMENT_FAILURE"
+
+msgid "13900"
+msgstr "ERROR_IPSEC_IKE_REQUIRE_CP_PAYLOAD_MISSING"
+
+msgid "13901"
+msgstr "ERROR_IPSEC_KEY_MODULE_IMPERSONATION_NEGOTIATION_PENDING"
+
+msgid "13902"
+msgstr "ERROR_IPSEC_IKE_COEXISTENCE_SUPPRESS"
+
+msgid "13903"
+msgstr "ERROR_IPSEC_IKE_RATELIMIT_DROP"
+
+msgid "13904"
+msgstr "ERROR_IPSEC_IKE_PEER_DOESNT_SUPPORT_MOBIKE"
+
+msgid "13905"
+msgstr "ERROR_IPSEC_IKE_AUTHORIZATION_FAILURE"
+
+msgid "13906"
+msgstr "ERROR_IPSEC_IKE_STRONG_CRED_AUTHORIZATION_FAILURE"
+
+msgid "13907"
+msgstr "ERROR_IPSEC_IKE_AUTHORIZATION_FAILURE_WITH_OPTIONAL_RETRY"
+
+msgid "13908"
+msgstr "ERROR_IPSEC_IKE_STRONG_CRED_AUTHORIZATION_AND_CERTMAP_FAILURE"
+
+msgid "13909"
+msgstr "ERROR_IPSEC_IKE_NEG_STATUS_EXTENDED_END"
+
+msgid "13910"
+msgstr "ERROR_IPSEC_BAD_SPI"
+
+msgid "13911"
+msgstr "ERROR_IPSEC_SA_LIFETIME_EXPIRED"
+
+msgid "13912"
+msgstr "ERROR_IPSEC_WRONG_SA"
+
+msgid "13913"
+msgstr "ERROR_IPSEC_REPLAY_CHECK_FAILED"
+
+msgid "13914"
+msgstr "ERROR_IPSEC_INVALID_PACKET"
+
+msgid "13915"
+msgstr "ERROR_IPSEC_INTEGRITY_CHECK_FAILED"
+
+msgid "13916"
+msgstr "ERROR_IPSEC_CLEAR_TEXT_DROP"
+
+msgid "13917"
+msgstr "ERROR_IPSEC_AUTH_FIREWALL_DROP"
+
+msgid "13918"
+msgstr "ERROR_IPSEC_THROTTLE_DROP"
+
+msgid "13925"
+msgstr "ERROR_IPSEC_DOSP_BLOCK"
+
+msgid "13926"
+msgstr "ERROR_IPSEC_DOSP_RECEIVED_MULTICAST"
+
+msgid "13927"
+msgstr "ERROR_IPSEC_DOSP_INVALID_PACKET"
+
+msgid "13928"
+msgstr "ERROR_IPSEC_DOSP_STATE_LOOKUP_FAILED"
+
+msgid "13929"
+msgstr "ERROR_IPSEC_DOSP_MAX_ENTRIES"
+
+msgid "13930"
+msgstr "ERROR_IPSEC_DOSP_KEYMOD_NOT_ALLOWED"
+
+msgid "13931"
+msgstr "ERROR_IPSEC_DOSP_NOT_INSTALLED"
+
+msgid "13932"
+msgstr "ERROR_IPSEC_DOSP_MAX_PER_IP_RATELIMIT_QUEUES"
+
+msgid "14000"
+msgstr "ERROR_SXS_SECTION_NOT_FOUND"
+
+msgid "14001"
+msgstr "ERROR_SXS_CANT_GEN_ACTCTX"
+
+msgid "14002"
+msgstr "ERROR_SXS_INVALID_ACTCTXDATA_FORMAT"
+
+msgid "14003"
+msgstr "ERROR_SXS_ASSEMBLY_NOT_FOUND"
+
+msgid "14004"
+msgstr "ERROR_SXS_MANIFEST_FORMAT_ERROR"
+
+msgid "14005"
+msgstr "ERROR_SXS_MANIFEST_PARSE_ERROR"
+
+msgid "14006"
+msgstr "ERROR_SXS_ACTIVATION_CONTEXT_DISABLED"
+
+msgid "14007"
+msgstr "ERROR_SXS_KEY_NOT_FOUND"
+
+msgid "14008"
+msgstr "ERROR_SXS_VERSION_CONFLICT"
+
+msgid "14009"
+msgstr "ERROR_SXS_WRONG_SECTION_TYPE"
+
+msgid "14010"
+msgstr "ERROR_SXS_THREAD_QUERIES_DISABLED"
+
+msgid "14011"
+msgstr "ERROR_SXS_PROCESS_DEFAULT_ALREADY_SET"
+
+msgid "14012"
+msgstr "ERROR_SXS_UNKNOWN_ENCODING_GROUP"
+
+msgid "14013"
+msgstr "ERROR_SXS_UNKNOWN_ENCODING"
+
+msgid "14014"
+msgstr "ERROR_SXS_INVALID_XML_NAMESPACE_URI"
+
+msgid "14015"
+msgstr "ERROR_SXS_ROOT_MANIFEST_DEPENDENCY_NOT_INSTALLED"
+
+msgid "14016"
+msgstr "ERROR_SXS_LEAF_MANIFEST_DEPENDENCY_NOT_INSTALLED"
+
+msgid "14017"
+msgstr "ERROR_SXS_INVALID_ASSEMBLY_IDENTITY_ATTRIBUTE"
+
+msgid "14018"
+msgstr "ERROR_SXS_MANIFEST_MISSING_REQUIRED_DEFAULT_NAMESPACE"
+
+msgid "14019"
+msgstr "ERROR_SXS_MANIFEST_INVALID_REQUIRED_DEFAULT_NAMESPACE"
+
+msgid "14020"
+msgstr "ERROR_SXS_PRIVATE_MANIFEST_CROSS_PATH_WITH_REPARSE_POINT"
+
+msgid "14021"
+msgstr "ERROR_SXS_DUPLICATE_DLL_NAME"
+
+msgid "14022"
+msgstr "ERROR_SXS_DUPLICATE_WINDOWCLASS_NAME"
+
+msgid "14023"
+msgstr "ERROR_SXS_DUPLICATE_CLSID"
+
+msgid "14024"
+msgstr "ERROR_SXS_DUPLICATE_IID"
+
+msgid "14025"
+msgstr "ERROR_SXS_DUPLICATE_TLBID"
+
+msgid "14026"
+msgstr "ERROR_SXS_DUPLICATE_PROGID"
+
+msgid "14027"
+msgstr "ERROR_SXS_DUPLICATE_ASSEMBLY_NAME"
+
+msgid "14028"
+msgstr "ERROR_SXS_FILE_HASH_MISMATCH"
+
+msgid "14029"
+msgstr "ERROR_SXS_POLICY_PARSE_ERROR"
+
+msgid "14030"
+msgstr "ERROR_SXS_XML_E_MISSINGQUOTE"
+
+msgid "14031"
+msgstr "ERROR_SXS_XML_E_COMMENTSYNTAX"
+
+msgid "14032"
+msgstr "ERROR_SXS_XML_E_BADSTARTNAMECHAR"
+
+msgid "14033"
+msgstr "ERROR_SXS_XML_E_BADNAMECHAR"
+
+msgid "14034"
+msgstr "ERROR_SXS_XML_E_BADCHARINSTRING"
+
+msgid "14035"
+msgstr "ERROR_SXS_XML_E_XMLDECLSYNTAX"
+
+msgid "14036"
+msgstr "ERROR_SXS_XML_E_BADCHARDATA"
+
+msgid "14037"
+msgstr "ERROR_SXS_XML_E_MISSINGWHITESPACE"
+
+msgid "14038"
+msgstr "ERROR_SXS_XML_E_EXPECTINGTAGEND"
+
+msgid "14039"
+msgstr "ERROR_SXS_XML_E_MISSINGSEMICOLON"
+
+msgid "14040"
+msgstr "ERROR_SXS_XML_E_UNBALANCEDPAREN"
+
+msgid "14041"
+msgstr "ERROR_SXS_XML_E_INTERNALERROR"
+
+msgid "14042"
+msgstr "ERROR_SXS_XML_E_UNEXPECTED_WHITESPACE"
+
+msgid "14043"
+msgstr "ERROR_SXS_XML_E_INCOMPLETE_ENCODING"
+
+msgid "14044"
+msgstr "ERROR_SXS_XML_E_MISSING_PAREN"
+
+msgid "14045"
+msgstr "ERROR_SXS_XML_E_EXPECTINGCLOSEQUOTE"
+
+msgid "14046"
+msgstr "ERROR_SXS_XML_E_MULTIPLE_COLONS"
+
+msgid "14047"
+msgstr "ERROR_SXS_XML_E_INVALID_DECIMAL"
+
+msgid "14048"
+msgstr "ERROR_SXS_XML_E_INVALID_HEXIDECIMAL"
+
+msgid "14049"
+msgstr "ERROR_SXS_XML_E_INVALID_UNICODE"
+
+msgid "14050"
+msgstr "ERROR_SXS_XML_E_WHITESPACEORQUESTIONMARK"
+
+msgid "14051"
+msgstr "ERROR_SXS_XML_E_UNEXPECTEDENDTAG"
+
+msgid "14052"
+msgstr "ERROR_SXS_XML_E_UNCLOSEDTAG"
+
+msgid "14053"
+msgstr "ERROR_SXS_XML_E_DUPLICATEATTRIBUTE"
+
+msgid "14054"
+msgstr "ERROR_SXS_XML_E_MULTIPLEROOTS"
+
+msgid "14055"
+msgstr "ERROR_SXS_XML_E_INVALIDATROOTLEVEL"
+
+msgid "14056"
+msgstr "ERROR_SXS_XML_E_BADXMLDECL"
+
+msgid "14057"
+msgstr "ERROR_SXS_XML_E_MISSINGROOT"
+
+msgid "14058"
+msgstr "ERROR_SXS_XML_E_UNEXPECTEDEOF"
+
+msgid "14059"
+msgstr "ERROR_SXS_XML_E_BADPEREFINSUBSET"
+
+msgid "14060"
+msgstr "ERROR_SXS_XML_E_UNCLOSEDSTARTTAG"
+
+msgid "14061"
+msgstr "ERROR_SXS_XML_E_UNCLOSEDENDTAG"
+
+msgid "14062"
+msgstr "ERROR_SXS_XML_E_UNCLOSEDSTRING"
+
+msgid "14063"
+msgstr "ERROR_SXS_XML_E_UNCLOSEDCOMMENT"
+
+msgid "14064"
+msgstr "ERROR_SXS_XML_E_UNCLOSEDDECL"
+
+msgid "14065"
+msgstr "ERROR_SXS_XML_E_UNCLOSEDCDATA"
+
+msgid "14066"
+msgstr "ERROR_SXS_XML_E_RESERVEDNAMESPACE"
+
+msgid "14067"
+msgstr "ERROR_SXS_XML_E_INVALIDENCODING"
+
+msgid "14068"
+msgstr "ERROR_SXS_XML_E_INVALIDSWITCH"
+
+msgid "14069"
+msgstr "ERROR_SXS_XML_E_BADXMLCASE"
+
+msgid "14070"
+msgstr "ERROR_SXS_XML_E_INVALID_STANDALONE"
+
+msgid "14071"
+msgstr "ERROR_SXS_XML_E_UNEXPECTED_STANDALONE"
+
+msgid "14072"
+msgstr "ERROR_SXS_XML_E_INVALID_VERSION"
+
+msgid "14073"
+msgstr "ERROR_SXS_XML_E_MISSINGEQUALS"
+
+msgid "14074"
+msgstr "ERROR_SXS_PROTECTION_RECOVERY_FAILED"
+
+msgid "14075"
+msgstr "ERROR_SXS_PROTECTION_PUBLIC_KEY_TOO_SHORT"
+
+msgid "14076"
+msgstr "ERROR_SXS_PROTECTION_CATALOG_NOT_VALID"
+
+msgid "14077"
+msgstr "ERROR_SXS_UNTRANSLATABLE_HRESULT"
+
+msgid "14078"
+msgstr "ERROR_SXS_PROTECTION_CATALOG_FILE_MISSING"
+
+msgid "14079"
+msgstr "ERROR_SXS_MISSING_ASSEMBLY_IDENTITY_ATTRIBUTE"
+
+msgid "14080"
+msgstr "ERROR_SXS_INVALID_ASSEMBLY_IDENTITY_ATTRIBUTE_NAME"
+
+msgid "14081"
+msgstr "ERROR_SXS_ASSEMBLY_MISSING"
+
+msgid "14082"
+msgstr "ERROR_SXS_CORRUPT_ACTIVATION_STACK"
+
+msgid "14083"
+msgstr "ERROR_SXS_CORRUPTION"
+
+msgid "14084"
+msgstr "ERROR_SXS_EARLY_DEACTIVATION"
+
+msgid "14085"
+msgstr "ERROR_SXS_INVALID_DEACTIVATION"
+
+msgid "14086"
+msgstr "ERROR_SXS_MULTIPLE_DEACTIVATION"
+
+msgid "14087"
+msgstr "ERROR_SXS_PROCESS_TERMINATION_REQUESTED"
+
+msgid "14088"
+msgstr "ERROR_SXS_RELEASE_ACTIVATION_CONTEXT"
+
+msgid "14089"
+msgstr "ERROR_SXS_SYSTEM_DEFAULT_ACTIVATION_CONTEXT_EMPTY"
+
+msgid "14090"
+msgstr "ERROR_SXS_INVALID_IDENTITY_ATTRIBUTE_VALUE"
+
+msgid "14091"
+msgstr "ERROR_SXS_INVALID_IDENTITY_ATTRIBUTE_NAME"
+
+msgid "14092"
+msgstr "ERROR_SXS_IDENTITY_DUPLICATE_ATTRIBUTE"
+
+msgid "14093"
+msgstr "ERROR_SXS_IDENTITY_PARSE_ERROR"
+
+msgid "14094"
+msgstr "ERROR_MALFORMED_SUBSTITUTION_STRING"
+
+msgid "14095"
+msgstr "ERROR_SXS_INCORRECT_PUBLIC_KEY_TOKEN"
+
+msgid "14096"
+msgstr "ERROR_UNMAPPED_SUBSTITUTION_STRING"
+
+msgid "14097"
+msgstr "ERROR_SXS_ASSEMBLY_NOT_LOCKED"
+
+msgid "14098"
+msgstr "ERROR_SXS_COMPONENT_STORE_CORRUPT"
+
+msgid "14099"
+msgstr "ERROR_ADVANCED_INSTALLER_FAILED"
+
+msgid "14100"
+msgstr "ERROR_XML_ENCODING_MISMATCH"
+
+msgid "14101"
+msgstr "ERROR_SXS_MANIFEST_IDENTITY_SAME_BUT_CONTENTS_DIFFERENT"
+
+msgid "14102"
+msgstr "ERROR_SXS_IDENTITIES_DIFFERENT"
+
+msgid "14103"
+msgstr "ERROR_SXS_ASSEMBLY_IS_NOT_A_DEPLOYMENT"
+
+msgid "14104"
+msgstr "ERROR_SXS_FILE_NOT_PART_OF_ASSEMBLY"
+
+msgid "14105"
+msgstr "ERROR_SXS_MANIFEST_TOO_BIG"
+
+msgid "14106"
+msgstr "ERROR_SXS_SETTING_NOT_REGISTERED"
+
+msgid "14107"
+msgstr "ERROR_SXS_TRANSACTION_CLOSURE_INCOMPLETE"
+
+msgid "14108"
+msgstr "ERROR_SMI_PRIMITIVE_INSTALLER_FAILED"
+
+msgid "14109"
+msgstr "ERROR_GENERIC_COMMAND_FAILED"
+
+msgid "14110"
+msgstr "ERROR_SXS_FILE_HASH_MISSING"
+
+msgid "14111"
+msgstr "ERROR_SXS_DUPLICATE_ACTIVATABLE_CLASS"
+
+msgid "15000"
+msgstr "ERROR_EVT_INVALID_CHANNEL_PATH"
+
+msgid "15001"
+msgstr "ERROR_EVT_INVALID_QUERY"
+
+msgid "15002"
+msgstr "ERROR_EVT_PUBLISHER_METADATA_NOT_FOUND"
+
+msgid "15003"
+msgstr "ERROR_EVT_EVENT_TEMPLATE_NOT_FOUND"
+
+msgid "15004"
+msgstr "ERROR_EVT_INVALID_PUBLISHER_NAME"
+
+msgid "15005"
+msgstr "ERROR_EVT_INVALID_EVENT_DATA"
+
+msgid "15007"
+msgstr "ERROR_EVT_CHANNEL_NOT_FOUND"
+
+msgid "15008"
+msgstr "ERROR_EVT_MALFORMED_XML_TEXT"
+
+msgid "15009"
+msgstr "ERROR_EVT_SUBSCRIPTION_TO_DIRECT_CHANNEL"
+
+msgid "15010"
+msgstr "ERROR_EVT_CONFIGURATION_ERROR"
+
+msgid "15011"
+msgstr "ERROR_EVT_QUERY_RESULT_STALE"
+
+msgid "15012"
+msgstr "ERROR_EVT_QUERY_RESULT_INVALID_POSITION"
+
+msgid "15013"
+msgstr "ERROR_EVT_NON_VALIDATING_MSXML"
+
+msgid "15014"
+msgstr "ERROR_EVT_FILTER_ALREADYSCOPED"
+
+msgid "15015"
+msgstr "ERROR_EVT_FILTER_NOTELTSET"
+
+msgid "15016"
+msgstr "ERROR_EVT_FILTER_INVARG"
+
+msgid "15017"
+msgstr "ERROR_EVT_FILTER_INVTEST"
+
+msgid "15018"
+msgstr "ERROR_EVT_FILTER_INVTYPE"
+
+msgid "15019"
+msgstr "ERROR_EVT_FILTER_PARSEERR"
+
+msgid "15020"
+msgstr "ERROR_EVT_FILTER_UNSUPPORTEDOP"
+
+msgid "15021"
+msgstr "ERROR_EVT_FILTER_UNEXPECTEDTOKEN"
+
+msgid "15022"
+msgstr "ERROR_EVT_INVALID_OPERATION_OVER_ENABLED_DIRECT_CHANNEL"
+
+msgid "15023"
+msgstr "ERROR_EVT_INVALID_CHANNEL_PROPERTY_VALUE"
+
+msgid "15024"
+msgstr "ERROR_EVT_INVALID_PUBLISHER_PROPERTY_VALUE"
+
+msgid "15025"
+msgstr "ERROR_EVT_CHANNEL_CANNOT_ACTIVATE"
+
+msgid "15026"
+msgstr "ERROR_EVT_FILTER_TOO_COMPLEX"
+
+msgid "15027"
+msgstr "ERROR_EVT_MESSAGE_NOT_FOUND"
+
+msgid "15028"
+msgstr "ERROR_EVT_MESSAGE_ID_NOT_FOUND"
+
+msgid "15029"
+msgstr "ERROR_EVT_UNRESOLVED_VALUE_INSERT"
+
+msgid "15030"
+msgstr "ERROR_EVT_UNRESOLVED_PARAMETER_INSERT"
+
+msgid "15031"
+msgstr "ERROR_EVT_MAX_INSERTS_REACHED"
+
+msgid "15032"
+msgstr "ERROR_EVT_EVENT_DEFINITION_NOT_FOUND"
+
+msgid "15033"
+msgstr "ERROR_EVT_MESSAGE_LOCALE_NOT_FOUND"
+
+msgid "15034"
+msgstr "ERROR_EVT_VERSION_TOO_OLD"
+
+msgid "15035"
+msgstr "ERROR_EVT_VERSION_TOO_NEW"
+
+msgid "15036"
+msgstr "ERROR_EVT_CANNOT_OPEN_CHANNEL_OF_QUERY"
+
+msgid "15037"
+msgstr "ERROR_EVT_PUBLISHER_DISABLED"
+
+msgid "15038"
+msgstr "ERROR_EVT_FILTER_OUT_OF_RANGE"
+
+msgid "15080"
+msgstr "ERROR_EC_SUBSCRIPTION_CANNOT_ACTIVATE"
+
+msgid "15081"
+msgstr "ERROR_EC_LOG_DISABLED"
+
+msgid "15082"
+msgstr "ERROR_EC_CIRCULAR_FORWARDING"
+
+msgid "15083"
+msgstr "ERROR_EC_CREDSTORE_FULL"
+
+msgid "15084"
+msgstr "ERROR_EC_CRED_NOT_FOUND"
+
+msgid "15085"
+msgstr "ERROR_EC_NO_ACTIVE_CHANNEL"
+
+msgid "15100"
+msgstr "ERROR_MUI_FILE_NOT_FOUND"
+
+msgid "15101"
+msgstr "ERROR_MUI_INVALID_FILE"
+
+msgid "15102"
+msgstr "ERROR_MUI_INVALID_RC_CONFIG"
+
+msgid "15103"
+msgstr "ERROR_MUI_INVALID_LOCALE_NAME"
+
+msgid "15104"
+msgstr "ERROR_MUI_INVALID_ULTIMATEFALLBACK_NAME"
+
+msgid "15105"
+msgstr "ERROR_MUI_FILE_NOT_LOADED"
+
+msgid "15106"
+msgstr "ERROR_RESOURCE_ENUM_USER_STOP"
+
+msgid "15107"
+msgstr "ERROR_MUI_INTLSETTINGS_UILANG_NOT_INSTALLED"
+
+msgid "15108"
+msgstr "ERROR_MUI_INTLSETTINGS_INVALID_LOCALE_NAME"
+
+msgid "15110"
+msgstr "ERROR_MRM_RUNTIME_NO_DEFAULT_OR_NEUTRAL_RESOURCE"
+
+msgid "15111"
+msgstr "ERROR_MRM_INVALID_PRICONFIG"
+
+msgid "15112"
+msgstr "ERROR_MRM_INVALID_FILE_TYPE"
+
+msgid "15113"
+msgstr "ERROR_MRM_UNKNOWN_QUALIFIER"
+
+msgid "15114"
+msgstr "ERROR_MRM_INVALID_QUALIFIER_VALUE"
+
+msgid "15115"
+msgstr "ERROR_MRM_NO_CANDIDATE"
+
+msgid "15116"
+msgstr "ERROR_MRM_NO_MATCH_OR_DEFAULT_CANDIDATE"
+
+msgid "15117"
+msgstr "ERROR_MRM_RESOURCE_TYPE_MISMATCH"
+
+msgid "15118"
+msgstr "ERROR_MRM_DUPLICATE_MAP_NAME"
+
+msgid "15119"
+msgstr "ERROR_MRM_DUPLICATE_ENTRY"
+
+msgid "15120"
+msgstr "ERROR_MRM_INVALID_RESOURCE_IDENTIFIER"
+
+msgid "15121"
+msgstr "ERROR_MRM_FILEPATH_TOO_LONG"
+
+msgid "15122"
+msgstr "ERROR_MRM_UNSUPPORTED_DIRECTORY_TYPE"
+
+msgid "15126"
+msgstr "ERROR_MRM_INVALID_PRI_FILE"
+
+msgid "15127"
+msgstr "ERROR_MRM_NAMED_RESOURCE_NOT_FOUND"
+
+msgid "15135"
+msgstr "ERROR_MRM_MAP_NOT_FOUND"
+
+msgid "15136"
+msgstr "ERROR_MRM_UNSUPPORTED_PROFILE_TYPE"
+
+msgid "15137"
+msgstr "ERROR_MRM_INVALID_QUALIFIER_OPERATOR"
+
+msgid "15138"
+msgstr "ERROR_MRM_INDETERMINATE_QUALIFIER_VALUE"
+
+msgid "15139"
+msgstr "ERROR_MRM_AUTOMERGE_ENABLED"
+
+msgid "15140"
+msgstr "ERROR_MRM_TOO_MANY_RESOURCES"
+
+msgid "15141"
+msgstr "ERROR_MRM_UNSUPPORTED_FILE_TYPE_FOR_MERGE"
+
+msgid "15142"
+msgstr "ERROR_MRM_UNSUPPORTED_FILE_TYPE_FOR_LOAD_UNLOAD_PRI_FILE"
+
+msgid "15143"
+msgstr "ERROR_MRM_NO_CURRENT_VIEW_ON_THREAD"
+
+msgid "15144"
+msgstr "ERROR_DIFFERENT_PROFILE_RESOURCE_MANAGER_EXIST"
+
+msgid "15145"
+msgstr "ERROR_OPERATION_NOT_ALLOWED_FROM_SYSTEM_COMPONENT"
+
+msgid "15146"
+msgstr "ERROR_MRM_DIRECT_REF_TO_NON_DEFAULT_RESOURCE"
+
+msgid "15147"
+msgstr "ERROR_MRM_GENERATION_COUNT_MISMATCH"
+
+msgid "15148"
+msgstr "ERROR_PRI_MERGE_VERSION_MISMATCH"
+
+msgid "15149"
+msgstr "ERROR_PRI_MERGE_MISSING_SCHEMA"
+
+msgid "15150"
+msgstr "ERROR_PRI_MERGE_LOAD_FILE_FAILED"
+
+msgid "15151"
+msgstr "ERROR_PRI_MERGE_ADD_FILE_FAILED"
+
+msgid "15152"
+msgstr "ERROR_PRI_MERGE_WRITE_FILE_FAILED"
+
+msgid "15153"
+msgstr "ERROR_PRI_MERGE_MULTIPLE_PACKAGE_FAMILIES_NOT_ALLOWED"
+
+msgid "15154"
+msgstr "ERROR_PRI_MERGE_MULTIPLE_MAIN_PACKAGES_NOT_ALLOWED"
+
+msgid "15155"
+msgstr "ERROR_PRI_MERGE_BUNDLE_PACKAGES_NOT_ALLOWED"
+
+msgid "15156"
+msgstr "ERROR_PRI_MERGE_MAIN_PACKAGE_REQUIRED"
+
+msgid "15157"
+msgstr "ERROR_PRI_MERGE_RESOURCE_PACKAGE_REQUIRED"
+
+msgid "15158"
+msgstr "ERROR_PRI_MERGE_INVALID_FILE_NAME"
+
+msgid "15159"
+msgstr "ERROR_MRM_PACKAGE_NOT_FOUND"
+
+msgid "15160"
+msgstr "ERROR_MRM_MISSING_DEFAULT_LANGUAGE"
+
+msgid "15200"
+msgstr "ERROR_MCA_INVALID_CAPABILITIES_STRING"
+
+msgid "15201"
+msgstr "ERROR_MCA_INVALID_VCP_VERSION"
+
+msgid "15202"
+msgstr "ERROR_MCA_MONITOR_VIOLATES_MCCS_SPECIFICATION"
+
+msgid "15203"
+msgstr "ERROR_MCA_MCCS_VERSION_MISMATCH"
+
+msgid "15204"
+msgstr "ERROR_MCA_UNSUPPORTED_MCCS_VERSION"
+
+msgid "15205"
+msgstr "ERROR_MCA_INTERNAL_ERROR"
+
+msgid "15206"
+msgstr "ERROR_MCA_INVALID_TECHNOLOGY_TYPE_RETURNED"
+
+msgid "15207"
+msgstr "ERROR_MCA_UNSUPPORTED_COLOR_TEMPERATURE"
+
+msgid "15250"
+msgstr "ERROR_AMBIGUOUS_SYSTEM_DEVICE"
+
+msgid "15299"
+msgstr "ERROR_SYSTEM_DEVICE_NOT_FOUND"
+
+msgid "15300"
+msgstr "ERROR_HASH_NOT_SUPPORTED"
+
+msgid "15301"
+msgstr "ERROR_HASH_NOT_PRESENT"
+
+msgid "15321"
+msgstr "ERROR_SECONDARY_IC_PROVIDER_NOT_REGISTERED"
+
+msgid "15322"
+msgstr "ERROR_GPIO_CLIENT_INFORMATION_INVALID"
+
+msgid "15323"
+msgstr "ERROR_GPIO_VERSION_NOT_SUPPORTED"
+
+msgid "15324"
+msgstr "ERROR_GPIO_INVALID_REGISTRATION_PACKET"
+
+msgid "15325"
+msgstr "ERROR_GPIO_OPERATION_DENIED"
+
+msgid "15326"
+msgstr "ERROR_GPIO_INCOMPATIBLE_CONNECT_MODE"
+
+msgid "15327"
+msgstr "ERROR_GPIO_INTERRUPT_ALREADY_UNMASKED"
+
+msgid "15400"
+msgstr "ERROR_CANNOT_SWITCH_RUNLEVEL"
+
+msgid "15401"
+msgstr "ERROR_INVALID_RUNLEVEL_SETTING"
+
+msgid "15402"
+msgstr "ERROR_RUNLEVEL_SWITCH_TIMEOUT"
+
+msgid "15403"
+msgstr "ERROR_RUNLEVEL_SWITCH_AGENT_TIMEOUT"
+
+msgid "15404"
+msgstr "ERROR_RUNLEVEL_SWITCH_IN_PROGRESS"
+
+msgid "15405"
+msgstr "ERROR_SERVICES_FAILED_AUTOSTART"
+
+msgid "15501"
+msgstr "ERROR_COM_TASK_STOP_PENDING"
+
+msgid "15600"
+msgstr "ERROR_INSTALL_OPEN_PACKAGE_FAILED"
+
+msgid "15601"
+msgstr "ERROR_INSTALL_PACKAGE_NOT_FOUND"
+
+msgid "15602"
+msgstr "ERROR_INSTALL_INVALID_PACKAGE"
+
+msgid "15603"
+msgstr "ERROR_INSTALL_RESOLVE_DEPENDENCY_FAILED"
+
+msgid "15604"
+msgstr "ERROR_INSTALL_OUT_OF_DISK_SPACE"
+
+msgid "15605"
+msgstr "ERROR_INSTALL_NETWORK_FAILURE"
+
+msgid "15606"
+msgstr "ERROR_INSTALL_REGISTRATION_FAILURE"
+
+msgid "15607"
+msgstr "ERROR_INSTALL_DEREGISTRATION_FAILURE"
+
+msgid "15608"
+msgstr "ERROR_INSTALL_CANCEL"
+
+msgid "15609"
+msgstr "ERROR_INSTALL_FAILED"
+
+msgid "15610"
+msgstr "ERROR_REMOVE_FAILED"
+
+msgid "15611"
+msgstr "ERROR_PACKAGE_ALREADY_EXISTS"
+
+msgid "15612"
+msgstr "ERROR_NEEDS_REMEDIATION"
+
+msgid "15613"
+msgstr "ERROR_INSTALL_PREREQUISITE_FAILED"
+
+msgid "15614"
+msgstr "ERROR_PACKAGE_REPOSITORY_CORRUPTED"
+
+msgid "15615"
+msgstr "ERROR_INSTALL_POLICY_FAILURE"
+
+msgid "15616"
+msgstr "ERROR_PACKAGE_UPDATING"
+
+msgid "15617"
+msgstr "ERROR_DEPLOYMENT_BLOCKED_BY_POLICY"
+
+msgid "15618"
+msgstr "ERROR_PACKAGES_IN_USE"
+
+msgid "15619"
+msgstr "ERROR_RECOVERY_FILE_CORRUPT"
+
+msgid "15620"
+msgstr "ERROR_INVALID_STAGED_SIGNATURE"
+
+msgid "15621"
+msgstr "ERROR_DELETING_EXISTING_APPLICATIONDATA_STORE_FAILED"
+
+msgid "15622"
+msgstr "ERROR_INSTALL_PACKAGE_DOWNGRADE"
+
+msgid "15623"
+msgstr "ERROR_SYSTEM_NEEDS_REMEDIATION"
+
+msgid "15624"
+msgstr "ERROR_APPX_INTEGRITY_FAILURE_CLR_NGEN"
+
+msgid "15625"
+msgstr "ERROR_RESILIENCY_FILE_CORRUPT"
+
+msgid "15626"
+msgstr "ERROR_INSTALL_FIREWALL_SERVICE_NOT_RUNNING"
+
+msgid "15627"
+msgstr "ERROR_PACKAGE_MOVE_FAILED"
+
+msgid "15628"
+msgstr "ERROR_INSTALL_VOLUME_NOT_EMPTY"
+
+msgid "15629"
+msgstr "ERROR_INSTALL_VOLUME_OFFLINE"
+
+msgid "15630"
+msgstr "ERROR_INSTALL_VOLUME_CORRUPT"
+
+msgid "15631"
+msgstr "ERROR_NEEDS_REGISTRATION"
+
+msgid "15632"
+msgstr "ERROR_INSTALL_WRONG_PROCESSOR_ARCHITECTURE"
+
+msgid "15633"
+msgstr "ERROR_DEV_SIDELOAD_LIMIT_EXCEEDED"
+
+msgid "15634"
+msgstr "ERROR_INSTALL_OPTIONAL_PACKAGE_REQUIRES_MAIN_PACKAGE"
+
+msgid "15635"
+msgstr "ERROR_PACKAGE_NOT_SUPPORTED_ON_FILESYSTEM"
+
+msgid "15636"
+msgstr "ERROR_PACKAGE_MOVE_BLOCKED_BY_STREAMING"
+
+msgid "15637"
+msgstr "ERROR_INSTALL_OPTIONAL_PACKAGE_APPLICATIONID_NOT_UNIQUE"
+
+msgid "15638"
+msgstr "ERROR_PACKAGE_STAGING_ONHOLD"
+
+msgid "15639"
+msgstr "ERROR_INSTALL_INVALID_RELATED_SET_UPDATE"
+
+msgid "15640"
+msgstr "ERROR_INSTALL_OPTIONAL_PACKAGE_REQUIRES_MAIN_PACKAGE_FULLTRUST_CAPABILITY"
+
+msgid "15641"
+msgstr "ERROR_DEPLOYMENT_BLOCKED_BY_USER_LOG_OFF"
+
+msgid "15642"
+msgstr "ERROR_PROVISION_OPTIONAL_PACKAGE_REQUIRES_MAIN_PACKAGE_PROVISIONED"
+
+msgid "15643"
+msgstr "ERROR_PACKAGES_REPUTATION_CHECK_FAILED"
+
+msgid "15644"
+msgstr "ERROR_PACKAGES_REPUTATION_CHECK_TIMEDOUT"
+
+msgid "15645"
+msgstr "ERROR_DEPLOYMENT_OPTION_NOT_SUPPORTED"
+
+msgid "15646"
+msgstr "ERROR_APPINSTALLER_ACTIVATION_BLOCKED"
+
+msgid "15647"
+msgstr "ERROR_REGISTRATION_FROM_REMOTE_DRIVE_NOT_SUPPORTED"
+
+msgid "15648"
+msgstr "ERROR_APPX_RAW_DATA_WRITE_FAILED"
+
+msgid "15649"
+msgstr "ERROR_DEPLOYMENT_BLOCKED_BY_VOLUME_POLICY_PACKAGE"
+
+msgid "15650"
+msgstr "ERROR_DEPLOYMENT_BLOCKED_BY_VOLUME_POLICY_MACHINE"
+
+msgid "15651"
+msgstr "ERROR_DEPLOYMENT_BLOCKED_BY_PROFILE_POLICY"
+
+msgid "15652"
+msgstr "ERROR_DEPLOYMENT_FAILED_CONFLICTING_MUTABLE_PACKAGE_DIRECTORY"
+
+msgid "15653"
+msgstr "ERROR_SINGLETON_RESOURCE_INSTALLED_IN_ACTIVE_USER"
+
+msgid "15654"
+msgstr "ERROR_DIFFERENT_VERSION_OF_PACKAGED_SERVICE_INSTALLED"
+
+msgid "15655"
+msgstr "ERROR_SERVICE_EXISTS_AS_NON_PACKAGED_SERVICE"
+
+msgid "15656"
+msgstr "ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN_PRIVILEGES"
+
+msgid "15657"
+msgstr "ERROR_REDIRECTION_TO_DEFAULT_ACCOUNT_NOT_ALLOWED"
+
+msgid "15658"
+msgstr "ERROR_PACKAGE_LACKS_CAPABILITY_TO_DEPLOY_ON_HOST"
+
+msgid "15659"
+msgstr "ERROR_UNSIGNED_PACKAGE_INVALID_CONTENT"
+
+msgid "15660"
+msgstr "ERROR_UNSIGNED_PACKAGE_INVALID_PUBLISHER_NAMESPACE"
+
+msgid "15661"
+msgstr "ERROR_SIGNED_PACKAGE_INVALID_PUBLISHER_NAMESPACE"
+
+msgid "15662"
+msgstr "ERROR_PACKAGE_EXTERNAL_LOCATION_NOT_ALLOWED"
+
+msgid "15663"
+msgstr "ERROR_INSTALL_FULLTRUST_HOSTRUNTIME_REQUIRES_MAIN_PACKAGE_FULLTRUST_CAPABILITY"
+
+msgid "15664"
+msgstr "ERROR_PACKAGE_LACKS_CAPABILITY_FOR_MANDATORY_STARTUPTASKS"
+
+msgid "15665"
+msgstr "ERROR_INSTALL_RESOLVE_HOSTRUNTIME_DEPENDENCY_FAILED"
+
+msgid "15666"
+msgstr "ERROR_MACHINE_SCOPE_NOT_ALLOWED"
+
+msgid "15667"
+msgstr "ERROR_CLASSIC_COMPAT_MODE_NOT_ALLOWED"
+
+msgid "15668"
+msgstr "ERROR_STAGEFROMUPDATEAGENT_PACKAGE_NOT_APPLICABLE"
+
+msgid "15669"
+msgstr "ERROR_PACKAGE_NOT_REGISTERED_FOR_USER"
+
+msgid "15700"
+msgstr "APPMODEL_ERROR_NO_PACKAGE"
+
+msgid "15701"
+msgstr "APPMODEL_ERROR_PACKAGE_RUNTIME_CORRUPT"
+
+msgid "15702"
+msgstr "APPMODEL_ERROR_PACKAGE_IDENTITY_CORRUPT"
+
+msgid "15703"
+msgstr "APPMODEL_ERROR_NO_APPLICATION"
+
+msgid "15704"
+msgstr "APPMODEL_ERROR_DYNAMIC_PROPERTY_READ_FAILED"
+
+msgid "15705"
+msgstr "APPMODEL_ERROR_DYNAMIC_PROPERTY_INVALID"
+
+msgid "15706"
+msgstr "APPMODEL_ERROR_PACKAGE_NOT_AVAILABLE"
+
+msgid "15707"
+msgstr "APPMODEL_ERROR_NO_MUTABLE_DIRECTORY"
+
+msgid "15800"
+msgstr "ERROR_STATE_LOAD_STORE_FAILED"
+
+msgid "15801"
+msgstr "ERROR_STATE_GET_VERSION_FAILED"
+
+msgid "15802"
+msgstr "ERROR_STATE_SET_VERSION_FAILED"
+
+msgid "15803"
+msgstr "ERROR_STATE_STRUCTURED_RESET_FAILED"
+
+msgid "15804"
+msgstr "ERROR_STATE_OPEN_CONTAINER_FAILED"
+
+msgid "15805"
+msgstr "ERROR_STATE_CREATE_CONTAINER_FAILED"
+
+msgid "15806"
+msgstr "ERROR_STATE_DELETE_CONTAINER_FAILED"
+
+msgid "15807"
+msgstr "ERROR_STATE_READ_SETTING_FAILED"
+
+msgid "15808"
+msgstr "ERROR_STATE_WRITE_SETTING_FAILED"
+
+msgid "15809"
+msgstr "ERROR_STATE_DELETE_SETTING_FAILED"
+
+msgid "15810"
+msgstr "ERROR_STATE_QUERY_SETTING_FAILED"
+
+msgid "15811"
+msgstr "ERROR_STATE_READ_COMPOSITE_SETTING_FAILED"
+
+msgid "15812"
+msgstr "ERROR_STATE_WRITE_COMPOSITE_SETTING_FAILED"
+
+msgid "15813"
+msgstr "ERROR_STATE_ENUMERATE_CONTAINER_FAILED"
+
+msgid "15814"
+msgstr "ERROR_STATE_ENUMERATE_SETTINGS_FAILED"
+
+msgid "15815"
+msgstr "ERROR_STATE_COMPOSITE_SETTING_VALUE_SIZE_LIMIT_EXCEEDED"
+
+msgid "15816"
+msgstr "ERROR_STATE_SETTING_VALUE_SIZE_LIMIT_EXCEEDED"
+
+msgid "15817"
+msgstr "ERROR_STATE_SETTING_NAME_SIZE_LIMIT_EXCEEDED"
+
+msgid "15818"
+msgstr "ERROR_STATE_CONTAINER_NAME_SIZE_LIMIT_EXCEEDED"
+
+msgid "15841"
+msgstr "ERROR_API_UNAVAILABLE"
+
+msgid "15861"
+msgstr "STORE_ERROR_UNLICENSED"
+
+msgid "15862"
+msgstr "STORE_ERROR_UNLICENSED_USER"
+
+msgid "15863"
+msgstr "STORE_ERROR_PENDING_COM_TRANSACTION"
+
+msgid "15864"
+msgstr "STORE_ERROR_LICENSE_REVOKED"
+

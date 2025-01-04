@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<title>Windows XP loading</title>
+<meta property="og:description" content="Good old windows XP...">
+<link rel="stylesheet" media="screen" href="loader.css" />
+</head>
+<body>
+<div class="window">
+  <div class="logo">
+    <p class="top">Microsoft</p>
+    <p class="mid">Windows<span>XP</span></p>
+    <p class="bottom">Professional</p>
+  </div>
+  <div class="container">
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+  </div>
+</div>
+</body>
+<script>
+function startTimer() {
+    setTimeout(() => {
+        window.location.href = "./tet/index.html";
+    }, 3000);
+}
+window.onload = startTimer;
+</script>
+</html>

@@ -1,0 +1,16 @@
+[OPTIONS]
+Compatibility=1.1 or later
+Compiled file=A Temporary Project.chm
+Contents file=A Temporary Project.hhc
+Default topic=test.html
+Display compile progress=No
+Full-text search=Yes
+Index file=A Temporary Project.hhk
+Language=0x407 German (Germany)
+Title=A Temporary Project
+
+[FILES]
+
+[INFOTYPES]
+
+
