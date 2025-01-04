@@ -661,7 +661,7 @@
 				var p = tabs[i];
 				tmp.html(p.panel('options').title);
 				var title = tmp.text();
-				tmp.html(which);
+				tmp.text(which);
 				which = tmp.text();
 				if (title == which){
 					tab = p;
