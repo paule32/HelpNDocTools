@@ -294,37 +294,39 @@ try:
     # ---------------------------------------------------------------------
     # try to find, and instal C64 Pro Mono Font ...
     # ---------------------------------------------------------------------
-    #if not font_check_installed("C64 Pro Mono"):
-    #    if os.environ["observer_second"] == "":
-    #        check_and_install_module()
-    #        os.environ["observer_second"] = "true"
-    #        
-    #        # ---------------------------------------------------------
-    #        # Definieren der Windows-Konstanten
-    #        # Installiert die Schriftart nur für die laufende Sitzung
-    #        # ---------------------------------------------------------
-    #        FR_PRIVATE    = 0x10  
-    #        WM_FONTCHANGE = 0x001D
-    #        
-    #        import winreg as reg
-    #        
-    #        if not is_admin():
-    #            DebugPrint("ATTENTION: Admin rights requered for first start.")
-    #            run_as_admin()
-    #        else:
-    #            DebugPrint(_("ATTENTION: Application run in Admin mode !"))
-    #        
-    #        c64_normal = "/_internal/fonts/C64_Pro-STYLE.ttf"
-    #        c64_mono   = "/_internal/fonts/C64_Pro_Mono-STYLE.ttf"
-    #        #
-    #        font_file         = os.getcwd() + c64_mono
-    #        font_display_name = "C64 Pro Mono"
-    #        #
-    #        install_font(font_file)
-    #        #add_font_to_registry(font_display_name, font_file)
-    #        
-    #        DebugPrint("font OK")
-
+    if not font_check_installed("C64 Pro Mono"):
+        a = 0
+        if a == 1:
+            if os.environ["observer_second"] == "":
+                check_and_install_module()
+                os.environ["observer_second"] = "true"
+                
+                # ---------------------------------------------------------
+                # Definieren der Windows-Konstanten
+                # Installiert die Schriftart nur für die laufende Sitzung
+                # ---------------------------------------------------------
+                FR_PRIVATE    = 0x10  
+                WM_FONTCHANGE = 0x001D
+                
+                import winreg as reg
+                
+                if not is_admin():
+                    DebugPrint("ATTENTION: Admin rights requered for first start.")
+                    run_as_admin()
+                else:
+                    DebugPrint(_("ATTENTION: Application run in Admin mode !"))
+                
+                c64_normal = "/_internal/fonts/C64_Pro-STYLE.ttf"
+                c64_mono   = "/_internal/fonts/C64_Pro_Mono-STYLE.ttf"
+                #
+                font_file         = os.getcwd() + c64_mono
+                font_display_name = "C64 Pro Mono"
+                #
+                install_font(font_file)
+                #add_font_to_registry(font_display_name, font_file)
+                
+                DebugPrint("font OK")
+    
     # ---------------------------------------------------------------------
     # this is a double check for application imports ...
     # ---------------------------------------------------------------------
@@ -21020,35 +21022,290 @@ class HelpWindow(QMainWindow):
         rect = rect.adjusted(2, 2, -2, -2)  # Den Rahmen leicht nach innen verschieben
         painter.drawRect(rect)
 
-class ClientSocketWindow_old(QDialog):
+class DraggableIconWidget(QWidget):
+    def __init__(self, icon_path, title, parent=None):
+        super().__init__(parent)
+        self.resize(130, 140)
+        
+        # Setze das Widget als fensterlos, damit es frei bewegt werden kann
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        
+        # Hauptlayout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0,0,0, 0)
+        layout.setAlignment(Qt.AlignCenter)
+        
+        # ---------------------------------------
+        # QLabel für das Icon
+        # ---------------------------------------
+        self.icon_label = QLabel(self)
+        self.icon_label.setStyleSheet("background-color: rgba(255,0,0, 0.2);")
+        
+        # ---------------------------------------
+        # Netzwerkmanager zum Laden des Bildes
+        # ---------------------------------------
+        self.network_manager = QNetworkAccessManager()
+        self.network_manager.finished.connect(self.on_image_loaded)
+        
+        url = QUrl(icon_path)
+        req = QNetworkRequest(url)
+        # ---------------------------------------
+        self.network_manager.get(req)
+        
+        # QLabel für den Titel (Hintergrund)
+        self.title_label_bg = QLabel(self)
+        self.title_label_bg.setText(title)
+        self.title_label_bg.setAlignment(Qt.AlignCenter)
+
+        # QLabel für den Titel (Vordergrund)
+        self.title_label_fg = QLabel(self)
+        self.title_label_fg.setText(title)
+        self.title_label_fg.setAlignment(Qt.AlignCenter)
+
+        # Schriftart für beide Labels
+        font = QFont("Arial", 10, QFont.Bold)
+        self.title_label_bg.setFont(font)
+        self.title_label_fg.setFont(font)
+
+        # Farben und Transparenz für die Labels
+        self.title_label_bg.setStyleSheet("background: transparent; color: white;")
+        self.title_label_fg.setStyleSheet("background: transparent; color: black;")
+
+        # Widgets zum Layout hinzufügen
+        layout.addWidget(self.icon_label)
+
+        # Wrapper für die überlagerten Labels
+        title_wrapper = QWidget(self)
+        title_wrapper.setFixedHeight(20)  # Höhe für den Titelbereich
+        title_wrapper.setAttribute(Qt.WA_TranslucentBackground, True)
+
+        # Positioniere die Labels mittig
+        wrapper_width = self.width() - 84
+        title_width = wrapper_width
+
+        self.title_label_bg.setParent(title_wrapper)
+        self.title_label_fg.setParent(title_wrapper)
+
+        self.title_label_bg.setGeometry(2, 2, title_width, 20)  # Hintergrund leicht versetzt
+        self.title_label_fg.setGeometry(0, 0, title_width, 20)  # Vordergrund exakt oben
+
+        layout.addWidget(title_wrapper)
+
+        # Dragging-Initialisierung
+        self.dragging = False
+        self.offset = QPoint()
+
+        # Feste Begrenzung für den Bereich
+        self.bound_width = 1020
+        self.bound_height = 758
+    
+    def on_image_loaded(self, reply):
+        if reply.error() == reply.NoError:
+            pixmap = QPixmap()
+            pixmap.loadFromData(reply.readAll())
+            #
+            self.icon_label.setPixmap(pixmap)
+            self.icon_label.setScaledContents(True)
+            
+            self.icon_label.setAlignment(Qt.AlignCenter)
+            self.icon_label.setScaledContents(True)
+            self.icon_label.setFixedSize(100, 100)
+        else:
+            showError(_("Error:\ncould not load desktop icon image."))
+    
+    def resizeEvent(self, event):
+        """Sorgt dafür, dass die Titel-Labels bei Größenänderungen mittig bleiben."""
+        wrapper_width = self.width() - 28
+        self.title_label_bg.setGeometry(2, 2, wrapper_width, 20)
+        self.title_label_fg.setGeometry(0, 0, wrapper_width, 20)
+        super().resizeEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.dragging = True
+            self.offset = event.globalPos() - self.pos()
+
+    def mouseMoveEvent(self, event):
+        if self.dragging and event.buttons() == Qt.LeftButton:
+            new_pos = event.globalPos() - self.offset
+            self.move(self.get_bounded_position(new_pos))
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.dragging = False
+
+    def get_bounded_position(self, new_pos):
+        """Begrenzt die Position des Widgets auf die festen Grenzen."""
+        widget_size = self.size()
+
+        bounded_x = max(0, min(new_pos.x(), self.bound_width - widget_size.width()))
+        bounded_y = max(0, min(new_pos.y(), self.bound_height - widget_size.height()))
+
+        return QPoint(bounded_x, bounded_y)
+
+class CustomDesktop(QLabel):
     def __init__(self, parent=None):
-        super(ClientSocketWindow, self).__init__(parent)
+        super(CustomDesktop, self).__init__(parent)
         
-        self.setGeometry(100,100,800,600)
+        self.setMouseTracking(True)  # Aktiviert Mausverfolgung
+        self.start_point   = None
+        self.current_point = None
+        self.drawing       = False   # Ob momentan gezeichnet wird
+        self.alpha_layer   = QColor(0, 0, 0, 50)  # Halbtransparenter Layer
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.drawing = True
+            self.start_point = event.pos()
+            self.current_point = event.pos()
+            self.update()  # Auslöser für Neuzeichnung
+    
+    def mouseMoveEvent(self, event):
+        if self.drawing:
+            self.current_point = event.pos()
+            self.update()  # Auslöser für Neuzeichnung
+    
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.drawing = False
+            self.start_point = None
+            self.current_point = None
+            self.update()  # Entfernt den Layer
+    
+    def paintEvent(self, event):
+        super(CustomDesktop, self).paintEvent(event)
+        if self.drawing and self.start_point and self.current_point:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            # Zeichne halbtransparenten Layer
+            pen = QPen(Qt.red, 2)
+            painter.setPen(pen)
+            painter.setBrush(self.alpha_layer)
+            
+            rect = self.get_rect()
+            painter.drawRoundedRect(rect, 10, 10)  # Runde Ecken mit Radius 10
+    
+    def get_rect(self):
+        """Berechnet das Rechteck basierend auf Start- und aktuellem Punkt."""
+        x1, y1 = self.start_point.x(), self.start_point.y()
+        x2, y2 = self.current_point.x(), self.current_point.y()
+        return QRect(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
+
+class WindowsXPdesktop(QWidget):
+    def __init__(self, parent=None):
+        super(WindowsXPdesktop, self).__init__(parent)
+        self.parent = parent
+        self.init_ui()
+    
+    def init_ui(self):
+        self.desktop_widget = QWidget()
+        self.taskbar_widget = QWidget()
         
-        vlayout = QVBoxLayout()
-        vbutton = QPushButton("send data")
-        vbutton.clicked.connect(self.vbutton_clicked)
-        vlayout.addWidget(vbutton)
+        self.taskbar_widget.setMaximumHeight(42)
+        self.desktop_widget.setMinimumHeight(730)
         
-        self.setLayout(vlayout)
+        self.desktop_widget.setStyleSheet("background-color:gray;")
+        self.taskbar_widget.setStyleSheet("background-color:blue;")
+
+        #self.desktop_bg = QLabel(self.desktop_widget)
+        self.desktop_bg = CustomDesktop(self.desktop_widget)
+        self.desktop_bg.setMinimumWidth (1020)
+        self.desktop_bg.setMaximumWidth (1020)
+        self.desktop_bg.setMinimumHeight( 730)
+        self.desktop_bg.setMaximumHeight( 730)
         
-        self.client_socket = SSLClient()
-        self.client_socket.connect_to_server()
+        file_path = os.getcwd() + "/_internal/bootstrap/xp/assets/images/bg/desktop-800x600.jpg"
+        file_path = "file:///"  + file_path.replace('\\', '/')
         
-    def vbutton_clicked(self):
-        print("data")
-        self.client_socket.send_data("test data")
+        # Netzwerkmanager zum Laden des Bildes
+        self.network_manager = QNetworkAccessManager()
+        self.network_manager.finished.connect(self.on_image_loaded)
+        
+        url = QUrl(file_path)
+        req = QNetworkRequest(url)
+        
+        self.network_manager.get(req)
+        #
+        self.parent.content_layout.addWidget(self.desktop_widget)
+        self.parent.content_layout.addWidget(self.taskbar_widget)
+        #
+        #
+        icon_1_path  = os.getcwd() + "/_internal/bootstrap/xp/assets/images/icon1.png"
+        icon_1_path  = "file:///"  + icon_1_path.replace('\\', '/')
+        #
+        icon_2_path  = os.getcwd() + "/_internal/bootstrap/xp/assets/images/icon0.png"
+        icon_2_path  = "file:///"  + icon_2_path.replace('\\', '/')
+        #
+        icon_1_title = "Icon A"
+        icon_2_title = "Icon B"
+        
+        icon_1 = DraggableIconWidget(icon_1_path, icon_1_title, self.desktop_bg)
+        icon_2 = DraggableIconWidget(icon_2_path, icon_2_title, self.desktop_bg)
+        
+        icon_1.show()
+        icon_2.show()
+    
+    def on_image_loaded(self, reply):
+        if reply.error() == reply.NoError:
+            pixmap = QPixmap()
+            pixmap.loadFromData(reply.readAll())
+            #
+            self.desktop_bg.setPixmap(pixmap)
+            self.desktop_bg.setScaledContents(True)
+            self.addTextLayer()
+        else:
+            showError(_("Error:\ncould not load desktop background image."))
+    
+    # Ein Label als oberstes Layer
+    def addTextLayer(self):
+        self.overlay_label = QLabel(""
+            + "This is a private build Version\n"
+            + "(c) 2025 by paule32")
+        self.overlay_label.setStyleSheet("""
+        background-color: rgba(0,0,0,0);
+        color: white;
+        font-size: 16px;
+        border: 2px solid black;
+        """)
+        self.overlay_label.setAlignment(Qt.AlignRight)
+        self.overlay_label.setFixedSize(230, 50)
+        
+        # Widget-Eigenschaften setzen
+        self.overlay_label.setParent(self.desktop_bg)
+        self.overlay_label.raise_()  # Immer im Vordergrund
+        self.update_overlay_position()
+    
+    def resizeEvent(self, event):
+        """Overlay-Position beim Resizen des Fensters aktualisieren"""
+        super().resizeEvent(event)
+        self.update_overlay_position()
+    
+    def update_overlay_position(self):
+        """Position des Overlays in der rechten unteren Ecke"""
+        #x = self.width () - self.overlay_label.width () - 10  # 10px Abstand vom Rand
+        #y = self.height() - self.overlay_label.height() - 10
+        #self.overlay_label.move(x, y)
+        x = (1020 - 240)
+        y = ( 800 - 42 - 84)
+        self.overlay_label.move(x,y)
 
 class Bridge(QObject):
     # Signal, das gesendet wird, wenn ein Element angeklickt wurde
-    elementClicked = pyqtSignal(str)
-
+    elementClicked     = pyqtSignal(str)
+    inputValueReceived = pyqtSignal(str)
+    
     @pyqtSlot(str)
     def report_element_id(self, element_id):
         # Signal mit der ID des angeklickten Elements senden
         print(f"Element mit ID '{element_id}' wurde angeklickt.")
         self.elementClicked.emit(element_id)
+    
+    @pyqtSlot(str)
+    def report_input_value(self, value):
+        print(f"empfangener Wert: {value}")
+        self.inputValueReceived.emit(value)
 
 class ClientSocketWindow(QDialog):
     def __init__(self, parent=None):
@@ -21056,10 +21313,13 @@ class ClientSocketWindow(QDialog):
 
         self._mouse_press_pos = None
         self._is_dragging = False
-
+        
+        self.check_pass = False
+        self.current_value = ""
+        
         self.setWindowTitle("Remote Desktop")
-        #self.setStyleSheet("background-color:black;")
-        self.resize(1024, 800)
+        self.setStyleSheet("background-color:navyblue;")
+        self.resize(1020, 800)
 
         # --- Titelzeilen-Widget erstellen (als Container für Layout und Styles) ---
         self.title_bar_widget = QWidget()
@@ -21078,11 +21338,13 @@ class ClientSocketWindow(QDialog):
 
         # Buttons
         self.btn_minimize = QPushButton("-")
-        self.btn_close = QPushButton("x")
+        self.btn_close    = QPushButton("x")
+        
         self.btn_minimize.setFixedSize(26, 26)
-        self.btn_close.setFixedSize(26, 26)
+        self.btn_close.setFixedSize   (26, 26)
+        
         self.btn_minimize.clicked.connect(self.showMinimized)
-        self.btn_close.clicked.connect(self.close)
+        self.btn_close.clicked   .connect(self.close)
 
         # Titelzeilen-Layout zusammenbauen
         self.title_layout.addWidget(self.title_label, 1)
@@ -21094,9 +21356,9 @@ class ClientSocketWindow(QDialog):
         #self.statusbar.setMaximumHeight(28)
 
         # --- Hauptinhalt (zentraler Bereich) ---
-        content_layout = QVBoxLayout()
+        self.content_layout = QVBoxLayout()
         
-        file_path = os.getcwd() + "/_internal/bootstrap/index.html"
+        file_path = os.getcwd() + "/_internal/bootstrap/xp/index.html"
         file_path = "file:///"  + file_path.replace('\\', '/')
         
         self.browser = QWebEngineView()
@@ -21106,7 +21368,9 @@ class ClientSocketWindow(QDialog):
         try:
             self.channel = QWebChannel()
             self.bridge  = Bridge()
-            self.bridge.elementClicked.connect(self.handle_element_click)
+            
+            self.bridge.elementClicked    .connect(self.handle_element_click)
+            self.bridge.inputValueReceived.connect(self.handle_input_value)
             
             # Verbinde die WebChannel-Schnittstelle mit Python
             self.channel.registerObject("bridge", self.bridge)
@@ -21124,7 +21388,7 @@ class ClientSocketWindow(QDialog):
         #self.browser.load(QUrl(file_path))
         
         
-        content_layout.addWidget(self.browser)
+        self.content_layout.addWidget(self.browser)
         #ontent_layout.addWidget(self.statusbar)
 
         # --- Gesamtlayout auf QDialog anwenden ---
@@ -21132,7 +21396,7 @@ class ClientSocketWindow(QDialog):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         main_layout.addWidget(self.title_bar_widget)  # Titelbereich oben
-        main_layout.addLayout(content_layout)         # Inhalt darunter
+        main_layout.addLayout(self.content_layout)         # Inhalt darunter
         
         self.setLayout(main_layout)
 
@@ -21157,8 +21421,29 @@ class ClientSocketWindow(QDialog):
             }
         """)
     
+    def handle_input_value(self, value):
+        self.current_value = value
+    
     def handle_element_click(self, element_id):
         print(f"Das angeklickte Element hat die ID: {element_id}")
+        if element_id == "userpass_1":
+            self.check_pass = True
+            if self.current_value == "test123" and self.check_pass:
+                self.content_layout.removeWidget(self.browser)
+                self.browser.deleteLater()
+                self.browser = None
+                self.desktop = WindowsXPdesktop(self)
+            else:
+                self.check_pass = False
+                self.current_value = ""
+                return
+            
+        if element_id == "btn_logout":
+            self.close()
+        
+        elif element_id == "btn_green_1":
+            print("login: Blacky Cat")
+            
     
     # --- Methoden für Fensterbewegung (Titelbereich) ---
     def mousePressEvent(self, event):
