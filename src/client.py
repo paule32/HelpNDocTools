@@ -821,6 +821,9 @@ class globalEnv:
         self.editor_check = None
         self.editor_saveb = None
         
+        self.copy_overlay_label_1 = None
+        self.copy_overlay_label_2 = None
+        
         self.current_focus = None
         
         self.img_doxygen = None
@@ -21022,9 +21025,128 @@ class HelpWindow(QMainWindow):
         rect = rect.adjusted(2, 2, -2, -2)  # Den Rahmen leicht nach innen verschieben
         painter.drawRect(rect)
 
+class CustomWindow(QWidget):
+    def __init__(self, parent=None):
+        super(CustomWindow, self).__init__(parent)
+        self._start_pos = None  # Startposition für das Ziehen
+        self.parent = parent
+        
+        self.embedded_label      = None  # Platzhalter für das eingebettete Label
+        self.close_button_coords = None  # Koordinaten des Close-Buttons
+
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowFlags(Qt.FramelessWindowHint)  # Entfernt die Standardfensterdekoration
+        self.setStyleSheet("border: 1px solid black; background-color: rgb(236, 233, 216);")
+
+        # Titelleiste erstellen
+        self.title_bar = QWidget(self)
+        self.title_bar.setStyleSheet("background-color: rgb(0, 120, 215);")
+        self.title_bar.setFixedHeight(30)
+
+        # Titeltext hinzufügen
+        title_label = QLabel("A Window", self.title_bar)
+        title_label.setStyleSheet("color: white; font-family: Tahoma; font-size: 14px;")
+        title_label.setAlignment(Qt.AlignCenter)
+
+        # Layout für Titelleiste
+        title_layout = QHBoxLayout(self.title_bar)
+        title_layout.addWidget(title_label)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Hauptinhalt
+        content = QLabel("Hauptinhalt des Fensters")
+        content.setStyleSheet("background-color: rgb(236, 233, 216); padding: 10px;")
+        content.setAlignment(Qt.AlignCenter)
+
+        # Eingebettetes Label erstellen
+        self.embedded_label = QLabel("Eingebettetes Label", self)
+        self.embedded_label.setGeometry(50, 50, 200, 50)
+        self.embedded_label.setStyleSheet("background-color: rgba(255, 255, 255, 0.8); border: 1px solid black;")
+        self.embedded_label.setAlignment(Qt.AlignCenter)
+
+        # Gesamt-Layout
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(self.title_bar)
+        main_layout.addWidget(content)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+    def mousePressEvent(self, event):
+        """Ermöglicht das Starten einer Verschiebung beim Klicken auf die Titelleiste."""
+        if event.button() == Qt.LeftButton and self.title_bar.geometry().contains(event.pos()):
+            self._start_pos = event.globalPos() - self.frameGeometry().topLeft()
+            
+            # Setze das eingebettete Label in den Vordergrund
+            if self.embedded_label:
+                self.embedded_label.raise_()
+            
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        """Ermöglicht das Verschieben des Fensters."""
+        if self._start_pos and event.buttons() & Qt.LeftButton:
+            self.move(event.globalPos() - self._start_pos)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        """Beendet die Verschiebung."""
+        if event.button() == Qt.LeftButton:
+            self._start_pos = None
+            event.accept()
+
+class InteractiveWindow(QLabel):
+    def __init__(self, pixmap, parent=None):
+        super(InteractiveWindow, self).__init__(parent)
+        
+        self.setPixmap(pixmap)
+        
+        self._start_pos = None
+        self.parent = parent
+        
+        self.setStyleSheet("border: 1px solid black;")
+        self.setFixedSize(pixmap.size())
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._start_pos = event.globalPos() - self.frameGeometry().topLeft()
+            self.raise_()
+            # Widget-Eigenschaften setzen
+            update_copy_notice(self.parent)
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self._start_pos and event.buttons() & Qt.LeftButton:
+            self.move(event.globalPos() - self._start_pos)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._start_pos = None
+            event.accept()
+
+def update_copy_notice(self_ptr):
+    genv.copy_overlay_label_1.setParent(self_ptr)
+    genv.copy_overlay_label_2.setParent(self_ptr)
+    
+    genv.copy_overlay_label_1.raise_()
+    genv.copy_overlay_label_2.raise_()
+
+def render_widget_to_pixmap(widget):
+    """Erstellt eine Pixmap des gegebenen Widgets."""
+    widget.setFixedSize(widget.size())  # Stelle sicher, dass die Größe fix ist
+    pixmap = QPixmap(widget.size())
+    pixmap.fill(widget.palette().color(widget.backgroundRole()))  # Hintergrundfarbe setzen
+    painter = QPainter(pixmap)
+    widget.render(painter)  # Rendere das Widget in die Pixmap
+    painter.end()
+    return pixmap
+    
 class DraggableIconWidget(QWidget):
     def __init__(self, icon_path, title, parent=None):
         super().__init__(parent)
+        
+        self.parent = parent
         self.resize(130, 140)
         
         # Setze das Widget als fensterlos, damit es frei bewegt werden kann
@@ -21114,34 +21236,60 @@ class DraggableIconWidget(QWidget):
         else:
             showError(_("Error:\ncould not load desktop icon image."))
     
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            QMessageBox.information(self, "Doppelklick", "Das Widget wurde doppelt angeklickt!")
+            
+            # -----------------------------------
+            # Unsichtbares Widget erstellen
+            # -----------------------------------
+            hidden_window = CustomWindow(self.parent)
+            hidden_window.resize(300, 300)
+            
+            # -----------------------------------
+            # Pixmap des Widgets erstellen
+            # -----------------------------------
+            pixmap = render_widget_to_pixmap(hidden_window)
+            
+            # -----------------------------------
+            # QLabel erstellen und Pixmap setzen
+            # -----------------------------------
+            movable_window = InteractiveWindow(pixmap, self.parent)
+            movable_window.setGeometry(
+                100,
+                100,
+                pixmap.width (),
+                pixmap.height())
+            movable_window.show()
+    
     def resizeEvent(self, event):
         """Sorgt dafür, dass die Titel-Labels bei Größenänderungen mittig bleiben."""
         wrapper_width = self.width() - 28
         self.title_label_bg.setGeometry(2, 2, wrapper_width, 20)
         self.title_label_fg.setGeometry(0, 0, wrapper_width, 20)
         super().resizeEvent(event)
-
+    
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = True
             self.offset = event.globalPos() - self.pos()
-
+    
     def mouseMoveEvent(self, event):
         if self.dragging and event.buttons() == Qt.LeftButton:
             new_pos = event.globalPos() - self.offset
             self.move(self.get_bounded_position(new_pos))
-
+    
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = False
-
+    
     def get_bounded_position(self, new_pos):
         """Begrenzt die Position des Widgets auf die festen Grenzen."""
         widget_size = self.size()
-
+        
         bounded_x = max(0, min(new_pos.x(), self.bound_width - widget_size.width()))
         bounded_y = max(0, min(new_pos.y(), self.bound_height - widget_size.height()))
-
+        
         return QPoint(bounded_x, bounded_y)
 
 class CustomDesktop(QLabel):
@@ -21159,10 +21307,13 @@ class CustomDesktop(QLabel):
             self.drawing = True
             self.start_point = event.pos()
             self.current_point = event.pos()
+            
+            self.setParent(self.parent())
+            self.lower ()
             self.update()  # Auslöser für Neuzeichnung
     
     def mouseMoveEvent(self, event):
-        if self.drawing:
+        if self.drawing and event.buttons() == Qt.LeftButton:
             self.current_point = event.pos()
             self.update()  # Auslöser für Neuzeichnung
     
@@ -21260,21 +21411,44 @@ class WindowsXPdesktop(QWidget):
     
     # Ein Label als oberstes Layer
     def addTextLayer(self):
-        self.overlay_label = QLabel(""
+        copy_text = (""
             + "This is a private build Version\n"
             + "(c) 2025 by paule32")
-        self.overlay_label.setStyleSheet("""
-        background-color: rgba(0,0,0,0);
-        color: white;
-        font-size: 16px;
-        border: 2px solid black;
-        """)
-        self.overlay_label.setAlignment(Qt.AlignRight)
-        self.overlay_label.setFixedSize(230, 50)
+            
+        css_text_1 = (""
+            + "background-color: rgba(0,0,0,0);"
+            + "color: white;"
+            + "font-size: 16px;"
+            + "border: 0;")
+        css_text_2 = (""
+            + "background-color: rgba(0,0,0,0);"
+            + "color: black;"
+            + "font-size: 16px;"
+            + "border: 0;")
+            
+        title_width = self.width() - 84
+        
+        genv.copy_overlay_label_1 = QLabel(copy_text)
+        genv.copy_overlay_label_2 = QLabel(copy_text)
+        
+        genv.copy_overlay_label_1.setStyleSheet(css_text_1)
+        genv.copy_overlay_label_2.setStyleSheet(css_text_2)
+        
+        genv.copy_overlay_label_1.setAlignment(Qt.AlignRight)
+        genv.copy_overlay_label_2.setAlignment(Qt.AlignRight)
+        
+        #genv.copy_overlay_label_1.setGeometry(2, 2, title_width, 20)
+        #genv.copy_overlay_label_2.setGeometry(0, 0, title_width, 20)
+        
+        #genv.copy_overlay_label.setFixedSize(230, 50)
         
         # Widget-Eigenschaften setzen
-        self.overlay_label.setParent(self.desktop_bg)
-        self.overlay_label.raise_()  # Immer im Vordergrund
+        genv.copy_overlay_label_1.setParent(self.desktop_bg)
+        genv.copy_overlay_label_2.setParent(self.desktop_bg)
+        
+        genv.copy_overlay_label_2.raise_()  # Immer im Vordergrund
+        genv.copy_overlay_label_1.raise_()  # Immer im Vordergrund
+        
         self.update_overlay_position()
     
     def resizeEvent(self, event):
@@ -21289,7 +21463,10 @@ class WindowsXPdesktop(QWidget):
         #self.overlay_label.move(x, y)
         x = (1020 - 240)
         y = ( 800 - 42 - 84)
-        self.overlay_label.move(x,y)
+        genv.copy_overlay_label_1.move(x,y)
+        x += 2
+        y += 2
+        genv.copy_overlay_label_2.move(x,y)
 
 class Bridge(QObject):
     # Signal, das gesendet wird, wenn ein Element angeklickt wurde
@@ -21432,7 +21609,7 @@ class ClientSocketWindow(QDialog):
                 self.content_layout.removeWidget(self.browser)
                 self.browser.deleteLater()
                 self.browser = None
-                self.desktop = WindowsXPdesktop(self)
+                genv.desktop = WindowsXPdesktop(self)
             else:
                 self.check_pass = False
                 self.current_value = ""
