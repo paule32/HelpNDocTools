@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function() {
             window.bridge.report_input_value(text);
         }
     }
-    function on_enter_key_up(evt) {
+    function on_key_up(evt) {
         text = evt.target.value;
         key  = evt.key;
         window.bridge.report_key(key, text);

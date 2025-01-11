@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.5">
+    <title>Windows XP</title>
+    <link rel="stylesheet" href="./assets/styles/style.css">
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.window {
+    position: absolute;
+    width: 300px;
+    height: 200px;
+    border: 1px solid #ccc;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    resize: both;
+    overflow: hidden;
+}
+
+.title-bar {
+    background: #0078d4;
+    color: white;
+    padding: 5px;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    margin: 0;
+}
+
+.controls button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.content {
+    padding: 10px;
+    height: calc(100% - 30px);
+}
+</style>
+</head>
+
+<body>
+    <div class="window" id="window1">
+        <div class="title-bar">
+            <span class="title">Fenster 1</span>
+            <div class="controls">
+                <button class="minimize">_</button>
+                <button class="close">X</button>
+            </div>
+        </div>
+        <div class="content">
+            <p>Hier ist der Inhalt des Fensters.</p>
+        </div>
+    </div>
+</body>
+
+<script>
+const windowElement = document.getElementById('window1');
+const titleBar = windowElement.querySelector('.title-bar');
+
+let isDragging = false;
+let offsetX, offsetY;
+
+titleBar.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    offsetX = e.clientX - windowElement.offsetLeft;
+    offsetY = e.clientY - windowElement.offsetTop;
+    document.addEventListener('mousemove', onMouseMove);
+});
+
+document.addEventListener('mouseup', () => {
+    isDragging = false;
+    document.removeEventListener('mousemove', onMouseMove);
+});
+
+function onMouseMove(e) {
+    if (isDragging) {
+        windowElement.style.left = `${e.clientX - offsetX}px`;
+        windowElement.style.top = `${e.clientY - offsetY}px`;
+    }
+}
+
+const closeButton = windowElement.querySelector('.close');
+closeButton.addEventListener('click', () => {
+    windowElement.style.display = 'none';
+});
+
+const minimizeButton = windowElement.querySelector('.minimize');
+minimizeButton.addEventListener('click', () => {
+    const content = windowElement.querySelector('.content');
+    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+});
+</script>
+
+</html>
