@@ -64,6 +64,7 @@
 <script type="text/javascript" src="../js/jquery/jquery-3.7.1.js"></script>
 <script type="text/javascript" src="../js/easyui/jquery.easyui.min.js"></script-->
 <script type="text/javascript" src="../js/qwebchannel.js"></script>
+<script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <script type="text/javascript">
 document.addEventListener("DOMContentLoaded", function() {
     new QWebChannel(qt.webChannelTransport, function(channel) {
@@ -88,13 +89,20 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     
     const input = document.getElementById("userpass_1");
+    //
     input.addEventListener("change", updateValue);
+    input.addEventListener("keyup" , on_key_up);
     
     function updateValue(evt) {
         if (window.bridge) {
             text = evt.target.value;
             window.bridge.report_input_value(text);
         }
+    }
+    function on_enter_key_up(evt) {
+        text = evt.target.value;
+        key  = evt.key;
+        window.bridge.report_key(key, text);
     }
 });
 </script>

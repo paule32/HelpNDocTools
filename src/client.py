@@ -669,6 +669,8 @@ class globalEnv:
         
         self.LastResult = True
         
+        self.v__app__cdn_flags = []
+        
         # ---------------------------------------------------------------------------
         # \brief currently onle two converters are supported:
         #        0 - not sprecified => unknown
@@ -21305,7 +21307,7 @@ class CustomDesktop(QLabel):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.drawing = True
-            self.start_point = event.pos()
+            self.start_point   = event.pos()
             self.current_point = event.pos()
             
             self.setParent(self.parent())
@@ -21316,6 +21318,7 @@ class CustomDesktop(QLabel):
         if self.drawing and event.buttons() == Qt.LeftButton:
             self.current_point = event.pos()
             self.update()  # Auslöser für Neuzeichnung
+            self.raise_()
     
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -21472,6 +21475,16 @@ class Bridge(QObject):
     # Signal, das gesendet wird, wenn ein Element angeklickt wurde
     elementClicked     = pyqtSignal(str)
     inputValueReceived = pyqtSignal(str)
+    on_key_up          = pyqtSignal(str, str)
+    
+    def __init__(self, parent=None):
+        super(Bridge, self).__init__(parent)
+        self.last_key = ''
+    
+    @pyqtSlot(str, str)
+    def report_key(self, key, text):
+        self.last_key = key
+        self.on_key_up.emit(key, text)
     
     @pyqtSlot(str)
     def report_element_id(self, element_id):
@@ -21482,6 +21495,7 @@ class Bridge(QObject):
     @pyqtSlot(str)
     def report_input_value(self, value):
         print(f"empfangener Wert: {value}")
+        print("last key: " + self.last_key)
         self.inputValueReceived.emit(value)
 
 class ClientSocketWindow(QDialog):
@@ -21548,6 +21562,7 @@ class ClientSocketWindow(QDialog):
             
             self.bridge.elementClicked    .connect(self.handle_element_click)
             self.bridge.inputValueReceived.connect(self.handle_input_value)
+            self.bridge.on_key_up         .connect(self.handle_key_up)
             
             # Verbinde die WebChannel-Schnittstelle mit Python
             self.channel.registerObject("bridge", self.bridge)
@@ -21598,29 +21613,39 @@ class ClientSocketWindow(QDialog):
             }
         """)
     
+    def handle_key_up(self, key, text):
+        print("key: " + key + ", value: " + text)
+        if self.checkpass():
+            pass
+    
     def handle_input_value(self, value):
         self.current_value = value
     
+    def checkpass(self) -> bool:
+        if self.current_value == "test123":
+            self.content_layout.removeWidget(self.browser)
+            self.browser.deleteLater()
+            self.browser = None
+            genv.desktop = WindowsXPdesktop(self)
+            return True
+        else:
+            self.current_value = ""
+            return False
+            
     def handle_element_click(self, element_id):
         print(f"Das angeklickte Element hat die ID: {element_id}")
         if element_id == "userpass_1":
-            self.check_pass = True
-            if self.current_value == "test123" and self.check_pass:
-                self.content_layout.removeWidget(self.browser)
-                self.browser.deleteLater()
-                self.browser = None
-                genv.desktop = WindowsXPdesktop(self)
-            else:
-                self.check_pass = False
-                self.current_value = ""
-                return
+            if self.checkpass() == True:
+                pass
             
-        if element_id == "btn_logout":
+        elif element_id == "btn_logout":
             self.close()
+            return True
         
         elif element_id == "btn_green_1":
             print("login: Blacky Cat")
-            
+            if self.checkpass():
+                pass
     
     # --- Methoden für Fensterbewegung (Titelbereich) ---
     def mousePressEvent(self, event):
@@ -21657,10 +21682,46 @@ class ClickableComboBox(QComboBox):
         # damit das Dropdown korrekt funktioniert
         super().mousePressEvent(event)
 
-class LoginDialog(QDialog):
+class LandingPage(QDialog):
     def __init__(self, parent=None):
-        super(LoginDialog, self).__init__(parent)
+        super(LandingPage, self).__init__(parent)
+        self.init_ui()
+
+    def init_ui(self):
+        # Layout
+        layout = QVBoxLayout()
         
+        # Buttons
+        button1 = QPushButton("Application")
+        button1.clicked.connect(self.on_button1_click)
+        
+        button2 = QPushButton("Windows XP")
+        button2.clicked.connect(self.on_button2_click)
+        
+        # Buttons zum Layout hinzufügen
+        layout.addWidget(button1)
+        layout.addWidget(button2)
+        
+        # Layout dem Fenster hinzufügen
+        self.setLayout(layout)
+        
+        # Fenster-Einstellungen
+        self.setWindowTitle("Landing Page")
+        self.resize(300, 200)
+
+    def on_button1_click(self):
+        self.hide()
+        if genv.v__app_object == None:
+            genv.v__app_object = QApplication(sys.argv)
+            
+        genv.v__app_win = FileWatcherGUI()
+        genv.v__app_win.move(100, 100)
+        genv.v__app_win.exec_()
+        
+        self.exit(0)
+
+    def on_button2_click(self):
+        self.hide()
         self.client_window = ClientSocketWindow()
         self.client_window.exec_()
         sys.exit(0)
@@ -21824,7 +21885,9 @@ def EntryPoint(arg1=None):
     window_license = licenseWindow()
     window_license.exec_()
     
-    genv.window_login = LoginDialog()
+    window = LandingPage()
+    window.exec_()
+    #genv.window_login = LoginDialog()
     #genv.window_login.exec_()
     
     # ------------------------------------------------------------------------
@@ -21959,6 +22022,15 @@ class parserBinary:
         except OSError as exception:
             if exception.errno != errno.EEXIST:
                 raise
+
+class LoginDialog(QDialog):
+    def __init__(self, parent=None):
+        super(LoginDialog, self).__init__(parent)
+        
+        #window = LandingPage(EntryPoint)
+        #window.exec_()
+        #self.close()
+        #sys.exit(0)
 
 # ---------------------------------------------------------------------------
 # parse dBase script ...
