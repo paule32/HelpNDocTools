@@ -732,7 +732,7 @@ class globalEnv:
         self.counter_endif  = 0
 
         self.char_prev = ''
-        self.char_curr = ''
+        self.char_curr = '\0'
         self.char_next = ''
         
         self.temp_token = ""
@@ -863,10 +863,22 @@ class globalEnv:
         
         self.token_str   = ""
         self.digit_array = [chr(i) for i in range(ord('0'), ord('9') + 1)]
+        self.current_token = ""
         
-        self.TOK_NUMBER = 2000
-        self.TOK_IDENT  = 2001
-        self.TOK_SAY    = 2002
+        self.open_pascal_comment_soft = 0
+        self.open_pascal_comment_hard = 0
+        
+        self.actual_parser = 0
+        
+        self.TOK_INVALID        = 2000
+        self.TOK_NUMBER         = 2001
+        self.TOK_IDENT          = 2002
+        self.TOK_SAY            = 2003
+        #
+        self.TOK_NEWLINE        = 2004
+        self.TOK_WHITE_SPACES   = 2005
+        #
+        self.TOK_EOF     = 3000
         
         # ------------------------------------------------------------------------
         # dbase reserved keywords ...
@@ -1032,6 +1044,8 @@ class globalEnv:
         self.c64_painter = None
         
         self.current_pushedit = None
+        
+        self.os_name = platform.system().lower()
 
         self.v__app__config_project_ini = "unknown.pro"
         self.v__app__pro_config    = ""
@@ -1531,13 +1545,13 @@ try:
     # ------------------------------------------------------------------------
     # determine on which operating the application script runs ...
     # ------------------------------------------------------------------------
-    genv.os_name = platform.system()
+    genv.os_name = platform.system().lower()
     DebugPrint("OS: " + genv.os_name)
-    if genv.os_name == 'Windows':
+    if genv.os_name == 'windows':
         DebugPrint("The Application runs under Windows.")
-    elif genv.os_name == 'Linux':
+    elif genv.os_name == 'linux':
         DebugPrint("The Application runs under Linux.")
-    elif genv.os_name == 'Darwin':
+    elif genv.os_name == 'darwin':
         DebugPrint("The Application runs under macOS.")
     else:
         DebugPrint(f"Unknown Operating System: {genv.os_name}")
@@ -4661,6 +4675,13 @@ print = builtins.print
         genv.counter_indent = 1
         genv.counter_parens = 0
         
+        genv.current_token  = ""
+        
+        genv.actual_parser = 0
+        
+        genv.open_pascal_comment_soft = 0
+        genv.open_pascal_comment_hard = 0
+        
         genv.v__app__logging.info("start parse: " + self.script_name)
         
         self.err_commentNC = _("comment not closed.")
@@ -4737,33 +4758,45 @@ print = builtins.print
         self.pos += 1
         
         if self.pos >= len(self.source):
-            showError("getChar xx")
-            return '\0'
+            if genv.actual_parser == self.pascal_parser:
+                if genv.open_pascal_comment_soft > 0 \
+                or genv.open_pascal_comment_hard > 0 :
+                    raise Exception(_("Error:\nno terminated comment found."))
+                    
+            raise Exception("no more data")
         else:
             genv.char_curr = self.source[self.pos]
             if genv.char_curr == '\n':
                 genv.line_col  = 1
                 genv.line_row += 1
-                return '\n'
+                return True
+                
             elif genv.char_curr == '\r':
                 if self.pos >= len(self.source):
-                    genv.unexpectedError(_("line ending error."))
+                    raise Exception(_("line ending error."))
+                    
                 self.pos += 1
                 genv.char_curr = self.source[self.pos]
+                
                 if genv.char_curr == '\n':
                     genv.line_col  = 1
                     genv.line_row += 1
-                    return '\n'
+                    
+                    return True
                 else:
-                    genv.unexpectedEndOfLine(genv.line_row)
-            elif (genv.char_curr == '\t') or (genv.char_curr == ' '):
-                return genv.char_curr
+                    raise Exception(_("Error:\nEnd Of Line: ") + str(genv.line_row))
+                    #genv.unexpectedEndOfLine(genv.line_row)
             else:
-                return genv.char_curr
+                return True
     
     def ungetChar(self, num):
         genv.line_col -= num
         self.pos -= num
+        
+        if genv.line_col < 1:  # check for \r\n
+            genv.line_col = 1
+            self.pos  += 1
+            
         genv.char_prev = self.source[self.pos-1]
         genv.char_curr = self.source[self.pos]
         return genv.char_curr
@@ -4776,7 +4809,7 @@ print = builtins.print
             return True
         elif genv.char_curr == '\r':
             genv.line_row += 1
-            genv.char_curr = self.getChar()
+            self.getChar()
             if not genv.char_curr == '\n':
                 genv.have_errors = True
                 genv.unexpectedError(_("line error"))
@@ -4789,49 +4822,44 @@ print = builtins.print
     def check_token_alpha(self):
         if genv.char_curr.isalpha():
             return True
-        return False;
-    
-    def check_token_digit(self, ch):
-        if ch.isdigit():
-            self.token_str = ch
-            self.getNumber()
-            return True
         return False
     
     def getIdent(self):
         self.token_str = genv.char_curr
         while True:
             genv.char_prev = genv.char_curr
-            genv.char_curr = self.getChar()
-            self.check_token_no_more_data()
-            if self.check_token_white_spaces():
-                return TOKEN_IDENT
-            if self.check_token_alpha():
+            self.getChar()
+            
+            if genv.char_curr.isalpha():
                 self.token_str += genv.char_curr
                 continue
-            genv.have_errors = True
-            genv.unexpectedError(_("getIdent"))
-            return False
+            else:
+                #self.ungetChar(1)
+                return True
+                
+        return False
     
     def getNumber(self):
         have_point = False
+        self.token_str = ""
         while True:
             genv.char_prev = genv.char_curr
-            genv.char_curr = self.getChar()
+            self.getChar()
+            
             if genv.char_curr.isdigit():
                 self.token_str += genv.char_curr
                 continue
+                
             elif genv.char_curr == '.':
                 if have_point == True:
                     genv.have_errors = True
-                    genv.unexpectedChar(genv.char_curr)
-                    return False
+                    raise Exception(_("Error:\ntoo many points."))
                 else:
                     have_point = True
                     continue
             else:
-                self.ungetChar(1)
-                return self.token_str
+                #self.ungetChar(1)
+                return True
     
     def expect_ident(self, token=""):
         genv.char_curr = self.skip_white_spaces(self.dbase_parser)
@@ -4900,340 +4928,211 @@ print = builtins.print
         else:
             return False
     
-    def check_spaces(self, c):
-        if genv.char_curr == '\t' or genv.char_curr == ' ':
-            genv.line_col += 1
-            result = True
-        return False
+    def check_white_spaces(self):
+        while True:
+            if genv.char_curr == '\t' or genv.char_curr == ' ':
+                genv.char_prev = genv.char_curr
+                self.getChar()
+                continue
+            elif genv.char_curr == '\n':
+                genv.char_prev = genv.char_curr
+                self.getChar()
+                continue
+            else:
+                self.ungetChar(len(self.token_str))
+                return False
     
-    def check_newline(self, c):
-        result = False
+    def check_newline(self):
         if genv.char_curr == '\n':
-            genv.line_col  = 1
-            genv.line_row += 1
-            result = True
+            return True
         elif genv.char_curr == '\r':
-            genv.char_curr = self.getChar()
+            genv.char_prev = genv.char_curr
+            self.getChar()
+            
             if not genv.char_curr == '\n':
-                genv.unexpectedEndOfLine(genv.line_row)
-                return result
-            genv.line_col  = 1
-            genv.line_row += 1
-            result = True
-        return result
+                raise Exception(_("Error:\nEnd of line error."))
+            else:
+                return True
     
-    def check_digit(self, c):
-        if genv.char_curr.isdigit():
-            self.ungetChar(1)
-            self.getNumber()
+    def check_char(self, c):
+        if genv.char_curr == c:
             return True
         else:
-            self.unexpectedError(_("expect a digit"))
+            return False
+            
+    def check_number(self):
+        genv.char_prev = genv.char_curr
+        
+        if genv.char_curr.isdigit():
+            self.ungetChar(1)
+            return self.getNumber()
+            
+        self.ungetChar(len(self.token_str))
         return False
         
     def check_alpha(self, ch):
-        result = False
         if ch.isalpha():
-            self.getIdent()
-            result = True
+            return True
         else:
-            genv.unexpectedChar(ch)
-            result = False
-        return result
-    
-    def handle_pascal_comment_1(self):
-        while True:
-            genv.char_curr = self.getChar()
-            self.check_null(genv.char_curr)
-            if self.check_newline(genv.char_curr):
-                continue
-            if genv.char_curr == '*':
-                genv.char_curr = self.getChar()
-                self.check_null(genv.char_curr)
-                if genv.char_curr == ')':
-                    return True
-                elif self.check_newline(genv.char_curr):
-                    continue
-                continue
-        if not genv.char_curr == ')':
-            genv.unexpectedError(_("comment not closed"))
+            #self.ungetChar(1)
             return False
-        return False
     
-    def handle_pascal_comment_2(self):
-        while True:
-            genv.char_curr = self.getChar()
-            self.check_null(genv.char_curr)
-            if self.check_newline(genv.char_curr):
-                continue
-            if genv.char_curr == '}':
-                genv.line_col += 1
-                self.in_comment -= 1
-                break
-            elif genv.char_curr == '$':
-                genv.char_curr = self.getChar()
-                self.check_null(genv.char_curr)
-                if self.check_token_ident(genv.char_curr):
-                    if len(self.token_str) > 64:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("macro name too long"))
-                        return False
-                    elif self.check_token_ident_macro(self.token_str):
-                        pass
-                else:
-                    genv.unexpectedError(_("unknown macro symbol"))
-                    return '\0'
-            else:
-                genv.line_col += 1
-                continue
-        if not genv.char_curr == '}':
-            genv.unexpectedError(_("comment not closed"))
-            return
-    
+    def check_ident(self):
+        if genv.char_curr.isalpha():
+            self.token_str = genv.char_curr
+            self.getIdent()
+            return True
+        else:
+            return False
+            
     # -----------------------------------------------------------------------
     # \brief skip all whitespaces. whitespaces are empty lines, lines with
     #        one or more spaces (0x20): " ", \t, "\n".
     # -----------------------------------------------------------------------
     def skip_white_spaces(self, parser_type):
-        self.pascal_comment_open = False
+        genv.actual_parser = parser_type
         while True:
             genv.char_prev = genv.char_curr
-            genv.char_curr = self.getChar()
-            self.check_token_no_more_data(_("skip white spaces"))
-            if genv.char_curr == ')':
-                genv.open_paren -= 1
-                if genv.open_paren < 0:
-                    genv.have_errors = True
-                    genv.unexpectedError(_("paren underflow."))
-                    return False
-                else:
-                    genv.text_code += ')'
-                    return True
-            elif genv.char_curr == '(':
-                genv.open_paren += 1
-                genv.text_code  += genv.char_curr
-                genv.char_prev   = genv.char_curr
-                genv.char_curr   = self.getChar()
-                if genv.char_curr == '*':
-                    if parser_type == self.pascal_parser:
-                        while True:
-                            genv.char_prev = genv.char_curr
-                            genv.char_curr = self.getChar()
-                            self.check_token_no_more_data(_("comment not terminated."))
-                            if self.check_token_white_spaces():
-                                continue
-                            genv.char_curr = self.getChar()
-                            if genv.char_curr == '*':
-                                genv.char_prev = genv.char_curr
-                                genv.char_curr = self.getChar()
-                                if genv.char_curr == ')':
-                                    break
-                            else:
-                                continue
-                        continue
-                    else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("pascal comment not allowed"))
-                        return
-                else:
-                    continue
+            self.getChar()
             
-            elif self.check_token_alpha():
-                if self.getIdent() == genv.TOKEN_IDENT:
-                    return genv.TOKEN_IDENT
-                else:
-                    genv.have_errors = True
-                    genv.unexpectedError(_("alpha ident error."))
-                    return False
+            if self.check_white_spaces():
+                continue
             
-            elif genv.char_curr == '\n':
-                continue
-            elif genv.char_curr == '\r':
-                genv.char_prev = genv.char_curr
-                genv.char_curr = self.getChar()
-                if not genv.char_curr == '\n':
-                    genv.have_errors = True
-                    genv.unexpectedError(_("invalide line end."))
-                    return False
-                elif (genv.char_curr == '\n') or (genv.char_curr == '\t') or (genv.char_curr == ' '):
-                    continue
-                continue
-            elif genv.char_curr == '{':
-                if parser_type == self.pascal_parser:
+            elif self.check_char(';'):
+                if parser_type == self.lisp_parser:
                     while True:
                         genv.char_prev = genv.char_curr
-                        genv.char_curr = self.getChar()
-                        if genv.char_curr == genv.ptNoMoreData:
-                            genv.have_errors = True
-                            genv.unexpectedError(_("unterminated comment."))
-                            return False
-                        elif genv.char_curr == '}':
+                        self.getChar()
+                        
+                        if self.check_newline():
                             break
+                            
                         continue
+                elif parser_type == self.pascal_parser:
+                    return True
                 else:
+                    raise Exception("no supported parser.")
+                        
+            elif self.check_char(')'):
+                genv.open_paren -= 1
+                if genv.open_paren < 1:
                     genv.have_errors = True
-                    genv.unexpectedError(_("pascal comment not allowed"))
+                    raise Exception(_("paren underflow."))
+                else:
+                    continue
+            
+            elif self.check_char('}'):
+                genv.open_pascal_comment_hard -= 1
+                if genv.open_pascal_comment_hard < 1:
+                    genv.have_errors = True
+                    raise Exception(_("no comment start found."))
+                else:
+                    continue
+                    
+            elif self.check_char('{'):
+                if parser_type == self.pascal_parser:
+                    genv.open_pascal_comment_hard += 1
+                    while True:
+                        genv.char_prev = genv.char_curr
+                        self.getChar()
+                        
+                        if self.check_char('{'):
+                            genv.open_pascal_comment_hard += 1
+                            continue
+                            
+                        elif self.check_char('}'):
+                            genv.open_pascal_comment_hard -= 1
+                            
+                            if genv.open_pascal_comment_hard > 0:
+                                continue
+                            else:
+                                break
+                        else:
+                            continue
+                    continue
+                else:
+                    raise Exception(_("invalid character found."))
                     return
-            elif genv.char_curr == '*':
-                genv.char_prev = genv.char_curr
-                genv.char_curr = self.getChar()
-                self.check_token_no_more_data(_("comment not terminated."))
-                if self.check_token_char('*'):
-                    if parser_type == self.dbase_parser:
+            
+            elif self.check_char('/'):
+                if parser_type == self.pascal_parser:
+                    genv.char_prev = genv.char_curr
+                    self.getChar()
+                    
+                    if self.check_char('/'):
                         while True:
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.getChar()
-                            self.check_token_no_more_data(_("comment not terminated."))
-                            if genv.char_curr == '\n':
+                            self.getChar()
+                            
+                            if self.check_char('\n'):
                                 break
-                            elif genv.char_curr == '\r':
+                                
+                            continue
+                        continue
+                    else:
+                        raise Exception(_("C++ comment expected."))
+                        
+            elif self.check_char('('):
+                genv.open_paren += 1
+                
+                if parser_type == self.pascal_parser:
+                    genv.char_prev = genv.char_curr
+                    self.getChar()
+                    
+                    if self.check_char('*'):
+                        genv.open_pascal_comment_soft += 1
+                        while True:
+                            genv.char_prev = genv.char_curr
+                            self.getChar()
+                            
+                            if self.check_char('*'):
                                 genv.char_prev = genv.char_curr
-                                genv.char_curr = self.getChar()
-                                if not genv.char_curr == '\n':
-                                    genv.have_errors = True
-                                    genv.unexpectedError(_("line end error."))
-                                    return False
-                                else:
-                                    break
-                        showInfo("** dbase comment end: " + str(genv.line_row))
-                        continue
-                    else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("dbase comment not allowed."))
-                        return False
-                else:
-                    return genv.char_curr
-            elif genv.char_curr == '&':
-                genv.char_curr = self.getChar()
-                if genv.char_curr == genv.ptNoMoreData:
-                    return c
-                elif genv.char_curr == '&':
-                    if parser_type == self.dbase_parser:
-                        while True:
-                            genv.char_curr = self.getChar()
-                            if genv.char_curr == genv.ptNoMoreData:
-                                return c
-                            elif genv.char_curr == '\n':
-                                break
-                            elif genv.char_curr == '\r':
-                                genv.char_curr = self.getChar()
-                                if not genv.char_curr == '\n':
-                                    genv.have_errors = True
-                                    genv.unexpectedError(_("line end error."))
-                                else:
-                                    break
-                        showInfo("&& dbase comment end: " + str(genv.line_row))
-                        continue
-                    else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("dbase comment not allowed."))
-                        return
-                else:
-                    return c
-            elif genv.char_curr == '/':
-                genv.char_curr = self.getChar()
-                if genv.char_curr == genv.ptNoMoreData:
-                    return genv.ptNoMoreData
-                elif genv.char_curr == '*':
-                    if parser_type == self.dbase_parser:
-                        self.in_comment += 1
-                        while True:
-                            genv.char_curr = self.getChar()
-                            if genv.char_curr == genv.ptNoMoreData:
-                                genv.have_errors = True
-                                genv.unexpectedError(_("unterminated comment."))
-                            elif genv.char_curr == '*':
-                                genv.char_curr = self.getChar()
-                                if genv.char_curr == '/':
-                                    #showInfo("closed C Comment: "  + str(genv.line_row))
-                                    self.in_comment -= 1
+                                self.getChar()
+                                
+                                if self.check_char(')'):
+                                    genv.open_pascal_comment_soft -= 1
                                     break
                                 else:
                                     continue
                             else:
                                 continue
-                        if self.in_comment > 0:
-                            #showInfo("comment großer")
-                            genv.have_errors = True
-                            genv.unexpectedError(_("self.err_commentNC"))
                     else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("C comment not allowrd"))
-                        return
-                elif genv.char_curr == '/':
-                    #showInfo("C++ comment: "  + str(genv.open_paren))
-                    while True:
-                        genv.char_curr = self.getChar()
-                        if genv.char_curr == genv.ptNoMoreData:
-                            genv.have_errors = True
-                            genv.unexpectedError(_("unterminated comment."))
-                        elif genv.char_curr == '\n':
-                            break
-                        elif genv.char_curr == '\r':
-                            genv.char_curr = self.getChar()
-                            if not genv.char_curr == '\n':
-                                genv.have_errors = True
-                                genv.unexpectedError(_("line end error."))
-                            else:
-                                break
-                        else:
-                            continue
-                    showInfo("closed C++ comment: " + str(genv.line_row))
-                    continue
-                else:
-                    if genv.in_expr:
-                        pass
-                        # for: /y
+                        raise Exception(_("Error:\nPascal comment expected."))
                         
-                    self.ungetChar(1)
-                    return '/'
-            elif genv.char_curr == '\r':
-                genv.char_curr = self.getChar()
-                if not genv.char_curr == '\n':
-                    genv.have_errors = True
-                    raise e_expr_error(
-                        message=_("line end syntax error"),
-                        line=genv.line_row,
-                        code=1200
-                        )
-                    return 0
-                continue
-            elif genv.char_curr == '\n' \
-            or   genv.char_curr == '\t' \
-            or   genv.char_curr == ' ':
-                continue
-            elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                self.token_str = genv.char_curr
-                while True:
-                    genv.char_curr = self.getChar()
-                    if genv.char_curr.isalpha():
-                        self.token_str += genv.char_curr
-                        continue
-                    else:
-                        break
-                return genv.TOK_IDENT
-            elif genv.char_curr == '@':
-                return genv.TOK_SAY
-            elif genv.char_curr in genv.digit_array:
-                self.token_str = genv.char_curr
-                while True:
-                    genv.char_curr = self.getChar()
-                    if genv.char_curr in genv.digit_array:
-                        self.token_str += genv.char_curr
-                    else:
-                        self.ungetChar(1)
-                        break
-                showInfo(self.token_str)
-                return genv.TOK_NUMBER
+                elif parser_type == self.lisp_parser:
+                    while True:
+                        genv.char_prev = genv.char_curr
+                        self.getChar()
+                        
+                        if self.check_white_spaces():
+                            continue
+                            
+                        elif self.check_number():
+                            showInfo("lisp: " + self.token_str)
+                            while True:
+                                if self.check_char(')'):
+                                    break
+                                else:
+                                    self.ungetChar(1)
+                                    break
+                        else:
+                            showInfo("Ee: " + genv.char_curr)
+                            break
+                            
+            elif self.check_ident():
+                genv.current_token = self.token_str
+                return True
+                
             else:
-                return genv.char_curr
+                showError("token: " + self.token_str + "\n> " + genv.char_curr)
+                return False
     
     def check_token_newline(self):
         if genv.char_curr == '\n':
             return True
         if genv.char_curr == '\r':
             genv.char_prev = genv.char_curr
-            genv.char_curr = self.getChar()
+            self.getChar()
             if not genv.char_curr == '\n':
                 genv.have_errors = True
                 genv.unexpectedError(_("invalide line end."))
@@ -5247,7 +5146,7 @@ print = builtins.print
     def handle_oneline_comment(self):
         while True:
             genv.line_col += 1
-            genv.char_curr = self.getChar()
+            self.getChar()
             if self.check_null(genv.char_curr):
                 return '\0'
             if self.check_spaces(genv.char_curr):
@@ -6206,8 +6105,9 @@ class interpreter_dBase(interpreter_base):
             genv.have_errors = True
             genv.unexpectedError(err.message)
             return
-        except:
-            showException(traceback.format_exc())
+        except Exception as e:
+            showError(f"Error: {e}")
+            #showException(traceback.format_exc())
     
     def handle_dbase_class(self, code):
         self.source = code
@@ -6610,13 +6510,6 @@ class interpreter_dBase(interpreter_base):
                 genv.have_errors = True
                 genv.unexpectedError(_("if/endif syntax error."))
     
-    def check_token_no_more_data(self, message=""):
-        if genv.char_curr == genv.ptNoMoreData:
-            genv.have_errors = True
-            raise e_no_more_data(message)
-        else:
-            return False
-    
     def check_point(self):
         genv.char_curr = self.check_token_no_more_data(_("check point"))
         if genv.char_curr == '.':
@@ -6794,11 +6687,94 @@ class dBaseDSL():
 class interpreter_Pascal(interpreter_base):
     def __init__(self, file_name):
         super(interpreter_Pascal, self).__init__(file_name)
-        
         self.script_name   = file_name
     
-    
     def parse(self):
+        genv.line_col = 1
+        genv.line_row = 1
+        #
+        open_paren    = 0
+        
+        script_app_type = ""
+        script_app_name = ""
+        
+        genv.actual_parser = self.pascal_parser
+        
+        while True:
+            genv.char_prev = genv.char_curr
+            self.getChar()
+            
+            if self.check_white_spaces():
+                continue
+
+            if self.check_ident():
+                showInfo(">>>> " + self.token_str)
+                if self.token_str.lower() == "program":
+                    showInfo("PROGRAM")
+                    script_app_type = self.token_str
+                    self.token_str  = ""
+                    
+                    while True:
+                        genv.char_prev = genv.char_curr
+                        self.getChar()
+            
+                        if self.check_white_spaces():
+                            continue
+                        
+                        if self.check_ident():
+                            showInfo("oooo> " + self.token_str)
+                            script_app_name = self.token_str
+                            
+                            while True:
+                                genv.char_prev = genv.char_curr
+                                self.getChar()
+                    
+                                if self.check_white_spaces():
+                                    continue
+                                
+                                if self.check_char(';'):
+                                    self.handle_pascal_body()
+                                    self.handle_pascal_tail()
+                                    break
+                                else:
+                                    raise Exception(_("semicolone (;) expected."))
+                            break
+                else:
+                    raise Exception(_("PROGRAM expected."))
+            #else:
+            #    raise Exception(_("syntax error."))
+    
+    def handle_pascal_body(self):
+        while True:
+            genv.char_prev = genv.char_curr
+            self.getChar()
+
+            if self.check_white_spaces():
+                continue
+            
+            if self.check_ident():
+                showInfo("====>> " + self.token_str)
+                break
+                
+    def handle_pascal_begin(self):
+        pass
+    
+    def handle_pascal_end(self):
+        pass
+        
+    def handle_pascal_tail(self):
+        while True:
+            genv.char_prev = genv.char_curr
+            self.getChar()
+
+            if self.check_white_spaces():
+                continue
+            
+            if self.check_ident():
+                showInfo("oooo====>> " + self.token_str)
+                break
+    
+    def parse__1(self):
         try:
             genv.counter_digits = 0
             genv.counter_indent = 1
@@ -6823,11 +6799,9 @@ class interpreter_Pascal(interpreter_base):
             
             ident_name = ""
             
-            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-            if genv.char_curr == genv.ptNoMoreData:
-                raise e_no_more_data()
-                return
-            elif genv.char_curr.isalpha():
+            self.skip_white_spaces(self.pascal_parser)
+            if genv.char_curr.isalpha():
+                showInfo("3333333")
                 self.getIdent(genv.char_curr)
                 if self.token_str.lower() == "program":
                     pass
@@ -7173,68 +7147,9 @@ class interpreter_Prolog(interpreter_base):
     def __init__(self, file_name):
         super(interpreter_Prolog, self).__init__(file_name)
 
-class interpreter_Lisp(interpreter_base):
+class interpreter_LISP(interpreter_base):
     def __init__(self, file_name):
-        super(interpreter_Lisp, self).__init__(file_name)
-    
-    def skip_white_spaces(self):
-        while True:
-            genv.char_curr = self.getChar()
-            if genv.char_curr == genv.ptNoMoreData:
-                return genv.char_curr
-            elif genv.char_curr == '\n':
-                continue
-            elif genv.char_curr == '\r':
-                genv.char_curr = self.getChar()
-                if not genv.char_curr == '\n':
-                    genv.have_errors = True
-                    genv.unexpectedError(_("line end error"))
-                continue
-            elif genv.char_curr == ';':
-                showInfo("lisp comment: " + str(genv.line_row))
-                while True:
-                    genv.char_curr = self.getChar()
-                    if genv.char_curr == '\n':
-                        break
-                    elif genv.char_curr == '\r':
-                        genv.char_curr = self.getChar()
-                        if not genv.char_curr == '\n':
-                            genv.have_errors = True
-                            genv.unexpectedError(_("line end error"))
-                        break
-                    else:
-                        continue
-                continue
-            elif genv.char_curr == ' ' or genv.char_curr == '\t':
-                continue
-            else:
-                return genv.char_curr
-    
-    def handle_defun_head(self):
-        while True:
-            c = self.skip_white_spaces()
-            if c == genv.ptNoMoreData:
-                genv.have_errors = True
-                genv.unexpectedError(_("syntax error."))
-                return
-            elif c.isalpha():
-                return c
-            elif c == '(':
-                while True:
-                    c = self.skip_white_spaces()
-                    if c == genv.ptNoMoreData:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("syntax error"))
-                        return
-                    elif c == ')':
-                        break
-                    else:
-                        continue
-                break
-            else:
-                genv.have_errors = True
-                genv.unexpectedError(_("open paren expected at defun."))
-                return
+        super(interpreter_LISP, self).__init__(file_name)
     
     def parse(self):
         genv.line_col = 1
@@ -7242,66 +7157,16 @@ class interpreter_Lisp(interpreter_base):
         #
         open_paren    = 0
         while True:
-            genv.char_curr = self.skip_white_spaces()
-            if genv.char_curr == genv.ptNoMoreData:
-                return genv.char_curr
-            elif genv.char_curr.isalpha():
-                self.getIdent(genv.char_curr)
-                if self.token_str.lower() == "defun":
-                    showInfo("a defune")
-                    genv.char_curr = self.skip_white_spaces()
-                    if genv.char_curr == genv.ptNoMoreData:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("syntax error."))
-                        return
-                    elif c.isalpha():
-                        self.getIdent(c)
-                        self.handle_defun_head()
-                        continue
-            elif genv.char_curr == '(':
-                open_paren += 1
-                showInfo("((((( 1111")
-                genv.char_curr = self.skip_white_spaces()
-                if genv.char_curr == '(':
-                    showInfo("3333 )))))")
-                    open_paren += 1
-                    continue
-                elif genv.char_curr == ')':
-                    showInfo("2222 )))))")
-                    open_paren -= 1
-                    if open_paren < 1:
-                        break
-                    continue
-                elif genv.char_curr == genv.ptNoMoreData:
-                    if open_paren > 0:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("closed1 paren expected."))
-                        return
-                    return genv.char_curr
-                else:
-                    genv.have_errors = True
-                    genv.unexpectedError(_("closed2 paren expected."))
-                    return
-            elif genv.char_curr == ')':
-                showInfo(")))))) 000")
-                open_paren -= 1
-                if open_paren >= 0:
-                    continue
-                else:
-                    genv.have_errors = True
-                    genv.unexpectedError(_("open paren expected."))
-                    return
-            else:
-                genv.have_errors = True
-                genv.unexpectedError(_("unknown char. found"))
-                return
+            if self.skip_white_spaces(self.lisp_parser):
+                showInfo("pppp: " + self.token_str)
+            break
 
 class lispDSL():
     def __init__(self, script_name):
         self.script = None
         
         self.parser = None
-        self.parser = interpreter_Lisp(script_name)
+        self.parser = interpreter_LISP(script_name)
         self.parser.parse()
 
 class interpreter_C64(interpreter_base):
@@ -10926,10 +10791,10 @@ class EditorTextEdit(QPlainTextEdit):
                 # ---------------------------------------
                 # save source code before exec...
                 # ---------------------------------------
-                if genv.editor_saveb.isChecked() == True:
-                    with open(script_name, 'w', encoding='utf-8') as file:
-                        file.write(self.toPlainText())
-                        file.close()
+                #if genv.editor_saveb.isChecked() == True:
+                with open(script_name, 'w', encoding='utf-8') as file:
+                    file.write(self.toPlainText())
+                    file.close()
             except Exception as e:
                 showException(traceback.format_exc())
                 return
@@ -10950,12 +10815,29 @@ class EditorTextEdit(QPlainTextEdit):
             
             elif self.edit_type == "pascal":
                 showInfo("pascal <---")
-                prg = interpreter_Pascal(script_name)
                 try:
-                    prg.parse()
-                    prg.run()
-                finally:
-                    prg = None
+                    prg = interpreter_Pascal(script_name)
+                    try:
+                        prg.parse()
+                        prg.run()
+                    finally:
+                        prg = None
+                except Exception as e:
+                    showError(_("Error:\n") + f"{e}")
+                    return
+            
+            elif self.edit_type == "lisp":
+                showInfo("lisp <---")
+                try:
+                    prg = interpreter_LISP(script_name)
+                    try:
+                        prg.parse()
+                        #prg.run()
+                    finally:
+                        prg = None
+                except Exception as e:
+                    showError(_("Error:\n") + f"{e}")
+                    return
             
             elif self.edit_type == "prolog":
                 showInfo("prolog <---")
@@ -15125,7 +15007,7 @@ class ApplicationEditorsPage(QObject):
                         prg.parse()
                         
                     elif genv.current_focus.edit_type == "lisp":
-                        prg = interpreter_Lisp(script_name)
+                        prg = interpreter_LISP(script_name)
                         prg.parse()
                         
                     elif genv.current_focus.edit_type == "c64":
