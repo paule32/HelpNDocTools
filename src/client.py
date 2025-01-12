@@ -4688,6 +4688,8 @@ print = builtins.print
         self.err_commandNF = _("command sequence not finished.")
         self.err_unknownCS = _("unknown command or syntax error.")
         
+        self.current_state = "program"
+        
         self.source    = ""
 
         self.parser_stop = False
@@ -4757,10 +4759,14 @@ print = builtins.print
         genv.line_col += 1
         self.pos += 1
         
+        genv.have_errors = False
+        genv.char_prev   = genv.char_curr
+        
         if self.pos >= len(self.source):
             if genv.actual_parser == self.pascal_parser:
                 if genv.open_pascal_comment_soft > 0 \
                 or genv.open_pascal_comment_hard > 0 :
+                    genv.have_errors = True
                     raise Exception(_("Error:\nno terminated comment found."))
                     
             raise Exception("no more data")
@@ -4773,9 +4779,12 @@ print = builtins.print
                 
             elif genv.char_curr == '\r':
                 if self.pos >= len(self.source):
+                    genv.have_errors = True
                     raise Exception(_("line ending error."))
                     
                 self.pos += 1
+                
+                genv.char_prev = genv.char_curr
                 genv.char_curr = self.source[self.pos]
                 
                 if genv.char_curr == '\n':
@@ -4784,10 +4793,10 @@ print = builtins.print
                     
                     return True
                 else:
-                    raise Exception(_("Error:\nEnd Of Line: ") + str(genv.line_row))
-                    #genv.unexpectedEndOfLine(genv.line_row)
+                    genv.have_errors = True
+                    raise Exception(_("Error:\nEnd Of Line error: ") + str(genv.line_row))
             else:
-                return True
+                return False
     
     def ungetChar(self, num):
         genv.line_col -= num
@@ -4834,7 +4843,8 @@ print = builtins.print
                 self.token_str += genv.char_curr
                 continue
             else:
-                #self.ungetChar(1)
+                self.ungetChar(1)
+                #showInfo("===>>>> " + self.token_str)
                 return True
                 
         return False
@@ -4930,16 +4940,13 @@ print = builtins.print
     
     def check_white_spaces(self):
         while True:
-            if genv.char_curr == '\t' or genv.char_curr == ' ':
-                genv.char_prev = genv.char_curr
-                self.getChar()
-                continue
-            elif genv.char_curr == '\n':
-                genv.char_prev = genv.char_curr
-                self.getChar()
-                continue
+            if genv.char_curr == '\n' \
+            or genv.char_curr == '\t' \
+            or genv.char_curr == ' ':
+                return True
             else:
-                self.ungetChar(len(self.token_str))
+                #self.ungetChar(1)
+                #showInfo("zzz>> " + genv.char_curr)
                 return False
     
     def check_newline(self):
@@ -4981,16 +4988,128 @@ print = builtins.print
         if genv.char_curr.isalpha():
             self.token_str = genv.char_curr
             self.getIdent()
+            showInfo("ident: " + self.token_str)
             return True
         else:
+            showInfo("checker: " + self.token_str + "\n> " + genv.char_curr)
+            #self.ungetChar(1)
             return False
+    
+    def handle_pascal_comment_1(self):
+        genv.open_pascal_comment_hard += 1
+        while True:
+            genv.char_prev = genv.char_curr
+            self.getChar()
             
+            if self.check_char('{'):
+                genv.open_pascal_comment_hard += 1
+                continue
+                
+            elif self.check_char('}'):
+                genv.open_pascal_comment_hard -= 1
+                
+                if genv.open_pascal_comment_hard > 0:
+                    continue
+                else:
+                    break
+            else:
+                continue
+        return True
+    
+    def handle_pascal_comment_2(self):
+        genv.char_prev = genv.char_curr
+        self.getChar()
+        
+        if self.check_char('*'):
+            genv.open_pascal_comment_soft += 1
+            while True:
+                genv.char_prev = genv.char_curr
+                self.getChar()
+                
+                if self.check_char('*'):
+                    genv.char_prev = genv.char_curr
+                    self.getChar()
+                    
+                    if self.check_char(')'):
+                        genv.open_pascal_comment_soft -= 1
+                        return True
+                    else:
+                        continue
+                else:
+                    continue
+        
+        if genv.char_curr.isalpha():
+            if self.check_ident():
+                showInfo("argument: " + self.token_str)
+                while True:
+                    genv.char_prev = genv.char_curr
+                    self.getChar()
+
+                    if self.check_white_spaces():
+                        continue
+                    elif self.check_char('{'):
+                        self.handle_pascal_comment_1()
+                        continue
+                    elif self.check_char('('):
+                        self.handle_pascal_comment_2() # todo: expr
+                        continue
+                        
+                    elif self.check_char(':'):
+                        while True:
+                            genv.char_prev = genv.char_curr
+                            self.getChar()
+                            
+                            if self.check_white_spaces():
+                                continue
+                            elif self.check_char('{'):
+                                self.handle_pascal_comment_1()
+                                continue
+                            elif self.check_char('('):
+                                self.handle_pascal_comment_2() # todo: expr
+                                continue
+                                
+                            elif genv.char_curr.isalpha():
+                                self.handle_pascal_argument_type()
+                                
+                                while True:
+                                    genv.char_prev = genv.char_curr
+                                    self.getChar()
+                                    
+                                    if self.check_white_spaces():
+                                        continue
+                                    elif self.check_char('{'):
+                                        self.handle_pascal_comment_1()
+                                        continue
+                                    elif self.check_char('('):
+                                        self.handle_pascal_comment_2() # todo: expr
+                                        continue
+                                    
+                                    elif self.check_char(')'):
+                                        showInfo("list ende.")
+                                        break
+                            else:
+                                raise Exception(_("argument type expected."))
+                        break
+                    else:
+                        raise Exception(_("colon (:) expected."))
+                        
+                return True
+        
+        else:
+            raise Exception(_("Error:\nPascal comment expected."))
+    
+    def handle_pascal_argument_type(self):
+        self.ungetChar(1)
+        self.check_ident()
+        showInfo("argument type: " + self.token_str)
+        
     # -----------------------------------------------------------------------
     # \brief skip all whitespaces. whitespaces are empty lines, lines with
     #        one or more spaces (0x20): " ", \t, "\n".
     # -----------------------------------------------------------------------
-    def skip_white_spaces(self, parser_type):
+    def skip_white_spaces(self, parser_type):  # wöö
         genv.actual_parser = parser_type
+        
         while True:
             genv.char_prev = genv.char_curr
             self.getChar()
@@ -5031,24 +5150,7 @@ print = builtins.print
                     
             elif self.check_char('{'):
                 if parser_type == self.pascal_parser:
-                    genv.open_pascal_comment_hard += 1
-                    while True:
-                        genv.char_prev = genv.char_curr
-                        self.getChar()
-                        
-                        if self.check_char('{'):
-                            genv.open_pascal_comment_hard += 1
-                            continue
-                            
-                        elif self.check_char('}'):
-                            genv.open_pascal_comment_hard -= 1
-                            
-                            if genv.open_pascal_comment_hard > 0:
-                                continue
-                            else:
-                                break
-                        else:
-                            continue
+                    self.handle_pascal_comment_1()
                     continue
                 else:
                     raise Exception(_("invalid character found."))
@@ -5074,31 +5176,10 @@ print = builtins.print
                         
             elif self.check_char('('):
                 genv.open_paren += 1
-                
                 if parser_type == self.pascal_parser:
-                    genv.char_prev = genv.char_curr
-                    self.getChar()
+                    self.handle_pascal_comment_2()
+                    continue
                     
-                    if self.check_char('*'):
-                        genv.open_pascal_comment_soft += 1
-                        while True:
-                            genv.char_prev = genv.char_curr
-                            self.getChar()
-                            
-                            if self.check_char('*'):
-                                genv.char_prev = genv.char_curr
-                                self.getChar()
-                                
-                                if self.check_char(')'):
-                                    genv.open_pascal_comment_soft -= 1
-                                    break
-                                else:
-                                    continue
-                            else:
-                                continue
-                    else:
-                        raise Exception(_("Error:\nPascal comment expected."))
-                        
                 elif parser_type == self.lisp_parser:
                     while True:
                         genv.char_prev = genv.char_curr
@@ -5120,7 +5201,6 @@ print = builtins.print
                             break
                             
             elif self.check_ident():
-                genv.current_token = self.token_str
                 return True
                 
             else:
@@ -6695,55 +6775,127 @@ class interpreter_Pascal(interpreter_base):
         #
         open_paren    = 0
         
+        self.pos = -1
+        
         script_app_type = ""
         script_app_name = ""
         
         genv.actual_parser = self.pascal_parser
         
         while True:
+            self.skip_white_spaces(self.pascal_parser)
+            
+            # <program> <name> <;>
+            if self.token_str.lower() == "program":
+                self.token_str = ""
+                while True:
+                    genv.char_prev = genv.char_curr
+                    self.getChar()
+                    
+                    if self.check_white_spaces():
+                        continue
+                        
+                    elif self.check_char('{'):
+                        self.handle_pascal_comment_1()
+                        continue
+                    elif self.check_char('('):
+                        self.handle_pascal_comment_2() # todo: expr
+                        continue
+                        
+                    elif self.check_ident():
+                        while True:
+                            genv.char_prev = genv.char_curr
+                            self.getChar()
+                            
+                            if self.check_white_spaces():
+                                continue
+                            elif self.check_char('{'):
+                                self.handle_pascal_comment_1()
+                                continue
+                            elif self.check_char('('):
+                                self.handle_pascal_comment_2() # todo: expr
+                                continue
+                                
+                            elif self.check_char(';'):
+                                while True:
+                                    genv.char_prev = genv.char_curr
+                                    self.getChar()
+                                    
+                                    if self.check_white_spaces():
+                                        continue
+                                    elif self.check_char('{'):
+                                        self.handle_pascal_comment_1()
+                                        continue
+                                    elif self.check_char('('):
+                                        self.handle_pascal_comment_2() # todo: expr
+                                        continue
+                                    
+                                    elif self.check_ident():
+                                        if self.token_str.lower() == "begin":
+                                            self.handle_pascal_body()
+                                            #self.handle_pascal_tail()
+                                            break
+                                        elif self.token_str.lower() == "procedure":
+                                            self.handle_pascal_procedure()
+                                            
+                                        elif self.token_str.lower() == "function":
+                                            self.handle_pascal_function()
+                            else:
+                                raise Exception(_("semicolon expected."))
+                        break
+                    else:
+                        raise Exception(_("ident expected."))
+                break
+    
+    def handle_pascal_procedure(self):
+        while True:
             genv.char_prev = genv.char_curr
             self.getChar()
-            
+
             if self.check_white_spaces():
                 continue
-
-            if self.check_ident():
-                showInfo(">>>> " + self.token_str)
-                if self.token_str.lower() == "program":
-                    showInfo("PROGRAM")
-                    script_app_type = self.token_str
-                    self.token_str  = ""
-                    
-                    while True:
-                        genv.char_prev = genv.char_curr
-                        self.getChar()
+            elif self.check_char('{'):
+                self.handle_pascal_comment_1()
+                continue
+            elif self.check_char('('):
+                self.handle_pascal_comment_2() # todo: expr
+                continue
             
-                        if self.check_white_spaces():
-                            continue
-                        
-                        if self.check_ident():
-                            showInfo("oooo> " + self.token_str)
-                            script_app_name = self.token_str
-                            
-                            while True:
-                                genv.char_prev = genv.char_curr
-                                self.getChar()
-                    
-                                if self.check_white_spaces():
-                                    continue
-                                
-                                if self.check_char(';'):
-                                    self.handle_pascal_body()
-                                    self.handle_pascal_tail()
-                                    break
-                                else:
-                                    raise Exception(_("semicolone (;) expected."))
-                            break
-                else:
-                    raise Exception(_("PROGRAM expected."))
-            #else:
-            #    raise Exception(_("syntax error."))
-    
+            elif self.check_ident():
+                showInfo("procedure name: " + self.token_str)
+                while True:
+                    genv.char_prev = genv.char_curr
+                    self.getChar()
+
+                    if self.check_white_spaces():
+                        continue
+                    elif self.check_char('{'):
+                        self.handle_pascal_comment_1()
+                        continue
+                    elif self.check_char('('):
+                        self.current_state = "procargs"
+                        self.handle_pascal_comment_2() # todo: expr
+                        break
+                break
+                
+    def handle_pascal_function(self):
+        while True:
+            genv.char_prev = genv.char_curr
+            self.getChar()
+
+            if self.check_white_spaces():
+                continue
+            elif self.check_char('{'):
+                self.handle_pascal_comment_1()
+                continue
+            elif self.check_char('('):
+                self.handle_pascal_comment_2() # todo: expr
+                continue
+            
+            elif self.check_ident():
+                showInfo("function name: " + self.token_str)
+                break
+                
     def handle_pascal_body(self):
         while True:
             genv.char_prev = genv.char_curr
@@ -6751,10 +6903,36 @@ class interpreter_Pascal(interpreter_base):
 
             if self.check_white_spaces():
                 continue
-            
-            if self.check_ident():
-                showInfo("====>> " + self.token_str)
-                break
+            elif self.check_char('{'):
+                self.handle_pascal_comment_1()
+                continue
+            elif self.check_char('('):
+                self.handle_pascal_comment_2() # todo: expr
+                continue
+                
+            elif self.check_ident():
+                if self.token_str.lower() == "end":
+                    while True:
+                        genv.char_prev = genv.char_curr
+                        self.getChar()
+
+                        if self.check_white_spaces():
+                            continue
+                        elif self.check_char('{'):
+                            self.handle_pascal_comment_1()
+                            continue
+                        elif self.check_char('('):
+                            self.handle_pascal_comment_2() # todo: expr
+                            continue
+                        
+                        elif self.check_char('.'):
+                            showInfo("program end.")
+                            break
+                        else:
+                            raise Exception(_("point (.) expected."))
+                    break
+                else:
+                    raise Exception(_("syntax error."))
                 
     def handle_pascal_begin(self):
         pass
@@ -6768,6 +6946,12 @@ class interpreter_Pascal(interpreter_base):
             self.getChar()
 
             if self.check_white_spaces():
+                continue
+            elif self.check_char('{'):
+                self.handle_pascal_comment_1()
+                continue
+            elif self.check_char('('):
+                self.handle_pascal_comment_2() # todo: expr
                 continue
             
             if self.check_ident():
@@ -10385,39 +10569,35 @@ class PascalSyntaxHighlighter(SourceCodeEditorBase):
         
         for startExpr, endExpr in zip(self.commentStartExpressions, self.commentEndExpressions):
             startIndex = 0
-            if self.previousBlockState() != 1:
+            if self.previousBlockState() != 1:  # Start from the beginning if not in a comment
                 startIndex = startExpr.indexIn(text)
             
             while startIndex >= 0:
-                endIndex = endExpr.indexIn(text, startIndex)
-                if endIndex == -1:
-                    self.setCurrentBlockState(1)
+                endIndex = endExpr.indexIn(text, startIndex + startExpr.matchedLength())
+                if endIndex == -1:  # Comment doesn't end in this block
+                    self.setCurrentBlockState(1)  # Keep state as "inside comment"
                     commentLength = len(text) - startIndex
-                else:
+                else:  # Comment ends in this block
                     commentLength = endIndex - startIndex + endExpr.matchedLength()
-                    self.setCurrentBlockState(0)  # Reset state after ending comment
                 self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
                 startIndex = startExpr.indexIn(text, startIndex + commentLength)
         
         # Einzeilige Kommentare markieren
-        single_line_comment_patterns = [r"//"]
-        comment_positions = []
-        
-        for pattern in single_line_comment_patterns:
-            for match in re.finditer(pattern, text):
-                start = match.start()
-                self.setFormat(start, len(text) - start, self.commentFormat)
-                comment_positions.append((start, len(text) - start))
+        singleLineCommentPattern = re.compile(r"//.*")
+        for match in singleLineCommentPattern.finditer(text):
+            start = match.start()
+            length = len(text) - start
+            self.setFormat(start, length, self.commentFormat)
         
         # Keywords markieren
         for word in self.keywords:
-            pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
-            for match in pattern.finditer(text):
+            keywordPattern = re.compile(r'\b' + re.escape(word) + r'\b')
+            for match in keywordPattern.finditer(text):
                 start = match.start()
                 length = match.end() - start
-                in_comment = any(start >= pos[0] and start < pos[0] + pos[1] for pos in comment_positions)
                 
-                if self.previousBlockState() != 1 and not in_comment:
+                # Verhindern, dass Keywords in Kommentaren markiert werden
+                if self.format(start) != self.commentFormat:  # Nur markieren, wenn es kein Kommentarformat ist
                     self.setFormat(start, length, self.boldFormat)
 
 class JavaScriptHighlighter(SourceCodeEditorBase):

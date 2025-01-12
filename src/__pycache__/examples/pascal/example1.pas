@@ -1,3 +1,4 @@
+;
 { this is a
   block comment that can be appear on
   multiple lines
@@ -7,9 +8,10 @@
    multiple lines
 *)
 // this is a C++ Comment which is valide for modern Pascal
-program test;
-begin
-end.
+program{comment} test {comment between symbols} ; { comment }
+procedure {comment} testproc (*comment*) (string:
+begin{comment } (*vvvv*)
+end (*comment*) .
 (*
 procedure testproc ();
 begin
@@ -22,9 +24,9 @@ end;
 function funa(): Boolean;
 begin
 end;
-*)
+
 
 begin
 end.
-
+*)
 (**)
