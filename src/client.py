@@ -4839,7 +4839,7 @@ print = builtins.print
             genv.char_prev = genv.char_curr
             self.getChar()
             
-            if genv.char_curr.isalpha():
+            if genv.char_curr.isalnum():
                 self.token_str += genv.char_curr
                 continue
             else:
@@ -5037,28 +5037,27 @@ print = builtins.print
                         continue
                 else:
                     continue
-        
-        if genv.char_curr.isalpha():
-            if self.check_ident():
-                showInfo("argument: " + self.token_str)
-                while True:
-                    genv.char_prev = genv.char_curr
-                    self.getChar()
+        else:
+            while True:
+                genv.char_prev = genv.char_curr
+                self.getChar()
 
-                    if self.check_white_spaces():
-                        continue
-                    elif self.check_char('{'):
-                        self.handle_pascal_comment_1()
-                        continue
-                    elif self.check_char('('):
-                        self.handle_pascal_comment_2() # todo: expr
-                        continue
-                        
-                    elif self.check_char(':'):
+                if self.check_white_spaces():
+                    continue
+                elif self.check_char('{'):
+                    self.handle_pascal_comment_1()
+                    continue
+                elif self.check_char('('):
+                    self.handle_pascal_comment_2() # todo: expr
+                    continue
+                    
+                elif genv.char_curr.isalpha():
+                    if self.check_ident():
+                        showInfo("argument: " + self.token_str)
                         while True:
                             genv.char_prev = genv.char_curr
                             self.getChar()
-                            
+
                             if self.check_white_spaces():
                                 continue
                             elif self.check_char('{'):
@@ -5068,9 +5067,8 @@ print = builtins.print
                                 self.handle_pascal_comment_2() # todo: expr
                                 continue
                                 
-                            elif genv.char_curr.isalpha():
-                                self.handle_pascal_argument_type()
-                                
+                            elif self.check_char(':'):
+                                showInfo(":::::")
                                 while True:
                                     genv.char_prev = genv.char_curr
                                     self.getChar()
@@ -5083,23 +5081,60 @@ print = builtins.print
                                     elif self.check_char('('):
                                         self.handle_pascal_comment_2() # todo: expr
                                         continue
-                                    
-                                    elif self.check_char(')'):
-                                        showInfo("list ende.")
-                                        break
+                                        
+                                    elif genv.char_curr.isalpha():
+                                        self.handle_pascal_argument_type()
+                                        
+                                        while True:
+                                            genv.char_prev = genv.char_curr
+                                            self.getChar()
+                                            
+                                            if self.check_white_spaces():
+                                                continue
+                                            elif self.check_char('{'):
+                                                self.handle_pascal_comment_1()
+                                                continue
+                                            elif self.check_char('('):
+                                                self.handle_pascal_comment_2() # todo: expr
+                                                continue
+                                            
+                                            elif self.check_char(')'):
+                                                showInfo("list ende.")
+                                                
+                                                while True:
+                                                    genv.char_prev = genv.char_curr
+                                                    self.getChar()
+                                                    
+                                                    if self.check_white_spaces():
+                                                        continue
+                                                    elif self.check_char('{'):
+                                                        self.handle_pascal_comment_1()
+                                                        continue
+                                                    elif self.check_char('('):
+                                                        self.handle_pascal_comment_2() # todo: expr
+                                                        continue
+                                                    
+                                                    elif self.check_char(';'):
+                                                        showInfo("procedure ende.")
+                                                        break
+                                                    else:
+                                                        raise Exception(_("semicolon (;) expected."))
+                                                break
+                                    else:
+                                        raise Exception(_("argument type expected."))
+                                    break
+                                break
                             else:
-                                raise Exception(_("argument type expected."))
+                                raise Exception(_("colon (:) expected."))
+                            break
                         break
                     else:
-                        raise Exception(_("colon (:) expected."))
-                        
-                return True
-        
-        else:
-            raise Exception(_("Error:\nPascal comment expected."))
+                        raise Exception(_("ident expected."))
+                else:
+                    raise Exception(_("wrong char type."))
     
     def handle_pascal_argument_type(self):
-        self.ungetChar(1)
+        #self.ungetChar(1)
         self.check_ident()
         showInfo("argument type: " + self.token_str)
         
