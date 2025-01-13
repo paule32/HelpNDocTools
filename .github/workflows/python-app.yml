@@ -68,14 +68,14 @@ jobs:
             pip install --upgrade pyinstaller
           }
           Write-Output "Create ByteCode ..."
-          python3 -m compileall client-linux.py
+          python3 -m compileall client-windows.py
           python3 -m compileall server.py
           Write-Output "Create Application ..."
           $pyInstallerArgs = "pyInstaller --noconfirm --onefile --console      " +
           "--icon         $env:MY_WORK_DIR\src\_internal\img\floppy-disk.ico " +
           "--splash       $env:MY_WORK_DIR\src\_internal\img\splash.png      " +
           "--version-file $env:MY_WORK_DIR\src\version.info        " +
-          "               $env:MY_WORK_DIR\src\client.py"
+          "               $env:MY_WORK_DIR\src\client-windows.py"
           $pyInstallerArgs
           dir
       # ------------------------------------------------------
@@ -146,4 +146,4 @@ jobs:
           --icon     $MY_WORK_DIR/src/_internal/img/floppy-disk.ico \
           --splash   $MY_WORK_DIR/src/_internal/img/splash.png      \
           --version-file $MY_WORK_DIR/src/version.info    \
-          $MY_WORK_DIR/src/client.py
+          $MY_WORK_DIR/src/client-linux.py
