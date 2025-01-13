@@ -2,7 +2,7 @@
 :: Datei:  build.bat - Windows MS-DOS Batch file
 :: Author: Jens Kallup - paule32
 ::
-:: Rechte: (c) 2024 by kallup non-profit software
+:: Rechte: (c) 2024, 2025 by kallup non-profit software
 ::         all rights reserved
 ::
 :: only for education, and for non-profit usage !!!
@@ -15,7 +15,7 @@ set BASEDIR=%cd%
 set VERSION=cpython-313
 
 set SRVAPP=server
-set CLTAPP=client
+set CLTAPP=client-windows
 
 echo Create Byte-Code...
 %PY% -m compileall %BASEDIR%\%SRVAPP%.py
