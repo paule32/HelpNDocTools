@@ -68,7 +68,7 @@ jobs:
             pip install --upgrade pyinstaller
           }
           Write-Output "Create ByteCode ..."
-          python3 -m compileall client.py
+          python3 -m compileall client-linux.py
           python3 -m compileall server.py
           Write-Output "Create Application ..."
           $pyInstallerArgs = "pyInstaller --noconfirm --onefile --console      " +
