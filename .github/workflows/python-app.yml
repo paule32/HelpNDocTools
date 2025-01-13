@@ -139,7 +139,7 @@ jobs:
             exit 1
           fi
           echo "Create ByteCode ..."
-          python3 -m compileall client.py
+          python3 -m compileall client-linux.py
           python3 -m compileall server.py
           echo "Create Application ..."
           pyinstaller --noconfirm --onefile --console     \
