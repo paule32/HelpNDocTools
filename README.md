@@ -6,7 +6,7 @@ To download the Windows 10 64-Bit Professional based Application, you can visit:
 Here are some out dated screen shoot on running the application:
 For the Commodore C-64 TrueType Font, visit: [C64Font](https://style64.org/release/c64-truetype-v1.2.1-style)
 
-Preview Úbuntu Linux (Hyper-V) Windows:
+Preview Úbuntu Linux - Hyper-V under Windows:
 ![Preview](src/img/linux001.png)
 
 Preview LogIn-Window A1:
