@@ -16250,59 +16250,6 @@ class MovableIcon(QWindow):
             except Exception as e:
                 DebugPrint(f"Fehler beim Wechsel zurück: {e}")
 
-class CustomMenuBar(QMenuBar):
-    def __init__(self, parent=None):
-        super(CustomMenuBar, self).__init__(parent)
-        
-        self.setStyleSheet(genv.css_menu_item_style)
-        self.setContentsMargins(0,0,0,0)
-        self.parent = parent
-        
-        self.menu_list = [
-            [_("&File"),
-                [
-                    [_("New Help")      , 1, "Ctrl+N", self.menu_file_clicked_new_help   ],
-                    [_("New dBase")     , 1, "Ctrl+N", self.menu_file_clicked_new_dbase   ],
-                    [_("New Pascal")    , 1, "Ctrl+N", self.menu_file_clicked_new_pascal   ],
-                    [_("New C/C++")     , 1, "Ctrl+N", self.menu_file_clicked_new_cpp   ],
-                    [_("New Java")      , 1, "Ctrl+N", self.menu_file_clicked_new_java   ],
-                    [_("New JavaScript"), 1, "Ctrl+N", self.menu_file_clicked_new_javascript   ],
-                    [_("New Python")    , 1, "Ctrl+N", self.menu_file_clicked_new_python   ],
-                    [_("New Fortran")   , 1, "Ctrl+N", self.menu_file_clicked_new_fortran   ],
-                    [_("New Prolog")    , 1, "Ctrl+N", self.menu_file_clicked_new_prolog   ],
-                    [_("New LISP")      , 1, "Ctrl+N", self.menu_file_clicked_new_lisp   ],
-                    #
-                    [_("Open")          , 0, "Ctrl+O", self.menu_file_clicked_open  ],
-                    [_("Save")          , 0, "Ctrl+S", self.menu_file_clicked_save  ],
-                    [_("Save as...")    , 0, ""      , self.menu_file_clicked_saveas],
-                    [_("Exit")          , 0, "Ctrl+X", self.menu_file_clicked_exit  ]
-                ]
-            ],
-            [_("&Edit"),
-                [
-                    [_("Undo")     , 0, ""      , self.menu_edit_clicked_undo     ],
-                    [_("Redo")     , 0, ""      , self.menu_edit_clicked_redo     ],
-                    [_("Clear All"), 0, "Ctrl+0", self.menu_edit_clicked_clearall ]
-                ]
-            ],
-            [_("&Help"),
-                [
-                    [_("About..."), 0, "F1", self.menu_help_clicked_about ]
-                ]
-            ]
-        ]
-        for item in menu_list:
-            name = item[0]; menu = item[1]
-            mbar = self.addMenu(name)
-            mbar.setStyleSheet("background-color:navy;")
-            mbar.setContentsMargins(0,0,0,0)
-            for menu_item in menu:
-                subs = menu_item
-                self.add_menu_item(subs[0], subs[1], subs[2], mbar, subs[3])
-        
-        self.parent.layout.addWidget(self)
-        #self.menu_bar.show()
-        
 # ---------------------------------------------------------------------------
 # \brief  This is the GUI-Entry point for our application.
 # \param  nothing
@@ -16889,23 +16836,75 @@ class FileWatcherGUI(QDialog):
         # Layout
         #self.setMaximumWidth(900)
         self.setMinimumWidth(900)
+        #
+        #self.setMaximumHeight(730)
+        #self.setMaximumHeight(730)
         
-        #self.setContentsMargins(0,0,0,0)
+        self.setContentsMargins(0,0,0,0)
         #self.setStyleSheet("padding:0px;margin:0px;") # wöö
-        
-        genv.active_side_button = genv.SIDE_BUTTON_HELP
         
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0,0,0,0)
         
-        # title bar
+        #layout = QVBoxLayout()
+                        
         self.title_bar = CustomTitleBar(self.windowtitle, self)
         self.title_bar.minimize_button.clicked.connect(self.showMinimized)
         self.title_bar.maximize_button.clicked.connect(self.showMaximized)
         self.title_bar.close_button.clicked.connect(self.close)
         
         # menu bar
-        self.menu_bar = CustomMenuBar(self)
+        self.menu_bar = QMenuBar(self)
+        self.menu_bar.setStyleSheet(genv.css_menu_item_style)
+        self.menu_bar.setContentsMargins(0,0,0,0)
+        
+        self.menu_style_bg = "background-color:navy;"
+        genv.active_side_button = genv.SIDE_BUTTON_HELP
+        
+        menu_list = [
+            [_("&File"),
+                [
+                    [_("New Help")      , 1, "Ctrl+N", self.menu_file_clicked_new_help   ],
+                    [_("New dBase")     , 1, "Ctrl+N", self.menu_file_clicked_new_dbase   ],
+                    [_("New Pascal")    , 1, "Ctrl+N", self.menu_file_clicked_new_pascal   ],
+                    [_("New C/C++")     , 1, "Ctrl+N", self.menu_file_clicked_new_cpp   ],
+                    [_("New Java")      , 1, "Ctrl+N", self.menu_file_clicked_new_java   ],
+                    [_("New JavaScript"), 1, "Ctrl+N", self.menu_file_clicked_new_javascript   ],
+                    [_("New Python")    , 1, "Ctrl+N", self.menu_file_clicked_new_python   ],
+                    [_("New Fortran")   , 1, "Ctrl+N", self.menu_file_clicked_new_fortran   ],
+                    [_("New Prolog")    , 1, "Ctrl+N", self.menu_file_clicked_new_prolog   ],
+                    [_("New LISP")      , 1, "Ctrl+N", self.menu_file_clicked_new_lisp   ],
+                    #
+                    [_("Open")          , 0, "Ctrl+O", self.menu_file_clicked_open  ],
+                    [_("Save")          , 0, "Ctrl+S", self.menu_file_clicked_save  ],
+                    [_("Save as...")    , 0, ""      , self.menu_file_clicked_saveas],
+                    [_("Exit")          , 0, "Ctrl+X", self.menu_file_clicked_exit  ]
+                ]
+            ],
+            [_("&Edit"),
+                [
+                    [_("Undo")     , 0, ""      , self.menu_edit_clicked_undo     ],
+                    [_("Redo")     , 0, ""      , self.menu_edit_clicked_redo     ],
+                    [_("Clear All"), 0, "Ctrl+0", self.menu_edit_clicked_clearall ]
+                ]
+            ],
+            [_("&Help"),
+                [
+                    [_("About..."), 0, "F1", self.menu_help_clicked_about ]
+                ]
+            ]
+        ]
+        for item in menu_list:
+            name = item[0]; menu = item[1]
+            mbar = self.menu_bar.addMenu(name)
+            mbar.setStyleSheet(self.menu_style_bg)
+            mbar.setContentsMargins(0,0,0,0)
+            for menu_item in menu:
+                subs = menu_item
+                self.add_menu_item(subs[0], subs[1], subs[2], mbar, subs[3])
+        
+        self.layout.addWidget( self.menu_bar )
+        self.menu_bar.show()
         
         # tool bar
         self.tool_bar = QToolBar()
