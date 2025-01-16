@@ -811,6 +811,12 @@ class globalEnv:
         self.radio_python       = None
         self.radio_php          = None
         
+        self.servers_scroll = None
+        self.servers_widget = None
+        self.servers_layout = None
+
+        self.splitter = None
+        
         self.active_side_button = -1
         
         self.tab_level = [
@@ -7991,6 +7997,7 @@ class myIconLabel(QLabel):
             if self.mode == 0:
                 genv.devices_scroll.hide()
                 genv.cpuview_scroll.hide()
+                genv.servers_scroll.setParent(parent.front_content_widget)
                 genv.servers_scroll.show()
             if self.mode == 11:
                 genv.devices_scroll.hide()
@@ -7999,7 +8006,8 @@ class myIconLabel(QLabel):
             else:
                 genv.servers_scroll.hide()
                 genv.cpuview_scroll.hide()
-                genv.devices_scroll.show()
+                #genv.servers_scroll.setParent(parent.front_content_widget)
+                #genv.devices_scroll.show()
             
             self.btn_clicked(self.parent,
             genv.parent_array[self.mode])
@@ -8045,7 +8053,20 @@ class myIconLabel(QLabel):
             genv.worker_thread = None
         
         self.hide_tabs()
+        parent = self.parent.parent
+        
+        #if genv.active_side_button == genv.SIDE_BUTTON_HELP:
+        #    tabs.addStretch()
+        
+        genv.servers_layout.addStretch()
+        
+        genv.splitter.addWidget(tabs)
+        genv.splitter.addWidget(genv.servers_scroll)
+        
+        parent.front_content_layout.addWidget(genv.splitter)
         tabs.show()
+        
+        genv.servers_scroll.show()
         
         self.set_null_state()
         btn.state = 2
@@ -16250,6 +16271,60 @@ class MovableIcon(QWindow):
             except Exception as e:
                 DebugPrint(f"Fehler beim Wechsel zurück: {e}")
 
+class CustomMenuBar(QMenuBar):
+    def __init__(self, parent=None):
+        super(CustomMenuBar, self).__init__(parent)
+        
+        self.setStyleSheet(genv.css_menu_item_style)
+        self.setMaximumHeight(28)
+        self.setContentsMargins(0,0,0,0)
+        self.parent = parent
+        
+        self.menu_list = [
+            [_("&File"),
+                [
+                    [_("New Help")      , 1, "Ctrl+N", self.parent.menu_file_clicked_new_help   ],
+                    [_("New dBase")     , 1, "Ctrl+N", self.parent.menu_file_clicked_new_dbase   ],
+                    [_("New Pascal")    , 1, "Ctrl+N", self.parent.menu_file_clicked_new_pascal   ],
+                    [_("New C/C++")     , 1, "Ctrl+N", self.parent.menu_file_clicked_new_cpp   ],
+                    [_("New Java")      , 1, "Ctrl+N", self.parent.menu_file_clicked_new_java   ],
+                    [_("New JavaScript"), 1, "Ctrl+N", self.parent.menu_file_clicked_new_javascript   ],
+                    [_("New Python")    , 1, "Ctrl+N", self.parent.menu_file_clicked_new_python   ],
+                    [_("New Fortran")   , 1, "Ctrl+N", self.parent.menu_file_clicked_new_fortran   ],
+                    [_("New Prolog")    , 1, "Ctrl+N", self.parent.menu_file_clicked_new_prolog   ],
+                    [_("New LISP")      , 1, "Ctrl+N", self.parent.menu_file_clicked_new_lisp   ],
+                    #
+                    [_("Open")          , 0, "Ctrl+O", self.parent.menu_file_clicked_open  ],
+                    [_("Save")          , 0, "Ctrl+S", self.parent.menu_file_clicked_save  ],
+                    [_("Save as...")    , 0, ""      , self.parent.menu_file_clicked_saveas],
+                    [_("Exit")          , 0, "Ctrl+X", self.parent.menu_file_clicked_exit  ]
+                ]
+            ],
+            [_("&Edit"),
+                [
+                    [_("Undo")     , 0, ""      , self.parent.menu_edit_clicked_undo     ],
+                    [_("Redo")     , 0, ""      , self.parent.menu_edit_clicked_redo     ],
+                    [_("Clear All"), 0, "Ctrl+0", self.parent.menu_edit_clicked_clearall ]
+                ]
+            ],
+            [_("&Help"),
+                [
+                    [_("About..."), 0, "F1", self.parent.menu_help_clicked_about ]
+                ]
+            ]
+        ]
+        for item in self.menu_list:
+            name = item[0]; menu = item[1]
+            mbar = self.addMenu(name)
+            mbar.setStyleSheet("background-color:navy;")
+            mbar.setContentsMargins(0,0,0,0)
+            for menu_item in menu:
+                subs = menu_item
+                self.parent.add_menu_item(subs[0], subs[1], subs[2], mbar, subs[3])
+        
+        self.parent.layout.addWidget(self)
+        #self.menu_bar.show()
+        
 # ---------------------------------------------------------------------------
 # \brief  This is the GUI-Entry point for our application.
 # \param  nothing
@@ -16290,33 +16365,33 @@ class FileWatcherGUI(QDialog):
         
         self.init_ui()
         
-        #genv.parent_array = [
-        #    self.help_tabs,
-        #    self.dbase_tabs,
-        #    self.pascal_tabs,
-        #    self.isoc_tabs,
-        #    self.java_tabs,
-        #    self.javascript_tabs,
-        #    self.python_tabs,
-        #    self.prolog_tabs,
-        #    self.fortran_tabs,
-        #    self.lisp_tabs,
-        #    self.basic_tabs,
-        #    self.pe_windows_tabs,
-        #    self.elf_linux_tabs,
-        #    self.console_tabs,
-        #    self.locale_tabs,
-        #    self.todo_tabs,
-        #    self.setup_tabs,
-        #    self.certssl_tabs,
-        #    self.github_tabs,
-        #    self.apache_tabs,
-        #    self.mysql_tabs,
-        #    self.squid_tabs,
-        #    self.electro_tabs,
-        #    self.c64_tabs,
-        #    self.settings_tabs
-        #]
+        genv.parent_array = [
+            self.help_tabs,
+            self.dbase_tabs,
+            self.pascal_tabs,
+            self.isoc_tabs,
+            self.java_tabs,
+            self.javascript_tabs,
+            self.python_tabs,
+            self.prolog_tabs,
+            self.fortran_tabs,
+            self.lisp_tabs,
+            self.basic_tabs,
+            self.pe_windows_tabs,
+            self.elf_linux_tabs,
+            self.console_tabs,
+            self.locale_tabs,
+            self.todo_tabs,
+            self.setup_tabs,
+            self.certssl_tabs,
+            self.github_tabs,
+            self.apache_tabs,
+            self.mysql_tabs,
+            self.squid_tabs,
+            self.electro_tabs,
+            self.c64_tabs,
+            self.settings_tabs
+        ]
         
     # --------------------
     # dialog exit ? ...
@@ -16681,19 +16756,10 @@ class FileWatcherGUI(QDialog):
         font.setBold(True)
         
         ####
-        setattr(genv, "servers_scroll", QScrollArea())
-        setattr(genv, "servers_widget", QWidget())
-        setattr(genv, "servers_layout", QVBoxLayout())
-        
         #
-        genv.servers_scroll.setMinimumWidth(230)
-        genv.servers_scroll.setMaximumWidth(230)
+        genv.servers_scroll.setMinimumWidth(100)
+        genv.servers_widget.setMinimumWidth(100)
         #
-        genv.servers_widget.setMinimumWidth(230)
-        genv.servers_widget.setMaximumWidth(230)
-        #
-        genv.servers_widget.setContentsMargins(1,0,0,1)
-        genv.servers_layout.setContentsMargins(1,0,0,1)
         
         self.servers_label_servers = QPushButton(" Servers: ")
         self.servers_label_servers.setMinimumWidth(180)
@@ -16725,12 +16791,12 @@ class FileWatcherGUI(QDialog):
         genv.servers_scroll.setWidgetResizable(True)
         genv.servers_scroll.setLayout(genv.servers_layout)
         
-        self.dl2 = QVBoxLayout()
-        self.dl2.setContentsMargins(1,0,0,1)
-        self.dl2.addWidget(genv.servers_scroll)
+        #self.dl2 = QVBoxLayout()
+        #self.dl2.setContentsMargins(1,0,0,1)
+        #self.dl2.addWidget(genv.servers_scroll)
         ##
-        self.main_layout.addLayout(self.dl2)
-        genv.servers_scroll.hide()
+        #self.main_layout.addLayout(self.dl2)
+        #genv.servers_scroll.hide()
         
     def handle_right_bar_devices(self):
         # devices
@@ -16836,80 +16902,29 @@ class FileWatcherGUI(QDialog):
         # Layout
         #self.setMaximumWidth(900)
         self.setMinimumWidth(900)
-        #
-        #self.setMaximumHeight(730)
-        #self.setMaximumHeight(730)
         
-        self.setContentsMargins(0,0,0,0)
+        #self.setContentsMargins(0,0,0,0)
         #self.setStyleSheet("padding:0px;margin:0px;") # wöö
+        
+        genv.active_side_button = genv.SIDE_BUTTON_HELP
         
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0,0,0,0)
         
-        #layout = QVBoxLayout()
-                        
+        # title bar
         self.title_bar = CustomTitleBar(self.windowtitle, self)
         self.title_bar.minimize_button.clicked.connect(self.showMinimized)
         self.title_bar.maximize_button.clicked.connect(self.showMaximized)
         self.title_bar.close_button.clicked.connect(self.close)
         
         # menu bar
-        self.menu_bar = QMenuBar(self)
-        self.menu_bar.setStyleSheet(genv.css_menu_item_style)
-        self.menu_bar.setContentsMargins(0,0,0,0)
-        
-        self.menu_style_bg = "background-color:navy;"
-        genv.active_side_button = genv.SIDE_BUTTON_HELP
-        
-        menu_list = [
-            [_("&File"),
-                [
-                    [_("New Help")      , 1, "Ctrl+N", self.menu_file_clicked_new_help   ],
-                    [_("New dBase")     , 1, "Ctrl+N", self.menu_file_clicked_new_dbase   ],
-                    [_("New Pascal")    , 1, "Ctrl+N", self.menu_file_clicked_new_pascal   ],
-                    [_("New C/C++")     , 1, "Ctrl+N", self.menu_file_clicked_new_cpp   ],
-                    [_("New Java")      , 1, "Ctrl+N", self.menu_file_clicked_new_java   ],
-                    [_("New JavaScript"), 1, "Ctrl+N", self.menu_file_clicked_new_javascript   ],
-                    [_("New Python")    , 1, "Ctrl+N", self.menu_file_clicked_new_python   ],
-                    [_("New Fortran")   , 1, "Ctrl+N", self.menu_file_clicked_new_fortran   ],
-                    [_("New Prolog")    , 1, "Ctrl+N", self.menu_file_clicked_new_prolog   ],
-                    [_("New LISP")      , 1, "Ctrl+N", self.menu_file_clicked_new_lisp   ],
-                    #
-                    [_("Open")          , 0, "Ctrl+O", self.menu_file_clicked_open  ],
-                    [_("Save")          , 0, "Ctrl+S", self.menu_file_clicked_save  ],
-                    [_("Save as...")    , 0, ""      , self.menu_file_clicked_saveas],
-                    [_("Exit")          , 0, "Ctrl+X", self.menu_file_clicked_exit  ]
-                ]
-            ],
-            [_("&Edit"),
-                [
-                    [_("Undo")     , 0, ""      , self.menu_edit_clicked_undo     ],
-                    [_("Redo")     , 0, ""      , self.menu_edit_clicked_redo     ],
-                    [_("Clear All"), 0, "Ctrl+0", self.menu_edit_clicked_clearall ]
-                ]
-            ],
-            [_("&Help"),
-                [
-                    [_("About..."), 0, "F1", self.menu_help_clicked_about ]
-                ]
-            ]
-        ]
-        for item in menu_list:
-            name = item[0]; menu = item[1]
-            mbar = self.menu_bar.addMenu(name)
-            mbar.setStyleSheet(self.menu_style_bg)
-            mbar.setContentsMargins(0,0,0,0)
-            for menu_item in menu:
-                subs = menu_item
-                self.add_menu_item(subs[0], subs[1], subs[2], mbar, subs[3])
-        
-        self.layout.addWidget( self.menu_bar )
-        self.menu_bar.show()
+        self.menu_bar = CustomMenuBar(self)
         
         # tool bar
         self.tool_bar = QToolBar()
         self.tool_bar.setMinimumHeight(26)
         self.tool_bar.setStyleSheet(_(genv.toolbar_css))
+        self.tool_bar.setMaximumHeight(32)
         self.tool_bar.setContentsMargins(0,0,0,0)
         
         self.tool_bar_button_exit = QToolButton()
@@ -16933,6 +16948,7 @@ class FileWatcherGUI(QDialog):
         self.status_bar = QStatusBar()
         self.status_bar.showMessage("Ready", 0)
         self.status_bar.setStyleSheet("background-color:gray;")
+        self.status_bar.setMaximumHeight(28)
         
         
         # side toolbar
@@ -16942,10 +16958,13 @@ class FileWatcherGUI(QDialog):
         self.main_widget = QWidget()
         self.main_widget.setStyleSheet("padding:0px;margin:0px;")
         
+        self.main_content_layout = QHBoxLayout()
+        self.main_content_layout.setSpacing(5)
+        
         self.side_scroll = QScrollArea()
         self.side_widget = QWidget()
         self.side_layout = QVBoxLayout()
-        self.side_layout.setSpacing(0)
+        self.side_layout.setSpacing(5)
         #
         self.side_widget.setContentsMargins(0,0,0,0)
         self.side_scroll.setContentsMargins(0,0,0,0)
@@ -16997,6 +17016,8 @@ class FileWatcherGUI(QDialog):
         self.side_scroll.setStyleSheet(_("ScrollBarCSS"))
         self.side_scroll.setWidget(self.side_widget)
         
+        #self.main_content_layout.addWidget(self.side_scroll)
+        #self.main_content_layout.addStretch()
         
         ####
         self.front_scroll_area = QScrollArea(self)
@@ -17004,21 +17025,867 @@ class FileWatcherGUI(QDialog):
         
         self.front_content_widget = QWidget()
         self.front_content_layout = QHBoxLayout(self.front_content_widget)
+
+        genv.splitter = QSplitter(Qt.Horizontal)
+        genv.splitter.addWidget(self.side_scroll)
+        genv.splitter.addWidget(self.front_scroll_area)
+        #
+        self.main_content_layout.addWidget(genv.splitter)
         
-        self.front_content_layout.addWidget(self.side_scroll)
+        self.handleDBase()
+        self.handlePascal()
+        self.handleIsoC()
+        self.handleJava()
+        self.handleJavaScript()
+        self.handlePython()
+        self.handleProlog()
+        self.handleFortran()
+        self.handleLISP()
+        self.handleBasic()
+        self.handlePEWindows()
+        self.handleELFLinux()
+        self.handleConsole()
+        self.handleLocales()
+        self.handleTodo()
+        self.handleSetup()
+        self.handleCertSSL()
+        self.handleGitHub()
+        self.handleApache()
+        self.handleMySQL()
+        self.handleSquid()
+        self.handleElectro()
+        self.handleCommodoreC64()
+        self.handleSettings()
         
-        # copy and paste here
-        #self.help_tabs.addTab(self.tab0_0, _("Help Project"))
+        # front view
+        self.help_tabs = QTabWidget()
+        self.help_tabs.setStyleSheet(_(genv.css_tabs))
+        self.help_tabs.setMinimumWidth(900)
+        # help
+        self.tab0_0 = QWidget()
+        self.tab1_0 = QWidget()
+        self.tab2   = QWidget()
+        self.tab3   = QWidget()
+        self.tab4   = QWidget()
+        self.tab5   = QWidget()
+        
+        # add tabs
+        self.help_tabs.addTab(self.tab0_0, _("Help Project"))
+        self.help_tabs.addTab(self.tab1_0, _("Pre-/Post Actions"))
+        self.help_tabs.addTab(self.tab3,   _("DoxyGen"))
+        self.help_tabs.addTab(self.tab5,   _("HelpNDoc"))
+        self.help_tabs.addTab(self.tab4,   _("Content"))
+        
+        self.help_tabs.addTab(genv.servers_scroll, _("Servers"))
+        
+        self.tab_widget_tabs = QTabWidget(self.tab4)
+        #self.tab_widget_tabs.setMinimumWidth(830)
+        #self.tab_widget_tabs.setMinimumHeight(650)
+        
+        self.help_tabs.removeTab(4)
+        self.help_tabs.removeTab(3)
+        self.help_tabs.removeTab(2)
+        self.help_tabs.removeTab(1)
+        
+        self.tab_html   = QWidget()
+        
+        self.tab_widget_tabs.addTab(self.tab2, _("Topics"))
+        self.tab_widget_tabs.addTab(self.tab_html, "HTML"  )
+        
+        
+        self.help_tabs.addTab(self.tab0_0, _("Help Project"))
+        self.front_content_layout.addWidget(self.help_tabs)
+        self.front_content_layout.addStretch()
+        
+        # create project tab
+        self.tab2_top_layout = QHBoxLayout(self.tab2)
+        self.tab3_top_layout = QHBoxLayout(self.tab3)
+        self.tab4_top_layout = QHBoxLayout(self.tab_widget_tabs)
+        self.tab5_top_layout = QHBoxLayout(self.tab_html)
+        
+        self.handle_right_bar_devices()
+        self.handle_right_bar_servers()
+        self.handle_right_bar_cpuview()
+        
+        ################
+        ##self.tab1_layout = QHBoxLayout()
+        ##self.tab1_widget = QWidget()
+        
+        self.widget_font = QFont(genv.v__app__font, 12)
+        self.widget_font.setBold(True)
+        
+        self.tab_widget_1 = QTabWidget()
+        
+        tab_1 = QWidget()
+        tab_2 = QWidget()
+        tab_3 = QWidget()
+        
+        tab_1.setFont(self.widget_font)
+        tab_2.setFont(self.widget_font)
+        tab_3.setFont(self.widget_font)
+        
+        self.tab_widget_1.addTab(tab_1, "Wizard")
+        self.tab_widget_1.addTab(tab_2, "Expert")
+        self.tab_widget_1.addTab(tab_3, "Run")
+        
+        list_layout_a = QVBoxLayout(tab_1)
+        
+        list_layout_1 = QHBoxLayout()
+        genv.list_widget_1 = QListWidget()
+        
+        list_layout_a.addLayout(list_layout_1)
+        
+        genv.list_widget_1.setFocusPolicy(Qt.NoFocus)
+        genv.list_widget_1.setStyleSheet(_(genv.css__widget_item))
+        genv.list_widget_1.setMinimumHeight(300)
+        genv.list_widget_1.setMaximumWidth(200)
+        
+        #
+        #
+        for element in genv.list_widget_1_elements:
+            list_item = customQListWidgetItem(element, genv.list_widget_1)
+        
+        genv.list_widget_1.setCurrentRow(0)
+        genv.list_widget_1.itemClicked.connect(self.handle_item_click_1)
+        list_layout_1.addWidget(genv.list_widget_1)
+        
+        genv.scrollview_1 = customScrollView_1(self, 1, 0, _("Project"))
+        genv.scrollview_2 = customScrollView_2(self, 2, 0, _("Mode"));     genv.scrollview_2.hide()
+        genv.scrollview_3 = customScrollView_3(self, 3, 0, _("Output"));   genv.scrollview_3.hide()
+        genv.scrollview_4 = customScrollView_4(self, 4, 0, _("Diagrams")); genv.scrollview_4.hide()
+        
+        list_layout_1.addWidget(genv.scrollview_1)
+        list_layout_1.addWidget(genv.scrollview_2)
+        list_layout_1.addWidget(genv.scrollview_3)
+        list_layout_1.addWidget(genv.scrollview_4)
+        
+        # progress bar
+        self.lv_1 = QVBoxLayout()
+        self.hw_1 = QWidget()
+        
+        hlp = customScrollView_help()
+        bar = QProgressBar()
+        bar.setTextVisible(False)
+        #
+        bar.setMinimum(1)
+        bar.setMaximum(100)
+        #
+        bar.setValue(18)
+        
+        self.lv_1.addWidget(hlp)
+        self.lv_1.addWidget(bar)
+        
+        list_layout_a.addLayout(self.lv_1)
+        ########################
+        list_layout_b = QVBoxLayout(tab_2)
+        
+        list_layout_2 = QHBoxLayout()
+        genv.list_widget_2 = QListWidget()
+        
+        list_layout_b.addLayout(list_layout_2)
+        
+        genv.list_widget_2.setFocusPolicy(Qt.NoFocus)
+        genv.list_widget_2.setStyleSheet(_(genv.css__widget_item))
+        genv.list_widget_2.setMinimumHeight(300)
+        genv.list_widget_2.setMaximumWidth(200)
+        
+        #
+        #
+        for element in genv.list_widget_2_elements:
+            list_item = customQListWidgetItem(element, genv.list_widget_2)
+        
+        genv.list_widget_2.setCurrentRow(0)
+        genv.list_widget_2.itemClicked.connect(self.handle_item_click_2)
+        list_layout_2.addWidget(genv.list_widget_2)
+
+        tab1_classes = []
+        
+        view_instance = None
+        view_object   = None
+
+        genv.scrollview_5  = customScrollViewDoxygen( 5, genv.tab_level[ 0], genv.list_widget_2_elements[ 0])
+        genv.scrollview_6  = customScrollViewDoxygen( 6, genv.tab_level[ 1], genv.list_widget_2_elements[ 1])
+        genv.scrollview_7  = customScrollViewDoxygen( 7, genv.tab_level[ 2], genv.list_widget_2_elements[ 2])
+        genv.scrollview_8  = customScrollViewDoxygen( 8, genv.tab_level[ 3], genv.list_widget_2_elements[ 3])
+        genv.scrollview_9  = customScrollViewDoxygen( 9, genv.tab_level[ 4], genv.list_widget_2_elements[ 4])
+        genv.scrollview_10 = customScrollViewDoxygen(10, genv.tab_level[ 5], genv.list_widget_2_elements[ 5])
+        genv.scrollview_11 = customScrollViewDoxygen(11, genv.tab_level[ 6], genv.list_widget_2_elements[ 6])
+        genv.scrollview_12 = customScrollViewDoxygen(12, genv.tab_level[ 7], genv.list_widget_2_elements[ 7])
+        genv.scrollview_13 = customScrollViewDoxygen(13, genv.tab_level[ 8], genv.list_widget_2_elements[ 8])
+        genv.scrollview_14 = customScrollViewDoxygen(14, genv.tab_level[ 9], genv.list_widget_2_elements[ 9])
+        genv.scrollview_15 = customScrollViewDoxygen(15, genv.tab_level[10], genv.list_widget_2_elements[10])
+        genv.scrollview_16 = customScrollViewDoxygen(16, genv.tab_level[11], genv.list_widget_2_elements[11])
+        genv.scrollview_17 = customScrollViewDoxygen(17, genv.tab_level[12], genv.list_widget_2_elements[12])
+        genv.scrollview_18 = customScrollViewDoxygen(18, genv.tab_level[13], genv.list_widget_2_elements[13])
+        genv.scrollview_19 = customScrollViewDoxygen(19, genv.tab_level[14], genv.list_widget_2_elements[14])
+        genv.scrollview_20 = customScrollViewDoxygen(20, genv.tab_level[15], genv.list_widget_2_elements[15])
+        genv.scrollview_21 = customScrollViewDoxygen(21, genv.tab_level[16], genv.list_widget_2_elements[16])
+        genv.scrollview_22 = customScrollViewDoxygen(22, genv.tab_level[17], genv.list_widget_2_elements[17])
+        
+        genv.scrollers[ 0] = genv.scrollview_5
+        genv.scrollers[ 1] = genv.scrollview_6
+        genv.scrollers[ 2] = genv.scrollview_7
+        genv.scrollers[ 3] = genv.scrollview_8
+        genv.scrollers[ 4] = genv.scrollview_9
+        genv.scrollers[ 5] = genv.scrollview_10
+        genv.scrollers[ 6] = genv.scrollview_11
+        genv.scrollers[ 7] = genv.scrollview_12
+        genv.scrollers[ 8] = genv.scrollview_13
+        genv.scrollers[ 9] = genv.scrollview_14
+        genv.scrollers[10] = genv.scrollview_15
+        genv.scrollers[11] = genv.scrollview_16
+        genv.scrollers[12] = genv.scrollview_17
+        genv.scrollers[13] = genv.scrollview_18
+        genv.scrollers[14] = genv.scrollview_19
+        genv.scrollers[15] = genv.scrollview_20
+        genv.scrollers[16] = genv.scrollview_21
+        genv.scrollers[17] = genv.scrollview_22
+        
+        genv.sv_help = customScrollView_help()
+        genv.sv_help.setStyleSheet(_("ScrollBarCSS"))
+        
+        vl = QVBoxLayout()
+        
+        for item in genv.scrollers:
+            list_layout_2.addWidget(item)
+            item.hide()
+
+        vl.addLayout(list_layout_2)
+        vl.addWidget(genv.sv_help)
+        
+        list_layout_b.addLayout(vl)
+        genv.scrollview_5.show()    
+        
+        
+        ########################
+        self.tab3_top_layout.addWidget(self.tab_widget_1)
+        
+        self.tab2_file_path = os.path.join(genv.v__app__internal__, "topics.txt")
+        if not os.path.exists(self.tab2_file_path):
+            showError("Error: file does not exists:\n" + self.tab2_file_path)
+            sys.exit(1)
+        DebugPrint("---> " + self.tab2_file_path)
+        
+        self.tab2_tree_view = QTreeView()
+        self.tab2_tree_view.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
+        self.tab2_tree_view.clicked.connect(self.on_treeview_clicked)
+        
+        self.tab2_tree_model = QStandardItemModel()
+        self.tab2_tree_model.setHorizontalHeaderLabels([_("Topic name"), "ID", "Status", "Help icon", "In Build"])
+        self.tab2_tree_model.dataChanged.connect(self.on_data_changed)
+        self.tab2_tree_view.setModel(self.tab2_tree_model)
+        
+        
+        root_node = self.tab2_tree_model.invisibleRootItem()
+        self.fold_icon = genv.v__app__internal__ + "/img/floppy-disk.png"
+        
+        self.tab2_tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tab2_tree_view.customContextMenuRequested.connect(self.open_context_topics_menu)
+        
+        self.tab2_pushbuttonAdd = QPushButton(_("Add"))
+        self.tab2_pushbuttonAdd.setMinimumHeight(32)
+        self.tab2_pushbuttonAdd.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonAddSub = QPushButton(_("Add Sub Topic"))
+        self.tab2_pushbuttonAddSub.setMinimumHeight(32)
+        self.tab2_pushbuttonAddSub.setStyleSheet(_(genv.css_button_style))
+        
+        self.topics_layout = QVBoxLayout()
+        
+        self.tab2_pushbuttonRename    = QPushButton(_("Rename Topic"))
+        self.tab2_pushbuttonRename.setMinimumHeight(32)
+        self.tab2_pushbuttonRename.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveUp    = QPushButton(_("Move Up"))
+        self.tab2_pushbuttonMoveUp.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveUp.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveDown  = QPushButton(_("Move Down"))
+        self.tab2_pushbuttonMoveDown.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveDown.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveLeft  = QPushButton(_("Move Left"))
+        self.tab2_pushbuttonMoveLeft.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveLeft.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonMoveRight = QPushButton(_("Move Right"))
+        self.tab2_pushbuttonMoveRight.setMinimumHeight(32)
+        self.tab2_pushbuttonMoveRight.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab2_pushbuttonRemove    = QPushButton(_("Delete"))
+        self.tab2_pushbuttonRemove.setMinimumHeight(32)
+        self.tab2_pushbuttonRemove.setStyleSheet(_(genv.css_button_style))
+        
+        top_array = [
+            self.tab2_pushbuttonAdd,
+            self.tab2_pushbuttonAddSub,
+            self.tab2_pushbuttonRename,
+            self.tab2_pushbuttonMoveUp,
+            self.tab2_pushbuttonMoveDown,
+            self.tab2_pushbuttonMoveLeft,
+            self.tab2_pushbuttonMoveRight,
+            self.tab2_pushbuttonRemove
+        ]
+        for topa in top_array:
+            self.topics_layout.addWidget(topa)
+        self.topics_layout.addStretch()
+        
+        self.tab2_top_layout.addWidget(self.tab2_tree_view)
+        self.tab2_top_layout.addLayout(self.topics_layout)
+        
+        self.populate_tree_view(self.tab2_file_path,os.path.join(genv.v__app__img__int__, "edit" + genv.v__app__img_ext__))
+        
+        
+        self.delegateID     = SpinEditDelegateID     (self.tab2_tree_view)
+        self.delegateStatus = ComboBoxDelegateStatus (self.tab2_tree_view)
+        self.delegateIcon   = ComboBoxDelegateIcon   (self.tab2_tree_view)
+        self.delegateBuild  = ComboBoxDelegateBuild  (self.tab2_tree_view)
+        
+        self.tab2_tree_view.setItemDelegateForColumn(1, self.delegateID)
+        self.tab2_tree_view.setItemDelegateForColumn(2, self.delegateStatus)
+        self.tab2_tree_view.setItemDelegateForColumn(3, self.delegateIcon)
+        self.tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
+        
+        #self.tab2_top_layout.
+        
+        # create project tab
+        self.tab0_top_layout    = QHBoxLayout(self.tab0_0)
+        self.tab0_left_layout   = QVBoxLayout()
+        
+        #
+        self.tab0_topV_vlayout = QVBoxLayout()
+        #
+        self.tab0_topA_hlayout = QHBoxLayout()
+        self.tab0_topB_hlayout = QHBoxLayout()
+        self.tab0_topC_hlayout = QHBoxLayout()
+        self.tab0_topD_hlayout = QHBoxLayout()
+        #
+        self.tab0_topA_hlayout = QHBoxLayout()
+        self.tab0_topA_vlayout = QVBoxLayout()
+        #
+        self.tab0_topB_hlayout = QHBoxLayout()
+        self.tab0_topB_vlayout = QVBoxLayout()
+        self.tab0_topA_vlayout.setAlignment(Qt.AlignLeft)
+        #
+        self.tab0_top0_vlayout = QVBoxLayout()
+        #
+        self.tab0_top1_vlayout = QVBoxLayout()
+        self.tab0_top2_vlayout = QVBoxLayout()
+        #
+        self.tab0_top1_hlayout = QHBoxLayout()
+        self.tab0_top2_hlayout = QHBoxLayout()
+        #
+        #
+        self.tab0_top1_vlayout.setAlignment(Qt.AlignTop)
+        self.tab0_top2_vlayout.setAlignment(Qt.AlignTop)
+        #
+        self.tab0_topA_vlayout.setAlignment(Qt.AlignTop)
+        self.tab0_topB_vlayout.setAlignment(Qt.AlignTop)
+        #
+        #
+        font = QFont(genv.v__app__font, 11)
+        font.setPointSize(11)
+        #
+        self.tab0_fold_text1 = QLabel(_("Project:"))
+        self.tab0_fold_text1.setMaximumWidth(84)
+        self.tab0_fold_text1.setFont(font)
+        
+        self.tab0_fold_edit1 = myLineEdit()
+        self.tab0_fold_edit1.setMinimumWidth(274)
+        self.tab0_fold_edit1.returnPressed.connect(self.tab0_fold_edit1_return)
+        
+        self.tab0_fold_push1 = OpenProjectButton(self, font)
+        self.tab0_fold_userd = QDir.homePath()
+        self.tab0_fold_userd = self.tab0_fold_userd.replace("\\",'/')
+        
+        if ' ' in self.tab0_fold_userd:
+            self.tab0_fold_userd = '"' + self.tab0_fold_userd + '"' + "/unknown.pro"
+        else:
+            self.tab0_fold_userd = QDir.homePath() + "/unknown.pro"
+        
+        self.tab0_fold_edit1.setFont(font)
+        self.tab0_fold_edit1.setText(self.tab0_fold_userd)
+        
+        self.tab0_fold_scroll1 = QScrollArea()
+        self.tab0_fold_scroll1.setWidgetResizable(True)
+        self.tab0_fold_scroll1.setMinimumWidth(300)
+        self.tab0_fold_scroll1.setMaximumWidth(300)
+        self.tab0_fold_scroll1.setMinimumHeight(215)
+        
+        self.tab0_fold_push11  = MyPushButton(self, "Create", 1, self.create_project_clicked)
+        self.tab0_fold_push12  = MyPushButton(self, "Open"  , 2, self.open_project_clicked)
+        self.tab0_fold_push13  = MyPushButton(self, "Repro" , 3, self.repro_project_clicked)
+        self.tab0_fold_push14  = MyPushButton(self, "Build" , 4, self.build_project_clicked)
+        #        
+        #
+        self.tab0_fold_scroll2 = QScrollArea()
+        self.tab0_fold_scroll2.setWidgetResizable(True)
+        self.tab0_fold_scroll2.setMinimumWidth(300)
+        self.tab0_fold_scroll2.setMaximumWidth(300)
+        #
+        lyfont = QFont("Arial",10)
+        
+        update = QLabel(_("search for updates"))
+        server = QLabel(_("connect to server"))
+        
+        update.setFont(lyfont)
+        server.setFont(lyfont)
+        
+        update.setMinimumWidth(140)
+        server.setMinimumWidth(140)
+        #
+        self.tab0_topB_vlayout.addWidget(update)
+        self.tab0_topB_vlayout.addWidget(server)
+        #
+        image_path = genv.v__app__donate1__
+        DebugPrint(image_path)
+        #url = "https://kallup.dev/paypal/observer.html"
+        
+        donate = ClickableImage()
+        button = GradientButton("Online Help", self)
+                
+        self.tab0_topB_vlayout.addWidget(donate)
+        self.tab0_topB_vlayout.addWidget(button)
+        #
+        self.tab0_topB_hlayout.addWidget(self.tab0_fold_scroll2, alignment=Qt.AlignLeft)
+        #
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_text1, alignment=Qt.AlignLeft)
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_edit1, alignment=Qt.AlignLeft)
+        self.tab0_top1_hlayout.addWidget(self.tab0_fold_push1, alignment=Qt.AlignLeft)
+        #
+        #
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push11 , alignment=Qt.AlignLeft)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push12 , alignment=Qt.AlignLeft)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push13 , alignment=Qt.AlignLeft)
+        self.tab0_topA_vlayout.addWidget(self.tab0_fold_push14 , alignment=Qt.AlignLeft)
+        self.tab0_topA_hlayout.addWidget(self.tab0_fold_scroll1, alignment=Qt.AlignLeft)
+        #
+        self.tab0_topC_hlayout.addLayout(self.tab0_topA_vlayout)
+        self.tab0_topC_hlayout.addLayout(self.tab0_topA_hlayout)
+        #
+        
+        #
+        self.tab0_topD_hlayout.addLayout(self.tab0_topB_vlayout)
+        self.tab0_topD_hlayout.addLayout(self.tab0_topB_hlayout)
+        #
+        self.tab0_top0_vlayout.addLayout(self.tab0_topC_hlayout)
+        self.tab0_top0_vlayout.addLayout(self.tab0_topD_hlayout)
+        #
+        self.tab0_topV_vlayout.addLayout(self.tab0_top1_hlayout)
+        self.tab0_topV_vlayout.addLayout(self.tab0_top0_vlayout)
+        self.tab0_topV_vlayout.addLayout(self.tab0_top2_hlayout)
+        self.tab0_topV_vlayout.addLayout(self.tab0_top0_vlayout)
+        #
+        #
+        self.tab0_fold_scroll1_contentWidget = QWidget()
+        self.tab0_fold_scroll2_contentWidget = QWidget()
+        #
+        self.tab0_fold_scroll1.setWidget(self.tab0_fold_scroll1_contentWidget)
+        self.tab0_fold_scroll2.setWidget(self.tab0_fold_scroll2_contentWidget)
+        #
+        #
+        self.img_scroll1_layout = QVBoxLayout(self.tab0_fold_scroll1)
+        self.img_scroll1_layout.addWidget(self.tab0_fold_scroll1)
+        #
+        genv.img_doxygen = doxygenImageTracker ()
+        genv.img_hlpndoc = helpNDocImageTracker()
+        #
+        #
+        self.img_scroll1_layout.addWidget(genv.img_doxygen)
+        self.img_scroll1_layout.addWidget(genv.img_hlpndoc)
+        #
+        
+        scro_layout = QVBoxLayout(self.tab0_fold_scroll2)
+        
+        # ScrollArea
+        scroll_area = QScrollArea()
+        scroll_area.setStyleSheet(_("ScrollBarCSS"))
+        scroll_area.setWidgetResizable(True)
+        scro_layout.addWidget(scroll_area)
+        
+        # Scrollbares Widget
+        scrollable_widget = QWidget()
+        scrollable_layout = QVBoxLayout(scrollable_widget)
+        
+        radio_font = QFont("Consolas",11)
+        
+        genv.radio_cpp        = QRadioButton("C++        Documentation")
+        genv.radio_java       = QRadioButton("Java       Documentation")
+        genv.radio_javascript = QRadioButton("JavaScript Documentation")
+        genv.radio_python     = QRadioButton("Python     Documentation")
+        genv.radio_php        = QRadioButton("PHP        Documentation")
+        genv.radio_fortran    = QRadioButton("Fortran    Documentation")
+        
+        genv.radio_cpp       .setFont(radio_font)
+        genv.radio_java      .setFont(radio_font)
+        genv.radio_javascript.setFont(radio_font)
+        genv.radio_python    .setFont(radio_font)
+        genv.radio_php       .setFont(radio_font)
+        genv.radio_fortran   .setFont(radio_font)
+        
+        genv.radio_cpp       .toggled.connect(self.radio_button_toggled)
+        genv.radio_java      .toggled.connect(self.radio_button_toggled)
+        genv.radio_javascript.toggled.connect(self.radio_button_toggled)
+        genv.radio_python    .toggled.connect(self.radio_button_toggled)
+        genv.radio_fortran   .toggled.connect(self.radio_button_toggled)
+        
+        scrollable_layout.addWidget(genv.radio_cpp)
+        scrollable_layout.addWidget(genv.radio_java)
+        scrollable_layout.addWidget(genv.radio_javascript)
+        scrollable_layout.addWidget(genv.radio_python)
+        scrollable_layout.addWidget(genv.radio_php)
+        scrollable_layout.addWidget(genv.radio_fortran)
+        
+        # Scrollable Widget in die ScrollArea setzen
+        scroll_area.setWidget(scrollable_widget)
+        
+        #wööö
+        #
+        self.tab0_top_layout.addLayout(self.tab0_topV_vlayout)
+        
+        self.tab0_file_text = QLabel("File:", self.tab0_0)
+        
+        self.tab0_left_layout.addWidget(self.tab0_file_text)
+        self.tab0_path = QDir.homePath()
+        
+        self.tab0_help_list1   = QListWidget()
+        self.tab0_help_list1.setStyleSheet(_("ScrollBarCSS"))
+        self.tab0_help_list1.setMinimumWidth(320)
+        self.tab0_help_list1.setMaximumWidth(320)
+        self.tab0_help_list1.setMaximumHeight(150)
+        self.tab0_help_list1.setIconSize(QSize(34,34))
+        self.tab0_help_list1.setFont(QFont(genv.v__app__font, 12))
+        self.tab0_help_list1.font().setBold(True)
+        self.tab0_help_list1.itemClicked.connect(self.tab0_help_list1_item_click)
+        
+        self.list_blue_item1 = QListWidgetItem(_("Page Template:"))
+        self.list_blue_item1.setBackground(QColor("navy"))
+        self.list_blue_item1.setForeground(QColor("yellow"))
+        self.list_blue_item1.setFlags(
+        self.list_blue_item1.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list1.addItem(self.list_blue_item1)
+        
+        liste = [
+            [_("HTML WebSite Template")],
+            [_("PDF  Portable Docuement Format")]
+        ]
+        for item in liste:
+            self.list_item1 = QListWidgetItem(_(item[0]))
+            self.list_item1.setFont(self.tab0_help_list1.font())
+            self.tab0_help_list1.addItem(self.list_item1)
+        
+        self.list_blue_item2 = QListWidgetItem(_("empty"))
+        self.list_blue_item2.setBackground(QColor("white"))
+        self.list_blue_item2.setForeground(QColor("white"))
+        self.list_blue_item2.setFlags(
+        self.list_blue_item2.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list1.addItem(self.list_blue_item2)
+        
+        ###
+        self.tab0_help_list2   = QListWidget()
+        self.tab0_help_list2.setStyleSheet(_("ScrollBarCSS"))
+        self.tab0_help_list2.setMinimumWidth(320)
+        self.tab0_help_list2.setMaximumWidth(320)
+        self.tab0_help_list2.setIconSize(QSize(34,34))
+        self.tab0_help_list2.setFont(QFont(genv.v__app__font, 12))
+        self.tab0_help_list2.font().setBold(True)
+        self.tab0_help_list2.itemClicked.connect(self.tab0_help_list2_item_click)
+        
+        self.list_blue_item3 = QListWidgetItem(_("Project Template:"))
+        self.list_blue_item3.setBackground(QColor("navy"))
+        self.list_blue_item3.setForeground(QColor("yellow"))
+        self.list_blue_item3.setFlags(
+        self.list_blue_item3.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list2.addItem(self.list_blue_item3)
+        
+        liste = [
+            [_("Empty Project")         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
+            [_("Recipe")                , os.path.join("recipe"       + genv.v__app__img_ext__) ],
+            [_("API Project")           , os.path.join("api"          + genv.v__app__img_ext__) ],
+            [_("Software Documentation"), os.path.join("software"     + genv.v__app__img_ext__) ],
+        ]
+        for item in liste:
+            self.list_item2 = QListWidgetItem(_(item[0]))
+            self.list_item2.setIcon(QIcon(os.path.join(genv.v__app__img__int__, item[1])))
+            self.list_item2.setFont(self.tab0_help_list2.font())
+            self.tab0_help_list2.addItem(self.list_item2)
+        
+        ###
+        self.tab0_help_list3   = QListWidget()
+        self.tab0_help_list3.setStyleSheet(_("ScrollBarCSS"))
+        self.tab0_help_list3.setMinimumWidth(320)
+        self.tab0_help_list3.setMaximumWidth(320)
+        self.tab0_help_list3.setIconSize(QSize(34,34))
+        self.tab0_help_list3.setFont(QFont(genv.v__app__font, 12))
+        self.tab0_help_list3.font().setBold(True)
+        self.tab0_help_list3.itemDoubleClicked.connect(self.tab0_help_list3_item_click)
+        
+        self.list_blue_item3 = QListWidgetItem(_("Projects:"))
+        self.list_blue_item3.setBackground(QColor("navy"))
+        self.list_blue_item3.setForeground(QColor("yellow"))
+        self.list_blue_item3.setFlags(
+        self.list_blue_item3.flags() & ~Qt.ItemIsSelectable)
+        self.tab0_help_list3.addItem(self.list_blue_item3)
+        ##
+        genv.v__app__config.read(genv.v__app__config_ini)
+        genv.v__app__helprojects = []
+        i = 1
+        try:
+            while True:
+                if i == 10:
+                    break
+                item = genv.v__app__config.get("helprojects", "help" + str(i))
+                genv.v__app__helprojects.append(item)
+                list_item = QListWidgetItem(item)
+                self.tab0_help_list3.addItem(list_item)
+                i += 1
+        except Exception as e:
+            DebugPrint(e)
+        
+        self.tab0_help_layout = QVBoxLayout()
+        self.tab0_help_layout.addWidget(self.tab0_help_list1)
+        self.tab0_help_layout.addWidget(self.tab0_help_list2)
+        self.tab0_help_layout.addWidget(self.tab0_help_list3)
+        
+        self.tab0_left_layout.addWidget(self.tab0_file_text)
+        self.tab0_left_layout.addLayout(self.tab0_help_layout)
+        #####
+        # help templates
+        
+        # create action tab
+        self.tab1_top_layout    = QHBoxLayout(self.tab1_0)
+        self.tab1_left_layout   = QVBoxLayout()
+        self.tab1_middle_layout = QVBoxLayout()
+        self.tab1_right_layout  = QVBoxLayout()
+        
+        # ------------------
+        # left, top part ...
+        # ------------------
+        self.tab1_fold_text = QLabel(_("Directory:"), self.tab1_0)
+        self.tab1_file_text = QLabel(_("File:"), self.tab1_0)
+        #
+        self.tab1_left_layout.addWidget(self.tab1_fold_text)
+        
+        # pre
+        self.tab1_pre_action_label = QLabel('Pre-Actions:', self.tab1_0)
+        self.tab1_middle_layout.addWidget(self.tab1_pre_action_label);
+        
+        # post
+        self.tab1_post_action_label = QLabel('Post-Actions:', self.tab1_0)
+        self.tab1_right_layout.addWidget(self.tab1_post_action_label);
+        
+        # ----------------------------
+        # left side directory view ...
+        # ----------------------------
+        self.tab1_path = QDir.homePath()
+        
+        self.tab1_dir_model = QFileSystemModel()
+        self.tab1_dir_model.setRootPath(self.tab1_path)
+        self.tab1_dir_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
+        
+        self.tab1_file_model = QFileSystemModel()
+        self.tab1_file_model.setFilter(QDir.NoDotAndDotDot | QDir.Files)
+        
+        self.tab1_file_tree = QTreeView()
+        self.tab1_file_list = QListView()
+        
+        self.tab1_file_tree.setStyleSheet(_(genv.css_model_header) + _("ScrollBarCSS"))
+        
+        self.tab1_file_tree.setModel(self.tab1_dir_model)
+        self.tab1_file_list.setModel(self.tab1_file_model)
+        
+        self.tab1_file_tree.setRootIndex(self.tab1_dir_model.index(self.tab1_path))
+        self.tab1_file_list.setRootIndex(self.tab1_file_model.index(self.tab1_path))
+        
+        self.tab1_left_layout.addWidget(self.tab1_file_tree)
+        self.tab1_left_layout.addWidget(self.tab1_file_text)
+        self.tab1_left_layout.addWidget(self.tab1_file_list)
+        
+        self.tab1_file_tree.clicked.connect(self.tab1_file_tree_clicked)
+        self.tab1_file_list.clicked.connect(self.tab1_file_list_clicked)
+        
+        # Eingabezeile für den Pfad
+        self.tab1_path_lineEdit = QLineEdit(self.tab1_0)
+        self.tab1_path_lineEdit.setStyleSheet(_(genv.css_button_style))
+        self.tab1_path_lineButton = QPushButton("...")
+        self.tab1_path_lineButton.setMinimumWidth(28)
+        self.tab1_path_lineButton.setMaximumHeight(28)
+        self.tab1_path_lineButton.setMaximumWidth(32)
+        
+        self.tab1_path_layout = QHBoxLayout()
+        
+        self.tab1_path_layout.addWidget(self.tab1_path_lineEdit)
+        self.tab1_path_layout.addWidget(self.tab1_path_lineButton)
+        #
+        self.tab1_left_layout.addLayout(self.tab1_path_layout)
+        
+        # Start und Stop Buttons
+        self.tab1_startButton = QPushButton("Start", self.tab1_0)
+        self.tab1_startButton.setStyleSheet(_(genv.css_button_style))
+        self.tab1_startButton.clicked.connect(self.startWatching)
+        self.tab1_left_layout.addWidget(self.tab1_startButton)
+        
+        self.tab1_stopButton = QPushButton('Stop', self.tab1_0)
+        self.tab1_stopButton.setStyleSheet(_(genv.css_button_style))
+        self.tab1_stopButton.clicked.connect(self.stopWatching)
+        self.tab1_left_layout.addWidget(self.tab1_stopButton)
+        
+        # ComboBox für Zeitangaben
+        self.tab1_timeComboBox = QComboBox(self.tab1_0)
+        self.tab1_timeComboBox.addItems(["10", "15", "20", "25", "30", "60", "120"])
+        self.tab1_timeComboBox.setStyleSheet(_(genv.css_button_style))
+        self.tab1_timeComboBox.setMaximumWidth(49)
+        self.tab1_left_layout.addWidget(self.tab1_timeComboBox)
+        
+        # Label für den Countdown
+        self.tab1_countdownLabel = QLabel('Select time:', self.tab1_0)
+        self.tab1_left_layout.addWidget(self.tab1_countdownLabel)
+        
+        # mitte Seite
+        self.tab1_preActionList = QListWidget(self.tab1_0)
+        self.tab1_preActionList.setStyleSheet(_("ScrollBarCSS"))
+        self.tab1_preActionList_Label  = QLabel(_("Content:"), self.tab1_0)
+        self.tab1_preActionList_Editor = QPlainTextEdit()
+        self.tab1_preActionList_Editor.setStyleSheet(_("ScrollBarCSS"))
+        #
+        self.tab1_middle_layout.addWidget(self.tab1_preActionList)
+        self.tab1_middle_layout.addWidget(self.tab1_preActionList_Label)
+        self.tab1_middle_layout.addWidget(self.tab1_preActionList_Editor)
+        
+        #
+        self.tab1_preActionComboBox = QComboBox(self.tab1_0)
+        self.tab1_preActionComboBox.addItems([_(" Message"), _(" Script"), " URL", " FTP"])
+        self.tab1_preActionComboBox.setStyleSheet(_(css_combobox_style))
+        self.tab1_timeComboBox.setMaximumWidth(49)
+        self.tab1_middle_layout.addWidget(self.tab1_preActionComboBox)
+        
+        self.tab1_preEditLineLabel = QLabel("Text / File:", self.tab1_0)
+        self.tab1_middle_layout.addWidget(self.tab1_preEditLineLabel)
+        #
+        self.tab1_pre_layout = QHBoxLayout()
+        
+        self.tab1_preEditLineText = QLineEdit(self.tab1_0)
+        self.tab1_preEditLineText.setStyleSheet(_(genv.css_button_style))
+     
+        self.tab1_path_lineButton.setMaximumHeight(28)
+        
+        #
+        self.tab1_pre_layout.addWidget(self.tab1_preEditLineText)
+        
+        self.tab1_middle_layout.addLayout(self.tab1_pre_layout)
+        
+        self.tab1_preAddButton = QPushButton(_("Add"))
+        self.tab1_preAddButton.setStyleSheet(_(genv.css_button_style))
+        #
+        self.tab1_preDelButton = QPushButton(_("Delete"))
+        self.tab1_preDelButton.setStyleSheet(_(genv.css_button_style))
+        #            
+        self.tab1_preClrButton = QPushButton(_("Clear All"))
+        self.tab1_preClrButton.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab1_preAddButton.clicked.connect(self.button_clicked_preadd)
+        self.tab1_preDelButton.clicked.connect(self.button_clicked_preDel)
+        self.tab1_preClrButton.clicked.connect(self.button_clicked_preClr)
+        #
+        self.tab1_middle_layout.addWidget(self.tab1_preAddButton)
+        self.tab1_middle_layout.addWidget(self.tab1_preDelButton)
+        self.tab1_middle_layout.addWidget(self.tab1_preClrButton)
+        
+        
+        # rechte Seite
+        self.tab1_postActionList = QListWidget(self.tab1_0)
+        self.tab1_postActionList.setStyleSheet(_("ScrollBarCSS"))
+        self.tab1_postActionList_Label  = QLabel(_("Content:"), self.tab1_0)
+        self.tab1_postActionList_Editor = QPlainTextEdit()
+        self.tab1_postActionList_Editor.setStyleSheet(_("ScrollBarCSS"))
+        #
+        self.tab1_right_layout.addWidget(self.tab1_postActionList)
+        self.tab1_right_layout.addWidget(self.tab1_postActionList_Label)
+        self.tab1_right_layout.addWidget(self.tab1_postActionList_Editor)
+        
+        self.tab1_postActionComboBox = QComboBox(self.tab1_0)
+        self.tab1_postActionComboBox.addItems([_(" Message"), _(" Script"), " URL", " FTP"])
+        self.tab1_postActionComboBox.setStyleSheet(_(css_combobox_style))
+        self.tab1_right_layout.addWidget(self.tab1_postActionComboBox)
+        
+        self.tab1_postEditLineLabel = QLabel("Text / File:", self.tab1_0)
+        self.tab1_right_layout.addWidget(self.tab1_postEditLineLabel)
+        #
+        self.tab1_post_layout = QHBoxLayout()
+        
+        self.tab1_postEditLineText = QLineEdit(self.tab1_0)
+        self.tab1_postEditLineText.setStyleSheet(_(genv.css_button_style))
+        #
+        self.tab1_post_layout.addWidget(self.tab1_postEditLineText)
+        self.tab1_right_layout.addLayout(self.tab1_post_layout)
+        
+        self.tab1_postAddButton = QPushButton(_("Add"))
+        self.tab1_postAddButton.setStyleSheet(_(genv.css_button_style))
+        #
+        self.tab1_postDelButton = QPushButton(_("Delete"))
+        self.tab1_postDelButton.setStyleSheet(_(genv.css_button_style))
+        #
+        self.tab1_postClrButton = QPushButton(_("Clear All"))
+        self.tab1_postClrButton.setStyleSheet(_(genv.css_button_style))
+        
+        self.tab1_postAddButton.clicked.connect(self.button_clicked_postadd)
+        self.tab1_postDelButton.clicked.connect(self.button_clicked_postDel)
+        self.tab1_postClrButton.clicked.connect(self.button_clicked_postClr)
+        #
+        self.tab1_right_layout.addWidget(self.tab1_postAddButton)
+        self.tab1_right_layout.addWidget(self.tab1_postDelButton)
+        self.tab1_right_layout.addWidget(self.tab1_postClrButton)
+        
+        # ------------------
+        # alles zusammen ...
+        # ------------------
+        self.webView1 = QWebEngineView(self.tab_html)
+        self.profile1 = QWebEngineProfile("storage1", self.webView1)
+        self.page1    = QWebEnginePage(self.profile1, self.webView1)
+        
+        self.webView1.setPage(self.page1)
+        self.webView1.setHtml(_(genv.html_content), baseUrl = QUrl.fromLocalFile('.'))
+        
+        self.tab5_top_layout.addWidget(self.webView1);            
+        self.tab0_top_layout.addLayout(self.tab0_left_layout)
+        
+        self.tab1_top_layout.addLayout(self.tab1_left_layout)
+        self.tab1_top_layout.addLayout(self.tab1_middle_layout)
+        self.tab1_top_layout.addLayout(self.tab1_right_layout)
+ 
+        self.set_window_layout()
+        
+        #return
+        # Timer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.updateCountdown)
+        
+        self.interval = 0
+        self.currentTime = 0
+        
+    def set_window_layout(self):
         
         self.front_content_widget.setLayout(self.front_content_layout)
         self.front_scroll_area   .setWidget(self.front_content_widget)
         
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.addWidget(self.front_scroll_area)
+        splitter.addWidget(genv.servers_scroll)
+        #
+        self.main_content_layout.addWidget(splitter)
+        
+        #self.main_content_layout.addWidget(self.front_scroll_area)
+        #self.main_content_layout.addWidget(genv.servers_scroll)
+        
+        
+        #genv.servers_layout.setStyleSheet("background-color:yellow;")
+        genv.servers_scroll.show()
+        
         self.main_layout.addWidget(self.title_bar)
-        #self.main_layout.addWidget(self.menu_bar)
-        #self.main_layout.addWidget(self.tool_bar)
-        self.main_layout.addLayout(self.layout)
-        self.main_layout.addWidget(self.front_scroll_area)
-        #self.main_layout.addWidget(self.status_bar)
+        self.main_layout.addWidget(self.menu_bar)
+        self.main_layout.addWidget(self.tool_bar)
+        self.main_layout.addLayout(self.main_content_layout)
+        self.main_layout.addWidget(self.status_bar)
         
         self.setLayout(self.main_layout)
         
@@ -18340,7 +19207,7 @@ class FileWatcherGUI(QDialog):
         self.dbase_tabs.addTab(self.dbase_tabs_datatab_widget, _("dBASE Data Tables"))
         self.dbase_tabs.addTab(self.dbase_tabs_reports_widget, _("dBASE Reports"))
         ####
-        self.dbase_project = ApplicationProjectPage(self, self.dbase_tabs_project_widget, "dbase")
+        self.dbase_project = ApplicationProjectPage(self.front_content_widget, self.dbase_tabs_project_widget, "dbase")
         self.dbase_editors = ApplicationEditorsPage(self, self.dbase_tabs_editors_widget, "dbase")
         ####
         
@@ -21107,6 +21974,12 @@ def EntryPoint(arg1=None):
     # -----------------------------------------------------
     genv.v__app_object = QApplication(sys.argv)
     
+    genv.servers_scroll = QScrollArea()
+    genv.servers_widget = QWidget()
+    genv.servers_layout = QVBoxLayout()
+    
+    genv.splitter = QSplitter()
+    
     # ---------------------------------------------------------
     # doxygen.exe directory path ...
     # ---------------------------------------------------------
@@ -21278,9 +22151,6 @@ def EntryPoint(arg1=None):
                     file.write("\n")
             
             file.close()
-    
-    genv.sv_help = customScrollView_help()
-    genv.sv_help.setStyleSheet(_("ScrollBarCSS"))
     
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     time_str = datetime.datetime.now().strftime("%H:%M:%S")

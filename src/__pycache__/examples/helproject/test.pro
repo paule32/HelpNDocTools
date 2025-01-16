@@ -1,7 +1,7 @@
 [common]
 language = en_us
 framework = 0
-lang = 1
+lang = 0
 template = 1
 kind = -1
 
