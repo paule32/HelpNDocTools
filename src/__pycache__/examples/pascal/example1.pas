@@ -15,6 +15,8 @@ end;
 procedure testprocB ();
 begin
 end;
+begin
+end .
 (*
 function func1(): String;
 begin

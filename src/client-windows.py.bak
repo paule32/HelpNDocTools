@@ -2144,97 +2144,97 @@ css_combobox_style = "combo_actn"
 # ------------------------------------------------------------------------
 # our client login, and write/read class ...
 # ------------------------------------------------------------------------
-#class ClientHandlerThread(QThread):
-#    new_data = pyqtSignal(QSslSocket, str)
-#    client_disconnected = pyqtSignal(QSslSocket)
-#
-#    def __init__(self, client_socket):
-#        super().__init__()
-#        self.client_socket = client_socket
-#        self.client_socket.readyRead.connect(self.read_data)
-#        self.client_socket.disconnected.connect(lambda: self.handle_disconnection(self.client_socket))
-#
-#    def read_data(self):
-#        try:
-#            if self.client_socket.state() == QSslSocket.ConnectedState:
-#                if self.client_socket.bytesAvailable() > 0:
-#                    data = self.client_socket.readAll().data().decode()
-#                    self.new_data.emit(self.client_socket, data)
-#                else:
-#                    showInfo(_("no data, close connection."))
-#                    self.client_socket.disconnectFromHost()
-#                    return True
-#        except Exception as e:
-#            showInfo(_("Error:\n file not found.\n") + e)
-#            return False
-#    
-#    def handle_disconnection(self):
-#        self.client_disconnected.emit(self.client_socket)
+class ClientHandlerThread(QThread):
+    new_data = pyqtSignal(QSslSocket, str)
+    client_disconnected = pyqtSignal(QSslSocket)
 
-#class SSLClient(QObject):
-#    # Eigene Signale (nur falls du sie brauchst, zur Weiterverarbeitung)
-#    connected        = pyqtSignal()
-#    disconnected     = pyqtSignal()
-#    newData          = pyqtSignal(str)
-#    sslErrorOccurred = pyqtSignal(str)
-#
-#    def __init__(
-#        self,
-#        host     = 'localhost',
-#        port     = 1234
-#        #crt_file = os.getcwd() + '/_internal/ssl/client.crt',
-#        #key_file = os.getcwd() + '/_internal/ssl/client.key'
-#    ):
-#        super(SSLClient, self).__init__()
+    def __init__(self, client_socket):
+        super().__init__()
+        self.client_socket = client_socket
+        self.client_socket.readyRead.connect(self.read_data)
+        self.client_socket.disconnected.connect(lambda: self.handle_disconnection(self.client_socket))
+
+    def read_data(self):
+        try:
+            if self.client_socket.state() == QSslSocket.ConnectedState:
+                if self.client_socket.bytesAvailable() > 0:
+                    data = self.client_socket.readAll().data().decode()
+                    self.new_data.emit(self.client_socket, data)
+                else:
+                    showInfo(_("no data, close connection."))
+                    self.client_socket.disconnectFromHost()
+                    return True
+        except Exception as e:
+            showInfo(_("Error:\n file not found.\n") + e)
+            return False
+    
+    def handle_disconnection(self):
+        self.client_disconnected.emit(self.client_socket)
+
+class SSLClient(QObject):
+    # Eigene Signale (nur falls du sie brauchst, zur Weiterverarbeitung)
+    connected        = pyqtSignal()
+    disconnected     = pyqtSignal()
+    newData          = pyqtSignal(str)
+    sslErrorOccurred = pyqtSignal(str)
+
+    def __init__(
+        self,
+        host     = 'localhost',
+        port     = 1234
+        #crt_file = os.getcwd() + '/_internal/ssl/client.crt',
+        #key_file = os.getcwd() + '/_internal/ssl/client.key'
+    ):
+        super(SSLClient, self).__init__()
         
-#        self.host = host
-#        self.port = port
+        self.host = host
+        self.port = port
+       
+        #self.crt_file = crt_file
+        #self.key_file = key_file
         
-#        #self.crt_file = crt_file
-#        #self.key_file = key_file
+        self.socket = QTcpSocket()
         
-#        self.socket = QTcpSocket()
-        
-#        # Signale verbinden
-#        self.socket.connected.connect(self.on_connected)
-#        self.socket.readyRead.connect(self.on_ready_read)
-#        self.socket.disconnected.connect(self.on_disconnected)
-#        self.socket.errorOccurred.connect(self.on_error_occurred)
+        # Signale verbinden
+        self.socket.connected.connect(self.on_connected)
+        self.socket.readyRead.connect(self.on_ready_read)
+        self.socket.disconnected.connect(self.on_disconnected)
+        self.socket.errorOccurred.connect(self.on_error_occurred)
 
-#    def connect_to_server(self):
-#        """Stellt eine Verbindung zum Server her (non-blocking)."""
-#        print(f"Verbinde zu {self.host}:{self.port}...")
-#        self.socket.connectToHost(self.host, self.port)
-#        # Ab hier wird asynchron verbunden.
-#        # Wenn die Verbindung steht, wird 'on_connected' ausgelöst.
+    def connect_to_server(self):
+        """Stellt eine Verbindung zum Server her (non-blocking)."""
+        print(f"Verbinde zu {self.host}:{self.port}...")
+        self.socket.connectToHost(self.host, self.port)
+        # Ab hier wird asynchron verbunden.
+        # Wenn die Verbindung steht, wird 'on_connected' ausgelöst.
 
-#    def on_connected(self):
-#        print("Client: Verbindung hergestellt.")
+    def on_connected(self):
+        print("Client: Verbindung hergestellt.")
 
-#        # Sobald wir verbunden sind, können wir Daten senden.
-#        test_message = "Hallo vom Client!"
-#        self.send_data(test_message)
+        # Sobald wir verbunden sind, können wir Daten senden.
+        test_message = "Hallo vom Client!"
+        self.send_data(test_message)
 
-#    def send_data(self, message):
-#        """Daten an den Server senden (non-blocking)."""
-#        if self.socket.state() == QTcpSocket.ConnectedState:
-#            print(f"Client sendet: {message}")
-#            self.socket.write(message.encode())
-#            self.socket.flush()
-#        else:
-#            print("Client: Keine aktive Verbindung zum Server.")
+    def send_data(self, message):
+        """Daten an den Server senden (non-blocking)."""
+        if self.socket.state() == QTcpSocket.ConnectedState:
+            print(f"Client sendet: {message}")
+            self.socket.write(message.encode())
+            self.socket.flush()
+        else:
+            print("Client: Keine aktive Verbindung zum Server.")
 
-#    def on_ready_read(self):
-#        """Wird aufgerufen, sobald Daten vom Server angekommen sind."""
-#        data = self.socket.readAll().data().decode()
-#        print(f"Client hat empfangen: {data}")
+    def on_ready_read(self):
+        """Wird aufgerufen, sobald Daten vom Server angekommen sind."""
+        data = self.socket.readAll().data().decode()
+        print(f"Client hat empfangen: {data}")
 
-#    def on_disconnected(self):
-#        print("Client: Verbindung wurde getrennt.")
+    def on_disconnected(self):
+        print("Client: Verbindung wurde getrennt.")
 
-#    def on_error_occurred(self, error):
-#        if error != QAbstractSocket.RemoteHostClosedError:
-#            print(f"Client-Socket-Fehler: {self.socket.errorString()}")
+    def on_error_occurred(self, error):
+        if error != QAbstractSocket.RemoteHostClosedError:
+            print(f"Client-Socket-Fehler: {self.socket.errorString()}")
 
 # ---------------------------------------------------------------------------
 # \brief Überschreibe die Datenmethode, um den Dateityp anzupassen.
@@ -4664,7 +4664,7 @@ class dbase_TForm(QDialog):
 # ---------------------------------------------------------------------------
 class interpreter_base():
     def __del__(self):
-        showInfo("destructor")
+        print("destructor")
     
     def __init__(self, file_name):
         self.script_name = file_name
@@ -5029,10 +5029,10 @@ print = builtins.print
         if genv.char_curr.isalpha():
             self.token_str = genv.char_curr
             self.getIdent()
-            showInfo("ident: " + self.token_str)
+            print("ident: " + self.token_str)
             return True
         else:
-            showInfo("checker: " + self.token_str + "\n> " + genv.char_curr)
+            print("checker: " + self.token_str + "\n> " + genv.char_curr)
             #self.ungetChar(1)
             return False
     
@@ -5078,82 +5078,48 @@ print = builtins.print
                         continue
                 else:
                     continue
+        elif self.check_char(')'):
+            print("==>> " + self.current_state)
+            while True:
+                if self.handle_pascal_white_spaces():
+                    continue
+                if genv.char_curr == ';':
+                    print("semi ok")
+                    break
+                else:
+                    raise Exception(_("SEmicolon expected."))
         elif genv.char_curr.isalpha():
             if self.check_ident():
-                showInfo("ARgument: " + self.token_str)
-                self.handle_pascal_argument()
+                print("---> state: " + self.current_state)
+                if self.current_state == "procedure":
+                    self.current_state = "procedure_arg"
+                    self.handle_pascal_argument()
+                    #self.handle_pascal_procedure_name()
+                elif self.current_state == "procedure_arg":
+                    print("ARgument: " + self.token_str)
+                    self.handle_pascal_argument()
             else:
                 raise Exception(_("ident expected."))
         else:
-            while True:
-                genv.char_prev = genv.char_curr
-                self.getChar()
-
-                if self.check_white_spaces():
-                    continue
-                elif self.check_char('{'):
-                    self.handle_pascal_comment_1()
-                    continue
-                elif self.check_char('('):
-                    self.handle_pascal_comment_2() # todo: expr
-                    continue
-                    
-                elif genv.char_curr.isalpha():
-                    if self.check_ident():
-                        showInfo("argument: " + self.token_str)
-                        self.handle_pascal_argument()
-                    else:
-                        raise Exception(_("ident expected."))
-                else:
-                    raise Exception(_("wrong char type."))
+            raise Exception(_("wrong char type."))
     
     def handle_pascal_argument(self):
         while True:
-            genv.char_prev = genv.char_curr
-            self.getChar()
-
-            if self.check_white_spaces():
+            if self.handle_pascal_white_spaces():
                 continue
-            elif self.check_char('{'):
-                self.handle_pascal_comment_1()
-                continue
-            elif self.check_char('('):
-                self.handle_pascal_comment_2() # todo: expr
-                continue
-                
-            elif self.check_char(':'):
-                showInfo(":::::")
+            if self.check_char(':'):
+                print(":::::")
                 while True:
-                    genv.char_prev = genv.char_curr
-                    self.getChar()
-                    
-                    if self.check_white_spaces():
+                    if self.handle_pascal_white_spaces():
                         continue
-                    elif self.check_char('{'):
-                        self.handle_pascal_comment_1()
-                        continue
-                    elif self.check_char('('):
-                        self.handle_pascal_comment_2() # todo: expr
-                        continue
-                        
-                    elif genv.char_curr.isalpha():
+                    if genv.char_curr.isalpha():
                         self.handle_pascal_argument_type()
                         
                         while True:
-                            genv.char_prev = genv.char_curr
-                            self.getChar()
-                            
-                            if self.check_white_spaces():
+                            if self.handle_pascal_white_spaces():
                                 continue
-                            elif self.check_char('{'):
-                                self.handle_pascal_comment_1()
-                                continue
-                            elif self.check_char('('):
-                                self.handle_pascal_comment_2() # todo: expr
-                                continue
-                            
-                            elif self.check_char(')'):
-                                showInfo("list ende.")
+                            if self.check_char(')'):
+                                print("list ende.")
                                 self.handle_pascal_list_end()
                                 break
                     else:
@@ -5175,11 +5141,14 @@ print = builtins.print
                 self.handle_pascal_comment_1()
                 continue
             elif self.check_char('('):
+                if self.current_state == "procedure" \
+                or self.current_state == "function":
+                    self.current_state = "procedure_arg"
                 self.handle_pascal_comment_2() # todo: expr
                 continue
             
             elif self.check_char(';'):
-                showInfo("procedure ende.")
+                print("procedure ende.")
                 break
             else:
                 raise Exception(_("semicolon (;) expected."))
@@ -5187,7 +5156,7 @@ print = builtins.print
     def handle_pascal_argument_type(self):
         #self.ungetChar(1)
         self.check_ident()
-        showInfo("argument type: " + self.token_str)
+        print("argument type: " + self.token_str)
         
     # -----------------------------------------------------------------------
     # \brief skip all whitespaces. whitespaces are empty lines, lines with
@@ -5274,7 +5243,7 @@ print = builtins.print
                         if self.check_white_spaces():
                             continue
                             
-                        elif self.check_number():
+                        if self.check_number():
                             showInfo("lisp: " + self.token_str)
                             while True:
                                 if self.check_char(')'):
@@ -6878,13 +6847,13 @@ class interpreter_Pascal(interpreter_base):
                     if self.handle_pascal_white_spaces():
                         continue
                     if self.check_ident():
-                        self.handle_pascal_program_head()
+                        self.handle_pascal_program_ident()
                         break
                     else:
                         raise Exception(_("ident expected."))
                 break
     
-    def handle_pascal_program_head(self):
+    def handle_pascal_program_ident(self):
         while True:
             if self.handle_pascal_white_spaces():
                 continue
@@ -6899,7 +6868,8 @@ class interpreter_Pascal(interpreter_base):
                         #self.handle_pascal_tail()
                         break
                     elif self.token_str.lower() == "procedure":
-                        self.handle_pascal_procedure()
+                        self.handle_pascal_procedure_name()
+                        print("AAAAA")
                         
                     elif self.token_str.lower() == "function":
                         self.handle_pascal_function()
@@ -6921,12 +6891,13 @@ class interpreter_Pascal(interpreter_base):
         else:
             return False
             
-    def handle_pascal_procedure(self):
+    def handle_pascal_procedure_name(self):
         while True:
             if self.handle_pascal_white_spaces():
                 continue
             if self.check_ident():
-                showInfo("procedure name: " + self.token_str)
+                print("procedure name: " + self.token_str)
+                self.current_state = "procedure"
                 self.handle_pascal_white_spaces()
                 break
                 
@@ -6935,7 +6906,8 @@ class interpreter_Pascal(interpreter_base):
             if self.handle_pascal_white_spaces():
                 continue            
             elif self.check_ident():
-                showInfo("function name: " + self.token_str)
+                print("function name: " + self.token_str)
+                self.current_state = "function"
                 self.handle_pascal_white_spaces()
                 break
                 
@@ -6948,9 +6920,62 @@ class interpreter_Pascal(interpreter_base):
                     while True:
                         if self.handle_pascal_white_spaces():
                             continue
-                        if self.check_char('.'):
-                            showInfo("program end.")
-                            break
+                        #if self.check_char('.'):
+                        #    print("program end.")
+                        #    return True
+                        if self.check_char(';'):
+                            print("ENDE")
+                            while True:
+                                if self.handle_pascal_white_spaces():
+                                    continue
+                                if self.check_ident():
+                                    showInfo(self.token_str)
+                                    if self.token_str.lower() == "begin":
+                                        while True:
+                                            if self.handle_pascal_white_spaces():
+                                                continue 
+                                            if self.check_ident():
+                                                if self.token_str.lower() == "end":
+                                                    while True:
+                                                        if self.handle_pascal_white_spaces():
+                                                            continue 
+                                                        if self.check_char('.'):
+                                                            break
+                                                        else:
+                                                            raise Exception("Point expected.")
+                                                    break
+                                                else:
+                                                    raise Exception("end expected.")
+                                            else:
+                                                raise Exception("ident expected.")
+                                        break
+                                    elif self.token_str.lower() == "procedure":
+                                        while True:
+                                            if self.handle_pascal_white_spaces():
+                                                continue
+                                            if self.check_ident():
+                                                if self.token_str.lower() == "begin":
+                                                    while True:
+                                                        if self.handle_pascal_white_spaces():
+                                                            continue
+                                                        if self.check_ident():
+                                                            if self.token_str.lower() == "end":
+                                                                print("nnnnnnn")
+                                                                if self.handle_pascal_white_spaces():
+                                                                    continue
+                                                                if self.check_char('.'):
+                                                                    break
+                                                                else:
+                                                                    raise Exception("poin expected.")
+                                                    break
+                                    else:
+                                        raise Exception(f"Line: {genv.line_row}\nBegin expected.")
+                            continue
+                        elif self.check_ident():
+                            if self.token_str.lower() == "procedure":
+                                self.current_state = "procedure"
+                                self.handle_pascal_procedure_name()
+                                continue
                         else:
                             raise Exception(_("point (.) expected."))
                     break
@@ -6971,311 +6996,8 @@ class interpreter_Pascal(interpreter_base):
                 showInfo("oooo====>> " + self.token_str)
                 break
     
-    def parse__1(self):
-        try:
-            genv.counter_digits = 0
-            genv.counter_indent = 1
-            genv.counter_for    = 0
-            genv.counter_brace  = 0
-            
-            genv.first_part  = False
-            genv.second_part = False
-            
-            genv.line_row  = 1
-            genv.line_col  = 1
-            
-            self.counter_begin = 0
-            self.counter_end   = 0
-            
-            if len(self.source) < 1:
-                genv.unexpectedError(_("no data available."))
-                return
-            
-            self.token_str = ""            
-            self.found = False
-            
-            ident_name = ""
-            
-            self.skip_white_spaces(self.pascal_parser)
-            if genv.char_curr.isalpha():
-                showInfo("3333333")
-                self.getIdent(genv.char_curr)
-                if self.token_str.lower() == "program":
-                    pass
-                elif self.token_str.lower() == "unit":
-                    pass
-                elif self.token_str.lower() == "library":
-                    pass
-                    
-                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                if genv.char_curr == genv.ptNoMoreData:
-                    raise e_no_more_data()
-                    return
-                elif genv.char_curr.isalpha():
-                    self.getIdent(genv.char_curr)
-                    ident_name = self.token_str
-                    self.token_str = ""
-                
-                if len(ident_name) > 0:
-                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                    if genv.char_curr == genv.ptNoMoreData:
-                        raise e_no_more_data()
-                        return
-                    if not genv.char_curr == ';':
-                        genv.have_errors = True
-                        genv.unexpectedError(_("semicolon expected"))
-                        return
-                else:
-                    genv.have_errors = True
-                    genv.unexpectedError(_("module ident name expected."))
-                    return
-                    
-                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                if genv.char_curr == genv.ptNoMoreData:
-                    raise e_no_more_data()
-                    return
-                elif c.isalpha():
-                    self.getIdent(genv.char_curr)
-                    
-                    if self.token_str.lower() == "interface":
-                        pass
-                    self.handle_pascal_code(self.token_str.lower())
-                else:
-                    genv.have_errors = True
-                    genv.unexpectedError(_("alpha ident expected"))
-                    return
-            else:
-                genv.have_errors = True
-                genv.unexpectedError(_("alpha ident expected"))
-                return
-        except e_no_more_data as noerr:
-            showInfo("A no Error Exception")
-    
     def handle_pascal_code(self, token):
-        self.ungetChar(len(self.token_str)+1)
-        while True:
-            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-            if genv.char_curr == genv.ptNoMoreData:
-                raise e_no_more_data()
-                return
-            elif genv.char_curr.isalpha():
-                self.getIdent(genv.char_curr)
-                if self.token_str.lower() == "procedure":
-                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                    if genv.char_curr == genv.ptNoMoreData:
-                        raise e_no_more_data()
-                        return
-                    if genv.char_curr.isalpha():
-                        self.getIdent(genv.char_curr)
-                        ident_name = self.token_str
-                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                        if genv.char_curr == genv.ptNoMoreData:
-                            raise e_no_more_data()
-                            return
-                        if genv.char_curr == '(':
-                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                            if genv.char_curr == genv.ptNoMoreData:
-                                raise e_no_more_data()
-                                return
-                            elif genv.char_curr == ')':
-                                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                if genv.char_curr == genv.ptNoMoreData:
-                                    raise e_no_more_data()
-                                    return
-                                elif genv.char_curr == ';':
-                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                    if genv.char_curr == genv.ptNoMoreData:
-                                        raise e_no_more_data()
-                                        return
-                                    elif genv.char_curr.isalpha():
-                                        self.getIdent(genv.char_curr)
-                                        if self.token_str == "var":
-                                            pass
-                                        elif self.token_str == "begin":
-                                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                            if genv.char_curr == genv.ptNoMoreData:
-                                                raise e_no_more_data()
-                                                return
-                                            elif genv.char_curr.isalpha():
-                                                self.getIdent(genv.char_curr)
-                                                if self.token_str == "end":
-                                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                                    if genv.char_curr == genv.ptNoMoreData:
-                                                        raise e_no_more_data()
-                                                        return
-                                                    elif genv.char_curr == ';':
-                                                        continue
-                                                    else:
-                                                        genv.have_errors = True
-                                                        genv.unexpectedError(_("semicolon expected"))
-                                                        return
-                                                else:
-                                                    genv.have_errors = True
-                                                    genv.unexpectedError(_("END expected"))
-                                                    return
-                                            else:
-                                                genv.have_errors = True
-                                                genv.unexpectedError(_("alpha ident expected"))
-                                                return
-                                        else:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("BEGIN, VAR expected"))
-                                            return
-                                    else:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_("alpha ident expected"))
-                                        return
-                                else:
-                                    genv.have_errors = True
-                                    genv.unexpectedError(_("semicolon expected"))
-                                    return
-                            else:
-                                genv.have_errors = True
-                                genv.unexpectedError(_("closed paren expected"))
-                                return
-                        else:
-                            genv.have_errors = True
-                            genv.unexpectedError(_("open paren expected"))
-                            return
-                    else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("alpha ident expected"))
-                        return
-                        
-                elif self.token_str.lower() == "function":
-                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                    if genv.char_curr == genv.ptNoMoreData:
-                        raise e_no_more_data()
-                        return
-                    elif genv.char_curr.isalpha():
-                        self.getIdent(genv.char_curr)
-                        ident_name = self.token_str
-                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                        if genv.char_curr == genv.ptNoMoreData:
-                            raise e_no_more_data()
-                            return
-                        elif genv.char_curr == '(':
-                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                            if genv.char_curr == genv.ptNoMoreData:
-                                raise e_no_more_data()
-                                return
-                            elif genv.char_curr == ')':
-                                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                if genv.char_curr == genv.ptNoMoreData:
-                                    raise e_no_more_data()
-                                    return
-                                elif genv.char_curr == ':':
-                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                    if genv.char_curr == genv.ptNoMoreData:
-                                        raise e_no_more_data()
-                                        return
-                                    elif genv.char_curr.isalpha():
-                                        self.getIdent(genv.char_curr)
-                                        resultName = self.token_str
-                                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                        if genv.char_curr == genv.ptNoMoreData:
-                                            raise e_no_more_data()
-                                            return
-                                        elif genv.char_curr == ';':
-                                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                            if genv.char_curr == genv.ptNoMoreData:
-                                                raise e_no_more_data()
-                                                return
-                                            elif genv.char_curr.isalpha():
-                                                self.getIdent(genv.char_curr)
-                                                if self.token_str == "var":
-                                                    pass
-                                                elif self.token_str == "begin":
-                                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                                    if genv.char_curr == genv.ptNoMoreData:
-                                                        raise e_no_more_data()
-                                                        return
-                                                    elif genv.char_curr.isalpha():
-                                                        self.getIdent(genv.char_curr)
-                                                        if self.token_str == "end":
-                                                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                                                            if genv.char_curr == genv.ptNoMoreData:
-                                                                raise e_no_more_data()
-                                                                return
-                                                            elif genv.char_curr == ';':
-                                                                continue
-                                                            else:
-                                                                genv.have_errors = True
-                                                                genv.unexpectedError(_("semicolon expected"))
-                                                                return
-                                                        else:
-                                                            genv.have_errors = True
-                                                            genv.unexpectedError(_("END expected"))
-                                                            return
-                                                    else:
-                                                        genv.have_errors = True
-                                                        genv.unexpectedError(_("alpha ident expected"))
-                                                        return
-                                                else:
-                                                    genv.have_errors = True
-                                                    genv.unexpectedError(_("BEGIN, VAR expected"))
-                                                    return
-                                            else:
-                                                genv.have_errors = True
-                                                genv.unexpectedError(_("alpha ident expected"))
-                                                return
-                                        else:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_("semicolon expected"))
-                                            return
-                                    else:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_("alpha ident expected"))
-                                        return
-                                else:
-                                    genv.have_errors = True
-                                    genv.unexpectedError(_("colom expected"))
-                                    return
-                            else:
-                                genv.have_errors = True
-                                genv.unexpectedError(_("closed paren expected"))
-                                return
-                        else:
-                            genv.have_errors = True
-                            genv.unexpectedError(_("open paren expected"))
-                            return
-                    else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("alpha ident expected"))
-                        return
-                
-                elif self.token_str.lower() == "begin":
-                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                    if genv.char_curr == genv.ptNoMoreData:
-                        raise e_no_more_data()
-                        return
-                    elif genv.char_curr.isalpha():
-                        self.getIdent(genv.char_curr)
-                        if self.token_str.lower() == "end":
-                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
-                            if not genv.char_curr == '.':
-                                genv.have_errors = True
-                                genv.unexpectedError(_("end-point expected"))
-                                return
-                            else:
-                                raise e_no_more_data()
-                                return
-                        else:
-                            genv.have_errors = True
-                            genv.unexpectedError(_("END expected"))
-                            return
-                    else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_("alpha ident expected"))
-                        return
-                else:
-                    genv.have_errors = True
-                    genv.unexpectedToken(self.token_str)
-                    return
-            else:
-                genv.have_errors = True
-                genv.unexpectedToken(self.token_str)
-                return
+        return
     
     def handle_pascal_commands(self):
         showInfo("oooooo---> " + self.token_str)
