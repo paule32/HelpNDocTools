@@ -61,3 +61,6 @@ python -m compileall TObject.py
 python -m compileall TStream.py
 python -m compileall TMemory.py
 python -m compileall TException.py
+
+python -m compileall client-windows.py
+python -m compileall start-client.py

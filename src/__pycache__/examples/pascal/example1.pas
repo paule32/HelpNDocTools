@@ -7,15 +7,15 @@
    multiple lines
 *)
 // this is a C++ Comment which is valide for modern Pascal
-program{comment} test {comment between symbols} ; { comment }
-procedure {comment} testproc (*comment*) ( {comment}arg1 {ccc} :(*vvvv*) String {cccc}) {comment} ; (*cccc*)
-begin{comment } (*vvvv*)
-end (*comment*) .
-(*
-procedure testproc ();
+program test;
+
+procedure testproc(arg1:String);
 begin
 end;
-
+procedure testprocB ();
+begin
+end;
+(*
 function func1(): String;
 begin
 end;

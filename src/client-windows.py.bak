@@ -5078,6 +5078,12 @@ print = builtins.print
                         continue
                 else:
                     continue
+        elif genv.char_curr.isalpha():
+            if self.check_ident():
+                showInfo("ARgument: " + self.token_str)
+                self.handle_pascal_argument()
+            else:
+                raise Exception(_("ident expected."))
         else:
             while True:
                 genv.char_prev = genv.char_curr
@@ -5095,10 +5101,48 @@ print = builtins.print
                 elif genv.char_curr.isalpha():
                     if self.check_ident():
                         showInfo("argument: " + self.token_str)
+                        self.handle_pascal_argument()
+                    else:
+                        raise Exception(_("ident expected."))
+                else:
+                    raise Exception(_("wrong char type."))
+    
+    def handle_pascal_argument(self):
+        while True:
+            genv.char_prev = genv.char_curr
+            self.getChar()
+
+            if self.check_white_spaces():
+                continue
+            elif self.check_char('{'):
+                self.handle_pascal_comment_1()
+                continue
+            elif self.check_char('('):
+                self.handle_pascal_comment_2() # todo: expr
+                continue
+                
+            elif self.check_char(':'):
+                showInfo(":::::")
+                while True:
+                    genv.char_prev = genv.char_curr
+                    self.getChar()
+                    
+                    if self.check_white_spaces():
+                        continue
+                    elif self.check_char('{'):
+                        self.handle_pascal_comment_1()
+                        continue
+                    elif self.check_char('('):
+                        self.handle_pascal_comment_2() # todo: expr
+                        continue
+                        
+                    elif genv.char_curr.isalpha():
+                        self.handle_pascal_argument_type()
+                        
                         while True:
                             genv.char_prev = genv.char_curr
                             self.getChar()
-
+                            
                             if self.check_white_spaces():
                                 continue
                             elif self.check_char('{'):
@@ -5107,72 +5151,38 @@ print = builtins.print
                             elif self.check_char('('):
                                 self.handle_pascal_comment_2() # todo: expr
                                 continue
-                                
-                            elif self.check_char(':'):
-                                showInfo(":::::")
-                                while True:
-                                    genv.char_prev = genv.char_curr
-                                    self.getChar()
-                                    
-                                    if self.check_white_spaces():
-                                        continue
-                                    elif self.check_char('{'):
-                                        self.handle_pascal_comment_1()
-                                        continue
-                                    elif self.check_char('('):
-                                        self.handle_pascal_comment_2() # todo: expr
-                                        continue
-                                        
-                                    elif genv.char_curr.isalpha():
-                                        self.handle_pascal_argument_type()
-                                        
-                                        while True:
-                                            genv.char_prev = genv.char_curr
-                                            self.getChar()
-                                            
-                                            if self.check_white_spaces():
-                                                continue
-                                            elif self.check_char('{'):
-                                                self.handle_pascal_comment_1()
-                                                continue
-                                            elif self.check_char('('):
-                                                self.handle_pascal_comment_2() # todo: expr
-                                                continue
-                                            
-                                            elif self.check_char(')'):
-                                                showInfo("list ende.")
-                                                
-                                                while True:
-                                                    genv.char_prev = genv.char_curr
-                                                    self.getChar()
-                                                    
-                                                    if self.check_white_spaces():
-                                                        continue
-                                                    elif self.check_char('{'):
-                                                        self.handle_pascal_comment_1()
-                                                        continue
-                                                    elif self.check_char('('):
-                                                        self.handle_pascal_comment_2() # todo: expr
-                                                        continue
-                                                    
-                                                    elif self.check_char(';'):
-                                                        showInfo("procedure ende.")
-                                                        break
-                                                    else:
-                                                        raise Exception(_("semicolon (;) expected."))
-                                                break
-                                    else:
-                                        raise Exception(_("argument type expected."))
-                                    break
+                            
+                            elif self.check_char(')'):
+                                showInfo("list ende.")
+                                self.handle_pascal_list_end()
                                 break
-                            else:
-                                raise Exception(_("colon (:) expected."))
-                            break
-                        break
                     else:
-                        raise Exception(_("ident expected."))
-                else:
-                    raise Exception(_("wrong char type."))
+                        raise Exception(_("argument type expected."))
+                    break
+                break
+            else:
+                raise Exception(_("colon (:) expected."))
+            break
+            
+    def handle_pascal_list_end(self):
+        while True:
+            genv.char_prev = genv.char_curr
+            self.getChar()
+            
+            if self.check_white_spaces():
+                continue
+            elif self.check_char('{'):
+                self.handle_pascal_comment_1()
+                continue
+            elif self.check_char('('):
+                self.handle_pascal_comment_2() # todo: expr
+                continue
+            
+            elif self.check_char(';'):
+                showInfo("procedure ende.")
+                break
+            else:
+                raise Exception(_("semicolon (;) expected."))
     
     def handle_pascal_argument_type(self):
         #self.ungetChar(1)
@@ -6865,143 +6875,80 @@ class interpreter_Pascal(interpreter_base):
             if self.token_str.lower() == "program":
                 self.token_str = ""
                 while True:
-                    genv.char_prev = genv.char_curr
-                    self.getChar()
-                    
-                    if self.check_white_spaces():
+                    if self.handle_pascal_white_spaces():
                         continue
-                        
-                    elif self.check_char('{'):
-                        self.handle_pascal_comment_1()
-                        continue
-                    elif self.check_char('('):
-                        self.handle_pascal_comment_2() # todo: expr
-                        continue
-                        
-                    elif self.check_ident():
-                        while True:
-                            genv.char_prev = genv.char_curr
-                            self.getChar()
-                            
-                            if self.check_white_spaces():
-                                continue
-                            elif self.check_char('{'):
-                                self.handle_pascal_comment_1()
-                                continue
-                            elif self.check_char('('):
-                                self.handle_pascal_comment_2() # todo: expr
-                                continue
-                                
-                            elif self.check_char(';'):
-                                while True:
-                                    genv.char_prev = genv.char_curr
-                                    self.getChar()
-                                    
-                                    if self.check_white_spaces():
-                                        continue
-                                    elif self.check_char('{'):
-                                        self.handle_pascal_comment_1()
-                                        continue
-                                    elif self.check_char('('):
-                                        self.handle_pascal_comment_2() # todo: expr
-                                        continue
-                                    
-                                    elif self.check_ident():
-                                        if self.token_str.lower() == "begin":
-                                            self.handle_pascal_body()
-                                            #self.handle_pascal_tail()
-                                            break
-                                        elif self.token_str.lower() == "procedure":
-                                            self.handle_pascal_procedure()
-                                            
-                                        elif self.token_str.lower() == "function":
-                                            self.handle_pascal_function()
-                            else:
-                                raise Exception(_("semicolon expected."))
+                    if self.check_ident():
+                        self.handle_pascal_program_head()
                         break
                     else:
                         raise Exception(_("ident expected."))
                 break
     
+    def handle_pascal_program_head(self):
+        while True:
+            if self.handle_pascal_white_spaces():
+                continue
+            if self.check_char(';'):
+                while True:
+                    if self.handle_pascal_white_spaces():
+                        continue                                    
+                    if not self.check_ident():
+                        raise Exception(_("ident expecred."))
+                    if self.token_str.lower() == "begin":
+                        self.handle_pascal_body()
+                        #self.handle_pascal_tail()
+                        break
+                    elif self.token_str.lower() == "procedure":
+                        self.handle_pascal_procedure()
+                        
+                    elif self.token_str.lower() == "function":
+                        self.handle_pascal_function()
+            else:
+                raise Exception(_("semicolon expected."))
+    
+    def handle_pascal_white_spaces(self):
+        genv.char_prev = genv.char_curr
+        self.getChar()
+
+        if self.check_white_spaces():
+            return True
+        elif self.check_char('{'):
+            self.handle_pascal_comment_1()
+            return True
+        elif self.check_char('('):
+            self.handle_pascal_comment_2() # todo: expr
+            return True
+        else:
+            return False
+            
     def handle_pascal_procedure(self):
         while True:
-            genv.char_prev = genv.char_curr
-            self.getChar()
-
-            if self.check_white_spaces():
+            if self.handle_pascal_white_spaces():
                 continue
-            elif self.check_char('{'):
-                self.handle_pascal_comment_1()
-                continue
-            elif self.check_char('('):
-                self.handle_pascal_comment_2() # todo: expr
-                continue
-            
-            elif self.check_ident():
+            if self.check_ident():
                 showInfo("procedure name: " + self.token_str)
-                while True:
-                    genv.char_prev = genv.char_curr
-                    self.getChar()
-
-                    if self.check_white_spaces():
-                        continue
-                    elif self.check_char('{'):
-                        self.handle_pascal_comment_1()
-                        continue
-                    elif self.check_char('('):
-                        self.current_state = "procargs"
-                        self.handle_pascal_comment_2() # todo: expr
-                        break
+                self.handle_pascal_white_spaces()
                 break
                 
     def handle_pascal_function(self):
         while True:
-            genv.char_prev = genv.char_curr
-            self.getChar()
-
-            if self.check_white_spaces():
-                continue
-            elif self.check_char('{'):
-                self.handle_pascal_comment_1()
-                continue
-            elif self.check_char('('):
-                self.handle_pascal_comment_2() # todo: expr
-                continue
-            
+            if self.handle_pascal_white_spaces():
+                continue            
             elif self.check_ident():
                 showInfo("function name: " + self.token_str)
+                self.handle_pascal_white_spaces()
                 break
                 
     def handle_pascal_body(self):
         while True:
-            genv.char_prev = genv.char_curr
-            self.getChar()
-
-            if self.check_white_spaces():
+            if self.handle_pascal_white_spaces():
                 continue
-            elif self.check_char('{'):
-                self.handle_pascal_comment_1()
-                continue
-            elif self.check_char('('):
-                self.handle_pascal_comment_2() # todo: expr
-                continue
-                
-            elif self.check_ident():
+            if self.check_ident():
                 if self.token_str.lower() == "end":
                     while True:
-                        genv.char_prev = genv.char_curr
-                        self.getChar()
-
-                        if self.check_white_spaces():
+                        if self.handle_pascal_white_spaces():
                             continue
-                        elif self.check_char('{'):
-                            self.handle_pascal_comment_1()
-                            continue
-                        elif self.check_char('('):
-                            self.handle_pascal_comment_2() # todo: expr
-                            continue
-                        
-                        elif self.check_char('.'):
+                        if self.check_char('.'):
                             showInfo("program end.")
                             break
                         else:
@@ -7018,18 +6965,8 @@ class interpreter_Pascal(interpreter_base):
         
     def handle_pascal_tail(self):
         while True:
-            genv.char_prev = genv.char_curr
-            self.getChar()
-
-            if self.check_white_spaces():
+            if self.handle_pascal_white_spaces():
                 continue
-            elif self.check_char('{'):
-                self.handle_pascal_comment_1()
-                continue
-            elif self.check_char('('):
-                self.handle_pascal_comment_2() # todo: expr
-                continue
-            
             if self.check_ident():
                 showInfo("oooo====>> " + self.token_str)
                 break
@@ -8054,11 +7991,6 @@ class myIconLabel(QLabel):
         
         self.hide_tabs()
         parent = self.parent.parent
-        
-        #if genv.active_side_button == genv.SIDE_BUTTON_HELP:
-        #    tabs.addStretch()
-        
-        genv.servers_layout.addStretch()
         
         genv.splitter.addWidget(tabs)
         genv.splitter.addWidget(genv.servers_scroll)
@@ -10650,6 +10582,7 @@ class PascalSyntaxHighlighter(SourceCodeEditorBase):
         self.commentStartExpressions = [QRegExp(r"\(\*"), QRegExp(r"\{")]
         self.commentEndExpressions   = [QRegExp(r"\*\)"), QRegExp(r"\}")]
         
+        self.highlighting_rules = []
         self.keywords = [
             "program", "unit", "library",
             "begin", "end", "var",
@@ -10657,43 +10590,109 @@ class PascalSyntaxHighlighter(SourceCodeEditorBase):
             "while", "with", "do", "else", "for",
             "case"
         ]
+        
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("#0000FF"))
+        keyword_format.setFontWeight(QFont.Bold)
+        
+        for word in self.keywords:
+            pattern = f'\b{word}\b'
+            self.highlighting_rules.append((re.compile(pattern), keyword_format))
     
     def highlightBlock(self, text):
-        # Mehrzeilige Kommentare markieren
+        # Entfernt vorherige Formatierungen
+        self.setFormat(0, len(text), QTextCharFormat())
+
+        # Muster für mehrzeilige Kommentare
+        curly_comment_start_pattern = re.compile(r"\{")  # Beginn eines geschweiften Kommentars
+        curly_comment_end_pattern = re.compile(r"\}")    # Ende eines geschweiften Kommentars
+        multi_comment_start_pattern = re.compile(r"\(\*")  # Beginn eines (* ... *)-Kommentars
+        multi_comment_end_pattern = re.compile(r"\*\)")    # Ende eines (* ... *)-Kommentars
+
+        # Schritt 1: Verfolgen des Zustands für mehrzeilige Kommentare
+        if self.previousBlockState() == 1:  # Mehrzeiliger Kommentar { ... }
+            match_end = curly_comment_end_pattern.search(text)
+            if match_end:
+                end = match_end.end()
+                self.setFormat(0, end, self.multiLineCommentFormat)
+                self.setCurrentBlockState(0)
+            else:
+                self.setFormat(0, len(text), self.multiLineCommentFormat)
+                self.setCurrentBlockState(1)
+            return
+        elif self.previousBlockState() == 2:  # Mehrzeiliger Kommentar (* ... *)
+            match_end = multi_comment_end_pattern.search(text)
+            if match_end:
+                end = match_end.end()
+                self.setFormat(0, end, self.multiLineCommentFormat)
+                self.setCurrentBlockState(0)
+            else:
+                self.setFormat(0, len(text), self.multiLineCommentFormat)
+                self.setCurrentBlockState(2)
+            return
+
+        # Schritt 2: Erkennung neuer mehrzeiliger Kommentare
+        match_start = curly_comment_start_pattern.search(text)
+        if match_start:
+            start = match_start.start()
+            match_end = curly_comment_end_pattern.search(text, start)
+            if match_end:
+                end = match_end.end()
+                self.setFormat(start, end - start, self.multiLineCommentFormat)
+            else:
+                self.setFormat(start, len(text) - start, self.multiLineCommentFormat)
+                self.setCurrentBlockState(1)
+                return
+
+        match_start = multi_comment_start_pattern.search(text)
+        if match_start:
+            start = match_start.start()
+            match_end = multi_comment_end_pattern.search(text, start)
+            if match_end:
+                end = match_end.end()
+                self.setFormat(start, end - start, self.multiLineCommentFormat)
+            else:
+                self.setFormat(start, len(text) - start, self.multiLineCommentFormat)
+                self.setCurrentBlockState(2)
+                return
+
+        # Schritt 3: Einzeilige Kommentare formatieren
+        single_line_comment_pattern = re.compile(r"//.*")
+        for match in re.finditer(single_line_comment_pattern, text):
+            start, end = match.start(), match.end()
+            self.setFormat(start, end - start, self.commentFormat)
+
+        # Schritt 4: Geschweifte Kommentare, auch innerhalb von Text
+        curly_comment_pattern = re.compile(r"\{.*?\}")
+        for match in re.finditer(curly_comment_pattern, text):
+            start, end = match.start(), match.end()
+            self.setFormat(start, end - start, self.multiLineCommentFormat)
+
+        # Schritt 5: Mehrzeilige Kommentare (* ... *) innerhalb von Text
+        multi_line_inline_comment_pattern = re.compile(r"\(\*.*?\*\)", re.DOTALL)
+        for match in re.finditer(multi_line_inline_comment_pattern, text):
+            start, end = match.start(), match.end()
+            self.setFormat(start, end - start, self.multiLineCommentFormat)
+
+        # Schritt 6: Keywords formatieren
+        keyword_pattern = re.compile(r'\b(' + '|'.join(self.keywords) + r')\b', re.IGNORECASE)
+        for match in re.finditer(keyword_pattern, text):
+            start, end = match.start(), match.end()
+
+            # Prüfen, ob das Keyword in einem Kommentar steht
+            is_in_comment = any(
+                start >= comment.start() and end <= comment.end()
+                for comment in re.finditer(r"//.*|\(\*.*?\*\)|\{.*?\}", text, re.DOTALL)
+            )
+            if is_in_comment:
+                # Innerhalb eines Kommentars: Kommentarfarbe anwenden
+                self.setFormat(start, end - start, self.commentFormat)
+            else:
+                # Außerhalb eines Kommentars: Standard-Keyword-Format
+                self.setFormat(start, end - start, self.boldFormat)
+
         self.setCurrentBlockState(0)
-        
-        for startExpr, endExpr in zip(self.commentStartExpressions, self.commentEndExpressions):
-            startIndex = 0
-            if self.previousBlockState() != 1:  # Start from the beginning if not in a comment
-                startIndex = startExpr.indexIn(text)
-            
-            while startIndex >= 0:
-                endIndex = endExpr.indexIn(text, startIndex + startExpr.matchedLength())
-                if endIndex == -1:  # Comment doesn't end in this block
-                    self.setCurrentBlockState(1)  # Keep state as "inside comment"
-                    commentLength = len(text) - startIndex
-                else:  # Comment ends in this block
-                    commentLength = endIndex - startIndex + endExpr.matchedLength()
-                self.setFormat(startIndex, commentLength, self.multiLineCommentFormat)
-                startIndex = startExpr.indexIn(text, startIndex + commentLength)
-        
-        # Einzeilige Kommentare markieren
-        singleLineCommentPattern = re.compile(r"//.*")
-        for match in singleLineCommentPattern.finditer(text):
-            start = match.start()
-            length = len(text) - start
-            self.setFormat(start, length, self.commentFormat)
-        
-        # Keywords markieren
-        for word in self.keywords:
-            keywordPattern = re.compile(r'\b' + re.escape(word) + r'\b')
-            for match in keywordPattern.finditer(text):
-                start = match.start()
-                length = match.end() - start
-                
-                # Verhindern, dass Keywords in Kommentaren markiert werden
-                if self.format(start) != self.commentFormat:  # Nur markieren, wenn es kein Kommentarformat ist
-                    self.setFormat(start, length, self.boldFormat)
+
 
 class JavaScriptHighlighter(SourceCodeEditorBase):
     def __init__(self, document):
@@ -21037,8 +21036,8 @@ def ApplicationAtExit():
 class HelpWindow(QMainWindow):
     def __init__(self, parent=None, file="index.html"):
         
-        genv.saved_style = genv.window_login.styleSheet()
-        genv.window_login.setStyleSheet("")
+        #genv.saved_style = genv.window_login.styleSheet()
+        #genv.window_login.setStyleSheet("")
         
         super(HelpWindow, self).__init__(parent)
         
@@ -21171,7 +21170,7 @@ class HelpWindow(QMainWindow):
         layout.addWidget(button_widget)
         
         #if not genv.window_login == None:
-        genv.window_login.setStyleSheet(genv.saved_style)
+        #genv.window_login.setStyleSheet(genv.saved_style)
         
         container = QWidget()
         container.setContentsMargins(0,0,0,0)
@@ -21194,8 +21193,8 @@ class HelpWindow(QMainWindow):
             self.close()
     
     def closeEvent(self, event):
-        if not genv.window_login == None:
-            genv.window_login.setStyleSheet(genv.saved_style)
+        #if not genv.window_login == None:
+        #    genv.window_login.setStyleSheet(genv.saved_style)
         if not self.browser == None:
             self.browser.deleteLater()
         event.accept()
