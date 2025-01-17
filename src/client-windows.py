@@ -6899,7 +6899,9 @@ class interpreter_Pascal(interpreter_base):
                 print("procedure name: " + self.token_str)
                 self.current_state = "procedure"
                 self.handle_pascal_white_spaces()
-                break
+                return True
+            else:
+                return False
                 
     def handle_pascal_function(self):
         while True:
@@ -6931,10 +6933,12 @@ class interpreter_Pascal(interpreter_base):
                                 if self.check_ident():
                                     showInfo(self.token_str)
                                     if self.token_str.lower() == "begin":
+                                        showInfo("333333333333")
                                         while True:
                                             if self.handle_pascal_white_spaces():
                                                 continue 
                                             if self.check_ident():
+                                                showInfo("o>> " + self.token_str)
                                                 if self.token_str.lower() == "end":
                                                     while True:
                                                         if self.handle_pascal_white_spaces():
@@ -6951,23 +6955,56 @@ class interpreter_Pascal(interpreter_base):
                                         break
                                     elif self.token_str.lower() == "procedure":
                                         self.handle_pascal_procedure_name()
+                                        showInfo("8888888888888888888")
                                         while True:
                                             if self.handle_pascal_white_spaces():
                                                 continue
                                             if self.check_ident():
+                                                showInfo("UUuii: " + self.token_str)
                                                 if self.token_str.lower() == "begin":
                                                     while True:
                                                         if self.handle_pascal_white_spaces():
                                                             continue
                                                         if self.check_ident():
+                                                            showInfo("ccccc> " + self.token_str)
                                                             if self.token_str.lower() == "end":
-                                                                print("nnnnnnn")
-                                                                if self.handle_pascal_white_spaces():
-                                                                    continue
-                                                                if self.check_char('.'):
-                                                                    break
-                                                                else:
-                                                                    raise Exception("poin expected.")
+                                                                while True:
+                                                                    self.getChar()
+                                                                    if genv.char_curr == ' ':
+                                                                        continue
+                                                                    if genv.char_curr == ';':
+                                                                        while True:
+                                                                            if self.handle_pascal_white_spaces():
+                                                                                continue
+                                                                            if self.check_ident():
+                                                                                if self.token_str == "begin":
+                                                                                    while True:
+                                                                                        if self.handle_pascal_white_spaces():
+                                                                                            continue
+                                                                                        if self.check_ident():
+                                                                                            if self.token_str == "end":
+                                                                                                while True:
+                                                                                                    self.getChar()
+                                                                                                    if self.handle_pascal_white_spaces():
+                                                                                                        continue
+                                                                                                    if self.check_char('.'):
+                                                                                                        break
+                                                                                                    else:
+                                                                                                        raise Exception("point expected.")
+                                                                                            else:
+                                                                                                raise Exception("end expected.")
+                                                                                        else:
+                                                                                            raise Exception("ident expected.")
+                                                                                    break
+                                                                        break
+                                                                    if genv.char_curr == '.':
+                                                                        print("pppppp")
+                                                                        break
+                                                                    else:
+                                                                        print("g: " + genv.char_curr)
+                                                                        print("t: " + self.token_str)
+                                                                        raise Exception(_("Point expected."))
+                                                                break
                                                     break
                                     else:
                                         raise Exception(f"Line: {genv.line_row}\nBegin expected.")
