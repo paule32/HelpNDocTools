@@ -1,0 +1,214 @@
+{
+    "commands": [
+        {
+            "command": "AND",
+            "opcode": "C500",
+            "description": "Logical AND operator."
+        },
+        {
+            "command": "CLOSE",
+            "opcode": "BB00",
+            "description": "Closes a file or device."
+        },
+        {
+            "command": "CLR",
+            "opcode": "C000",
+            "description": "Clears all variables."
+        },
+        {
+            "command": "CONT",
+            "opcode": "B200",
+            "description": "Continues the program execution."
+        },
+        {
+            "command": "DATA",
+            "opcode": "B500",
+            "description": "Defines constants in the program."
+        },
+        {
+            "command": "DIM",
+            "opcode": "B300",
+            "description": "Defines the size of an array."
+        },
+        {
+            "command": "END",
+            "opcode": "B000",
+            "description": "Ends the BASIC program."
+        },
+        {
+            "command": "FOR",
+            "opcode": "AE00",
+            "description": "Start a FOR loop."
+        },
+        {
+            "command": "GET",
+            "opcode": "A601",
+            "description": "Reads a single character from the keyboard."
+        },
+        {
+            "command": "GOSUB",
+            "opcode": "AA00",
+            "description": "Call a subroutine."
+        },
+        {
+            "command": "GOTO",
+            "opcode": "A900",
+            "description": "Jump to a line number in the program."
+        },
+        {
+            "command": "IF",
+            "opcode": "A800",
+            "description": "Conditional execution in BASIC."
+        },
+        {
+            "command": "INPUT",
+            "opcode": "A500",
+            "description": "Prompts the user for input."
+        },
+        {
+            "command": "INPUT#",
+            "opcode": "BF00",
+            "description": "Inputs from a file or device."
+        },
+        {
+            "command": "LET",
+            "opcode": "A700",
+            "description": "Assigns a value to a variable."
+        },
+        {
+            "command": "LIST",
+            "opcode": "A200",
+            "description": "Displays the BASIC program."
+        },
+        {
+            "command": "LOAD",
+            "opcode": "A300",
+            "description": "Loads a program from a device."
+        },
+        {
+            "command": "NEW",
+            "opcode": "9E00",
+            "description": "Clears the BASIC program."
+        },
+        {
+            "command": "NEXT",
+            "opcode": "AF00",
+            "description": "End a FOR loop."
+        },
+        {
+            "command": "NOT",
+            "opcode": "C700",
+            "description": "Logical NOT operator."
+        },
+        {
+            "command": "ON",
+            "opcode": "B700",
+            "description": "Conditional branching based on a value."
+        },
+        {
+            "command": "OPEN",
+            "opcode": "BA00",
+            "description": "Opens a file or device."
+        },
+        {
+            "command": "OR",
+            "opcode": "C600",
+            "description": "Logical OR operator."
+        },
+        {
+            "command": "PEEK",
+            "opcode": "AD00",
+            "description": "Reads a value from a memory location."
+        },
+        {
+            "command": "POKE",
+            "opcode": "AC00",
+            "description": "Sets a memory location to a value."
+        },
+        {
+            "command": "PRINT",
+            "opcode": "A600",
+            "description": "Prints output to the screen."
+        },
+        {
+            "command": "PRINT#",
+            "opcode": "BE00",
+            "description": "Prints to a file or device."
+        },
+        {
+            "command": "READ",
+            "opcode": "B400",
+            "description": "Reads a value from DATA statements."
+        },
+        {
+            "command": "RESTORE",
+            "opcode": "B600",
+            "description": "Resets the line pointer for DATA."
+        },
+        {
+            "command": "RETURN",
+            "opcode": "AB00",
+            "description": "Return from a subroutine."
+        },
+        {
+            "command": "RUN",
+            "opcode": "A000",
+            "description": "Executes the BASIC program."
+        },
+        {
+            "command": "SAVE",
+            "opcode": "A400",
+            "description": "Saves the program to a device."
+        },
+        {
+            "command": "SPC",
+            "opcode": "C800",
+            "description": "Inserts spaces in output."
+        },
+        {
+            "command": "STEP",
+            "opcode": "C400",
+            "description": "Sets the increment in a FOR loop."
+        },
+        {
+            "command": "STOP",
+            "opcode": "B100",
+            "description": "Stops program execution."
+        },
+        {
+            "command": "SYS",
+            "opcode": "B900",
+            "description": "Calls a machine code routine."
+        },
+        {
+            "command": "TAB",
+            "opcode": "C100",
+            "description": "Sets a specific output column."
+        },
+        {
+            "command": "THEN",
+            "opcode": "C300",
+            "description": "Used in IF statements."
+        },
+        {
+            "command": "TO",
+            "opcode": "C200",
+            "description": "Used in FOR statements."
+        },
+        {
+            "command": "VERIFY",
+            "opcode": "BC00",
+            "description": "Verifies a file on the device."
+        },
+        {
+            "command": "USING",
+            "opcode": "C900",
+            "description": "Formats PRINT output."
+        },
+        {
+            "command": "WAIT",
+            "opcode": "B800",
+            "description": "Waits for a specific memory state."
+        },
+    ]
+}

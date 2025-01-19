@@ -788,7 +788,8 @@ class globalEnv:
             "javascript": [],
             "python": [],
             "prolog": [],
-            "lisp": []
+            "lisp": [],
+            "c64": []
         }
         
         # ------------------------------------------------------------------------
@@ -6985,12 +6986,15 @@ class interpreter_Pascal(interpreter_base):
                                                                                             if self.token_str == "end":
                                                                                                 while True:
                                                                                                     self.getChar()
-                                                                                                    if self.handle_pascal_white_spaces():
-                                                                                                        continue
-                                                                                                    if self.check_char('.'):
+                                                                                                    if genv.char_curr == '.':
                                                                                                         break
-                                                                                                    else:
-                                                                                                        raise Exception("point expected.")
+                                                                                                    elif genv.char_curr == ' ' \
+                                                                                                    or   genv.char_curr == '\t'\
+                                                                                                    or   genv.char_curr == '\n':
+                                                                                                        continue
+                                                                                                    elif self.handle_pascal_white_spaces():
+                                                                                                        continue
+                                                                                                    raise Exception("point expected.")
                                                                                             else:
                                                                                                 raise Exception("end expected.")
                                                                                         else:
@@ -7125,6 +7129,218 @@ class lispDSL():
         self.parser = None
         self.parser = interpreter_LISP(script_name)
         self.parser.parse()
+
+class C64BasicParser:
+    def __init__(self, script_name):
+        self.script_name = script_name
+        self.code = ""
+        
+        self.func_lines = []
+        self.running = True
+        
+        with open(script_name, "r", encoding="utf-8") as file:
+            self.code = file.read()
+            file.close()
+        
+        # Liste der BASIC-Schlüsselwörter mit entsprechenden Opcodes
+        self.commands = {
+            "END": "B000",
+            "FOR": "AE00",
+            "NEXT": "AF00",
+            "DATA": "B500",
+            "INPUT": "A500",
+            "PRINT": "A600",
+            "DIM": "B300",
+            "READ": "B400",
+            "GOTO": "A900",
+            "RUN": "A000",
+            "IF": "A800",
+            "RESTORE": "B600",
+            "GOSUB": "AA00",
+            "RETURN": "AB00",
+            "STOP": "B100",
+            "ON": "B700",
+            "POKE": "AC00",
+            "PEEK": "AD00",
+            "SYS": "B900",
+            "OPEN": "BA00",
+            "CLOSE": "BB00",
+            "NEW": "9E00",
+            "VERIFY": "BC00",
+            "CLR": "C000",
+        }
+        
+        # Reguläre Ausdrücke für BASIC-Elemente
+        self.token_patterns = {
+            "LINE_NUMBER": r"^\d+",
+            "COMMAND": r"^[A-Z]+",
+            "NUMBER": r"^\d+",
+            "STRING": r'^"[^"]*"',
+            "VARIABLE": r"^[A-Z][0-9A-Z]*",
+            "SYMBOL": r"^[=,+\-*/()]",
+        }
+        
+        # Reguläre Ausdrücke für BASIC-Elemente
+        self.token_patterns = {
+            "LINE_NUMBER": r"^\d+",
+            "COMMAND": r"^[A-Z]+",
+            "NUMBER": r"^\d+",
+            "STRING": r'^\"[^\"]*\"',
+            "VARIABLE": r"^[A-Z][0-9A-Z]*",
+            "SYMBOL": r"^[=,+\-*/()]",
+        }
+    
+    def tokenize(self, code):
+        """Zerlegt den BASIC-Code in Tokens."""
+        tokens = []
+        while code:
+            code = code.lstrip()  # Leerzeichen entfernen
+            matched = False
+            for token_type, pattern in self.token_patterns.items():
+                match = re.match(pattern, code, re.IGNORECASE)
+                if match:
+                    tokens.append((token_type, match.group(0)))
+                    code = code[len(match.group(0)):]
+                    matched = True
+                    break
+            if not matched:
+                raise SyntaxError(f"Unbekanntes Token: {code}")
+        return tokens
+
+    def parse(self):
+        """Parst einen BASIC-Code in eine Liste von Befehlen."""
+        lines = self.code.splitlines()
+        parsed_program = []
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Extrahiere die Zeilennummer
+            match = re.match(self.token_patterns["LINE_NUMBER"], line)
+            if not match:
+                raise SyntaxError(f"Fehlende Zeilennummer: {line}")
+
+            line_number = int(match.group(0))
+            rest_of_line = line[len(match.group(0)):].strip()
+
+            # Tokenisiere den Rest der Zeile
+            tokens = self.tokenize(rest_of_line)
+
+            # Übersetze die Tokens
+            parsed_line = {"line_number": line_number, "tokens": tokens}
+            parsed_program.append(parsed_line)
+
+        return parsed_program
+
+    def translate(self, parsed_program):
+        """Übersetzt die Befehle in Opcodes."""
+        translated_program = []
+
+        for line in parsed_program:
+            line_number = line["line_number"]
+            translated_line = [line_number]
+
+            for token_type, token in line["tokens"]:
+                if token_type == "COMMAND" and token in self.commands:
+                    translated_line.append(self.commands[token])
+                else:
+                    translated_line.append(token)
+
+            translated_program.append(translated_line)
+
+        return translated_program
+
+    def detect_infinite_loops(self, parsed_program):
+        """Erkennt Endlosschleifen im BASIC-Code."""
+        graph = {}
+
+        # Baue den Kontrollflussgraphen
+        for line in parsed_program:
+            line_number = line["line_number"]
+            tokens = line["tokens"]
+
+            if tokens and tokens[0][1] == "GOTO":
+                target_line = int(tokens[1][1])
+                if line_number not in graph:
+                    graph[line_number] = []
+                graph[line_number].append(target_line)
+
+        # Zyklusprüfung im Graphen
+        visited = set()
+        stack = set()
+
+        def visit(node):
+            if node in stack:
+                return True  # Zyklus gefunden
+            if node in visited:
+                return False
+
+            visited.add(node)
+            stack.add(node)
+
+            for neighbor in graph.get(node, []):
+                if visit(neighbor):
+                    return True
+
+            stack.remove(node)
+            return False
+
+        for node in graph:
+            if visit(node):
+                return True  # Endlosschleife erkannt
+
+        return False
+
+    def to_python(self, parsed_program):
+        """Konvertiert den BASIC-Code in Python-Code."""
+        python_code = []
+        function_definitions = []
+
+        # Liste aller Zeilennummern erstellen
+        all_line_numbers = sorted({line["line_number"] for line in parsed_program})
+
+        # Funktionen für alle Zeilennummern generieren
+        for i, line_number in enumerate(all_line_numbers):
+            next_line_number = all_line_numbers[i + 1] if i + 1 < len(all_line_numbers) else None
+            function_code = [f"def line_{line_number}():"]
+            function_code.append("    next_line = None")  # Initialisierung von next_line
+
+            # Suche die passende Zeile im BASIC-Code
+            matching_lines = [line for line in parsed_program if line["line_number"] == line_number]
+            if matching_lines:
+                tokens = matching_lines[0]["tokens"]
+
+                # Übersetzung für PRINT-Befehl
+                if tokens and tokens[0][1] == "PRINT":
+                    content = " ".join(
+                        token[1] if token[0] != "STRING" else token[1][1:-1] for token in tokens[1:]
+                    )
+                    function_code.append(f"    print('{content}')")
+
+                # Übersetzung für GOTO-Befehl
+                elif tokens and tokens[0][1] == "GOTO":
+                    target_line = tokens[1][1]
+                    function_code.append(f"    next_line = {target_line}")
+
+            # Standardabschluss der Funktion
+            if next_line_number is not None:
+                function_code.append(f"    if next_line is None: next_line = {next_line_number}")
+            function_code.append("    return next_line")
+            function_definitions.append("\n".join(function_code))
+
+        # Main-Ausführungslogik
+        python_code.extend(function_definitions)
+        python_code.append("\ncurrent_line = 10  # Start des Programms")
+        python_code.append("while current_line is not None:")
+        python_code.append("    func = globals().get(f'line_{current_line}')")
+        python_code.append("    if func:")
+        python_code.append("        current_line = func()")
+        python_code.append("    else:")
+        python_code.append("        current_line = None")
+
+        return "\n".join(python_code)
 
 class interpreter_C64(interpreter_base):
     def __init__(self, file_name):
@@ -10364,10 +10580,10 @@ class PascalSyntaxHighlighter(SourceCodeEditorBase):
         self.setFormat(0, len(text), QTextCharFormat())
 
         # Muster für mehrzeilige Kommentare
-        curly_comment_start_pattern = re.compile(r"\{")  # Beginn eines geschweiften Kommentars
-        curly_comment_end_pattern = re.compile(r"\}")    # Ende eines geschweiften Kommentars
+        curly_comment_start_pattern = re.compile(r"\{")    # Beginn eines geschweiften Kommentars
+        curly_comment_end_pattern   = re.compile(r"\}")    # Ende   eines geschweiften Kommentars
         multi_comment_start_pattern = re.compile(r"\(\*")  # Beginn eines (* ... *)-Kommentars
-        multi_comment_end_pattern = re.compile(r"\*\)")    # Ende eines (* ... *)-Kommentars
+        multi_comment_end_pattern   = re.compile(r"\*\)")  # Ende   eines (* ... *)-Kommentars
 
         # Schritt 1: Verfolgen des Zustands für mehrzeilige Kommentare
         if self.previousBlockState() == 1:  # Mehrzeiliger Kommentar { ... }
@@ -10518,8 +10734,8 @@ class JavaScriptHighlighter(SourceCodeEditorBase):
             start_index = self.comment_start.match(text, end_index).capturedStart()
 
 class EditorTranslate(QWidget):
-    def __init__(self, parent):
-        super().__init__()
+    def __init__(self, parent=None):
+        super(EditorTranslate, self).__init__(parent)
         font = QFont(genv.v__app__font,11)
         
         self.setContentsMargins(0,0,0,0)
@@ -10529,12 +10745,13 @@ class EditorTranslate(QWidget):
         
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0,0,0,0)
+        self.layout.setSpacing(0)
         
         self.group_box = QGroupBox(_(" Choose a Translation: "))
         self.group_box.setFont(font)
         self.group_layout = QVBoxLayout()
         
-        self.dummyl = QLabel(" ")
+        #self.dummyl = QLabel(" ")
         self.radio1 = QRadioButton(_("Convert to FPC Pascal"))
         self.radio2 = QRadioButton(_("Convert to GNU C++"))
         self.radio3 = QRadioButton(_("Convert to Byte-Code"))
@@ -10543,7 +10760,7 @@ class EditorTranslate(QWidget):
         self.radio2.setObjectName("gnucpp")
         self.radio3.setObjectName("bytecode")
         
-        self.dummyl.setFont(font)
+        #self.dummyl.setFont(font)
         self.radio1.setFont(font)
         self.radio2.setFont(font)
         self.radio3.setFont(font)
@@ -10554,7 +10771,7 @@ class EditorTranslate(QWidget):
         
         self.radio3.setChecked(True)
         
-        self.group_layout.addWidget(self.dummyl)
+        #self.group_layout.addWidget(self.dummyl)
         self.group_layout.addWidget(self.radio1)
         self.group_layout.addWidget(self.radio2)
         self.group_layout.addWidget(self.radio3)
@@ -10568,20 +10785,8 @@ class EditorTranslate(QWidget):
         
         self.files_layout.addWidget(self.files_list)
         
-        # text mini map
-        self.mini_map = MiniMap(self)
-        
-        # QScrollArea for MiniMap
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setMaximumWidth(210)
-        self.scroll_area.setWidget(self.mini_map)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        
         self.layout.addWidget(self.group_box)
         self.layout.addLayout(self.files_layout)
-        self.layout.addWidget(self.scroll_area)
         
         self.setLayout(self.layout)
     
@@ -10609,6 +10814,8 @@ class EditorTranslate(QWidget):
 class EditorTextEdit(QPlainTextEdit):
     def __init__(self, parent, file_name, edit_type):
         super(EditorTextEdit, self).__init__()
+        
+        self.c64_exec_thread_running = False
         
         self.setStyleSheet(_("ScrollBarCSS"))
         self.setObjectName(file_name)
@@ -10818,7 +11025,36 @@ class EditorTextEdit(QPlainTextEdit):
         
         super().mousePressEvent(event)
     
+    def c64_thread_run(self, bytecode_file):
+        def run():
+            # ------------------------------------------
+            # Lade und führe den Bytecode aus
+            # ------------------------------------------
+            try:
+                with open(bytecode_file, "rb") as f:
+                    loaded_code = marshal.load(f)
+                    while self.c64_exec_thread_running:
+                        exec(loaded_code, globals())
+            except PermissionError as e:
+                showError(_("you have no permissions to open byte code file."))
+                return False
+            except Exception as e:
+                showError(_(f"UNexpected error occured:\n{e}"))
+                return False
+                
+        thread = threading.Thread(target=run)
+        thread.start()
+        return thread
+    
+    def c64_thread_stop(self):
+        self.c64_exec_thread_running = False
+        self.c64_exec_thread.stop()
+        
     def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.c64_thread_stop()
+            super().keyPressEvent(event)
+            return None
         if event.key() == Qt.Key.Key_F2:
             script_name = self.file_name
             try:
@@ -10833,7 +11069,88 @@ class EditorTextEdit(QPlainTextEdit):
                 showException(traceback.format_exc())
                 return
             
-            if self.edit_type == "dbase":
+            #showInfo(self.edit_type)
+            if self.edit_type == "c64":
+                try:
+                    try:
+                        parser = C64BasicParser(script_name)
+                        parsed = parser.parse()
+                        
+                        # ------------------------------------------
+                        # Überprüfe auf Endlosschleifen
+                        # ------------------------------------------
+                        if parser.detect_infinite_loops(parsed):
+                            showInfo(_("WARNING:\nendless loop detected."))
+                            return False
+
+                        translated  = parser.translate(parsed)
+                        python_code = parser.to_python(parsed)
+                        
+                        print("Parsed Program:", parsed)
+                        print("Translated Program:", translated)
+                        
+                        # ------------------------------------------
+                        # Speichere den Python-Code als Datei
+                        # ------------------------------------------
+                        file_path      = os.path.basename(script_name)
+                        directory_path = os.path.dirname (script_name) + "/tmp"
+                        
+                        directory_path = directory_path.replace('\\', '/')
+                        python_file    = directory_path + "/" + file_path + ".py"
+                        bytecode_file  = python_file + ".pyc"
+                        
+                        if not os.path.exists(directory_path):
+                            try:
+                                os.makedirs(directory_path)
+                            except PermissionError as e:
+                                showError(_("no permissions to create directory"))
+                                return False
+                            except Exception as e:
+                                showError(_(f"unexpected error occured:\n{e}"))
+                                return False
+                        try:
+                            with open(python_file, "w") as f:
+                                f.write(python_code)
+                        except PermissionError as e:
+                            showError(_("no permissions to open script file"))
+                            return False
+                        except Exception as e:
+                            showError(_(f"unexpected error occured:\n{e}"))
+                            return False
+                        
+                        # ------------------------------------------
+                        # Kompiliere den Python-Code in Bytecode
+                        # und speichere ihn ...
+                        # ------------------------------------------
+                        compiled_code = compile(python_code, python_file, "exec")
+                        try:
+                            with open(bytecode_file, "wb") as f:
+                                marshal.dump(compiled_code, f)
+                        except PermissionError as e:
+                            showError(_("no permissions to write byte code file."))
+                            return False
+                        except Exception as e:
+                            showError(_(f"unexpected error occured:\n{e}"))
+                            return False
+                            
+                        print("Python Code:")
+                        print(python_code)
+                        
+                        self.c64_exec_thread_running = True
+                        self.c64_exec_thread = self.c64_thread_run(bytecode_file)
+                        self.c64_exec_thread.join()
+                    except TypeError as e:
+                        showError(_(f"Type Error:\n{e}"))
+                        return False
+                    except Exception as e:
+                        showError(_(f"SYntax error.\n{e}"))
+                        parser = None
+                        return False
+                finally:
+                    super().keyPressEvent(event)
+                    return None
+                    
+            elif self.edit_type == "dbase":
                 showInfo("dbase <---")
                 prg = interpreter_dBase(script_name)
                 try:
@@ -12994,27 +13311,6 @@ class clearChildTreeItems():
         while self.parent.child_item_others.rowCount() > 0:
             self.parent.child_item_others.removeRow(0)
 
-class MiniMap(QFrame):
-    def __init__(self, parent=None):
-        super(MiniMap, self).__init__(parent)
-        
-        self.setFrameStyle(QFrame.Box)
-        self.setFixedWidth(100)
-        self.setMaximumWidth(200)
-        
-        self.label = QLabel(self)
-        self.label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        self.label.setWordWrap(True)
-        
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.label)
-        
-        self.setLayout(layout)
-    
-    def set_text(self, text):
-        self.label.setText(text)
-        self.label.adjustSize()
-    
 class CustomListWidget(QListWidget):
     def __init__(self, parent=None):
         super(CustomListWidget, self).__init__(parent)
@@ -14866,6 +15162,8 @@ class ApplicationProjectPage(QObject):
             
             self.ProjectVLayout = QVBoxLayout()
             self.ProjectVLayout.setContentsMargins(0,0,0,0)
+            self.ProjectVLayout.setSpacing(0)
+            
             self.ProjectWidget  = applicationProjectWidget()
             self.ProjectVLayout.addWidget(self.ProjectWidget)
             tabs.setLayout(self.ProjectVLayout)
@@ -14890,6 +15188,8 @@ class ApplicationEditorsPage(QObject):
             self.setObjectName(self.text)
             
             self.tabs_editor_vlayout = QVBoxLayout(tabs)
+            self.tabs_editor_vlayout.setSpacing(0)
+            
             self.tabs_editor = QTabWidget()
             self.tabs_editor.setTabsClosable(True) 
             self.tabs_editor.tabCloseRequested.connect(self.close_tab) 
@@ -14923,12 +15223,18 @@ class ApplicationEditorsPage(QObject):
             self.tabs_editor_menu.itemClicked.connect(self.on_editor_menu_item_clicked)
             
             self.tabs_editor_vlayout.addWidget(self.tabs_editor_menu)
-                        
+            
             genv.editor_check = QCheckBox("Use old Syntax")
             genv.editor_check.setFont(QFont("Arial", 10))
             self.tabs_editor_vlayout.addWidget(genv.editor_check)
             
-            self.tabs_editor_vlayout.addWidget(self.tabs_editor)
+            self.tabs_translate = EditorTranslate()
+            
+            hlayout = QHBoxLayout()
+            hlayout.addWidget(self.tabs_editor)
+            hlayout.addWidget(self.tabs_translate)
+            
+            self.tabs_editor_vlayout.addLayout(hlayout)
             
         except Exception as e:
             showException(traceback.format_exc())
@@ -14958,6 +15264,7 @@ class ApplicationEditorsPage(QObject):
                 
                 file_layout_widget = QWidget()
                 file_layout        = QHBoxLayout()
+                file_layout.setSpacing(0)
                 
                 editor_object = EditorTextEdit(self, file_path, self.text)
                 editor_object.setContentsMargins(1,0,0,1)
@@ -14969,6 +15276,7 @@ class ApplicationEditorsPage(QObject):
                 
                 file_layout_widget = QWidget()
                 file_layout        = QVBoxLayout()
+                file_layout.setSpacing(0)
                 
                 file_layout.addWidget(editor_object)
                 file_layout_widget.setLayout(
@@ -15045,8 +15353,15 @@ class ApplicationEditorsPage(QObject):
                         prg.parse()
                         
                     elif genv.current_focus.edit_type == "c64":
-                        prg = interpreter_C64(script_name)
-                        prg.parse()
+                        parser = C64BasicParser(script_name)
+                        parsed = parser.parse()
+                        translated = parser.translate(parsed)
+                        
+                        print("Parsed Program:", parsed)
+                        print("Translated Program:", translated)
+                        
+                        #prg = interpreter_C64(script_name)
+                        #prg.parse()
                     
                     DebugPrint("\nend of data\n")
                     
@@ -15197,6 +15512,10 @@ class ApplicationEditorsPage(QObject):
                 _("XML Files")        + " (*.xml)",
                 _("Text Files")       + " (*.txt *.md)",
                 _("All Files")        + " (*)"])
+        elif self.objectName() == "c64":
+            dialog.setNameFilters([
+                _("BASIC Files")  + " (*.bas)",
+                _("All Files")    + " (*)"])
         else:
             dialog.setNameFilters([
                 _("All Files") + " (*)"])
@@ -16681,6 +17000,7 @@ class FileWatcherGUI(QDialog):
         
         # tool bar
         self.tool_bar = QToolBar()
+        self.tool_bar.hide()
         self.tool_bar.setMinimumHeight(26)
         self.tool_bar.setStyleSheet(_(genv.toolbar_css))
         self.tool_bar.setMaximumHeight(32)
@@ -16718,12 +17038,12 @@ class FileWatcherGUI(QDialog):
         self.main_widget.setStyleSheet("padding:0px;margin:0px;")
         
         self.main_content_layout = QHBoxLayout()
-        self.main_content_layout.setSpacing(5)
+        self.main_content_layout.setSpacing(0)
         
         self.side_scroll = QScrollArea()
         self.side_widget = QWidget()
         self.side_layout = QVBoxLayout()
-        self.side_layout.setSpacing(5)
+        self.side_layout.setSpacing(0)
         #
         self.side_widget.setContentsMargins(0,0,0,0)
         self.side_scroll.setContentsMargins(0,0,0,0)
@@ -16784,11 +17104,13 @@ class FileWatcherGUI(QDialog):
         
         self.front_content_widget = QWidget()
         self.front_content_layout = QHBoxLayout(self.front_content_widget)
+        self.front_content_layout.setSpacing(0)
 
         genv.splitter = QSplitter(Qt.Horizontal)
         genv.splitter.addWidget(self.side_scroll)
         genv.splitter.addWidget(self.front_scroll_area)
         #
+        self.main_content_layout.setSpacing(0)
         self.main_content_layout.addWidget(genv.splitter)
         
         self.handleDBase()
@@ -16854,6 +17176,7 @@ class FileWatcherGUI(QDialog):
         
         self.help_tabs.addTab(self.tab0_0, _("Help Project"))
         self.front_content_layout.addWidget(self.help_tabs)
+        self.front_content_layout.setSpacing(0)
         self.front_content_layout.addStretch()
         
         # create project tab
@@ -16861,6 +17184,11 @@ class FileWatcherGUI(QDialog):
         self.tab3_top_layout = QHBoxLayout(self.tab3)
         self.tab4_top_layout = QHBoxLayout(self.tab_widget_tabs)
         self.tab5_top_layout = QHBoxLayout(self.tab_html)
+        
+        self.tab2_top_layout.setSpacing(0)
+        self.tab3_top_layout.setSpacing(0)
+        self.tab4_top_layout.setSpacing(0)
+        self.tab5_top_layout.setSpacing(0)
         
         self.handle_right_bar_devices()
         self.handle_right_bar_servers()
@@ -16888,8 +17216,11 @@ class FileWatcherGUI(QDialog):
         self.tab_widget_1.addTab(tab_3, "Run")
         
         list_layout_a = QVBoxLayout(tab_1)
+        list_layout_a.setSpacing(0)
         
         list_layout_1 = QHBoxLayout()
+        list_layout_1.setSpacing(0)
+        
         genv.list_widget_1 = QListWidget()
         
         list_layout_a.addLayout(list_layout_1)
@@ -17004,6 +17335,7 @@ class FileWatcherGUI(QDialog):
         genv.sv_help.setStyleSheet(_("ScrollBarCSS"))
         
         vl = QVBoxLayout()
+        vl.setSpacing(0)
         
         for item in genv.scrollers:
             list_layout_2.addWidget(item)

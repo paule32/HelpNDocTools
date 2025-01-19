@@ -1,0 +1,910 @@
+{
+    "instructions": [
+        {
+            "mnemonic": "ADC",
+            "mode": 1,
+            "opcode_hex": "69",
+            "opcode_bin": "01101001"
+        },
+        {
+            "mnemonic": "ADC",
+            "mode": 2,
+            "opcode_hex": "65",
+            "opcode_bin": "01100101"
+        },
+        {
+            "mnemonic": "ADC",
+            "mode": 3,
+            "opcode_hex": "75",
+            "opcode_bin": "01110101"
+        },
+        {
+            "mnemonic": "ADC",
+            "mode": 4,
+            "opcode_hex": "6D",
+            "opcode_bin": "01101101"
+        },
+        {
+            "mnemonic": "ADC",
+            "mode": 5,
+            "opcode_hex": "7D",
+            "opcode_bin": "01111101"
+        },
+        {
+            "mnemonic": "ADC",
+            "mode": 6,
+            "opcode_hex": "79",
+            "opcode_bin": "01111001"
+        },
+        {
+            "mnemonic": "ADC",
+            "mode": 7,
+            "opcode_hex": "61",
+            "opcode_bin": "01100001"
+        },
+        {
+            "mnemonic": "ADC",
+            "mode": 8,
+            "opcode_hex": "71",
+            "opcode_bin": "01110001"
+        },
+        {
+            "mnemonic": "AND",
+            "mode": 1,
+            "opcode_hex": "29",
+            "opcode_bin": "00101001"
+        },
+        {
+            "mnemonic": "AND",
+            "mode": 2,
+            "opcode_hex": "25",
+            "opcode_bin": "00100101"
+        },
+        {
+            "mnemonic": "AND",
+            "mode": 3,
+            "opcode_hex": "35",
+            "opcode_bin": "00110101"
+        },
+        {
+            "mnemonic": "AND",
+            "mode": 4,
+            "opcode_hex": "2D",
+            "opcode_bin": "00101101"
+        },
+        {
+            "mnemonic": "AND",
+            "mode": 5,
+            "opcode_hex": "3D",
+            "opcode_bin": "00111101"
+        },
+        {
+            "mnemonic": "AND",
+            "mode": 6,
+            "opcode_hex": "39",
+            "opcode_bin": "00111001"
+        },
+        {
+            "mnemonic": "AND",
+            "mode": 7,
+            "opcode_hex": "21",
+            "opcode_bin": "00100001"
+        },
+        {
+            "mnemonic": "AND",
+            "mode": 8,
+            "opcode_hex": "31",
+            "opcode_bin": "00110001"
+        },
+        {
+            "mnemonic": "ASL",
+            "mode": 9,
+            "opcode_hex": "0A",
+            "opcode_bin": "00001010"
+        },
+        {
+            "mnemonic": "ASL",
+            "mode": 2,
+            "opcode_hex": "06",
+            "opcode_bin": "00000110"
+        },
+        {
+            "mnemonic": "ASL",
+            "mode": 3,
+            "opcode_hex": "16",
+            "opcode_bin": "00010110"
+        },
+        {
+            "mnemonic": "ASL",
+            "mode": 4,
+            "opcode_hex": "0E",
+            "opcode_bin": "00001110"
+        },
+        {
+            "mnemonic": "ASL",
+            "mode": 5,
+            "opcode_hex": "1E",
+            "opcode_bin": "00011110"
+        },
+        {
+            "mnemonic": "BCC",
+            "mode": 10,
+            "opcode_hex": "90",
+            "opcode_bin": "10010000"
+        },
+        {
+            "mnemonic": "BCS",
+            "mode": 10,
+            "opcode_hex": "B0",
+            "opcode_bin": "10110000"
+        },
+        {
+            "mnemonic": "BEQ",
+            "mode": 10,
+            "opcode_hex": "F0",
+            "opcode_bin": "11110000"
+        },
+        {
+            "mnemonic": "BIT",
+            "mode": 2,
+            "opcode_hex": "24",
+            "opcode_bin": "00100100"
+        },
+        {
+            "mnemonic": "BIT",
+            "mode": 4,
+            "opcode_hex": "2C",
+            "opcode_bin": "00101100"
+        },
+        {
+            "mnemonic": "BMI",
+            "mode": 10,
+            "opcode_hex": "30",
+            "opcode_bin": "00110000"
+        },
+        {
+            "mnemonic": "BNE",
+            "mode": 10,
+            "opcode_hex": "D0",
+            "opcode_bin": "11010000"
+        },
+        {
+            "mnemonic": "BPL",
+            "mode": 10,
+            "opcode_hex": "10",
+            "opcode_bin": "00010000"
+        },
+        {
+            "mnemonic": "BRK",
+            "mode": 11,
+            "opcode_hex": "00",
+            "opcode_bin": "00000000"
+        },
+        {
+            "mnemonic": "BVC",
+            "mode": 10,
+            "opcode_hex": "50",
+            "opcode_bin": "01010000"
+        },
+        {
+            "mnemonic": "BVS",
+            "mode": 10,
+            "opcode_hex": "70",
+            "opcode_bin": "01110000"
+        },
+        {
+            "mnemonic": "CLC",
+            "mode": 11,
+            "opcode_hex": "18",
+            "opcode_bin": "00011000"
+        },
+        {
+            "mnemonic": "CLD",
+            "mode": 11,
+            "opcode_hex": "D8",
+            "opcode_bin": "11011000"
+        },
+        {
+            "mnemonic": "CLI",
+            "mode": 11,
+            "opcode_hex": "58",
+            "opcode_bin": "01011000"
+        },
+        {
+            "mnemonic": "CLV",
+            "mode": 11,
+            "opcode_hex": "B8",
+            "opcode_bin": "10111000"
+        },
+        {
+            "mnemonic": "CMP",
+            "mode": 1,
+            "opcode_hex": "C9",
+            "opcode_bin": "11001001"
+        },
+        {
+            "mnemonic": "CMP",
+            "mode": 2,
+            "opcode_hex": "C5",
+            "opcode_bin": "11000101"
+        },
+        {
+            "mnemonic": "CMP",
+            "mode": 3,
+            "opcode_hex": "D5",
+            "opcode_bin": "11010101"
+        },
+        {
+            "mnemonic": "CMP",
+            "mode": 4,
+            "opcode_hex": "CD",
+            "opcode_bin": "11001101"
+        },
+        {
+            "mnemonic": "CMP",
+            "mode": 5,
+            "opcode_hex": "DD",
+            "opcode_bin": "11011101"
+        },
+        {
+            "mnemonic": "CMP",
+            "mode": 6,
+            "opcode_hex": "D9",
+            "opcode_bin": "11011001"
+        },
+        {
+            "mnemonic": "CMP",
+            "mode": 7,
+            "opcode_hex": "C1",
+            "opcode_bin": "11000001"
+        },
+        {
+            "mnemonic": "CMP",
+            "mode": 8,
+            "opcode_hex": "D1",
+            "opcode_bin": "11010001"
+        },
+        {
+            "mnemonic": "CPX",
+            "mode": 1,
+            "opcode_hex": "E0",
+            "opcode_bin": "11100000"
+        },
+        {
+            "mnemonic": "CPX",
+            "mode": 2,
+            "opcode_hex": "E4",
+            "opcode_bin": "11100100"
+        },
+        {
+            "mnemonic": "CPX",
+            "mode": 4,
+            "opcode_hex": "EC",
+            "opcode_bin": "11101100"
+        },
+        {
+            "mnemonic": "CPY",
+            "mode": 1,
+            "opcode_hex": "C0",
+            "opcode_bin": "11000000"
+        },
+        {
+            "mnemonic": "CPY",
+            "mode": 2,
+            "opcode_hex": "C4",
+            "opcode_bin": "11000100"
+        },
+        {
+            "mnemonic": "CPY",
+            "mode": 4,
+            "opcode_hex": "CC",
+            "opcode_bin": "11001100"
+        },
+        {
+            "mnemonic": "DEC",
+            "mode": 2,
+            "opcode_hex": "C6",
+            "opcode_bin": "11000110"
+        },
+        {
+            "mnemonic": "DEC",
+            "mode": 3,
+            "opcode_hex": "D6",
+            "opcode_bin": "11010110"
+        },
+        {
+            "mnemonic": "DEC",
+            "mode": 4,
+            "opcode_hex": "CE",
+            "opcode_bin": "11001110"
+        },
+        {
+            "mnemonic": "DEC",
+            "mode": 5,
+            "opcode_hex": "DE",
+            "opcode_bin": "11011110"
+        },
+        {
+            "mnemonic": "DEX",
+            "mode": 11,
+            "opcode_hex": "CA",
+            "opcode_bin": "11001010"
+        },
+        {
+            "mnemonic": "DEY",
+            "mode": 11,
+            "opcode_hex": "88",
+            "opcode_bin": "10001000"
+        },
+        {
+            "mnemonic": "EOR",
+            "mode": 1,
+            "opcode_hex": "49",
+            "opcode_bin": "01001001"
+        },
+        {
+            "mnemonic": "EOR",
+            "mode": 2,
+            "opcode_hex": "45",
+            "opcode_bin": "01000101"
+        },
+        {
+            "mnemonic": "EOR",
+            "mode": 3,
+            "opcode_hex": "55",
+            "opcode_bin": "01010101"
+        },
+        {
+            "mnemonic": "EOR",
+            "mode": 4,
+            "opcode_hex": "4D",
+            "opcode_bin": "01001101"
+        },
+        {
+            "mnemonic": "EOR",
+            "mode": 5,
+            "opcode_hex": "5D",
+            "opcode_bin": "01011101"
+        },
+        {
+            "mnemonic": "EOR",
+            "mode": 6,
+            "opcode_hex": "59",
+            "opcode_bin": "01011001"
+        },
+        {
+            "mnemonic": "EOR",
+            "mode": 7,
+            "opcode_hex": "41",
+            "opcode_bin": "01000001"
+        },
+        {
+            "mnemonic": "EOR",
+            "mode": 8,
+            "opcode_hex": "51",
+            "opcode_bin": "01010001"
+        },
+        {
+            "mnemonic": "INC",
+            "mode": 2,
+            "opcode_hex": "E6",
+            "opcode_bin": "11100110"
+        },
+        {
+            "mnemonic": "INC",
+            "mode": 3,
+            "opcode_hex": "F6",
+            "opcode_bin": "11110110"
+        },
+        {
+            "mnemonic": "INC",
+            "mode": 4,
+            "opcode_hex": "EE",
+            "opcode_bin": "11101110"
+        },
+        {
+            "mnemonic": "INC",
+            "mode": 5,
+            "opcode_hex": "FE",
+            "opcode_bin": "11111110"
+        },
+        {
+            "mnemonic": "INX",
+            "mode": 11,
+            "opcode_hex": "E8",
+            "opcode_bin": "11101000"
+        },
+        {
+            "mnemonic": "INY",
+            "mode": 11,
+            "opcode_hex": "C8",
+            "opcode_bin": "11001000"
+        },
+        {
+            "mnemonic": "JMP",
+            "mode": 4,
+            "opcode_hex": "4C",
+            "opcode_bin": "01001100"
+        },
+        {
+            "mnemonic": "JMP",
+            "mode": 12,
+            "opcode_hex": "6C",
+            "opcode_bin": "01101100"
+        },
+        {
+            "mnemonic": "JSR",
+            "mode": 4,
+            "opcode_hex": "20",
+            "opcode_bin": "00100000"
+        },
+        {
+            "mnemonic": "LDA",
+            "mode": 1,
+            "opcode_hex": "A9",
+            "opcode_bin": "10101001"
+        },
+        {
+            "mnemonic": "LDA",
+            "mode": 2,
+            "opcode_hex": "A5",
+            "opcode_bin": "10100101"
+        },
+        {
+            "mnemonic": "LDA",
+            "mode": 3,
+            "opcode_hex": "B5",
+            "opcode_bin": "10110101"
+        },
+        {
+            "mnemonic": "LDA",
+            "mode": 4,
+            "opcode_hex": "AD",
+            "opcode_bin": "10101101"
+        },
+        {
+            "mnemonic": "LDA",
+            "mode": 5,
+            "opcode_hex": "BD",
+            "opcode_bin": "10111101"
+        },
+        {
+            "mnemonic": "LDA",
+            "mode": 6,
+            "opcode_hex": "B9",
+            "opcode_bin": "10111001"
+        },
+        {
+            "mnemonic": "LDA",
+            "mode": 7,
+            "opcode_hex": "A1",
+            "opcode_bin": "10100001"
+        },
+        {
+            "mnemonic": "LDA",
+            "mode": 8,
+            "opcode_hex": "B1",
+            "opcode_bin": "10110001"
+        },
+        {
+            "mnemonic": "LDX",
+            "mode": 1,
+            "opcode_hex": "A2",
+            "opcode_bin": "10100010"
+        },
+        {
+            "mnemonic": "LDX",
+            "mode": 2,
+            "opcode_hex": "A6",
+            "opcode_bin": "10100110"
+        },
+        {
+            "mnemonic": "LDX",
+            "mode": 13,
+            "opcode_hex": "B6",
+            "opcode_bin": "10110110"
+        },
+        {
+            "mnemonic": "LDX",
+            "mode": 4,
+            "opcode_hex": "AE",
+            "opcode_bin": "10101110"
+        },
+        {
+            "mnemonic": "LDX",
+            "mode": 6,
+            "opcode_hex": "BE",
+            "opcode_bin": "10111110"
+        },
+        {
+            "mnemonic": "LDY",
+            "mode": 1,
+            "opcode_hex": "A0",
+            "opcode_bin": "10100000"
+        },
+        {
+            "mnemonic": "LDY",
+            "mode": 2,
+            "opcode_hex": "A4",
+            "opcode_bin": "10100100"
+        },
+        {
+            "mnemonic": "LDY",
+            "mode": 3,
+            "opcode_hex": "B4",
+            "opcode_bin": "10110100"
+        },
+        {
+            "mnemonic": "LDY",
+            "mode": 4,
+            "opcode_hex": "AC",
+            "opcode_bin": "10101100"
+        },
+        {
+            "mnemonic": "LDY",
+            "mode": 5,
+            "opcode_hex": "BC",
+            "opcode_bin": "10111100"
+        },
+        {
+            "mnemonic": "LSR",
+            "mode": 9,
+            "opcode_hex": "4A",
+            "opcode_bin": "01001010"
+        },
+        {
+            "mnemonic": "LSR",
+            "mode": 2,
+            "opcode_hex": "46",
+            "opcode_bin": "01000110"
+        },
+        {
+            "mnemonic": "LSR",
+            "mode": 3,
+            "opcode_hex": "56",
+            "opcode_bin": "01010110"
+        },
+        {
+            "mnemonic": "LSR",
+            "mode": 4,
+            "opcode_hex": "4E",
+            "opcode_bin": "01001110"
+        },
+        {
+            "mnemonic": "LSR",
+            "mode": 5,
+            "opcode_hex": "5E",
+            "opcode_bin": "01011110"
+        },
+        {
+            "mnemonic": "NOP",
+            "mode": 11,
+            "opcode_hex": "EA",
+            "opcode_bin": "11101010"
+        },
+        {
+            "mnemonic": "ORA",
+            "mode": 1,
+            "opcode_hex": "09",
+            "opcode_bin": "00001001"
+        },
+        {
+            "mnemonic": "ORA",
+            "mode": 2,
+            "opcode_hex": "05",
+            "opcode_bin": "00000101"
+        },
+        {
+            "mnemonic": "ORA",
+            "mode": 3,
+            "opcode_hex": "15",
+            "opcode_bin": "00010101"
+        },
+        {
+            "mnemonic": "ORA",
+            "mode": 4,
+            "opcode_hex": "0D",
+            "opcode_bin": "00001101"
+        },
+        {
+            "mnemonic": "ORA",
+            "mode": 5,
+            "opcode_hex": "1D",
+            "opcode_bin": "00011101"
+        },
+        {
+            "mnemonic": "ORA",
+            "mode": 6,
+            "opcode_hex": "19",
+            "opcode_bin": "00011001"
+        },
+        {
+            "mnemonic": "ORA",
+            "mode": 7,
+            "opcode_hex": "01",
+            "opcode_bin": "00000001"
+        },
+        {
+            "mnemonic": "ORA",
+            "mode": 8,
+            "opcode_hex": "11",
+            "opcode_bin": "00010001"
+        },
+        {
+            "mnemonic": "PHA",
+            "mode": 11,
+            "opcode_hex": "48",
+            "opcode_bin": "01001000"
+        },
+        {
+            "mnemonic": "PHP",
+            "mode": 11,
+            "opcode_hex": "08",
+            "opcode_bin": "00001000"
+        },
+        {
+            "mnemonic": "PLA",
+            "mode": 11,
+            "opcode_hex": "68",
+            "opcode_bin": "01101000"
+        },
+        {
+            "mnemonic": "PLP",
+            "mode": 11,
+            "opcode_hex": "28",
+            "opcode_bin": "00101000"
+        },
+        {
+            "mnemonic": "ROL",
+            "mode": 9,
+            "opcode_hex": "2A",
+            "opcode_bin": "00101010"
+        },
+        {
+            "mnemonic": "ROL",
+            "mode": 2,
+            "opcode_hex": "26",
+            "opcode_bin": "00100110"
+        },
+        {
+            "mnemonic": "ROL",
+            "mode": 3,
+            "opcode_hex": "36",
+            "opcode_bin": "00110110"
+        },
+        {
+            "mnemonic": "ROL",
+            "mode": 4,
+            "opcode_hex": "2E",
+            "opcode_bin": "00101110"
+        },
+        {
+            "mnemonic": "ROL",
+            "mode": 5,
+            "opcode_hex": "3E",
+            "opcode_bin": "00111110"
+        },
+        {
+            "mnemonic": "ROR",
+            "mode": 9,
+            "opcode_hex": "6A",
+            "opcode_bin": "01101010"
+        },
+        {
+            "mnemonic": "ROR",
+            "mode": 2,
+            "opcode_hex": "66",
+            "opcode_bin": "01100110"
+        },
+        {
+            "mnemonic": "ROR",
+            "mode": 3,
+            "opcode_hex": "76",
+            "opcode_bin": "01110110"
+        },
+        {
+            "mnemonic": "ROR",
+            "mode": 4,
+            "opcode_hex": "6E",
+            "opcode_bin": "01101110"
+        },
+        {
+            "mnemonic": "ROR",
+            "mode": 5,
+            "opcode_hex": "7E",
+            "opcode_bin": "01111110"
+        },
+        {
+            "mnemonic": "RTI",
+            "mode": 11,
+            "opcode_hex": "40",
+            "opcode_bin": "01000000"
+        },
+        {
+            "mnemonic": "RTS",
+            "mode": 11,
+            "opcode_hex": "60",
+            "opcode_bin": "01100000"
+        },
+        {
+            "mnemonic": "SBC",
+            "mode": 1,
+            "opcode_hex": "E9",
+            "opcode_bin": "11101001"
+        },
+        {
+            "mnemonic": "SBC",
+            "mode": 2,
+            "opcode_hex": "E5",
+            "opcode_bin": "11100101"
+        },
+        {
+            "mnemonic": "SBC",
+            "mode": 3,
+            "opcode_hex": "F5",
+            "opcode_bin": "11110101"
+        },
+        {
+            "mnemonic": "SBC",
+            "mode": 4,
+            "opcode_hex": "ED",
+            "opcode_bin": "11101101"
+        },
+        {
+            "mnemonic": "SBC",
+            "mode": 5,
+            "opcode_hex": "FD",
+            "opcode_bin": "11111101"
+        },
+        {
+            "mnemonic": "SBC",
+            "mode": 6,
+            "opcode_hex": "F9",
+            "opcode_bin": "11111001"
+        },
+        {
+            "mnemonic": "SBC",
+            "mode": 7,
+            "opcode_hex": "E1",
+            "opcode_bin": "11100001"
+        },
+        {
+            "mnemonic": "SBC",
+            "mode": 8,
+            "opcode_hex": "F1",
+            "opcode_bin": "11110001"
+        },
+        {
+            "mnemonic": "SEC",
+            "mode": 11,
+            "opcode_hex": "38",
+            "opcode_bin": "00111000"
+        },
+        {
+            "mnemonic": "SED",
+            "mode": 11,
+            "opcode_hex": "F8",
+            "opcode_bin": "11111000"
+        },
+        {
+            "mnemonic": "SEI",
+            "mode": 11,
+            "opcode_hex": "78",
+            "opcode_bin": "01111000"
+        },
+        {
+            "mnemonic": "STA",
+            "mode": 2,
+            "opcode_hex": "85",
+            "opcode_bin": "10000101"
+        },
+        {
+            "mnemonic": "STA",
+            "mode": 3,
+            "opcode_hex": "95",
+            "opcode_bin": "10010101"
+        },
+        {
+            "mnemonic": "STA",
+            "mode": 4,
+            "opcode_hex": "8D",
+            "opcode_bin": "10001101"
+        },
+        {
+            "mnemonic": "STA",
+            "mode": 5,
+            "opcode_hex": "9D",
+            "opcode_bin": "10011101"
+        },
+        {
+            "mnemonic": "STA",
+            "mode": 6,
+            "opcode_hex": "99",
+            "opcode_bin": "10011001"
+        },
+        {
+            "mnemonic": "STA",
+            "mode": 7,
+            "opcode_hex": "81",
+            "opcode_bin": "10000001"
+        },
+        {
+            "mnemonic": "STA",
+            "mode": 8,
+            "opcode_hex": "91",
+            "opcode_bin": "10010001"
+        },
+        {
+            "mnemonic": "STX",
+            "mode": 2,
+            "opcode_hex": "86",
+            "opcode_bin": "10000110"
+        },
+        {
+            "mnemonic": "STX",
+            "mode": 13,
+            "opcode_hex": "96",
+            "opcode_bin": "10010110"
+        },
+        {
+            "mnemonic": "STX",
+            "mode": 4,
+            "opcode_hex": "8E",
+            "opcode_bin": "10001110"
+        },
+        {
+            "mnemonic": "STY",
+            "mode": 2,
+            "opcode_hex": "84",
+            "opcode_bin": "10000100"
+        },
+        {
+            "mnemonic": "STY",
+            "mode": 3,
+            "opcode_hex": "94",
+            "opcode_bin": "10010100"
+        },
+        {
+            "mnemonic": "STY",
+            "mode": 4,
+            "opcode_hex": "8C",
+            "opcode_bin": "10001100"
+        },
+        {
+            "mnemonic": "TAX",
+            "mode": 11,
+            "opcode_hex": "AA",
+            "opcode_bin": "10101010"
+        },
+        {
+            "mnemonic": "TAY",
+            "mode": 11,
+            "opcode_hex": "A8",
+            "opcode_bin": "10101000"
+        },
+        {
+            "mnemonic": "TSX",
+            "mode": 11,
+            "opcode_hex": "BA",
+            "opcode_bin": "10111010"
+        },
+        {
+            "mnemonic": "TXA",
+            "mode": 11,
+            "opcode_hex": "8A",
+            "opcode_bin": "10001010"
+        },
+        {
+            "mnemonic": "TXS",
+            "mode": 11,
+            "opcode_hex": "9A",
+            "opcode_bin": "10011010"
+        },
+        {
+            "mnemonic": "TYA",
+            "mode": 11,
+            "opcode_hex": "98",
+            "opcode_bin": "10011000"
+        }
+    ]
+}

@@ -1,0 +1,54 @@
+[
+    {
+        "id": 1,
+        "mode": "Immediate"
+    },
+    {
+        "id": 2,
+        "mode": "Zero Page"
+    },
+    {
+        "id": 3,
+        "mode": "Zero Page,X"
+    },
+    {
+        "id": 4,
+        "mode": "Absolute"
+    },
+    {
+        "id": 5,
+        "mode": "Absolute,X"
+    },
+    {
+        "id": 6,
+        "mode": "Absolute,Y"
+    },
+    {
+        "id": 7,
+        "mode": "(Indirect,X)"
+    },
+    {
+        "id": 8,
+        "mode": "(Indirect),Y"
+    },
+    {
+        "id": 9,
+        "mode": "Accumulator"
+    },
+    {
+        "id": 10,
+        "mode": "Relative"
+    },
+    {
+        "id": 11,
+        "mode": "Implied"
+    },
+    {
+        "id": 12,
+        "mode": "Indirect"
+    },
+    {
+        "id": 13,
+        "mode": "Zero Page,Y"
+    }
+]
