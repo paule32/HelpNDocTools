@@ -7291,7 +7291,7 @@ class C64BasicParser:
         # Funktionen für alle Zeilennummern generieren
         for i, line_number in enumerate(all_line_numbers):
             next_line_number = all_line_numbers[i + 1] if i + 1 < len(all_line_numbers) else None
-            function_code = [f"    def line_{line_number}():"]
+            function_code = [f"    def line_{line_number}(self):"]
             function_code.append("        next_line = None")  # Initialisierung von next_line
 
             # Suche die passende Zeile im BASIC-Code
@@ -7301,7 +7301,7 @@ class C64BasicParser:
                 
                 # Übersetzung für END-Befehl
                 if tokens and tokens[0][1] == "END":
-                    function_code.append("        genv.c64_parser.c64_exec_thread_stop()")
+                    function_code.append("        self.running = 2")
                     function_code.append("        next_line = None")
                 
                 # Übersetzung für PRINT-Befehl
@@ -7309,7 +7309,9 @@ class C64BasicParser:
                     content = " ".join(
                         token[1] if token[0] != "STRING" else token[1][1:-1] for token in tokens[1:]
                     )
-                    function_code.append(f"        console.win.print_line(\"{content}\")")
+                    function_code.append(f"        self.console.win.print_line(\"{content}\")")
+                    function_code.append(f"        self.console.win.gotoxy(self.xpos, self.ypos)")
+                    function_code.append(f"        self.ypos += 1")
                 
                 # Übersetzung für GOTO-Befehl
                 elif tokens and tokens[0][1] == "GOTO":
@@ -7318,41 +7320,44 @@ class C64BasicParser:
             
             # Standardabschluss der Funktion
             if next_line_number is not None:
-                function_code.append(f"    if next_line is None: next_line = {next_line_number}")
-            function_code.append("    return next_line")
+                function_code.append(f"        if next_line is None: next_line = {next_line_number}")
+            function_code.append("        return next_line")
             function_definitions.append("\n".join(function_code))
 
         # Main-Ausführungslogik
         python_code.append("class main(QObject):")
-        python_code.append("    def __inir__(self):")
+        python_code.append("    def __init__(self):")
         python_code.append("        super().__init__()")
         python_code.append("        self.current_line = 10")
-        python_code.append("        self.rinning = 0")
+        python_code.append("        self.running = 0")
+        python_code.append("        self.xpos = 1")
+        python_code.append("        self.ypos = 1")
+        
+        python_code.append("        self.console = DOSConsole()")
+        python_code.append("        self.console.win.print_line('holladiho')")
         
         python_code.append("        self.worker_thread = C64BasicWorkerThread()")
         python_code.append("        self.worker_thread.progress.connect(self.update_progress)")
         python_code.append("        self.worker_thread.start()")
         
-        python_code.append("    def update_progress(value):")
-        python_code.append("        if self.running == 2:")
-        python_code.append("            return")
-        
-        python_code.append("        func = globals().get(f'line_{self.current_line}')")
-        python_code.append("        if func:")
-        python_code.append("            self.current_line = func()")
-        python_code.append("        else:")
-        
-        python_code.append("            self.current_line = None")
-        python_code.append("            if self.worker_thread.isRinning():")
-        python_code.append("                self.worker_thread.terminate()")
+        python_code.append("    def update_progress(self, value):")
+        python_code.append("        while True:")
+        python_code.append("            func_name = f'line_{self.current_line}'")
+        python_code.append("            if hasattr(self, func_name):")
+        python_code.append("                method = getattr(self, func_name)")
+        python_code.append("                self.current_line = method()")
+        python_code.append("                if not self.current_line == None:")
+        python_code.append("                    self.current_line += 1")
+        python_code.append("            else:")
+        python_code.append("                showError(f\"methode: {func_name} not found.\")")
+        python_code.append("                if self.worker_thread.isRunning():")
+        python_code.append("                    self.worker_thread.terminate()")
+        python_code.append("                break")
         
         python_code.extend(function_definitions)
         
-        python_code.append("console = DOSConsole()")
-        python_code.append("console.win.print_line('holla')")
         python_code.append("main_func = main()")
-        
-        python_code.append("console.exec_()")
+        python_code.append("main_func.console.exec_()")
         
         return "\n".join(python_code)
 
