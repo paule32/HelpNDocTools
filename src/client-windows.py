@@ -772,6 +772,10 @@ class globalEnv:
         self.temp_token = ""
         self.TOKEN_TEMP = 4000
         
+        self.c64_parser  = None
+        self.c64_parsed  = None
+        self.c64_console = None
+        
         # Konstante für Sicherheitsberechtigungen
         self.GENERIC_ALL = 0x10000000
         
@@ -3927,7 +3931,7 @@ class DOSConsoleWindow(QTextEdit):
         # ------------------------------------------------
         self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
         self.colors = [['#ff0000:#000000' for _ in range(self.cols)] for _ in range(self.rows)]
-    
+        
     def get_char_dimensions(self, char):
         font         = self.font()
         font_metrics = QFontMetrics(font)
@@ -4083,7 +4087,7 @@ class DOSConsole(QDialog):
         printer_box = QListWidget()
         printer_box.setMaximumWidth(100)
         
-        self.win = DOSConsoleWindow()
+        self.win = DOSConsoleWindow(self)
         self.win.setReadOnly(True)
         
         # close button, to close the QDialog
@@ -7130,13 +7134,20 @@ class lispDSL():
         self.parser = interpreter_LISP(script_name)
         self.parser.parse()
 
+class C64BasicWorkerThread(QThread):
+    progress = pyqtSignal(int)
+    def run(self):
+        time.sleep(0.2)
+        self.progress.emit(1)
+
 class C64BasicParser:
     def __init__(self, script_name):
         self.script_name = script_name
         self.code = ""
         
         self.func_lines = []
-        self.running = True
+        self.c64_exec_thread_running = 0
+        self.c64_exec_thread = None
         
         with open(script_name, "r", encoding="utf-8") as file:
             self.code = file.read()
@@ -7175,17 +7186,7 @@ class C64BasicParser:
             "LINE_NUMBER": r"^\d+",
             "COMMAND": r"^[A-Z]+",
             "NUMBER": r"^\d+",
-            "STRING": r'^"[^"]*"',
-            "VARIABLE": r"^[A-Z][0-9A-Z]*",
-            "SYMBOL": r"^[=,+\-*/()]",
-        }
-        
-        # Reguläre Ausdrücke für BASIC-Elemente
-        self.token_patterns = {
-            "LINE_NUMBER": r"^\d+",
-            "COMMAND": r"^[A-Z]+",
-            "NUMBER": r"^\d+",
-            "STRING": r'^\"[^\"]*\"',
+            "STRING": r'^\"[^"]*\"',
             "VARIABLE": r"^[A-Z][0-9A-Z]*",
             "SYMBOL": r"^[=,+\-*/()]",
         }
@@ -7227,30 +7228,16 @@ class C64BasicParser:
 
             # Tokenisiere den Rest der Zeile
             tokens = self.tokenize(rest_of_line)
-
+            
+            # Überprüfe, ob der erste Token ein gültiges BASIC-Schlüsselwort ist
+            if tokens and tokens[0][0] == "COMMAND" and tokens[0][1] not in self.commands:
+                raise SyntaxError(f"Unbekannter Befehl '{tokens[0][1]}' in Zeile {line_number}")
+            
             # Übersetze die Tokens
             parsed_line = {"line_number": line_number, "tokens": tokens}
             parsed_program.append(parsed_line)
 
         return parsed_program
-
-    def translate(self, parsed_program):
-        """Übersetzt die Befehle in Opcodes."""
-        translated_program = []
-
-        for line in parsed_program:
-            line_number = line["line_number"]
-            translated_line = [line_number]
-
-            for token_type, token in line["tokens"]:
-                if token_type == "COMMAND" and token in self.commands:
-                    translated_line.append(self.commands[token])
-                else:
-                    translated_line.append(token)
-
-            translated_program.append(translated_line)
-
-        return translated_program
 
     def detect_infinite_loops(self, parsed_program):
         """Erkennt Endlosschleifen im BASIC-Code."""
@@ -7292,7 +7279,7 @@ class C64BasicParser:
                 return True  # Endlosschleife erkannt
 
         return False
-
+    
     def to_python(self, parsed_program):
         """Konvertiert den BASIC-Code in Python-Code."""
         python_code = []
@@ -7304,43 +7291,96 @@ class C64BasicParser:
         # Funktionen für alle Zeilennummern generieren
         for i, line_number in enumerate(all_line_numbers):
             next_line_number = all_line_numbers[i + 1] if i + 1 < len(all_line_numbers) else None
-            function_code = [f"def line_{line_number}():"]
-            function_code.append("    next_line = None")  # Initialisierung von next_line
+            function_code = [f"    def line_{line_number}():"]
+            function_code.append("        next_line = None")  # Initialisierung von next_line
 
             # Suche die passende Zeile im BASIC-Code
             matching_lines = [line for line in parsed_program if line["line_number"] == line_number]
             if matching_lines:
                 tokens = matching_lines[0]["tokens"]
-
+                
+                # Übersetzung für END-Befehl
+                if tokens and tokens[0][1] == "END":
+                    function_code.append("        genv.c64_parser.c64_exec_thread_stop()")
+                    function_code.append("        next_line = None")
+                
                 # Übersetzung für PRINT-Befehl
-                if tokens and tokens[0][1] == "PRINT":
+                elif tokens and tokens[0][1] == "PRINT":
                     content = " ".join(
                         token[1] if token[0] != "STRING" else token[1][1:-1] for token in tokens[1:]
                     )
-                    function_code.append(f"    print('{content}')")
-
+                    function_code.append(f"        console.win.print_line(\"{content}\")")
+                
                 # Übersetzung für GOTO-Befehl
                 elif tokens and tokens[0][1] == "GOTO":
                     target_line = tokens[1][1]
-                    function_code.append(f"    next_line = {target_line}")
-
+                    function_code.append(f"        next_line = {target_line}")
+            
             # Standardabschluss der Funktion
             if next_line_number is not None:
-                function_code.append(f"    if next_line is None: next_line = {next_line_number}")
-            function_code.append("    return next_line")
+                function_code.append(f"        if next_line is None: next_line = {next_line_number}")
+            function_code.append("        return next_line")
             function_definitions.append("\n".join(function_code))
 
         # Main-Ausführungslogik
+        python_code.append("class main(QObject):")
+        python_code.append("    def __inir__(self):")
+        python_code.append("        super().__init__()")
+        python_code.append("        self.current_line = 10")
+        python_code.append("        self.rinning = 0")
+        
+        python_code.append("        self.worker_thread = C64BasicWorkerThread()")
+        python_code.append("        self.worker_thread.progress.connect(self.update_progress)")
+        python_code.append("        self.worker_thread.start()")
+        
+        python_code.append("    def update_progress(value):")
+        python_code.append("        if self.running == 2:")
+        python_code.append("            return")
+        
+        python_code.append("        func = globals().get(f'line_{self.current_line}')")
+        python_code.append("        if func:")
+        python_code.append("            self.current_line = func()")
+        python_code.append("        else:")
+        
+        python_code.append("            self.current_line = None")
+        python_code.append("            if self.worker_thread.isRinning():")
+        python_code.append("                self.worker_thread.terminate()")
+        
         python_code.extend(function_definitions)
-        python_code.append("\ncurrent_line = 10  # Start des Programms")
-        python_code.append("while current_line is not None:")
-        python_code.append("    func = globals().get(f'line_{current_line}')")
-        python_code.append("    if func:")
-        python_code.append("        current_line = func()")
-        python_code.append("    else:")
-        python_code.append("        current_line = None")
-
+        
+        python_code.append("console = DOSConsole()")
+        python_code.append("console.win.print_line('holla')")
+        python_code.append("main_func = main()")
+        
+        python_code.append("console.exec_()")
+        
         return "\n".join(python_code)
+
+    def run_bytecode(self, bytecode_file):
+        with open(bytecode_file, "rb") as f:
+            loaded_code = marshal.load(f)
+        exec(loaded_code, globals())
+        
+        #"""Führt den Bytecode in einem separaten Thread aus."""
+        #def run():
+        #    if genv.c64_parser.c64_exec_thread_running == 2:
+        #        self.c64_exec_thread_stop()
+        #        return
+        #    with open(bytecode_file, "rb") as f:
+        #        loaded_code = marshal.load(f)
+        #        while self.c64_exec_thread_running < 2:
+        #            exec(loaded_code, globals())
+        #
+        #self.c64_exec_thread = threading.Thread(target=run)
+        #self.c64_exec_thread.start()
+        #return self.c64_exec_thread
+    
+    # -----------------------------------
+    # Stoppt die laufende Ausführung.
+    # -----------------------------------
+    def c64_exec_thread_stop(self):
+        if not self.c64_exec_thread == None:
+            self.c64_exec_thread_running = 2
 
 class interpreter_C64(interpreter_base):
     def __init__(self, file_name):
@@ -10815,7 +10855,7 @@ class EditorTextEdit(QPlainTextEdit):
     def __init__(self, parent, file_name, edit_type):
         super(EditorTextEdit, self).__init__()
         
-        self.c64_exec_thread_running = False
+        self.parser = None
         
         self.setStyleSheet(_("ScrollBarCSS"))
         self.setObjectName(file_name)
@@ -11025,37 +11065,13 @@ class EditorTextEdit(QPlainTextEdit):
         
         super().mousePressEvent(event)
     
-    def c64_thread_run(self, bytecode_file):
-        def run():
-            # ------------------------------------------
-            # Lade und führe den Bytecode aus
-            # ------------------------------------------
-            try:
-                with open(bytecode_file, "rb") as f:
-                    loaded_code = marshal.load(f)
-                    while self.c64_exec_thread_running:
-                        exec(loaded_code, globals())
-            except PermissionError as e:
-                showError(_("you have no permissions to open byte code file."))
-                return False
-            except Exception as e:
-                showError(_(f"UNexpected error occured:\n{e}"))
-                return False
-                
-        thread = threading.Thread(target=run)
-        thread.start()
-        return thread
-    
-    def c64_thread_stop(self):
-        self.c64_exec_thread_running = False
-        self.c64_exec_thread.stop()
-        
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
-            self.c64_thread_stop()
+            #if not genv.c64_parser.c64_exec_thread == None:
+            #    genv.c64_parser.c64_exec_thread_stop()
             super().keyPressEvent(event)
             return None
-        if event.key() == Qt.Key.Key_F2:
+        elif event.key() == Qt.Key.Key_F2:
             script_name = self.file_name
             try:
                 # ---------------------------------------
@@ -11073,21 +11089,21 @@ class EditorTextEdit(QPlainTextEdit):
             if self.edit_type == "c64":
                 try:
                     try:
-                        parser = C64BasicParser(script_name)
-                        parsed = parser.parse()
+                        #genv.c64_console = DOSConsoleWindow(application_window)
+                        #genv.c64_console.show()
+                        
+                        genv.c64_parser  = C64BasicParser(script_name)
+                        genv.c64_parsed  = genv.c64_parser.parse()
                         
                         # ------------------------------------------
                         # Überprüfe auf Endlosschleifen
                         # ------------------------------------------
-                        if parser.detect_infinite_loops(parsed):
+                        if genv.c64_parser.detect_infinite_loops(genv.c64_parsed):
                             showInfo(_("WARNING:\nendless loop detected."))
-                            return False
+                            return None
 
-                        translated  = parser.translate(parsed)
-                        python_code = parser.to_python(parsed)
-                        
-                        print("Parsed Program:", parsed)
-                        print("Translated Program:", translated)
+                        python_code = genv.c64_parser.to_python(genv.c64_parsed)
+                        print("Parsed Program:", genv.c64_parsed)
                         
                         # ------------------------------------------
                         # Speichere den Python-Code als Datei
@@ -11136,9 +11152,13 @@ class EditorTextEdit(QPlainTextEdit):
                         print("Python Code:")
                         print(python_code)
                         
-                        self.c64_exec_thread_running = True
-                        self.c64_exec_thread = self.c64_thread_run(bytecode_file)
-                        self.c64_exec_thread.join()
+                        genv.c64_parser.run_bytecode(bytecode_file)
+                        
+                        #genv.c64_parser.c64_exec_thread_running = True
+                        #genv.c64_parser.c64_exec_thread = \
+                        #genv.c64_parser.run_bytecode(bytecode_file)
+                        #genv.c64_parser.c64_exec_thread.join()
+                        
                     except TypeError as e:
                         showError(_(f"Type Error:\n{e}"))
                         return False
