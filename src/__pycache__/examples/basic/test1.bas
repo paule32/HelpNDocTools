@@ -1,3 +1,2 @@
-10 PRINT "   HELLO WORLD"
-40 PRINT "ENDE"
-41 PRINT "OLA"
+10 print "Hello World" + " bbbb " + "dddd"
+12 print "xx " + "12"

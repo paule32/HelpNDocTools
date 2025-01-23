@@ -7141,6 +7141,19 @@ class C64BasicWorkerThread(QThread):
         self.progress.emit(1)
 
 class C64BasicParser:
+    class CaseInsensitiveDict(dict):
+        def __setitem__(self, key, value):
+            super().__setitem__(key.lower(), value)
+
+        def __getitem__(self, key):
+            return super().__getitem__(key.lower())
+
+        def __contains__(self, key):
+            return super().__contains__(key.lower())
+
+        def get(self, key, default=None):
+            return super().get(key.lower(), default)
+    
     def __init__(self, script_name):
         self.script_name = script_name
         self.code = ""
@@ -7148,51 +7161,76 @@ class C64BasicParser:
         self.func_lines = []
         self.c64_exec_thread_running = 0
         self.c64_exec_thread = None
+
+        self.nbsp1 = (" " * 4)
+        self.nbsp2 = self.nbsp1 + self.nbsp1
+        self.nbsp3 = self.nbsp2 + self.nbsp1
+        self.nbsp4 = self.nbsp2 + self.nbsp2
+        self.nbsp5 = self.nbsp3 + self.nbsp2
+        self.nbsp6 = self.nbsp3 + self.nbsp3
+        
+        self.workerThread   = "self.worker_thread"
+        self.winco          = "self.console"
+        self.wincoPrintLine = self.winco + ".win.print_line"
+        
+        self.token_index = 0
         
         with open(script_name, "r", encoding="utf-8") as file:
             self.code = file.read()
             file.close()
         
-        # Liste der BASIC-Schlüsselwörter mit entsprechenden Opcodes
-        self.commands = {
-            "END": "B000",
-            "FOR": "AE00",
-            "NEXT": "AF00",
-            "DATA": "B500",
-            "INPUT": "A500",
-            "PRINT": "A600",
-            "DIM": "B300",
-            "READ": "B400",
-            "GOTO": "A900",
-            "RUN": "A000",
-            "IF": "A800",
-            "RESTORE": "B600",
-            "GOSUB": "AA00",
-            "RETURN": "AB00",
-            "STOP": "B100",
-            "ON": "B700",
-            "POKE": "AC00",
-            "PEEK": "AD00",
-            "SYS": "B900",
-            "OPEN": "BA00",
-            "CLOSE": "BB00",
-            "NEW": "9E00",
-            "VERIFY": "BC00",
-            "CLR": "C000",
-        }
+        # ----------------------------------------
+        # Liste der BASIC-Schlüsselwörter mit ent-
+        # sprechenden Opcodes
+        # ----------------------------------------
+        self.commands = self.CaseInsensitiveDict({
+            "NEW":      0x9E00,
+            
+            "RUN":      0xA000,
+            "INPUT":    0xA500,
+            "PRINT":    0xA600,
+            "IF":       0xA800,
+            "GOTO":     0xA900,
+            "GOSUB":    0xAA00,
+            "RETURN":   0xAB00,
+            "POKE":     0xAC00,
+            "PEEK":     0xAD00,
+            "FOR":      0xAE00,
+            "NEXT":     0xAF00,
+            
+            "END":      0xB000,
+            "STOP":     0xB100,
+            "DIM":      0xB300,
+            "READ":     0xB400,
+            "DATA":     0xB500,
+            "RESTORE":  0xB600,
+            "ON":       0xB700,
+            "SYS":      0xB900,
+            "OPEN":     0xBA00,
+            "CLOSE":    0xBB00,
+            "VERIFY":   0xBC00,
+            
+            "CLR":      0xC000,
+            
+            "RIGHT":    0xD100,
+            "LEFT":     0xD200
+        })
         
+        # ----------------------------------------
         # Reguläre Ausdrücke für BASIC-Elemente
+        # ----------------------------------------
         self.token_patterns = {
-            "LINE_NUMBER": r"^\d+",
-            "COMMAND": r"^[A-Z]+",
-            "NUMBER": r"^\d+",
-            "STRING": r'^\"[^"]*\"',
-            "VARIABLE": r"^[A-Z][0-9A-Z]*",
-            "SYMBOL": r"^[=,+\-*/()]",
+            "NUMBER":       r"^\d+",
+            "COMMAND":      r"^[a-zA-Z]+",
+            "STRING":       r'^\"[^"]*\"',
+            "VARIABLE":     r"^[a-zA-Z][0-9a-zA-Z]*",
+            "SYMBOL":       r"^[=,+\-*/()]",
         }
     
+    # ----------------------------------------
+    # Zerlegt den BASIC-Code in Tokens.
+    # ----------------------------------------
     def tokenize(self, code):
-        """Zerlegt den BASIC-Code in Tokens."""
         tokens = []
         while code:
             code = code.lstrip()  # Leerzeichen entfernen
@@ -7207,9 +7245,12 @@ class C64BasicParser:
             if not matched:
                 raise SyntaxError(f"Unbekanntes Token: {code}")
         return tokens
-
+    
+    # -------------------------------------
+    # Parst einen BASIC-Code in eine Liste
+    # von Befehlen.
+    # -------------------------------------
     def parse(self):
-        """Parst einen BASIC-Code in eine Liste von Befehlen."""
         lines = self.code.splitlines()
         parsed_program = []
 
@@ -7217,30 +7258,43 @@ class C64BasicParser:
             line = line.strip()
             if not line:
                 continue
-
+            
+            # ----------------------------------
             # Extrahiere die Zeilennummer
-            match = re.match(self.token_patterns["LINE_NUMBER"], line)
+            # ----------------------------------
+            match = re.match(self.token_patterns["NUMBER"], line)
             if not match:
                 raise SyntaxError(f"Fehlende Zeilennummer: {line}")
 
-            line_number = int(match.group(0))
+            line_number  = int(match.group(0))
             rest_of_line = line[len(match.group(0)):].strip()
-
+            
+            # ----------------------------------
             # Tokenisiere den Rest der Zeile
+            # ----------------------------------
             tokens = self.tokenize(rest_of_line)
             
-            # Überprüfe, ob der erste Token ein gültiges BASIC-Schlüsselwort ist
-            if tokens and tokens[0][0] == "COMMAND" and tokens[0][1] not in self.commands:
-                raise SyntaxError(f"Unbekannter Befehl '{tokens[0][1]}' in Zeile {line_number}")
+            # ----------------------------------
+            # Überprüfe, ob der erste Token ein
+            # gültiges BASIC-Schlüsselwort ist
+            # ----------------------------------
+            showInfo(f"info:\n{tokens[0][0]}\n1: {tokens[0][1]}")
+            if tokens[0][0] == "COMMAND":
+                if not (tokens[0][1].upper() in (key.upper() for key in self.commands)):
+                    raise SyntaxError(f"Unbekannter Befehl '{tokens[0][1]}' in Zeile {line_number}")
             
+            # ----------------------------------
             # Übersetze die Tokens
+            # ----------------------------------
             parsed_line = {"line_number": line_number, "tokens": tokens}
             parsed_program.append(parsed_line)
 
         return parsed_program
-
+        
+    # --------------------------------------
+    # Erkennt Endlosschleifen im BASIC-Code.
+    # --------------------------------------
     def detect_infinite_loops(self, parsed_program):
-        """Erkennt Endlosschleifen im BASIC-Code."""
         graph = {}
 
         # Baue den Kontrollflussgraphen
@@ -7280,87 +7334,299 @@ class C64BasicParser:
 
         return False
     
-    def to_python(self, parsed_program):
-        """Konvertiert den BASIC-Code in Python-Code."""
+    # -------------------------------------------
+    # Konvertiert den BASIC-Code in Python-Code.
+    # -------------------------------------------
+    def convert_to_python(self, parsed_program):
         python_code = []
         function_definitions = []
-
+        
+        # --------------------------------------------
         # Liste aller Zeilennummern erstellen
+        # --------------------------------------------
         all_line_numbers = sorted({line["line_number"] for line in parsed_program})
-
+        
+        # ---------------------------------------------
         # Funktionen für alle Zeilennummern generieren
+        # ---------------------------------------------
         for i, line_number in enumerate(all_line_numbers):
             next_line_number = all_line_numbers[i + 1] if i + 1 < len(all_line_numbers) else None
-            function_code = [f"    def line_{line_number}(self):"]
-            function_code.append("        next_line = None")  # Initialisierung von next_line
-
+            function_code    =  [f"{self.nbsp1}def line_{line_number}(self):"]
+            function_code.append(f"{self.nbsp2}self.current_line = None")  # Initialisierung von next_line
+            str_num = ""
+            
+            # --------------------------------------------
             # Suche die passende Zeile im BASIC-Code
+            # --------------------------------------------
             matching_lines = [line for line in parsed_program if line["line_number"] == line_number]
             if matching_lines:
-                tokens = matching_lines[0]["tokens"]
+                try:
+                    self.token_index = 0
+                    string = ""
+                    tokens = matching_lines[self.token_index]["tokens"]
+                    
+                    # ----------------------------------
+                    # Übersetzung für END-Befehl
+                    # ----------------------------------
+                    if tokens \
+                    and (tokens[self.token_index][0] == "COMMAND") \
+                    and (tokens[self.token_index][1] == "END"):
+                        function_code.append(f"{self.nbsp2}self.running = 2")
+                        function_code.append(f"{self.nbsp2}self.current_line = None")
+                    
+                    # ----------------------------------
+                    # Übersetzung für PRINT-Befehl
+                    # ----------------------------------
+                    elif tokens \
+                    and (tokens[self.token_index][0].upper().upper() == "COMMAND") \
+                    and (tokens[self.token_index][1].upper() == "PRINT"):
+                        print_parts = []
+                        while self.token_index <= len(tokens):
+                            self.token_index += 1
+                            if self.token_index >= len(tokens):
+                                break
+                            if tokens \
+                            and (tokens[self.token_index][0] == "STRING"):
+                                if string:
+                                    string = string + " + " + tokens[self.token_index][1]
+                                else:
+                                    string = string         + tokens[self.token_index][1]
+                                self.token_index += 1
+                                if self.token_index >= len(tokens):
+                                    print_parts.append(string)
+                                    break
+                                if tokens \
+                                and (tokens[self.token_index][0].upper() == "SYMBOL") \
+                                and (tokens[self.token_index][1] == '+'):
+                                    self.token_index += 1
+                                    if self.token_index >= len(tokens):
+                                        break
+                                    if tokens \
+                                    and (tokens[self.token_index][0].upper() == "STRING"):
+                                        self.token_index -= 1
+                                        if self.token_index >= len(tokens):
+                                            break
+                                        continue
+                                    elif tokens \
+                                    and (tokens[self.token_index][0].upper() == "COMMAND")\
+                                    and (tokens[self.token_index][1].upper() == "LEFT"):
+                                        self.token_index += 1
+                                        if tokens \
+                                        and (tokens[self.token_index][0].upper() == "SYMBOL")\
+                                        and (tokens[self.token_index][1] == '('):
+                                            self.token_index += 1
+                                            if tokens \
+                                            and (tokens[self.token_index][0].upper() == "STRING"):
+                                                string += tokens[self.token_index][1]
+                                                self.token_index += 1
+                                                if tokens \
+                                                and (tokens[self.token_index][0].upper() == "SYMBOL")\
+                                                and (tokens[self.token_index][1] == ','):
+                                                    self.token_index += 1
+                                                    if tokens \
+                                                    and (tokens[self.token_index][0].upper() == "NUMBER"):
+                                                        number = int(tokens[self.token_index][1])
+                                                        self.token_index += 1
+                                                        if tokens \
+                                                        and (tokens[self.token_index][0].upper() == "SYMBOL") \
+                                                        and (tokens[self.token_index][1] == ')'):
+                                                            string += "---"
+                                                        else:
+                                                            raise SystemError(_(f"closed paren expected at line: {line_number}."))
+                                                    else:
+                                                        raise SystemError(_(f"number expected at line: {line_number}."))
+                                                else:
+                                                    raise SystemError(_(f"comma expected at line: {line_number}."))
+                                            else:
+                                                raise SyntaxError(_(f"string expected at line: {line_number}."))
+                                        else:
+                                            raise SystemError(_(f"open paren expected at line: {line_number}."))
+                                    else:
+                                        raise SyntaxError(_(f"command expected at line: {line_number}."))
+                                else:
+                                    raise SyntaxError(_(f"symbol expected at line: {line_number}."))
+                            #else:
+                            #    print_parts.append(token[1])
+                        
+                        s = ""
+                        for word in print_parts:
+                            s += word
+                        
+                        function_code.append(f"{self.nbsp2}{self.wincoPrintLine}({s})")
+                        function_code.append(f"{self.nbsp2}self.ypos += 1")
+                        function_code.append(f"{self.nbsp2}{self.winco}.win.gotoxy(self.xpos, self.ypos)")
+                        
+                    # Übersetzung für GOTO-Befehl
+                    elif tokens \
+                    and (tokens[self.token_index][1] == "GOTO"):
+                        showInfo("goootooo")
+                        target_line = tokens[self.token_index][1]
+                        function_code.append(f"{self.nbsp2}self.current_line = {target_line}")
+                except IndexError as e:
+                    showInfo(_(f"Index Error:\n{e}"))
+                except ValueError as e:
+                    showInfo(_(f"Value Error:\n{e}"))
+                except Exception  as e:
+                    showInfo(_(f"Exception Error:\n{e}"))
                 
-                # Übersetzung für END-Befehl
-                if tokens and tokens[0][1] == "END":
-                    function_code.append("        self.running = 2")
-                    function_code.append("        next_line = None")
-                
-                # Übersetzung für PRINT-Befehl
-                elif tokens and tokens[0][1] == "PRINT":
-                    content = " ".join(
-                        token[1] if token[0] != "STRING" else token[1][1:-1] for token in tokens[1:]
-                    )
-                    function_code.append(f"        self.console.win.print_line(\"{content}\")")
-                    function_code.append(f"        self.console.win.gotoxy(self.xpos, self.ypos)")
-                    function_code.append(f"        self.ypos += 1")
-                
-                # Übersetzung für GOTO-Befehl
-                elif tokens and tokens[0][1] == "GOTO":
-                    target_line = tokens[1][1]
-                    function_code.append(f"        next_line = {target_line}")
+                # ----------------------------------
+                # Standardabschluss der Funktion
+                # ----------------------------------
+                if next_line_number is not None:
+                    function_code.append(f"{self.nbsp2}if self.current_line is None: self.current_line = {next_line_number}")
+                function_code.append(f"{self.nbsp2}return self.current_line")
+                function_definitions.append("\n".join(function_code))
             
-            # Standardabschluss der Funktion
-            if next_line_number is not None:
-                function_code.append(f"        if next_line is None: next_line = {next_line_number}")
-            function_code.append("        return next_line")
-            function_definitions.append("\n".join(function_code))
-
+        # --------------------------------------------
         # Main-Ausführungslogik
+        # --------------------------------------------
         python_code.append("class main(QObject):")
-        python_code.append("    def __init__(self):")
-        python_code.append("        super().__init__()")
-        python_code.append("        self.current_line = 10")
-        python_code.append("        self.running = 0")
-        python_code.append("        self.xpos = 1")
-        python_code.append("        self.ypos = 1")
+        python_code.append(self.nbsp1 + "def __init__(self):")
+        python_code.append(self.nbsp2 + "super().__init__()")
+        python_code.append(self.nbsp2 + "self.current_line = 1")
+        python_code.append(self.nbsp2 + "self.running = 0")
+        python_code.append(self.nbsp2 + "self.xpos = 1")
+        python_code.append(self.nbsp2 + "self.ypos = 1")
         
-        python_code.append("        self.console = DOSConsole()")
-        python_code.append("        self.console.win.print_line('holladiho')")
+        python_code.append(self.nbsp2 + self.winco + " = DOSConsole()")
+        python_code.append(self.nbsp2 + self.wincoPrintLine + "('holladiho')")
         
-        python_code.append("        self.worker_thread = C64BasicWorkerThread()")
-        python_code.append("        self.worker_thread.progress.connect(self.update_progress)")
-        python_code.append("        self.worker_thread.start()")
+        python_code.append(self.nbsp2 + self.workerThread + " = C64BasicWorkerThread()")
+        python_code.append(self.nbsp2 + self.workerThread + ".progress.connect(self.update_progress)")
+        python_code.append(self.nbsp2 + self.workerThread + ".start()")
         
-        python_code.append("    def update_progress(self, value):")
-        python_code.append("        while True:")
-        python_code.append("            func_name = f'line_{self.current_line}'")
-        python_code.append("            if hasattr(self, func_name):")
-        python_code.append("                method = getattr(self, func_name)")
-        python_code.append("                self.current_line = method()")
-        python_code.append("                if not self.current_line == None:")
-        python_code.append("                    self.current_line += 1")
-        python_code.append("            else:")
-        python_code.append("                showError(f\"methode: {func_name} not found.\")")
-        python_code.append("                if self.worker_thread.isRunning():")
-        python_code.append("                    self.worker_thread.terminate()")
-        python_code.append("                break")
+        python_code.append(self.nbsp1 + "def update_progress(self,value):")
+        python_code.append(self.nbsp2 + "while True:")
+        python_code.append(self.nbsp3 + "func_name = f'line_{self.current_line}'")
+        python_code.append(self.nbsp3 + "if hasattr(self,func_name):")
+        python_code.append(self.nbsp4 + self.winco + ".win.gotoxy(self.xpos,self.ypos)")
+        python_code.append(self.nbsp4 + "method = getattr(self,func_name)")
+        python_code.append(self.nbsp4 + "self.current_line = method()")
+        python_code.append(self.nbsp4 + "if not self.current_line == None:")
+        python_code.append(self.nbsp5 + "continue")
+        python_code.append(self.nbsp4 + "else:")
+        python_code.append(self.nbsp5 + "break")
+        python_code.append(self.nbsp3 + "else:")
+        python_code.append(self.nbsp4 + "self.current_line += 1")
         
         python_code.extend(function_definitions)
         
         python_code.append("main_func = main()")
         python_code.append("main_func.console.exec_()")
-        
         return "\n".join(python_code)
+    
+    # -----------------------------------------------------------------------
+    # Konvertiert einen ASCII-String in PETSCII.
+    # Nur eine Basisimplementierung für Großbuchstaben und Zahlen.
+    # -----------------------------------------------------------------------
+    def ascii_to_petscii(self, ascii_str):
+        petscii = bytearray()
+        for char in ascii_str:
+            char_code = ord(char)
+            # ----------------------------------
+            # Großbuchstaben
+            # ----------------------------------
+            if 'A' <= char <= 'Z':
+                petscii.append(char_code)
+            # ----------------------------------
+            # Kleinbuchstaben (Konvertiere zu
+            # PETSCII-Großbuchstaben)
+            # ----------------------------------
+            elif 'a' <= char <= 'z':
+                petscii.append(char_code - 32)
+            # ----------------------------------
+            # Zahlen
+            # ----------------------------------
+            elif '0' <= char <= '9':
+                petscii.append(char_code)
+            # ----------------------------------
+            # Leerzeichen
+            # ----------------------------------
+            elif char == ' ':
+                petscii.append(0x20)
+            # ----------------------------------
+            # Einige Sonderzeichen
+            # ----------------------------------
+            elif char in '!"#$%&\'()*+,-./:;<=>?@[\\]^_':
+                petscii.append(char_code)
+            else:
+                raise ValueError(f"Zeichen '{char}' kann nicht in PETSCII konvertiert werden.")
+        return petscii
+    
+    # -----------------------------------------------------------------------
+    # Konvertiert den geparsten BASIC-Code in das Commodore 64 BASIC
+    # Dateiformat.
+    # \param   parsed_program: Geparstes BASIC-Programm als Liste von Zeilen
+    # \return: Bytes im C64 BASIC Dateiformat
+    # -----------------------------------------------------------------------
+    def convert_to_binbas(self, parsed_program):
+        memory_address = 0x0801  # Standardadresse für BASIC-Programme im C64
+        output = bytearray()
 
+        for line in parsed_program:
+            line_number = line["line_number"]
+            tokens = line["tokens"]
+            
+            # ----------------------------------
+            # Zeilenadresse (2 Bytes)
+            # ----------------------------------
+            line_address = memory_address + len(output) + 2  # +2 für Zeilenadresse selbst
+            output.extend(line_address.to_bytes(2, "little"))
+            
+            # ----------------------------------
+            # Zeilennummer (2 Bytes)
+            # ----------------------------------
+            output.extend(line_number.to_bytes(2, "little"))
+            
+            # ----------------------------------
+            # Tokenisierte Zeile
+            # ----------------------------------
+            for token in tokens:
+                if token[0] == "COMMAND" and token[1] in C64BasicParser(self.script_name).commands:
+                    # ----------------------------------
+                    # BASIC-Schlüsselwort in Tokenform
+                    # ----------------------------------
+                    token_value = C64BasicParser(self.script_name).commands[token[1]] & 0xFF
+                    output.append(token_value)
+                    
+                elif token[0] == "STRING":
+                    # ----------------------------------
+                    # String in Anführungszeichen
+                    # ----------------------------------
+                    # Entferne Anführungszeichen
+                    # ----------------------------------
+                    petscii_string = self.ascii_to_petscii(token[1][1:-1])
+                    output.extend(petscii_string)
+                    
+                elif token[0] == "NUMBER":
+                    # ----------------------------------
+                    # Zahl als ASCII
+                    # ----------------------------------
+                    output.extend(self.ascii_to_petscii(token[1]))
+                    
+                elif token[0] == "SYMBOL":
+                    # ----------------------------------
+                    # Symbole direkt hinzufügen
+                    # ----------------------------------
+                    output.extend(self.ascii_to_petscii(token[1]))
+                    
+                elif token[0] == "VARIABLE":
+                    # ----------------------------------
+                    # Variable direkt hinzufügen
+                    # ----------------------------------
+                    output.extend(self.ascii_to_petscii(token[1]))
+            
+            # ----------------------------------
+            # End-of-line Marker
+            # ----------------------------------
+            output.append(0x00)
+        
+        # ----------------------------------
+        # End-of-file Marker
+        # ----------------------------------
+        output.extend(b"\x00\x00")
+        return bytes(output)
+    
     def run_bytecode(self, bytecode_file):
         with open(bytecode_file, "rb") as f:
             loaded_code = marshal.load(f)
@@ -11107,8 +11373,10 @@ class EditorTextEdit(QPlainTextEdit):
                             showInfo(_("WARNING:\nendless loop detected."))
                             return None
 
-                        python_code = genv.c64_parser.to_python(genv.c64_parsed)
-                        print("Parsed Program:", genv.c64_parsed)
+                        python_code = genv.c64_parser.convert_to_python(genv.c64_parsed)
+                        c64bin_code = genv.c64_parser.convert_to_binbas(genv.c64_parsed)
+                        
+                        # print("Parsed Program:", genv.c64_parsed)
                         
                         # ------------------------------------------
                         # Speichere den Python-Code als Datei
@@ -11117,6 +11385,7 @@ class EditorTextEdit(QPlainTextEdit):
                         directory_path = os.path.dirname (script_name) + "/tmp"
                         
                         directory_path = directory_path.replace('\\', '/')
+                        c64basic_file  = directory_path + "/" + file_path + ".b64"
                         python_file    = directory_path + "/" + file_path + ".py"
                         bytecode_file  = python_file + ".pyc"
                         
@@ -11132,12 +11401,18 @@ class EditorTextEdit(QPlainTextEdit):
                         try:
                             with open(python_file, "w") as f:
                                 f.write(python_code)
+                                f.close()
+                                
+                            with open(c64basic_file, "wb") as f:
+                                f.write(c64bin_code)
+                                f.close()
+                                
                         except PermissionError as e:
-                            showError(_("no permissions to open script file"))
-                            return False
+                            showError(_(f"no permissions to open script file:\n{e}"))
+                            return None
                         except Exception as e:
                             showError(_(f"unexpected error occured:\n{e}"))
-                            return False
+                            return None
                         
                         # ------------------------------------------
                         # Kompiliere den Python-Code in Bytecode
@@ -11149,10 +11424,10 @@ class EditorTextEdit(QPlainTextEdit):
                                 marshal.dump(compiled_code, f)
                         except PermissionError as e:
                             showError(_("no permissions to write byte code file."))
-                            return False
+                            return None
                         except Exception as e:
                             showError(_(f"unexpected error occured:\n{e}"))
-                            return False
+                            return None
                             
                         print("Python Code:")
                         print(python_code)
@@ -11166,11 +11441,11 @@ class EditorTextEdit(QPlainTextEdit):
                         
                     except TypeError as e:
                         showError(_(f"Type Error:\n{e}"))
-                        return False
+                        return None
                     except Exception as e:
                         showError(_(f"SYntax error.\n{e}"))
                         parser = None
-                        return False
+                        return None
                 finally:
                     super().keyPressEvent(event)
                     return None
