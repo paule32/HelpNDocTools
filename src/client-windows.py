@@ -7383,33 +7383,129 @@ class C64BasicParser:
                         print_parts = []
                         while self.token_index <= len(tokens):
                             self.token_index += 1
+                            string = ""
                             if self.token_index >= len(tokens):
                                 break
                             if tokens \
-                            and (tokens[self.token_index][0] == "STRING"):
-                                if string:
-                                    string = string + " + " + tokens[self.token_index][1]
-                                else:
-                                    string = string         + tokens[self.token_index][1]
+                            and (tokens[self.token_index][0].upper() == "COMMAND") \
+                            and (tokens[self.token_index][1].upper() == "RIGHT"):
                                 self.token_index += 1
                                 if self.token_index >= len(tokens):
-                                    print_parts.append(string)
+                                    break
+                                if tokens \
+                                and (tokens[self.token_index][0].upper() == "SYMBOL") \
+                                and (tokens[self.token_index][1] == '('):
+                                    self.token_index += 1
+                                    if self.token_index >= len(tokens):
+                                        break
+                                    if tokens \
+                                    and (tokens[self.token_index][0].upper() == "STRING"):
+                                        string = tokens[self.token_index][1][1:-1]
+                                        self.token_index += 1
+                                        if self.token_index >= len(tokens):
+                                            break
+                                        if tokens \
+                                        and (tokens[self.token_index][0].upper() == "SYMBOL") \
+                                        and (tokens[self.token_index][1] == ','):
+                                            self.token_index += 1
+                                            if self.token_index >= len(tokens):
+                                                break
+                                            if tokens \
+                                            and (tokens[self.token_index][0].upper() == "NUMBER"):
+                                                number = int(tokens[self.token_index][1])
+                                                print_parts.append(string[:-number])
+                                                self.token_index += 1
+                                                if self.token_index >= len(tokens):
+                                                    break
+                                                if tokens \
+                                                and (tokens[self.token_index][0].upper() == "SYMBOL") \
+                                                and (tokens[self.token_index][1] == ')'):
+                                                    if self.token_index >= len(tokens):
+                                                        break
+                                                    continue
+                                                else:
+                                                    raise SyntaxError(_(f"symbol expected."))
+                                            else:
+                                                raise SyntaxError(_(f"number expected."))
+                                        else:
+                                            raise SyntaxError(_(f"SYmbol expected."))
+                                    else:
+                                        raise SyntaxError(_(f"string expected."))
+                                else:
+                                    raise SyntaxError(_(f"Symbol expected."))
+                            elif tokens \
+                            and (tokens[self.token_index][0].upper() == "COMMAND") \
+                            and (tokens[self.token_index][1].upper() == "LEFT"):
+                                self.token_index += 1
+                                if self.token_index >= len(tokens):
+                                    break
+                                if tokens \
+                                and (tokens[self.token_index][0].upper() == "SYMBOL") \
+                                and (tokens[self.token_index][1] == '('):
+                                    self.token_index += 1
+                                    if self.token_index >= len(tokens):
+                                        break
+                                    if tokens \
+                                    and (tokens[self.token_index][0].upper() == "STRING"):
+                                        string = tokens[self.token_index][1][1:-1]
+                                        self.token_index += 1
+                                        if self.token_index >= len(tokens):
+                                            break
+                                        if tokens \
+                                        and (tokens[self.token_index][0].upper() == "SYMBOL") \
+                                        and (tokens[self.token_index][1] == ','):
+                                            self.token_index += 1
+                                            if self.token_index >= len(tokens):
+                                                break
+                                            if tokens \
+                                            and (tokens[self.token_index][0].upper() == "NUMBER"):
+                                                number = int(tokens[self.token_index][1])
+                                                print_parts.append(string[number:])
+                                                self.token_index += 1
+                                                if self.token_index >= len(tokens):
+                                                    break
+                                                if tokens \
+                                                and (tokens[self.token_index][0].upper() == "SYMBOL") \
+                                                and (tokens[self.token_index][1] == ')'):
+                                                    if self.token_index >= len(tokens):
+                                                        break
+                                                    continue
+                                                else:
+                                                    raise SyntaxError(_(f"symbol expected."))
+                                            else:
+                                                raise SyntaxError(_(f"number expected."))
+                                        else:
+                                            raise SyntaxError(_(f"SYmbol expected."))
+                                    else:
+                                        raise SyntaxError(_(f"string expected."))
+                                else:
+                                    raise SyntaxError(_(f"Symbol expected."))
+                                continue
+                            elif tokens \
+                            and (tokens[self.token_index][0].upper() == "STRING"):
+                                string = tokens[self.token_index][1][1:-1]
+                                showInfo("---->>> " + string)
+                                print_parts.append(string)
+                                self.token_index += 1
+                                if self.token_index >= len(tokens):
                                     break
                                 if tokens \
                                 and (tokens[self.token_index][0].upper() == "SYMBOL") \
                                 and (tokens[self.token_index][1] == '+'):
                                     self.token_index += 1
                                     if self.token_index >= len(tokens):
-                                        break
+                                        raise SyntaxError(_(f"string expected at line: {line_number}."))
                                     if tokens \
                                     and (tokens[self.token_index][0].upper() == "STRING"):
-                                        self.token_index -= 1
-                                        if self.token_index >= len(tokens):
+                                        string = tokens[self.token_index][1][1:-1]
+                                        print_parts.append(string)
+                                        showInfo(f"-----> str: {print_parts}")
+                                        if self.token_index+1 >= len(tokens):
                                             break
                                         continue
                                     elif tokens \
-                                    and (tokens[self.token_index][0].upper() == "COMMAND")\
-                                    and (tokens[self.token_index][1].upper() == "LEFT"):
+                                    and (tokens[self.token_index][0].upper().upper() == "COMMAND")\
+                                    and (tokens[self.token_index][1].upper().upper() == "LEFT"):
                                         self.token_index += 1
                                         if tokens \
                                         and (tokens[self.token_index][0].upper() == "SYMBOL")\
@@ -7417,7 +7513,7 @@ class C64BasicParser:
                                             self.token_index += 1
                                             if tokens \
                                             and (tokens[self.token_index][0].upper() == "STRING"):
-                                                string += tokens[self.token_index][1]
+                                                string_left = tokens[self.token_index][1][1:-1]
                                                 self.token_index += 1
                                                 if tokens \
                                                 and (tokens[self.token_index][0].upper() == "SYMBOL")\
@@ -7426,21 +7522,25 @@ class C64BasicParser:
                                                     if tokens \
                                                     and (tokens[self.token_index][0].upper() == "NUMBER"):
                                                         number = int(tokens[self.token_index][1])
+                                                        if number > len(string):
+                                                            raise SyntaxError(_(f"string index out of bounds at line: {line_number}."))
+                                                        string_left += " + " + string_left[number:]
+                                                        print_parts.append('"'  + string + '"')
                                                         self.token_index += 1
                                                         if tokens \
                                                         and (tokens[self.token_index][0].upper() == "SYMBOL") \
                                                         and (tokens[self.token_index][1] == ')'):
                                                             string += "---"
                                                         else:
-                                                            raise SystemError(_(f"closed paren expected at line: {line_number}."))
+                                                            raise SyntaxError(_(f"closed paren expected at line: {line_number}."))
                                                     else:
-                                                        raise SystemError(_(f"number expected at line: {line_number}."))
+                                                        raise SyntaxError(_(f"number expected at line: {line_number}."))
                                                 else:
-                                                    raise SystemError(_(f"comma expected at line: {line_number}."))
+                                                    raise SyntacError(_(f"comma expected at line: {line_number}."))
                                             else:
                                                 raise SyntaxError(_(f"string expected at line: {line_number}."))
                                         else:
-                                            raise SystemError(_(f"open paren expected at line: {line_number}."))
+                                            raise SyntaxError(_(f"open paren expected at line: {line_number}."))
                                     else:
                                         raise SyntaxError(_(f"command expected at line: {line_number}."))
                                 else:
@@ -7452,7 +7552,7 @@ class C64BasicParser:
                         for word in print_parts:
                             s += word
                         
-                        function_code.append(f"{self.nbsp2}{self.wincoPrintLine}({s})")
+                        function_code.append(f"{self.nbsp2}{self.wincoPrintLine}(\"{s}\")")
                         function_code.append(f"{self.nbsp2}self.ypos += 1")
                         function_code.append(f"{self.nbsp2}{self.winco}.win.gotoxy(self.xpos, self.ypos)")
                         

@@ -25,14 +25,35 @@ class main(QObject):
                 self.current_line += 1
     def line_10(self):
         self.current_line = None
-        self.console.win.print_line("Hello World" + " bbbb " + "dddd")
+        self.console.win.print_line("Hello World !!!1234")
         self.ypos += 1
         self.console.win.gotoxy(self.xpos, self.ypos)
         if self.current_line is None: self.current_line = 12
         return self.current_line
     def line_12(self):
         self.current_line = None
-        self.console.win.print_line("xx " + "12")
+        self.console.win.print_line("xx 12")
+        self.ypos += 1
+        self.console.win.gotoxy(self.xpos, self.ypos)
+        if self.current_line is None: self.current_line = 20
+        return self.current_line
+    def line_20(self):
+        self.current_line = None
+        self.console.win.print_line("DEF")
+        self.ypos += 1
+        self.console.win.gotoxy(self.xpos, self.ypos)
+        if self.current_line is None: self.current_line = 30
+        return self.current_line
+    def line_30(self):
+        self.current_line = None
+        self.console.win.print_line("")
+        self.ypos += 1
+        self.console.win.gotoxy(self.xpos, self.ypos)
+        if self.current_line is None: self.current_line = 40
+        return self.current_line
+    def line_40(self):
+        self.current_line = None
+        self.console.win.print_line("ssss")
         self.ypos += 1
         self.console.win.gotoxy(self.xpos, self.ypos)
         return self.current_line
