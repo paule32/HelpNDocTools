@@ -4119,7 +4119,7 @@ class C64ConsoleWindow(QTextEdit):
             self.parent = parent
             
             self.setFont(QFont("C64 Pro Mono", 9))
-            char_width, char_height = self.parent.get_char_dimensions('A')
+            self.char_width, self.char_height = self.parent.get_char_dimensions('A')
             
             self.setAttribute  (Qt.WA_TransparentForMouseEvents)  # Ermöglicht Mausklicks auf den Hintergrund
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.SubWindow)  # Ohne Rahmen
@@ -4127,11 +4127,11 @@ class C64ConsoleWindow(QTextEdit):
             
             self.setAutoFillBackground(True)
             
-            self.setMinimumHeight (char_width )
-            self.setMaximumHeight (char_width )
+            self.setMinimumHeight (self.char_width )
+            self.setMaximumHeight (self.char_width )
             #
-            self.setMinimumWidth  (char_height)
-            self.setMaximumWidth  (char_height)
+            self.setMinimumWidth  (self.char_height)
+            self.setMaximumWidth  (self.char_height)
             
             self.move(4,4)
                 
@@ -4143,6 +4143,11 @@ class C64ConsoleWindow(QTextEdit):
         def tick(self, mode=False):
             if not mode: self.setStyleSheet("background-color: rgba(255, 255, 255,   0);")
             else:        self.setStyleSheet("background-color: rgba(255, 255, 255, 128);")
+        
+        def move_overlay(self, xpos, ypos):
+            self.move(
+                (self.char_width  * xpos) + 4,
+                (self.char_height * ypos) + 4)
     
     def __init__(self, parent=None):
         super(C64ConsoleWindow, self).__init__(parent)
@@ -4369,16 +4374,13 @@ class C64ConsoleWindow(QTextEdit):
         else:
             return "#000000"
     
-    def mousePressEvent(self, event):
-        # Ermittelt den Text-Cursor basierend auf der Mausposition
-        #text_cursor = self.cursorForPosition(event.pos())
-        #self.setTextCursor(text_cursor)  # Optional: Cursor setzen
-        
-        # Ermittelt die Zeile und Spalte des Cursors
-        #self.current_y = text_cursor.blockNumber    () + 1  # Zeilennummer  0-basiert
-        #self.current_x = text_cursor.positionInBlock() + 1  # Spaltennummer 0-basiert
-        
-        super().mousePressEvent(event)
+    # ------------------------------------------
+    # Ermittelt den Text-Cursor
+    # ------------------------------------------
+    def keyHelper(self):
+        self.cursor_overlay.move_overlay(
+        self.current_x,
+        self.current_y)
     
     def keyPressEvent(self, event):
         # ------------------------------------------
@@ -4387,36 +4389,39 @@ class C64ConsoleWindow(QTextEdit):
         # ------------------------------------------
         if event.key() == Qt.Key_Left:
             self.current_x -= 1
-            if self.current_x < 1:
-                self.current_x = self.max_position
+            if self.current_x < 0:
+                self.current_x = self.ccls
                 self.current_y -= 1
-                if self.current_y < 1:
-                    self.current_y = 1
+                if self.current_y < 0:
+                    self.current_y = 25
+            self.keyHelper()
             #self.gotoxy(self.current_x, self.current_y)
             #super().keyPressEvent(event)
             return
         elif event.key() == Qt.Key_Right:
             self.current_x += 1
-            if self.current_x > self.max_position:
-                self.current_x = 1
+            if self.current_x > self.cols:
+                self.current_x = 0
                 self.current_y += 1
-                if self.current_y > 25:
-                    self.current_x = self.max_position
-                    self.current_y = 25
+                if self.current_y >= self.rows:
+                    self.current_y = 0
+            self.keyHelper()
             #self.gotoxy(self.current_x, self.current_y)
             #super().keyPressEvent(event)
             return
         elif event.key() == Qt.Key_Up:
             self.current_y -= 1
-            if self.current_y < 1:
-                self.current_y = 1
+            if self.current_y < 0:
+                self.current_y >= self.rows
+            self.keyHelper()
             #self.gotoxy(self.current_x, self.current_y)
             #super().keyPressEvent(event)
             return
         elif event.key() == Qt.Key_Down:
             self.current_y += 1
-            if self.current_y >= 25:
-                self.current_y = 1
+            if self.current_y >= self.rows:
+                self.current_y = 0
+            self.keyHelper()
             #self.gotoxy(self.current_x, self.current_y)
             #super().keyPressEvent(event)
             return
@@ -4429,6 +4434,7 @@ class C64ConsoleWindow(QTextEdit):
             if cursor.position() > 0:  # Verhindern, dass der Cursor vor den Anfang geht
                 cursor.movePosition(QTextCursor.Left)
                 self.setTextCursor(cursor)
+            self.keyHelper()
             return
         
         # ------------------------------------------
@@ -4444,16 +4450,17 @@ class C64ConsoleWindow(QTextEdit):
                     self.current_x  = 0
                     self.current_y  = 0
                     self.key_count  = 1
-            print(f"Xpos: {self.current_x}; Ypos: {self.current_y}; text: {event.text()}")
+            #print(f"Xpos: {self.current_x}; Ypos: {self.current_y}; text: {event.text()}")
             if self.current_x >= self.cols:
                 self.current_x = 0
                 self.current_y += 1
                 if self.current_y >= self.rows:
                     self.current_x = 0
                     self.current_y = 0
-                    
             self.print_line(event.text())
+            self.keyHelper()
             #super().keyPressEvent(event)
+            return
 
     def toggle_overwrite_mode(self):
         """Umschalten zwischen Überschreib- und Einfügemodus."""
@@ -4489,6 +4496,20 @@ class C64ConsoleBorder(QWidget):
         w6 = QWidget()
         w7 = QWidget()
         w8 = QWidget()
+        
+        w2.setStyleSheet("""
+        background-image: url('./_internal/img/dresden.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        """)
+        #vlayout = QVBoxLayout()
+        #vlabel  = QLabel()
+        #vlabel.setMaximumWidth(320)
+        #vlabel.setMaximumHeight(64)
+        #vlabel.setAlignment(Qt.AlignCenter)
+        #pixmap  = QPixmap("./_internal/img/dresden.png")
+        #vlabel .setPixmap(pixmap)
+        #vlayout.addWidget(vlabel)
         
         wb = 39
         
