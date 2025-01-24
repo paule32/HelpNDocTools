@@ -3892,7 +3892,7 @@ def convertPath(text):
     return result
 
 # ---------------------------------------------------------------------------
-# \brief A dos-console Qt5 Dialog - used by dBase console Applications.
+# \brief A dos-console Qt5 Dialog - used by DOS console Applications.
 # ---------------------------------------------------------------------------
 class DOSConsoleWindow(QTextEdit):
     def __init__(self, parent=None):
@@ -3931,7 +3931,7 @@ class DOSConsoleWindow(QTextEdit):
         # ------------------------------------------------
         self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
         self.colors = [['#ff0000:#000000' for _ in range(self.cols)] for _ in range(self.rows)]
-        
+    
     def get_char_dimensions(self, char):
         font         = self.font()
         font_metrics = QFontMetrics(font)
@@ -4087,7 +4087,7 @@ class DOSConsole(QDialog):
         printer_box = QListWidget()
         printer_box.setMaximumWidth(100)
         
-        self.win = DOSConsoleWindow(self)
+        self.win = DOSConsoleWindow()
         self.win.setReadOnly(True)
         
         # close button, to close the QDialog
@@ -4098,6 +4098,469 @@ class DOSConsole(QDialog):
         
         lhs_layout.addWidget(printer_box)
         rhs_layout.addWidget(self.win)
+        rhs_layout.addWidget(btn_close)
+        
+        dlg_layout.addLayout(lhs_layout)
+        dlg_layout.addLayout(rhs_layout)
+        
+        self.setLayout(dlg_layout)
+    
+    def btn_close_clicked(self):
+        self.close()
+
+# ---------------------------------------------------------------------------
+# \brief A dos-console Qt5 Dialog - used by dBase console Applications.
+# ---------------------------------------------------------------------------
+class C64ConsoleWindow(QTextEdit):
+    class CursorOverlay(QWidget):
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            
+            self.parent = parent
+            
+            self.setFont(QFont("C64 Pro Mono", 9))
+            char_width, char_height = self.parent.get_char_dimensions('A')
+            
+            self.setAttribute  (Qt.WA_TransparentForMouseEvents)  # Ermöglicht Mausklicks auf den Hintergrund
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.SubWindow)  # Ohne Rahmen
+            self.setAttribute  (Qt.WA_StyledBackground, True)
+            
+            self.setAutoFillBackground(True)
+            
+            self.setMinimumHeight (char_width )
+            self.setMaximumHeight (char_width )
+            #
+            self.setMinimumWidth  (char_height)
+            self.setMaximumWidth  (char_height)
+            
+            self.move(4,4)
+                
+            self.setStyleSheet("background-color: rgba(255,255,255, 128);")
+            
+        # ------------------------------------------------
+        # Optional: Manuelles Zeichnen mit Alpha
+        # ------------------------------------------------
+        def tick(self, mode=False):
+            if not mode: self.setStyleSheet("background-color: rgba(255, 255, 255,   0);")
+            else:        self.setStyleSheet("background-color: rgba(255, 255, 255, 128);")
+    
+    def __init__(self, parent=None):
+        super(C64ConsoleWindow, self).__init__(parent)
+        
+        self.setViewportMargins(0, 0, 0, 0)
+        self.setContentsMargins(0, 0, 0, 0)        
+        
+        self.setReadOnly(False)
+        self.setWordWrapMode(QTextOption.NoWrap)
+        
+        self.overwrite_mode  = True
+        self.cursor_visible  = True  # Status des blinkenden Cursors
+        
+        self.start_position  =  0
+        self.max_position    = 40
+        self.key_count       =  0
+        
+        self.setStyleSheet("""
+        QTextEdit {
+            background-color: black;
+            border: none;       /* Kein Rahmen */
+            padding: 0px;       /* Kein Innenabstand */
+            margin: 0px;        /* Kein äußerer Abstand */
+            font-family: 'C64 Pro Mono';
+            font-size: 9pt;
+            color: gray;
+        }
+        """)
+        
+        self.setFrameShape(QTextEdit.NoFrame)
+        #
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy  (Qt.ScrollBarAlwaysOff)
+        
+        self.setFont(QFont("C64 Pro Mono", 9))
+        char_width, char_height = self.get_char_dimensions('A')
+        #
+        self.font_min_height = ((char_height * 25) + (char_height)) - 5
+        self.font_max_height = ((char_height * 25) + (char_height)) - 5
+        #
+        self.font_min_width  =  (char_width  * 41) - 4
+        self.font_max_width  =  (char_width  * 41) - 4
+        
+        self.setMinimumWidth (self.font_min_width)
+        self.setMaximumWidth (self.font_max_width)
+        
+        self.setMinimumHeight(self.font_min_height)
+        self.setMaximumHeight(self.font_max_height)
+                
+        self.cursor_overlay = self.CursorOverlay(self)
+        self.cols      = 40
+        self.rows      = 25
+        
+        self.current_x = -1
+        self.current_y = -1
+        
+        self.fg_color  = "#C0C0C0"
+        self.bg_color  = "#6888FC"
+        
+        # ------------------------------------------------
+        # initial create/fill the buffer with a empty char
+        # ------------------------------------------------
+        self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
+        self.colors = [['#C0C0C0:#6888FC' for _ in range(self.cols)] for _ in range(self.rows)]
+        
+        # ------------------------------------------------
+        # Timer für das Blinken des Block-Cursors
+        # ------------------------------------------------
+        self.cursor_timer = QTimer(self)
+        self.cursor_timer.timeout.connect(self.toggle_cursor_visibility)
+        self.cursor_timer.start(500)  # 500 ms für periodisches Blinken
+    
+    # ------------------------------------------------
+    # Wechselt die Sichtbarkeit des Block-Cursors.
+    # ------------------------------------------------
+    def toggle_cursor_visibility(self):
+        self.cursor_visible = not self.cursor_visible
+        self.cursor_overlay.tick(self.cursor_visible)
+        #self.viewport().update()  # Aktualisiert das Textfeld (ruft paintEvent auf)
+    
+    def get_char_dimensions(self, char):
+        font         = self.font()
+        font_metrics = QFontMetrics(font)
+        
+        char_width   = font_metrics.horizontalAdvance(char)
+        char_height  = font_metrics.height()
+        
+        return char_width, char_height
+    
+    def setcolor(self, fg_color, bg_color):
+        self.fg_color = fg_color
+        self.bg_color = bg_color
+        
+        result = self.fg_color + ':' + self.bg_color
+        return result
+    
+    def gotoxy(self, xpos, ypos):
+        self.current_x = xpos - 1
+        self.current_y = ypos - 1
+        
+        return
+    
+    # ---------------------------------------------------------
+    # \brief  Print the current date.
+    # \return string => the actual date as string.
+    # ---------------------------------------------------------
+    def print_date(self):
+        result = datetime.now().strftime("%Y-%m-%d")
+        return result
+    
+    def clear_screen(self):
+        self.buffer.clear()
+        self.colors.clear()
+        
+        self.buffer = [['&nbsp;'          for _ in range(self.cols)] for _ in range(self.rows)]
+        self.colors = [['#C0C0C0:#6888FC' for _ in range(self.cols)] for _ in range(self.rows)]
+        
+        self.gotoxy(1, 1)
+    
+    # ---------------------------------------------------------
+    # \brief  Print the text, given by the first parameter.
+    #
+    # \param  text - string
+    # \param  fg   - string  foreground color for text
+    # \param  bg   - string  background color for text
+    # \return nothing
+    # ---------------------------------------------------------
+    def print_line(self,
+        text,           # text
+        fg_color=None,  # foreground color
+        bg_color=None): # background color
+        if fg_color == None:
+            fg_color = self.fg_color
+        if bg_color == None:
+            bg_color = self.bg_color
+        try:
+            text_html = ""
+            
+            # ----------------------------
+            # set text cursor ...
+            # ----------------------------
+            x = self.current_x
+            y = self.current_y
+            
+            color = self.fg_color + ':' + self.bg_color
+            i = 0
+            for row in range(self.rows):
+                if i >= len(text):
+                    break
+                if row > y:
+                    break
+                for col in range(self.cols):
+                    if i >= len(text):
+                        break
+                    if (col >= x) and (col <= (x + i)):
+                        if text[i] == ' ':
+                            self.buffer[y][col] = '&nbsp;'
+                            self.colors[y][col] = color
+                        else:
+                            self.buffer[y][col] = text[i]
+                            self.colors[y][col] = color
+                        i += 1
+            
+            for row in range(self.rows):
+                for col in range(self.cols):
+                    field_value = self.buffer[row][col]
+                    color       = self.colors[row][col].split(':')
+                    
+                    if not field_value == '&nbsp;':
+                        text_html += f'<span style="color:{color[0]};background-color:{color[1]};">'
+                        text_html += field_value
+                        text_html += '</span>'
+                    else:
+                        text_html += f'<span style="color:{color[0]};background-color:{color[1]};">'
+                        text_html += field_value
+                        text_html += '</span>'
+                text_html += "<br>"
+            self.setHtml(text_html)
+        except Exception as e:
+            self.gotoxy(0,1)
+            #DebugPrint(e)
+    
+    # ---------------------------------------------------------
+    # \brief  This definition try to get the color value by the
+    #         given color string.
+    #
+    # \param  color - string => the color to parse
+    #
+    # \return html formated color sting: #rrggbb
+    # ---------------------------------------------------------
+    def getColor(self, color):
+        if color:
+            pos = 0
+            value = ""
+            while True:
+                if pos > len(color):
+                    break;
+                c = color[pos]
+                if c == '#':
+                    if len(value) < 1:
+                        value += c
+                        continue
+                    else:
+                        return "#000000"
+                elif (c >= '0' and c <= '9'):
+                    if len(value) >= 6:
+                        if value[0] == '#':
+                            return value
+                    value += c
+                    continue
+                elif (c >= 'a' and c <= 'f') or (c >= 'A' and c <= 'F'):
+                    if len(value) >= 6:
+                        if value[0] == '#':
+                            return value
+                    value += c
+                    continue
+                elif (c >= 'g' and c <= 'z') or (c >= 'G' and c <= 'Z'):
+                    if len(value) > 1:
+                        if value[0] == '#':
+                            return "#000000"
+                    value += c
+                    continue
+                pos += 1
+        else:
+            return "#000000"
+    
+    def mousePressEvent(self, event):
+        # Ermittelt den Text-Cursor basierend auf der Mausposition
+        #text_cursor = self.cursorForPosition(event.pos())
+        #self.setTextCursor(text_cursor)  # Optional: Cursor setzen
+        
+        # Ermittelt die Zeile und Spalte des Cursors
+        #self.current_y = text_cursor.blockNumber    () + 1  # Zeilennummer  0-basiert
+        #self.current_x = text_cursor.positionInBlock() + 1  # Spaltennummer 0-basiert
+        
+        super().mousePressEvent(event)
+    
+    def keyPressEvent(self, event):
+        # ------------------------------------------
+        # Bewegungstasten (nur Cursor verschieben,
+        # ohne Text zu ändern)
+        # ------------------------------------------
+        if event.key() == Qt.Key_Left:
+            self.current_x -= 1
+            if self.current_x < 1:
+                self.current_x = self.max_position
+                self.current_y -= 1
+                if self.current_y < 1:
+                    self.current_y = 1
+            #self.gotoxy(self.current_x, self.current_y)
+            #super().keyPressEvent(event)
+            return
+        elif event.key() == Qt.Key_Right:
+            self.current_x += 1
+            if self.current_x > self.max_position:
+                self.current_x = 1
+                self.current_y += 1
+                if self.current_y > 25:
+                    self.current_x = self.max_position
+                    self.current_y = 25
+            #self.gotoxy(self.current_x, self.current_y)
+            #super().keyPressEvent(event)
+            return
+        elif event.key() == Qt.Key_Up:
+            self.current_y -= 1
+            if self.current_y < 1:
+                self.current_y = 1
+            #self.gotoxy(self.current_x, self.current_y)
+            #super().keyPressEvent(event)
+            return
+        elif event.key() == Qt.Key_Down:
+            self.current_y += 1
+            if self.current_y >= 25:
+                self.current_y = 1
+            #self.gotoxy(self.current_x, self.current_y)
+            #super().keyPressEvent(event)
+            return
+        
+        # ------------------------------------------
+        # Backspace: Cursor nach links verschieben,
+        # ohne Text zu löschen
+        # ------------------------------------------
+        elif event.key() == Qt.Key_Backspace:
+            if cursor.position() > 0:  # Verhindern, dass der Cursor vor den Anfang geht
+                cursor.movePosition(QTextCursor.Left)
+                self.setTextCursor(cursor)
+            return
+        
+        # ------------------------------------------
+        # Normale Eingabe: Überschreibmodus aktiv
+        # ------------------------------------------
+        if event.text().isalnum()\
+        or event.text().isspace():
+            self.current_x += 1
+            self.key_count += 1
+            if self.key_count >= 1:
+                if  self.current_x == 1 \
+                and self.current_y == self.rows:
+                    self.current_x  = 0
+                    self.current_y  = 0
+                    self.key_count  = 1
+            print(f"Xpos: {self.current_x}; Ypos: {self.current_y}; text: {event.text()}")
+            if self.current_x >= self.cols:
+                self.current_x = 0
+                self.current_y += 1
+                if self.current_y >= self.rows:
+                    self.current_x = 0
+                    self.current_y = 0
+                    
+            self.print_line(event.text())
+            #super().keyPressEvent(event)
+
+    def toggle_overwrite_mode(self):
+        """Umschalten zwischen Überschreib- und Einfügemodus."""
+        self.overwrite_mode = not self.overwrite_mode
+        
+    def paintEvent(self, event):
+        # Custom Painting (falls benötigt, z. B. ein Hintergrund zeichnen)
+        painter = QPainter(self.viewport())
+        painter.fillRect(self.rect(), QColor(64, 64, 248))
+        painter.end()
+
+        # Zeichne den Standardinhalt der QTextEdit
+        super().paintEvent(event)
+        
+class C64ConsoleBorder(QWidget):
+    def __init__(self, parent=None):
+        super().__init__()
+        
+        self.setStyleSheet("""
+        QWidget {
+            background-color: #4040F8;
+            border: none;       /* Kein Rahmen */
+            padding: 0px;       /* Kein Innenabstand */
+            margin: 0px;        /* Kein äußerer Abstand */
+        }
+        """)
+        
+        w1 = QWidget()
+        w2 = QWidget()
+        w3 = QWidget()
+        w4 = QWidget()
+        w5 = QWidget()
+        w6 = QWidget()
+        w7 = QWidget()
+        w8 = QWidget()
+        
+        wb = 39
+        
+        w1.setMinimumWidth (wb)
+        w1.setMinimumHeight(wb)
+        #
+        w2.setMinimumWidth (wb)
+        w2.setMinimumHeight(wb)
+        #
+        w3.setMinimumWidth (wb)
+        w3.setMinimumHeight(wb)
+        #
+        w4.setMinimumWidth (wb)
+        w4.setMinimumHeight(wb)
+        #
+        w5.setMinimumWidth (wb)
+        w5.setMinimumHeight(wb)
+        #
+        w6.setMinimumWidth (wb)
+        w6.setMinimumHeight(wb)
+        #
+        w7.setMinimumWidth (wb)
+        w7.setMinimumHeight(wb)
+        #
+        w8.setMinimumWidth (wb)
+        w8.setMinimumHeight(wb)
+        
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(0)
+        
+        grid_layout.addWidget(w1, 0, 0)
+        grid_layout.addWidget(w2, 0, 1)
+        grid_layout.addWidget(w3, 0, 2)
+        grid_layout.addWidget(w4, 1, 0)
+        grid_layout.addWidget(w5, 1, 2)
+        grid_layout.addWidget(w6, 2, 0)
+        grid_layout.addWidget(w7, 2, 1)
+        grid_layout.addWidget(w8, 2, 2)
+        
+        grid_layout.addWidget(parent, 1, 1)  # Zeile 2, Spalte 0, über 2 Spalten
+        
+        self.setLayout(grid_layout)
+
+class C64Console(QDialog):
+    def __init__(self, parent=None):
+        super(C64Console, self).__init__(parent)
+        
+        dlg_layout  = QHBoxLayout()
+        lhs_layout  = QVBoxLayout()
+        
+        self.win = C64ConsoleWindow(self)
+        self.win.gotoxy(1,1)
+        self.win.setStyleSheet("""
+        background-color: #6888FC;
+        """)
+        
+        rhs_layout  = QVBoxLayout();
+        rhs_layout.setSpacing(0)
+        
+        rhs_widget  = C64ConsoleBorder(self.win)
+        printer_box = QListWidget()
+        printer_box.setMaximumWidth(100)
+        
+        # close button, to close the QDialog
+        btn_close = QPushButton(_("Close"))
+        btn_close.setMinimumHeight(32)
+        btn_close.setFont(QFont(genv.v__app__font_edit,10))
+        btn_close.clicked.connect(self.btn_close_clicked)
+        
+        lhs_layout.addWidget(printer_box)
+        
+        rhs_layout.addWidget(rhs_widget)
         rhs_layout.addWidget(btn_close)
         
         dlg_layout.addLayout(lhs_layout)
@@ -7484,7 +7947,6 @@ class C64BasicParser:
                             elif tokens \
                             and (tokens[self.token_index][0].upper() == "STRING"):
                                 string = tokens[self.token_index][1][1:-1]
-                                showInfo("---->>> " + string)
                                 print_parts.append(string)
                                 self.token_index += 1
                                 if self.token_index >= len(tokens):
@@ -7499,7 +7961,6 @@ class C64BasicParser:
                                     and (tokens[self.token_index][0].upper() == "STRING"):
                                         string = tokens[self.token_index][1][1:-1]
                                         print_parts.append(string)
-                                        showInfo(f"-----> str: {print_parts}")
                                         if self.token_index+1 >= len(tokens):
                                             break
                                         continue
@@ -7588,7 +8049,7 @@ class C64BasicParser:
         python_code.append(self.nbsp2 + "self.xpos = 1")
         python_code.append(self.nbsp2 + "self.ypos = 1")
         
-        python_code.append(self.nbsp2 + self.winco + " = DOSConsole()")
+        python_code.append(self.nbsp2 + self.winco + " = C64Console(None)")
         python_code.append(self.nbsp2 + self.wincoPrintLine + "('holladiho')")
         
         python_code.append(self.nbsp2 + self.workerThread + " = C64BasicWorkerThread()")
