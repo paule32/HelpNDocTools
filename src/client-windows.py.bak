@@ -4143,7 +4143,7 @@ class C64ConsoleWindow(QTextEdit):
         def tick(self, mode=False):
             if not mode: self.setStyleSheet("background-color: rgba(255, 255, 255,   0);")
             else:        self.setStyleSheet("background-color: rgba(255, 255, 255, 128);")
-        
+            
         def move_overlay(self, xpos, ypos):
             self.move(
                 (self.char_width  * xpos) + 4,
@@ -4152,6 +4152,18 @@ class C64ConsoleWindow(QTextEdit):
     def __init__(self, parent=None):
         super(C64ConsoleWindow, self).__init__(parent)
         
+        # ------------------------------------------------
+        # Drag-and-Drop deaktivieren
+        # ------------------------------------------------
+        self.setAcceptDrops(False)
+        
+        # ------------------------------------------------
+        # Textauswahl ermöglichen, aber kein Drag-and-Drop
+        # ------------------------------------------------
+        self.setTextInteractionFlags(
+            Qt.TextSelectableByMouse |
+            Qt.TextSelectableByKeyboard)
+
         self.setViewportMargins(0, 0, 0, 0)
         self.setContentsMargins(0, 0, 0, 0)        
         
@@ -4162,8 +4174,8 @@ class C64ConsoleWindow(QTextEdit):
         self.cursor_visible  = True  # Status des blinkenden Cursors
         
         self.start_position  =  0
-        self.max_position    = 40
         self.key_count       =  0
+        self.str_buffer      = ""
         
         self.setStyleSheet("""
         QTextEdit {
@@ -4374,66 +4386,164 @@ class C64ConsoleWindow(QTextEdit):
         else:
             return "#000000"
     
+    def timer_start(self):
+        self.cursor_timer.start(500)
+        
+    def timer_stop (self):
+        if  self.cursor_timer.isActive():
+            self.cursor_timer.stop()
+            self.cursor_overlay.tick(False)
+        
+    # ------------------------------------------
+    # Standard-Menü abrufen
+    # ------------------------------------------
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+
+        # Aktionen hinzufügen
+        undo_action = menu.addAction("Undo")
+        redo_action = menu.addAction("Redo")
+        menu.addSeparator()
+        copy_action = menu.addAction("Copy")
+        menu.addSeparator()
+        select_all_action = menu.addAction("Select All")
+
+        # Aktionen aktivieren/deaktivieren basierend auf Zustand
+        undo_action.setEnabled(self.document().isUndoAvailable())
+        redo_action.setEnabled(self.document().isRedoAvailable())
+        copy_action.setEnabled(self.textCursor().hasSelection())
+
+        # Aktion ausführen
+        action = menu.exec_(event.globalPos())
+        if action == undo_action:
+            self.undo()
+        elif action == redo_action:
+            self.redo()
+        elif action == copy_action:
+            self.copy()
+        elif action == select_all_action:
+            self.selectAll()
+    
+    def mousePressEvent(self, event):
+        # ------------------------------------------
+        # Prüfen, ob die rechte Maustaste gedrückt
+        # wurde, dann context menü manuell aufrufen
+        # ------------------------------------------
+        if event.button() == Qt.RightButton:
+            self.contextMenuEvent(event)
+        else:
+            # Standard-Mausverhalten beibehalten
+            super().mousePressEvent(event)
+            
     # ------------------------------------------
     # Ermittelt den Text-Cursor
     # ------------------------------------------
     def keyHelper(self):
-        self.cursor_overlay.move_overlay(
-        self.current_x,
-        self.current_y)
+        xpos = self.current_x
+        if xpos < 0:
+            self.cursor_overlay.move_overlay(
+            self.current_x + 1,
+            self.current_y)
+        else:
+            self.cursor_overlay.move_overlay(
+            self.current_x,
+            self.current_y)
     
+    # ------------------------------------------
+    # Wird aufgerufen, wenn eine Taste
+    # losgelassen wird.
+    # ------------------------------------------
+    def keyReleaseEvent(self, event):
+        if  event.key() in [
+            Qt.Key_Left,   Qt.Key_Right,
+            Qt.Key_Up,     Qt.Key_Down,
+            Qt.Key_Return, Qt.Key_Backspace ]:
+            self.timer_start()
+            return
+            
+        if  event.text().isalnum() \
+        or  event.text().isspace():
+            self.timer_start()
+            return
+            
+    # ------------------------------------------
+    # Bewegungstasten (nur Cursor verschieben,
+    # ohne Text zu ändern)
+    # ------------------------------------------
     def keyPressEvent(self, event):
-        # ------------------------------------------
-        # Bewegungstasten (nur Cursor verschieben,
-        # ohne Text zu ändern)
-        # ------------------------------------------
         if event.key() == Qt.Key_Left:
+            self.timer_stop()
+            
+            self.str_buffer = ""
             self.current_x -= 1
             if self.current_x < 0:
-                self.current_x = self.ccls
+                self.current_x = self.cols - 1
                 self.current_y -= 1
                 if self.current_y < 0:
-                    self.current_y = 25
+                    self.current_y = self.rows - 1
             self.keyHelper()
-            #self.gotoxy(self.current_x, self.current_y)
-            #super().keyPressEvent(event)
             return
         elif event.key() == Qt.Key_Right:
+            self.timer_stop()
+            
+            self.str_buffer = ""
             self.current_x += 1
-            if self.current_x > self.cols:
+            if self.current_x > self.cols - 1:
                 self.current_x = 0
                 self.current_y += 1
                 if self.current_y >= self.rows:
                     self.current_y = 0
             self.keyHelper()
-            #self.gotoxy(self.current_x, self.current_y)
-            #super().keyPressEvent(event)
             return
         elif event.key() == Qt.Key_Up:
+            self.timer_stop()
+            
+            self.str_buffer = ""
             self.current_y -= 1
             if self.current_y < 0:
-                self.current_y >= self.rows
+                self.current_y = self.rows - 1
             self.keyHelper()
-            #self.gotoxy(self.current_x, self.current_y)
-            #super().keyPressEvent(event)
             return
         elif event.key() == Qt.Key_Down:
+            self.timer_stop()
+            
+            self.str_buffer = ""
             self.current_y += 1
             if self.current_y >= self.rows:
                 self.current_y = 0
             self.keyHelper()
-            #self.gotoxy(self.current_x, self.current_y)
             #super().keyPressEvent(event)
             return
         
+        # ------------------------------------------
+        # todo: auf commando prüfen !!!
+        # ------------------------------------------
+        elif event.key() == Qt.Key_Return:
+            print(self.str_buffer)
+            self.timer_stop()
+            
+            self.key_count  =  0
+            self.current_y +=  1
+            self.current_x  = -1
+            if self.current_y >= self.rows:
+                self.current_y = 0
+            self.keyHelper()
+            self.str_buffer = ""
+            return
         # ------------------------------------------
         # Backspace: Cursor nach links verschieben,
         # ohne Text zu löschen
         # ------------------------------------------
         elif event.key() == Qt.Key_Backspace:
-            if cursor.position() > 0:  # Verhindern, dass der Cursor vor den Anfang geht
-                cursor.movePosition(QTextCursor.Left)
-                self.setTextCursor(cursor)
+            self.timer_stop()
+            self.del_buffer()
+            
+            self.current_x -= 1
+            if self.current_x < 0:
+                self.current_x = self.cols - 1
+                self.current_y -= 1
+                if self.current_y < 0:
+                    self.current_y = self.rows - 1
             self.keyHelper()
             return
         
@@ -4442,10 +4552,12 @@ class C64ConsoleWindow(QTextEdit):
         # ------------------------------------------
         if event.text().isalnum()\
         or event.text().isspace():
+            self.timer_stop()
+            
             self.current_x += 1
             self.key_count += 1
             if self.key_count >= 1:
-                if  self.current_x == 1 \
+                if  self.current_x >= 0 \
                 and self.current_y == self.rows:
                     self.current_x  = 0
                     self.current_y  = 0
@@ -4457,11 +4569,21 @@ class C64ConsoleWindow(QTextEdit):
                 if self.current_y >= self.rows:
                     self.current_x = 0
                     self.current_y = 0
+                    
+            self.add_buffer(event.text())
             self.print_line(event.text())
+            
             self.keyHelper()
-            #super().keyPressEvent(event)
             return
-
+    
+    def del_buffer(self):
+        if len(self.str_buffer)> 0:
+            self.str_buffer = \
+            self.str_buffer[:-1]
+            
+    def add_buffer(self, ch):
+        self.str_buffer += ch
+        
     def toggle_overwrite_mode(self):
         """Umschalten zwischen Überschreib- und Einfügemodus."""
         self.overwrite_mode = not self.overwrite_mode
@@ -4497,14 +4619,19 @@ class C64ConsoleBorder(QWidget):
         w7 = QWidget()
         w8 = QWidget()
         
-        vlayout = QVBoxLayout()
-        vlabel  = QLabel()
-        vlabel.setMaximumWidth(320)
-        vlabel.setMaximumHeight(64)
-        vlabel.setAlignment(Qt.AlignCenter)
-        pixmap  = QPixmap("./_internal/img/dresden.png")
-        vlabel .setPixmap(pixmap)
-        vlayout.addWidget(vlabel)
+        w2.setStyleSheet("""
+        background-image: url('./_internal/img/dresden.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        """)
+        #vlayout = QVBoxLayout()
+        #vlabel  = QLabel()
+        #vlabel.setMaximumWidth(320)
+        #vlabel.setMaximumHeight(64)
+        #vlabel.setAlignment(Qt.AlignCenter)
+        #pixmap  = QPixmap("./_internal/img/dresden.png")
+        #vlabel .setPixmap(pixmap)
+        #vlayout.addWidget(vlabel)
         
         wb = 39
         
@@ -4536,7 +4663,7 @@ class C64ConsoleBorder(QWidget):
         grid_layout.setSpacing(0)
         
         grid_layout.addWidget(w1, 0, 0)
-        grid_layout.addLayout(vlayout, 0, 1)
+        grid_layout.addWidget(w2, 0, 1)
         grid_layout.addWidget(w3, 0, 2)
         grid_layout.addWidget(w4, 1, 0)
         grid_layout.addWidget(w5, 1, 2)
@@ -18018,8 +18145,11 @@ class FileWatcherGUI(QDialog):
         # front view
         self.help_tabs = QTabWidget()
         self.help_tabs.setStyleSheet(_(genv.css_tabs))
-        self.help_tabs.setMinimumWidth(900)
+        self.help_tabs.setMinimumWidth(800)
+        
         # help
+        self.help_layout = QHBoxLayout()
+        
         self.tab0_0 = QWidget()
         self.tab1_0 = QWidget()
         self.tab2   = QWidget()
