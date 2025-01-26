@@ -760,6 +760,8 @@ class globalEnv:
         self.DBASE_EXPR_SYNTAX_ERROR   = 1000
         self.DBASE_EXPR_KEYWORD_ERROR  = 1001
         self.DBASE_EXPR_IS_EMPTY_ERROR = 1002
+
+        self.default_file_path = os.getcwd() + "/examples/"
         
         self.code_error     = 0
         self.counter_if     = 0
@@ -799,16 +801,17 @@ class globalEnv:
         # ------------------------------------------------------------------------
         # programming language stuff ...
         # ------------------------------------------------------------------------
-        self.SIDE_BUTTON_HELP       = 0
-        self.SIDE_BUTTON_DBASE      = 1
-        self.SIDE_BUTTON_PASCAL     = 2
-        self.SIDE_BUTTON_CPP        = 3
-        self.SIDE_BUTTON_JAVA       = 4
-        self.SIDE_BUTTON_JAVASCRIPT = 5
-        self.SIDE_BUTTON_PYTHON     = 6
-        self.SIDE_BUTTON_PROLOG     = 7
-        self.SIDE_BUTTON_FORTRAN    = 8
-        self.SIDE_BUTTON_LISP       = 9
+        self.SIDE_BUTTON_HELP       =  0
+        self.SIDE_BUTTON_DBASE      =  1
+        self.SIDE_BUTTON_PASCAL     =  2
+        self.SIDE_BUTTON_CPP        =  3
+        self.SIDE_BUTTON_JAVA       =  4
+        self.SIDE_BUTTON_JAVASCRIPT =  5
+        self.SIDE_BUTTON_PYTHON     =  6
+        self.SIDE_BUTTON_PROLOG     =  7
+        self.SIDE_BUTTON_FORTRAN    =  8
+        self.SIDE_BUTTON_LISP       =  9
+        self.SIDE_BUTTON_C64        = 10
         
         self.radio_cpp          = None
         self.radio_java         = None
@@ -4386,6 +4389,9 @@ class C64ConsoleWindow(QTextEdit):
         else:
             return "#000000"
     
+    # ------------------------------------------
+    # start/stop blink cursor - set to true.
+    # ------------------------------------------
     def timer_start(self):
         self.cursor_timer.start(500)
         
@@ -6383,7 +6389,7 @@ class interpreter_dBase(interpreter_base):
                                                 genv.have_errors = True
                                                 genv.unexpectedChar(genv.char_curr)
                                                 return
-                                            showInfo("oooooooooooooooooo")
+                                            #showInfo("oooooooooooooooooo")
                                             genv.char_curr = self.skip_white_spaces(self.dbase_parser)
                                             if not genv.char_curr == ')':
                                                 genv.have_errors = True
@@ -6852,7 +6858,7 @@ class interpreter_dBase(interpreter_base):
             genv.unexpectedError(err.message)
             return
         except Exception as e:
-            showError(f"Error: {e}")
+            showError(f"Error: --> {e}")
             #showException(traceback.format_exc())
     
     def handle_dbase_class(self, code):
@@ -8364,6 +8370,181 @@ class interpreter_C64(interpreter_base):
     def parse(self):
         self.token_str = ""
 
+class PascalParser:
+    def __init__(self, script_name):
+        self.script_name = script_name
+        self.line_number = 0
+        self.start_line  = 0
+        
+        # -----------------------------------
+        # Muster für einzeilige Kommentare
+        # -----------------------------------
+        self.single_line_patterns = [r"//.*"]
+        self.single_line_regex    = re.compile("|".join(
+        self.single_line_patterns))
+        
+        # -----------------------------------
+        # Muster für mehrzeilige Kommentare
+        # -----------------------------------
+        self.multi_line_start_patterns = [r"\(\*", r"\{"]
+        self.multi_line_end_patterns   = [r"\*\)", r"\}"]
+        
+        self.multi_line_start_regex    = re.compile("|".join(self.multi_line_start_patterns))
+        self.multi_line_end_regex      = re.compile("|".join(self.multi_line_end_patterns))
+        
+        self.comments = {
+            "single_line": [],
+            "multi_line" : [],
+            "errors"     : []
+        }
+        
+        self.line_number = 0
+    
+    def parse(self):
+        with open(self.script_name, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+            inside_multi_line_comment = False
+            multi_line_comment = ""
+            start_line = 0
+
+            for line in lines:
+                self.line_number += 1
+                stripped_line = line.strip()
+                
+                # Einzeilige Kommentare suchen
+                single_line_match = self.single_line_regex.findall(stripped_line)
+                if single_line_match:
+                    self.comments["single_line"].append((
+                    self.line_number, single_line_match))
+                
+                # Mehrzeilige Kommentare verarbeiten
+                if inside_multi_line_comment:
+                    multi_line_comment += f"\n{stripped_line}"
+                    if self.multi_line_end_regex.search(stripped_line):  # Mehrzeiligen Kommentar beenden
+                        # Überprüfen auf fehlerhafte Abschlüsse
+                        if  multi_line_comment.count("(*") > multi_line_comment.count("*)") or \
+                            multi_line_comment.count("{") > multi_line_comment.count("}"):
+                            self.comments["errors"].append((
+                            start_line, self.line_number,
+                            "Unvollständiger Kommentarabschluss",
+                            multi_line_comment))
+                        else:
+                            self.comments["multi_line"].append((
+                            start_line,
+                            self.line_number, multi_line_comment))
+                        inside_multi_line_comment = False
+                        multi_line_comment = ""
+                else:
+                    multi_line_start = self.multi_line_start_regex.search(stripped_line)
+                    if multi_line_start:
+                        inside_multi_line_comment = True
+                        start_line = self.line_number
+                        multi_line_comment = stripped_line
+                        if self.multi_line_end_regex.search(stripped_line):
+                            if stripped_line.count("(*") > stripped_line.count("*)") or \
+                               stripped_line.count("{") > stripped_line.count("}"):
+                                self.comments["errors"].append((start_line, self.line_number, "Unvollständiger Kommentarabschluss", stripped_line))
+                            else:
+                                self.comments["multi_line"].append((start_line, self.line_number, stripped_line))
+                            inside_multi_line_comment = False
+                            multi_line_comment = ""
+        return self.comments
+        
+    # -------------------------------------------
+    # Konvertiert den Pascal-Code in Python-Code.
+    # -------------------------------------------
+    def convert_to_python(self, parsed_program):
+        pass
+        
+class dBaseParser:
+    def __init__(self, script_name):
+        self.script_name = script_name
+        self.line_number = 0
+        self.start_line  = 0
+        
+        # -----------------------------------
+        # Muster für einzeilige Kommentare
+        # -----------------------------------
+        self.single_line_patterns = [r"&&.*", r"\*\*.*", r"//.*"]
+        self.single_line_regex    = re.compile("|".join(
+        self.single_line_patterns))
+        
+        # -----------------------------------
+        # Muster für mehrzeilige Kommentare
+        # -----------------------------------
+        self.multi_line_start_patterns = [r"\/\*"]
+        self.multi_line_end_patterns   = [r"\*\/"]
+        
+        self.multi_line_start_regex    = re.compile("|".join(self.multi_line_start_patterns))
+        self.multi_line_end_regex      = re.compile("|".join(self.multi_line_end_patterns))
+        
+        self.comments = {
+            "single_line": [],
+            "multi_line" : [],
+            "errors"     : []
+        }
+        
+        self.line_number = 0
+    
+    def parse(self):
+        with open(self.script_name, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+            inside_multi_line_comment = False
+            multi_line_comment = ""
+            start_line = 0
+
+            for line in lines:
+                self.line_number += 1
+                stripped_line = line.strip()
+                
+                # Einzeilige Kommentare suchen
+                single_line_match = self.single_line_regex.findall(stripped_line)
+                if single_line_match:
+                    self.comments["single_line"].append((
+                    self.line_number, single_line_match))
+                
+                # Mehrzeilige Kommentare verarbeiten
+                if inside_multi_line_comment:
+                    multi_line_comment += f"\n{stripped_line}"
+                    if self.multi_line_end_regex.search(stripped_line):
+                        # Überprüfen auf fehlerhafte Abschlüsse
+                        if  multi_line_comment.count("/*") > multi_line_comment.count("*/"):
+                            self.comments["errors"].append((
+                            start_line, self.line_number,
+                            "Unvollständiger Kommentarabschluss",
+                            multi_line_comment))
+                        else:
+                            self.comments["multi_line"].append((
+                            start_line,
+                            self.line_number, multi_line_comment))
+                        inside_multi_line_comment = False
+                        multi_line_comment = ""
+                else:
+                    multi_line_start = self.multi_line_start_regex.search(stripped_line)
+                    if multi_line_start:
+                        inside_multi_line_comment = True
+                        start_line = self.line_number
+                        multi_line_comment = stripped_line
+                        if self.multi_line_end_regex.search(stripped_line):
+                            if stripped_line.count("/*") > stripped_line.count("*/"):
+                                self.comments["errors"].append((
+                                    start_line,
+                                    self.line_number,
+                                    "Unvollständiger Kommentarabschluss",
+                                    stripped_line))
+                            else:
+                                self.comments["multi_line"].append((
+                                    start_line,
+                                    self.line_number,
+                                    stripped_line))
+                            inside_multi_line_comment = False
+                            multi_line_comment = ""
+        return self.comments
+
+    def convert_to_python(self, parsed_program):
+        python_code = []
+        function_definitions = []
+
 # ---------------------------------------------------------------------------
 # \brief  class for interpreting DoxyGen related stuff ...
 #         the constructor need a string based script name that shall be read
@@ -8939,6 +9120,7 @@ class myIconLabel(QLabel):
             
             self.btn_clicked(self.parent,
             genv.parent_array[self.mode])
+            genv.active_side_button = self.mode
     
     def enterEvent(self, event):
         self.show_overlay()
@@ -9032,7 +9214,7 @@ class myIconButton(QWidget):
     def __init__(self, parent, mode, label_text, text):
         super().__init__()
         
-        genv.v__app__devmode = mode
+        genv.v__app__devmode    = mode
         
         self.parent = parent
         
@@ -9108,7 +9290,7 @@ class myIconButton(QWidget):
         for idx in img_array:
             m = img_array.index(idx)
             if mode == m:
-                #genv.active_side_button = m
+                genv.active_side_button = m
                 
                 self.image_fg = ptx + img_array[m] + fg
                 self.image_bg = ptx + img_array[m] + bg
@@ -11827,10 +12009,11 @@ class EditorTranslate(QWidget):
 # \brief This class stands for the source code input editors like: dBase, C
 # ----------------------------------------------------------------------------
 class EditorTextEdit(QPlainTextEdit):
-    def __init__(self, parent, file_name, edit_type):
+    def __init__(self, parent, file_name, edit_type, mode=0):
         super(EditorTextEdit, self).__init__()
         
-        self.parser = None
+        self.mode   = mode
+        self.parser = parent
         
         self.setStyleSheet(_("ScrollBarCSS"))
         self.setObjectName(file_name)
@@ -11870,16 +12053,49 @@ class EditorTextEdit(QPlainTextEdit):
         # Schriftgröße und Schriftart setzen
         self.setFont(QFont(genv.v__app__font_edit, 12))
         
-        if not os.path.exists(file_name):
-            DebugPrint(f"Error: file does not exists: {file_name}")
-            return
-        
-        # Datei einlesen und Text setzen
-        self.load_file(file_name)
+        if self.mode == 0:
+            if not os.path.exists(file_name):
+                showInfo(_(f"Error: file does not exists: {file_name}"))
+                return
+            
+            # Datei einlesen und Text setzen
+            self.load_file(file_name)
         
         self.updateLineNumberAreaWidth(0)
         self.highlightCurrentLine()
     
+    # todo: check directory !
+    def check_default(self):
+        file_path = genv.default_file_path
+        try:
+            if genv.active_side_button == genv.SIDE_BUTTON_PASCAL:
+                file_path = file_path + "pascal/default.pas"
+                file_path = file_path.replace('\\', '/')
+                
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                        
+            elif genv.active_side_button == genv.SIDE_BUTTON_DBASE:
+                file_path = file_path + "dbase/default.prg"
+                file_path = file_path.replace('\\', '/')
+            
+            showInfo("cd: " + file_path)
+            os.chdir(os.path.dirname   (file_path))
+            self.parent.open_new_editor(file_path, 1)
+            
+            return True
+        except FileNotFoundError as e:
+            self.showExceptionHandler(e)
+            return False
+            
+        except PermissionError as e:
+            self.showExceptionHandler(e)
+            return False
+            
+        except Exception as e:
+            self.showExceptionHandler(e)
+            return False
+        
     def lineNumberAreaWidth(self):
         digits = len(str(max(1, self.blockCount())))
         space = 3 + self.fontMetrics().horizontalAdvance('9') * digits
@@ -12047,155 +12263,40 @@ class EditorTextEdit(QPlainTextEdit):
             super().keyPressEvent(event)
             return None
         elif event.key() == Qt.Key.Key_F2:
-            script_name = self.file_name
-            try:
-                # ---------------------------------------
-                # save source code before exec...
-                # ---------------------------------------
-                #if genv.editor_saveb.isChecked() == True:
-                with open(script_name, 'w', encoding='utf-8') as file:
-                    file.write(self.toPlainText())
-                    file.close()
-            except Exception as e:
-                showException(traceback.format_exc())
-                return
-            
-            #showInfo(self.edit_type)
+            script_name = genv.default_file_path
             if self.edit_type == "c64":
-                try:
-                    try:
-                        #genv.c64_console = DOSConsoleWindow(application_window)
-                        #genv.c64_console.show()
-                        
-                        genv.c64_parser  = C64BasicParser(script_name)
-                        genv.c64_parsed  = genv.c64_parser.parse()
-                        
-                        # ------------------------------------------
-                        # Überprüfe auf Endlosschleifen
-                        # ------------------------------------------
-                        if genv.c64_parser.detect_infinite_loops(genv.c64_parsed):
-                            showInfo(_("WARNING:\nendless loop detected."))
-                            return None
-
-                        python_code = genv.c64_parser.convert_to_python(genv.c64_parsed)
-                        c64bin_code = genv.c64_parser.convert_to_binbas(genv.c64_parsed)
-                        
-                        # print("Parsed Program:", genv.c64_parsed)
-                        
-                        # ------------------------------------------
-                        # Speichere den Python-Code als Datei
-                        # ------------------------------------------
-                        file_path      = os.path.basename(script_name)
-                        directory_path = os.path.dirname (script_name) + "/tmp"
-                        
-                        directory_path = directory_path.replace('\\', '/')
-                        c64basic_file  = directory_path + "/" + file_path + ".b64"
-                        python_file    = directory_path + "/" + file_path + ".py"
-                        bytecode_file  = python_file + ".pyc"
-                        
-                        if not os.path.exists(directory_path):
-                            try:
-                                os.makedirs(directory_path)
-                            except PermissionError as e:
-                                showError(_("no permissions to create directory"))
-                                return False
-                            except Exception as e:
-                                showError(_(f"unexpected error occured:\n{e}"))
-                                return False
-                        try:
-                            with open(python_file, "w") as f:
-                                f.write(python_code)
-                                f.close()
-                                
-                            with open(c64basic_file, "wb") as f:
-                                f.write(c64bin_code)
-                                f.close()
-                                
-                        except PermissionError as e:
-                            showError(_(f"no permissions to open script file:\n{e}"))
-                            return None
-                        except Exception as e:
-                            showError(_(f"unexpected error occured:\n{e}"))
-                            return None
-                        
-                        # ------------------------------------------
-                        # Kompiliere den Python-Code in Bytecode
-                        # und speichere ihn ...
-                        # ------------------------------------------
-                        compiled_code = compile(python_code, python_file, "exec")
-                        try:
-                            with open(bytecode_file, "wb") as f:
-                                marshal.dump(compiled_code, f)
-                        except PermissionError as e:
-                            showError(_("no permissions to write byte code file."))
-                            return None
-                        except Exception as e:
-                            showError(_(f"unexpected error occured:\n{e}"))
-                            return None
-                            
-                        print("Python Code:")
-                        print(python_code)
-                        
-                        genv.c64_parser.run_bytecode(bytecode_file)
-                        
-                        #genv.c64_parser.c64_exec_thread_running = True
-                        #genv.c64_parser.c64_exec_thread = \
-                        #genv.c64_parser.run_bytecode(bytecode_file)
-                        #genv.c64_parser.c64_exec_thread.join()
-                        
-                    except TypeError as e:
-                        showError(_(f"Type Error:\n{e}"))
-                        return None
-                    except Exception as e:
-                        showError(_(f"SYntax error.\n{e}"))
-                        parser = None
-                        return None
-                finally:
-                    super().keyPressEvent(event)
-                    return None
-                    
+                self.check_default()
+                self.parse_source(genv.SIDE_BUTTON_C64, script_name)
+                
             elif self.edit_type == "dbase":
-                showInfo("dbase <---")
-                prg = interpreter_dBase(script_name)
-                try:
-                    try:
-                        prg.parse()
-                        prg.run()
-                    except ENoSourceHeader as e:
-                        showError(_("source missing correct header style."))
-                        prg = None
-                        return
-                finally:
-                    prg = None
-            
+                script_name = genv.default_file_path
+                if not script_name.endswith("/default.prg"):
+                    script_name += "/default.prg"
+                    self.check_default()
+                    with open(script_name, 'w',
+                        encoding='utf-8') as file:
+                        file.write(self.toPlainText())
+                        file.close()
+                        
+                self.parse_source(genv.SIDE_BUTTON_DBASE, script_name)
+                
             elif self.edit_type == "pascal":
-                showInfo("pascal <---")
-                try:
-                    prg = interpreter_Pascal(script_name)
-                    try:
-                        prg.parse()
-                        prg.run()
-                    finally:
-                        prg = None
-                except Exception as e:
-                    showError(_("Error:\n") + f"{e}")
-                    return
-            
+                script_name = genv.default_file_path
+                if not script_name.endswith("/default.pas"):
+                    script_name += "/default.pas"
+                    self.check_default()
+                    with open(script_name, 'w',
+                        encoding='utf-8') as file:
+                        file.write(self.toPlainText())
+                        file.close()
+                        
+                self.parse_source(genv.SIDE_BUTTON_PASCAL, script_name)
+                
             elif self.edit_type == "lisp":
-                showInfo("lisp <---")
-                try:
-                    prg = interpreter_LISP(script_name)
-                    try:
-                        prg.parse()
-                        #prg.run()
-                    finally:
-                        prg = None
-                except Exception as e:
-                    showError(_("Error:\n") + f"{e}")
-                    return
-            
+                self.parse_source(genv.SIDE_BUTTON_LISP, script_name)
+                
             elif self.edit_type == "prolog":
-                showInfo("prolog <---")
+                self.parse_source(genv.SIDE_BUTTON_PROLOG, script_name)
         
         elif event.key() == Qt.Key_S and event.modifiers() == Qt.ControlModifier:
             options = QFileDialog.Options()
@@ -12252,7 +12353,128 @@ class EditorTextEdit(QPlainTextEdit):
                 return
         else:
             super().keyPressEvent(event)
-
+    
+    def parse_source(self, edit_type, script_name):
+        try:
+            if edit_type == genv.SIDE_BUTTON_C64:
+                parser = C64BasicParser(script_name)
+                parsed = parser.parse()
+                
+            elif edit_type == genv.SIDE_BUTTON_DBASE:
+                parser = dBaseParser(script_name)
+                parsed = parser.parse()
+                
+            elif edit_type == genv.SIDE_BUTTON_PASCAL:
+                parser = PascalParser(script_name)
+                parsed = parser.parse()
+            
+            self.display_comment_summary(parser.comments)
+            
+            python_code = parser.convert_to_python(parsed)
+            
+            if not python_code:
+                showInfo(_(f"no code for parser."))
+                return
+                
+            # ------------------------------------------
+            # Speichere den Python-Code als Datei
+            # ------------------------------------------
+            file_path      = os.path.basename(script_name)
+            directory_path = os.path.dirname (script_name) + "/tmp"
+            
+            directory_path = directory_path.replace('\\', '/')
+            python_file    = directory_path + "/" + file_path + ".py"
+            bytecode_file  = python_file + ".pyc"
+            
+            if not os.path.exists(directory_path):
+                try:
+                    os.makedirs(directory_path)
+                except PermissionError as e:
+                    showError(_("no permissions to create directory"))
+                    return False
+                except Exception as e:
+                    showError(_(f"unexpected error occured:\n{e}"))
+                    return False
+            try:
+                with open(python_file, "w") as f:
+                    f.write(python_code)
+                    f.close()
+                    
+            except PermissionError as e:
+                showError(_(f"no permissions to open script file:\n{e}"))
+                return
+            except Exception as e:
+                showError(_(f"unexpected error occured:\n{e}"))
+                return
+            
+            # ------------------------------------------
+            # Kompiliere den Python-Code in Bytecode
+            # und speichere ihn ...
+            # ------------------------------------------
+            compiled_code = compile(python_code, python_file, "exec")
+            try:
+                with open(bytecode_file, "wb") as f:
+                    marshal.dump(compiled_code, f)
+            except PermissionError as e:
+                showError(_("no permissions to write byte code file."))
+                return
+            except Exception as e:
+                showError(_(f"unexpected error occured:\n{e}"))
+                return
+            
+            print("Python Code:")
+            print(python_code)
+            
+            parser.run_bytecode(bytecode_file)
+            
+        except Exception as e:
+            self.showExceptionHandler(e)
+            return
+            
+    # --------------------------------------
+    # Extrahiere spezifische Informationen
+    # Gehe zum letzten Traceback-Eintrag
+    # --------------------------------------
+    def showExceptionHandler(self, e):
+        tb = e.__traceback__
+        while tb.tb_next:
+            tb = tb.tb_next
+        
+        err_line  = _(f"Error in File: {tb.tb_frame.f_code.co_filename}\n")
+        err_line += _(f"Error in Line: {tb.tb_lineno}\n")
+        err_line += _(f"Error Message: {str(e)}")
+        
+        showError(err_line)
+        return
+    
+    # ----------------------
+    # Ergebnisse anzeigen
+    # ----------------------
+    def display_comment_summary(self, result):
+        one_liner = _("online comments:\n")
+        
+        for line_num, matches in result["single_line"]:
+            one_liner += f"Line {line_num}: {', '.join(matches)}"
+            one_liner += "\n"
+        
+        two_liner = _("multie line comments:\n")
+        
+        for start, end, comment in result["multi_line"]:
+            two_liner += f"start line: {start} end line: {end}:\n{comment}"
+            two_liner += f"\n"
+        
+        err_liner = _("comments with error's:\n")
+        
+        for start, end, error, comment in result["errors"]:
+            err_liner += f"start line: {start} end line: {end}: "
+            err_liner += f"{error}\n{comment}"
+            err_liner += f"\n"
+            
+        showInfo(
+            one_liner + "\n" +
+            two_liner + "\n" +
+            err_liner)
+        
 class LineNumberArea(QWidget):
     def __init__(self, editor):
         super(LineNumberArea, self).__init__(editor)
@@ -16105,10 +16327,19 @@ class ButtonWidget(QWidget):
         
         text = text.split(':')
         
-        if text[0] == "label 1":
+        # --------------------------------------
+        # Erstelle ein QPixmap mit transparentem
+        # Hintergrund
+        # --------------------------------------
+        if text[0] == "label 0":
+            self.label_pixmap = QPixmap("./_internal/img/newdoc2.png")
+        
+        elif text[0] == "label 1":
             self.label_pixmap = QPixmap("./_internal/img/open-folder.png")
+        
         elif text[0] == "label 2":
             self.label_pixmap = QPixmap("./_internal/img/floppy-disk.png")
+        
         elif text[0] == "label 3":
             self.label_pixmap = QPixmap("./_internal/img/play.png")
         
@@ -16188,6 +16419,11 @@ class ApplicationEditorsPage(QObject):
         super(ApplicationEditorsPage, self).__init__(parent)
         self.parent = parent
         self.text   = text
+        self.mode   = 0
+        
+        self.editor_object = None
+        self.tabs_editor   = None
+        
         try:
             self.setObjectName(self.text)
             
@@ -16207,9 +16443,10 @@ class ApplicationEditorsPage(QObject):
             self.tabs_editor_menu.setMinimumHeight(64)
             self.tabs_editor_menu.setMaximumHeight(64)
             
-            self.custom_widget0 = ButtonWidget("label 1:")
-            self.custom_widget1 = ButtonWidget("label 2:")
-            self.custom_widget2 = ButtonWidget("label 3:")
+            self.custom_widget0 = ButtonWidget("label 0:")
+            self.custom_widget1 = ButtonWidget("label 1:")
+            self.custom_widget2 = ButtonWidget("label 2:")
+            self.custom_widget3 = ButtonWidget("label 3:")
             
             self.widget0_list_item = QListWidgetItem(self.tabs_editor_menu)
             self.widget0_list_item.setSizeHint(self.custom_widget0.sizeHint())
@@ -16220,9 +16457,14 @@ class ApplicationEditorsPage(QObject):
             self.widget2_list_item = QListWidgetItem(self.tabs_editor_menu)
             self.widget2_list_item.setSizeHint(self.custom_widget2.sizeHint())
             
+            self.widget3_list_item = QListWidgetItem(self.tabs_editor_menu)
+            self.widget3_list_item.setSizeHint(self.custom_widget3.sizeHint())
+            
+            
             self.tabs_editor_menu.setItemWidget(self.widget0_list_item, self.custom_widget0)
             self.tabs_editor_menu.setItemWidget(self.widget1_list_item, self.custom_widget1)
             self.tabs_editor_menu.setItemWidget(self.widget2_list_item, self.custom_widget2)
+            self.tabs_editor_menu.setItemWidget(self.widget3_list_item, self.custom_widget3)
             
             self.tabs_editor_menu.itemClicked.connect(self.on_editor_menu_item_clicked)
             
@@ -16243,22 +16485,74 @@ class ApplicationEditorsPage(QObject):
         except Exception as e:
             showException(traceback.format_exc())
     
+    def open_new_editor(self, file_path, mode=0):
+        self.mode = mode
+        
+        file_layout_widget = QWidget()
+        file_layout        = QHBoxLayout()
+        file_layout.setSpacing(0)
+        
+        if self.mode == 0:
+            self.editor_object = EditorTextEdit(
+                self,
+                file_path,
+                self.text,
+                self.mode)
+        else:
+            self.editor_object = EditorTextEdit(
+                self,
+                file_path,
+                self.text,
+                self.mode)
+        
+        self.editor_object.setContentsMargins(1,0,0,1)
+        new_editor    = {
+            "object": self.editor_object,
+            "name":   file_path
+        }
+        
+        genv.editors_entries[self.text].append(new_editor)
+        
+        file_layout_widget = QWidget()
+        file_layout        = QVBoxLayout()
+        file_layout.setSpacing(0)
+        
+        file_layout.addWidget(self.editor_object)
+        file_layout_widget.setLayout(
+        file_layout)
+        
+        file_layout_widget.setContentsMargins(1,0,0,1)
+        base_name = os.path.basename(file_path)
+        if  self.mode == 0:
+            self.tabs_editor.addTab(file_layout_widget, file_path)
+        else:
+            self.tabs_editor.addTab(file_layout_widget, base_name)
+    
     def on_editor_menu_item_clicked(self, item):
-        DebugPrint("self: ", self.objectName())
         widget = self.tabs_editor_menu.itemWidget(item)
         if widget:
             text = widget.objectName()
             text = text.split(':')
-            if text[0] == "label 1":
-                file_path = self.open_dialog()
-                filename  = os.path.basename(file_path)
+            
+            if text[0] == "label 0":
+                if  self.editor_object == None:
+                    self.editor_object = EditorTextEdit(
+                        self,
+                        "", "",
+                        self.mode)
+                self.editor_object.check_default()
+                return
+                    
+            elif text[0] == "label 1":
+                file_path = self.open_or_save_dialog(genv.active_side_button)
+                filename  = os.path.basename(genv.default_file_path)
                 if len(filename) < 1:
                     return
-                widget.setObjectName('label 1:' + file_path)
+                widget.setObjectName('label 1:' + genv.default_file_path)
                 #
                 try:
                     for entry in genv.editors_entries[self.text]:
-                        if entry["name"] == file_path:
+                        if entry["name"] == genv.default_file_path:
                             showInfo("already open.")
                             return
                 except KeyError as e:
@@ -16266,28 +16560,7 @@ class ApplicationEditorsPage(QObject):
                 except Exception as e:
                     pass
                 
-                file_layout_widget = QWidget()
-                file_layout        = QHBoxLayout()
-                file_layout.setSpacing(0)
-                
-                editor_object = EditorTextEdit(self, file_path, self.text)
-                editor_object.setContentsMargins(1,0,0,1)
-                new_editor    = {
-                    "object": editor_object,
-                    "name":   file_path
-                }
-                genv.editors_entries[self.text].append(new_editor)
-                
-                file_layout_widget = QWidget()
-                file_layout        = QVBoxLayout()
-                file_layout.setSpacing(0)
-                
-                file_layout.addWidget(editor_object)
-                file_layout_widget.setLayout(
-                file_layout)
-                
-                file_layout_widget.setContentsMargins(1,0,0,1)
-                self.tabs_editor.addTab(file_layout_widget, filename)
+                self.open_new_editor(genv.default_file_path, 0)
                 
                 #try:
                 #    pass
@@ -16455,18 +16728,20 @@ class ApplicationEditorsPage(QObject):
                         file.write(self.focused_widget.toPlainText())
                         file.close()
     
-    def open_dialog(self):
+    def open_or_save_dialog(self, mode=-1):
         dialog  = QFileDialog()
         file_path = ""
         icon_size = 20
         
-        dialog.setWindowTitle(_("Open File"))
+        if mode < 0:
+            dialog.setWindowTitle(_("Open File"))
+        elif mode >= 0:
+            dialog.setWindowTitle(_("Save File"))
+            
         dialog.setStyleSheet (_("QFileDlog"))
         
         dialog.setFileMode(QFileDialog.AnyFile)
         dialog.setViewMode(QFileDialog.Detail)
-        
-        dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
         
         if self.objectName() == "dbase":
             dialog.setNameFilters([
@@ -16523,10 +16798,65 @@ class ApplicationEditorsPage(QObject):
         else:
             dialog.setNameFilters([
                 _("All Files") + " (*)"])
-                
-        if dialog.exec_() == QFileDialog.Accepted:
-            file_path = dialog.selectedFiles()[0]
         
+        dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+        if mode == 0:
+            if dialog.exec_() == QFileDialog.Accepted:
+                file_path = dialog.selectedFiles()[0]
+                return self.check_file(file_path)
+        
+        elif mode in [
+            genv.SIDE_BUTTON_DBASE,
+            genv.SIDE_BUTTON_PASCAL,
+            genv.SIDE_BUTTON_C64
+        ]:
+            ptions    = QFileDialog.Options()
+            options  |= QFileDialog.DontConfirmOverwrite  
+            
+            default_file = "default"
+            
+            if mode == genv.SIDE_BUTTON_DBASE:
+                default_file += ".prg"
+            elif mode == genv.SIDE_BUTTON_PASCAL:
+                default_file += ".pas"
+            else:
+                default_file += ".txt"
+            
+            dialog = QFileDialog(self, _("Save file as..."))
+            dialog.setAcceptMode(QFileDialog.AcceptSave)
+            
+            if dialog.exec_():
+                # -----------------------------------
+                # Gewählte Datei und Filter abrufen
+                # -----------------------------------
+                file_path = dialog.selectedFiles()[0]
+                
+                if len(file_path) < 1:
+                    showInfo(_("no file name given"))
+                    return
+                    
+                # -----------------------------------
+                # Dateiendung aus dem Filter ableiten
+                # -----------------------------------
+                if "(*." in selected_filter:
+                    file_extension = selected_filter.split("(*.")[-1].split(")")[0]
+                    if not file_path.endswith(f".{file_extension}"):
+                        file_path += f".{file_extension}"
+                try:
+                    with open(file_path, "w") as file:
+                        file.write(self.focused_widget.toPlainText())
+                        file.close()
+                    return self.check_file(file_path)
+                    
+                except PermissionError as e:
+                    showError(_(f"you have no permissions to write the " +
+                    f"file.\n{e}"))
+                    return ""
+                except Exception as e:
+                    showError(_(f"unhandled exception occured."))
+                    return ""
+                
+    def check_file(self, file_path):
         if not file_path:
             msg = QMessageBox()
             msg.setWindowTitle("Information")
@@ -16552,7 +16882,7 @@ class ApplicationEditorsPage(QObject):
             result = msg.exec_()
             return ""
         return file_path
-
+        
 class ApplicationTabWidget(QTabWidget):
     def __init__(self, tabs, parent=None):
         super(ApplicationTabWidget, self).__init__(parent)
@@ -18004,7 +18334,7 @@ class FileWatcherGUI(QDialog):
         
         # tool bar
         self.tool_bar = QToolBar()
-        self.tool_bar.hide()
+        #self.tool_bar.hide()
         self.tool_bar.setMinimumHeight(26)
         self.tool_bar.setStyleSheet(_(genv.toolbar_css))
         self.tool_bar.setMaximumHeight(32)
@@ -18025,7 +18355,7 @@ class FileWatcherGUI(QDialog):
         self.tool_bar.addWidget(self.tool_bar_button_exit)
         
         self.layout.addWidget(self.tool_bar)
-        self.tool_bar.show()
+        #self.tool_bar.show()
         
         # status bar
         self.status_bar = QStatusBar()
