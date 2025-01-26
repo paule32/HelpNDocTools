@@ -189,3 +189,4 @@ src/client-windows.py.bak
 src/__pycache__/examples/basic/tmp/1
 src/2.bak
 src/client-windows.py.bak
+src/src/pyinstaller/
