@@ -763,6 +763,10 @@ class globalEnv:
 
         self.default_file_path = os.getcwd() + "/examples/"
         
+        self.source_comments  = []
+        self.source_tokens    = []
+        self.source_errors    = []
+        
         self.code_error     = 0
         self.counter_if     = 0
         self.counter_endif  = 0
@@ -867,6 +871,7 @@ class globalEnv:
                 self.vlayout = None
         #
         self.editor = editor_class()
+        self.editor_counter = 0
         
         self.editor_check = None
         self.editor_saveb = None
@@ -8374,82 +8379,259 @@ class PascalParser:
     def __init__(self, script_name):
         self.script_name = script_name
         self.line_number = 0
-        self.start_line  = 0
         
-        # -----------------------------------
-        # Muster für einzeilige Kommentare
-        # -----------------------------------
-        self.single_line_patterns = [r"//.*"]
-        self.single_line_regex    = re.compile("|".join(
-        self.single_line_patterns))
+        # Ergebnisse
+        self.comments = []
+        self.tokens = []
+        self.errors = []
         
-        # -----------------------------------
-        # Muster für mehrzeilige Kommentare
-        # -----------------------------------
-        self.multi_line_start_patterns = [r"\(\*", r"\{"]
-        self.multi_line_end_patterns   = [r"\*\)", r"\}"]
-        
-        self.multi_line_start_regex    = re.compile("|".join(self.multi_line_start_patterns))
-        self.multi_line_end_regex      = re.compile("|".join(self.multi_line_end_patterns))
-        
-        self.comments = {
-            "single_line": [],
-            "multi_line" : [],
-            "errors"     : []
+        # Pascal-Schlüsselwörter
+        self.keywords = {"PROGRAM", "BEGIN", "END", "VAR", "PROCEDURE", "FUNCTION", "IF", "THEN", "ELSE", "WHILE", "DO"}
+
+        # Muster für Tokenisierung
+        self.token_patterns = [
+            (r"[a-zA-Z_][a-zA-Z0-9_]*", "ident"),  # Identifikatoren und Schlüsselwörter
+            (r"\d+", "number"),                    # Zahlen
+            (r"[+\-*/:=<>();,.]", "symbol"),       # Trennzeichen
+            (r"\"(?:[^\"]|(?<=\\)\")*\"", "string1"),  # Strings mit doppelten Anführungszeichen
+            (r"'(?:[^\']|(?<=\\)')*'", "string2")   # Strings mit einfachen Anführungszeichen
+        ]
+        self.token_regex = re.compile("|".join(f"(?P<{name}>{pattern})" for pattern, name in self.token_patterns))
+        self.macro_regex = re.compile(r"\{\$(ifdef|else|endif)\s*([a-zA-Z0-9_]*)\}")
+
+        # Kommentar-Tokens
+        self.comment_tokens = {
+            "curly": {"start": "{", "end": "}"},
+            "round": {"start": "(*", "end": "*)"},
+            "single_line": {"start": "//"}  # Einzeiliger Kommentar
         }
-        
-        self.line_number = 0
-    
+
+        # Pascal-Grammatik als JSON
+        self.pascal_grammar = """
+        {
+          "sequence": [
+            {"type": "keyword", "value": "PROGRAM"},
+            {"type": "ident"},
+            {"type": "symbol", "value": ";"}
+          ],
+          "repeated": [
+            {
+              "type": "keyword", "value": "VAR",
+              "declarations": [
+                {"type": "ident"},
+                {"type": "symbol", "value": ":"},
+                {"type": "ident"},
+                {"type": "symbol", "value": ";"},
+                {
+                  "optional": [
+                    {"type": "symbol", "value": ","},
+                    {"type": "ident"}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        """
+
     def parse(self):
         with open(self.script_name, 'r', encoding='utf-8') as file:
             lines = file.readlines()
-            inside_multi_line_comment = False
-            multi_line_comment = ""
-            start_line = 0
+            stack = []  # Verschachtelungs-Stack für Makros und Kommentare
 
             for line in lines:
                 self.line_number += 1
-                stripped_line = line.strip()
-                
-                # Einzeilige Kommentare suchen
-                single_line_match = self.single_line_regex.findall(stripped_line)
-                if single_line_match:
-                    self.comments["single_line"].append((
-                    self.line_number, single_line_match))
-                
-                # Mehrzeilige Kommentare verarbeiten
-                if inside_multi_line_comment:
-                    multi_line_comment += f"\n{stripped_line}"
-                    if self.multi_line_end_regex.search(stripped_line):  # Mehrzeiligen Kommentar beenden
-                        # Überprüfen auf fehlerhafte Abschlüsse
-                        if  multi_line_comment.count("(*") > multi_line_comment.count("*)") or \
-                            multi_line_comment.count("{") > multi_line_comment.count("}"):
-                            self.comments["errors"].append((
-                            start_line, self.line_number,
-                            "Unvollständiger Kommentarabschluss",
-                            multi_line_comment))
-                        else:
-                            self.comments["multi_line"].append((
-                            start_line,
-                            self.line_number, multi_line_comment))
-                        inside_multi_line_comment = False
-                        multi_line_comment = ""
-                else:
-                    multi_line_start = self.multi_line_start_regex.search(stripped_line)
-                    if multi_line_start:
-                        inside_multi_line_comment = True
-                        start_line = self.line_number
-                        multi_line_comment = stripped_line
-                        if self.multi_line_end_regex.search(stripped_line):
-                            if stripped_line.count("(*") > stripped_line.count("*)") or \
-                               stripped_line.count("{") > stripped_line.count("}"):
-                                self.comments["errors"].append((start_line, self.line_number, "Unvollständiger Kommentarabschluss", stripped_line))
+                i = 0
+
+                while i < len(line):
+                    # Prüfe auf Makro-Kommentare
+                    macro_match = self.macro_regex.match(line[i:])
+                    if macro_match:
+                        macro_type = macro_match.group(1)  # ifdef, else, endif
+                        macro_name = macro_match.group(2)  # Name des Makros (falls vorhanden)
+                        position = i + macro_match.start() + 1
+
+                        if macro_type == "ifdef":
+                            stack.append({"type": "ifdef", "line": self.line_number, "pos": position, "name": macro_name, "else_used": False})
+                            self.tokens.append((self.line_number, position, f"ifdef {macro_name}", "macro"))
+                        elif macro_type == "else":
+                            if not stack or stack[-1]["type"] != "ifdef":
+                                self.errors.append((self.line_number, position, "Unerwartetes {$else} außerhalb eines {$ifdef}-Blocks."))
+                            elif stack[-1]["else_used"]:
+                                self.errors.append((self.line_number, position, "Mehrfache {$else} im selben {$ifdef}-Block."))
                             else:
-                                self.comments["multi_line"].append((start_line, self.line_number, stripped_line))
-                            inside_multi_line_comment = False
-                            multi_line_comment = ""
-        return self.comments
+                                stack[-1]["else_used"] = True
+                                self.tokens.append((self.line_number, position, "else", "macro"))
+                        elif macro_type == "endif":
+                            if not stack or stack[-1]["type"] != "ifdef":
+                                self.errors.append((self.line_number, position, "Unerwartetes {$endif} ohne passendes {$ifdef}."))
+                            else:
+                                stack.pop()
+                                self.tokens.append((self.line_number, position, "endif", "macro"))
+
+                        i += macro_match.end()  # Überspringe den gesamten Makro-Kommentar
+                        continue
+
+                    # Prüfe auf Kommentare
+                    if line[i:i+2] == self.comment_tokens["single_line"]["start"]:
+                        # Einzeiliger Kommentar
+                        self.comments.append((self.line_number, i + 1, line[i:].strip()))
+                        break  # Rest der Zeile ignorieren
+
+                    elif line[i] == self.comment_tokens["curly"]["start"]:
+                        # Mehrzeiliger Kommentar `{ ... }`
+                        start_pos = i
+                        i += 1
+                        while i < len(line):
+                            if line[i] == self.comment_tokens["curly"]["end"]:
+                                self.comments.append((self.line_number, start_pos + 1, line[start_pos:i + 1]))
+                                i += 1
+                                break
+                            else:
+                                i += 1
+                        continue
+
+                    elif line[i:i+2] == self.comment_tokens["round"]["start"]:
+                        # Mehrzeiliger Kommentar `(* ... *)`
+                        start_pos = i
+                        i += 2
+                        while i < len(line):
+                            if line[i:i+2] == self.comment_tokens["round"]["end"]:
+                                self.comments.append((self.line_number, start_pos + 1, line[start_pos:i + 2]))
+                                i += 2
+                                break
+                            else:
+                                i += 1
+                        continue
+
+                    # Prüfe auf reguläre Tokens
+                    token_match = self.token_regex.match(line[i:])
+                    if token_match:
+                        token = token_match.group()
+                        token_type = token_match.lastgroup
+                        position = i + 1
+
+                        # Bestimme den Token-Typ
+                        if token.upper() in self.keywords:
+                            token_type = "keyword"
+                        elif token_match.lastgroup == "number":
+                            token_type = "number"
+                        elif token_match.lastgroup == "symbol":
+                            token_type = "symbol"
+                        elif token_match.lastgroup == "string1":
+                            token_type = "string"
+                        elif token_match.lastgroup == "string2":
+                            token_type = "string"
+                        else:
+                            token_type = "ident"
+                        
+                        self.tokens.append((self.line_number, position, token, token_type))
+                        i += len(token)
+                        continue
+                    i += 1
         
+        # Überprüfe auf nicht abgeschlossene Makros
+        while stack:
+            macro = stack.pop()
+            if macro["type"] == "ifdef":
+                self.errors.append((macro["line"], macro["pos"], f"Unvollständiger Makro-Block: $ifdef {macro['name']} wurde nicht geschlossen."))
+        
+        genv.source_comments = self.comments
+        genv.source_tokens   = self.tokens
+        genv.source_errors   = self.errors
+        
+        # Starte die Validierung der Struktur
+        success, start_index = self.validate_structure(self.pascal_grammar)
+        if not success:
+            showError(_(f"syntax error:\n{genv.source_errors}"))
+        return
+        
+    def handle_multi_line_comment(self, match, line_number):
+        """Hilfsmethode zum Verarbeiten von mehrzeiligen Kommentaren."""
+        self.comments.append((line_number, match.start(), match.group()))
+        # Ersetze den Kommentar durch Leerzeichen, um die Token-Trennung beizubehalten
+        return " " * (match.end() - match.start())
+    
+    # ------------------------------------------------
+    # Validiert die Struktur der Tokens basierend
+    # auf einer JSON-Vorlage.
+    # ------------------------------------------------
+    def validate_structure(self, grammar, start_index=0):
+        try:
+            structure = json.loads(grammar)
+        except json.JSONDecodeError as e:
+            self.errors.append((0, 0, f"JSON-Fehler in der Grammatik: {str(e)}"))
+            return False, start_index
+
+        sequence = structure.get("sequence", [])
+        repeated = structure.get("repeated", [])
+        token_index = start_index
+
+        # Überprüfe die Sequenz
+        for expected in sequence:
+            if token_index >= len(self.tokens):
+                self.errors.append((0, 0, f"Fehlendes Token: {expected}"))
+                return False, token_index
+
+            line, pos, token, token_type = self.tokens[token_index]
+
+            # Überprüfe Typ und optionalen Wert
+            if token_type != expected["type"]:
+                self.errors.append((line, pos, f"Erwarteter Typ '{expected['type']}', gefunden '{token_type}'."))
+                return False, token_index
+            if "value" in expected and token.upper() != expected["value"]:
+                self.errors.append((line, pos, f"Erwarteter Wert '{expected['value']}', gefunden '{token}'."))
+                return False, token_index
+
+            token_index += 1
+
+        # Überprüfe wiederholte Abschnitte
+        for repeat_section in repeated:
+            while token_index < len(self.tokens):
+                line, pos, token, token_type = self.tokens[token_index]
+
+                # Prüfe, ob das Token dem Beginn des wiederholbaren Abschnitts entspricht
+                if token_type == repeat_section["type"] and token.upper() == repeat_section["value"]:
+                    token_index += 1  # Überspringe das Schlüsselwort (z. B. "VAR")
+
+                    # Überprüfe die Deklarationen in diesem Abschnitt
+                    for declaration in repeat_section["declarations"]:
+                        if token_index >= len(self.tokens):
+                            self.errors.append((line, pos, f"Fehlendes Token: {declaration}"))
+                            return False, token_index
+
+                        line, pos, token, token_type = self.tokens[token_index]
+
+                        # Überprüfe Typ und optionalen Wert
+                        if token_type != declaration["type"]:
+                            self.errors.append((line, pos, f"Erwarteter Typ '{declaration['type']}', gefunden '{token_type}'."))
+                            return False, token_index
+                        if "value" in declaration and token.upper() != declaration["value"]:
+                            self.errors.append((line, pos, f"Erwarteter Wert '{declaration['value']}', gefunden '{token}'."))
+                            return False, token_index
+
+                        token_index += 1
+
+                    # Optionaler Abschnitt für Mehrfachdeklarationen
+                    while token_index < len(self.tokens):
+                        line, pos, token, token_type = self.tokens[token_index]
+
+                        if token_type == "symbol" and token == ",":
+                            token_index += 1  # Überspringe Komma
+
+                            # Erwarte einen weiteren Bezeichner
+                            if token_index < len(self.tokens) and self.tokens[token_index][3] == "ident":
+                                token_index += 1
+                            else:
+                                self.errors.append((line, pos, "Fehlender Bezeichner nach ','."))
+                                return False, token_index
+                        else:
+                            break
+                else:
+                    break  # Kein weiteres Schlüsselwort gefunden
+
+        return True, token_index
+    
     # -------------------------------------------
     # Konvertiert den Pascal-Code in Python-Code.
     # -------------------------------------------
@@ -12263,30 +12445,42 @@ class EditorTextEdit(QPlainTextEdit):
             super().keyPressEvent(event)
             return None
         elif event.key() == Qt.Key.Key_F2:
-            script_name = genv.default_file_path
-            try:
-                # ---------------------------------------
-                # save source code before exec...
-                # ---------------------------------------
-                self.check_default()
-                with open(genv.default_file_path, 'w',
-                    encoding='utf-8') as file:
-                    file.write(self.toPlainText())
-                    file.close()
-                    
-            except Exception as e:
-                showException(traceback.format_exc())
-                return
+            script_name = self.objectName()
             
-            #showInfo(self.edit_type)
             if self.edit_type == "c64":
+                self.check_default()
                 self.parse_source(genv.SIDE_BUTTON_C64, script_name)
                 
             elif self.edit_type == "dbase":
+                if script_name.endswith("/"):
+                    script_name += "default.prg"
+                    self.check_default()
+                    with open(script_name, 'w',
+                        encoding='utf-8') as file:
+                        file.write(self.toPlainText())
+                        file.close()
+                        
                 self.parse_source(genv.SIDE_BUTTON_DBASE, script_name)
                 
             elif self.edit_type == "pascal":
-                self.parse_source(genv.SIDE_BUTTON_PASCAL, script_name)
+                if not script_name:
+                    if script_name.endswith("/"):
+                        script_name += "/default.pas"
+                        self.check_default()
+                try:
+                    with open(script_name,'w',encoding='utf-8') as file:
+                        file.write(self.toPlainText())
+                        file.close()
+                        
+                    self.parse_source(genv.SIDE_BUTTON_PASCAL, script_name)
+                    return
+                    
+                except PermissionError as e:
+                    showError(_(f"not enough permissions:\n{e}"))
+                    return
+                except Exception as e:
+                    showError(_(f"A Common Exception occired:\n{w}"))
+                    return
                 
             elif self.edit_type == "lisp":
                 self.parse_source(genv.SIDE_BUTTON_LISP, script_name)
@@ -12364,7 +12558,7 @@ class EditorTextEdit(QPlainTextEdit):
                 parser = PascalParser(script_name)
                 parsed = parser.parse()
             
-            self.display_comment_summary(parser.comments)
+            self.display_comment_summary()
             
             python_code = parser.convert_to_python(parsed)
             
@@ -12446,31 +12640,36 @@ class EditorTextEdit(QPlainTextEdit):
     # ----------------------
     # Ergebnisse anzeigen
     # ----------------------
-    def display_comment_summary(self, result):
-        one_liner = _("online comments:\n")
-        
-        for line_num, matches in result["single_line"]:
-            one_liner += f"Line {line_num}: {', '.join(matches)}"
-            one_liner += "\n"
-        
-        two_liner = _("multie line comments:\n")
-        
-        for start, end, comment in result["multi_line"]:
-            two_liner += f"start line: {start} end line: {end}:\n{comment}"
-            two_liner += f"\n"
-        
-        err_liner = _("comments with error's:\n")
-        
-        for start, end, error, comment in result["errors"]:
-            err_liner += f"start line: {start} end line: {end}: "
-            err_liner += f"{error}\n{comment}"
-            err_liner += f"\n"
-            
+    def display_comment_summary(self):
         showInfo(
-            one_liner + "\n" +
-            two_liner + "\n" +
-            err_liner)
+            f"comments: {genv.source_comments}\n"
+            f"tokens:   {genv.source_tokens}  \n"
+            f"errors:   {genv.source_errors}  ")
         
+        #one_liner = _("online comments:\n")
+        #
+        #for line_num, matches in result["single_line"]:
+        #    one_liner += f"Line {line_num}: {', '.join(matches)}"
+        #    one_liner += "\n"
+        # 
+        # two_liner = _("multie line comments:\n")
+        # 
+        # for start, end, comment in result["multi_line"]:
+        #     two_liner += f"start line: {start} end line: {end}:\n{comment}"
+        #     two_liner += f"\n"
+        # 
+        # err_liner = _("comments with error's:\n")
+        # 
+        # for start, end, error, comment in result["errors"]:
+        #     err_liner += f"start line: {start} end line: {end}: "
+        #     err_liner += f"{error}\n{comment}"
+        #     err_liner += f"\n"
+        #     
+        # showInfo(
+        #     one_liner + "\n" +
+        #     two_liner + "\n" +
+        #     err_liner)
+ 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
         super(LineNumberArea, self).__init__(editor)
@@ -16488,41 +16687,51 @@ class ApplicationEditorsPage(QObject):
         file_layout        = QHBoxLayout()
         file_layout.setSpacing(0)
         
-        if self.mode == 0:
+        found = False
+        
+        if  genv.editor_counter == 0:
+            genv.editor_counter = 1
+            for entry in genv.editors_entries[self.text]:
+                if  entry["name"].endswith(file_path):
+                    entry["name"]   = ""
+                    entry["object"] = None
+                    break
+        
+        showInfo(f">> {genv.editors_entries[self.text]}")
+        
+        for entry in genv.editors_entries[self.text]:
+            if entry["name"] == file_path:
+                showInfo("already open.")
+                found = True
+                break
+        if not found:
+            #showInfo(f"---> {self.text}\n---> {file_path}")
             self.editor_object = EditorTextEdit(
                 self,
                 file_path,
                 self.text,
                 self.mode)
-        else:
-            self.editor_object = EditorTextEdit(
-                self,
-                file_path,
-                self.text,
-                self.mode)
-        
-        self.editor_object.setContentsMargins(1,0,0,1)
-        new_editor    = {
-            "object": self.editor_object,
-            "name":   file_path
-        }
-        
-        genv.editors_entries[self.text].append(new_editor)
-        
-        file_layout_widget = QWidget()
-        file_layout        = QVBoxLayout()
-        file_layout.setSpacing(0)
-        
-        file_layout.addWidget(self.editor_object)
-        file_layout_widget.setLayout(
-        file_layout)
-        
-        file_layout_widget.setContentsMargins(1,0,0,1)
-        base_name = os.path.basename(file_path)
-        if  self.mode == 0:
-            self.tabs_editor.addTab(file_layout_widget, file_path)
-        else:
-            self.tabs_editor.addTab(file_layout_widget, base_name)
+            
+            self.editor_object.setContentsMargins(1,0,0,1)
+            new_editor    = {
+                "object": self.editor_object,
+                "name":   file_path
+            }
+            
+            genv.editors_entries[self.text].append(new_editor)
+            
+            showInfo(f"{genv.editors_entries}")
+            
+            file_layout_widget = QWidget()
+            file_layout        = QVBoxLayout()
+            file_layout.setSpacing(0)
+            
+            file_layout.addWidget(self.editor_object)
+            file_layout_widget.setLayout(
+            file_layout)
+            
+            file_layout_widget.setContentsMargins(1,0,0,1)
+            self.tabs_editor.addTab(file_layout_widget, os.path.basename(file_path))
     
     def on_editor_menu_item_clicked(self, item):
         widget = self.tabs_editor_menu.itemWidget(item)
@@ -16533,30 +16742,21 @@ class ApplicationEditorsPage(QObject):
             if text[0] == "label 0":
                 if  self.editor_object == None:
                     self.editor_object = EditorTextEdit(
-                        self,
-                        "", "",
+                        self,  "",
+                        self.text,
                         self.mode)
                 self.editor_object.check_default()
                 return
                     
             elif text[0] == "label 1":
-                file_path = self.open_or_save_dialog(genv.active_side_button)
-                filename  = os.path.basename(genv.default_file_path)
+                file_path = self.open_dialog()
+                filename  = os.path.basename(file_path)
                 if len(filename) < 1:
+                    showInfo("len < 1")
                     return
-                widget.setObjectName('label 1:' + genv.default_file_path)
+                widget.setObjectName('label 1:' + file_path)
                 #
-                try:
-                    for entry in genv.editors_entries[self.text]:
-                        if entry["name"] == genv.default_file_path:
-                            showInfo("already open.")
-                            return
-                except KeyError as e:
-                    pass
-                except Exception as e:
-                    pass
-                
-                self.open_new_editor(genv.default_file_path, 0)
+                self.open_new_editor(file_path)
                 
                 #try:
                 #    pass
@@ -16724,18 +16924,17 @@ class ApplicationEditorsPage(QObject):
                         file.write(self.focused_widget.toPlainText())
                         file.close()
     
-    def open_or_save_dialog(self, mode=-1):
-        dialog  = QFileDialog()
+    def open_dialog(self):
         file_path = ""
         icon_size = 20
+
+        dialog   = QFileDialog (self.editor_object, _("Open file"))
         
-        if mode < 0:
-            dialog.setWindowTitle(_("Open File"))
-        elif mode >= 0:
-            dialog.setWindowTitle(_("Save File"))
-            
+        dialog.setWindowTitle(_("Open File"))
+        dialog.setOption     (QFileDialog.DontUseNativeDialog, True)
+        #dialog.setAcceptMode (QFileDialog.AcceptSave)
         dialog.setStyleSheet (_("QFileDlog"))
-        
+            
         dialog.setFileMode(QFileDialog.AnyFile)
         dialog.setViewMode(QFileDialog.Detail)
         
@@ -16796,61 +16995,59 @@ class ApplicationEditorsPage(QObject):
                 _("All Files") + " (*)"])
         
         dialog.setOption(QFileDialog.DontUseNativeDialog, True)
-        if mode == 0:
-            if dialog.exec_() == QFileDialog.Accepted:
-                file_path = dialog.selectedFiles()[0]
-                return self.check_file(file_path)
+        #if mode == 0:
+        #    if dialog.exec_() == QFileDialog.Accepted:
+        #        file_path = dialog.selectedFiles()[0]
+        #        return self.check_file(file_path)
         
-        elif mode in [
-            genv.SIDE_BUTTON_DBASE,
-            genv.SIDE_BUTTON_PASCAL,
-            genv.SIDE_BUTTON_C64
-        ]:
-            ptions    = QFileDialog.Options()
-            options  |= QFileDialog.DontConfirmOverwrite  
+        #elif mode in [                  \
+        #    genv.SIDE_BUTTON_DBASE,     \
+        #    genv.SIDE_BUTTON_PASCAL,    \
+        #    genv.SIDE_BUTTON_C64]:
             
-            default_file = "default"
+        #    options  = QFileDialog.Options()
+        #    options |= QFileDialog.DontConfirmOverwrite  
             
-            if mode == genv.SIDE_BUTTON_DBASE:
-                default_file += ".prg"
-            elif mode == genv.SIDE_BUTTON_PASCAL:
-                default_file += ".pas"
-            else:
-                default_file += ".txt"
+        default_file = "default"
+        
+        #if mode == genv.SIDE_BUTTON_DBASE:
+        #    default_file += ".prg"
+        #elif mode == genv.SIDE_BUTTON_PASCAL:
+        #    default_file += ".pas"
+        #else:
+        #    default_file += ".txt"
+        #
+        if dialog.exec_() == QFileDialog.Accepted:
+            # -----------------------------------
+            # Gewählte Datei und Filter abrufen
+            # -----------------------------------
+            file_path = dialog.selectedFiles()[0]
+            #showInfo("--->> " + file_path)
             
-            dialog = QFileDialog(self, _("Save file as..."))
-            dialog.setAcceptMode(QFileDialog.AcceptSave)
-            
-            if dialog.exec_():
-                # -----------------------------------
-                # Gewählte Datei und Filter abrufen
-                # -----------------------------------
-                file_path = dialog.selectedFiles()[0]
+            if len(file_path) < 1:
+                showInfo(_("no file name given"))
+                return
                 
-                if len(file_path) < 1:
-                    showInfo(_("no file name given"))
-                    return
-                    
-                # -----------------------------------
-                # Dateiendung aus dem Filter ableiten
-                # -----------------------------------
-                if "(*." in selected_filter:
-                    file_extension = selected_filter.split("(*.")[-1].split(")")[0]
-                    if not file_path.endswith(f".{file_extension}"):
-                        file_path += f".{file_extension}"
-                try:
-                    with open(file_path, "w") as file:
-                        file.write(self.focused_widget.toPlainText())
-                        file.close()
-                    return self.check_file(file_path)
-                    
-                except PermissionError as e:
-                    showError(_(f"you have no permissions to write the " +
-                    f"file.\n{e}"))
-                    return ""
-                except Exception as e:
-                    showError(_(f"unhandled exception occured."))
-                    return ""
+            # -----------------------------------
+            # Dateiendung aus dem Filter ableiten
+            # -----------------------------------
+            #if "(*." in selected_filter:
+            #    file_extension = selected_filter.split("(*.")[-1].split(")")[0]
+            #    if not file_path.endswith(f".{file_extension}"):
+            #        file_path += f".{file_extension}"
+            try:
+                with open(file_path, "r", encoding="utf-8") as file:
+                    content = file.read()
+                    file.close()
+                return self.check_file(file_path)
+                
+            except PermissionError as e:
+                showError(_(f"you have no permissions to write the " +
+                f"file.\n{e}"))
+                return ""
+            except Exception as e:
+                showError(_(f"unhandled exception occured."))
+                return ""
                 
     def check_file(self, file_path):
         if not file_path:
