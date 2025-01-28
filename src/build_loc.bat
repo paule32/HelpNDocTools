@@ -30,6 +30,9 @@ set BASEDIR=%cd%
 set SRC=%BASEDIR%/src
 set VPA=%BASEDIR%/venv
 
+pyrcc5 resources.qrc -o resources_rc.py
+python -m compileall    resources_rc.py
+
 cd %BASEDIR%\locales\de_de\LC_MESSAGES
 rm -rf observer.mo.gz
 msgfmt -o observer.mo observer.po

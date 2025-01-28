@@ -17,6 +17,9 @@ set VERSION=cpython-313
 set SRVAPP=server
 set CLTAPP=client-windows
 
+echo Create Resource File...
+pyrcc5 resources.qrc -o resources_rc.py
+
 echo Create Byte-Code...
 %PY% -m compileall %BASEDIR%\%SRVAPP%.py
 if errorlevel 1 ( goto error_bytecode )

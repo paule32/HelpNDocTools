@@ -190,3 +190,9 @@ src/__pycache__/examples/basic/tmp/1
 src/2.bak
 src/client-windows.py.bak
 src/src/pyinstaller/
+src/__pycache__/res.cpython-313.pyc
+src/_internal/img/flags/1
+src/_internal/img/flags/test.txt
+src/client-windows.py.bak
+src/img_data.qrc.bak
+src/resources.qrc.bak

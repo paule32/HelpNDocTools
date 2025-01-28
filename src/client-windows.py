@@ -448,12 +448,17 @@ try:
     # disassembly library
     # ------------------------------------------------------------------------
     from capstone import Cs, CS_ARCH_X86, CS_MODE_64
-
+    
     # ------------------------------------------------------------------------
     # query IP addresses ...
     # ------------------------------------------------------------------------
     import ipapi
     import httpx
+    
+    # ------------------------------------------------------------------------
+    # resource data like pictures or icons ...
+    # ------------------------------------------------------------------------
+    import resources_rc
     
 except ImportError as e:
     # Extrahiere den Modulnamen aus der Fehlermeldung

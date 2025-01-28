@@ -8596,8 +8596,12 @@ class PascalParser:
 
                     # Überprüfe die Deklarationen in diesem Abschnitt
                     for declaration in repeat_section["declarations"]:
+                        if not isinstance(declaration, dict) or "type" not in declaration:
+                            self.errors.append((line, pos, f"Ungültige Deklaration in der Grammatik: {declaration}"))
+                            return False, token_index
+
                         if token_index >= len(self.tokens):
-                            self.errors.append((line, pos, f"Fehlendes Token: {declaration}"))
+                            self.errors.append((line, pos, f"Fehlendes Token für Deklaration: {declaration}"))
                             return False, token_index
 
                         line, pos, token, token_type = self.tokens[token_index]
