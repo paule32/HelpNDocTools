@@ -8,6 +8,9 @@
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
 global os_name; os_name = ""
+global res_file
+
+res_file = 'resources_rc.cpython-313.pyc.gz'  # we use Python 3.13.3 !
 
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
@@ -369,7 +372,8 @@ try:
     import gzip           # pack/de-pack data
     import base64         # base64 encoded data
     import shutil         # shell utils
-
+    import importlib.util # for resources import
+    
     import pkgutil        # attached binary data utils
     import ast            # string to list
     import json           # json lists
@@ -385,7 +389,7 @@ try:
     import string
 
     import ctypes         # windows ip info
-
+    
     import sqlite3        # database: sqlite
     import configparser   # .ini files
 
@@ -455,10 +459,8 @@ try:
     import ipapi
     import httpx
     
-    # ------------------------------------------------------------------------
-    # resource data like pictures or icons ...
-    # ------------------------------------------------------------------------
-    import resources_rc
+    import types
+    from   types import *
     
 except ImportError as e:
     # Extrahiere den Modulnamen aus der Fehlermeldung
@@ -1397,6 +1399,28 @@ class globalEnv:
 # ---------------------------------------------------------------------------
 global genv
 genv = globalEnv()
+
+# ------------------------------------------------------------------------
+# resource data like pictures or icons ...
+# ------------------------------------------------------------------------
+#import resources_rc
+def import_resource_module(gzip_path, module_name):
+    """Lädt ein kompiliertes .pyc-Modul aus einer gzip-komprimierten Datei im Speicher."""
+    with gzip.open(gzip_path, 'rb') as f:
+        pyc_data = f.read()
+
+    # Die ersten 16 Bytes (Header) ignorieren (Python 3.7+)
+    code_obj = marshal.loads(pyc_data[16:])
+
+    # Neues Modul aus Bytecode erstellen
+    module = types.ModuleType(module_name)
+    exec(code_obj, module.__dict__)
+
+    # Modul im sys-Modulcache speichern
+    sys.modules[module_name] = module
+    return module
+
+gmod = import_resource_module(res_file, 'resources_rc')
 
 # ------------------------------------------------------------------------
 # read a file into memory ...
