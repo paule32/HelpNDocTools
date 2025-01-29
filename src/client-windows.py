@@ -678,10 +678,11 @@ class globalEnv:
         self.v__app__config_ini_help    = ""
         self.v__app__logging      = None
         
-        self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
+        #self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
+        self.v__app__img__int__   = ":/images/_internal/img/"
         self.v__app__helprojects  = []
         
-        im_path = self.v__app__img__int__ + "/"
+        im_path = self.v__app__img__int__
         
         self.isGuiApplication = False
         self.parent_array    = []
@@ -11131,8 +11132,8 @@ class MyPushButton(QLabel):
         ]
         for img in img_array:
             if mode == img_array.index(img):
-                self.btn_img_fg = os.path.join(genv.v__app__img__int__, img + "1" + genv.v__app__img_ext__)
-                self.btn_img_bg = os.path.join(genv.v__app__img__int__, img + "2" + genv.v__app__img_ext__)
+                self.btn_img_fg = genv.v__app__img__int__ + img + "1" + genv.v__app__img_ext__  #os.path.join(genv.v__app__img__int__, img + "1" + genv.v__app__img_ext__)
+                self.btn_img_bg = genv.v__app__img__int__ + img + "2" + genv.v__app__img_ext__  #os.path.join(genv.v__app__img__int__, img + "2" + genv.v__app__img_ext__)
                 break
         
         fg = self.btn_img_fg.replace("\\","/")

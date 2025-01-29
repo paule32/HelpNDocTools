@@ -460,7 +460,7 @@ try:
     import httpx
     
     import types
-    from   types import types
+    from   types import *
     
 except ImportError as e:
     # Extrahiere den Modulnamen aus der Fehlermeldung
@@ -678,10 +678,11 @@ class globalEnv:
         self.v__app__config_ini_help    = ""
         self.v__app__logging      = None
         
-        self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
+        #self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
+        self.v__app__img__int__   = ":/images/_internal/img/"
         self.v__app__helprojects  = []
         
-        im_path = self.v__app__img__int__ + "/"
+        #im_path = self.v__app__img__int__ + "/"
         
         self.isGuiApplication = False
         self.parent_array    = []
@@ -720,41 +721,41 @@ class globalEnv:
         # ---------------------------------------------------------------------------
         self.HelpAuthoringConverterMode = 0
         
-        self.v__app__donate1__  = im_path + "donate.png"
+        self.v__app__donate1__  = "donate.png"
         #
-        self.v__app__doxygen__  = im_path + "doxygen"
-        self.v__app__hlpndoc__  = im_path + "helpndoc"
-        self.v__app__helpdev__  = im_path + "help"
-        self.v__app__pythonc__  = im_path + "python"
-        self.v__app__lispmod__  = im_path + "lisp"
-        self.v__app__prologm__  = im_path + "prolog"
-        self.v__app__fortran__  = im_path + "fortran"
-        self.v__app__ccpplus__  = im_path + "cpp"
-        self.v__app__cpp1dev__  = im_path + "c"
-        self.v__app__dbasedb__  = im_path + "dbase"
-        self.v__app__javadev__  = im_path + "java"
-        self.v__app__javascr__  = im_path + "javascript"
-        self.v__app__javadoc__  = im_path + "javadoc"
-        self.v__app__freepas__  = im_path + "freepas"
-        self.v__app__locales__  = im_path + "locales"
-        self.v__app__basicbe__  = im_path + "basic"
-        self.v__app__pewin32__  = im_path + "windows"
-        self.v__app__elfin32__  = im_path + "linux"
-        self.v__app__console__  = im_path + "console"
-        self.v__app__todopro__  = im_path + "todo"
-        self.v__app__setupro__  = im_path + "setup"
-        self.v__app__certssl__  = im_path + "ssl"
-        self.v__app__githubp__  = im_path + "github"
-        self.v__app__apache2__  = im_path + "apache"
-        self.v__app__mysqlcf__  = im_path + "mysql"
-        self.v__app__squidwp__  = im_path + "squid"
-        self.v__app__electro__  = im_path + "electro"
-        self.v__app__com_c64__  = im_path + "c64"
-        self.v__app__com_set__  = im_path + "settings"
-        self.v__app__keybc64__  = im_path + "c64keyboard.png"
-        self.v__app__discc64__  = im_path + "disk2.png"
-        self.v__app__datmc64__  = im_path + "mc2.png"
-        self.v__app__logoc64__  = im_path + "logo2.png"
+        self.v__app__doxygen__  = "doxygen"
+        self.v__app__hlpndoc__  = "helpndoc"
+        self.v__app__helpdev__  = "help"
+        self.v__app__pythonc__  = "python"
+        self.v__app__lispmod__  = "lisp"
+        self.v__app__prologm__  = "prolog"
+        self.v__app__fortran__  = "fortran"
+        self.v__app__ccpplus__  = "cpp"
+        self.v__app__cpp1dev__  = "c"
+        self.v__app__dbasedb__  = "dbase"
+        self.v__app__javadev__  = "java"
+        self.v__app__javascr__  = "javascript"
+        self.v__app__javadoc__  = "javadoc"
+        self.v__app__freepas__  = "freepas"
+        self.v__app__locales__  = "locales"
+        self.v__app__basicbe__  = "basic"
+        self.v__app__pewin32__  = "windows"
+        self.v__app__elfin32__  = "linux"
+        self.v__app__console__  = "console"
+        self.v__app__todopro__  = "todo"
+        self.v__app__setupro__  = "setup"
+        self.v__app__certssl__  = "ssl"
+        self.v__app__githubp__  = "github"
+        self.v__app__apache2__  = "apache"
+        self.v__app__mysqlcf__  = "mysql"
+        self.v__app__squidwp__  = "squid"
+        self.v__app__electro__  = "electro"
+        self.v__app__com_c64__  = "c64"
+        self.v__app__com_set__  = "settings"
+        self.v__app__keybc64__  = "c64keyboard.png"
+        self.v__app__discc64__  = "disk2.png"
+        self.v__app__datmc64__  = "mc2.png"
+        self.v__app__logoc64__  = "logo2.png"
         
         monitor = get_monitors()[0]
         self.monitor_width  = monitor.width
@@ -11131,8 +11132,8 @@ class MyPushButton(QLabel):
         ]
         for img in img_array:
             if mode == img_array.index(img):
-                self.btn_img_fg = os.path.join(genv.v__app__img__int__, img + "1" + genv.v__app__img_ext__)
-                self.btn_img_bg = os.path.join(genv.v__app__img__int__, img + "2" + genv.v__app__img_ext__)
+                self.btn_img_fg = genv.v__app__img__int__ + img + "1" + genv.v__app__img_ext__  #os.path.join(genv.v__app__img__int__, img + "1" + genv.v__app__img_ext__)
+                self.btn_img_bg = genv.v__app__img__int__ + img + "2" + genv.v__app__img_ext__  #os.path.join(genv.v__app__img__int__, img + "2" + genv.v__app__img_ext__)
                 break
         
         fg = self.btn_img_fg.replace("\\","/")
