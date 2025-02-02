@@ -1,0 +1,541 @@
+Created by PLY version 3.11 (http://www.dabeaz.com/ply)
+
+Grammar
+
+Rule 0     S' -> program
+Rule 1     program -> PROGRAM IDENTIFIER SEMICOLON block DOT
+Rule 2     block -> var_declaration BEGIN statement_list_or_empty END
+Rule 3     var_declaration -> VAR var_list SEMICOLON
+Rule 4     var_declaration -> empty
+Rule 5     var_list -> IDENTIFIER COLON type
+Rule 6     var_list -> var_list COMMA IDENTIFIER COLON type
+Rule 7     type -> INTEGER
+Rule 8     type -> REAL
+Rule 9     statement_list_or_empty -> statement_list
+Rule 10    statement_list_or_empty -> empty
+Rule 11    statement_list -> statement SEMICOLON
+Rule 12    statement_list -> statement_list statement SEMICOLON
+Rule 13    statement -> IDENTIFIER ASSIGN expression
+Rule 14    expression -> expression PLUS term
+Rule 15    expression -> expression MINUS term
+Rule 16    expression -> term
+Rule 17    term -> term TIMES factor
+Rule 18    term -> term DIVIDE factor
+Rule 19    term -> factor
+Rule 20    factor -> NUMBER
+Rule 21    factor -> LPAREN expression RPAREN
+Rule 22    empty -> <empty>
+
+Terminals, with rules where they appear
+
+ASSIGN               : 13
+BEGIN                : 2
+COLON                : 5 6
+COMMA                : 6
+DIVIDE               : 18
+DOT                  : 1
+END                  : 2
+IDENTIFIER           : 1 5 6 13
+INTEGER              : 7
+LPAREN               : 21
+MINUS                : 15
+NUMBER               : 20
+PLUS                 : 14
+PROGRAM              : 1
+REAL                 : 8
+RPAREN               : 21
+SEMICOLON            : 1 3 11 12
+TIMES                : 17
+VAR                  : 3
+error                : 
+
+Nonterminals, with rules where they appear
+
+block                : 1
+empty                : 4 10
+expression           : 13 14 15 21
+factor               : 17 18 19
+program              : 0
+statement            : 11 12
+statement_list       : 9 12
+statement_list_or_empty : 2
+term                 : 14 15 16 17 18
+type                 : 5 6
+var_declaration      : 2
+var_list             : 3 6
+
+Parsing method: LALR
+
+state 0
+
+    (0) S' -> . program
+    (1) program -> . PROGRAM IDENTIFIER SEMICOLON block DOT
+
+    PROGRAM         shift and go to state 2
+
+    program                        shift and go to state 1
+
+state 1
+
+    (0) S' -> program .
+
+
+
+state 2
+
+    (1) program -> PROGRAM . IDENTIFIER SEMICOLON block DOT
+
+    IDENTIFIER      shift and go to state 3
+
+
+state 3
+
+    (1) program -> PROGRAM IDENTIFIER . SEMICOLON block DOT
+
+    SEMICOLON       shift and go to state 4
+
+
+state 4
+
+    (1) program -> PROGRAM IDENTIFIER SEMICOLON . block DOT
+    (2) block -> . var_declaration BEGIN statement_list_or_empty END
+    (3) var_declaration -> . VAR var_list SEMICOLON
+    (4) var_declaration -> . empty
+    (22) empty -> .
+
+    VAR             shift and go to state 7
+    BEGIN           reduce using rule 22 (empty -> .)
+
+    block                          shift and go to state 5
+    var_declaration                shift and go to state 6
+    empty                          shift and go to state 8
+
+state 5
+
+    (1) program -> PROGRAM IDENTIFIER SEMICOLON block . DOT
+
+    DOT             shift and go to state 9
+
+
+state 6
+
+    (2) block -> var_declaration . BEGIN statement_list_or_empty END
+
+    BEGIN           shift and go to state 10
+
+
+state 7
+
+    (3) var_declaration -> VAR . var_list SEMICOLON
+    (5) var_list -> . IDENTIFIER COLON type
+    (6) var_list -> . var_list COMMA IDENTIFIER COLON type
+
+    IDENTIFIER      shift and go to state 12
+
+    var_list                       shift and go to state 11
+
+state 8
+
+    (4) var_declaration -> empty .
+
+    BEGIN           reduce using rule 4 (var_declaration -> empty .)
+
+
+state 9
+
+    (1) program -> PROGRAM IDENTIFIER SEMICOLON block DOT .
+
+    $end            reduce using rule 1 (program -> PROGRAM IDENTIFIER SEMICOLON block DOT .)
+
+
+state 10
+
+    (2) block -> var_declaration BEGIN . statement_list_or_empty END
+    (9) statement_list_or_empty -> . statement_list
+    (10) statement_list_or_empty -> . empty
+    (11) statement_list -> . statement SEMICOLON
+    (12) statement_list -> . statement_list statement SEMICOLON
+    (22) empty -> .
+    (13) statement -> . IDENTIFIER ASSIGN expression
+
+    END             reduce using rule 22 (empty -> .)
+    IDENTIFIER      shift and go to state 17
+
+    statement_list_or_empty        shift and go to state 13
+    statement_list                 shift and go to state 14
+    empty                          shift and go to state 15
+    statement                      shift and go to state 16
+
+state 11
+
+    (3) var_declaration -> VAR var_list . SEMICOLON
+    (6) var_list -> var_list . COMMA IDENTIFIER COLON type
+
+    SEMICOLON       shift and go to state 18
+    COMMA           shift and go to state 19
+
+
+state 12
+
+    (5) var_list -> IDENTIFIER . COLON type
+
+    COLON           shift and go to state 20
+
+
+state 13
+
+    (2) block -> var_declaration BEGIN statement_list_or_empty . END
+
+    END             shift and go to state 21
+
+
+state 14
+
+    (9) statement_list_or_empty -> statement_list .
+    (12) statement_list -> statement_list . statement SEMICOLON
+    (13) statement -> . IDENTIFIER ASSIGN expression
+
+    END             reduce using rule 9 (statement_list_or_empty -> statement_list .)
+    IDENTIFIER      shift and go to state 17
+
+    statement                      shift and go to state 22
+
+state 15
+
+    (10) statement_list_or_empty -> empty .
+
+    END             reduce using rule 10 (statement_list_or_empty -> empty .)
+
+
+state 16
+
+    (11) statement_list -> statement . SEMICOLON
+
+    SEMICOLON       shift and go to state 23
+
+
+state 17
+
+    (13) statement -> IDENTIFIER . ASSIGN expression
+
+    ASSIGN          shift and go to state 24
+
+
+state 18
+
+    (3) var_declaration -> VAR var_list SEMICOLON .
+
+    BEGIN           reduce using rule 3 (var_declaration -> VAR var_list SEMICOLON .)
+
+
+state 19
+
+    (6) var_list -> var_list COMMA . IDENTIFIER COLON type
+
+    IDENTIFIER      shift and go to state 25
+
+
+state 20
+
+    (5) var_list -> IDENTIFIER COLON . type
+    (7) type -> . INTEGER
+    (8) type -> . REAL
+
+    INTEGER         shift and go to state 27
+    REAL            shift and go to state 28
+
+    type                           shift and go to state 26
+
+state 21
+
+    (2) block -> var_declaration BEGIN statement_list_or_empty END .
+
+    DOT             reduce using rule 2 (block -> var_declaration BEGIN statement_list_or_empty END .)
+
+
+state 22
+
+    (12) statement_list -> statement_list statement . SEMICOLON
+
+    SEMICOLON       shift and go to state 29
+
+
+state 23
+
+    (11) statement_list -> statement SEMICOLON .
+
+    IDENTIFIER      reduce using rule 11 (statement_list -> statement SEMICOLON .)
+    END             reduce using rule 11 (statement_list -> statement SEMICOLON .)
+
+
+state 24
+
+    (13) statement -> IDENTIFIER ASSIGN . expression
+    (14) expression -> . expression PLUS term
+    (15) expression -> . expression MINUS term
+    (16) expression -> . term
+    (17) term -> . term TIMES factor
+    (18) term -> . term DIVIDE factor
+    (19) term -> . factor
+    (20) factor -> . NUMBER
+    (21) factor -> . LPAREN expression RPAREN
+
+    NUMBER          shift and go to state 33
+    LPAREN          shift and go to state 34
+
+    expression                     shift and go to state 30
+    term                           shift and go to state 31
+    factor                         shift and go to state 32
+
+state 25
+
+    (6) var_list -> var_list COMMA IDENTIFIER . COLON type
+
+    COLON           shift and go to state 35
+
+
+state 26
+
+    (5) var_list -> IDENTIFIER COLON type .
+
+    SEMICOLON       reduce using rule 5 (var_list -> IDENTIFIER COLON type .)
+    COMMA           reduce using rule 5 (var_list -> IDENTIFIER COLON type .)
+
+
+state 27
+
+    (7) type -> INTEGER .
+
+    SEMICOLON       reduce using rule 7 (type -> INTEGER .)
+    COMMA           reduce using rule 7 (type -> INTEGER .)
+
+
+state 28
+
+    (8) type -> REAL .
+
+    SEMICOLON       reduce using rule 8 (type -> REAL .)
+    COMMA           reduce using rule 8 (type -> REAL .)
+
+
+state 29
+
+    (12) statement_list -> statement_list statement SEMICOLON .
+
+    IDENTIFIER      reduce using rule 12 (statement_list -> statement_list statement SEMICOLON .)
+    END             reduce using rule 12 (statement_list -> statement_list statement SEMICOLON .)
+
+
+state 30
+
+    (13) statement -> IDENTIFIER ASSIGN expression .
+    (14) expression -> expression . PLUS term
+    (15) expression -> expression . MINUS term
+
+    SEMICOLON       reduce using rule 13 (statement -> IDENTIFIER ASSIGN expression .)
+    PLUS            shift and go to state 36
+    MINUS           shift and go to state 37
+
+
+state 31
+
+    (16) expression -> term .
+    (17) term -> term . TIMES factor
+    (18) term -> term . DIVIDE factor
+
+    PLUS            reduce using rule 16 (expression -> term .)
+    MINUS           reduce using rule 16 (expression -> term .)
+    SEMICOLON       reduce using rule 16 (expression -> term .)
+    RPAREN          reduce using rule 16 (expression -> term .)
+    TIMES           shift and go to state 38
+    DIVIDE          shift and go to state 39
+
+
+state 32
+
+    (19) term -> factor .
+
+    TIMES           reduce using rule 19 (term -> factor .)
+    DIVIDE          reduce using rule 19 (term -> factor .)
+    PLUS            reduce using rule 19 (term -> factor .)
+    MINUS           reduce using rule 19 (term -> factor .)
+    SEMICOLON       reduce using rule 19 (term -> factor .)
+    RPAREN          reduce using rule 19 (term -> factor .)
+
+
+state 33
+
+    (20) factor -> NUMBER .
+
+    TIMES           reduce using rule 20 (factor -> NUMBER .)
+    DIVIDE          reduce using rule 20 (factor -> NUMBER .)
+    PLUS            reduce using rule 20 (factor -> NUMBER .)
+    MINUS           reduce using rule 20 (factor -> NUMBER .)
+    SEMICOLON       reduce using rule 20 (factor -> NUMBER .)
+    RPAREN          reduce using rule 20 (factor -> NUMBER .)
+
+
+state 34
+
+    (21) factor -> LPAREN . expression RPAREN
+    (14) expression -> . expression PLUS term
+    (15) expression -> . expression MINUS term
+    (16) expression -> . term
+    (17) term -> . term TIMES factor
+    (18) term -> . term DIVIDE factor
+    (19) term -> . factor
+    (20) factor -> . NUMBER
+    (21) factor -> . LPAREN expression RPAREN
+
+    NUMBER          shift and go to state 33
+    LPAREN          shift and go to state 34
+
+    expression                     shift and go to state 40
+    term                           shift and go to state 31
+    factor                         shift and go to state 32
+
+state 35
+
+    (6) var_list -> var_list COMMA IDENTIFIER COLON . type
+    (7) type -> . INTEGER
+    (8) type -> . REAL
+
+    INTEGER         shift and go to state 27
+    REAL            shift and go to state 28
+
+    type                           shift and go to state 41
+
+state 36
+
+    (14) expression -> expression PLUS . term
+    (17) term -> . term TIMES factor
+    (18) term -> . term DIVIDE factor
+    (19) term -> . factor
+    (20) factor -> . NUMBER
+    (21) factor -> . LPAREN expression RPAREN
+
+    NUMBER          shift and go to state 33
+    LPAREN          shift and go to state 34
+
+    term                           shift and go to state 42
+    factor                         shift and go to state 32
+
+state 37
+
+    (15) expression -> expression MINUS . term
+    (17) term -> . term TIMES factor
+    (18) term -> . term DIVIDE factor
+    (19) term -> . factor
+    (20) factor -> . NUMBER
+    (21) factor -> . LPAREN expression RPAREN
+
+    NUMBER          shift and go to state 33
+    LPAREN          shift and go to state 34
+
+    term                           shift and go to state 43
+    factor                         shift and go to state 32
+
+state 38
+
+    (17) term -> term TIMES . factor
+    (20) factor -> . NUMBER
+    (21) factor -> . LPAREN expression RPAREN
+
+    NUMBER          shift and go to state 33
+    LPAREN          shift and go to state 34
+
+    factor                         shift and go to state 44
+
+state 39
+
+    (18) term -> term DIVIDE . factor
+    (20) factor -> . NUMBER
+    (21) factor -> . LPAREN expression RPAREN
+
+    NUMBER          shift and go to state 33
+    LPAREN          shift and go to state 34
+
+    factor                         shift and go to state 45
+
+state 40
+
+    (21) factor -> LPAREN expression . RPAREN
+    (14) expression -> expression . PLUS term
+    (15) expression -> expression . MINUS term
+
+    RPAREN          shift and go to state 46
+    PLUS            shift and go to state 36
+    MINUS           shift and go to state 37
+
+
+state 41
+
+    (6) var_list -> var_list COMMA IDENTIFIER COLON type .
+
+    SEMICOLON       reduce using rule 6 (var_list -> var_list COMMA IDENTIFIER COLON type .)
+    COMMA           reduce using rule 6 (var_list -> var_list COMMA IDENTIFIER COLON type .)
+
+
+state 42
+
+    (14) expression -> expression PLUS term .
+    (17) term -> term . TIMES factor
+    (18) term -> term . DIVIDE factor
+
+    PLUS            reduce using rule 14 (expression -> expression PLUS term .)
+    MINUS           reduce using rule 14 (expression -> expression PLUS term .)
+    SEMICOLON       reduce using rule 14 (expression -> expression PLUS term .)
+    RPAREN          reduce using rule 14 (expression -> expression PLUS term .)
+    TIMES           shift and go to state 38
+    DIVIDE          shift and go to state 39
+
+
+state 43
+
+    (15) expression -> expression MINUS term .
+    (17) term -> term . TIMES factor
+    (18) term -> term . DIVIDE factor
+
+    PLUS            reduce using rule 15 (expression -> expression MINUS term .)
+    MINUS           reduce using rule 15 (expression -> expression MINUS term .)
+    SEMICOLON       reduce using rule 15 (expression -> expression MINUS term .)
+    RPAREN          reduce using rule 15 (expression -> expression MINUS term .)
+    TIMES           shift and go to state 38
+    DIVIDE          shift and go to state 39
+
+
+state 44
+
+    (17) term -> term TIMES factor .
+
+    TIMES           reduce using rule 17 (term -> term TIMES factor .)
+    DIVIDE          reduce using rule 17 (term -> term TIMES factor .)
+    PLUS            reduce using rule 17 (term -> term TIMES factor .)
+    MINUS           reduce using rule 17 (term -> term TIMES factor .)
+    SEMICOLON       reduce using rule 17 (term -> term TIMES factor .)
+    RPAREN          reduce using rule 17 (term -> term TIMES factor .)
+
+
+state 45
+
+    (18) term -> term DIVIDE factor .
+
+    TIMES           reduce using rule 18 (term -> term DIVIDE factor .)
+    DIVIDE          reduce using rule 18 (term -> term DIVIDE factor .)
+    PLUS            reduce using rule 18 (term -> term DIVIDE factor .)
+    MINUS           reduce using rule 18 (term -> term DIVIDE factor .)
+    SEMICOLON       reduce using rule 18 (term -> term DIVIDE factor .)
+    RPAREN          reduce using rule 18 (term -> term DIVIDE factor .)
+
+
+state 46
+
+    (21) factor -> LPAREN expression RPAREN .
+
+    TIMES           reduce using rule 21 (factor -> LPAREN expression RPAREN .)
+    DIVIDE          reduce using rule 21 (factor -> LPAREN expression RPAREN .)
+    PLUS            reduce using rule 21 (factor -> LPAREN expression RPAREN .)
+    MINUS           reduce using rule 21 (factor -> LPAREN expression RPAREN .)
+    SEMICOLON       reduce using rule 21 (factor -> LPAREN expression RPAREN .)
+    RPAREN          reduce using rule 21 (factor -> LPAREN expression RPAREN .)
+

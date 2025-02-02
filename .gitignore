@@ -196,3 +196,11 @@ src/_internal/img/flags/test.txt
 src/client-windows.py.bak
 src/img_data.qrc.bak
 src/resources.qrc.bak
+/doc/Commodore C64/BASIC/Programmers Desk Reference/output
+src/__pycache__/parsetab.cpython-313.pyc
+src/__pycache__/paslex.cpython-313.pyc
+src/__pycache__/pasyacc.cpython-313.pyc
+src/pascal.pas.bak
+src/paslex.py.bak
+src/pastest2.py.bak
+src/pasyacc.py.bak
