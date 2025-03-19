@@ -1,14 +1,14 @@
 [common]
 language = en_us
 framework = 0
-lang = 1
+lang = 0
 template = 1
 kind = -1
 
 [project]
 type = 0
 doc_out = 0
-logo = T:\a\HelpNDocTools\HelpNDocTools\src\__pycache__\_internal\img\floppy-disk.png
+logo = :/images/_internal/img/floppy-disk.png
 name = 
 author = 
 number = 

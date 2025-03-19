@@ -682,7 +682,7 @@ class globalEnv:
         self.v__app__img__int__   = ":/images/_internal/img/"
         self.v__app__helprojects  = []
         
-        #im_path = self.v__app__img__int__ + "/"
+        im_path = self.v__app__img__int__
         
         self.isGuiApplication = False
         self.parent_array    = []
@@ -721,41 +721,41 @@ class globalEnv:
         # ---------------------------------------------------------------------------
         self.HelpAuthoringConverterMode = 0
         
-        self.v__app__donate1__  = "donate.png"
+        self.v__app__donate1__  = im_path + "donate.png"
         #
-        self.v__app__doxygen__  = "doxygen"
-        self.v__app__hlpndoc__  = "helpndoc"
-        self.v__app__helpdev__  = "help"
-        self.v__app__pythonc__  = "python"
-        self.v__app__lispmod__  = "lisp"
-        self.v__app__prologm__  = "prolog"
-        self.v__app__fortran__  = "fortran"
-        self.v__app__ccpplus__  = "cpp"
-        self.v__app__cpp1dev__  = "c"
-        self.v__app__dbasedb__  = "dbase"
-        self.v__app__javadev__  = "java"
-        self.v__app__javascr__  = "javascript"
-        self.v__app__javadoc__  = "javadoc"
-        self.v__app__freepas__  = "freepas"
-        self.v__app__locales__  = "locales"
-        self.v__app__basicbe__  = "basic"
-        self.v__app__pewin32__  = "windows"
-        self.v__app__elfin32__  = "linux"
-        self.v__app__console__  = "console"
-        self.v__app__todopro__  = "todo"
-        self.v__app__setupro__  = "setup"
-        self.v__app__certssl__  = "ssl"
-        self.v__app__githubp__  = "github"
-        self.v__app__apache2__  = "apache"
-        self.v__app__mysqlcf__  = "mysql"
-        self.v__app__squidwp__  = "squid"
-        self.v__app__electro__  = "electro"
-        self.v__app__com_c64__  = "c64"
-        self.v__app__com_set__  = "settings"
-        self.v__app__keybc64__  = "c64keyboard.png"
-        self.v__app__discc64__  = "disk2.png"
-        self.v__app__datmc64__  = "mc2.png"
-        self.v__app__logoc64__  = "logo2.png"
+        self.v__app__doxygen__  = im_path + "doxygen"
+        self.v__app__hlpndoc__  = im_path + "helpndoc"
+        self.v__app__helpdev__  = im_path + "help"
+        self.v__app__pythonc__  = im_path + "python"
+        self.v__app__lispmod__  = im_path + "lisp"
+        self.v__app__prologm__  = im_path + "prolog"
+        self.v__app__fortran__  = im_path + "fortran"
+        self.v__app__ccpplus__  = im_path + "cpp"
+        self.v__app__cpp1dev__  = im_path + "c"
+        self.v__app__dbasedb__  = im_path + "dbase"
+        self.v__app__javadev__  = im_path + "java"
+        self.v__app__javascr__  = im_path + "javascript"
+        self.v__app__javadoc__  = im_path + "javadoc"
+        self.v__app__freepas__  = im_path + "freepas"
+        self.v__app__locales__  = im_path + "locales"
+        self.v__app__basicbe__  = im_path + "basic"
+        self.v__app__pewin32__  = im_path + "windows"
+        self.v__app__elfin32__  = im_path + "linux"
+        self.v__app__console__  = im_path + "console"
+        self.v__app__todopro__  = im_path + "todo"
+        self.v__app__setupro__  = im_path + "setup"
+        self.v__app__certssl__  = im_path + "ssl"
+        self.v__app__githubp__  = im_path + "github"
+        self.v__app__apache2__  = im_path + "apache"
+        self.v__app__mysqlcf__  = im_path + "mysql"
+        self.v__app__squidwp__  = im_path + "squid"
+        self.v__app__electro__  = im_path + "electro"
+        self.v__app__com_c64__  = im_path + "c64"
+        self.v__app__com_set__  = im_path + "settings"
+        self.v__app__keybc64__  = im_path + "c64keyboard.png"
+        self.v__app__discc64__  = im_path + "disk2.png"
+        self.v__app__datmc64__  = im_path + "mc2.png"
+        self.v__app__logoc64__  = im_path + "logo2.png"
         
         monitor = get_monitors()[0]
         self.monitor_width  = monitor.width
@@ -8676,31 +8676,37 @@ class dBaseParser:
     def __init__(self, script_name):
         self.script_name = script_name
         self.line_number = 0
-        self.start_line  = 0
+        self.start_line = 0
         
-        # -----------------------------------
         # Muster für einzeilige Kommentare
-        # -----------------------------------
         self.single_line_patterns = [r"&&.*", r"\*\*.*", r"//.*"]
-        self.single_line_regex    = re.compile("|".join(
-        self.single_line_patterns))
+        self.single_line_regex = re.compile("|".join(self.single_line_patterns))
         
-        # -----------------------------------
         # Muster für mehrzeilige Kommentare
-        # -----------------------------------
-        self.multi_line_start_patterns = [r"\/\*"]
-        self.multi_line_end_patterns   = [r"\*\/"]
+        self.multi_line_start_patterns = [r"/\*"]
+        self.multi_line_end_patterns = [r"\*/"]
         
-        self.multi_line_start_regex    = re.compile("|".join(self.multi_line_start_patterns))
-        self.multi_line_end_regex      = re.compile("|".join(self.multi_line_end_patterns))
+        self.multi_line_start_regex = re.compile("|".join(self.multi_line_start_patterns))
+        self.multi_line_end_regex = re.compile("|".join(self.multi_line_end_patterns))
+        
+        # Token-Muster
+        self.token_patterns = {
+            "SYMBOL": r"[@,]",  # @ und ,
+            "NUMBER": r"\b\d+\b",  # Ganze Zahlen
+            "IDENTIFIER": r"\b[a-zA-Z_][a-zA-Z0-9_]*\b",  # Variablen- und Funktionsnamen
+            "OPERATOR": r"[+\-*/]",  # Operatoren + - * /
+        }
+        
+        # Kompilierte Token-Regex
+        self.token_regex = re.compile("|".join(f"(?P<{name}>{pattern})" for name, pattern in self.token_patterns.items()))
         
         self.comments = {
             "single_line": [],
-            "multi_line" : [],
-            "errors"     : []
+            "multi_line": [],
+            "errors": []
         }
         
-        self.line_number = 0
+        self.tokens = []
     
     def parse(self):
         with open(self.script_name, 'r', encoding='utf-8') as file:
@@ -8712,27 +8718,25 @@ class dBaseParser:
             for line in lines:
                 self.line_number += 1
                 stripped_line = line.strip()
-                
+
                 # Einzeilige Kommentare suchen
                 single_line_match = self.single_line_regex.findall(stripped_line)
                 if single_line_match:
-                    self.comments["single_line"].append((
-                    self.line_number, single_line_match))
-                
+                    self.comments["single_line"].append((self.line_number, single_line_match))
+
                 # Mehrzeilige Kommentare verarbeiten
                 if inside_multi_line_comment:
                     multi_line_comment += f"\n{stripped_line}"
                     if self.multi_line_end_regex.search(stripped_line):
-                        # Überprüfen auf fehlerhafte Abschlüsse
-                        if  multi_line_comment.count("/*") > multi_line_comment.count("*/"):
+                        if multi_line_comment.count("/*") > multi_line_comment.count("*/"):
                             self.comments["errors"].append((
-                            start_line, self.line_number,
-                            "Unvollständiger Kommentarabschluss",
-                            multi_line_comment))
+                                start_line, self.line_number,
+                                "Unvollständiger Kommentarabschluss",
+                                multi_line_comment))
                         else:
                             self.comments["multi_line"].append((
-                            start_line,
-                            self.line_number, multi_line_comment))
+                                start_line,
+                                self.line_number, multi_line_comment))
                         inside_multi_line_comment = False
                         multi_line_comment = ""
                 else:
@@ -8755,8 +8759,20 @@ class dBaseParser:
                                     stripped_line))
                             inside_multi_line_comment = False
                             multi_line_comment = ""
-        return self.comments
 
+                # Tokenisieren der Zeile
+                self.tokenize(stripped_line)
+    
+    def tokenize(self, line):
+        """
+        Tokenisiert eine Zeile und speichert die erkannten Token.
+        """
+        matches = self.token_regex.finditer(line)
+        for match in matches:
+            for token_name, token_value in match.groupdict().items():
+                if token_value:
+                    self.tokens.append((self.line_number, token_name, token_value))
+    
     def convert_to_python(self, parsed_program):
         python_code = []
         function_definitions = []
@@ -12587,6 +12603,12 @@ class EditorTextEdit(QPlainTextEdit):
             elif edit_type == genv.SIDE_BUTTON_DBASE:
                 parser = dBaseParser(script_name)
                 parsed = parser.parse()
+                
+                # Ausgabe der erkannten Tokens
+                s = f""
+                for token in parser.tokens:
+                    s = s + f"token: {token}\n"
+                showInfo(s)
                 
             elif edit_type == genv.SIDE_BUTTON_PASCAL:
                 parser = PascalParser(script_name)

@@ -8676,87 +8676,69 @@ class dBaseParser:
     def __init__(self, script_name):
         self.script_name = script_name
         self.line_number = 0
-        self.start_line  = 0
-        
-        # -----------------------------------
+
         # Muster für einzeilige Kommentare
-        # -----------------------------------
         self.single_line_patterns = [r"&&.*", r"\*\*.*", r"//.*"]
-        self.single_line_regex    = re.compile("|".join(
-        self.single_line_patterns))
-        
-        # -----------------------------------
+        self.single_line_regex = re.compile("|".join(self.single_line_patterns))
+
         # Muster für mehrzeilige Kommentare
-        # -----------------------------------
-        self.multi_line_start_patterns = [r"\/\*"]
-        self.multi_line_end_patterns   = [r"\*\/"]
-        
-        self.multi_line_start_regex    = re.compile("|".join(self.multi_line_start_patterns))
-        self.multi_line_end_regex      = re.compile("|".join(self.multi_line_end_patterns))
-        
-        self.comments = {
-            "single_line": [],
-            "multi_line" : [],
-            "errors"     : []
+        self.multi_line_start_regex = re.compile(r"/\*")
+        self.multi_line_end_regex = re.compile(r"\*/")
+
+        # Token-Muster
+        self.token_patterns = {
+            "SYMBOL": r"[@,]",  # @ und ,
+            "NUMBER": r"\b\d+\b",  # Ganze Zahlen
+            "IDENTIFIER": r"\b[a-zA-Z_][a-zA-Z0-9_]*\b",  # Variablen- und Funktionsnamen
+            "OPERATOR": r"[+\-*/]",  # Operatoren + - * /
         }
-        
-        self.line_number = 0
-    
+
+        # Kompilierte Token-Regex
+        self.token_regex = re.compile("|".join(f"(?P<{name}>{pattern})" for name, pattern in self.token_patterns.items()))
+
+        self.tokens = []
+
     def parse(self):
         with open(self.script_name, 'r', encoding='utf-8') as file:
             lines = file.readlines()
             inside_multi_line_comment = False
-            multi_line_comment = ""
-            start_line = 0
 
             for line in lines:
                 self.line_number += 1
                 stripped_line = line.strip()
-                
-                # Einzeilige Kommentare suchen
-                single_line_match = self.single_line_regex.findall(stripped_line)
-                if single_line_match:
-                    self.comments["single_line"].append((
-                    self.line_number, single_line_match))
-                
-                # Mehrzeilige Kommentare verarbeiten
-                if inside_multi_line_comment:
-                    multi_line_comment += f"\n{stripped_line}"
-                    if self.multi_line_end_regex.search(stripped_line):
-                        # Überprüfen auf fehlerhafte Abschlüsse
-                        if  multi_line_comment.count("/*") > multi_line_comment.count("*/"):
-                            self.comments["errors"].append((
-                            start_line, self.line_number,
-                            "Unvollständiger Kommentarabschluss",
-                            multi_line_comment))
-                        else:
-                            self.comments["multi_line"].append((
-                            start_line,
-                            self.line_number, multi_line_comment))
-                        inside_multi_line_comment = False
-                        multi_line_comment = ""
-                else:
-                    multi_line_start = self.multi_line_start_regex.search(stripped_line)
-                    if multi_line_start:
-                        inside_multi_line_comment = True
-                        start_line = self.line_number
-                        multi_line_comment = stripped_line
-                        if self.multi_line_end_regex.search(stripped_line):
-                            if stripped_line.count("/*") > stripped_line.count("*/"):
-                                self.comments["errors"].append((
-                                    start_line,
-                                    self.line_number,
-                                    "Unvollständiger Kommentarabschluss",
-                                    stripped_line))
-                            else:
-                                self.comments["multi_line"].append((
-                                    start_line,
-                                    self.line_number,
-                                    stripped_line))
-                            inside_multi_line_comment = False
-                            multi_line_comment = ""
-        return self.comments
 
+                # Mehrzeilige Kommentare ignorieren
+                if inside_multi_line_comment:
+                    if self.multi_line_end_regex.search(stripped_line):
+                        inside_multi_line_comment = False
+                    continue
+
+                # Überprüfung auf den Start eines mehrzeiligen Kommentars
+                if self.multi_line_start_regex.search(stripped_line):
+                    inside_multi_line_comment = True
+                    continue
+
+                # Einzeilige Kommentare entfernen
+                stripped_line = self.single_line_regex.sub("", stripped_line).strip()
+
+                # Wenn nach Entfernen der Kommentare nichts übrig bleibt, weiter zur nächsten Zeile
+                if not stripped_line:
+                    continue
+
+                # Tokenisieren der bereinigten Zeile
+                self.tokenize(stripped_line)
+
+    def tokenize(self, line):
+        """
+        Tokenisiert eine Zeile und speichert die erkannten Token,
+        ignoriert dabei Kommentare.
+        """
+        matches = self.token_regex.finditer(line)
+        for match in matches:
+            for token_name, token_value in match.groupdict().items():
+                if token_value:
+                    self.tokens.append((self.line_number, token_name, token_value))
+    
     def convert_to_python(self, parsed_program):
         python_code = []
         function_definitions = []
@@ -12587,6 +12569,12 @@ class EditorTextEdit(QPlainTextEdit):
             elif edit_type == genv.SIDE_BUTTON_DBASE:
                 parser = dBaseParser(script_name)
                 parsed = parser.parse()
+                
+                # Ausgabe der erkannten Tokens
+                s = f""
+                for token in parser.tokens:
+                    s = s + f"token: {token}\n"
+                showInfo(s)
                 
             elif edit_type == genv.SIDE_BUTTON_PASCAL:
                 parser = PascalParser(script_name)
