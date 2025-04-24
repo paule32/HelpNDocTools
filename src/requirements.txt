@@ -10,7 +10,7 @@ cycler==0.12.1
 dbf==0.99.9
 fonttools==4.54.1
 gmpy2==2.2.1
-h11==0.14.0
+h11==0.16.0
 httpcore==1.0.7
 httpx==0.27.2
 httpx_auth==0.22.0
