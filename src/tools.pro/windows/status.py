@@ -83,7 +83,7 @@ try:
             file.close()
     
     result = subprocess.run([
-        "msgfmt.exe",
+        "msgfmt",
         "-o",
         "./out/WinLastStatus.mo",
         "./out/WinLastStatus.po"], check = True)
