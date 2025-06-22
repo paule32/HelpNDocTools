@@ -25,6 +25,9 @@ mkdir __pycache__\_internal\locales\en_us\LC_MESSAGES
 mkdir __pycache__\_internal\locales\de_de\LC_HELP
 mkdir __pycache__\_internal\locales\en_us\LC_HELP
 
+mkdir __pycache__\_internal\locales\en_us\LC_STYLE
+mkdir __pycache__\_internal\locales\de_de\LC_STYLE
+
 set BASEDIR=%cd%
 
 set SRC=%BASEDIR%/src
@@ -59,7 +62,21 @@ gzip -9 help.mo
 copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP
 :: ----------------------------------
 
+cd %BASEDIR%\locales\de_de\LC_STYLE
+rm -rf observer.mo.gz
+msgfmt -o observer.mo observer.po
+gzip -9 observer.mo
+copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_STYLE
+
+cd %BASEDIR%\locales\en_us\LC_STYLE
+rm -rf observer.mo.gz
+msgfmt -o observer.mo observer.po
+gzip -9 observer.mo
+copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_STYLE
+
+:: ----------------------------------
 cd %BASEDIR%
+exit
 python -m compileall TObject.py
 python -m compileall TStream.py
 python -m compileall TMemory.py
