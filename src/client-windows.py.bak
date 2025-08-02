@@ -20,6 +20,7 @@ import subprocess
 import sys            # system specifies
 import os             # operating system stuff
 import platform
+import hashlib
 
 from   io     import StringIO
 
@@ -506,6 +507,35 @@ if getattr(sys, 'frozen', False):
 def contains_unicode(input_string):
     return any(ord(char) > 127 for char in input_string)
 
+# ------------------------------------------------------------------------
+# \brief  Generiert einen Hash String aus Zeit + Zufall ...
+# \param  nothing
+# \return <string>
+# ------------------------------------------------------------------------
+def unique_hash():
+    # ---------------------------------------
+    # Zeitstempel (mit hoher Auflösung)   ...
+    # ---------------------------------------
+    timestamp = str(time.time_ns())
+    
+    # ---------------------------------------
+    # Zufällige Bytes (16 Byte = 128 Bit) ...
+    # ---------------------------------------
+    random_bytes = os.urandom(16)
+    
+    # ---------------------------------------
+    # Kombinieren von Zeit + Zufall       ...
+    # ---------------------------------------
+    raw_data = timestamp + random_bytes.hex()
+    
+    # ---------------------------------------
+    # SHA-256 Hash erzeugen               ...
+    # ---------------------------------------
+    hashobj = hashlib.sha256(raw_data.encode())
+    unihash = hashobj.hexdigest()
+    
+    return unihash
+
 # ---------------------------------------------------------------------------
 class unexpectedParserException(Exception):
     def __init__(self, text, value=1):
@@ -584,10 +614,10 @@ class showMessage(QDialog):
         super(showMessage, self).__init__()
         #
         msgtypes = [
-            [ QMessageBox.Information, "Information" ],
-            [ QMessageBox.Warning,     "Warning" ],
-            [ QMessageBox.Critical,    "Error" ],
-            [ QMessageBox.Critical,    "Exception" ]
+            [ QMessageBox.Information, _str("Information") ],
+            [ QMessageBox.Warning,     _str("Warning") ],
+            [ QMessageBox.Critical,    _str("Error") ],
+            [ QMessageBox.Critical,    _str("Exception") ]
         ]
         
         self.setWindowTitle(msgtypes[msgtype][1])
@@ -955,12 +985,18 @@ class globalEnv:
             'get', 'local', 'parameter', 'if', 'else', 'endif'
         ]
 
-        self.TOKEN_IDENT = 3000
+        self.TOKEN_IDENT  = 3000
+        self.TOKEN_NUMBER = 3001
+        self.TOKEN_STRING = 3002
         
         self.text_code  = ""
         self.temp_code  = ""
         self.code_code  = ""
         self.class_code = ""
+        
+        self.text_code_indent    = 0
+        self.text_code_scope_old = 0
+        self.text_code_scope_new = 0
 
         self.open_paren  = 0
         self.close_paren = 0
@@ -5410,6 +5446,12 @@ print = builtins.print
         
         self.current_state = "program"
         
+        self.program_reach_end = False
+        self.procedure_state   = False
+        
+        self.begin_counter     = 0
+        self.end_counter       = 0
+        
         self.source    = ""
 
         self.parser_stop = False
@@ -5704,12 +5746,20 @@ print = builtins.print
             #self.ungetChar(1)
             return False
     
-    def check_ident(self):
-        if genv.char_curr.isalpha():
+    def check_ident(self, name='', old=0):
+        if old == 1:
+            if name == '' or self.token_str.lower() == name:
+                return True
+            else:
+                return False
+        elif genv.char_curr.isalpha() or genv.char_curr == '_':
             self.token_str = genv.char_curr
             self.getIdent()
             print("ident: " + self.token_str)
-            return True
+            if name == '' or self.token_str.lower() == name:
+                return True
+            else:
+                return False
         else:
             print("checker: " + self.token_str + "\n> " + genv.char_curr)
             #self.ungetChar(1)
@@ -5721,11 +5771,11 @@ print = builtins.print
             genv.char_prev = genv.char_curr
             self.getChar()
             
-            if self.check_char('{'):
-                genv.open_pascal_comment_hard += 1
-                continue
+            #if self.check_char('{'):
+            #    genv.open_pascal_comment_hard += 1
+            #    continue
                 
-            elif self.check_char('}'):
+            if self.check_char('}'):
                 genv.open_pascal_comment_hard -= 1
                 
                 if genv.open_pascal_comment_hard > 0:
@@ -5843,13 +5893,37 @@ print = builtins.print
     # -----------------------------------------------------------------------
     def skip_white_spaces(self, parser_type):  # wöö
         genv.actual_parser = parser_type
-        
+        self.have_point    = False
         while True:
             genv.char_prev = genv.char_curr
             self.getChar()
             
             if self.check_white_spaces():
                 continue
+            
+            elif genv.char_curr.isdigit():
+                self.token_str = genv.char_curr
+                while True:
+                    genv.char_prev = genv.char_curr
+                    self.getChar()
+                    if genv.char_curr == '.':
+                        if have_point:
+                            raise Exception(_str("float point already exists"))
+                        self.have_point = True
+                        self.token_str += '.'
+                        continue
+                    elif genv.char_curr.isdigit():
+                        self.token_str += genv.char_curr
+                        continue
+                    else:
+                        self.ungetChar(1)
+                        return genv.TOKEN_NUMBER
+            
+            elif self.check_char('.'):
+                if parser_type == self.pascal_parser:
+                    return '.'
+                else:
+                    raise Exception(_str("no supported parser."))
             
             elif self.check_char(';'):
                 if parser_type == self.lisp_parser:
@@ -5862,7 +5936,7 @@ print = builtins.print
                             
                         continue
                 elif parser_type == self.pascal_parser:
-                    return True
+                    return ';'
                 else:
                     raise Exception("no supported parser.")
                         
@@ -5933,9 +6007,18 @@ print = builtins.print
                         else:
                             showInfo("Ee: " + genv.char_curr)
                             break
-                            
+            
+            elif self.check_char('\n'):
+                continue
+            elif self.check_char('\r'):
+                self.getChar()
+                if not self.check_char('\n'):
+                    raise Exception(_str("LineEnding Error."))
+                else:
+                    continue
+                
             elif self.check_ident():
-                return True
+                return genv.TOKEN_IDENT
             else:
                 showError("token: " + self.token_str + "\n> " + genv.char_curr)
                 return False
@@ -5997,7 +6080,7 @@ print = builtins.print
         
         #showInfo("runner:\n" + genv.text_code)
         
-        #showInfo(genv.text_code)
+        showInfo(genv.text_code)
         try:
             cachedir = genv.v__app__internal__ + "/__cache__"
             if not os.path.exists(cachedir):
@@ -6037,11 +6120,11 @@ print = builtins.print
             # reset old code ...
             # ---------------------
             genv.class_code  = ""
-            self.text_code   = ""
+            genv.text_code   = ""
             genv.header_code = ""
         except Exception as e:
             genv.class_code  = ""
-            self.text_code   = ""
+            genv.text_code   = ""
             genv.header_code = ""
             showException(traceback.format_exc())
 
@@ -6703,27 +6786,27 @@ class interpreter_dBase(interpreter_base):
                         genv.unexpectedError(_str("expected ident."))
                     self.ident = self.token_str
                     self.temp_code = self.token_str
-                    self.text_code += ("\t" * genv.counter_indent)
-                    self.text_code += self.token_str
+                    genv.text_code += ("\t" * genv.counter_indent)
+                    genv.text_code += self.token_str
                     if not self.expect_assign():
                         genv.unexpectedError(_str("assign sign expected."))
-                    self.text_code += self.token_str
-                    self.text_code += "_cnt = range("
+                    genv.text_code += self.token_str
+                    genv.text_code += "_cnt = range("
                     if not self.expect_expr():
                         genv.unexpectedError(_str("expr expected."))
-                    self.text_code += self.temp_code
+                    genv.text_code += self.temp_code
                     if not self.expect_ident("to"):
                         genv.unexpectedError(_str("expect TO"))
-                    self.text_code += ", "
+                    genv.text_code += ", "
                     if not self.expect_expr():
                         genv.unexpectedError(_str("expr2 expected."))
-                    self.text_code += self.temp_code
-                    self.text_code += ")\n"
-                    self.text_code += ('\t' * genv.counter_indent)
-                    self.text_code += "for "
-                    self.text_code += self.ident
-                    self.text_code += " in "
-                    self.text_code += self.ident + "_cnt:\n"
+                    genv.text_code += self.temp_code
+                    genv.text_code += ")\n"
+                    genv.text_code += ('\t' * genv.counter_indent)
+                    genv.text_code += "for "
+                    genv.text_code += self.ident
+                    genv.text_code += " in "
+                    genv.text_code += self.ident + "_cnt:\n"
                     continue
                 elif self.token_str.lower() == "next":
                     genv.counter_for -= 1
@@ -6900,7 +6983,7 @@ class interpreter_dBase(interpreter_base):
                     return
                     
         except noDataNoError:
-            #showInfo("nachricht:\n\n" + self.temp_code)
+            showInfo("nachricht:\n\n" + self.temp_code)
             if not genv.last_command:
                 genv.text_code += ")\n"
                 genv.last_command = True
@@ -7311,7 +7394,7 @@ class interpreter_dBase(interpreter_base):
                     genv.unexpectedError(_str("unexpected syntax"))
                     return
                 
-                #showInfo("Line: " + str(genv.start_idx) + "\n" + self.text_code)
+                #showInfo("Line: " + str(genv.start_idx) + "\n" + genv.text_code)
                 #showInfo(genv.text_code)
                 #self.update_code(genv.text_code)
             else:
@@ -7513,25 +7596,237 @@ class interpreter_Pascal(interpreter_base):
         script_app_type = ""
         script_app_name = ""
         
-        genv.actual_parser = self.pascal_parser
-        
-        while True:
-            self.skip_white_spaces(self.pascal_parser)
+        try:
+            genv.actual_parser = self.pascal_parser
             
-            # <program> <name> <;>
-            if self.token_str.lower() == "program":
-                self.token_str = ""
+            while True:
+                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                genv.char_prev = genv.char_curr
+                
+                # <program> <name> <;>
+                if self.token_str.lower() == "program":
+                    #showInfo("program")
+                    genv.text_code = "def pascal_main():\n"
+                    genv.text_code_scope_new = unique_hash()
+                    genv.text_code_scope_old = genv.text_code_scope_new
+                    genv.text_code_indent += 4
+                    #
+                    self.token_str = ""
+                    while True:
+                        if self.handle_pascal_white_spaces():
+                            continue
+                        if self.check_ident():
+                            #showInfo("program: " + self.token_str)
+                            while True:
+                                if self.handle_pascal_white_spaces():
+                                    continue
+                                if self.check_char(';'):
+                                    #showInfo("program head end")
+                                    self.handle_pascal_program()
+                                    return
+                                else:
+                                    raise Exception(_str("semicolon expected."))
+                            break
+                        else:
+                            raise Exception(_str("ident expected."))
+                    break
+                elif self.token_str.lower() == 'library':
+                    self.token_str = ""
+                    while True:
+                        if self.handle_pascal_white_spaces():
+                            continue
+                        if self.check_ident():
+                            self.handle_pascal_library_ident(self.token_str)
+                            break
+                        else:
+                            raise Exception(_str("ident expected."))
+                    break
+                elif self.token_str.lower() == 'unit':
+                    self.token_str = ""
+                    while True:
+                        if self.handle_pascal_white_spaces():
+                            continue
+                        if self.check_ident():
+                            self.handle_pascal_unit_ident(self.token_str)
+                            break
+                        else:
+                            raise Exception(_str("ident expected."))
+                    break
+                else:
+                    raise Exception(_str("PROGRAM, LIBRARY or UNIT expected."))
+                    
+        except e_no_more_data as nodata:
+            showInfo("no error.\nno more data.")
+        except Exception as e:
+            showError(e)
+            
+    def run(self):
+        #self.finalize()
+        
+        if genv.have_errors == True:
+            showError(_str("source code has errors."))
+            return
+        
+        #genv.text_code += "\tcon.reset()\n"
+        #genv.counter_indent -= 1
+        
+        genv.text_code += "\n"
+        genv.text_code += "if __name__ == '__main__':\n"
+        genv.text_code_indent = 2
+        genv.text_code += (genv.text_code_indent * "  ")
+        genv.text_code += "global console\n"
+        genv.text_code += (genv.text_code_indent * "  ")
+        genv.text_code += "console = DOSConsole()\n"
+        genv.text_code += (genv.text_code_indent * "  ")
+        genv.text_code += "pascal_main()\n"
+        genv.text_code += (genv.text_code_indent * "  ")
+        genv.text_code += "console.exec_()\n"
+        
+        #showInfo("runner:\n" + genv.text_code)
+        
+        showInfo(genv.text_code)
+        try:
+            # ---------------------
+            # prepare output file:
+            # ---------------------
+            cachedir = genv.v__app__internal__ + "/__cache__"
+            if not os.path.exists(cachedir):
+                os.makedirs(cachedir)
+            
+            fname = os.path.basename(self.script_name)
+            fname = os.path.splitext(fname)[0]
+            fname = cachedir+"/"+fname+".bin"
+            
+            # ---------------------
+            # compile text code ...
+            # ---------------------
+            bytecode = compile(genv.text_code, "<string>", "exec")
+            
+            # ---------------------
+            # save binary code ...
+            # ---------------------
+            with open(fname,"wb") as bytefile:
+                marshal.dump(bytecode , bytefile)
+                bytefile.close()
+            
+            bytecode = ""
+            with open(fname,"rb") as bytefile:
+                bytecode = marshal.load(bytefile)
+                bytefile.close()
+            
+                # ---------------------
+                # execute binary code:
+                # ---------------------
+                exec(bytecode, globals())
+            
+            # ---------------------
+            # reset old code ...
+            # ---------------------
+            genv.class_code  = ""
+            genv.text_code   = ""
+            genv.header_code = ""
+        except Exception as e:
+            genv.class_code  = ""
+            genv.text_code   = ""
+            genv.header_code = ""
+            showException(traceback.format_exc())
+            
+    def handle_pascal_program(self):
+        while True:
+            if self.program_reach_end:
+                break
+            if self.handle_pascal_white_spaces():
+                continue
+            if self.check_ident("begin"):
+                genv.text_code += (genv.text_code_indent * " ")
+                self.text_update()
+                #
+                self.begin_counter += 1
+                #showInfo("begin I")
+                while True:
+                    if self.handle_pascal_white_spaces():
+                        continue
+                    if self.check_ident("end"):
+                        genv.text_code += (genv.text_code_indent * " ")
+                        genv.text_code += "return\n"
+                        genv.text_code_indent -= 4
+                        #
+                        self.end_counter += 1
+                        while True:
+                            if self.handle_pascal_white_spaces():
+                                continue
+                            if self.check_char('.'):
+                                return
+                            else:
+                                raise Exception(_str("point expected."))
+                    elif self.check_ident("begin", 1):
+                        genv.text_code += (genv.text_code_indent * " ")
+                        self.text_update()
+                        #
+                        self.begin_counter += 1
+                        while True:
+                            if self.handle_pascal_white_spaces():
+                                continue
+                            if self.check_ident("end"):
+                                genv.text_code += (genv.text_code_indent * " ")
+                                genv.text_code += "\nreturn\n"
+                                genv.text_code_indent -= 4
+                                #
+                                self.end_counter += 1
+                                #showInfo("end inner")
+                                while True:
+                                    if self.handle_pascal_white_spaces():
+                                        continue
+                                    if self.check_char(';'):
+                                        #showInfo("inner semi end")
+                                        break
+                                    else:
+                                        raise Exception(_str("semicolon expected."))
+                                break
+                            else:
+                                raise Exception(_str("keyword expected."))
+                        break
+                    else:
+                        raise Exception('keyword expected.')
+                continue
+            elif self.check_ident("procedure", 1):
+                #showInfo("PROOOOO")
                 while True:
                     if self.handle_pascal_white_spaces():
                         continue
                     if self.check_ident():
-                        self.handle_pascal_program_ident()
-                        break
+                        #showInfo("procedure: " + self.token_str)
+                        genv.text_code += (genv.text_code_indent * " ")
+                        self.text_update()
+                        self.handle_pascal_procedure(self.token_str)
                     else:
-                        raise Exception(_str("ident expected."))
-                break
+                        raise Exception(_str("procedure name expected."))
+                continue
+            elif self.check_ident("function", 1):
+                #showInfo("fufufu")
+                while True:
+                    if self.handle_pascal_white_spaces():
+                        continue
+                    if self.check_ident(''):
+                        self.handle_pascal_function_name(self.token_str)
+                        if self.check_char(';'):
+                            #showInfo("ooooooo")
+                            break
+                        else:
+                            raise Exception(_str("semicolon expected."))
+                    else:
+                        raise Exception(_str("function name expected."))
+            else:
+                raise Exception(_str("BEGIN, PROCEDURE or FUNCTION expected."))
     
-    def handle_pascal_program_ident(self):
+    def text_update(self):
+        genv.text_code += "def scope_"
+        genv.text_code += str(genv.text_code_scope_new) + "():\n"
+        genv.text_code_scope_old = genv.text_code_scope_new
+        genv.text_code_scope_new = unique_hash()
+        genv.text_code_indent += 4
+        
+    def handle_pascal_library_ident(self):
         while True:
             if self.handle_pascal_white_spaces():
                 continue
@@ -7542,10 +7837,17 @@ class interpreter_Pascal(interpreter_base):
                     if not self.check_ident():
                         raise Exception(_str("ident expecred."))
                     if self.token_str.lower() == "begin":
+                        genv.text_code += (genv.text_code_indent * " ")
+                        self.text_update()
+                        #
+                        self.begin_counter += 1
                         self.handle_pascal_body()
                         #self.handle_pascal_tail()
                         break
                     elif self.token_str.lower() == "procedure":
+                        genv.text_code += (genv.text_code_indent * " ")
+                        self.text_update()
+                        #
                         self.handle_pascal_procedure_name()
                         print("AAAAA")
                         
@@ -7568,18 +7870,216 @@ class interpreter_Pascal(interpreter_base):
             return True
         else:
             return False
-            
-    def handle_pascal_procedure_name(self):
+    
+    def handle_pascal_ident(self):
         while True:
-            if self.handle_pascal_white_spaces():
-                continue
-            if self.check_ident():
-                print("procedure name: " + self.token_str)
-                self.current_state = "procedure"
-                self.handle_pascal_white_spaces()
-                return True
+            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+            if genv.char_curr == genv.TOKEN_IDENT:
+                return self.handle_pascal_procedure(self.token_str)
             else:
-                return False
+                raise Exception(_str("ident expected."))
+        return False
+    
+    def handle_pascal_tail(self):
+        self.block_const = False
+        self.block_var   = False
+        self.token_array = [genv.TOKEN_IDENT, genv.TOKEN_NUMBER, genv.TOKEN_STRING]
+        while True:
+            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+            if genv.char_curr == genv.TOKEN_IDENT:
+                if self.token_str.lower() == "const":
+                    print("const-->> " + self.token_str)
+                    self.block_var = False
+                    self.block_const = True
+                    while True:
+                        self.skip_white_spaces(self.pascal_parser)
+                        if genv.char_curr == genv.TOKEN_IDENT:
+                            self.skip_white_spaces(self.pascal_parser)
+                            if self.check_char('='):
+                                self.skip_white_spaces(self.pascal_parser)
+                                if genv.char_curr in self.token_array:
+                                    self.skip_white_spaces(self.pascal_parser)
+                                    if genv.char_curr == ',':
+                                        continue
+                                    if genf.char_curr == ';':
+                                        break
+                                else:
+                                    raise Exception(_str("IDENT, NUMBER or STRING expected."))
+                            else:
+                                raise Exception(_str("CONST Assing sign expected."))
+                        else:
+                            raise Exception(_str("CONST ident expected."))
+                    continue
+                elif self.token_str.lower() == "var":
+                    self.block_const = False
+                    self.block_var = True
+                    while True:
+                        self.skip_white_spaces(self.pascal_parser)
+                        if genv.char_curr == genv.TOKEN_IDENT:
+                            self.skip_white_spaces(self.pascal_parser)
+                            if self.check_char(','):
+                                continue
+                            elif self.check_char(':'):
+                                self.skip_white_spaces(self.pascal_parser)
+                                if genv.char_curr == genv.TOKEN_IDENT:
+                                    self.skip_white_spaces(self.pascal_parser)
+                                    if self.check_char(';'):
+                                        break
+                                    else:
+                                        raise Exception(_str("semicolon expected."))
+                                else:
+                                    raise Exception(_str("ident expected."))
+                            else:
+                                raise Exception(_str("VAR double dot sing expected"))
+                        else:
+                            raise Exception(_str("VAR ident expected."))
+                    continue
+                elif self.token_str.lower() == "begin":
+                    genv.text_code += (genv.text_code_indent * " ")
+                    self.text_update()
+                    #
+                    self.begin_counter += 1
+                    self.block_const = False
+                    self.block_var = False
+                    self.token_str = ""
+                    self.handle_pascal_body()
+                elif self.token_str.lower() == "procedure":
+                    genv.text_code += (genv.text_code_indent * " ")
+                    self.text_update()
+                    #
+                    return self.handle_pascal_tail()
+                elif self.token_str.lower() == "function":
+                    genv.text_code += (genv.text_code_indent * " ")
+                    self.text_update()
+                    #
+                    return self.handle_pascal_tail()
+                else:
+                    raise Exception(_str("ident expected."))
+    
+    def handle_pascal_body(self):
+        while True:
+            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+            print("-->" + str(genv.char_curr) + "<--")
+            if genv.char_curr == genv.TOKEN_IDENT:
+                print("IDD: " + self.token_str)
+                if self.token_str.lower() == "end":
+                    genv.text_code += (genv.text_code_indent * " ")
+                    genv.text_code_scope_new = unique_hash()
+                    genv.text_code += "return\n"
+                    genv.text_code_indent -= 4
+                    #
+                    self.end_counter += 1
+                    #print("begin counter2 => " + str(self.begin_counter))
+                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                    if self.check_char(';'):
+                        print("end ende ;")
+                        self.token_str = ""
+                        if self.begin_counter < 1:
+                            continue
+                    elif self.check_char('.'):
+                        genv.program_reach_end = True
+                        genv.text_code += (genv.text_code_indent * " ")
+                        genv.text_code += "return\n"
+                        genv.text_code_indent -= 4
+                        print("pro ende")
+                        self.run()
+                        raise e_no_more_data(_str("no more runner"))
+                    else:
+                        raise Exception(_str("semi expected."))
+                        
+                elif self.token_str.lower() == "procedure":
+                    print("--EEEE---")
+                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                    if genv.char_curr == genv.TOKEN_IDENT:
+                        print("proceduire: " + self.token_str)
+                        self.handle_pascal_procedure(self.token_str)
+                    else:
+                        raise Exception(_str("ident expected."))
+                        
+                elif self.token_str.lower() == "function":
+                    pass #todo
+                    
+                elif self.token_str.lower() == "begin":
+                    genv.text_code += (genv.text_code_indent * " ")
+                    self.text_update()
+                    #
+                    self.begin_counter += 1
+                    print("beginner")
+                    self.handle_pascal_body()
+                else:
+                    raise Exception(_str("end or begin expected."))
+            else:
+                print("-------> " + self.token_str + " | " + genv.char_curr)
+                raise Exception(_str("BEGIN or END expected."))
+    
+    def handle_pascal_procedure(self, name):
+        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+        if self.begin_counter == self.end_counter:
+            self.begin_counter = 0
+            self.end_counter = 0
+        else:
+            raise Exception(_str("too many END or BEGIN keywords found."))
+        if self.check_char('('):
+            genv.text_code += "("
+            while True:
+                self.skip_white_spaces(self.pascal_parser)
+                if self.check_char(')'):
+                    genv.text_code += ")"
+                    self.skip_white_spaces(self.pascal_parser)
+                    if self.check_char(';'):
+                        genv.text_code += ":\n"
+                        genv.text_code_ident += 4
+                        return self.handle_pascal_tail()
+                    else:
+                        raise Exception(_str("semi expected."))
+                elif genv.char_curr == genv.TOKEN_IDENT:
+                    if self.token_str.lower() == "const" or \
+                       self.token_str.lower() == "var":
+                           self.handle_pascal_tail()
+                    elif self.token_str.lower == "begin":
+                        print("begin tail")
+                        genv.text_code += (genv.text_code_indent * " ")
+                        self.text_update()
+                        #
+                        self.begin_counter += 1
+                        self.handle_pascal_body()
+                        if self.begin_counter > 0:
+                            raise Exception(_str("begin not terminated."))
+                        else:
+                            while True:
+                                if self.handle_pascal_white_spaces():
+                                    continue
+                                if self.check_ident("procedure"):
+                                    print("MMMMM")
+                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                    if genv.char_curr == genv.TOKEN_IDENT:
+                                        print("PROCE: " + self.token_str)
+                                        continue
+                                    else:
+                                        raise Exception(_str("procedure ident expected."))
+                                elif self.check_ident("function", 1):
+                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                    if genv.char_curr == genv.TOKEN_IDENT:
+                                        print("FUNC: " + self.token_str)
+                                        continue
+                                    else:
+                                        raise Exception(_str("function ident expected."))
+                        print("RETTT")
+                        return
+                    else:
+                        raise Exception(_str("CONST, VAR or BEGIN expected."))
+                else:
+                    raise Exception(_str("semicolon or point expected."))
+        elif self.check_char(';'):
+            genv.text_code += (genv.text_code_indent * " ")
+            genv.text_code += "return\n"
+            genv.text_code_indent -= 4
+            genv.text_code += (genv.text_code_indent * " ")
+            genv.text_code += "def " + self.token_str + "():\n"
+            genv.text_code_indent += 4
+            #
+            #genv.text_code_indent += 4
+            return self.handle_pascal_tail()
                 
     def handle_pascal_function(self):
         while True:
@@ -7591,12 +8091,13 @@ class interpreter_Pascal(interpreter_base):
                 self.handle_pascal_white_spaces()
                 break
                 
-    def handle_pascal_body(self):
+    def handle_pascal_body_alt(self):
         while True:
             if self.handle_pascal_white_spaces():
                 continue
             if self.check_ident():
                 if self.token_str.lower() == "end":
+                    self.end_counter += 1
                     while True:
                         if self.handle_pascal_white_spaces():
                             continue
@@ -7707,14 +8208,6 @@ class interpreter_Pascal(interpreter_base):
     def handle_pascal_end(self):
         pass
         
-    def handle_pascal_tail(self):
-        while True:
-            if self.handle_pascal_white_spaces():
-                continue
-            if self.check_ident():
-                showInfo("oooo====>> " + self.token_str)
-                break
-    
     def handle_pascal_code(self, token):
         return
     
@@ -7809,6 +8302,232 @@ class lispDSL():
         self.parser = None
         self.parser = interpreter_LISP(script_name)
         self.parser.parse()
+
+# ---------------------------------------------------------------------------
+# \brief  display a transpile/compiler dialog to show the progress of trans-
+#         pile/converter status.
+# ---------------------------------------------------------------------------
+class CustomCompileTitleBar(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(30)
+        
+        layout = QHBoxLayout()
+        layout.setContentsMargins(5, 0, 5, 0)
+        layout.setSpacing(3)
+
+        self.title = QLabel(_str("Convert ..."))
+        self.title.setStyleSheet("color:yellow;font-weight:bold;")
+        layout.addWidget(self.title)
+        layout.addStretch()
+
+        self.close_button = QPushButton("X")
+        self.close_button.setFixedSize(30, 20)
+        self.close_button.setStyleSheet("QPushButton { background: transparent; color: white; border: none; }"
+                                        "QPushButton:hover { background: red; }")
+        self.close_button.clicked.connect(parent.close)
+        layout.addStretch()
+        layout.addWidget(self.close_button)
+        self.setLayout(layout)
+
+        self.offset = None
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.offset = event.globalPos() - self.parent().frameGeometry().topLeft()
+
+    def mouseMoveEvent(self, event):
+        if self.offset is not None and event.buttons() == Qt.LeftButton:
+            self.parent().move(event.globalPos() - self.offset)
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        rect = self.rect()
+
+        # Windows 98 artiger Verlauf: Dunkelblau → Hellblau
+        gradient = QLinearGradient(0, 0, rect.width(), 0)
+        gradient.setColorAt(0.0, QColor(0, 0, 128))     # Dunkelblau
+        gradient.setColorAt(1.0, QColor(0, 128, 255))   # Hellblau
+
+        painter.fillRect(rect, QBrush(gradient))
+        super().paintEvent(event)
+ 
+# ---------------------------------------------------------------------------
+class CompileDialogFrame(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QFrame.Panel)
+        self.setFrameShadow(QFrame.Sunken)
+        self.setMaximumHeight(36)
+        self.setMinimumHeight(36)
+        self.setLineWidth(2)
+
+# ---------------------------------------------------------------------------
+class CompileDialogSubFrame():
+    def __init__(self, parent=None, lay=None, lbl1="lbl1", lbl2="lbl2", bfont=None, nfont=None, flag=0):
+        label_1 = QLabel(lbl1)
+        label_2 = QLabel(lbl2)
+        #
+        label_1.setFont(bfont)
+        label_2.setFont(nfont)
+        #
+        label_1.setAlignment(Qt.AlignLeft)
+        label_2.setAlignment(Qt.AlignRight)
+        if flag == 1:
+            label_1.setMaximumWidth(74)
+            label_2.setAlignment(Qt.AlignLeft)
+        #
+        frame  = CompileDialogFrame(parent)
+        layout = QHBoxLayout()
+        #
+        layout.addWidget(label_1)
+        layout.addWidget(label_2)
+        #
+        frame .setLayout(layout)
+        lay   .addWidget(frame)
+        #
+        parent.main_lay.addLayout(lay)
+
+# ---------------------------------------------------------------------------
+class CompilePanel(QFrame):
+    def __init__(self, parent=None, width=500, height=215, color="#e0e0e0"):
+        super().__init__(parent)
+        self.width    = width
+        self.height   = height
+        self.color    = color
+        self.pal      = self.palette()
+        self.main_lay = QVBoxLayout(self)
+        
+        nfont = QFont(genv.v__app__font)
+        nfont.setPointSize(10)
+        nfont.setBold(False)
+        self.setFont(nfont)
+        
+        bfont = QFont(genv.v__app__font)
+        bfont.setPointSize(10)
+        bfont.setBold(False)
+        bfont.setBold(True)
+        #
+        self.pal.setColor(QPalette.Window, QColor(self.color))
+        self.setPalette(self.pal)
+        self.setFixedSize(self.width, self.height)
+        # -------------------------------------------------------
+        self.setFrameShape(QFrame.Panel)
+        self.setFrameShadow(QFrame.Sunken)
+        self.setLineWidth(2)
+        
+        # -------------------------------------------------------
+        self.hlayout_a = QHBoxLayout()
+        self.hlayout_b = QHBoxLayout()
+        #
+        self.panel_1 = CompileDialogSubFrame(self, self.hlayout_a, _str("Project:"  ), "TestProject", bfont, nfont, 1)
+        self.panel_2 = CompileDialogSubFrame(self, self.hlayout_b, _str("Compiling:"), "C:\\PATH\\Test.pas", bfont, nfont, 1)
+
+        # -------------------------------------------------------
+        self.hlayout_c = QHBoxLayout()
+        #
+        self.panel_3 = CompileDialogSubFrame(self, self.hlayout_c, _str("Current Line:"), "0", bfont, nfont)
+        self.panel_4 = CompileDialogSubFrame(self, self.hlayout_c, _str("Total Lines:" ), "0", bfont, nfont)
+        
+        # -------------------------------------------------------
+        self.hlayout_d = QHBoxLayout()
+        #
+        self.panel_5 = CompileDialogSubFrame(self, self.hlayout_d, _str("Hints:"   ), "0", bfont, nfont)
+        self.panel_6 = CompileDialogSubFrame(self, self.hlayout_d, _str("Warnings:"), "0", bfont, nfont)
+        self.panel_7 = CompileDialogSubFrame(self, self.hlayout_d, _str("Errors:"  ), "0", bfont, nfont)
+
+# ---------------------------------------------------------------------------
+# Hintergrund-Worker im eigenen Thread
+# ---------------------------------------------------------------------------
+class ConverterWorkerThread(QThread):
+    progress = pyqtSignal(str)
+    finished = pyqtSignal()
+
+    def run(self):
+        i = 0
+        while True:
+            i = i + 1
+            time.sleep(0.01)
+            self.progress.emit(f"Arbeite... {i + 1}/5")
+        self.finished.emit()
+
+# ---------------------------------------------------------------------------
+# \brief  class that display the converter dialog. In this class/dialog the
+#         source code will:
+#         1. transpile from original dsl to python
+#         2. compile   from python to bytecode
+#         3. bytecode  will be gzip to pack the bytecode
+#         4. after al the bytecode (depack) will execute
+# ---------------------------------------------------------------------------
+class ConvertZipExecute(QDialog):
+    def __init__(self, parser=None, parent=None):
+        super(ConvertZipExecute, self).__init__(parent)
+        print("parser: " + str(parser))
+        self.windowtitle = "Convert ..."
+        self.setWindowTitle(self.windowtitle)
+        
+        # --------------------------------
+        # Fenster-Flags setzen:
+        # -> no Close
+        # -> no Minimize
+        # -> no Question sign
+        # --------------------------------
+        #self.flags = ( Qt.Window
+        #| Qt.CustomizeWindowHint
+        #| Qt.WindowTitleHint )
+        #self.flags &= ~Qt.WindowContextHelpButtonHint
+        #self.setWindowFlags(self.flags)
+        
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setStyleSheet("border-color: red;")
+        
+        vlayout = QVBoxLayout()
+        
+        self.title_bar     = CustomCompileTitleBar(self)
+        self.compile_panel = CompilePanel(self)
+        
+        self.progressLabel = QLabel(_str("Progres: 100 %"))
+        self.progressBar   = QProgressBar()
+        self.progressBar.setTextVisible(False)
+        #
+        self.progressBar.setMinimum(1)
+        self.progressBar.setMaximum(100)
+        self.progressBar.setValue(18)
+        #
+        self.button = QPushButton(_str("Close"))
+        self.button.setMinimumHeight(32)
+        self.button.clicked.connect(self.buttonClick)
+        
+        vlayout.addWidget(self.title_bar)
+        vlayout.addWidget(self.compile_panel)
+        vlayout.addWidget(self.progressLabel)
+        vlayout.addWidget(self.progressBar)
+        vlayout.addWidget(self.button)
+        
+        self.setLayout(vlayout)
+        
+        self.thread = ConverterWorkerThread()
+        self.thread.progress.connect(self.on_progress)
+        self.thread.finished.connect(self.on_finished)
+        
+        # Start erst ganz am Ende (z.B. per Timer nach show)
+        QTimer.singleShot(0, self.start_thread)
+        self.exec_()
+    
+    def start_thread(self):
+        print("Starte Thread...")
+        self.thread.start()
+        
+    def on_progress(self, message):
+        #self.label.setText(message)
+        print(message)
+
+    def on_finished(self):
+        #self.label.setText("Thread abgeschlossen.")
+        print("Thread fertig.")
+        
+    def buttonClick(self):
+        self.close()
 
 class C64BasicWorkerThread(QThread):
     progress = pyqtSignal(int)
@@ -12537,6 +13256,44 @@ class EditorTextEdit(QPlainTextEdit):
         
         super().mousePressEvent(event)
     
+    # ----------------------------------------------------------------------
+    # \brief This function definition is a helper to save storage resources.
+    #        It will be used more as one alone.
+    # ----------------------------------------------------------------------
+    def handle_exception(self, err, msg):
+        tb = traceback.extract_tb(sys.exc_info()[2])
+        last_line = tb[-1]
+        # -----------------------------------------
+        # Traceback extrahieren ...
+        # -----------------------------------------
+        tb = sys.exc_info()[2]
+        while tb.tb_next:  # zum letzten Frame durchhangeln
+            tb = tb.tb_next
+        frame = tb.tb_frame
+        # -----------------------------------------
+        line_numb = tb.tb_lineno
+        name_clas = ""
+        code_line = traceback.extract_tb(tb)[-1].line
+        file_name = frame.f_code.co_filename
+        func_name = frame.f_code.co_name
+        # -----------------------------------------
+        # Klassenname ermitteln (wenn möglich) ...
+        # -----------------------------------------
+        if 'self' in frame.f_locals:
+            name_clas = type(frame.f_locals['self']).__name__
+        # -----------------------------------------
+        error_text = (""
+            + msg  + ":\n"
+            + _str("Error") + ": "       + str(err) + "\n\n"
+            + _str("Error in File")+": " + str(file_name) + "\n"
+            + _str("At Line")+"      : " + str(line_numb) + "\n"
+            + _str("In Function")+"  : " + str(func_name) + "\n"
+            + _str("In Class")+"     : " + str(name_clas) + "\n"
+            + _str("Code")+"         : " + str(code_line)
+        )
+        showError(error_text)
+        return
+    
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
             #if not genv.c64_parser.c64_exec_thread == None:
@@ -12590,16 +13347,20 @@ class EditorTextEdit(QPlainTextEdit):
                     with open(script_name,'w',encoding='utf-8') as file:
                         file.write(self.toPlainText())
                         file.close()
-                        
-                    self.parse_source(genv.SIDE_BUTTON_PASCAL, script_name)
+                    #
+                    prg = ConvertZipExecute(interpreter_Pascal(script_name))
                     return
                     
                 except PermissionError as e:
                     showError(_str(f"not enough permissions:\n{e}"))
                     return
-                except Exception as e:
-                    showError(_str(f"A Common Exception occired:\n{w}"))
+                except AttributeError as e:
+                    return self.handle_exception(e, _str("Attribute Error occured"))
+                except ENoSourceHeader as e:
+                    showError(f"SourceReaderError:\n{e}")
                     return
+                except Exception as e:
+                    return self.handle_exception(e, _str("A common Exception occured"))
                 
             elif self.edit_type == "lisp":
                 self.parse_source(genv.SIDE_BUTTON_LISP, script_name)
@@ -16482,7 +17243,7 @@ class CustomTitleBar(QWidget):
         layout.setSpacing(0)
         
         self.title_label = QLabel(self.title)
-        self.title_label.setStyleSheet(_str("DialogTitleBar"))
+        self.title_label.setStyleSheet(_css("DialogTitleBar"))
         
         self.minimize_button = QPushButton()
         self.minimize_button.setIcon(self.minimize_icon)
@@ -16673,6 +17434,71 @@ class CustomDialogTitleBar(QLabel):
             self.parent.move(event.globalPos() - self._drag_pos)
             event.accept()
 
+class DrivePanel(QWidget):
+    def __init__(self, model, on_path_selected, parent=None):
+        super().__init__(parent)
+        self.on_path_selected = on_path_selected
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(4)
+
+        # Schnellauswahl
+        quick_layout = QHBoxLayout()
+        for name, path in self.get_quick_paths().items():
+            btn = QPushButton(name)
+            btn.setIcon(QIcon.fromTheme("folder"))
+            btn.setStyleSheet("color: yellow; background-color: #333; border: 1px solid #555;")
+            btn.setFixedHeight(28)
+            btn.clicked.connect(lambda _, p=path: self.select_quick_path(p))
+            quick_layout.addWidget(btn)
+        layout.addLayout(quick_layout)
+
+        # TreeView für Laufwerke & Verzeichnisse
+        self.model = model
+        self.tree  = QTreeView()
+        self.tree.setModel(self.model)
+        self.tree.setRootIndex(self.model.index(QDir.rootPath()))
+        self.tree.setHeaderHidden(False)
+        self.tree.setAnimated(True)
+
+        # Icons (automatisch durch QFileSystemModel)
+        self.tree.setIconSize(QSize(16, 16))
+
+        self.tree.setStyleSheet("""
+            QTreeView { background-color: #111; color: yellow; }
+            QHeaderView::section { background-color: lightgray; color: black; }
+        """ + _css("scrollbar_stylesheet"))
+        
+        self.tree.setColumnWidth(0, 180)
+
+        # Auswahl-Callback verbinden
+        self.tree.selectionModel().selectionChanged.connect(self.on_selection_changed)
+
+        layout.addWidget(self.tree)
+
+    def get_quick_paths(self):
+        home = QDir.homePath()
+        quick_paths = {
+            "Home": home,
+            "Desktop": os.path.join(home, "Desktop"),
+            "Downloads": os.path.join(home, "Downloads")
+        }
+        return {k: v for k, v in quick_paths.items() if os.path.exists(v)}
+
+    def select_quick_path(self, path):
+        index = self.model.index(path)
+        if index.isValid():
+            self.tree.setCurrentIndex(index)
+            self.tree.scrollTo(index)
+            self.on_path_selected(path)
+
+    def on_selection_changed(self, selected, _):
+        index = self.tree.currentIndex()
+        if index.isValid():
+            path = self.model.filePath(index)
+            self.on_path_selected(path)
+
 class CustomFileDialog(QDialog):
     def __init__(self, parent=None, title=""):
         super().__init__()
@@ -16681,11 +17507,19 @@ class CustomFileDialog(QDialog):
         self.title  = title
         
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(640, 460)
+        self.setMaximumSize(640, 460)
+        
+        # Roter Rahmen
         self.setStyleSheet("""
-            QDialog { background-color: #202020; color: yellow; border: 3px solid red; }
+            QDialog {
+                background-color: #202020;
+                color: yellow;
+                border: 4px solid red;
+                border-radius: 6px;
+            }
         """)
-
+        
         self.visited_dirs = []
         self.selected_file = ""
 
@@ -16693,7 +17527,7 @@ class CustomFileDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # Titelleiste
-        self.title_bar = CustomTitleBar(self)
+        self.title_bar = CustomDialogTitleBar(self, self.title)
         layout.addWidget(self.title_bar)
 
         # Pfad-Verlauf
@@ -16710,20 +17544,27 @@ class CustomFileDialog(QDialog):
         self.dir_model = QFileSystemModel()
         self.dir_model.setFilter(QDir.AllDirs | QDir.NoDotAndDotDot)
         self.dir_model.setRootPath(QDir.rootPath())
-
-        self.tree_left = QTreeView()
-        self.tree_left.setModel(self.dir_model)
-        self.tree_left.setRootIndex(self.dir_model.index(QDir.rootPath()))
-        self.tree_left.clicked.connect(self.on_dir_clicked)
+        
+        self.tree_left = DrivePanel(self.dir_model, on_path_selected=self.on_drive_selected)
         self.tree_left.setStyleSheet("""
-            QTreeView::header { background-color: lightgray; color: black; }
-            QTreeView { background-color: #111; color: yellow; }
+            QTreeView {
+                background-color: #111;
+                font-family: "Arial";
+                width: 100px;
+                color: yellow;
+                font-size: 10pt;
+            }
+            QHeaderView::section {
+                background-color: lightgray;
+                color: black;
+                font-size: 10pt;
+            }
         """ + _css("scrollbar_stylesheet"))
         splitter.addWidget(self.tree_left)
-
+        
         # Rechte Seite: Dateien
         self.file_model = QFileSystemModel()
-        self.file_model.setFilter(QDir.Files | QDir.AllDirs | QDir.NoDotAndDotDot)
+        self.file_model.setFilter(QDir.Files | QDir.AllDirs)
         self.file_model.setRootPath(QDir.rootPath())
 
         self.tree_right = QTreeView()
@@ -16732,10 +17573,48 @@ class CustomFileDialog(QDialog):
         self.tree_right.clicked.connect(self.on_file_clicked)
         self.tree_right.doubleClicked.connect(self.on_right_double_click)
         self.tree_right.setStyleSheet("""
-            QTreeView { background-color: #111; color: yellow; }
-            QHeaderView::section { background-color: lightgray; color: black; }
+            QTreeView {
+                background-color: #111;
+                font-family: "Arial";
+                width: 100px;
+                color: yellow;
+                font-size: 10pt;
+            }
+            QHeaderView::section {
+                background-color: lightgray;
+                color: black;
+                font-size: 10pt;
+            }
         """ + _css("scrollbar_stylesheet"))
         splitter.addWidget(self.tree_right)
+        
+        # Filter
+        filter_layout = QHBoxLayout()
+        self.filter_combo = QComboBox()
+        self.filter_combo.addItems(["*.*", "*.py", "*.txt", "*.md", "*.jpg", "*.png"])
+        self.filter_combo.setEditable(True)
+        self.filter_combo.setStyleSheet("""
+            QComboBox {
+                font-family: "Arial";
+                background-color: #222;
+                font-size: 10pt;
+                color: yellow;
+                border: 1px solid #444;
+            }
+        """)
+        self.filter_combo.currentTextChanged.connect(self.update_file_filter)
+        self.filter_label = QLabel(_str("Rilter:"))
+        self.filter_label.setStyleSheet("""
+            QLabel {
+                font-family: "Arial";
+                width: 100px;
+                color: yellow;
+                font-size: 10pt;
+            }
+        """)
+        filter_layout.addWidget(self.filter_label)
+        filter_layout.addWidget(self.filter_combo)
+        layout.addLayout(filter_layout)
         
         # Infobox
         self.info_box = QGroupBox("Datei-Information")
@@ -16763,6 +17642,21 @@ class CustomFileDialog(QDialog):
         button_layout.addWidget(self.cancel_button)
         button_layout.addWidget(self.close_button)
         layout.addLayout(button_layout)
+    
+    def update_file_filter(self, pattern):
+        self.file_model.setNameFilters([pattern])
+        self.file_model.setNameFilterDisables(False)
+    
+    def on_drive_selected(self, path):
+        if QDir(path).exists():
+            index = self.dir_model.index(path)
+            if index.isValid():
+                self.tree_right.setRootIndex(index)
+
+            # ComboBox aktualisieren
+            if self.path_combo.findText(path) == -1:
+                self.path_combo.insertItem(0, path)
+            self.path_combo.setCurrentText(path)
     
     def on_dir_clicked(self, index):
         path = self.dir_model.filePath(index)
@@ -17031,7 +17925,7 @@ class ApplicationEditorsPage(QObject):
                 file_path = self.open_dialog()
                 filename  = os.path.basename(file_path)
                 if len(filename) < 1:
-                    showInfo("len < 1")
+                    #showInfo("len < 1")
                     return
                 widget.setObjectName('label 1:' + file_path)
                 #
@@ -17077,8 +17971,8 @@ class ApplicationEditorsPage(QObject):
                         prg.parse()
                         
                     elif genv.current_focus.edit_type == "pascal":
-                        prg = interpreter_Pascal(script_name)
-                        prg.parse()
+                        prg = ConvertZipExecute(interpreter_Pascal(script_name))
+                        return
                         
                     elif genv.current_focus.edit_type == "java":
                         prg = interpreter_Java(script_name)
@@ -17192,8 +18086,8 @@ class ApplicationEditorsPage(QObject):
         msg.exec_()
     
     def checkBeforeSave(self):
-        return
         try:
+            self.focused_widget = self.editor
             if not self.focused_widget:
                 self.showNoEditorMessage()
                 return
@@ -17243,13 +18137,9 @@ class ApplicationEditorsPage(QObject):
         file_path = ""
         icon_size = 20
 
-        dialog = CustomFileDialog(self.parent, _str("Open file"))
-        #dialog.setAcceptMode (QFileDialog.AcceptSave)
-        dialog.setStyleSheet (_css("QFileDlog"))
-            
-        #dialog.setFileMode(QFileDialog.AnyFile)
-        #dialog.setViewMode(QFileDialog.Detail)
-        
+        dialog = QFileDialog(self.parent, _str("Open file"))
+        dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+                
         if self.objectName() == "dbase":
             dialog.setNameFilters([
                 _str("Program Files")  + " (*.prg)",
@@ -17333,7 +18223,7 @@ class ApplicationEditorsPage(QObject):
             # -----------------------------------
             # Gewählte Datei und Filter abrufen
             # -----------------------------------
-            file_path = "" #dialog.selectedFiles()[0]
+            file_path = dialog.selectedFiles()[0]
             #showInfo("--->> " + file_path)
             
             if len(file_path) < 1:
@@ -17356,10 +18246,9 @@ class ApplicationEditorsPage(QObject):
             except PermissionError as e:
                 showError(_str(f"you have no permissions to write the " +
                 f"file.\n{e}"))
-                return ""
             except Exception as e:
                 showError(_str(f"unhandled exception occured."))
-                return ""
+        return ""
                 
     def check_file(self, file_path):
         if not file_path:
@@ -19237,11 +20126,13 @@ class AndGateSymbol(QGraphicsItem):
         super().__init__(parent)
         self.width = width
         self.height = height
+        
         self.setFlag(QGraphicsItem.ItemIsMovable, False)
         self.setFlag(QGraphicsItem.ItemIsSelectable, False)
         self.setFlag(QGraphicsItem.ItemIsFocusable, False)
+        
         self.setAcceptedMouseButtons(Qt.NoButton)
-    
+        
     def boundingRect(self):
         return QRectF(0, 0, self.width, self.height)
     
@@ -19272,47 +20163,6 @@ class AndGateSymbol(QGraphicsItem):
         # Ausgang (rechts)
         out_y = self.height / 4
         painter.drawLine(QPointF(self.width, out_y), QPointF(self.width + 10, out_y))
-
-class AndGateSymbol2(QGraphicsItem):
-    def __init__(self, width=20, height=20, parent=None):
-        super().__init__(parent)
-        self.width  = width
-        self.height = height
-        self.setAcceptedMouseButtons(Qt.AllButtons) 
-        
-        self.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-        self.setFlag(QGraphicsItem.ItemIsMovable, False)
-        self.setFlag(QGraphicsItem.ItemIsSelectable, False)
-        self.setFlag(QGraphicsItem.ItemIsFocusable, False)
-        
-    def boundingRect(self):
-        return QRectF(0, 0, self.width, self.height)
-    
-    def paint(self, painter, option, widget):
-        painter.setPen(QPen(Qt.black, 1.5))
-        painter.setBrush(QBrush(Qt.lightGray))
-        
-        rect = QRectF(0, 0, self.width, self.height)
-        radius = self.width / 2
-        
-        # Rechte Seite Bogen (AND)
-        path = QPainterPath()
-        path.moveTo(0, 0)
-        path.lineTo(radius, 0)
-        path.arcTo(0, 0, self.width, self.height, 90, -180)
-        path.lineTo(0, self.height)
-        path.lineTo(0, 0)
-        
-        painter.drawPath(path)
-        
-        # AND Gatter Labels
-        painter.setFont(QFont('Small', 8))
-        painter.setPen(Qt.black)
-        label_rect = QRectF(2, 4, 19, 14)
-        painter.drawText(label_rect, Qt.AlignLeft, 'AND')
-    
-    def mousePressEvent(self, event):
-        event.ignore() 
 
 class NotAndGateSymbol2(QGraphicsItem):
     def __init__(self, width=20, height=20, parent=None):
@@ -19367,75 +20217,42 @@ class ConnectionLine(QGraphicsPathItem):
         self.setPen(QPen(Qt.black, 1.5))
 
 class Chip7408Component(DraggableComponent):
-    def __init__(self, name="7408", x=0, y=0, width=300, height=150, view=None, label="7408", connections=[]):
-        super().__init__(name, x, y, width, height, view, label, connections)
+    def __init__(self, name="7408", xpos=0, ypos=0, width=300, height=150, view=None, scene=None, label="7408", degree=0, connections=[]):
+        super().__init__(name, xpos, ypos, width, height, view, label, connections)
         self.setBrush(QColor(220, 220, 220))  # hellgrau Chipfarbe
-        self.view   = view
+        self.painted = False
+        self.degree  = degree
+        self.xpos    = xpos
+        self.ypos    = ypos
+        self.view    = view
+        self.scene   = scene
         
         # Positionen für 4 Gatter (2 oben, 2 unten)
-        gate_width  = 24
-        gate_height = 21
+        self.gate_width  = 24
+        self.gate_height = 21
         spacing_x   = 10
         spacing_y   = 10
         
-        # Oben links
-        g1 = AndGateSymbol2(gate_width, gate_height, self)
-        g1.setPos(65, 25)
-        
-        # Oben rechts
-        g2 = AndGateSymbol2(gate_width, gate_height, self)
-        g2.setPos(self.rect().width() - gate_width - 31, 25)
-        
-        # Unten links
-        g3 = AndGateSymbol2(gate_width, gate_height, self)
-        g3.setPos(40, self.rect().height() - gate_height - 25)
-        
-        # Unten rechts
-        g4 = AndGateSymbol2(gate_width, gate_height, self)
-        g4.setPos(self.rect().width() - gate_width - 60, self.rect().height() - gate_height - 25)
-        
-        # Als Kindobjekte hinzufügen (damit sie mitverschoben werden)
-        for g in [g1, g2, g3, g4]:
-            g.setParentItem(self)
-        
-        pin_size = QSizeF(20, 20)
+        self.pin_size = QSizeF(20, 20)
+        self.bounds   = self.sceneBoundingRect()
         
     def paint(self, painter: QPainter, option, widget=None):
         rect = self.rect()
-
+        
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(QPen(Qt.black, 2))
         painter.setBrush(QColor(220, 220, 220))
         painter.drawRoundedRect(rect, 10, 10)
-
+        
         pin_size = QSizeF(20, 20)
         spacing = (pin_size.width() - 40) / 6  # für 7 Pins → 6 Lücken
         pin_x_offset = -10  # alle Pins 10px nach links verschieben
         pin_y_adjust = 5     # Y-Anpassung für Pins
 
-        pin_size = QSizeF(20, 20)
         spacing = (rect.width() - 40) / 6  # für 7 Pins → 6 Lücken
         pin_x_offset = -10  # alle Pins 10px nach links verschieben
         pin_y_adjust = 5     # Y-Anpassung für Pins
-
-        # Obere Pins (14 bis 8)
-        for i, pin in enumerate(range(14, 7, -1)):
-            x = 20 + i * spacing + pin_x_offset
-            y = rect.top() - pin_size.height() + pin_y_adjust
-            pin_rect = QRectF(x, y, pin_size.width(), pin_size.height())
-            pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
-                       pin_rect.left (), pin_rect.top(),
-                       pin_rect.width(), pin_rect.height())
         
-        # Untere Pins (1 bis 7)
-        for i, pin in enumerate(range(1, 8)):
-            x = 20 + i * spacing + pin_x_offset
-            y = rect.bottom() - pin_y_adjust
-            pin_rect = QRectF(x, y, pin_size.width(), pin_size.height())
-            pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
-                       pin_rect.left (), pin_rect.top(),
-                       pin_rect.width(), pin_rect.height())
-
         # Linke Wölbung (Halbkreis nach innen rechts)
         radius = 15
         center_y = rect.center().y()
@@ -19458,6 +20275,13 @@ class Chip7408Component(DraggableComponent):
         
         pen = QPen(Qt.black, 1.2)
         painter.setPen(pen)
+        
+        #-----
+        self.paint_and_gate(painter, 65, 25)
+        self.paint_and_gate(painter, 40, self.rect().height() - self.gate_height - 25)
+        self.paint_and_gate(painter,     self.rect().width () - self.gate_width  - 31, 25)
+        self.paint_and_gate(painter,     self.rect().width () - self.gate_width  - 60, self.rect().height() - self.gate_height - 25)
+        #-----
         
         # Beispiel: Gatter unten links (Pin 1, 2 → Eingang, Pin 3 → Ausgang)
         # Positionen anpassen an tatsächliche Gatter/Pin-Kästchen
@@ -19519,10 +20343,114 @@ class Chip7408Component(DraggableComponent):
             painter.setPen(Qt.black)
             label_rect = QRectF(rect.left(), rect.center().y() - 10, rect.width(), 20)
             painter.drawText(label_rect, Qt.AlignCenter, self.label)
+        
+        #self.copy_item()
+        
+        if self.degree == 0:
+            # Obere Pins (14 bis 8)
+            for i, pin in enumerate(range(14, 7, -1)):
+                x = 20 + i * spacing + pin_x_offset
+                y = rect.top() - pin_size.height() + pin_y_adjust
+                pin_rect = QRectF(x, y, pin_size.width(), pin_size.height())
+                pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
+                           pin_rect.left (), pin_rect.top(),
+                           pin_rect.width(), pin_rect.height())
+
+            # Untere Pins (1 bis 7)
+            for i, pin in enumerate(range(1, 8)):
+                x = 20 + i * spacing + pin_x_offset
+                y = rect.bottom() - pin_y_adjust
+                pin_rect = QRectF(x, y, pin_size.width(), pin_size.height())
+                pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
+                           pin_rect.left (), pin_rect.top(),
+                           pin_rect.width(), pin_rect.height())
+                           
+        elif self.degree == 90:
+            # Mittelpunkt des Rechtecks (Zentrum der Drehung)
+            cx = rect.center().x()
+            cy = rect.center().y()
+
+            # Obere Pins (14 bis 8)
+            for i, pin in enumerate(range(14, 7, -1)):
+                x = 20 + i * spacing + pin_x_offset
+                y = rect.top() - pin_size.height() + pin_y_adjust
+
+                # Manuelle Drehung um 90 Grad (im Uhrzeigersinn)
+                dx = x - cx
+                dy = y - cy
+                rotated_x = cx + dy
+                rotated_y = cy - dx
+
+                pin_rect = QRectF(rotated_x, rotated_y, pin_size.width(), pin_size.height())
+                pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
+                            pin_rect.left(), pin_rect.top(),
+                            pin_rect.width(), pin_rect.height())
+
+            # Untere Pins (1 bis 7)
+            for i, pin in enumerate(range(1, 8)):
+                x = 20 + i * spacing + pin_x_offset
+                y = rect.bottom() - pin_y_adjust
+
+                # Manuelle Drehung um 90 Grad (im Uhrzeigersinn)
+                dx = x - cx
+                dy = y - cy
+                rotated_x = cx + dy
+                rotated_y = cy - dx
+
+                pin_rect = QRectF(rotated_x, rotated_y, pin_size.width(), pin_size.height())
+                pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
+                            pin_rect.left(), pin_rect.top(),
+                            pin_rect.width(), pin_rect.height())
+    
+    def paint_and_gate(self, painter, xpos, ypos):
+        painter.setPen(QPen(Qt.black, 1.5))
+        painter.setBrush(QBrush(Qt.lightGray))
+        
+        #g1.setPos(65, 25)
+        grect = QRectF(xpos, ypos, self.gate_width, self.gate_height)
+        
+        # Rechte Seite Bogen (AND)
+        path = QPainterPath()
+        path.moveTo(xpos, ypos)
+        path.lineTo(xpos + self.gate_width-10, ypos)
+        path.arcTo (xpos, ypos, self.gate_width, self.gate_height, 90, -180)
+        path.lineTo(xpos, self.gate_height+ ypos)
+        path.lineTo(xpos, ypos)
+        
+        painter.drawPath(path)
+        
+        # AND Gatter Labels
+        painter.setFont(QFont('Small', 8))
+        painter.setPen(Qt.black)
+        label_grect = QRectF(xpos + 2, ypos + 4, 19, 14)
+        painter.drawText(label_grect, Qt.AlignLeft, 'AND')
     
     def mousePressEvent(self, event):
         genv.v__app__pin_name     = ""
-        genv.v__app__pin_control  = "7400"
+        genv.v__app__pin_control  = "7408"
+    
+    def copy_item(self):
+        if   self.degree ==   0: self.single_copy(0)
+        elif self.degree ==  90: self.single_copy(1)
+        elif self.degree == 180: self.single_copy(2)
+        elif self.degree == 270: self.single_copy(3)
+    
+    def single_copy(self, n=0):
+        if  self.painted == False:
+            self.painted  = True
+            # item in pixmap rendern
+            self.pixmap_item = QPixmap(int(self.bounds.width()), int(self.bounds.height()))
+            self.pixmap_item.fill(Qt.transparent)
+            painter = QPainter(self.pixmap_item)
+            self.scene.render(painter, target=QRectF(self.pixmap_item.rect()), source=self.bounds)
+            painter.end()
+            # pixmap um 90 grad drehen
+            self.transform = QTransform().rotate(n * 90) # n x 90 degree => 90
+            self.pixmap_t1 = self.pixmap_item.transformed(self.transform, Qt.SmoothTransformation)
+            self.pixmap_r1 = QGraphicsPixmapItem(self.pixmap_t1)
+            self.pixmap_r1.setPos(self.xpos, self.ypos)
+            self.scene.addItem(self.pixmap_r1)
+            #self.view.show()
 
 class Chip7400Component(DraggableComponent):
     def __init__(self, name="7408", x=0, y=0, width=300, height=150, view=None, label="7400", connections=[]):
@@ -19694,84 +20622,97 @@ class CircuitDesigner(QWidget):
         self.init_components()
 
     def init_components(self):
-        # Bauteile mit individuellen Beschriftungen und Verankerungen hinzufügen
-        and_gate = DraggableComponentFormDesigner(
-            "AND-Gate", x=100, y=100, view=self.view, label="AND",
-            connections=[
-                (QPointF(-10, 10), QPointF( 0, 10)),    # Linke obere Verankerung
-                (QPointF(-10, 30), QPointF( 0, 30)),    # Linke untere Verankerung
-                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-            ]
-        )
-        
-        lamp = DraggableComponentFormDesigner(
-            "Lamp", x=200, y=200, view=self.view, label="LED",
-            connections=[
-                (QPointF(-10, 20), QPointF( 0, 20)),    # Linke Verankerung
-                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-            ]
-        )
-        
-        battery = DraggableComponentFormDesigner(
-            "Battery", x=300, y=300, view=self.view, label="SRC",
-            connections=[
-                (QPointF(-10, 20), QPointF( 0, 20)),    # Linke Verankerung
-                (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-            ]
-        )
-        
-        wire1 = DraggableComponent(
-            "Wire1", x=200, y=100, width=100, height=2, view=self.view,
-            connections=[
-                (QPointF(  0,0), QPointF(  0,0)),
-                (QPointF(100,0), QPointF(100,0))
-            ]
-        )
-        
-        and_gate2 = AndGateComponent(
-            "AND-Gate", x=100, y=100, width=75, height=40, view=self.view, label="AND",
-            connections=[
-                (QPointF(-10, 15), QPointF(0, 15)),
-                (QPointF(-10, 35), QPointF(0, 35)),
-                (QPointF(60, 25), QPointF(70, 25))
-            ]
-        )
-
-        or_gate = OrGateComponent(
-            "OR-Gate", x=200, y=150, width=60, height=50, view=self.view, label="OR",
-            connections=[
-                (QPointF(-10, 15), QPointF(30, 15)),
-                (QPointF(-10, 35), QPointF(30, 35)),
-                (QPointF(60, 25), QPointF(70, 25))
-            ]
-        )
-        
-        and_gate = AndGateComponentRotated270(
-            "AND-Gate", x=200, y=150, width=75, height=40, view=self.view, label="AND",
-            connections=[
-                (QPointF(-10, 15), QPointF(30, 15)),
-                (QPointF(-10, 35), QPointF(30, 35)),
-                (QPointF(60, 25), QPointF(70, 25))
-            ]
-        )
-        and_gate.setScale(0.95)
-        
-        chip7408 = Chip7408Component(self, x=50, y=50, width=200, height=100, view=self.view)
+        chip7408 = Chip7408Component(self,
+        xpos   =  50,
+        ypos   =  50,
+        width  = 200,
+        height = 100,
+        degree =   0,
+        view   = self.view,
+        scene  = self.scene)
         chip7408.setScale(0.95)
-        
-        chip7400 = Chip7400Component(self, x=50, y=150, width=200, height=100, view=self.view)
-        chip7400.setScale(0.95)
-        
-        self.scene.addItem(and_gate)
-        self.scene.addItem(lamp)
-        self.scene.addItem(battery)
-        self.scene.addItem(wire1)
-        self.scene.addItem(and_gate2)
-        self.scene.addItem(or_gate)
-        self.scene.addItem(and_gate)
-        
         self.scene.addItem(chip7408)
-        self.scene.addItem(chip7400)
+        
+        testing = 0
+        # Bauteile mit individuellen Beschriftungen und Verankerungen hinzufügen
+        if testing == 1:
+            and_gate = DraggableComponentFormDesigner(
+                "AND-Gate", x=100, y=100, view=self.view, label="AND",
+                connections=[
+                    (QPointF(-10, 10), QPointF( 0, 10)),    # Linke obere Verankerung
+                    (QPointF(-10, 30), QPointF( 0, 30)),    # Linke untere Verankerung
+                    (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
+                ]
+            )
+            
+            lamp = DraggableComponentFormDesigner(
+                "Lamp", x=200, y=200, view=self.view, label="LED",
+                connections=[
+                    (QPointF(-10, 20), QPointF( 0, 20)),    # Linke Verankerung
+                    (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
+                ]
+            )
+            
+            battery = DraggableComponentFormDesigner(
+                "Battery", x=300, y=300, view=self.view, label="SRC",
+                connections=[
+                    (QPointF(-10, 20), QPointF( 0, 20)),    # Linke Verankerung
+                    (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
+                ]
+            )
+            
+            wire1 = DraggableComponent(
+                "Wire1", x=200, y=100, width=100, height=2, view=self.view,
+                connections=[
+                    (QPointF(  0,0), QPointF(  0,0)),
+                    (QPointF(100,0), QPointF(100,0))
+                ]
+            )
+            
+            and_gate2 = AndGateComponent(
+                "AND-Gate", x=100, y=100, width=75, height=40, view=self.view, label="AND",
+                connections=[
+                    (QPointF(-10, 15), QPointF(0, 15)),
+                    (QPointF(-10, 35), QPointF(0, 35)),
+                    (QPointF(60, 25), QPointF(70, 25))
+                ]
+            )
+
+            or_gate = OrGateComponent(
+                "OR-Gate", x=200, y=150, width=60, height=50, view=self.view, label="OR",
+                connections=[
+                    (QPointF(-10, 15), QPointF(30, 15)),
+                    (QPointF(-10, 35), QPointF(30, 35)),
+                    (QPointF(60, 25), QPointF(70, 25))
+                ]
+            )
+            
+            and_gate = AndGateComponentRotated270(
+                "AND-Gate", x=200, y=150, width=75, height=40, view=self.view, label="AND",
+                connections=[
+                    (QPointF(-10, 15), QPointF(30, 15)),
+                    (QPointF(-10, 35), QPointF(30, 35)),
+                    (QPointF(60, 25), QPointF(70, 25))
+                ]
+            )
+            and_gate.setScale(0.95)
+            
+            #chip7408 = Chip7408Component(self, x=50, y=50, width=200, height=100, view=self.view, scene=self.scene)
+            #chip7408.setScale(0.95)
+            
+            #chip7400 = Chip7400Component(self, x=50, y=150, width=200, height=100, view=self.view)
+            #chip7400.setScale(0.95)
+            
+            self.scene.addItem(and_gate)
+            self.scene.addItem(lamp)
+            self.scene.addItem(battery)
+            self.scene.addItem(wire1)
+            self.scene.addItem(and_gate2)
+            self.scene.addItem(or_gate)
+            self.scene.addItem(and_gate)
+        
+        #self.scene.addItem(chip7408)
+        #self.scene.addItem(chip7400)
 
 class GradientButton(QPushButton):
     def __init__(self, text, parent=None):
