@@ -8544,6 +8544,7 @@ try:
                 #
                 self.compile_panel.panel_3.label_2.setText(genv.current_code_line)
                 self.compile_panel.panel_4.label_2.setText(genv.current_code_line_total)
+                
                 #print(message)
             except Exception as e:
                 self.thread.stop()
