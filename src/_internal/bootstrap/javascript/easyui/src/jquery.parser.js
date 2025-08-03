@@ -286,6 +286,12 @@
 		}
 		
 		function _fit(target, parent, fit){
+			// Ensure parent is a jQuery object, and if a string, treat as selector, not HTML
+			if (typeof parent === 'string') {
+				parent = $(document).find(parent);
+			} else {
+				parent = $(parent);
+			}
 			if (!parent.length){return false;}
 			var t = $(target)[0];
 			var p = parent[0];
