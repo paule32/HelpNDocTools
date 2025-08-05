@@ -541,6 +541,11 @@ try:
     #        It will be used more as one alone.
     # ----------------------------------------------------------------------
     def handle_exception(err, msg):
+        if genv.error_dialog_open == True:
+            return
+        else:
+            genv.error_dialog_open = True
+        #
         tb = traceback.extract_tb(sys.exc_info()[2])
         last_line = tb[-1]
         # -----------------------------------------
@@ -572,6 +577,7 @@ try:
             + _str("Code")+"         : " + str(code_line)
         )
         showError(error_text)
+        genv.error_dialog_open = False
 
     # ------------------------------------------------------------------------
     # \brief Generates all case variations of the input string.
@@ -811,6 +817,7 @@ try:
             self.DBASE_EXPR_IS_EMPTY_ERROR = 1002
 
             self.default_file_path = os.getcwd() + "/examples/"
+            self.error_dialog_open = False
             
             self.source_comments  = []
             self.source_tokens    = []
@@ -877,6 +884,8 @@ try:
             self.servers_layout = None
 
             self.splitter = None
+            self.sender_object  = None
+            self.bios_items = []
             
             self.active_side_button = -1
             
@@ -8548,11 +8557,7 @@ try:
                 #print(message)
             except Exception as e:
                 self.thread.stop()
-                print(e.__class__)
-                print(e.__class__.__mro__)
-                print(e.__class__.__module__)
-                
-                #handle_exception(e, "ooooooo")
+                handle_exception(e, "A common Exception occured")
 
         def on_finished(self):
             #self.label.setText("Thread abgeschlossen.")
@@ -20912,7 +20917,34 @@ try:
             
             self.parent.layout.addWidget(self)
             #self.menu_bar.show()
+    
+    class BIOS_CustomWidget(QWidget):
+        def __init__(self, text):
+            super().__init__()
+            layout = QVBoxLayout(self)
+            font = QFont("Arial", 10)
+            #
+            self.label = QLabel(text)
+            self.button_1 = QPushButton(_str("Info"))
+            self.button_2 = QPushButton(_str("Remove"))
+            #
+            self.label   .setFont(font)
+            self.button_1.setFont(font)
+            self.button_2.setFont(font)
+            #
+            self.button_1.clicked.connect(self.bios_btn_clicked)
+            self.button_2.clicked.connect(self.bios_btn_clicked)
+            #
+            layout.addWidget(self.label   )
+            layout.addWidget(self.button_1)
+            layout.addWidget(self.button_2)
+            #
+            self.setLayout(layout)
             
+        def bios_btn_clicked(self):
+            showInfo("button click")
+            return
+    
     # ---------------------------------------------------------------------------
     # \brief  This is the GUI-Entry point for our application.
     # \param  nothing
@@ -21611,6 +21643,7 @@ try:
             ####
             self.front_scroll_area = QScrollArea(self)
             self.front_scroll_area.setWidgetResizable(True)
+            self.front_scroll_area.setStyleSheet(_css("ScrollBarCSS"))
             
             self.front_content_widget = QWidget()
             self.front_content_layout = QHBoxLayout(self.front_content_widget)
@@ -24809,16 +24842,459 @@ try:
             return
         
         def handleSettings(self):
-            self.settings_tabs = QTabWidget()
-            self.settings_tabs.setStyleSheet(_css(genv.css_tabs))
-            self.settings_tabs.hide()
-            
-            self.settings_tabs_chm_widget = QWidget()
+            self.settings_tabs = ApplicationTabWidget([
+                _str("BIOS Settings"),
+                _str("CHM Workshop")])
             #
-            self.settings_tabs.addTab(self.settings_tabs_chm_widget, _str("Settings"))
-            ###
-            self.main_layout.addWidget(self.settings_tabs)
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            #
+            xmax = user32.GetSystemMetrics(0)
+            ymax = user32.GetSystemMetrics(1)
             
+            self.settings_tabs.setMinimumWidth(xmax-280)
+            self.settings_tabs.setMaximumWidth(3200)
+            
+            self.tab1 = self.settings_tabs.getTab(0); self.tab1.setLayout(self.addSettingsBIOS())
+            self.tab2 = self.settings_tabs.getTab(1); self.tab2.setLayout(self.addSettingsChmLayout())
+            
+            self.main_layout.addWidget(self.settings_tabs)
+            #self.settings_tabs_chm_widget.setLayout(vlay)
+        
+        def addSettingsBIOS(self):
+            hlayout   = QHBoxLayout()
+            font_1    = QFont("Arial", 11)
+            font_2    = QFont("Arial", 10)
+            
+            font_1.setBold(True)
+            font_2.setBold(False)
+            
+            bios_list = QListWidget()
+            self.bios_devs = QListWidget()
+            
+            bios_list.setFont(font_2)
+            self.bios_devs.setFont(font_2)
+            
+            bios_list.setMaximumWidth(180)
+            self.bios_devs.setMaximumWidth(180)
+            
+            vlayout_bios_label_1 = QLabel(_str("BIOS Image:"))
+            vlayout_bios_label_2 = QLabel(_str("Hardware:"))
+            vlayout_bios_label_3 = QLabel(_str("Settings:"))
+            
+            vlayout_bios_label_1.setFont(font_2)
+            vlayout_bios_label_2.setFont(font_2)
+            vlayout_bios_label_3.setFont(font_2)
+            
+            vlayout_bios_list = QVBoxLayout()
+            vlayout_bios_list.addWidget(vlayout_bios_label_1)
+            vlayout_bios_list.addWidget(bios_list, alignment=Qt.AlignLeft)
+            
+            bios_array = ([
+                ["BIOS IBM-PC",
+                    ["Custom Image 1", "Custom Image 2"]
+                ],
+                ["BIOS Amiga",
+                    ["image 1", "image2"]
+                ],
+                ["BIOS C64",
+                    ["tata A", "tatatu B"]
+                ]
+            ])
+            
+            for bios_entry in bios_array:
+                category_name = bios_entry[0]
+                entries       = bios_entry[1]
+                
+                static_item = QListWidgetItem(category_name)
+                static_item.setBackground(QBrush(QColor("lightgray")))
+                static_item.setForeground(QBrush(QColor("black")))
+                static_item.setFont(font_1)
+                static_item.setFlags(static_item.flags() & ~Qt.ItemIsSelectable)
+                
+                bios_list.addItem(static_item)
+                
+                for entry in entries:
+                    custom_widget = BIOS_CustomWidget(entry)
+                    dynamic_item = QListWidgetItem()
+                    dynamic_item.setSizeHint(custom_widget.sizeHint())
+                    dynamic_item.setFont(font_2)
+                    bios_list.addItem(dynamic_item)
+                    bios_list.setItemWidget(dynamic_item, custom_widget)
+            
+            bios_list_new = QPushButton(_str("Create"))
+            bios_list_add = QPushButton(_str("Add"))
+            bios_list_del = QPushButton(_str("Del"))
+            
+            bios_list_new.setFont(font_2)
+            bios_list_add.setFont(font_2)
+            bios_list_del.setFont(font_2)
+            
+            bios_list_new.clicked.connect(self.bios_btn_clicked)
+            bios_list_add.clicked.connect(self.bios_btn_clicked)
+            bios_list_del.clicked.connect(self.bios_btn_clicked)
+            
+            vlayout_bios_list.addWidget(bios_list_new)
+            vlayout_bios_list.addWidget(bios_list_add)
+            vlayout_bios_list.addWidget(bios_list_del)
+            
+            vlayout_bios_devs = QVBoxLayout()
+            vlayout_bios_devs.addWidget(vlayout_bios_label_2)
+            vlayout_bios_devs.addWidget(self.bios_devs, alignment=Qt.AlignLeft)
+            
+            genv.bios_items = [
+                [_str("VGA Adapter"), self.bios_vga_item_adapter  ],
+                [_str("Timer")      , self.bios_vga_item_timer    ],
+                [_str("COM 1")      , self.bios_vga_item_com1     ],
+                [_str("COM 2")      , self.bios_vga_item_com2     ],
+                [_str("Floppy A:")  , self.bios_vga_item_floppyA  ],
+                [_str("Floppy B:")  , self.bios_vga_item_flpppyB  ],
+                [_str("Keyboard")   , self.bios_vga_item_keyboard ]
+            ]
+            for item in genv.bios_items:
+                itm = QListWidgetItem(item[0])
+                self.bios_devs.addItem(itm)
+                
+            self.bios_devs.itemClicked.connect(self.bios_vga_item_clicked)
+            
+            bios_devs_add = QPushButton(_str("Add"))
+            bios_devs_del = QPushButton(_str("Delete"))
+            
+            bios_devs_add.setFont(font_2)
+            bios_devs_del.setFont(font_2)
+            
+            bios_devs_add.clicked.connect(self.bios_btn_clicked)
+            bios_devs_del.clicked.connect(self.bios_btn_clicked)
+            
+            vlayout_bios_devs.addWidget(bios_devs_add)
+            vlayout_bios_devs.addWidget(bios_devs_del)
+            
+            bios_image_load = QPushButton(_str("Load Settings"))
+            bios_image_save = QPushButton(_str("Save Settings"))
+            
+            bios_image_load.setFont(font_2)
+            bios_image_save.setFont(font_2)
+            
+            bios_image_load.clicked.connect(self.bios_btn_clicked)
+            bios_image_save.clicked.connect(self.bios_btn_clicked)
+            
+            vlayout_bios_list.addWidget(bios_image_load)
+            vlayout_bios_list.addWidget(bios_image_save)
+            
+            vlayout_bios_frame = self.showBIOS_VGA_settings(font_2, vlayout_bios_label_3)
+
+            hlayout.addLayout(vlayout_bios_list )
+            hlayout.addLayout(vlayout_bios_devs )
+            hlayout.addLayout(vlayout_bios_frame)
+            hlayout.addStretch()
+            
+            bios_list.itemClicked.connect(self.BIOS_list_item_clicked)
+            #self.bios_devs.itemClicked.connect(self.BIOS_devs_item_clicked)
+            #
+            return hlayout
+        
+        def bios_vga_item_clicked(self, item):
+            index = self.bios_devs.row( item)
+            name  = item.text()
+            self.bios_vga_items_hide()
+            genv.bios_items[index][1]()
+        
+        def bios_vga_items_hide(self):
+            self.bios_frame.hide()
+        
+        def bios_vga_item_adapter(self):
+            self.bios_frame.show()
+            
+        def bios_vga_item_timer(self):
+            showInfo("timer")
+            
+        def bios_vga_item_com1(self):
+            showInfo("com1")
+            
+        def bios_vga_item_com2(self):
+            showInfo("com2")
+            
+        def bios_vga_item_floppyA(self):
+            showInfo("floppy a")
+            
+        def bios_vga_item_flpppyB(self):
+            showInfo("floppy b")
+            
+        def bios_vga_item_keyboard(self):
+            showInfo("keyboard")
+
+        def showBIOS_VGA_settings(self, font, vlayout_bios_label_3):
+            self.bios_frame = QFrame()
+            self.bios_frame.setFrameShape (QFrame.Panel)
+            self.bios_frame.setFrameShadow(QFrame.Sunken)
+            self.bios_frame.setMinimumHeight(500)
+            self.bios_frame.setMinimumWidth (700)
+            self.bios_frame.setLineWidth(2)
+            #
+            bios_frame_layout = QVBoxLayout(self.bios_frame)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
+            vga_label = QLabel(_str("VGA Adapter:"))
+            
+            vga_chrom.setFont(font)
+            vga_label.setFont(font)
+            
+            vga_hlayout = QHBoxLayout()
+            vga_chrom_check = QCheckBox(_str("YES"))
+            vga_red_borders = QCheckBox(_str("VGA have RED Border"))
+            
+            vga_chrom_check.setFont(font)
+            vga_red_borders.setFont(font)
+            
+            vga_hlayout.addWidget(vga_chrom_check)
+            vga_hlayout.addWidget(vga_red_borders)
+            vga_hlayout.addStretch()
+            
+            vga_vlayout_1 = QVBoxLayout()
+            vga_vlayout_2 = QVBoxLayout()
+            #
+            vga_vlayout_text_1 = QLabel(_str("Adapter / Image Type"))
+            vga_vlayout_text_2 = QLabel(_str("VGA Card Hardware"))
+            
+            vga_combo_1 = QComboBox()
+            vga_combo_1.setFont(font)
+            vga_combo_1.addItems([
+                "Standard CGA",
+                "Standard EGA",
+                "Standard VGA",
+                "Extended VGA"
+            ])
+            
+            vga_combo_2 = QComboBox()
+            vga_combo_2.setFont(font)
+            vga_combo_2.addItems([
+                "Standard VGA",
+                "Tandy",
+                "Trident"
+            ])
+            
+            vga_vlayout_1.addWidget(vga_vlayout_text_1)
+            vga_vlayout_1.addWidget(vga_combo_1)
+            
+            vga_vlayout_2.addWidget(vga_vlayout_text_2)
+            vga_vlayout_2.addWidget(vga_combo_2)
+            
+            vga_model_hlayout = QHBoxLayout()
+            vga_model_hlayout.addLayout(vga_vlayout_1)
+            vga_model_hlayout.addLayout(vga_vlayout_2)
+            
+            vga_label_1_text    = QLabel(_str("TUI User Interface:"))
+            vga_label_2_graphic = QLabel(_str("GUI User Interface:"))
+            
+            font.setBold(True)
+            vga_label_1_text   .setFont(font)
+            vga_label_2_graphic.setFont(font)
+            font.setBold(False)
+            
+            vga_bios_1 = QHBoxLayout()
+            vga_bios_1_label_1 = QLabel(_str("Segment:"))
+            vga_bios_1_label_2 = QLabel(_str("Offset:"))
+            
+            vga_bios_2 = QHBoxLayout()
+            vga_bios_2_label_1 = QLabel(_str("Segment:"))
+            vga_bios_2_label_2 = QLabel(_str("Offset:"))
+            
+            vga_bios_1_start   = QLineEdit()
+            vga_bios_1_end     = QLineEdit()
+            
+            vga_bios_2_start   = QLineEdit()
+            vga_bios_2_end     = QLineEdit()
+            
+            vga_bios_1_start.setPlaceholderText("0xB000")
+            vga_bios_1_end  .setPlaceholderText("0x0000")
+            
+            vga_bios_2_start.setPlaceholderText("0xA000")
+            vga_bios_2_end  .setPlaceholderText("0x0000")
+            
+            vga_bios_1_start.setMaximumWidth(120)
+            vga_bios_1_end  .setMaximumWidth(120)
+            
+            vga_bios_2_start.setMaximumWidth(120)
+            vga_bios_2_end  .setMaximumWidth(120)
+            
+            vga_bios_1_label_1.setFont(font)
+            vga_bios_1_label_2.setFont(font)
+            
+            vga_bios_1_start  .setFont(font)
+            vga_bios_1_end    .setFont(font)
+            
+            vga_bios_2_label_1.setFont(font)
+            vga_bios_2_label_2.setFont(font)
+            
+            vga_bios_2_start  .setFont(font)
+            vga_bios_2_end    .setFont(font)
+            
+            vga_bios_1.addWidget(vga_bios_1_label_1); vga_bios_1.addWidget(vga_bios_1_start)
+            vga_bios_1.addWidget(vga_bios_1_label_2); vga_bios_1.addWidget(vga_bios_1_end)
+            vga_bios_1.addStretch()
+            
+            vga_bios_2.addWidget(vga_bios_2_label_1); vga_bios_2.addWidget(vga_bios_2_start)
+            vga_bios_2.addWidget(vga_bios_2_label_2); vga_bios_2.addWidget(vga_bios_2_end)
+            vga_bios_2.addStretch()
+            
+            vga_color = QHBoxLayout()
+            vga_color.setAlignment(Qt.AlignVCenter)
+            
+            vga_color_combo = QComboBox()
+            vga_color_combo.setFont(font)
+            #
+            for i in range(1, 256):
+                vga_color_combo.addItems([str(i)])
+            
+            vlay_color = QVBoxLayout()
+            vlay_color.setAlignment(Qt.AlignHCenter)
+            
+            vlay_color_label = QLabel(_str("Color"))
+            vlay_color_label.setFont(font)
+            
+            vlay_color.addWidget(vlay_color_label)
+            vlay_color.addWidget(vga_color_combo)
+            vga_color .addLayout(vlay_color)
+            
+            for i in range(1, 17):
+                vlay = QVBoxLayout()
+                color_num = QLabel(str(i))
+                color_num.setFont(font)
+                
+                color_btn = QPushButton("")
+                color_btn.setFixedSize(30,30)
+                color_btn.setObjectName(f"vga_color_btn{i}")
+                color_btn.clicked.connect(self.color_btn_clicked)
+                #
+                vlay.addWidget(color_num, alignment=Qt.AlignCenter)
+                vlay.addWidget(color_btn, alignment=Qt.AlignCenter)
+                #
+                vga_color.addLayout(vlay)
+            
+            content_layout.addWidget(vga_chrom)
+            content_layout.addLayout(vga_hlayout)
+            content_layout.addWidget(vga_label)
+            content_layout.addLayout(vga_model_hlayout)
+            #
+            content_layout.addWidget(vga_label_1_text   ); content_layout.addLayout(vga_bios_1)
+            content_layout.addWidget(vga_label_2_graphic); content_layout.addLayout(vga_bios_2)
+            #
+            content_layout.addLayout(vga_color)
+            content_layout.addStretch()
+            
+            scroll_area.setWidget(scroll_content)
+            bios_frame_layout.addWidget(scroll_area)
+            ###
+            bios_default_btn_1 = QPushButton(_str("default"))
+            bios_default_btn_2 = QPushButton(_str("Save Config Settings"))
+            
+            bios_default_btn_1.setFont(font)
+            bios_default_btn_2.setFont(font)
+            
+            bios_default_btn_1.clicked.connect(self.bios_btn_clicked)
+            bios_default_btn_2.clicked.connect(self.bios_btn_clicked)
+            
+            vlayout_bios_frame = QVBoxLayout()
+            vlayout_bios_frame.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame.addWidget(self.bios_frame)
+            vlayout_bios_frame.addWidget(bios_default_btn_1)
+            vlayout_bios_frame.addWidget(bios_default_btn_2)
+            vlayout_bios_frame.addStretch()
+            
+            return vlayout_bios_frame
+        
+        def bios_btn_clicked(self):
+            showInfo("button clicked")
+            return
+        
+        def color_btn_clicked(self):
+            genv.sender_object = self.sender()
+            for i in range(1, 17):
+                btn = self.findChild(QPushButton, f"vga_color_btn{i}")
+                if btn:
+                    btn.setStyleSheet("border: 1px solid black;")
+            genv.sender_object.setStyleSheet("border: 3px solid red;")
+            
+        def BIOS_list_item_clicked(self):
+            QMessageBox.information(self, "Icon geklickt", "klicky")
+        
+        def BIOS_devs_item_clicked(self):
+            QMessageBox.information(self, "Icon geklickt", "klicky")
+        
+        def BIOS_VGA_adapter_panel(self):
+            vga_widget = QWidget()
+            vga_panel  = QVBoxLayout()
+            
+            vga_panel.addWidget(vga_widget)
+            tab_bios = self.settings_tabs.getTab(0);
+            tab_bios.addWidget(vga_widget)
+        
+        def bios_write_image(self):
+            self.bios_IMAGE_SIZE = 0x10FF0
+            
+            self.bios_OUTPUT_BIN = "bios_image.bin"
+            self.bios_OUTPUT_SYM = "bios_image.sym"
+            
+            self.bios_symbols = {}
+            
+            self.bios_image = bytearray([0xFF] * self.bios_IMAGE_SIZE)
+            
+            # Equipment Word (BIOS BDA): 0x40:0x10 → phys 0x410
+            self.bios_write_word(
+            self.bios_image, 0x0410,
+            self.bios_get_equipment_word(), "BIOS_EquipmentWord")
+
+            # COM1-Adresse: 0x40:0x00 → phys 0x400
+            self.bios_write_word(
+            self.bios_image, 0x0400,
+            self.bios_get_com1_address(), "BIOS_COM1_Address")
+            
+            # VGA BIOS Signatur bei 0xC000:0000 = 0xC0000
+            self.bios_vga_bios_addr = 0xC0000
+            if self.bios_vga_bios_addr < IMAGE_SIZE:
+                self.bios_vga_sig = bytes([0x55, 0xAA, 0x90])
+                self.bios_write_bytes(
+                self.bios_image,
+                self.bios_vga_bios_addr,
+                self.bios_vga_sig, "VGA_BIOS_Signature")
+
+            with open(self.bios_OUTPUT_BIN, "wb") as f:
+                f.write(self.bios_image)
+            print(f"Image-Datei geschrieben: {self.bios_OUTPUT_BIN}")
+
+            self.bios_generate_symbol_table()
+            
+        def bios_get_equipment_word(self):
+            return 0b01000000  # 1 Floppy
+
+        def bios_get_com1_address(self):
+            return 0x03F8
+
+        def bios_write_word(self, mem, addr, value, label=None):
+            mem[addr] = value & 0xFF
+            mem[addr + 1] = (value >> 8) & 0xFF
+            if label:
+                self.bios_symbols[label] = f"{addr:05X}h (word) = 0x{value:04X}"
+        
+        def bios_write_bytes(self, mem, addr, data: bytes, label=None):
+            mem[addr:addr + len(data)] = data
+            if label:
+                self.bios_symbols[label] = f"{addr:05X}h (bytes[{len(data)}])"
+        
+        def bios_generate_symbol_table(self):
+            lines = [f"{label:<25} @ {desc}" for label, desc in self.bios_symbols.items()]
+            with open(self.bios_OUTPUT_SYM, "w") as f:
+                f.write("\n".join(lines))
+            print(f"Symboltabelle geschrieben: {self.bios_OUTPUT_SYM}")
+        
+        def addSettingsChmLayout(self):
             vlay = QVBoxLayout()
             chm_fnt1 = QFont("Arial"   , 10)
             chm_fnt2 = QFont("Consolas", 10)
@@ -24839,10 +25315,9 @@ try:
             vlay.addWidget(chm_down)
             vlay.addWidget(chm_edit)
             vlay.addWidget(chm_seld)
-            vlay.addStretch()
+            #vlay.addStretch()
+            return vlay
             
-            self.settings_tabs_chm_widget.setLayout(vlay)
-        
         def load_mo_file(self):
             file_name, _ = QFileDialog.getOpenFileName(self, _str("Open .mo file"), '', 'MO Files (*.mo)')
             if file_name:
