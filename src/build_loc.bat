@@ -2,7 +2,7 @@
 :: Datei:  build_loc.bat - Windows MS-DOS Batch file
 :: Author: Jens Kallup - paule32
 ::
-:: Rechte: (c) 2024 by kallup non-profit software
+:: Rechte: (c) 2024, 2ß25 by kallup non-profit software
 ::         all rights reserved
 ::
 :: only for education, and for non-profit usage !!!
@@ -27,6 +27,9 @@ mkdir __pycache__\_internal\locales\en_us\LC_HELP
 
 mkdir __pycache__\_internal\locales\en_us\LC_STYLE
 mkdir __pycache__\_internal\locales\de_de\LC_STYLE
+
+mkdir __pycache__\_internal\locales\en_us\LC_META
+mkdir __pycache__\_internal\locales\de_de\LC_META
 
 set BASEDIR=%cd%
 
@@ -73,7 +76,19 @@ rm -rf observer.mo.gz
 msgfmt -o observer.mo observer.po
 gzip -9 observer.mo
 copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_STYLE
+:: ----------------------------------
 
+cd %BASEDIR%\locales\de_de\LC_META
+rm -rf pcbios.mo.gz
+msgfmt -o pcbios.mo pcbios.po
+gzip -9 pcbios.mo
+copy pcbios.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
+
+cd %BASEDIR%\locales\en_us\LC_META
+rm -rf pcbios.mo.gz
+msgfmt -o pcbios.mo pcbios.po
+gzip -9 pcbios.mo
+copy pcbios.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
 :: ----------------------------------
 cd %BASEDIR%
 exit

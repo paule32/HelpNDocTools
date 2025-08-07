@@ -1,0 +1,67 @@
+# ---------------------------------------------------------------------------
+# File:   pcbios.po - PC BIOS meta data
+# Author: Jens Kallup - paule32
+#
+# Rights: (c) 2024, 2025 by kallup non-profit software
+#         all rights reserved
+#
+# only for education, and for non-profit usage !!!
+# commercial use ist not allowed.
+# ---------------------------------------------------------------------------
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0.0\n"
+"POT-Creation-Date: 2025-04-06 20:33+0100\n"
+"PO-Revision-Date: 2025-04-06 20:15+0100\n"
+"Last-Translator: Jens Kallup <paule32@gmail.com>\n"
+"Language-Team: German/English <paule32@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "pcbios"
+msgstr ""
+    "[[0x00,2,\"COM 1 Port address\",0x03FB,\"no comment\"],"
+    "[ 0x02,2,\"COM 2 Port address\",0x02FB,\"no comment\"],"
+    "[ 0x04,2,\"COM 3 Port address\",0x03EB,\"no comment\"],"
+    "[ 0x06,2,\"COM 4 Port address\",0x04E0,\"no comment\"],"
+    "[ 0x08,2,\"LPT 1 Port address\",0x0378,\"no comment\"],"
+    "[ 0x0A,2,\"LPT 2 Port address\",0x0278,\"no comment\"],"
+    "[ 0x0C,2,\"LPT 3 Port address\",0x03BC,\"no comment\"],"
+    "[ 0x0E,2,\"device installed\",0x0000,\"no comment\"],"
+    "[ 0x10,1,\"Floppy Devices Count\",0x01,\"0x01 = 2 Floppies\"],"
+    "[ 0x11,1,\"Keyboard Scancode\",0x00,\"last keyboard scancode\"],"
+    "[ 0x12,2,\"Keyboard Status\",0x0000,\"Shift/Ctrl/Alt...\"],"
+    "[ 0x14,2,\"Keyboard Buffer Top\",0x0000,\"Offset in Buffer\"],"
+    "[ 0x16,2,\"Keyboard Buffer Bottom\",0x0000,\"Offset in Buffer\"],"
+    "[ 0x18,2,\"Keyboard Buffer Start\",0x0000,\"Input Buffer\"],"
+    "[ 0x1A,32,\"Keyboard Buffer\",0x0000,\"Ring Buffer\"],"
+    "[ 0x3A,1,\"Floppy Disk Status\",0x0000,\"BIOS-Status after INT 13h\"],"
+    "[ 0x3B,1,\"Hard Disk Status\",0x00,\"BIOS Status after INT 13h\"],"
+    "[ 0x3C,1,\"Floppy Devices Count\",0x00,\"Copy of 0x10\"],"
+    "[ 0x3D,1,\"VGA Video Mode\",0x00,\"no comment\"],"
+    "[ 0x3E,2,\"Text Mode Width\",0x0000,\"Column count e.g.: 80 columns\"],"
+    "[ 0x40,2,\"Address of Text Cursor\",0x0000,\"Offset of current Text Cursor\"],"
+    "[ 0x42,2,\"Cursor Shape\",0x0000,\"Start Line / End Line\"],"
+    "[ 0x44,2,\"Page Buffer Address\",0x0000,\"Pointer\"],"
+    "[ 0x46,2,\"Text Mode Height\",0x0000,\"Line count - 1 e.g.: 25 rows\"],"
+    "[ 0x48,2,\"Video Page count\",0x0000,\"e.g.: 0x0008 => 8 Pages\"],"
+    "[ 0x4A,1,\"Current Video Page\",0x00,\"e.g.: 0x00 => Page 0\"],"
+    "[ 0x4B,2,\"CRT Controller Address\",0x03D4,\"e.g.: 0x03D4\"],"
+    "[ 0x4D,2,\"Video RAM Start\",0x0000,\"Offset in RAM\"],"
+    "[ 0x4F,2,\"Cursor Position Page 0\",0x0000,\"Offset\"],"
+    "[ 0x50,32,\"Cursor Pos. Pages 1-7\",0x0000,\"16 Bytes (16 x 2)\"],"
+    "[ 0x62,1,\"LPT Port count\",0x01,\"no comment\"],"
+    "[ 0x63,1,\"COM Port count\",0x02,\"no comment\"],"
+    "[ 0x64,4,\"Timer Tick Count\",0x00000000,\"(24 bit, each 55ms)\"],"
+    "[ 0x68,1,\"Timer Overflow\",0x00,\"day switch\"],"
+    "[ 0x69,1,\"Keyboard Break Flag\",0x00,\"no comment\"],"
+    "[ 0x6A,1,\"Floppy Recall\",0x00,\"no comment\"],"
+    "[ 0x6B,1,\"Hard Disk Recall\",0x00,\"no comment\"],"
+    "[ 0x6C,1,\"Floppy Motor count\",0x00,\"used by BIOS for floppy activities\"],"
+    "[ 0x70,4,\"Disk Access Datas\",0x00000000,\"intern BIOS\"],"
+    "[ 0x74,1,\"LPT Count\",0x01,\"no comment\"],"
+    "[ 0x75,1,\"COM Port count\",0x02,\"repeat of 0x63\"],"
+    "[ 0x76,1,\"Device Flags (RTC...)\",0x00,\"no comment\"],"
+    "[ 0x77,136,\"Reserved for Expansion\",0x00,\"no comment\"]]"
+

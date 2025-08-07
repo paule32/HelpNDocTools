@@ -673,25 +673,127 @@ try:
             genv.LastResult = True
             self.close()
             return True
-
+    
+    def check_qt_isinit():
+        app = QApplication.instance()
+        if app is None:
+            raise RuntimeError(_str("Qt GUI was not initialized – QApplication missing."))
+        if not QApplication.instance().thread().isRunning():
+            raise RuntimeError(_str("Qt GUI-Thread does not run – GUI not ready."))
+        # Optional: Prüfen, ob QApplication bereits im GUI-Modus gestartet wurde
+        if not QApplication.instance().thread() == QApplication.instance().thread():
+            raise RuntimeError(_str("QApplication Main-Thread does not run."))
+    
     # ------------------------------------------------------------------------
     # code shortner definitions ...
     # ------------------------------------------------------------------------
     def showInfo(text):
-        showMessage(text, 0)
-        return
+        try:
+            check_qt_isinit()
+            showMessage(text, 0)
+            return True
+        except RuntimeError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            print(f"{str(text)}")
+            print(_str("Runtime Error:"))
+            print(f"  " + f"{_str("Message   :")} {str(e)}")
+            print(f"  " + f"{_str("File      :")} {last.filename}")
+            print(f"  " + f"{_str("Function  :")} {last.name}")
+            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            return False
+        except SyntaxError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            print(f"{str(text)}")
+            print(_str("Runtime Error:"))
+            print(f"  " + f"{_str("Message   :")} {str(e)}")
+            print(f"  " + f"{_str("File      :")} {last.filename}")
+            print(f"  " + f"{_str("Function  :")} {last.name}")
+            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            return False
+    
     def showWarning(text):
-        showMessage(text, 1)
-        return
+        try:
+            check_qt_isinit()
+            showMessage(text, 1)
+            return True
+        except RuntimeError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            print(f"{str(text)}")
+            print(_str("Runtime Error:"))
+            print(f"  " + f"{_str("Message   :")} {str(e)}")
+            print(f"  " + f"{_str("File      :")} {last.filename}")
+            print(f"  " + f"{_str("Function  :")} {last.name}")
+            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            return False
+        except SyntaxError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            print(f"{str(text)}")
+            print(_str("Runtime Error:"))
+            print(f"  " + f"{_str("Message   :")} {str(e)}")
+            print(f"  " + f"{_str("File      :")} {last.filename}")
+            print(f"  " + f"{_str("Function  :")} {last.name}")
+            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            return False
+    
     def showError(text):
-        return showMessage(text, 2)
+        try:
+            check_qt_isinit()
+            showMessage(text, 2)
+            return True
+        except RuntimeError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            print(f"{str(text)}")
+            print(_str("Runtime Error:"))
+            print(f"  " + f"{_str("Message   :")} {str(e)}")
+            print(f"  " + f"{_str("File      :")} {last.filename}")
+            print(f"  " + f"{_str("Function  :")} {last.name}")
+            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            return False
+        except SyntaxError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            print(f"{str(text)}")
+            print(_str("Runtime Error:"))
+            print(f"  " + f"{_str("Message   :")} {str(e)}")
+            print(f"  " + f"{_str("File      :")} {last.filename}")
+            print(f"  " + f"{_str("Function  :")} {last.name}")
+            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            return False
+    
     # ------------------------------------------------------------------------------
     # \brief  This definition displays a exception dialog if some exception is raise
     #         by the developer.
     # ------------------------------------------------------------------------------
     def showException(text):
-        showMessage(text, 3)
-        return
+        try:
+            check_qt_isinit()
+            showMessage(text, 3)
+            return True
+        except RuntimeError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            print(_str("ERROR:"))
+            print(f"  " + f"{_str("Message A :")} {str(e)}")
+            print(f"  " + f"{_str("Message B :")} {str(text)}")
+            print(f"  " + f"{_str("File      :")} {last.filename}")
+            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            print(f"  " + f"{_str("Function  :")} {last.name}")
+            return False
+        except SyntaxError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            print(_str("Syntax Error:"))
+            print(f"  " + f"{_str("Message A :")} {str(e)}")
+            print(f"  " + f"{_str("Message B :")} {str(text)}")
+            print(f"  " + f"{_str("File      :")} {last.filename}")
+            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            print(f"  " + f"{_str("Function  :")} {last.name}")
+            return False
 
     # ---------------------------------------------------------------------------
     # to hide global variables from other packages, i use this class for a common
@@ -708,6 +810,7 @@ try:
             
             self.v__app__name         = "observer"
             self.v__app__help         = "help"
+            self.v__app__meta         = "pcbios"
             self.v__app__pin_name     = ""
             self.v__app__pin_control  = ""
             
@@ -716,6 +819,7 @@ try:
             self.v__app__name_mo      = self.v__app__name + ".mo"
             self.v__app__help_mo      = self.v__app__help + ".mo"
             self.v__app__css__mo      = self.v__app__name + ".mo"
+            self.v__app__meta_mo      = self.v__app__meta + ".mo"
             
             self.v__app__cdn_host     = "http://localhost/cdn"
             self.v__app__internal__   = os.path.join(self.v__app__modul__, "_internal")
@@ -1100,6 +1204,7 @@ try:
             self.v__app__locales_messages  = ""
             self.v__app__locales_help      = ""
             self.v__app__locales_css       = ""
+            self.v__app__locales_meta      = ""
             
             self.v__app__img_ext__    = ".png"
             self.v__app__font         = "Arial"
@@ -1556,11 +1661,12 @@ try:
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
             error_str = (""
-            + "Exception occur during handle language:\n"
-            + "type    : " + exc_type.__name__ + "\n"
-            + "value   : " + exc_value         + "\n" + ("-" * 40) + "\n"
-            + "file    : " + tb.filename       + "\n"
-            + "at line : " + tb.lineno         + "\n")
+            + exc_type.__name__ + ":\n"
+            + "    Message A: Exception occur during handle language (locale):\n"
+            + "    Message B: "
+            + str(exc_value)    + "\n"
+            + "    File     : " + tb.filename       + "\n"
+            + "    Line     : " + tb.lineno         + "\n")
             
             showError(error_str)
             sys.exit(genv.EXIT_FAILURE)
@@ -1574,11 +1680,12 @@ try:
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
             error_str = (""
-            + "Exception occur during handle language:\n"
-            + "type    : " + exc_type.__name__ + "\n"
-            + "value   : " + str(exc_value)    + "\n" + ("-" * 40) + "\n"
-            + "file    : " + tb.filename       + "\n"
-            + "at line : " + str(tb.lineno)    + "\n")
+            + exc_type.__name__ + ":\n"
+            + "    Message A: Exception occur during handle language (help):\n"
+            + "    Message B: "
+            + str(exc_value)    + "\n"
+            + "    File     : " + tb.filename       + "\n"
+            + "    Line     : " + tb.lineno         + "\n")
             
             showError(error_str)
             sys.exit(genv.EXIT_FAILURE)
@@ -1592,15 +1699,36 @@ try:
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
             error_str = (""
-            + "Exception occur during handle language:\n"
-            + "type    : " + exc_type.__name__ + "\n"
-            + "value   : " + str(exc_value)    + "\n" + ("-" * 40) + "\n"
-            + "file    : " + tb.filename       + "\n"
-            + "at line : " + str(tb.lineno)    + "\n")
+            + exc_type.__name__ + ":\n"
+            + "    Message A: Exception occur during handle language (css):\n"
+            + "    Message B: "
+            + str(exc_value)    + "\n"
+            + "    File     : " + tb.filename       + "\n"
+            + "    Line     : " + tb.lineno         + "\n")
             
             showError(error_str)
             sys.exit(genv.EXIT_FAILURE)
-
+    
+    def handle_meta(lang):
+        try:
+            _dat = read_gzfile_to_memory(genv.v__app__locales_meta22)
+            return _dat
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            
+            error_str = (f""
+            + exc_type.__name__ + f":\n"
+            + f"  Message   : Exception occur during handle language (meta):\n"
+            + f"  Message   : {exc_value}\n"
+            + f"  File      : {tb.filename}\n"
+            + f"  Line      : {tb.lineno}\n"
+            + ("-" * 40)
+            )
+            
+            showError(error_str)
+            sys.exit(genv.EXIT_FAILURE)
+    
     # ---------------------------------------------------------------------------
     # application imports ...
     # ---------------------------------------------------------------------------
@@ -1693,10 +1821,12 @@ try:
         genv.v__app__locales_messages = os.path.join(genv.v__app__locales, "LC_MESSAGES")
         genv.v__app__locales_help     = os.path.join(genv.v__app__locales, "LC_HELP")
         genv.v__app__locales_css      = os.path.join(genv.v__app__locales, "LC_STYLE")
+        genv.v__app__locales_meta     = os.path.join(genv.v__app__locales, "LC_META")
         
         genv.v__app__locales_messages = os.path.join(genv.v__app__locales_messages, genv.v__app__name_mo + ".gz")
         genv.v__app__locales_help     = os.path.join(genv.v__app__locales_help    , genv.v__app__help_mo + ".gz")
         genv.v__app__locales_css      = os.path.join(genv.v__app__locales_css     , genv.v__app__css__mo + ".gz")
+        genv.v__app__locales_meta     = os.path.join(genv.v__app__locales_meta    , genv.v__app__meta_mo + ".gz")
         #
         if len(genv.v__app__locales) < 5:
             DebugPrint("Error: locale out of seed.")
@@ -1706,6 +1836,7 @@ try:
         _str = handle_language(ini_lang)
         _hlp = handle_help    (ini_lang)
         _css = handle_css     (ini_lang)
+        _dat = handle_meta    (ini_lang)
         
         # ------------------------------------------------------------------------
         # determine on which operating the application script runs ...
@@ -10817,7 +10948,6 @@ try:
             widget_7_pushb_1.clicked.connect(self.widget_7_pushb_1_click)
             ##
             layout.addLayout(layout_7)
-            
             
             layout_61 = QHBoxLayout()
             layout_61.setAlignment(Qt.AlignLeft)
@@ -24930,7 +25060,7 @@ try:
             bios_list_add.setFont(font_2)
             bios_list_del.setFont(font_2)
             
-            bios_list_new.clicked.connect(self.bios_btn_clicked)
+            bios_list_new.clicked.connect(self.bios_btn_clicked_new)
             bios_list_add.clicked.connect(self.bios_btn_clicked)
             bios_list_del.clicked.connect(self.bios_btn_clicked)
             
@@ -24948,7 +25078,7 @@ try:
                 [_str("COM 1")      , self.bios_vga_item_com1     ],
                 [_str("COM 2")      , self.bios_vga_item_com2     ],
                 [_str("Floppy A:")  , self.bios_vga_item_floppyA  ],
-                [_str("Floppy B:")  , self.bios_vga_item_flpppyB  ],
+                [_str("Floppy B:")  , self.bios_vga_item_floppyB  ],
                 [_str("Keyboard")   , self.bios_vga_item_keyboard ]
             ]
             for item in genv.bios_items:
@@ -24981,12 +25111,48 @@ try:
             vlayout_bios_list.addWidget(bios_image_load)
             vlayout_bios_list.addWidget(bios_image_save)
             
-            vlayout_bios_frame = self.showBIOS_VGA_settings(font_2, vlayout_bios_label_3)
-
-            hlayout.addLayout(vlayout_bios_list )
-            hlayout.addLayout(vlayout_bios_devs )
-            hlayout.addLayout(vlayout_bios_frame)
+            self.bios_frame_vga      = BIOSFramePanel()
+            self.bios_frame_timer    = BIOSFramePanel()
+            self.bios_frame_com1     = BIOSFramePanel()
+            self.bios_frame_com2     = BIOSFramePanel()
+            self.bios_frame_floppyA  = BIOSFramePanel()
+            self.bios_frame_floppyB  = BIOSFramePanel()
+            self.bios_frame_keyboard = BIOSFramePanel()
+            
+            vlayout_bios_frame_vga      = self.showBIOS_VGA_settings     (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_timer    = self.showBIOS_Timer_settings   (font_2, vlayout_bios_label_3)
+            #
+            vlayout_bios_frame_com1     = self.showBIOS_COM1_settings    (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_com2     = self.showBIOS_COM2_settings    (font_2, vlayout_bios_label_3)
+            #
+            vlayout_bios_frame_floppyA  = self.showBIOS_FloppyA_settings (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_floppyB  = self.showBIOS_FloppyB_settings (font_2, vlayout_bios_label_3)
+            #
+            vlayout_bios_frame_keyboard = self.showBIOS_Keyboard_settings(font_2, vlayout_bios_label_3)
+            
+            #
+            hlayout.addLayout(vlayout_bios_list)
+            hlayout.addLayout(vlayout_bios_devs)
+            #
+            hlayout.addLayout(vlayout_bios_frame_vga)
+            hlayout.addLayout(vlayout_bios_frame_timer)
+            #
+            hlayout.addLayout(vlayout_bios_frame_com1)
+            hlayout.addLayout(vlayout_bios_frame_com2)
+            #
+            hlayout.addLayout(vlayout_bios_frame_floppyA)
+            hlayout.addLayout(vlayout_bios_frame_floppyB)
+            #
+            hlayout.addLayout(vlayout_bios_frame_keyboard)
+            #
             hlayout.addStretch()
+            
+            self.bios_frame_timer   .hide()
+            self.bios_frame_com1    .hide()
+            self.bios_frame_com2    .hide()
+            self.bios_frame_floppyA .hide()
+            self.bios_frame_floppyB .hide()
+            self.bios_frame_keyboard.hide()
             
             bios_list.itemClicked.connect(self.BIOS_list_item_clicked)
             #self.bios_devs.itemClicked.connect(self.BIOS_devs_item_clicked)
@@ -24996,42 +25162,187 @@ try:
         def bios_vga_item_clicked(self, item):
             index = self.bios_devs.row( item)
             name  = item.text()
-            self.bios_vga_items_hide()
+            self.bios_frame_items_hide()
             genv.bios_items[index][1]()
         
-        def bios_vga_items_hide(self):
-            self.bios_frame.hide()
+        def bios_frame_items_hide(self):
+            self.bios_frame_vga     .hide()
+            self.bios_frame_timer   .hide()
+            self.bios_frame_com1    .hide()
+            self.bios_frame_com2    .hide()
+            self.bios_frame_floppyA .hide()
+            self.bios_frame_floppyB .hide()
+            self.bios_frame_keyboard.hide()
         
         def bios_vga_item_adapter(self):
-            self.bios_frame.show()
+            self.bios_frame_items_hide()
+            self.bios_frame_vga.show()
             
         def bios_vga_item_timer(self):
-            showInfo("timer")
+            self.bios_frame_items_hide()
+            self.bios_frame_timer.show()
             
         def bios_vga_item_com1(self):
-            showInfo("com1")
+            self.bios_frame_items_hide()
+            self.bios_frame_com1.show()
             
         def bios_vga_item_com2(self):
-            showInfo("com2")
+            self.bios_frame_items_hide()
+            self.bios_frame_com2.show()
             
         def bios_vga_item_floppyA(self):
-            showInfo("floppy a")
+            self.bios_frame_items_hide()
+            self.bios_frame_floppyA.show()
             
-        def bios_vga_item_flpppyB(self):
-            showInfo("floppy b")
+        def bios_vga_item_floppyB(self):
+            self.bios_frame_items_hide()
+            self.bios_frame_floppyB.show()
             
         def bios_vga_item_keyboard(self):
-            showInfo("keyboard")
-
-        def showBIOS_VGA_settings(self, font, vlayout_bios_label_3):
-            self.bios_frame = QFrame()
-            self.bios_frame.setFrameShape (QFrame.Panel)
-            self.bios_frame.setFrameShadow(QFrame.Sunken)
-            self.bios_frame.setMinimumHeight(500)
-            self.bios_frame.setMinimumWidth (700)
-            self.bios_frame.setLineWidth(2)
+            self.bios_frame_items_hide()
+            self.bios_frame_keyboard.show()
+        
+        def showBIOS_Timer_settings(self, font, vlayout_bios_label_3):
             #
-            bios_frame_layout = QVBoxLayout(self.bios_frame)
+            bios_frame_timer_layout = QVBoxLayout(self.bios_frame_timer)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
+            vga_label = QLabel(_str("VGA Adapter:"))
+            
+            vga_chrom.setFont(font)
+            vga_label.setFont(font)
+            
+            vlayout_bios_frame_timer = QVBoxLayout()
+            vlayout_bios_frame_timer.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_timer.addStretch()
+            
+            return vlayout_bios_frame_timer
+            
+        def showBIOS_COM1_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_com1_layout = QVBoxLayout(self.bios_frame_com1)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
+            vga_label = QLabel(_str("VGA Adapter:"))
+            
+            vga_chrom.setFont(font)
+            vga_label.setFont(font)
+            
+            vlayout_bios_frame_com1 = QVBoxLayout()
+            vlayout_bios_frame_com1.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_com1.addStretch()
+            
+            return vlayout_bios_frame_com1
+        
+        def showBIOS_COM2_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_com2_layout = QVBoxLayout(self.bios_frame_com2)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
+            vga_label = QLabel(_str("VGA Adapter:"))
+            
+            vga_chrom.setFont(font)
+            vga_label.setFont(font)
+            
+            vlayout_bios_frame_com2 = QVBoxLayout()
+            vlayout_bios_frame_com2.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_com2.addStretch()
+            
+            return vlayout_bios_frame_com2
+        
+        def showBIOS_Keyboard_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_keyboard_layout = QVBoxLayout(self.bios_frame_keyboard)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
+            vga_label = QLabel(_str("VGA Adapter:"))
+            
+            vga_chrom.setFont(font)
+            vga_label.setFont(font)
+            
+            vlayout_bios_frame_keyboard = QVBoxLayout()
+            vlayout_bios_frame_keyboard.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_keyboard.addStretch()
+            
+            return vlayout_bios_frame_keyboard
+            
+        def showBIOS_FloppyA_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_floppyA_layout = QVBoxLayout(self.bios_frame_floppyA)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
+            vga_label = QLabel(_str("VGA Adapter:"))
+            
+            vga_chrom.setFont(font)
+            vga_label.setFont(font)
+            
+            vlayout_bios_frame_floppyA = QVBoxLayout()
+            vlayout_bios_frame_floppyA.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_floppyA.addStretch()
+            
+            return vlayout_bios_frame_floppyA
+            
+        def showBIOS_FloppyB_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_floppyB_layout = QVBoxLayout(self.bios_frame_floppyB)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
+            vga_label = QLabel(_str("VGA Adapter:"))
+            
+            vga_chrom.setFont(font)
+            vga_label.setFont(font)
+            
+            vlayout_bios_frame_floppyB = QVBoxLayout()
+            vlayout_bios_frame_floppyB.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_floppyB.addStretch()
+            
+            return vlayout_bios_frame_floppyB
+            
+        def showBIOS_VGA_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_layout = QVBoxLayout(self.bios_frame_vga)
             ###
             scroll_area = QScrollArea()
             scroll_area.setWidgetResizable(True)
@@ -25203,13 +25514,27 @@ try:
             
             vlayout_bios_frame = QVBoxLayout()
             vlayout_bios_frame.addWidget(vlayout_bios_label_3)
-            vlayout_bios_frame.addWidget(self.bios_frame)
+            vlayout_bios_frame.addWidget(self.bios_frame_vga)
+            vlayout_bios_frame.addWidget(self.bios_frame_timer)
+            #
+            vlayout_bios_frame.addWidget(self.bios_frame_com1)
+            vlayout_bios_frame.addWidget(self.bios_frame_com2)
+            #
+            vlayout_bios_frame.addWidget(self.bios_frame_floppyA)
+            vlayout_bios_frame.addWidget(self.bios_frame_floppyB)
+            #
+            vlayout_bios_frame.addWidget(self.bios_frame_keyboard)
+            #
             vlayout_bios_frame.addWidget(bios_default_btn_1)
             vlayout_bios_frame.addWidget(bios_default_btn_2)
             vlayout_bios_frame.addStretch()
             
             return vlayout_bios_frame
         
+        def bios_btn_clicked_new(self):
+            file_path = os.getcwd() + "/_internal/__cache__"
+            self.bios_write_image(file_path)
+            
         def bios_btn_clicked(self):
             showInfo("button clicked")
             return
@@ -25236,15 +25561,19 @@ try:
             tab_bios = self.settings_tabs.getTab(0);
             tab_bios.addWidget(vga_widget)
         
-        def bios_write_image(self):
-            self.bios_IMAGE_SIZE = 0x10FF0
+        def bios_write_image(self, file_path):
+            self.bios_IMAGE_SIZE = 0x100000  # 1.024 MB
             
-            self.bios_OUTPUT_BIN = "bios_image.bin"
-            self.bios_OUTPUT_SYM = "bios_image.sym"
+            self.bios_OUTPUT_BIN = file_path + "/bios_image.bin"
+            self.bios_OUTPUT_SYM = file_path + "/bios_image.sym"
             
             self.bios_symbols = {}
-            
             self.bios_image = bytearray([0xFF] * self.bios_IMAGE_SIZE)
+            
+            # pcbios.mo unter ./locales
+            self.bios_bda = _dat("pcbios")
+            self.bios_bda.strip()   # white spaces entfernen
+            self.bios_bda_list = ast.literal_eval(self.bios_bda)
             
             # Equipment Word (BIOS BDA): 0x40:0x10 → phys 0x410
             self.bios_write_word(
@@ -25258,13 +25587,16 @@ try:
             
             # VGA BIOS Signatur bei 0xC000:0000 = 0xC0000
             self.bios_vga_bios_addr = 0xC0000
-            if self.bios_vga_bios_addr < IMAGE_SIZE:
-                self.bios_vga_sig = bytes([0x55, 0xAA, 0x90])
-                self.bios_write_bytes(
-                self.bios_image,
-                self.bios_vga_bios_addr,
-                self.bios_vga_sig, "VGA_BIOS_Signature")
-
+            # VGA BIOS ROM Signatur
+            self.bios_write_bytes(self.bios_image, 0xC0000, bytes([0x55, 0xAA, 0x90]), "VGA_BIOS_Signature")
+            
+            # Interrupt-Vektor-Tabelle
+            self.bios_write_ivt_entry(self.bios_image, 0x10, 0x9000, 0x0100, "IVT_VideoServices")     # INT 10h
+            self.bios_write_ivt_entry(self.bios_image, 0x13, 0x9000, 0x0200, "IVT_DiskServices" )     # INT 13h
+            self.bios_write_ivt_entry(self.bios_image, 0x1A, 0x9000, 0x0300, "IVT_ClockServices")     # INT 1Ah
+            
+            self.bios_write_ivt_entries()
+            
             with open(self.bios_OUTPUT_BIN, "wb") as f:
                 f.write(self.bios_image)
             print(f"Image-Datei geschrieben: {self.bios_OUTPUT_BIN}")
@@ -25273,10 +25605,10 @@ try:
             
         def bios_get_equipment_word(self):
             return 0b01000000  # 1 Floppy
-
+        
         def bios_get_com1_address(self):
             return 0x03F8
-
+        
         def bios_write_word(self, mem, addr, value, label=None):
             mem[addr] = value & 0xFF
             mem[addr + 1] = (value >> 8) & 0xFF
@@ -25288,9 +25620,26 @@ try:
             if label:
                 self.bios_symbols[label] = f"{addr:05X}h (bytes[{len(data)}])"
         
+        def bios_write_ivt_entry(self, mem, int_num, seg, ofs, label=None):
+            addr = int_num * 4
+            mem[addr    ] = ofs & 0xFF
+            mem[addr + 1] = (ofs >> 8) & 0xFF
+            mem[addr + 2] = seg & 0xFF
+            mem[addr + 3] = (seg >> 8) & 0xFF
+            if label:
+                self.bios_symbols[label] = f"INT {int_num:02X}h → {seg:04X}:{ofs:04X} @ {addr:05X}h"
+        
+        # Alle IVT-Einträge von 0x00 bis 0xFF schreiben
+        def bios_write_ivt_entries(self):
+            for int_no in range(256):
+                seg = 0xF000
+                ofs = 0x1000 + int_no * 0x10  # z.B. fortlaufend alle 16 Bytes Abstand
+                label = f"INT_{int_no:02X}"
+                self.bios_write_ivt_entry(self.bios_image, int_no, seg, ofs, label=label)
+                
         def bios_generate_symbol_table(self):
             lines = [f"{label:<25} @ {desc}" for label, desc in self.bios_symbols.items()]
-            with open(self.bios_OUTPUT_SYM, "w") as f:
+            with open(self.bios_OUTPUT_SYM, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
             print(f"Symboltabelle geschrieben: {self.bios_OUTPUT_SYM}")
         
@@ -26039,7 +26388,16 @@ try:
             painter.setBrush(Qt.NoBrush)
             painter.setPen(QColor(255, 0, 0))
             painter.drawRect(10, 10, self.width() - 1, self.height() - 1)
-
+            
+    class BIOSFramePanel(QFrame):
+        def __init__(self, parent=None):
+            super(BIOSFramePanel, self).__init__(parent)
+            self.setFrameShape (QFrame.Panel)
+            self.setFrameShadow(QFrame.Sunken)
+            self.setMinimumHeight(500)
+            self.setMinimumWidth (700)
+            self.setLineWidth(2)
+    
     # ------------------------------------------------------------------------
     # inform the user about the rules/license of this application script ...
     # ------------------------------------------------------------------------
