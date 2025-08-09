@@ -12,6 +12,14 @@ global res_file
 
 res_file = 'resources_rc.cpython-313.pyc.gz'  # we use Python 3.13.3 !
 
+# ANSI-Konsolenfarben (Standard)
+DEFAULT_COLORS = [
+    "#000000", "#800000", "#008000", "#808000",
+    "#000080", "#800080", "#008080", "#c0c0c0",
+    "#808080", "#ff0000", "#00ff00", "#ffff00",
+    "#0000ff", "#ff00ff", "#00ffff", "#ffffff"
+]
+
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
 
@@ -506,6 +514,16 @@ try:
         return unihash
 
     # ---------------------------------------------------------------------------
+    class ParserSyntaxError(Exception):
+        def __init__(self, text, value=-1):
+            self.value   = str(value)
+            self.message = (""
+            + _str("Syntax Error in Line: ") + str(genv.line_row) + "\n"
+            + _str("Message:") + "\n"
+            + text
+            )
+            super().__init__(value)
+    
     class unexpectedParserException(Exception):
         def __init__(self, text, value=1):
             self.value    = str(value)
@@ -674,95 +692,147 @@ try:
             self.close()
             return True
     
-    def check_qt_isinit():
-        app = QApplication.instance()
-        if app is None:
-            raise RuntimeError(_str("Qt GUI was not initialized – QApplication missing."))
-        if not QApplication.instance().thread().isRunning():
-            raise RuntimeError(_str("Qt GUI-Thread does not run – GUI not ready."))
-        # Optional: Prüfen, ob QApplication bereits im GUI-Modus gestartet wurde
-        if not QApplication.instance().thread() == QApplication.instance().thread():
-            raise RuntimeError(_str("QApplication Main-Thread does not run."))
+    #def check_qt_isinit():
+    #    app = QApplication.instance()
+    #    if app is None:
+    #        raise RuntimeError(_str("Qt GUI was not initialized – QApplication missing."))
+    #    if not QApplication.instance().thread().isRunning():
+    #        raise RuntimeError(_str("Qt GUI-Thread does not run – GUI not ready."))
+    #    # Optional: Prüfen, ob QApplication bereits im GUI-Modus gestartet wurde
+    #    if not QApplication.instance().thread() == QApplication.instance().thread():
+    #       raise RuntimeError(_str("QApplication Main-Thread does not run."))
     
     # ------------------------------------------------------------------------
     # code shortner definitions ...
     # ------------------------------------------------------------------------
+    # False = GUI
+    # True  = Console
+    def get_console_mode():
+        if sys.stdout.isatty():
+            if os.path.basename(sys.executable).lower() == "pythonw.exe":
+                return False
+            return True
+        if ctype.windll.kernel32.GetConsoleWindow() != 0:
+            return True
+        return False
+    
+    def prepareException(ex, error_type, error_text):
+        error_flag = False
+        error_text = ""
+        try:
+            tb = traceback.extract_tb(ex.__traceback__)
+            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+            #
+            error_flag = False
+            app = QApplication.instance()
+            rte = _str("Runtime Error")
+            #
+            if app is None:
+                error_type = rte
+                error_text = _str("Qt GUI was not initialized – QApplication missing.")
+                error_flag = True
+                
+            if not QApplication.instance().thread().isRunning():
+                error_type = rte
+                error_text = _str("Qt GUI-Thread does not run – GUI not ready.")
+                error_flag = True
+                
+            if not QApplication.instance().thread() == QApplication.instance().thread():
+                error_type = rte
+                error_text = _str("QApplication Main-Thread does not run.")
+                error_flag = True
+            #
+            error_txt = (""
+            + f"{error_type}:\n"
+            + f"{error_text} \n" 
+            + f"  " + f"{_str("Message   :")} {str(ex)}"       + "\n"
+            + f"  " + f"{_str("File      :")} {last.filename}" + "\n"
+            + f"  " + f"{_str("Function  :")} {last.name}"     + "\n"
+            + f"  " + f"{_str("Line      :")} {last.lineno}"   + "\n")
+            #
+            print("====> " + error_txt)
+            if error_flag:
+                raise RuntimeError(error_txt)
+            raise Exception(error_txt)
+            
+        except RuntimeError as e:
+            error_flag = False
+            if get_console_mode():
+                print(error_txt)
+            else:
+                showInfo("guiker")
+                
+        except Exception as e:
+            error_flag = False
+            if get_console_mode():
+                print(error_txt)
+            else:
+                showInfo("oii")
+        
     def showInfo(text):
         try:
-            check_qt_isinit()
-            showMessage(text, 0)
-            return True
-        except RuntimeError as e:
-            tb = traceback.extract_tb(e.__traceback__)
-            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
-            print(f"{str(text)}")
-            print(_str("Runtime Error:"))
-            print(f"  " + f"{_str("Message   :")} {str(e)}")
-            print(f"  " + f"{_str("File      :")} {last.filename}")
-            print(f"  " + f"{_str("Function  :")} {last.name}")
-            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            if get_console_mode():
+                print("oooooo==> " + text)
+                return True
+            else:
+                showMessage(text, 0)
+                return True
+        except AttributError as e:
+            prepareException(e, _str("Attribute Error"), text)
             return False
+            
+        except RuntimeError as e:
+            prepareException(e, _str("Runtime Error"), text)
+            return False
+            
         except SyntaxError as e:
-            tb = traceback.extract_tb(e.__traceback__)
-            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
-            print(f"{str(text)}")
-            print(_str("Runtime Error:"))
-            print(f"  " + f"{_str("Message   :")} {str(e)}")
-            print(f"  " + f"{_str("File      :")} {last.filename}")
-            print(f"  " + f"{_str("Function  :")} {last.name}")
-            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            prepareException(e, _str("Syntax Error"), text)
             return False
     
     def showWarning(text):
         try:
-            check_qt_isinit()
-            showMessage(text, 1)
-            return True
+            if get_console_mode():
+                print(text)
+                return True
+            else:
+                showMessage(text, 1)
+                return True
+            
+        except AttributError as e:
+            prepareException(e, _str("Attribute Error"), text)
+            return False
+            
         except RuntimeError as e:
-            tb = traceback.extract_tb(e.__traceback__)
-            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
-            print(f"{str(text)}")
-            print(_str("Runtime Error:"))
-            print(f"  " + f"{_str("Message   :")} {str(e)}")
-            print(f"  " + f"{_str("File      :")} {last.filename}")
-            print(f"  " + f"{_str("Function  :")} {last.name}")
-            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            prepareException(e, _str("Runtime Error"), text)
             return False
+            
         except SyntaxError as e:
-            tb = traceback.extract_tb(e.__traceback__)
-            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
-            print(f"{str(text)}")
-            print(_str("Runtime Error:"))
-            print(f"  " + f"{_str("Message   :")} {str(e)}")
-            print(f"  " + f"{_str("File      :")} {last.filename}")
-            print(f"  " + f"{_str("Function  :")} {last.name}")
-            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            prepareException(e, _str("Syntax Error"), text)
             return False
-    
+            
     def showError(text):
         try:
-            check_qt_isinit()
-            showMessage(text, 2)
-            return True
-        except RuntimeError as e:
-            tb = traceback.extract_tb(e.__traceback__)
-            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
-            print(f"{str(text)}")
-            print(_str("Runtime Error:"))
-            print(f"  " + f"{_str("Message   :")} {str(e)}")
-            print(f"  " + f"{_str("File      :")} {last.filename}")
-            print(f"  " + f"{_str("Function  :")} {last.name}")
-            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            if get_console_mode():
+                print(text)
+                return True
+            else:
+                showMessage(text, 2)
+                return True
+                
+        except AttributeError as e:
+            prepareException(e, _str("Attribute Error"), text)
             return False
+            
+        except RuntimeError as e:
+            prepareException(e, _str("Runtime Error"), text)
+            return False
+            
         except SyntaxError as e:
-            tb = traceback.extract_tb(e.__traceback__)
-            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
-            print(f"{str(text)}")
-            print(_str("Runtime Error:"))
-            print(f"  " + f"{_str("Message   :")} {str(e)}")
-            print(f"  " + f"{_str("File      :")} {last.filename}")
-            print(f"  " + f"{_str("Function  :")} {last.name}")
-            print(f"  " + f"{_str("Line      :")} {last.lineno}")
+            prepareException(e, _str("Syntax Error"), text)
+            return False
+            
+        except Exception as e:
+            prepareException(e, _str("Exception"), text)
             return False
     
     # ------------------------------------------------------------------------------
@@ -1660,13 +1730,14 @@ try:
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
-            error_str = (""
-            + exc_type.__name__ + ":\n"
-            + "    Message A: Exception occur during handle language (locale):\n"
-            + "    Message B: "
-            + str(exc_value)    + "\n"
-            + "    File     : " + tb.filename       + "\n"
-            + "    Line     : " + tb.lineno         + "\n")
+            error_str = (f""
+            + exc_type.__name__ + f":\n"
+            + f"  Message   : Exception occur during handle language (meta):\n"
+            + f"  Message   : {exc_value}\n"
+            + f"  File      : {tb.filename}\n"
+            + f"  Line      : {tb.lineno}\n"
+            + ("-" * 40)
+            )
             
             showError(error_str)
             sys.exit(genv.EXIT_FAILURE)
@@ -1679,13 +1750,14 @@ try:
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
-            error_str = (""
-            + exc_type.__name__ + ":\n"
-            + "    Message A: Exception occur during handle language (help):\n"
-            + "    Message B: "
-            + str(exc_value)    + "\n"
-            + "    File     : " + tb.filename       + "\n"
-            + "    Line     : " + tb.lineno         + "\n")
+            error_str = (f""
+            + exc_type.__name__ + f":\n"
+            + f"  Message   : Exception occur during handle language (meta):\n"
+            + f"  Message   : {exc_value}\n"
+            + f"  File      : {tb.filename}\n"
+            + f"  Line      : {tb.lineno}\n"
+            + ("-" * 40)
+            )
             
             showError(error_str)
             sys.exit(genv.EXIT_FAILURE)
@@ -1698,20 +1770,21 @@ try:
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
-            error_str = (""
-            + exc_type.__name__ + ":\n"
-            + "    Message A: Exception occur during handle language (css):\n"
-            + "    Message B: "
-            + str(exc_value)    + "\n"
-            + "    File     : " + tb.filename       + "\n"
-            + "    Line     : " + tb.lineno         + "\n")
+            error_str = (f""
+            + exc_type.__name__ + f":\n"
+            + f"  Message   : Exception occur during handle language (meta):\n"
+            + f"  Message   : {exc_value}\n"
+            + f"  File      : {tb.filename}\n"
+            + f"  Line      : {tb.lineno}\n"
+            + ("-" * 40)
+            )
             
             showError(error_str)
             sys.exit(genv.EXIT_FAILURE)
     
     def handle_meta(lang):
         try:
-            _dat = read_gzfile_to_memory(genv.v__app__locales_meta22)
+            _dat = read_gzfile_to_memory(genv.v__app__locales_meta)
             return _dat
         except Exception as e:
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
@@ -1719,8 +1792,8 @@ try:
             
             error_str = (f""
             + exc_type.__name__ + f":\n"
-            + f"  Message E2: Exception occur during handle language (meta):\n"
-            + f"  Message E2: {exc_value}\n"
+            + f"  Message   : Exception occur during handle language (meta):\n"
+            + f"  Message   : {exc_value}\n"
             + f"  File      : {tb.filename}\n"
             + f"  Line      : {tb.lineno}\n"
             + ("-" * 40)
@@ -2514,7 +2587,7 @@ try:
             super(FileExplorer, self).__init__(parent)
             
             self.setWindowTitle("Dateien und Laufwerke Explorer mit Dateigröße")
-            self.resize(400, 600)
+            self.resize(360, 600)
             
             # Layout erstellen
             layout = QVBoxLayout(self)
@@ -2613,7 +2686,7 @@ try:
 
     class CPUView(QWidget):
         def __init__(self, parent=None):
-            super(CPUView, self).__init__(parent)
+            super(CPUView, self).__init__()
             
             self.registers = {
                 "EAX": 0x1000,
@@ -2803,35 +2876,26 @@ try:
             font = QFont("Arial", 10)
             font.setBold(True)
             
-            self.btn_set_brk   = QPushButton(_str("Set break point"))
-            self.btn_del_brk   = QPushButton(_str("Del break point"))
+            self.btn_set_brk   = CustomPushButton(font, _str("Set break point"), self.btn_set_brk_onclick)
+            self.btn_del_brk   = CustomPushButton(font, _str("Del break point"), self.btn_del_brk_onclick)
             #
-            self.btn_start     = QPushButton(_str("Start"))
-            self.btn_step_into = QPushButton(_str("Step Into"))
-            self.btn_step_next = QPushButton(_str("Next"))
-            self.btn_step_prev = QPushButton(_str("Prev"))
-            self.btn_stop      = QPushButton(_str("Stop"))
+            self.btn_start     = CustomPushButton(font, _str("Start")      , self.btn_start_onclick)
+            self.btn_step_into = CustomPushButton(font, _str("Step Into")  , self.btn_step_into_onclick)
+            self.btn_step_next = CustomPushButton(font, _str("Next")       , self.btn_step_next_onclick)
+            self.btn_step_prev = CustomPushButton(font, _str("Prev")       , self.btn_step_prev_onclick)
+            self.btn_stop      = CustomPushButton(font, _str("Stop")       , self.btn_stop_onclick)
             
-            self.btn_set_brk  .setFont(font)
-            self.btn_del_brk  .setFont(font)
-            #
-            self.btn_start    .setFont(font)
-            self.btn_step_into.setFont(font)
-            self.btn_step_next.setFont(font)
-            self.btn_step_prev.setFont(font)
-            self.btn_stop     .setFont(font)
+            self.btn_spacer    = QWidget()
+            self.btn_spacer.setMinimumHeight(56)
             
-            self.btn_set_brk  .clicked.connect(self.btn_set_brk_onclick)
-            self.btn_del_brk  .clicked.connect(self.btn_del_brk_onclick)
-            #
-            self.btn_start    .clicked.connect(self.btn_start_onclick)
-            self.btn_step_into.clicked.connect(self.btn_step_into_onclick)
-            self.btn_step_next.clicked.connect(self.btn_step_next_onclick)
-            self.btn_step_prev.clicked.connect(self.btn_step_prev_onclick)
-            self.btn_stop     .clicked.connect(self.btn_stop_onclick)
+            self.btn_compile   = CustomPushButton(font, _str("Compile")    , )
+            self.btn_new       = CustomPushButton(font, _str("New Script") , )
+            self.btn_load      = CustomPushButton(font, _str("Load")       , )
+            self.btn_saveas    = CustomPushButton(font, _str("Save As...") , )
             
             layout = QVBoxLayout()
             #
+            
             layout.addWidget(self.btn_set_brk)
             layout.addWidget(self.btn_del_brk)
             #
@@ -2840,9 +2904,28 @@ try:
             layout.addWidget(self.btn_step_next)
             layout.addWidget(self.btn_step_prev)
             layout.addWidget(self.btn_stop)
+            #
+            layout.addWidget(self.btn_spacer)
+            #
+            layout.addWidget(self.btn_compile)
+            layout.addWidget(self.btn_new)
+            layout.addWidget(self.btn_load)
+            layout.addWidget(self.btn_saveas)
             layout.addStretch()
             
             self.setLayout(layout)
+        
+        def btn_compile_onclick(self):
+            print("compile")
+            
+        def btn_new_onclick(self):
+            print("new")
+            
+        def btn_load_onclick(self):
+            print("load")
+            
+        def btn_daveas_onclick(self):
+            print("save as")
         
         def btn_set_brk_onclick(self):
             print("set break")
@@ -3034,14 +3117,55 @@ try:
             splitter = QSplitter(Qt.Vertical)
             
             # Hex-Ansicht
+            self.hex_widget = QWidget()
+            self.hex_layout = QHBoxLayout()
+            
             self.hex_edit = HexEditComponent()
             self.hex_edit.setReadOnly(True)
+            
+            font = QFont("Arial", 10)
+            
+            self.hex_vlayout_1 = QVBoxLayout()
+            self.hex_lbl11 = CustomLabel(font, _str("Offset (hex)") + ":", 150)
+            self.hex_lbl12 = CustomLabel(font, _str("Offset (dec)") + ":", 150)
+            self.hex_lbl13 = CustomLabel(font, _str("Char   (dec)") + ":", 150)
+            self.hex_lbl14 = CustomLabel(font, _str("Char"        ) + ":", 150)
+            #
+            self.hex_vlayout_1.addWidget(self.hex_lbl11)
+            self.hex_vlayout_1.addWidget(self.hex_lbl12)
+            self.hex_vlayout_1.addWidget(self.hex_lbl13)
+            self.hex_vlayout_1.addWidget(self.hex_lbl14)
+            self.hex_vlayout_1.addStretch()
+            #
+            self.hex_vlayout_2 = QVBoxLayout()
+            self.hex_lbl21 = CustomLabel(font, "100", 50); self.hex_lbl21.setAlignment(Qt.AlignRight)
+            self.hex_lbl22 = CustomLabel(font, "100", 50); self.hex_lbl22.setAlignment(Qt.AlignRight)
+            self.hex_lbl23 = CustomLabel(font, "100", 50); self.hex_lbl23.setAlignment(Qt.AlignRight)
+            self.hex_lbl24 = CustomLabel(font, "100", 50); self.hex_lbl24.setAlignment(Qt.AlignRight)
+            #
+            self.hex_vlayout_2.addWidget(self.hex_lbl21)
+            self.hex_vlayout_2.addWidget(self.hex_lbl22)
+            self.hex_vlayout_2.addWidget(self.hex_lbl23)
+            self.hex_vlayout_2.addWidget(self.hex_lbl24)
+            self.hex_vlayout_2.addStretch()
+            #
+            self.hex_dummy_layout = QHBoxLayout()
+            self.hex_dummy_widget = QWidget()
+            self.hex_dummy_widget.setMinimumWidth(36)
+            self.hex_dummy_layout.addWidget(self.hex_dummy_widget)
+            
+            self.hex_layout.addWidget(self.hex_edit)
+            self.hex_layout.addLayout(self.hex_vlayout_1)
+            self.hex_layout.addLayout(self.hex_dummy_layout)
+            self.hex_layout.addLayout(self.hex_vlayout_2)
+            
+            self.hex_widget.setLayout(self.hex_layout)
             
             # ASCII/Unicode-Ansicht
             self.asc_edit = AsciiEditComponent()
             self.asc_edit.setReadOnly(True)
             
-            splitter.addWidget(self.hex_edit)
+            splitter.addWidget(self.hex_widget)
             splitter.addWidget(self.asc_edit)
             
             layout.addWidget(splitter)
@@ -3063,6 +3187,7 @@ try:
         def __init__(self, parent=None):
             try:
                 super(ExecutableExplorer, self).__init__(parent)
+                self.parent = parent
                 
                 # ----------------------------------------------
                 # Hauptlayout mit vertikalem Splitter
@@ -3076,15 +3201,15 @@ try:
                 self.file_tree = FileExplorer()
                 
                 
-                vertical_splitter = QSplitter(Qt.Vertical)
-                upper_splitter    = QSplitter(Qt.Horizontal)
+                self.parent.pe_windows_tabs_vertical_splitter = QSplitter(Qt.Vertical)
+                self.parent.pe_windows_tabs_upper_splitter    = QSplitter(Qt.Horizontal)
                 
                 # ----------------------------------------------
                 # Links: QListTree für EXE und DLL Dateien
                 # ----------------------------------------------
                 self.exe_dll_tree = QTreeView()
                 self.exe_dll_tree.setHeaderHidden(False)
-                self.exe_dll_tree.setMaximumWidth(200)
+                self.exe_dll_tree.setMaximumWidth(300)
                 
                 header = self.exe_dll_tree.header()
                 
@@ -3095,7 +3220,7 @@ try:
                 #header.setSectionResizeMode(1, header.Stretch)  #
                 #header.setSectionResizeMode(2, header.Stretch)  #
                 
-                header.resizeSection(0, 222)
+                #header.resizeSection(0, 222)
                 #header.resizeSection(1, 122)
                 
                 # ----------------------------------------------
@@ -3109,11 +3234,11 @@ try:
                 self.symbols_tree.setToolTip("Symbole und Funktionen")
                 
                 header = self.symbols_tree.header()
-                header.setSectionResizeMode(0, header.Stretch)  # Dynamisch
-                header.setSectionResizeMode(1, header.Stretch)  #
+                #header.setSectionResizeMode(0, header.Stretch)  # Dynamisch
+                #header.setSectionResizeMode(1, header.Stretch)  #
                 
-                #header.resizeSection(0, 122)
-                #header.resizeSection(1, 122)
+                header.resizeSection(0, 320)
+                header.resizeSection(1, 100)
                 
                 # ----------------------------------------------
                 # Unterer Bereich: QListTree für Pfade und
@@ -3131,20 +3256,22 @@ try:
                 
                 self.asm_view = AssemblerViewer()
                 self.dbg_ctrl = DebugControls()
+                self.cpu_view = CPUView()
                 
                 splitter.addWidget(self.hex_view)
                 splitter.addWidget(self.asm_view)
                 splitter.addWidget(self.dbg_ctrl)
+                splitter.addWidget(self.cpu_view)
                 
                 # ----------------------------------------------
                 # Layout zusammenfügen
                 # ----------------------------------------------
-                upper_splitter.addWidget(self.file_tree)
-                upper_splitter.addWidget(self.exe_dll_tree)
-                upper_splitter.addWidget(self.symbols_tree)
+                self.parent.pe_windows_tabs_upper_splitter.addWidget(self.file_tree)
+                self.parent.pe_windows_tabs_upper_splitter.addWidget(self.exe_dll_tree)
+                self.parent.pe_windows_tabs_upper_splitter.addWidget(self.symbols_tree)
                 
-                vertical_splitter.addWidget(upper_splitter)
-                vertical_splitter.addWidget(splitter)
+                self.parent.pe_windows_tabs_vertical_splitter.addWidget(self.parent.pe_windows_tabs_upper_splitter)
+                self.parent.pe_windows_tabs_vertical_splitter.addWidget(splitter)
                 
                 #
                 mz_info = QWidget()
@@ -3153,7 +3280,7 @@ try:
                 # ----------------------------------------------
                 # Tab einfügen
                 # ----------------------------------------------
-                tab_widget.addTab(vertical_splitter, _str("Files"))
+                #tab_widget.addTab(pe_windows_tabs_vertical_splitter, _str("Files"))
                 tab_widget.addTab(mz_info, _str("MZ-Info"))
                 tab_widget.addTab(pe_info, _str("PE-Info"))
                 
@@ -3165,8 +3292,20 @@ try:
                 self.populate_example_data()
                 
             except Exception as e:
-                showError(f"Error: {str(e)}\nDetails:\n{traceback.format_exc()}")
-                sys.exit(1)
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during handle language (meta):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                sys.exit(genv.EXIT_FAILURE)
         
         def _create_file_tree_model(self):
             model = QStandardItemModel()
@@ -3175,15 +3314,20 @@ try:
         
         def _create_symbols_model(self):
             model = QStandardItemModel()
-            model.setHorizontalHeaderLabels(["Funktion", "Offset"])
+            model.setHorizontalHeaderLabels([
+                _str("Name"),
+                _str("Offset"),
+                _str("RVA"),
+                _str("Ordinal")
+            ])
             return model
         
         def populate_example_data(self):
             # ----------------------------------------------
             # EXE/DLL Dateien einfügen
             # ----------------------------------------------
-            exe_item = QStandardItem("Programme (EXE)")
-            dll_item = QStandardItem("Bibliotheken (DLL)")
+            exe_item = QStandardItem(_str("Programs (EXE)"))
+            dll_item = QStandardItem(_str("Libraries (DLL)"))
             
             exe_item.appendRow([QStandardItem("test.exe"), QStandardItem("42"), QStandardItem("Info")])
             dll_item.appendRow([QStandardItem("test.dll"), QStandardItem("42"), QStandardItem("Info")])
@@ -3194,13 +3338,23 @@ try:
             # ----------------------------------------------
             # Symbole und Funktionen einfügen
             # ----------------------------------------------
-            sym_item1 = QStandardItem("Funktionen in explorer.exe")
+            sym_item1 = QStandardItem(_str("Functions in explorer.exe"))
+            #sym_list1 = self.get_dll_export_list("explorer.exe")
             sym_item1.appendRow([QStandardItem("CreateWindow"),   QStandardItem("0x1000")])
             sym_item1.appendRow([QStandardItem("ShowWindow"),     QStandardItem("0x1000")])
             
-            sym_item2 = QStandardItem("Funktionen in kernel32.dll")
-            sym_item2.appendRow([QStandardItem("LoadLibrary"),    QStandardItem("0x1000")])
-            sym_item2.appendRow([QStandardItem("GetProcAddress"), QStandardItem("0x1000")])
+            sym_item2 = QStandardItem(_str("Functions in kernel32.dll"))
+            sym_list2 = self.get_dll_export_list("kernel32.dll")
+
+            for item in sym_list2:
+                button = item[4]
+                hexstr = hex(int(item[3]))
+                sym_item2.appendRow([
+                    QStandardItem(item[0]),
+                    QStandardItem(hexstr ),
+                    QStandardItem(item[2]),
+                    QStandardItem(item[1]),
+                ])
             
             self.symbols_tree.model().appendRow(sym_item1)
             self.symbols_tree.model().appendRow(sym_item2)
@@ -3211,6 +3365,41 @@ try:
             path_item = QStandardItem("DLL-Pfade")
             path_item.appendRow(QStandardItem("C:\\Windows\\System32\\kernel32.dll"))
             path_item.appendRow(QStandardItem("C:\\Windows\\System32\\user32.dll"))
+        
+        def get_dll_export_list(self, dll_name):
+            dll_path = os.path.join(os.environ["SystemRoot"], "System32", dll_name)
+            # DLL laden
+            pe = pefile.PE(dll_path)
+
+            # Liste der exportierten Funktionen
+            exports = []
+            font = QFont("Arial", 10)
+            if hasattr(pe, 'DIRECTORY_ENTRY_EXPORT'):
+                for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+                    if exp.name:  # Name ist nicht None
+                        name    = exp.name.decode()
+                        ordinal = exp.ordinal
+                        rva     = exp.address
+                        offset  = pe.get_offset_from_rva(rva)
+                        # ---------------------------------------
+                        # external help ...
+                        # ---------------------------------------
+                        helpbtn = CustomPushButton(font, _str("Help"), self.get_dll_export_help)
+                        helpbtn.data = {"name": name}
+                        # ---------------------------------------
+                        exports.append((    # index
+                            str(name),      # 0
+                            str(ordinal),   # 1
+                            str(rva),       # 2
+                            str(offset),    # 3
+                            helpbtn         # extern help
+                        ))
+            return exports
+        
+        def get_dll_export_help(self):
+            btn = app.sender()
+            btn_help_id = btn.property("name")
+            showInfo(btn_help_id)
 
     if genv.GENERATE_DOC:
         word = win32com.client.Dispatch("Word.Application")
@@ -5966,7 +6155,7 @@ try:
                         print("semi ok")
                         break
                     else:
-                        raise Exception(_str("SEmicolon expected."))
+                        raise ParserSyntaxError(_str("SEmicolon expected."))
             elif genv.char_curr.isalpha():
                 if self.check_ident():
                     print("---> state: " + self.current_state)
@@ -5978,9 +6167,9 @@ try:
                         print("ARgument: " + self.token_str)
                         self.handle_pascal_argument()
                 else:
-                    raise Exception(_str("ident expected."))
+                    raise ParserSyntaxError(_str("ident expected."))
             else:
-                raise Exception(_str("wrong char type."))
+                raise ParserSyntaxError(_str("wrong char type."))
         
         def handle_pascal_argument(self):
             while True:
@@ -6002,11 +6191,11 @@ try:
                                     self.handle_pascal_list_end()
                                     break
                         else:
-                            raise Exception(_str("argument type expected."))
+                            raise ParserSyntaxError(_str("argument type expected."))
                         break
                     break
                 else:
-                    raise Exception(_str("colon (:) expected."))
+                    raise ParserSyntaxError(_str("colon (:) expected."))
                 break
                 
         def handle_pascal_list_end(self):
@@ -6030,7 +6219,7 @@ try:
                     print("procedure ende.")
                     break
                 else:
-                    raise Exception(_str("semicolon (;) expected."))
+                    raise ParserSyntaxError(_str("semicolon (;) expected."))
         
         def handle_pascal_argument_type(self):
             #self.ungetChar(1)
@@ -6094,7 +6283,7 @@ try:
                     genv.open_paren -= 1
                     if genv.open_paren < 1:
                         genv.have_errors = True
-                        raise Exception(_str("paren underflow."))
+                        raise ParserSyntaxError(_str("paren underflow."))
                     else:
                         continue
                 
@@ -6102,7 +6291,7 @@ try:
                     genv.open_pascal_comment_hard -= 1
                     if genv.open_pascal_comment_hard < 1:
                         genv.have_errors = True
-                        raise Exception(_str("no comment start found."))
+                        raise ParserSyntaxError(_str("no comment start found."))
                     else:
                         continue
                         
@@ -6111,7 +6300,7 @@ try:
                         self.handle_pascal_comment_1()
                         continue
                     else:
-                        raise Exception(_str("invalid character found."))
+                        raise ParserSyntaxError(_str("invalid character found."))
                         return
                 
                 elif self.check_char('/'):
@@ -6130,40 +6319,27 @@ try:
                                 continue
                             continue
                         else:
-                            raise Exception(_str("C++ comment expected."))
+                            raise ParserSyntaxError(_str("C++ comment expected."))
                             
                 elif self.check_char('('):
                     genv.open_paren += 1
-                    if parser_type == self.pascal_parser:
-                        self.handle_pascal_comment_2()
-                        continue
+                    genv.curr_char = self.getChar()
+                    if genv.curr_char == '*':
+                        showInfo("a comme")
+                        if parser_type == self.pascal_parser:
+                            self.handle_pascal_comment_2()
+                            continue
+                    else:
+                        self.ungetChar(1)
+                        genv.curr_char = '('
+                        return '('
                         
-                    elif parser_type == self.lisp_parser:
-                        while True:
-                            genv.char_prev = genv.char_curr
-                            self.getChar()
-                            
-                            if self.check_white_spaces():
-                                continue
-                                
-                            if self.check_number():
-                                showInfo("lisp: " + self.token_str)
-                                while True:
-                                    if self.check_char(')'):
-                                        break
-                                    else:
-                                        self.ungetChar(1)
-                                        break
-                            else:
-                                showInfo("Ee: " + genv.char_curr)
-                                break
-                
                 elif self.check_char('\n'):
                     continue
                 elif self.check_char('\r'):
                     self.getChar()
                     if not self.check_char('\n'):
-                        raise Exception(_str("LineEnding Error."))
+                        raise ParserSyntaxError(_str("LineEnding Error."))
                     else:
                         continue
                     
@@ -7775,10 +7951,10 @@ try:
                                         self.handle_pascal_program()
                                         return
                                     else:
-                                        raise Exception(_str("semicolon expected."))
+                                        raise ParserSyntaxError(_str("semicolon expected."))
                                 break
                             else:
-                                raise Exception(_str("ident expected."))
+                                raise ParserSyntaxError(_str("ident expected."))
                         break
                     elif self.token_str.lower() == 'library':
                         self.token_str = ""
@@ -7789,7 +7965,7 @@ try:
                                 self.handle_pascal_library_ident(self.token_str)
                                 break
                             else:
-                                raise Exception(_str("ident expected."))
+                                raise ParserSyntaxError(_str("ident expected."))
                         break
                     elif self.token_str.lower() == 'unit':
                         self.token_str = ""
@@ -7800,10 +7976,10 @@ try:
                                 self.handle_pascal_unit_ident(self.token_str)
                                 break
                             else:
-                                raise Exception(_str("ident expected."))
+                                raise ParserSyntaxError(_str("ident expected."))
                         break
                     else:
-                        raise Exception(_str("PROGRAM, LIBRARY or UNIT expected."))
+                        raise ParserSyntaxError(_str("PROGRAM, LIBRARY or UNIT expected."))
                         
             except e_no_more_data as nodata:
                 showInfo("no error.\nno more data.")
@@ -7931,26 +8107,26 @@ try:
                                             #showInfo("inner semi end")
                                             break
                                         else:
-                                            raise Exception(_str("semicolon expected."))
+                                            raise ParserSyntaxError(_str("semicolon expected."))
                                     break
                                 else:
-                                    raise Exception(_str("keyword expected."))
+                                    raise ParserSyntaxError(_str("keyword expected."))
                             break
                         else:
-                            raise Exception('keyword expected.')
+                            raise ParserSyntaxError('keyword expected.')
                     continue
                 elif self.check_ident("procedure", 1):
-                    #showInfo("PROOOOO")
                     while True:
+                        showInfo("proc")
                         if self.handle_pascal_white_spaces():
                             continue
                         if self.check_ident():
-                            #showInfo("procedure: " + self.token_str)
+                            showInfo("procedure: " + self.token_str)
                             genv.text_code += (genv.text_code_indent * " ")
                             self.text_update()
                             self.handle_pascal_procedure(self.token_str)
                         else:
-                            raise Exception(_str("procedure name expected."))
+                            raise ParserSyntaxError(_str("procedure name expected."))
                     continue
                 elif self.check_ident("function", 1):
                     #showInfo("fufufu")
@@ -7963,11 +8139,11 @@ try:
                                 #showInfo("ooooooo")
                                 break
                             else:
-                                raise Exception(_str("semicolon expected."))
+                                raise ParserSyntaxError(_str("semicolon expected."))
                         else:
-                            raise Exception(_str("function name expected."))
+                            raise ParserSyntaxError(_str("function name expected."))
                 else:
-                    raise Exception(_str("BEGIN, PROCEDURE or FUNCTION expected."))
+                    raise ParserSyntaxError(_str("BEGIN, PROCEDURE or FUNCTION expected."))
         
         def text_update(self):
             genv.text_code += "def scope_"
@@ -7983,7 +8159,7 @@ try:
                 if self.check_char(';'):
                     while True:
                         if self.handle_pascal_white_spaces():
-                            continue                                    
+                            continue
                         if not self.check_ident():
                             raise Exception(_str("ident expecred."))
                         if self.token_str.lower() == "begin":
@@ -8004,7 +8180,7 @@ try:
                         elif self.token_str.lower() == "function":
                             self.handle_pascal_function()
                 else:
-                    raise Exception(_str("semicolon expected."))
+                    raise ParserSyntaxError(_str("semicolon expected."))
         
         def handle_pascal_white_spaces(self):
             genv.char_prev = genv.char_curr
@@ -8027,7 +8203,7 @@ try:
                 if genv.char_curr == genv.TOKEN_IDENT:
                     return self.handle_pascal_procedure(self.token_str)
                 else:
-                    raise Exception(_str("ident expected."))
+                    raise ParserSyntaxError(_str("ident expected."))
             return False
         
         def handle_pascal_tail(self):
@@ -8054,11 +8230,11 @@ try:
                                         if genf.char_curr == ';':
                                             break
                                     else:
-                                        raise Exception(_str("IDENT, NUMBER or STRING expected."))
+                                        raise ParserSyntaxError(_str("IDENT, NUMBER or STRING expected."))
                                 else:
-                                    raise Exception(_str("CONST Assing sign expected."))
+                                    raise ParserSyntaxError(_str("CONST Assing sign expected."))
                             else:
-                                raise Exception(_str("CONST ident expected."))
+                                raise ParserSyntaxError(_str("CONST ident expected."))
                         continue
                     elif self.token_str.lower() == "var":
                         self.block_const = False
@@ -8076,13 +8252,13 @@ try:
                                         if self.check_char(';'):
                                             break
                                         else:
-                                            raise Exception(_str("semicolon expected."))
+                                            raise ParserSyntaxError(_str("semicolon expected."))
                                     else:
-                                        raise Exception(_str("ident expected."))
+                                        raise ParserSyntaxError(_str("ident expected."))
                                 else:
-                                    raise Exception(_str("VAR double dot sing expected"))
+                                    raise ParserSyntaxError(_str("VAR double dot sing expected"))
                             else:
-                                raise Exception(_str("VAR ident expected."))
+                                raise ParserSyntaxError(_str("VAR ident expected."))
                         continue
                     elif self.token_str.lower() == "begin":
                         genv.text_code += (genv.text_code_indent * " ")
@@ -8104,7 +8280,7 @@ try:
                         #
                         return self.handle_pascal_tail()
                     else:
-                        raise Exception(_str("ident expected."))
+                        raise ParserSyntaxError(_str("ident expected."))
         
         def handle_pascal_body(self):
             while True:
@@ -8135,7 +8311,7 @@ try:
                             self.run()
                             raise e_no_more_data(_str("no more runner"))
                         else:
-                            raise Exception(_str("semi expected."))
+                            raise ParserSyntaxError(_str("semi expected."))
                             
                     elif self.token_str.lower() == "procedure":
                         print("--EEEE---")
@@ -8144,7 +8320,7 @@ try:
                             print("proceduire: " + self.token_str)
                             self.handle_pascal_procedure(self.token_str)
                         else:
-                            raise Exception(_str("ident expected."))
+                            raise ParserSyntaxError(_str("ident expected."))
                             
                     elif self.token_str.lower() == "function":
                         pass #todo
@@ -8157,19 +8333,21 @@ try:
                         print("beginner")
                         self.handle_pascal_body()
                     else:
-                        raise Exception(_str("end or begin expected."))
+                        raise ParserSyntaxError(_str("end or begin expected."))
                 else:
                     print("-------> " + self.token_str + " | " + genv.char_curr)
-                    raise Exception(_str("BEGIN or END expected."))
+                    raise ParserSyntaxError(_str("BEGIN or END expected."))
         
         def handle_pascal_procedure(self, name):
             genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+            showInfo("==>>  " + name + " >" + str(genv.char_curr) + "<" + " >>" + self.token_str +"<<")
             if self.begin_counter == self.end_counter:
                 self.begin_counter = 0
                 self.end_counter = 0
             else:
-                raise Exception(_str("too many END or BEGIN keywords found."))
+                raise ParserSyntaxError(_str("too many END or BEGIN keywords found."))
             if self.check_char('('):
+                showInfo("klamm")
                 genv.text_code += "("
                 while True:
                     self.skip_white_spaces(self.pascal_parser)
@@ -8181,7 +8359,7 @@ try:
                             genv.text_code_ident += 4
                             return self.handle_pascal_tail()
                         else:
-                            raise Exception(_str("semi expected."))
+                            raise ParserSyntaxError(_str("semi expected."))
                     elif genv.char_curr == genv.TOKEN_IDENT:
                         if self.token_str.lower() == "const" or \
                            self.token_str.lower() == "var":
@@ -8194,7 +8372,7 @@ try:
                             self.begin_counter += 1
                             self.handle_pascal_body()
                             if self.begin_counter > 0:
-                                raise Exception(_str("begin not terminated."))
+                                raise ParserSyntaxError(_str("begin not terminated."))
                             else:
                                 while True:
                                     if self.handle_pascal_white_spaces():
@@ -8213,13 +8391,13 @@ try:
                                             print("FUNC: " + self.token_str)
                                             continue
                                         else:
-                                            raise Exception(_str("function ident expected."))
+                                            raise ParserSyntaxError(_str("function ident expected."))
                             print("RETTT")
                             return
                         else:
-                            raise Exception(_str("CONST, VAR or BEGIN expected."))
+                            raise ParserSyntaxError(_str("CONST, VAR or BEGIN expected."))
                     else:
-                        raise Exception(_str("semicolon or point expected."))
+                        raise ParserSyntaxError(_str("semicolon or point expected."))
             elif self.check_char(';'):
                 genv.text_code += (genv.text_code_indent * " ")
                 genv.text_code += "return\n"
@@ -8275,12 +8453,12 @@ try:
                                                             if self.check_char('.'):
                                                                 break
                                                             else:
-                                                                raise Exception("Point expected.")
+                                                                raise ParserSyntaxError("Point expected.")
                                                         break
                                                     else:
-                                                        raise Exception("end expected.")
+                                                        raise ParserSyntaxError("end expected.")
                                                 else:
-                                                    raise Exception("ident expected.")
+                                                    raise ParserSyntaxError("ident expected.")
                                             break
                                         elif self.token_str.lower() == "procedure":
                                             self.handle_pascal_procedure_name()
@@ -8347,10 +8525,10 @@ try:
                                     self.handle_pascal_procedure_name()
                                     continue
                             else:
-                                raise Exception(_str("point (.) expected."))
+                                raise ParserSyntaxError(_str("point (.) expected."))
                         break
                     else:
-                        raise Exception(_str("syntax error."))
+                        raise ParserSyntaxError(_str("syntax error."))
                     
         def handle_pascal_begin(self):
             pass
@@ -8605,7 +8783,7 @@ try:
             while self._running:
                 i = i + 1
                 time.sleep(0.01)
-                self.progress.emit(f"Arbeite... {i + 1}/5")
+                self.progress.emit(f"line:{genv.line_row}")
             self.finished.emit()
 
     # ---------------------------------------------------------------------------
@@ -8617,9 +8795,10 @@ try:
     #         4. after al the bytecode (depack) will execute.
     # ---------------------------------------------------------------------------
     class ConvertZipExecute(QDialog):
-        def __init__(self, parser=None, parent=None):
+        def __init__(self, parser_id=0, script_name="", parent=None):
             super(ConvertZipExecute, self).__init__(parent)
-            print("parser: " + str(parser))
+            self.script_name = script_name
+            self.parser      = None
             self.windowtitle = "Convert ..."
             self.setWindowTitle(self.windowtitle)
             
@@ -8675,17 +8854,18 @@ try:
         
         def start_thread(self):
             print("Starte Thread...")
+            self.parser = interpreter_Pascal(self.script_name)
             self.thread.start()
             
         def on_progress(self, message):
             try:
-                genv.current_code_line        = genv.line_row
+                #genv.current_code_line        = genv.line_row
                 genv.current_code_line_total += 1
                 #
-                self.compile_panel.panel_3.label_2.setText(genv.current_code_line)
-                self.compile_panel.panel_4.label_2.setText(genv.current_code_line_total)
+                self.compile_panel.panel_3.label_2.setText(str(genv.current_code_line))
+                self.compile_panel.panel_4.label_2.setText(str(genv.current_code_line_total))
                 
-                #print(message)
+                print(message)
             except Exception as e:
                 self.thread.stop()
                 handle_exception(e, "A common Exception occured")
@@ -8696,24 +8876,26 @@ try:
             
         def buttonClick(self):
             self.close()
+            self.thread.stop()
+            showInfo("ddddd")
 
     class C64BasicWorkerThread(QThread):
         progress = pyqtSignal(int)
         def run(self):
             time.sleep(0.2)
             self.progress.emit(1)
-
+    
     class C64BasicParser:
         class CaseInsensitiveDict(dict):
             def __setitem__(self, key, value):
                 super().__setitem__(key.lower(), value)
-
+            
             def __getitem__(self, key):
                 return super().__getitem__(key.lower())
-
+            
             def __contains__(self, key):
                 return super().__contains__(key.lower())
-
+            
             def get(self, key, default=None):
                 return super().get(key.lower(), default)
         
@@ -10117,6 +10299,70 @@ try:
     # ------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------
+    class CustomPushButton(QPushButton):
+        def __init__(self, font, text, callback=None):
+            super(CustomPushButton, self).__init__()
+            self.setText(text)
+            self.setFont(font)
+            self.callback = callback
+            self.clicked.connect(self.btn_clicked)
+        
+        def btn_clicked(self):
+            if self.callback:
+                self.callback()
+    
+    class CustomSpinBox(QSpinBox):
+        def __init__(self, font, r1, r2, value):
+            super(CustomSpinBox, self).__init__()
+            self.setStyleSheet(_css("custom_spinbox"))
+            self.setFont(font)
+            self.setRange(r1, r2)
+            self.setValue(value)
+
+    class CustomComboBox(QComboBox):
+        def __init__(self, font=None):
+            super(CustomComboBox, self).__init__()
+            if font:
+                self.setFont(font)
+    
+    class CustomLabel(QLabel):
+        def __init__(self, font, text, max_width=-1, max_height=-1):
+            super(CustomLabel, self).__init__()
+            self.setText(text)
+            self.setFont(font)
+            if max_width > -1:
+                self.setMaximumWidth(max_width)
+            if max_height > -1:
+                self.setMaximumHeight(max_height)
+    
+    class CustomCheckBox(QCheckBox):
+        def __init__(self, font, text):
+            super(CustomCheckBox, self).__init__()
+            self.setText(text)
+            self.setFont(font)
+    
+    class CustomFrame(QFrame):
+        def __init__(self, font=None, width=0, height=0):
+            super(CustomFrame, self).__init__()
+            self.setFrameShape(QFrame.HLine)
+            self.setFrameShadow(QFrame.Sunken)
+            self.setLineWidth(2)
+            if width > 0:
+                self.setMinimumWidth(width)
+            if height > 0:
+                self.setMinimumHeight(height)
+            
+    class CustomLineEdit(QLineEdit):
+        def __init__(self, font, width=120, placeholdertext=""):
+            super(CustomLineEdit, self).__init__()
+            self.setStyleSheet(_css("custom_line_edit"))
+            #
+            self.setPlaceholderText(placeholdertext)
+            self.setMaximumWidth(width)
+            self.setMaximumWidth(width)
+            #
+            self.setFont(font)
+        
     class myLineEdit(QLineEdit):
         def __init__(self, name="", name_object="", callback=None):
             super(myLineEdit, self).__init__()
@@ -10219,16 +10465,16 @@ try:
             if event.button() == Qt.LeftButton:
                 if self.mode == 0:
                     genv.devices_scroll.hide()
-                    genv.cpuview_scroll.hide()
+                    #genv.cpuview_scroll.hide()
                     genv.servers_scroll.setParent(parent.front_content_widget)
                     genv.servers_scroll.show()
                 if self.mode == 11:
                     genv.devices_scroll.hide()
                     genv.servers_scroll.hide()
-                    genv.cpuview_scroll.show()
+                    #genv.cpuview_scroll.show()
                 else:
                     genv.servers_scroll.hide()
-                    genv.cpuview_scroll.hide()
+                    #genv.cpuview_scroll.hide()
                     #genv.servers_scroll.setParent(parent.front_content_widget)
                     #genv.devices_scroll.show()
                 
@@ -13476,7 +13722,10 @@ try:
                             file.write(self.toPlainText())
                             file.close()
                         #
-                        prg = ConvertZipExecute(interpreter_Pascal(script_name))
+                        prg = interpreter_Pascal(script_name)
+                        prg.parse()
+                        
+                        #prg = ConvertZipExecute(1,script_name)
                         return
                         
                     except PermissionError as e:
@@ -18101,7 +18350,7 @@ try:
                             prg.parse()
                             
                         elif genv.current_focus.edit_type == "pascal":
-                            prg = ConvertZipExecute(interpreter_Pascal(script_name))
+                            prg = ConvertZipExecute(1, script_name)
                             return
                             
                         elif genv.current_focus.edit_type == "java":
@@ -21082,67 +21331,98 @@ try:
     # ---------------------------------------------------------------------------
     class FileWatcherGUI(QDialog):
         def __init__(self, parent=None):
-            super(FileWatcherGUI, self).__init__(parent)
-            self.setAttribute(Qt.WA_DeleteOnClose, True)
-            self.setMouseTracking(True)
-            
-            global application_window
-            application_window = self
-            
-            # Alle Qt-Warnungen stummschalten
-            QLoggingCategory.setFilterRules("*.debug=false\n*.warning=false")
-            
-            genv.css_menu_item_style  = _css("css_menu_item_style")
-            genv.css_menu_label_style = _css("css_menu_label_style")
-            genv.css_menu_item        = _css("css_menu_item")
-            
-            self.font = QFont(genv.v__app__font, 10)
-            self.setFont(self.font)
+            try:
+                super(FileWatcherGUI, self).__init__(parent)
+                self.setAttribute(Qt.WA_DeleteOnClose, True)
+                self.setMouseTracking(True)
+                
+                global application_window
+                application_window = self
+                
+                # Alle Qt-Warnungen stummschalten
+                QLoggingCategory.setFilterRules("*.debug=false\n*.warning=false")
+                
+                genv.css_menu_item_style  = _css("css_menu_item_style")
+                genv.css_menu_label_style = _css("css_menu_label_style")
+                genv.css_menu_item        = _css("css_menu_item")
+                
+                self.font = QFont(genv.v__app__font, 10)
+                self.setFont(self.font)
 
-            self.setContentsMargins(0,0,0,0)
-            self.setWindowIcon(QIcon(genv.v__app__img__int__ + "/winico.png"))
-            
-            self.worker_hasFocus = False
-            self.is_maximized    = False
-            
-            self.setWindowFlags(Qt.FramelessWindowHint)
-            self.windowtitle = 'HelpNDoc File Client - v0.0.1 - (c) 2024 Jens Kallup - paule32'
-            
-            self.setWindowTitle(self.windowtitle)
-            self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
-            
-            self.my_list = MyItemRecord(0, QStandardItem(""))
-            
-            self.init_ui()
-            
-            genv.parent_array = [
-                self.help_tabs,
-                self.dbase_tabs,
-                self.pascal_tabs,
-                self.isoc_tabs,
-                self.java_tabs,
-                self.javascript_tabs,
-                self.python_tabs,
-                self.prolog_tabs,
-                self.fortran_tabs,
-                self.lisp_tabs,
-                self.basic_tabs,
-                self.pe_windows_tabs,
-                self.elf_linux_tabs,
-                self.console_tabs,
-                self.locale_tabs,
-                self.todo_tabs,
-                self.setup_tabs,
-                self.certssl_tabs,
-                self.github_tabs,
-                self.apache_tabs,
-                self.mysql_tabs,
-                self.squid_tabs,
-                self.electro_tabs,
-                self.c64_tabs,
-                self.settings_tabs
-            ]
-            
+                self.setContentsMargins(0,0,0,0)
+                self.setWindowIcon(QIcon(genv.v__app__img__int__ + "/winico.png"))
+                
+                self.worker_hasFocus = False
+                self.is_maximized    = False
+                
+                self.setWindowFlags(Qt.FramelessWindowHint)
+                self.windowtitle = 'HelpNDoc File Client - v0.0.1 - (c) 2024 Jens Kallup - paule32'
+                
+                self.setWindowTitle(self.windowtitle)
+                self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
+                
+                self.my_list = MyItemRecord(0, QStandardItem(""))
+                
+                self.init_ui()
+                
+                genv.parent_array = [
+                    self.help_tabs,
+                    self.dbase_tabs,
+                    self.pascal_tabs,
+                    self.isoc_tabs,
+                    self.java_tabs,
+                    self.javascript_tabs,
+                    self.python_tabs,
+                    self.prolog_tabs,
+                    self.fortran_tabs,
+                    self.lisp_tabs,
+                    self.basic_tabs,
+                    self.pe_windows_tabs,
+                    self.elf_linux_tabs,
+                    self.console_tabs,
+                    self.locale_tabs,
+                    self.todo_tabs,
+                    self.setup_tabs,
+                    self.certssl_tabs,
+                    self.github_tabs,
+                    self.apache_tabs,
+                    self.mysql_tabs,
+                    self.squid_tabs,
+                    self.electro_tabs,
+                    self.c64_tabs,
+                    self.settings_tabs
+                ]
+            except NameError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during handle language (meta):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                sys.exit(genv.EXIT_FAILURE)
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during handle language (meta):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                sys.exit(genv.EXIT_FAILURE)
+        
         # --------------------
         # dialog exit ? ...
         # --------------------
@@ -21461,45 +21741,6 @@ try:
             # Sende das Ereignis an den Button
             QApplication.postEvent(obj, mouse_event)
         
-        def handle_right_bar_cpuview(self):
-            # ScrollArea erstellen
-            ####
-            setattr(genv, "cpuview_scroll", QScrollArea())
-            setattr(genv, "cpuview_widget", QWidget())
-            setattr(genv, "cpuview_layout", QVBoxLayout())
-            
-            # Layout und Widget konfigurieren
-            genv.cpuview_scroll.setMinimumWidth(230)
-            genv.cpuview_scroll.setMaximumWidth(230)
-            genv.cpuview_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-            genv.cpuview_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-            genv.cpuview_scroll.setWidgetResizable(True)
-            
-            genv.cpuview_widget.setMinimumWidth(230)
-            genv.cpuview_widget.setMaximumWidth(230)
-            genv.cpuview_widget.setContentsMargins(1, 0, 0, 1)
-            
-            genv.cpuview_layout.setContentsMargins(1, 0, 0, 1)
-            
-            # CPUView-Widget hinzufügen
-            self.cpuview = CPUView()
-            genv.cpuview_layout.addWidget(self.cpuview)
-            
-            # Layout dem Widget zuweisen
-            genv.cpuview_widget.setLayout(genv.cpuview_layout)
-            genv.cpuview_scroll.setWidget(genv.cpuview_widget)  # Set widget instead of layout
-            
-            # Hauptlayout konfigurieren
-            dl2 = QVBoxLayout()
-            dl2.setContentsMargins(1, 0, 0, 1)
-            dl2.addWidget(genv.cpuview_scroll)
-            
-            # Zum Hauptlayout hinzufügen
-            self.main_layout.addLayout(dl2)
-            
-            # ScrollArea ausblenden
-            genv.cpuview_scroll.hide()
-            
         def handle_right_bar_servers(self):
             # servers
             font = QFont(genv.v__app__font,14)
@@ -21507,8 +21748,8 @@ try:
             
             ####
             #
-            genv.servers_scroll.setMinimumWidth(100)
-            genv.servers_widget.setMinimumWidth(100)
+            genv.servers_scroll.setMinimumWidth(200)
+            genv.servers_widget.setMinimumWidth(200)
             #
             
             self.servers_label_servers = QPushButton(" Servers: ")
@@ -21779,12 +22020,13 @@ try:
             self.front_content_layout = QHBoxLayout(self.front_content_widget)
             self.front_content_layout.setSpacing(0)
 
-            genv.splitter = QSplitter(Qt.Horizontal)
-            genv.splitter.addWidget(self.side_scroll)
-            genv.splitter.addWidget(self.front_scroll_area)
+            #genv.splitter = QSplitter(Qt.Horizontal)
+            #genv.splitter.addWidget(self.side_scroll)
+            #genv.splitter.addWidget(self.front_scroll_area)
             #
-            self.main_content_layout.setSpacing(0)
-            self.main_content_layout.addWidget(genv.splitter)
+            #self.main_content_layout.setSpacing(0)
+            self.main_content_layout.addWidget(self.side_scroll)
+            self.main_content_layout.addLayout(self.front_content_layout)
             
             self.handleDBase()
             self.handlePascal()
@@ -21811,6 +22053,7 @@ try:
             self.handleCommodoreC64()
             self.handleSettings()
             
+            #self.main_content_layout.addStretch()
             # front view
             self.help_tabs = QTabWidget()
             self.help_tabs.setStyleSheet(_css(genv.css_tabs))
@@ -21868,7 +22111,6 @@ try:
             
             self.handle_right_bar_devices()
             self.handle_right_bar_servers()
-            self.handle_right_bar_cpuview()
             
             ################
             ##self.tab1_layout = QHBoxLayout()
@@ -24240,10 +24482,10 @@ try:
             self.text_edit = QPlainTextEdit()
             self.text_edit.setFont(font2)
             
-            self.load_button = QPushButton(_str("Load .mo File"))
+            self.load_button = QPushButton(_str("Load .mo/.po File"))
             self.load_button.setFont(font)
             self.load_button.setMinimumHeight(31)
-            self.load_button.clicked.connect(self.load_mo_file)
+            self.load_button.clicked.connect(self.load_mopo_file)
             
             self.save_button = QPushButton('Save Changes')
             self.save_button.setFont(font)
@@ -24268,26 +24510,45 @@ try:
             QDesktopServices.openUrl(QUrl("https://learn.microsoft.com/en-us/previous-versions/windows/desktop/htmlhelp/microsoft-html-help-downloads"))
         
         def handlePEWindows(self):
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            #
+            xmax = user32.GetSystemMetrics(0)
+            ymax = user32.GetSystemMetrics(1)
+            
             self.pe_windows_tabs = QTabWidget()
             self.pe_windows_tabs.setStyleSheet(_css(genv.css_tabs))
-            self.pe_windows_tabs.hide()
+            self.pe_windows_tabs.setMinimumWidth(980)
+            
+            self.pe_windows_tabs.setMinimumWidth(xmax-280)
+            self.pe_windows_tabs.setMaximumWidth(3200)
             
             self.pe_windows_tabs_project_widget = QWidget()
             self.pe_windows_tabs_editors_widget = QWidget()
             self.pe_windows_tabs_designs_widget = QWidget()
             #
-            self.pe_windows_tabs_exe_dll_viewer = ExecutableExplorer()
+            self.pe_windows_tabs_exe_dll_viewer = ExecutableExplorer(self)
             #
             self.pe_windows_tabs.addTab(self.pe_windows_tabs_project_widget, _str("Win32 Project"))
-            self.pe_windows_tabs.addTab(self.pe_windows_tabs_editors_widget, _str("Editor"))
+            self.pe_windows_tabs.addTab(self.pe_windows_tabs_vertical_splitter, _str("Editors"))
+            #self.pe_windows_tabs.addTab(self.pe_windows_tabs_editors_widget, _str("Editor"))
             self.pe_windows_tabs.addTab(self.pe_windows_tabs_designs_widget, _str("Console"))
             self.pe_windows_tabs.addTab(self.pe_windows_tabs_exe_dll_viewer, _str("Tools"))
             ####
+            self.pe_windows_tabs.hide()
             self.main_layout.addWidget(self.pe_windows_tabs)
                 
         def handleELFLinux(self):
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            #
+            xmax = user32.GetSystemMetrics(0)
+            ymax = user32.GetSystemMetrics(1)
+            
             self.elf_linux_tabs = QTabWidget()
             self.elf_linux_tabs.setStyleSheet(_css(genv.css_tabs))
+            self.elf_linux_tabs.setMinimumWidth(xmax-280)
+            self.elf_linux_tabs.setMaximumWidth(3200)
             self.elf_linux_tabs.hide()
             
             self.elf_linux_tabs_project_widget = QWidget()
@@ -24974,6 +25235,7 @@ try:
         def handleSettings(self):
             self.settings_tabs = ApplicationTabWidget([
                 _str("BIOS Settings"),
+                _str("Remote User"),
                 _str("CHM Workshop")])
             #
             user32 = ctypes.windll.user32
@@ -24986,11 +25248,86 @@ try:
             self.settings_tabs.setMaximumWidth(3200)
             
             self.tab1 = self.settings_tabs.getTab(0); self.tab1.setLayout(self.addSettingsBIOS())
-            self.tab2 = self.settings_tabs.getTab(1); self.tab2.setLayout(self.addSettingsChmLayout())
+            self.tab2 = self.settings_tabs.getTab(1); self.tab2.setLayout(self.addSettingsRemoteUser())
+            self.tab3 = self.settings_tabs.getTab(2); self.tab3.setLayout(self.addSettingsChmLayout())
             
             self.main_layout.addWidget(self.settings_tabs)
             #self.settings_tabs_chm_widget.setLayout(vlay)
         
+        def addSettingsRemoteUser(self):
+            hlayout   = QHBoxLayout()
+            font_1    = QFont("Arial", 11)
+            font_2    = QFont("Arial", 10)
+            
+            remote_list = QListWidget()
+            remote_user = QListWidget()
+            remote_conf = BIOSFramePanel()
+            
+            remote_list.setMaximumWidth(140)
+            remote_list.setMinimumWidth(140)
+            #
+            remote_user.setMaximumWidth(140)
+            remote_user.setMinimumWidth(140)
+            
+            hlayout_remote_1 = QHBoxLayout()
+            #
+            vlayout_remote_1 = QVBoxLayout()
+            vlayout_remote_2 = QVBoxLayout()
+            vlayout_remote_3 = QVBoxLayout()
+            
+            vlayout_remote_label_1 = QLabel(_str("Remote List:"))
+            vlayout_remote_label_2 = QLabel(_str("Users:"))
+            vlayout_remote_label_3 = QLabel(_str("Settings:"))
+            
+            vlayout_remote_label_1.setFont(font_2)
+            vlayout_remote_label_2.setFont(font_2)
+            vlayout_remote_label_3.setFont(font_2)
+            
+            vlayout_remote_1.addWidget(vlayout_remote_label_1)
+            vlayout_remote_1.addWidget(remote_list)
+            
+            vlayout_remote_2.addWidget(vlayout_remote_label_2)
+            vlayout_remote_2.addWidget(remote_user)
+            
+            vlayout_remote_3.addWidget(vlayout_remote_label_3)
+            vlayout_remote_3.addWidget(remote_conf)
+            vlayout_remote_3.addStretch()
+            
+            remote_array = ([
+                ["Location A",
+                    ["Room 1", "Room 2"]
+                ],
+                ["Location B",
+                    ["Room 3"]
+                ],
+            ])
+            
+            for entry in remote_array:
+                category_name = entry[0]
+                entries       = entry[1]
+                
+                static_item = QListWidgetItem(category_name)
+                static_item.setBackground(QBrush(QColor("lightgray")))
+                static_item.setForeground(QBrush(QColor("black")))
+                static_item.setFont(font_1)
+                static_item.setFlags(static_item.flags() & ~Qt.ItemIsSelectable)
+                
+                remote_list.addItem(static_item)
+                
+                for entry2 in entries:
+                    custom_widget = BIOS_CustomWidget(entry2)
+                    dynamic_item  = QListWidgetItem()
+                    dynamic_item.setSizeHint(custom_widget.sizeHint())
+                    dynamic_item.setFont(font_2)
+                    remote_list.addItem(dynamic_item)
+                    remote_list.setItemWidget(dynamic_item, custom_widget)
+            
+            hlayout_remote_1.addLayout(vlayout_remote_1)
+            hlayout_remote_1.addLayout(vlayout_remote_2)
+            hlayout_remote_1.addLayout(vlayout_remote_3)
+            
+            return hlayout_remote_1
+            
         def addSettingsBIOS(self):
             hlayout   = QHBoxLayout()
             font_1    = QFont("Arial", 11)
@@ -25005,8 +25342,11 @@ try:
             bios_list.setFont(font_2)
             self.bios_devs.setFont(font_2)
             
-            bios_list.setMaximumWidth(180)
-            self.bios_devs.setMaximumWidth(180)
+            bios_list.setMaximumWidth(170)
+            bios_list.setMinimumWidth(170)
+            
+            self.bios_devs.setMaximumWidth(140)
+            self.bios_devs.setMinimumWidth(140)
             
             vlayout_bios_label_1 = QLabel(_str("BIOS Image:"))
             vlayout_bios_label_2 = QLabel(_str("Hardware:"))
@@ -25077,9 +25417,15 @@ try:
                 [_str("Timer")      , self.bios_vga_item_timer    ],
                 [_str("COM 1")      , self.bios_vga_item_com1     ],
                 [_str("COM 2")      , self.bios_vga_item_com2     ],
+                [_str("COM 3")      , self.bios_vga_item_com3     ],
+                [_str("COM 4")      , self.bios_vga_item_com4     ],
                 [_str("Floppy A:")  , self.bios_vga_item_floppyA  ],
                 [_str("Floppy B:")  , self.bios_vga_item_floppyB  ],
-                [_str("Keyboard")   , self.bios_vga_item_keyboard ]
+                [_str("LPT 1")      , self.bios_vga_item_lpt1     ],
+                [_str("LPT 2")      , self.bios_vga_item_lpt2     ],
+                [_str("Keyboard")   , self.bios_vga_item_keyboard ],
+                [_str("Mouse")      , self.bios_vga_item_mouse    ],
+                [_str("Boot Order") , self.bios_vga_item_boot     ]
             ]
             for item in genv.bios_items:
                 itm = QListWidgetItem(item[0])
@@ -25113,22 +25459,40 @@ try:
             
             self.bios_frame_vga      = BIOSFramePanel()
             self.bios_frame_timer    = BIOSFramePanel()
+            #
             self.bios_frame_com1     = BIOSFramePanel()
             self.bios_frame_com2     = BIOSFramePanel()
+            self.bios_frame_com3     = BIOSFramePanel()
+            self.bios_frame_com4     = BIOSFramePanel()
+            #
             self.bios_frame_floppyA  = BIOSFramePanel()
             self.bios_frame_floppyB  = BIOSFramePanel()
+            #
+            self.bios_frame_lpt1     = BIOSFramePanel()
+            self.bios_frame_lpt2     = BIOSFramePanel()
+            #
             self.bios_frame_keyboard = BIOSFramePanel()
+            self.bios_frame_mouse    = BIOSFramePanel()
+            self.bios_frame_boot     = BIOSFramePanel()
             
-            vlayout_bios_frame_vga      = self.showBIOS_VGA_settings     (font_2, vlayout_bios_label_3)
-            vlayout_bios_frame_timer    = self.showBIOS_Timer_settings   (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_vga      = self.showBIOS_VGA_settings      (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_timer    = self.showBIOS_Timer_settings    (font_2, vlayout_bios_label_3)
             #
-            vlayout_bios_frame_com1     = self.showBIOS_COM1_settings    (font_2, vlayout_bios_label_3)
-            vlayout_bios_frame_com2     = self.showBIOS_COM2_settings    (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_com1     = self.showBIOS_COM1_settings     (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_com2     = self.showBIOS_COM2_settings     (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_com3     = self.showBIOS_COM3_settings     (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_com4     = self.showBIOS_COM4_settings     (font_2, vlayout_bios_label_3)
             #
-            vlayout_bios_frame_floppyA  = self.showBIOS_FloppyA_settings (font_2, vlayout_bios_label_3)
-            vlayout_bios_frame_floppyB  = self.showBIOS_FloppyB_settings (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_floppyA  = self.showBIOS_FloppyA_settings  (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_floppyB  = self.showBIOS_FloppyB_settings  (font_2, vlayout_bios_label_3)
             #
-            vlayout_bios_frame_keyboard = self.showBIOS_Keyboard_settings(font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_keyboard = self.showBIOS_Keyboard_settings (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_mouse    = self.showBIOS_Mouse_settings    (font_2, vlayout_bios_label_3)
+            #
+            vlayout_bios_frame_lpt1     = self.showBIOS_LPT1_settings     (font_2, vlayout_bios_label_3)
+            vlayout_bios_frame_lpt2     = self.showBIOS_LPT2_settings     (font_2, vlayout_bios_label_3)
+            #
+            vlayout_bios_frame_boot     = self.showBIOS_Boot_settings     (font_2, vlayout_bios_label_3)
             
             #
             hlayout.addLayout(vlayout_bios_list)
@@ -25139,20 +25503,23 @@ try:
             #
             hlayout.addLayout(vlayout_bios_frame_com1)
             hlayout.addLayout(vlayout_bios_frame_com2)
+            hlayout.addLayout(vlayout_bios_frame_com3)
+            hlayout.addLayout(vlayout_bios_frame_com4)
             #
             hlayout.addLayout(vlayout_bios_frame_floppyA)
             hlayout.addLayout(vlayout_bios_frame_floppyB)
             #
+            hlayout.addLayout(vlayout_bios_frame_lpt1)
+            hlayout.addLayout(vlayout_bios_frame_lpt2)
+            #
             hlayout.addLayout(vlayout_bios_frame_keyboard)
+            hlayout.addLayout(vlayout_bios_frame_mouse)
+            hlayout.addLayout(vlayout_bios_frame_boot)
             #
             hlayout.addStretch()
             
-            self.bios_frame_timer   .hide()
-            self.bios_frame_com1    .hide()
-            self.bios_frame_com2    .hide()
-            self.bios_frame_floppyA .hide()
-            self.bios_frame_floppyB .hide()
-            self.bios_frame_keyboard.hide()
+            self.bios_frame_items_hide()
+            self.bios_frame_vga  .show()
             
             bios_list.itemClicked.connect(self.BIOS_list_item_clicked)
             #self.bios_devs.itemClicked.connect(self.BIOS_devs_item_clicked)
@@ -25170,9 +25537,15 @@ try:
             self.bios_frame_timer   .hide()
             self.bios_frame_com1    .hide()
             self.bios_frame_com2    .hide()
+            self.bios_frame_com3    .hide()
+            self.bios_frame_com4    .hide()
             self.bios_frame_floppyA .hide()
             self.bios_frame_floppyB .hide()
+            self.bios_frame_lpt1    .hide()
+            self.bios_frame_lpt2    .hide()
             self.bios_frame_keyboard.hide()
+            self.bios_frame_mouse   .hide()
+            self.bios_frame_boot    .hide()
         
         def bios_vga_item_adapter(self):
             self.bios_frame_items_hide()
@@ -25189,6 +25562,14 @@ try:
         def bios_vga_item_com2(self):
             self.bios_frame_items_hide()
             self.bios_frame_com2.show()
+        
+        def bios_vga_item_com3(self):
+            self.bios_frame_items_hide()
+            self.bios_frame_com3.show()
+        
+        def bios_vga_item_com4(self):
+            self.bios_frame_items_hide()
+            self.bios_frame_com4.show()
             
         def bios_vga_item_floppyA(self):
             self.bios_frame_items_hide()
@@ -25197,10 +25578,26 @@ try:
         def bios_vga_item_floppyB(self):
             self.bios_frame_items_hide()
             self.bios_frame_floppyB.show()
-            
+        
+        def bios_vga_item_lpt1(self):
+            self.bios_frame_items_hide()
+            self.bios_frame_lpt1.show()
+        
+        def bios_vga_item_lpt2(self):
+            self.bios_frame_items_hide()
+            self.bios_frame_lpt2.show()
+        
         def bios_vga_item_keyboard(self):
             self.bios_frame_items_hide()
             self.bios_frame_keyboard.show()
+        
+        def bios_vga_item_mouse(self):
+            self.bios_frame_items_hide()
+            self.bios_frame_mouse.show()
+        
+        def bios_vga_item_boot(self):
+            self.bios_frame_items_hide()
+            self.bios_frame_boot.show()
         
         def showBIOS_Timer_settings(self, font, vlayout_bios_label_3):
             #
@@ -25213,11 +25610,19 @@ try:
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
-            vga_label = QLabel(_str("VGA Adapter:"))
+            timer_enabled = QCheckBox(_str("Enabled"))
+            timer_enabled.setFont(font)
             
-            vga_chrom.setFont(font)
-            vga_label.setFont(font)
+            line = QFrame()
+            line.setFrameShape (QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(timer_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_timer_layout.addWidget(scroll_area)
             
             vlayout_bios_frame_timer = QVBoxLayout()
             vlayout_bios_frame_timer.addWidget(vlayout_bios_label_3)
@@ -25236,11 +25641,19 @@ try:
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
-            vga_label = QLabel(_str("VGA Adapter:"))
+            com1_enabled = QCheckBox(_str("Enabled"))
+            com1_enabled.setFont(font)
             
-            vga_chrom.setFont(font)
-            vga_label.setFont(font)
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(com1_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_com1_layout.addWidget(scroll_area)
             
             vlayout_bios_frame_com1 = QVBoxLayout()
             vlayout_bios_frame_com1.addWidget(vlayout_bios_label_3)
@@ -25259,17 +25672,87 @@ try:
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
-            vga_label = QLabel(_str("VGA Adapter:"))
+            com2_enabled = QCheckBox(_str("Enabled"))
+            com2_enabled.setFont(font)
             
-            vga_chrom.setFont(font)
-            vga_label.setFont(font)
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(com2_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_com2_layout.addWidget(scroll_area)
             
             vlayout_bios_frame_com2 = QVBoxLayout()
             vlayout_bios_frame_com2.addWidget(vlayout_bios_label_3)
             vlayout_bios_frame_com2.addStretch()
             
             return vlayout_bios_frame_com2
+        
+        def showBIOS_COM3_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_com3_layout = QVBoxLayout(self.bios_frame_com3)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            com3_enabled = QCheckBox(_str("Enabled"))
+            com3_enabled.setFont(font)
+            
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(com3_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_com3_layout.addWidget(scroll_area)
+            
+            vlayout_bios_frame_com3 = QVBoxLayout()
+            vlayout_bios_frame_com3.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_com3.addStretch()
+            
+            return vlayout_bios_frame_com3
+        
+        def showBIOS_COM4_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_com4_layout = QVBoxLayout(self.bios_frame_com4)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            com4_enabled = QCheckBox(_str("Enabled"))
+            com4_enabled.setFont(font)
+            
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(com4_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_com4_layout.addWidget(scroll_area)
+            
+            vlayout_bios_frame_com4 = QVBoxLayout()
+            vlayout_bios_frame_com4.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_com4.addStretch()
+            
+            return vlayout_bios_frame_com4
         
         def showBIOS_Keyboard_settings(self, font, vlayout_bios_label_3):
             #
@@ -25282,18 +25765,88 @@ try:
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
-            vga_label = QLabel(_str("VGA Adapter:"))
+            keyboard_enabled = QCheckBox(_str("Enabled"))
+            keyboard_enabled.setFont(font)
             
-            vga_chrom.setFont(font)
-            vga_label.setFont(font)
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(keyboard_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_keyboard_layout.addWidget(scroll_area)
             
             vlayout_bios_frame_keyboard = QVBoxLayout()
             vlayout_bios_frame_keyboard.addWidget(vlayout_bios_label_3)
             vlayout_bios_frame_keyboard.addStretch()
             
             return vlayout_bios_frame_keyboard
+        
+        def showBIOS_Mouse_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_mouse_layout = QVBoxLayout(self.bios_frame_mouse)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
             
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            mouse_enabled = QCheckBox(_str("Enabled"))
+            mouse_enabled.setFont(font)
+            
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(mouse_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_mouse_layout.addWidget(scroll_area)
+            
+            vlayout_bios_frame_mouse = QVBoxLayout()
+            vlayout_bios_frame_mouse.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_mouse.addStretch()
+            
+            return vlayout_bios_frame_mouse
+        
+        def showBIOS_Boot_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_boot_layout = QVBoxLayout(self.bios_frame_boot)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            boot_enabled = QCheckBox(_str("Enabled"))
+            boot_enabled.setFont(font)
+            
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(boot_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_boot_layout.addWidget(scroll_area)
+            
+            vlayout_bios_frame_boot = QVBoxLayout()
+            vlayout_bios_frame_boot.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_boot.addStretch()
+            
+            return vlayout_bios_frame_boot
+        
         def showBIOS_FloppyA_settings(self, font, vlayout_bios_label_3):
             #
             bios_frame_floppyA_layout = QVBoxLayout(self.bios_frame_floppyA)
@@ -25305,11 +25858,19 @@ try:
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
-            vga_label = QLabel(_str("VGA Adapter:"))
+            floppya_enabled = QCheckBox(_str("Enabled"))
+            floppya_enabled.setFont(font)
             
-            vga_chrom.setFont(font)
-            vga_label.setFont(font)
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(floppya_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_floppyA_layout.addWidget(scroll_area)
             
             vlayout_bios_frame_floppyA = QVBoxLayout()
             vlayout_bios_frame_floppyA.addWidget(vlayout_bios_label_3)
@@ -25328,18 +25889,88 @@ try:
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
-            vga_label = QLabel(_str("VGA Adapter:"))
+            floppyb_enabled = QCheckBox(_str("Enabled"))
+            floppyb_enabled.setFont(font)
             
-            vga_chrom.setFont(font)
-            vga_label.setFont(font)
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(floppyb_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_floppyB_layout.addWidget(scroll_area)
             
             vlayout_bios_frame_floppyB = QVBoxLayout()
             vlayout_bios_frame_floppyB.addWidget(vlayout_bios_label_3)
             vlayout_bios_frame_floppyB.addStretch()
             
             return vlayout_bios_frame_floppyB
+        
+        def showBIOS_LPT1_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_lpt1_layout = QVBoxLayout(self.bios_frame_lpt1)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
             
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            lpt1_enabled = QCheckBox(_str("Enabled"))
+            lpt1_enabled.setFont(font)
+            
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(lpt1_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_lpt1_layout.addWidget(scroll_area)
+            
+            vlayout_bios_frame_lpt1 = QVBoxLayout()
+            vlayout_bios_frame_lpt1.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_lpt1.addStretch()
+            
+            return vlayout_bios_frame_lpt1
+        
+        def showBIOS_LPT2_settings(self, font, vlayout_bios_label_3):
+            #
+            bios_frame_lpt2_layout = QVBoxLayout(self.bios_frame_lpt2)
+            ###
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMinimumWidth(600)
+            
+            scroll_content = QWidget()
+            content_layout = QVBoxLayout(scroll_content)
+            
+            lpt2_enabled = QCheckBox(_str("Enabled"))
+            lpt2_enabled.setFont(font)
+            
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            
+            content_layout.addWidget(lpt2_enabled)
+            content_layout.addWidget(line)
+            content_layout.addStretch()
+            #
+            scroll_area.setWidget(scroll_content)
+            bios_frame_lpt2_layout.addWidget(scroll_area)
+            
+            vlayout_bios_frame_lpt2 = QVBoxLayout()
+            vlayout_bios_frame_lpt2.addWidget(vlayout_bios_label_3)
+            vlayout_bios_frame_lpt2.addStretch()
+            
+            return vlayout_bios_frame_lpt2
+        
         def showBIOS_VGA_settings(self, font, vlayout_bios_label_3):
             #
             bios_frame_layout = QVBoxLayout(self.bios_frame_vga)
@@ -25351,18 +25982,17 @@ try:
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            vga_chrom = QLabel(_str("VGA Monitor chrome / black + white:"))
-            vga_label = QLabel(_str("VGA Adapter:"))
+            vga_active = CustomCheckBox(font, _str("Enabled"))
             
-            vga_chrom.setFont(font)
-            vga_label.setFont(font)
+            line = CustomFrame()
+            
+            vga_chrom = CustomLabel(font, _str("VGA Monitor chrome / black + white:"))
+            vga_label = CustomLabel(font, _str("VGA Adapter:"))
             
             vga_hlayout = QHBoxLayout()
-            vga_chrom_check = QCheckBox(_str("YES"))
-            vga_red_borders = QCheckBox(_str("VGA have RED Border"))
             
-            vga_chrom_check.setFont(font)
-            vga_red_borders.setFont(font)
+            vga_chrom_check = CustomCheckBox(font, _str("YES"))
+            vga_red_borders = CustomCheckBox(font, _str("VGA have RED Border"))
             
             vga_hlayout.addWidget(vga_chrom_check)
             vga_hlayout.addWidget(vga_red_borders)
@@ -25371,8 +26001,8 @@ try:
             vga_vlayout_1 = QVBoxLayout()
             vga_vlayout_2 = QVBoxLayout()
             #
-            vga_vlayout_text_1 = QLabel(_str("Adapter / Image Type"))
-            vga_vlayout_text_2 = QLabel(_str("VGA Card Hardware"))
+            vga_vlayout_text_1 = CustomLabel(font, _str("Adapter / Image Type"))
+            vga_vlayout_text_2 = CustomLabel(font, _str("VGA Card Hardware"))
             
             vga_combo_1 = QComboBox()
             vga_combo_1.setFont(font)
@@ -25401,65 +26031,52 @@ try:
             vga_model_hlayout.addLayout(vga_vlayout_1)
             vga_model_hlayout.addLayout(vga_vlayout_2)
             
-            vga_label_1_text    = QLabel(_str("TUI User Interface:"))
-            vga_label_2_graphic = QLabel(_str("GUI User Interface:"))
-            
             font.setBold(True)
-            vga_label_1_text   .setFont(font)
-            vga_label_2_graphic.setFont(font)
+            vga_label_1_text    = CustomLabel(font, _str("TUI User Interface:"))
+            vga_label_2_graphic = CustomLabel(font, _str("GUI User Interface:"))
             font.setBold(False)
             
             vga_bios_1 = QHBoxLayout()
-            vga_bios_1_label_1 = QLabel(_str("Segment:"))
-            vga_bios_1_label_2 = QLabel(_str("Offset:"))
+            vga_bios_1_label_1 = CustomLabel(font, _str("Segment:"))
+            vga_bios_1_label_2 = CustomLabel(font, _str("Offset:"))
             
             vga_bios_2 = QHBoxLayout()
-            vga_bios_2_label_1 = QLabel(_str("Segment:"))
-            vga_bios_2_label_2 = QLabel(_str("Offset:"))
+            vga_bios_2_label_1 = CustomLabel(font, _str("Segment:"))
+            vga_bios_2_label_2 = CustomLabel(font, _str("Offset:"))
             
-            vga_bios_1_start   = QLineEdit()
-            vga_bios_1_end     = QLineEdit()
+            vga_bios_1_start   = CustomLineEdit(font, 120, "0xB000")
+            vga_bios_1_end     = CustomLineEdit(font, 120, "0x0000")
+            #
+            vga_bios_2_start   = CustomLineEdit(font, 120, "0xA000")
+            vga_bios_2_end     = CustomLineEdit(font, 120, "0x0000")
             
-            vga_bios_2_start   = QLineEdit()
-            vga_bios_2_end     = QLineEdit()
+            calc_1_segbtn = CustomPushButton(font, _str("Calculator"), self.bios_btn_clicked)
+            calc_1_spacer = CustomFrame     (font, 100)
+            calc_1_label  = CustomLabel     (font, _str("0xB0000"))
+            #
+            calc_2_segbtn = CustomPushButton(font, _str("Calculator"), self.bios_btn_clicked)
+            calc_2_spacer = CustomFrame     (font, 100)
+            calc_2_label  = CustomLabel     (font, _str("0xA0000"))
             
-            vga_bios_1_start.setPlaceholderText("0xB000")
-            vga_bios_1_end  .setPlaceholderText("0x0000")
+            vga_bios_list_1 = [
+                vga_bios_1_label_1, vga_bios_1_start,
+                vga_bios_1_label_2, vga_bios_1_end,
+                calc_1_segbtn, calc_1_spacer, calc_1_label
+            ]
+            vga_bios_list_2 = [
+                vga_bios_2_label_1, vga_bios_2_start,
+                vga_bios_2_label_2, vga_bios_2_end,
+                calc_2_segbtn, calc_2_spacer, calc_2_label
+            ]
+            self.CustomAddWidget(vga_bios_1, vga_bios_list_1)
+            self.CustomAddWidget(vga_bios_2, vga_bios_list_2)
             
-            vga_bios_2_start.setPlaceholderText("0xA000")
-            vga_bios_2_end  .setPlaceholderText("0x0000")
-            
-            vga_bios_1_start.setMaximumWidth(120)
-            vga_bios_1_end  .setMaximumWidth(120)
-            
-            vga_bios_2_start.setMaximumWidth(120)
-            vga_bios_2_end  .setMaximumWidth(120)
-            
-            vga_bios_1_label_1.setFont(font)
-            vga_bios_1_label_2.setFont(font)
-            
-            vga_bios_1_start  .setFont(font)
-            vga_bios_1_end    .setFont(font)
-            
-            vga_bios_2_label_1.setFont(font)
-            vga_bios_2_label_2.setFont(font)
-            
-            vga_bios_2_start  .setFont(font)
-            vga_bios_2_end    .setFont(font)
-            
-            vga_bios_1.addWidget(vga_bios_1_label_1); vga_bios_1.addWidget(vga_bios_1_start)
-            vga_bios_1.addWidget(vga_bios_1_label_2); vga_bios_1.addWidget(vga_bios_1_end)
-            vga_bios_1.addStretch()
-            
-            vga_bios_2.addWidget(vga_bios_2_label_1); vga_bios_2.addWidget(vga_bios_2_start)
-            vga_bios_2.addWidget(vga_bios_2_label_2); vga_bios_2.addWidget(vga_bios_2_end)
-            vga_bios_2.addStretch()
+            line2 = CustomFrame()
             
             vga_color = QHBoxLayout()
             vga_color.setAlignment(Qt.AlignVCenter)
             
-            vga_color_combo = QComboBox()
-            vga_color_combo.setFont(font)
+            vga_color_combo = CustomComboBox(font)
             #
             for i in range(1, 256):
                 vga_color_combo.addItems([str(i)])
@@ -25467,70 +26084,171 @@ try:
             vlay_color = QVBoxLayout()
             vlay_color.setAlignment(Qt.AlignHCenter)
             
-            vlay_color_label = QLabel(_str("Color"))
-            vlay_color_label.setFont(font)
+            vlay_color_label = CustomLabel(font, _str("Color"))
             
             vlay_color.addWidget(vlay_color_label)
             vlay_color.addWidget(vga_color_combo)
             vga_color .addLayout(vlay_color)
             
-            for i in range(1, 17):
+            
+            self.bios_color_buttons = []
+
+            for i, color in enumerate(DEFAULT_COLORS):
                 vlay = QVBoxLayout()
                 color_num = QLabel(str(i))
                 color_num.setFont(font)
                 
-                color_btn = QPushButton("")
+                color_btn = BIOSColorButton(color, i)
                 color_btn.setFixedSize(30,30)
-                color_btn.setObjectName(f"vga_color_btn{i}")
                 color_btn.clicked.connect(self.color_btn_clicked)
                 #
                 vlay.addWidget(color_num, alignment=Qt.AlignCenter)
                 vlay.addWidget(color_btn, alignment=Qt.AlignCenter)
                 #
                 vga_color.addLayout(vlay)
+                self.bios_color_buttons.append(color_btn)
             
-            content_layout.addWidget(vga_chrom)
-            content_layout.addLayout(vga_hlayout)
-            content_layout.addWidget(vga_label)
-            content_layout.addLayout(vga_model_hlayout)
+            console_font_frame_hlayout   = QHBoxLayout()
+            console_font_frame_vlayout_1 = QVBoxLayout()
+            console_font_frame_vlayout_2 = QVBoxLayout()
+            
+            console_font_frame_combo = CustomComboBox(font)
+            console_font_frame_label = CustomLabel(font, _str("Console Font:"))
+            
+            # Feste Fonts ermitteln
+            font_db = QFontDatabase()
+            fixed_fonts = [f for f in font_db.families() if font_db.isFixedPitch(f)]
+            console_font_frame_combo.addItems(sorted(fixed_fonts))
+            console_font_frame_combo.currentTextChanged.connect(self.console_font_selected)
+            
+            console_font_frame_vlayout_1.addWidget(console_font_frame_label)
+            console_font_frame_vlayout_1.addWidget(console_font_frame_combo)
+            console_font_frame_vlayout_1.addStretch()
+            
+            console_font_frame_label_2 = CustomLabel(font, _str("Example:"))
+            
+            console_font_frame_vlayout_2.addWidget(console_font_frame_label_2)
+            console_font_frame_vlayout_2.addStretch()
+            
+            console_font_frame = BIOSFramePanel()
+            console_font_frame.setMinimumHeight(48)
+            console_font_frame.setMinimumWidth (84)
+            
+            console_font_frame_layout = QVBoxLayout(console_font_frame)
+            console_font_frame_layout_label_2 = CustomLabel(font, _str("Jumping Jack Flash 1234567890"))
+            
+            self.console_font_frame_label_2 = console_font_frame_layout_label_2
+            
+            console_font_frame_layout   .addWidget(console_font_frame_layout_label_2)
+            console_font_frame_vlayout_2.addWidget(console_font_frame)
+            
+            console_font_frame_hlayout.addLayout(console_font_frame_vlayout_1)
+            console_font_frame_hlayout.addLayout(console_font_frame_vlayout_2)
+            
+            dummy_widget_spacer = QVBoxLayout()
+            dummy_widget_spacer_widget = QWidget()
+            dummy_widget_spacer_widget.setMinimumHeight(12)
+            dummy_widget_spacer.addWidget(dummy_widget_spacer_widget)
+            
+            console_default_values_hlayout = QHBoxLayout()
+            console_default_values_vlayout_1 = QVBoxLayout()
+            console_default_values_label_1 = CustomLabel(font, _str("Default Columns:"), 100)
+            console_default_values_lspin_1 = CustomSpinBox(font, 1, 80, 80)
+            
+            console_default_values_vlayout_2 = QVBoxLayout()
+            console_default_values_label_2 = CustomLabel(font, _str("Default Rows:"), 100)
+            console_default_values_lspin_2 = CustomSpinBox(font, 1, 25, 25)
+            
+            console_default_values_vlayout_1.addWidget(console_default_values_label_1)
+            console_default_values_vlayout_1.addWidget(console_default_values_lspin_1)
             #
-            content_layout.addWidget(vga_label_1_text   ); content_layout.addLayout(vga_bios_1)
-            content_layout.addWidget(vga_label_2_graphic); content_layout.addLayout(vga_bios_2)
-            #
-            content_layout.addLayout(vga_color)
+            console_default_values_vlayout_2.addWidget(console_default_values_label_2)
+            console_default_values_vlayout_2.addWidget(console_default_values_lspin_2)
+            
+            console_default_values_hlayout.addLayout(console_default_values_vlayout_1)
+            console_default_values_hlayout.addLayout(console_default_values_vlayout_2)
+            console_default_values_hlayout.addStretch()
+            
+            console_history_layout = QVBoxLayout()
+            console_history_label  = CustomLabel(font, _str("History Lines:"))
+            console_history_sedit  = CustomSpinBox(font, 1, 255, 10)
+            console_history_sedit.setMaximumWidth(100)
+            
+            console_history_layout.addWidget(console_history_label)
+            console_history_layout.addWidget(console_history_sedit)
+            
+            content_list = [
+                vga_active,
+                line,
+                vga_chrom,
+                vga_hlayout,
+                vga_label,
+                vga_model_hlayout,
+                vga_label_1_text,     vga_bios_1,
+                vga_label_2_graphic,  vga_bios_2,
+                line2,
+                vga_color,
+                dummy_widget_spacer,
+                console_font_frame_hlayout,
+                console_default_values_hlayout,
+                console_history_layout
+            ]
+            self.CustomAddWidget(content_layout, content_list)
             content_layout.addStretch()
             
             scroll_area.setWidget(scroll_content)
             bios_frame_layout.addWidget(scroll_area)
             ###
-            bios_default_btn_1 = QPushButton(_str("default"))
-            bios_default_btn_2 = QPushButton(_str("Save Config Settings"))
-            
-            bios_default_btn_1.setFont(font)
-            bios_default_btn_2.setFont(font)
-            
-            bios_default_btn_1.clicked.connect(self.bios_btn_clicked)
-            bios_default_btn_2.clicked.connect(self.bios_btn_clicked)
+            bios_default_btn_1 = CustomPushButton(font, _str("default")             , self.bios_btn_clicked)
+            bios_default_btn_2 = CustomPushButton(font, _str("Save Config Settings"), self.bios_btn_clicked)
             
             vlayout_bios_frame = QVBoxLayout()
-            vlayout_bios_frame.addWidget(vlayout_bios_label_3)
-            vlayout_bios_frame.addWidget(self.bios_frame_vga)
-            vlayout_bios_frame.addWidget(self.bios_frame_timer)
-            #
-            vlayout_bios_frame.addWidget(self.bios_frame_com1)
-            vlayout_bios_frame.addWidget(self.bios_frame_com2)
-            #
-            vlayout_bios_frame.addWidget(self.bios_frame_floppyA)
-            vlayout_bios_frame.addWidget(self.bios_frame_floppyB)
-            #
-            vlayout_bios_frame.addWidget(self.bios_frame_keyboard)
-            #
-            vlayout_bios_frame.addWidget(bios_default_btn_1)
-            vlayout_bios_frame.addWidget(bios_default_btn_2)
+            frame_list = [
+                vlayout_bios_label_3,
+                self.bios_frame_vga,
+                self.bios_frame_timer,
+                self.bios_frame_com1,
+                self.bios_frame_com2,
+                self.bios_frame_com3,
+                self.bios_frame_com4,
+                #
+                self.bios_frame_floppyA,
+                self.bios_frame_floppyB,
+                #
+                self.bios_frame_lpt1,
+                self.bios_frame_lpt2,
+                #
+                self.bios_frame_keyboard,
+                self.bios_frame_mouse,
+                self.bios_frame_boot,
+                #
+                bios_default_btn_1,
+                bios_default_btn_2
+            ]
+            for item in frame_list:
+                vlayout_bios_frame.addWidget(item)
             vlayout_bios_frame.addStretch()
             
             return vlayout_bios_frame
         
+        def CustomAddWidget(self, lay, liste):
+            for item in liste:
+                if isinstance(item, QWidget):
+                    lay.addWidget(item)
+                    lay.addStretch()
+                elif isinstance(item, QLayout):
+                    lay.addLayout(item)
+                    lay.addStretch()
+                else:
+                    raise Exception(_str("item is not QLayout nor QWidget."))
+        
+        def console_font_selected(self, font_name):
+            font_size = 14
+            font = QFont(font_name, font_size)
+            font.setBold(False)
+            font.setItalic(False)
+            self.console_font_frame_label_2.setFont(font)
+            
         def bios_btn_clicked_new(self):
             file_path = os.getcwd() + "/_internal/__cache__"
             self.bios_write_image(file_path)
@@ -25540,12 +26258,22 @@ try:
             return
         
         def color_btn_clicked(self):
-            genv.sender_object = self.sender()
-            for i in range(1, 17):
-                btn = self.findChild(QPushButton, f"vga_color_btn{i}")
-                if btn:
-                    btn.setStyleSheet("border: 1px solid black;")
-            genv.sender_object.setStyleSheet("border: 3px solid red;")
+            i = -1
+            for btn in self.bios_color_buttons:
+                i = i+1
+                btn.setStyleSheet("QPushButton{background-color:" + str(DEFAULT_COLORS[i]) + ";border:0px;}")
+            i = -1
+            for btn in self.bios_color_buttons:
+                i = i+1
+                if btn == self.sender():
+                    btn.setStyleSheet("QPushButton{background-color:" + str(DEFAULT_COLORS[i]) + ";border:2px solid red;")
+                    
+            #genv.sender_object = self.sender()
+            #for i in range(1, 17):
+            #    btn = self.findChild(QPushButton, f"vga_color_btn{i}")
+            #    if btn:
+            #        btn.setStyleSheet("border: 1px solid black;")
+            #genv.sender_object.setStyleSheet("border: 3px solid red;")
             
         def BIOS_list_item_clicked(self):
             QMessageBox.information(self, "Icon geklickt", "klicky")
@@ -25666,16 +26394,114 @@ try:
             vlay.addWidget(chm_seld)
             #vlay.addStretch()
             return vlay
-            
-        def load_mo_file(self):
-            file_name, _ = QFileDialog.getOpenFileName(self, _str("Open .mo file"), '', 'MO Files (*.mo)')
-            if file_name:
-                self.po = polib.mofile(file_name)
-                self.list_widget.clear()
-                for entry in self.po:
-                    self.list_widget.addItem(entry.msgid)
-                self.status_label.setText(f'Loaded: {file_name}')
-                self.current_file = file_name
+        
+        def load_gz_mo(self, file_path):
+            check_file = Path(file_path)
+            if not check_file.exists():
+                raise Exception("gzfile directory exists, but file could not found.")
+            if not check_file.is_file():
+                raise Exception("gzfile is not a file.")
+            if check_file.is_file():
+                with open(check_file, "rb") as file:
+                    file_header = file.read(3)
+                    if file_header == b'\x1f\x8b\x08':
+                        file.seek(0)
+                        file_data = file.read()
+                        compressed_data = io.BytesIO(file_data)
+                        with gzip.GzipFile(fileobj=compressed_data, mode="rb") as gzip_file:
+                            uncompressed_data = gzip_file.read()
+                        file.close()
+                        mo_file = io.BytesIO(uncompressed_data)
+                        return mo_file
+                    elif file_header == b'\xde\x12\x04':
+                        file.seek(0)
+                        file_data = file.read()
+                        mo_file = io.BytesIO(file_data)
+                        file.close()
+                        return mo_file
+                    else:
+                        file.close()
+                        raise Exception("mo file could not be load.")
+            return None
+        
+        def load_mopo_file(self):
+            try:
+                dialog = QFileDialog()
+                dialog.setFont(QFont("Arial", 10))
+                dialog.setOption(QFileDialog.DontUseNativeDialog, True)  # <-- Wichtig
+                dialog.setFileMode(QFileDialog.ExistingFiles)
+                dialog.setNameFilter(""
+                    + _str("All Translation Files (*.mo.gz *.mo *.po);;")
+                    + _str("MO GZ Files (*.mo.gz);;")
+                    + _str("MO Files (*.mo);;")
+                    + _str("PO Files (*.po);;")
+                    + _str("All Files (*)"))
+                    
+                if dialog.exec_():
+                    file_name = dialog.selectedFiles()[0].lower()
+                    if file_name.endswith(".mo.gz"):
+                        mo_stream = self.load_gz_mo(file_name)
+                        self.po = polib.mofile(mo_stream.read())
+                        #
+                        self.list_widget.clear()
+                        for entry in self.po:
+                            self.list_widget.addItem(entry.msgid)
+                    elif file_name.endswith(".mo"):
+                        with open(file_name, "rb") as f:
+                            mo_data = f.read()
+                            if mo_data == None:
+                                f.close()
+                                raise Exception(_str("locales data error."))
+                            mo_stream = io.BytesIO(mo_data)
+                            self.po = polib.mofile(mo_stream)
+                            #
+                            self.list_widget.clear()
+                            for entry in self.po:
+                                self.list_widget.addItem(entry.msgid)
+                    elif file_name.endswith(".po"):
+                        with open(file_name, "r", encoding="utf-8") as f:
+                            po_data = f.read()
+                            po_stream = io.StringIO(po_data)
+                            self.po = polib.pofile(po_stream.read())
+                            #
+                            self.list_widget.clear()
+                            for entry in self.po:
+                                self.list_widget.addItem(entry.msgid)
+                    else:
+                        raise Exception(_str(".mo or .po import fail."))
+                        
+                    self.status_label.setText(f'Loaded: {file_name}')
+                    self.current_file = file_name
+                    
+            except AttributeError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Attribute Error occur during read .mo file:\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during read .mo file:\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
         
         def on_list_item_changed(self, current, previous):
             if current:
@@ -26397,6 +27223,25 @@ try:
             self.setMinimumHeight(500)
             self.setMinimumWidth (700)
             self.setLineWidth(2)
+            
+    class BIOSColorButton(QPushButton):
+        def __init__(self, color, index):
+            super().__init__()
+            self.index = index
+            self.setFixedSize(60, 40)
+            self.set_color(color)
+        
+        def set_color(self, color):
+            if isinstance(color, str):
+                color = QColor(color)
+            self.color = color
+            self.setStyleSheet(f"background-color: {self.color.name()};")
+        
+        def mouseDoubleClickEvent(self, event):
+            if event.button() == Qt.LeftButton:
+                new_color = QColorDialog.getColor(self.color, self, "Farbe auswählen")
+                if new_color.isValid():
+                    self.set_color(new_color)
     
     # ------------------------------------------------------------------------
     # inform the user about the rules/license of this application script ...
@@ -27345,7 +28190,7 @@ try:
             genv.v__app_win.move(100, 100)
             genv.v__app_win.exec_()
             
-            self.exit(0)
+            sys.exit(0)
 
         def on_button2_click(self):
             self.hide()
@@ -27774,10 +28619,6 @@ try:
             DebugPrint("Datei wurde nicht gefunden. Bitte den Dateipfad überprüfen.")
         except Exception as e:
             DebugPrint(f"Ein Fehler ist aufgetreten: {str(e)}")
-
-
-
-
 
 ###################
     # ------------------------------------------------------------------------
