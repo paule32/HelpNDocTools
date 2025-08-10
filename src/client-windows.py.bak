@@ -7,10 +7,13 @@
 # ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
+global GUI_DEBUG           # set if gui debug !
+
 global os_name; os_name = ""
 global res_file
 
-res_file = 'resources_rc.cpython-313.pyc.gz'  # we use Python 3.13.3 !
+GUI_DEBUG = True
+res_file  = 'resources_rc.cpython-313.pyc.gz'  # we use Python 3.13.3 !
 
 # ANSI-Konsolenfarben (Standard)
 DEFAULT_COLORS = [
@@ -524,6 +527,21 @@ try:
             )
             super().__init__(value)
     
+    class ParserReachEOFError(Exception):
+        def __init__(self, text, value=1):
+            self.value   = str(value)
+            self.message = (""
+            + _str("Syntax Error in Line: ") + str(genv.line_row) + "\n"
+            + _str("Message:") + "\n"
+            + text
+            )
+            super().__init__(value)
+            
+    class ParserReachEOF(Exception):
+        def __init__(self, text):
+            self.message = _str("no more data.")
+            super().__init__(0)
+    
     class unexpectedParserException(Exception):
         def __init__(self, text, value=1):
             self.value    = str(value)
@@ -532,12 +550,12 @@ try:
 
     class noDataNoError(Exception):
         def __init__(self, text="no more data"):
-            self.message = _(text)
+            self.message = text
             super().__init__(0)
             
     class e_no_more_data(Exception):
         def __init__(self, text="no more data"):
-            self.message = _(text)
+            self.message = text
             super().__init__(0)
 
     class e_expr_error(Exception):
@@ -716,78 +734,104 @@ try:
             return True
         return False
     
-    def prepareException(ex, error_type, error_text):
+    def prepareException(ex, error_type, error, flag=0):
         error_flag = False
-        error_text = ""
-        try:
-            tb = traceback.extract_tb(ex.__traceback__)
-            last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
-            #
-            error_flag = False
-            app = QApplication.instance()
-            rte = _str("Runtime Error")
-            #
-            if app is None:
-                error_type = rte
-                error_text = _str("Qt GUI was not initialized – QApplication missing.")
-                error_flag = True
-                
-            if not QApplication.instance().thread().isRunning():
-                error_type = rte
-                error_text = _str("Qt GUI-Thread does not run – GUI not ready.")
-                error_flag = True
-                
-            if not QApplication.instance().thread() == QApplication.instance().thread():
-                error_type = rte
-                error_text = _str("QApplication Main-Thread does not run.")
-                error_flag = True
-            #
-            error_txt = (""
-            + f"{error_type}:\n"
-            + f"{error_text} \n" 
-            + f"  " + f"{_str("Message   :")} {str(ex)}"       + "\n"
-            + f"  " + f"{_str("File      :")} {last.filename}" + "\n"
-            + f"  " + f"{_str("Function  :")} {last.name}"     + "\n"
-            + f"  " + f"{_str("Line      :")} {last.lineno}"   + "\n")
-            #
-            print("====> " + error_txt)
-            if error_flag:
-                raise RuntimeError(error_txt)
-            raise Exception(error_txt)
+        error_text = error
+        error_txt  = error
+        
+        tb = traceback.extract_tb(ex.__traceback__)
+        last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
+        #
+        app = QApplication.instance()
+        rte = _str("Runtime Error")
+        #
+        if app is None:
+            error_type = rte
+            error_text = _str("Qt GUI was not initialized – QApplication missing.")
+            error_flag = True
             
-        except RuntimeError as e:
-            error_flag = False
-            if get_console_mode():
-                print(error_txt)
-            else:
-                showInfo("guiker")
-                
-        except Exception as e:
-            error_flag = False
-            if get_console_mode():
-                print(error_txt)
-            else:
-                showInfo("oii")
+        if not QApplication.instance().thread().isRunning():
+            error_type = rte
+            error_text = _str("Qt GUI-Thread does not run – GUI not ready.")
+            error_flag = True
+            
+        if not QApplication.instance().thread() == QApplication.instance().thread():
+            error_type = rte
+            error_text = _str("QApplication Main-Thread does not run.")
+            error_flag = True
+        #
+        if flag == 1:   # pascal parser
+            error_txt = (""
+            + f"{_str("Parser Notification")}\n"
+            + f"  " + f"{_str("Message: ") + ex.message}"
+            + f"  " + f"{_str("Line   : ") + str(genv.line_row)}"
+            )
+            return error_txt
+        # -------
+        error_txt = (""
+        + f"{error_type}:\n"
+        + f"{error_text} \n" 
+        + f"  " + f"{_str("Message   :")} {str(ex)}"       + "\n"
+        + f"  " + f"{_str("File      :")} {last.filename}" + "\n"
+        + f"  " + f"{_str("Function  :")} {last.name}"     + "\n"
+        + f"  " + f"{_str("Line      :")} {last.lineno}"   + "\n")
+        # -------
+        return error_txt
         
     def showInfo(text):
         try:
             if get_console_mode():
-                print("oooooo==> " + text)
-                return True
+                if GUI_DEBUG == True:
+                    showMessage(text, 0)
+                else:
+                    print(text)
             else:
                 showMessage(text, 0)
-                return True
-        except AttributError as e:
-            prepareException(e, _str("Attribute Error"), text)
+            return True
+                
+        except AttributeError as e:
+            text = prepareException(e, _str("Attribute Error"), e.message)
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(text, 0)
+                else:
+                    print(text)
+            else:
+                showMessage(text, 0)
             return False
             
         except RuntimeError as e:
-            prepareException(e, _str("Runtime Error"), text)
+            text = prepareException(e, _str("Runtime Error"), e.message)
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(text, 0)
+                else:
+                    print(text)
+            else:
+                showMessage(text, 0)
+            return False
+        
+        except ParserSyntaxError as e:
+            text = prepareException(e, _str("Parser Error"), e.message)
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(text, 0)
+                else:
+                    print(text)
+            else:
+                showMessage(text, 0)
             return False
             
         except SyntaxError as e:
-            prepareException(e, _str("Syntax Error"), text)
-            return False
+            text = prepareException(e, _str("Syntax Error"), e.message)
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(text, 0)
+                else:
+                    print(text)
+            else:
+                showMessage(text, 0)
+                return False
     
     def showWarning(text):
         try:
@@ -798,27 +842,6 @@ try:
                 showMessage(text, 1)
                 return True
             
-        except AttributError as e:
-            prepareException(e, _str("Attribute Error"), text)
-            return False
-            
-        except RuntimeError as e:
-            prepareException(e, _str("Runtime Error"), text)
-            return False
-            
-        except SyntaxError as e:
-            prepareException(e, _str("Syntax Error"), text)
-            return False
-            
-    def showError(text):
-        try:
-            if get_console_mode():
-                print(text)
-                return True
-            else:
-                showMessage(text, 2)
-                return True
-                
         except AttributeError as e:
             prepareException(e, _str("Attribute Error"), text)
             return False
@@ -831,9 +854,144 @@ try:
             prepareException(e, _str("Syntax Error"), text)
             return False
             
-        except Exception as e:
-            prepareException(e, _str("Exception"), text)
-            return False
+    def showError(text):
+        if isinstance(text, ParserReachEOFError):
+            error_text = (""
+            + f"{prepareException(text, _str("Parser Reach End of File Error"), text.message, 1)}"
+            )
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
+        # ----------------------
+        if isinstance(text, ParserReachEOF):
+            error_text = (""
+            + f"{prepareException(text, _str("Parser No Error"), text.message, 1)}"
+            )
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
+        # ----------------------
+        if isinstance(text, ParserSyntaxError):
+            error_text = (""
+            + f"{text.message}\n"
+            + f"{prepareException(text, _str("Parser Error"), text.message, 1)}"
+            )
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
+        # ----------------------
+        elif isinstance(text, AttributeError):
+            error_text = (""
+            + f"{text.message}\n"
+            + f"{prepareException(text, _str("Attribute Error"), text.message)}"
+            )
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
+        # ----------------------
+        elif isinstance(text, RuntimeError):
+            error_text = (""
+            + f"{text.message}\n"
+            + f"{prepareException(text, _str("Runtime Error"), text.message)}"
+            )
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
+        # ----------------------
+        elif isinstance(text, SyntaxError):
+            error_text = (""
+            + f"{text.message}\n"
+            + f"{prepareException(text, _str("Syntax Error"), text.message)}"
+            )
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
+        # ----------------------
+        elif isinstance(text, NameError):
+            error_text = (""
+            + f"{prepareException(text, _str("Name Error"), text)}"
+            )
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
+        # ----------------------
+        elif isinstance(text, Exception):
+            error_text = (""
+            + f"Exception\n"
+            + f"{prepareException(text, _str("Exception Error"), text)}"
+            )
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
+        # ----------------------
+        else:
+            error_text = text
+            if get_console_mode():
+                if GUI_DEBUG == True:
+                    showMessage(error_text, 0)
+                    return True
+                else:
+                    print(error_text)
+                    return False
+            else:
+                showMessage(error_text, 0)
+                return True
     
     # ------------------------------------------------------------------------------
     # \brief  This definition displays a exception dialog if some exception is raise
@@ -5870,7 +6028,10 @@ try:
                         genv.have_errors = True
                         raise Exception(_str("Error:\nno terminated comment found."))
                         
-                raise Exception("no more data")
+                if not self.program_reach_end:
+                    raise ParserReachEOFError(_str("PROGRAM without END."))
+                else:
+                    raise ParserReachEOF(_str("no more data"))
             else:
                 genv.char_curr = self.source[self.pos]
                 if genv.char_curr == '\n':
@@ -5892,14 +6053,17 @@ try:
                         genv.line_col  = 1
                         genv.line_row += 1
                         
-                        return True
+                        return genv.char_curr
                     else:
                         genv.have_errors = True
                         raise Exception(_str("Error:\nEnd Of Line error: ") + str(genv.line_row))
                 else:
-                    return False
+                    return genv.char_curr
         
         def ungetChar(self, num):
+            if self.pos < 1:
+                raise Exception("internal error")
+            
             genv.line_col -= num
             self.pos -= num
             
@@ -5940,15 +6104,16 @@ try:
                 genv.char_prev = genv.char_curr
                 self.getChar()
                 
-                if genv.char_curr.isalnum():
+                if genv.char_curr.isalpha() \
+                or genv.char_curr.isdigit() \
+                or genv.char_curr == '_':
                     self.token_str += genv.char_curr
                     continue
                 else:
                     self.ungetChar(1)
                     #showInfo("===>>>> " + self.token_str)
-                    return True
-                    
-            return False
+                    return self.token_str
+            return ""
         
         def getNumber(self):
             have_point = False
@@ -6041,14 +6206,21 @@ try:
         
         def check_white_spaces(self):
             while True:
-                if genv.char_curr == '\n' \
-                or genv.char_curr == '\t' \
-                or genv.char_curr == ' ':
-                    return True
+                if genv.char_curr == '\r':
+                    genv.char_prev = genv.char_curr
+                    self.getChar(1)
+                    if not genv.char_curr == '\n':
+                        raise ParserSyntaxError(_str("Line Ending Errot."))
+                    genv.line_row += 1
+                    continue
+                elif genv.char_curr == '\n':
+                    genv.line_row += 1
+                    continue
+                elif genv.char_curr == '\t' \
+                or   genv.char_curr == ' ':
+                    continue
                 else:
-                    #self.ungetChar(1)
-                    #showInfo("zzz>> " + genv.char_curr)
-                    return False
+                    return genv.char_curr
         
         def check_newline(self):
             if genv.char_curr == '\n':
@@ -6087,89 +6259,12 @@ try:
         
         def check_ident(self, name='', old=0):
             if old == 1:
-                if name == '' or self.token_str.lower() == name:
+                if genv.char_curr == genv.TOKEN_IDENT and self.token_str.lower() == name:
                     return True
-                else:
-                    return False
-            elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                self.token_str = genv.char_curr
-                self.getIdent()
-                print("ident: " + self.token_str)
-                if name == '' or self.token_str.lower() == name:
-                    return True
-                else:
-                    return False
-            else:
-                print("checker: " + self.token_str + "\n> " + genv.char_curr)
-                #self.ungetChar(1)
                 return False
-        
-        def handle_pascal_comment_1(self):
-            genv.open_pascal_comment_hard += 1
-            while True:
-                genv.char_prev = genv.char_curr
-                self.getChar()
-                
-                #if self.check_char('{'):
-                #    genv.open_pascal_comment_hard += 1
-                #    continue
-                    
-                if self.check_char('}'):
-                    genv.open_pascal_comment_hard -= 1
-                    
-                    if genv.open_pascal_comment_hard > 0:
-                        continue
-                    else:
-                        break
-                else:
-                    continue
-            return True
-        
-        def handle_pascal_comment_2(self):
-            genv.char_prev = genv.char_curr
-            self.getChar()
-            
-            if self.check_char('*'):
-                genv.open_pascal_comment_soft += 1
-                while True:
-                    genv.char_prev = genv.char_curr
-                    self.getChar()
-                    
-                    if self.check_char('*'):
-                        genv.char_prev = genv.char_curr
-                        self.getChar()
-                        
-                        if self.check_char(')'):
-                            genv.open_pascal_comment_soft -= 1
-                            return True
-                        else:
-                            continue
-                    else:
-                        continue
-            elif self.check_char(')'):
-                print("==>> " + self.current_state)
-                while True:
-                    if self.handle_pascal_white_spaces():
-                        continue
-                    if genv.char_curr == ';':
-                        print("semi ok")
-                        break
-                    else:
-                        raise ParserSyntaxError(_str("SEmicolon expected."))
-            elif genv.char_curr.isalpha():
-                if self.check_ident():
-                    print("---> state: " + self.current_state)
-                    if self.current_state == "procedure":
-                        self.current_state = "procedure_arg"
-                        self.handle_pascal_argument()
-                        #self.handle_pascal_procedure_name()
-                    elif self.current_state == "procedure_arg":
-                        print("ARgument: " + self.token_str)
-                        self.handle_pascal_argument()
-                else:
-                    raise ParserSyntaxError(_str("ident expected."))
-            else:
-                raise ParserSyntaxError(_str("wrong char type."))
+            elif genv.char_curr == genv.TOKEN_IDENT:
+                return True
+            return False
         
         def handle_pascal_argument(self):
             while True:
@@ -6206,7 +6301,7 @@ try:
                 if self.check_white_spaces():
                     continue
                 elif self.check_char('{'):
-                    self.handle_pascal_comment_1()
+                    #self.handle_pascal_comment_1()
                     continue
                 elif self.check_char('('):
                     if self.current_state == "procedure" \
@@ -6234,20 +6329,16 @@ try:
             genv.actual_parser = parser_type
             self.have_point    = False
             while True:
-                genv.char_prev = genv.char_curr
                 self.getChar()
-                
-                if self.check_white_spaces():
+                if genv.char_curr.isspace():
                     continue
-                
                 elif genv.char_curr.isdigit():
                     self.token_str = genv.char_curr
                     while True:
-                        genv.char_prev = genv.char_curr
                         self.getChar()
                         if genv.char_curr == '.':
                             if have_point:
-                                raise Exception(_str("float point already exists"))
+                                raise ParserSyntaxError(_str("float point already exists"))
                             self.have_point = True
                             self.token_str += '.'
                             continue
@@ -6258,102 +6349,77 @@ try:
                             self.ungetChar(1)
                             return genv.TOKEN_NUMBER
                 
-                elif self.check_char('.'):
-                    if parser_type == self.pascal_parser:
-                        return '.'
-                    else:
-                        raise Exception(_str("no supported parser."))
-                
-                elif self.check_char(';'):
-                    if parser_type == self.lisp_parser:
-                        while True:
-                            genv.char_prev = genv.char_curr
-                            self.getChar()
-                            
-                            if self.check_newline():
-                                break
-                                
-                            continue
-                    elif parser_type == self.pascal_parser:
-                        return ';'
-                    else:
-                        raise Exception("no supported parser.")
-                            
-                elif self.check_char(')'):
-                    genv.open_paren -= 1
-                    if genv.open_paren < 1:
-                        genv.have_errors = True
-                        raise ParserSyntaxError(_str("paren underflow."))
-                    else:
-                        continue
-                
-                elif self.check_char('}'):
-                    genv.open_pascal_comment_hard -= 1
-                    if genv.open_pascal_comment_hard < 1:
-                        genv.have_errors = True
-                        raise ParserSyntaxError(_str("no comment start found."))
-                    else:
-                        continue
-                        
-                elif self.check_char('{'):
-                    if parser_type == self.pascal_parser:
-                        self.handle_pascal_comment_1()
-                        continue
-                    else:
-                        raise ParserSyntaxError(_str("invalid character found."))
-                        return
-                
-                elif self.check_char('/'):
-                    if parser_type == self.pascal_parser:
-                        genv.char_prev = genv.char_curr
-                        self.getChar()
-                        
-                        if self.check_char('/'):
-                            while True:
-                                genv.char_prev = genv.char_curr
-                                self.getChar()
-                                
-                                if self.check_char('\n'):
-                                    break
-                                    
-                                continue
-                            continue
-                        else:
-                            raise ParserSyntaxError(_str("C++ comment expected."))
-                            
-                elif self.check_char('('):
-                    genv.open_paren += 1
-                    genv.curr_char = self.getChar()
-                    if genv.curr_char == '*':
-                        showInfo("a comme")
-                        if parser_type == self.pascal_parser:
-                            self.handle_pascal_comment_2()
-                            continue
-                    else:
-                        self.ungetChar(1)
-                        genv.curr_char = '('
-                        return '('
-                        
-                elif self.check_char('\n'):
-                    continue
-                elif self.check_char('\r'):
-                    self.getChar()
-                    if not self.check_char('\n'):
-                        raise ParserSyntaxError(_str("LineEnding Error."))
-                    else:
-                        continue
-                    
-                elif self.check_ident():
+                elif genv.char_curr.isalpha() or genv.char_curr == '_':
+                    self.getIdent()
+                    #showInfo("ident: " + self.token_str)
                     return genv.TOKEN_IDENT
+                
+                elif genv.char_curr == '(':
+                    if parser_type == self.pascal_parser:
+                        genv.open_paren += 1
+                        self.getChar()
+                        if genv.char_curr == '*':
+                            #showInfo("a pascal comme")
+                            while True:
+                                self.getChar()
+                                if genv.char_curr == '*':
+                                    self.getChar()
+                                    if genv.char_curr == ')':
+                                        #showInfo("comment ende")
+                                        break
+                        else:
+                            genv.char_prev = genv.char_curr
+                            self.ungetChar(1)
+                            return genv.char_curr
+                    else:
+                        raise ParserSyntaxError(_str("wrong parser"))
+                
+                elif genv.char_curr == '{':
+                    #showInfo("comment block")
+                    if parser_type == self.pascal_parser:
+                        while True:
+                            self.getChar()
+                            if genv.char_curr == '}':
+                                #showInfo("comment block ende")
+                                break
+                        continue
+                    else:
+                        raise ParserSyntaxError(_str("wrong parser"))
+                
+                elif genv.char_curr == '/':
+                    if parser_type == self.pascal_parser:
+                        #showInfo("kloooo")
+                        self.getChar()
+                        if genv.char_curr =='/':
+                            #showInfo("c++ comment")
+                            while True:
+                                self.getChar()
+                                if genv.char_curr == '\r':
+                                    self.getChar()
+                                    if not genv.char_curr == '\n':
+                                        raise ParserSyntaxError(_str("Line Ending error."))
+                                elif genv.char_curr == '\n':
+                                    genv.line_row += 1
+                                    genv.line_col  = 1
+                                    break
+                                continue
+                        else:
+                            genv.char_prev = genv.char_curr
+                            self.ungetChar(1)
+                            return genv.char_curr
+                    else:
+                        raise ParserSyntaxError(_str("C++ comment expected."))
+                elif genv.char_curr == ';':
+                    return ';'
+                elif genv.char_curr == '.':
+                    return '.'
                 else:
-                    showError("token: " + self.token_str + "\n> " + genv.char_curr)
-                    return False
+                    return genv.char_curr
         
         def check_token_newline(self):
             if genv.char_curr == '\n':
                 return True
             if genv.char_curr == '\r':
-                genv.char_prev = genv.char_curr
                 self.getChar()
                 if not genv.char_curr == '\n':
                     genv.have_errors = True
@@ -7910,8 +7976,16 @@ try:
         def __init__(self, file_name):
             super(interpreter_Pascal, self).__init__(file_name)
             self.script_name   = file_name
+            self.pascal_keywords = [
+                "program", "begin", "end",
+                "for", "while", "repeat",
+                "to", "downto",
+                "dec", "inc",
+                "mod", "div", "pow", "chr", "ord"
+            ]
         
         def parse(self):
+            showInfo("parser")
             genv.line_col = 1
             genv.line_row = 1
             #
@@ -7926,37 +8000,29 @@ try:
                 genv.actual_parser = self.pascal_parser
                 
                 while True:
-                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
                     genv.char_prev = genv.char_curr
+                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
                     
                     # <program> <name> <;>
-                    if self.token_str.lower() == "program":
-                        #showInfo("program")
+                    if genv.char_curr == genv.TOKEN_IDENT and self.token_str.lower() == "program":
                         genv.text_code = "def pascal_main():\n"
                         genv.text_code_scope_new = unique_hash()
                         genv.text_code_scope_old = genv.text_code_scope_new
                         genv.text_code_indent += 4
                         #
-                        self.token_str = ""
-                        while True:
-                            if self.handle_pascal_white_spaces():
-                                continue
-                            if self.check_ident():
-                                #showInfo("program: " + self.token_str)
-                                while True:
-                                    if self.handle_pascal_white_spaces():
-                                        continue
-                                    if self.check_char(';'):
-                                        #showInfo("program head end")
-                                        self.handle_pascal_program()
-                                        return
-                                    else:
-                                        raise ParserSyntaxError(_str("semicolon expected."))
-                                break
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                        #
+                        if genv.char_curr == genv.TOKEN_IDENT:
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                            if genv.char_curr == ';':
+                                self.handle_pascal_program()
                             else:
-                                raise ParserSyntaxError(_str("ident expected."))
-                        break
-                    elif self.token_str.lower() == 'library':
+                                raise ParserSyntaxError(_str("semicolon expected."))
+                        else:
+                            raise ParserSyntaxError(_str("ident expected."))
+                    elif genv.char_curr == genv.TOKEN_IDENT and self.token_str.lower() == 'library':
                         self.token_str = ""
                         while True:
                             if self.handle_pascal_white_spaces():
@@ -7967,7 +8033,7 @@ try:
                             else:
                                 raise ParserSyntaxError(_str("ident expected."))
                         break
-                    elif self.token_str.lower() == 'unit':
+                    elif genv.char_curr == genv.TOKEN_IDENT and self.token_str.lower() == 'unit':
                         self.token_str = ""
                         while True:
                             if self.handle_pascal_white_spaces():
@@ -7983,6 +8049,8 @@ try:
                         
             except e_no_more_data as nodata:
                 showInfo("no error.\nno more data.")
+            except ParserSyntaxError as e:
+                showError(e)
             except Exception as e:
                 showError(e)
                 
@@ -8058,92 +8126,235 @@ try:
                 showException(traceback.format_exc())
                 
         def handle_pascal_program(self):
+            genv.begin_counter = 0
             while True:
                 if self.program_reach_end:
                     break
-                if self.handle_pascal_white_spaces():
-                    continue
-                if self.check_ident("begin"):
-                    genv.text_code += (genv.text_code_indent * " ")
-                    self.text_update()
-                    #
-                    self.begin_counter += 1
-                    #showInfo("begin I")
-                    while True:
-                        if self.handle_pascal_white_spaces():
-                            continue
-                        if self.check_ident("end"):
-                            genv.text_code += (genv.text_code_indent * " ")
-                            genv.text_code += "return\n"
-                            genv.text_code_indent -= 4
-                            #
-                            self.end_counter += 1
-                            while True:
-                                if self.handle_pascal_white_spaces():
-                                    continue
-                                if self.check_char('.'):
-                                    return
-                                else:
-                                    raise Exception(_str("point expected."))
-                        elif self.check_ident("begin", 1):
-                            genv.text_code += (genv.text_code_indent * " ")
-                            self.text_update()
-                            #
-                            self.begin_counter += 1
-                            while True:
-                                if self.handle_pascal_white_spaces():
-                                    continue
-                                if self.check_ident("end"):
-                                    genv.text_code += (genv.text_code_indent * " ")
-                                    genv.text_code += "\nreturn\n"
-                                    genv.text_code_indent -= 4
-                                    #
-                                    self.end_counter += 1
-                                    #showInfo("end inner")
-                                    while True:
-                                        if self.handle_pascal_white_spaces():
-                                            continue
-                                        if self.check_char(';'):
-                                            #showInfo("inner semi end")
+                    
+                genv.char_prev = genv.char_curr
+                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                
+                if genv.char_curr == genv.TOKEN_IDENT:
+                    if self.token_str.lower() == "begin":
+                        self.begin_counter += 1
+                        while True:
+                            if self.program_reach_end:
+                                break
+                            
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                            
+                            if genv.char_curr == genv.TOKEN_IDENT:
+                                if self.token_str.lower() == "end":
+                                    genv.char_prev = genv.char_curr
+                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                    
+                                    if genv.char_curr == '.':
+                                        self.begin_counter -= 1
+                                        if self.begin_counter == 0:
+                                            self.program_reach_end = True
                                             break
                                         else:
-                                            raise ParserSyntaxError(_str("semicolon expected."))
-                                    break
+                                            raise ParserSyntaxError(_str("too many BEGIN"))
+                                    elif genv.char_curr == ';':
+                                        self.begin_counter -= 1
+                                        if self.begin_counter > 0:
+                                            continue
+                                        else:
+                                            self.program_reach_end = True
+                                            break
+                                elif self.token_str.lower() == "begin":
+                                    self.begin_counter += 1
+                                    continue
                                 else:
-                                    raise ParserSyntaxError(_str("keyword expected."))
+                                    showError("toklen: " + self.token_str)
+                                    self.ungetChar(len(self.token_str))
+                                    break
+                        if self.program_reach_end:
                             break
-                        else:
-                            raise ParserSyntaxError('keyword expected.')
-                    continue
-                elif self.check_ident("procedure", 1):
-                    while True:
-                        showInfo("proc")
-                        if self.handle_pascal_white_spaces():
+                        if self.begin_counter > 0:
                             continue
-                        if self.check_ident():
-                            showInfo("procedure: " + self.token_str)
-                            genv.text_code += (genv.text_code_indent * " ")
-                            self.text_update()
-                            self.handle_pascal_procedure(self.token_str)
+                    elif self.token_str.lower() == "procedure":
+                        if self.program_reach_end:
+                            break
+                        
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                        
+                        if genv.char_curr == genv.TOKEN_IDENT:
+                            if self.token_str.lower() in self.pascal_keywords:
+                                raise ParserSyntaxError(_str("no keyword expected."))
+                            showInfo("---===>>> " + self.token_str)
+                            
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                            
+                            if genv.char_curr == ';':
+                                while True:
+                                    if self.program_reach_end:
+                                        break
+                                        
+                                    genv.char_prev = genv.char_curr
+                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                    
+                                    if genv.char_curr == genv.TOKEN_IDENT:
+                                        if self.token_str.lower() == "begin":
+                                            self.begin_counter += 1
+                                            genv.char_prev = genv.char_curr
+                                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                            
+                                            if genv.char_curr == genv.TOKEN_IDENT:
+                                                if self.token_str.lower() == "begin":
+                                                    self.begin_counter += 1
+                                                    continue
+                                                elif self.token_str.lower() == "end":
+                                                    self.begin_counter -= 1
+                                                    genv.char_prev = genv.char_curr
+                                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                                    
+                                                    if genv.char_curr == ';':
+                                                        continue
+                                                    elif genv.char_curr == '.':
+                                                        self.program_reach_end = True
+                                                        continue
+                                                    else:
+                                                        raise ParserSyntaxError(_str("END missing semi or dot"))
+                                            else:
+                                                raise ParserSyntaxError(_str("keyword expected."))
+                                        elif self.token_str.lower() == "end":
+                                            self.begin_counter -= 1
+                                            if self.begin_counter > 0:
+                                                continue
+                                            break
+                                        elif self.token_str.lower() == "procedure":
+                                            genv.char_prev = genv.char_curr
+                                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                            
+                                            showInfo("procedure: " + self.token_str)
+                                            continue
+                                        else:
+                                            raise ParserSyntaxError(_str("BEGOIN expected."))
+                                    elif genv.char_curr == ';':
+                                        
+                                        continue
+                                    else:
+                                        raise ParserSyntaxError(_str(""
+                                        + "semicolon or parameter list expected "
+                                        + "after procedure name."))
+                            else:
+                                raise ParserSyntaxError(_str("semicolon Expected."))
                         else:
-                            raise ParserSyntaxError(_str("procedure name expected."))
-                    continue
-                elif self.check_ident("function", 1):
-                    #showInfo("fufufu")
-                    while True:
-                        if self.handle_pascal_white_spaces():
-                            continue
-                        if self.check_ident(''):
-                            self.handle_pascal_function_name(self.token_str)
-                            if self.check_char(';'):
-                                #showInfo("ooooooo")
+                            raise ParserSyntaxError(_str("ident expected."))
+                    elif self.token_str.lower() == "function":
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                        
+                        if genv.char_curr == genv.TOKEN_IDENT:
+                            if self.token_str.lower() in self.pascal_keywords:
+                                raise ParserSyntaxError(_str("no keyword expected."))
+                                
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                            
+                            if genv.char_curr == ';':
                                 break
                             else:
-                                raise ParserSyntaxError(_str("semicolon expected."))
+                                raise ParserSyntaxError(_str(""
+                                + "semicolon or parameter list expected "
+                                + "after procedure name."))
                         else:
-                            raise ParserSyntaxError(_str("function name expected."))
-                else:
-                    raise ParserSyntaxError(_str("BEGIN, PROCEDURE or FUNCTION expected."))
+                            raise ParserSyntaxError(_str("ident expected."))
+                    else:
+                        raise ParserSyntaxError(_str("BEGIN, PROCEDURE or FUNCTION expected."))
+                        
+            if not self.program_reach_end:
+                raise ParserSyntaxError(_str("END of PROGRAM not gound."))
+                
+                #if self.program_reach_end:
+                #    break
+                #if self.handle_pascal_white_spaces():
+                #    continue
+                #if self.check_ident("begin"):
+                #    genv.text_code += (genv.text_code_indent * " ")
+                #    self.text_update()
+                #    #
+                #    self.begin_counter += 1
+                #    #showInfo("begin I")
+                #    while True:
+                #        if self.handle_pascal_white_spaces():
+                #            continue
+                #        if self.check_ident("end"):
+                #            genv.text_code += (genv.text_code_indent * " ")
+                #            genv.text_code += "return\n"
+                #            genv.text_code_indent -= 4
+                #            #
+                #            self.end_counter += 1
+                #            while True:
+                #                if self.handle_pascal_white_spaces():
+                #                    continue
+                #                if self.check_char('.'):
+                #                    return
+                #                else:
+                #                    raise Exception(_str("point expected."))
+                #        elif self.check_ident("begin", 1):
+                #            genv.text_code += (genv.text_code_indent * " ")
+                #            self.text_update()
+                #            #
+                #            self.begin_counter += 1
+                #            while True:
+                #                if self.handle_pascal_white_spaces():
+                #                    continue
+                #                if self.check_ident("end"):
+                #                    genv.text_code += (genv.text_code_indent * " ")
+                #                    genv.text_code += "\nreturn\n"
+                #                    genv.text_code_indent -= 4
+                #                    #
+                #                    self.end_counter += 1
+                #                    #showInfo("end inner")
+                #                    while True:
+                #                        if self.handle_pascal_white_spaces():
+                #                            continue
+                #                        if self.check_char(';'):
+                #                            #showInfo("inner semi end")
+                #                            break
+                #                        else:
+                #                            raise ParserSyntaxError(_str("semicolon expected."))
+                #                    break
+                #                else:
+                #                    raise ParserSyntaxError(_str("keyword expected."))
+                #            break
+                #        else:
+                #            raise ParserSyntaxError('keyword expected.')
+                #    continue
+                #elif self.check_ident("procedure", 1):
+                #    while True:
+                #        showInfo("proc")
+                #        if self.handle_pascal_white_spaces():
+                #            continue
+                #        if self.check_ident():
+                #            showInfo("procedure: " + self.token_str)
+                #            genv.text_code += (genv.text_code_indent * " ")
+                #            self.text_update()
+                #            self.handle_pascal_procedure(self.token_str)
+                #        else:
+                #            raise ParserSyntaxError(_str("procedure name expected."))
+                #    continue
+                #elif self.check_ident("function", 1):
+                #    #showInfo("fufufu")
+                #    while True:
+                #        if self.handle_pascal_white_spaces():
+                #            continue
+                #        if self.check_ident(''):
+                #            self.handle_pascal_function_name(self.token_str)
+                #            if self.check_char(';'):
+                #                #showInfo("ooooooo")
+                #                break
+                #            else:
+                #                raise ParserSyntaxError(_str("semicolon expected."))
+                #        else:
+                #            raise ParserSyntaxError(_str("function name expected."))
+                #else:
+                #    raise ParserSyntaxError(_str("BEGIN, PROCEDURE or FUNCTION expected."))
         
         def text_update(self):
             genv.text_code += "def scope_"
@@ -8184,18 +8395,10 @@ try:
         
         def handle_pascal_white_spaces(self):
             genv.char_prev = genv.char_curr
-            self.getChar()
-
-            if self.check_white_spaces():
-                return True
-            elif self.check_char('{'):
-                self.handle_pascal_comment_1()
-                return True
-            elif self.check_char('('):
-                self.handle_pascal_comment_2() # todo: expr
-                return True
-            else:
-                return False
+            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+            if genv.char_curr == ';':
+                return ';'
+            return genv.char_curr
         
         def handle_pascal_ident(self):
             while True:
@@ -13728,14 +13931,24 @@ try:
                         #prg = ConvertZipExecute(1,script_name)
                         return
                         
+                    except ParserSyntaxError as e:
+                        #text = prepareException(e, _str("Parser Error"), e.message)
+                        #if get_console_mode():
+                        #    if GUI_DEBUG == True:
+                        #        showMessage(text, 0)
+                        #    else:
+                        #        print(text)
+                        #else:
+                        showMessage("text", 0)
+                        return False
                     except PermissionError as e:
                         showError(_str(f"not enough permissions:\n{e}"))
-                        return
+                        return False
                     except AttributeError as e:
                         return handle_exception(e, _str("Attribute Error occured"))
                     except ENoSourceHeader as e:
                         showError(f"SourceReaderError:\n{e}")
-                        return
+                        return False
                     except TypeError as e:
                         return handle_exception(e, _str("A TypeError occured"))
                     except Exception as e:
