@@ -515,8 +515,7 @@ try:
         unihash = hashobj.hexdigest()
         
         return unihash
-
-    # ---------------------------------------------------------------------------
+    
     class ParserSyntaxError(Exception):
         def __init__(self, text, value=-1):
             self.value   = str(value)
@@ -709,16 +708,6 @@ try:
             genv.LastResult = True
             self.close()
             return True
-    
-    #def check_qt_isinit():
-    #    app = QApplication.instance()
-    #    if app is None:
-    #        raise RuntimeError(_str("Qt GUI was not initialized – QApplication missing."))
-    #    if not QApplication.instance().thread().isRunning():
-    #        raise RuntimeError(_str("Qt GUI-Thread does not run – GUI not ready."))
-    #    # Optional: Prüfen, ob QApplication bereits im GUI-Modus gestartet wurde
-    #    if not QApplication.instance().thread() == QApplication.instance().thread():
-    #       raise RuntimeError(_str("QApplication Main-Thread does not run."))
     
     # ------------------------------------------------------------------------
     # code shortner definitions ...
@@ -1682,40 +1671,6 @@ try:
                     content += "\n[expert_"    + str(idx) + "]\n"
                     elements = eval(_str("label_" + str(idx) + "_elements"))
                     
-                    #for item in elements:
-                    #    hexer = _(hex(item[0]).upper()[2:]).lower()
-                    #    typso = getattr(genv, "doc_" + hexer + "_object")
-                    #    infos = getattr(genv, "doc_" + hexer + "_type")
-                    #    
-                    #    if typso == None:
-                    #        showError(_str("Error:\nelement item can not get object type."))
-                    #        return False
-                    #        
-                    #    #if isinstance(typso, QCheckBox):
-                    #    #    if typso.isChecked():
-                    #    #        setattr(genv, "doc_" + hexer, 1)
-                    #    #    else:
-                    #    #        setattr(genv, "doc_" + hexer, 0)
-                    #    #    value = getattr(genv, "doc_" + hexer)
-                    #    #    content += hexer + " = " + str(value) + "\n"
-                    #    #    continue
-                    #    #elif isinstance(typso, QRadioButton):
-                    #    #    if typso.isChecked():
-                    #    #        setattr(genv, "doc_" + hexer, 1)
-                    #    #    else:
-                    #    #        setattr(genv, "doc_" + hexer, 0)
-                    #    #    value = getattr(genv, "doc_" + hexer)
-                    #    #    content += hexer + " = " + str(value) + "\n"
-                    #    #    continue
-                    #    #else:
-                    #    #    if int(infos) == genv.type_edit:
-                    #    #        setattr(genv, "dbc_" + hexer, typso.text())
-                    #    #    elif int(infos) == genv.type_textedit:
-                    #    #        setattr(genv, "dbc_" + hexer, typso.toPlainText())
-                    #    #    value = typso.toPlainText()
-                    #    #    content += hexer + " = " + str(value) + "\n"
-                    #    #    continue
-                #print("writter")
                 with open(self.v__app__config_ini_help, "w") as config_file:
                     config_file.write(content)
                     config_file.close()
@@ -2169,7 +2124,7 @@ try:
     # ---------------------------------------------------------------------------
     global ClassObjects
     ClassObjects = []
-
+    
     # ---------------------------------------------------------------------------
     # \brief TObject is the base class of all classes that used this framework.
     #        You can use "Create" for __init__ and "Destroy" for __del__.
@@ -6240,23 +6195,6 @@ try:
             else:
                 return False
                 
-        def check_number(self):
-            genv.char_prev = genv.char_curr
-            
-            if genv.char_curr.isdigit():
-                self.ungetChar(1)
-                return self.getNumber()
-                
-            self.ungetChar(len(self.token_str))
-            return False
-            
-        def check_alpha(self, ch):
-            if ch.isalpha():
-                return True
-            else:
-                #self.ungetChar(1)
-                return False
-        
         def check_ident(self, name='', old=0):
             if old == 1:
                 if genv.char_curr == genv.TOKEN_IDENT and self.token_str.lower() == name:
@@ -6325,8 +6263,8 @@ try:
         # \brief skip all whitespaces. whitespaces are empty lines, lines with
         #        one or more spaces (0x20): " ", \t, "\n".
         # -----------------------------------------------------------------------
-        def skip_white_spaces(self, parser_type):  # wöö
-            genv.actual_parser = parser_type
+        def skip_white_spaces(self, parser_type=0):  # wöö
+            #genv.actual_parser = parser_type
             self.have_point    = False
             while True:
                 self.getChar()
@@ -6355,7 +6293,7 @@ try:
                     return genv.TOKEN_IDENT
                 
                 elif genv.char_curr == '(':
-                    if parser_type == self.pascal_parser:
+                    if genv.actual_parser == self.pascal_parser:
                         genv.open_paren += 1
                         self.getChar()
                         if genv.char_curr == '*':
@@ -6376,7 +6314,7 @@ try:
                 
                 elif genv.char_curr == '{':
                     #showInfo("comment block")
-                    if parser_type == self.pascal_parser:
+                    if genv.actual_parser == self.pascal_parser:
                         while True:
                             self.getChar()
                             if genv.char_curr == '}':
@@ -6387,7 +6325,7 @@ try:
                         raise ParserSyntaxError(_str("wrong parser"))
                 
                 elif genv.char_curr == '/':
-                    if parser_type == self.pascal_parser:
+                    if genv.actual_parser == self.pascal_parser:
                         #showInfo("kloooo")
                         self.getChar()
                         if genv.char_curr =='/':
@@ -6427,20 +6365,6 @@ try:
                     return False
                 elif (genv.char_curr == '\n') or (genv.char_curr == '\t') or (genv.char_curr == ' '):
                     return True
-        
-        # -----------------------------------------------------------------------
-        # \brief parse a one line comment: // for c++, ** and && for dBase ...
-        # -----------------------------------------------------------------------
-        def handle_oneline_comment(self):
-            while True:
-                genv.line_col += 1
-                self.getChar()
-                if self.check_null(genv.char_curr):
-                    return '\0'
-                if self.check_spaces(genv.char_curr):
-                    continue
-                if self.check_newline(genv.char_curr):
-                    break
         
         def run(self):
             self.finalize()
@@ -7646,86 +7570,7 @@ try:
                                 return False
                                     
                                 showInfo("zzzzzz\n" + genv.text_code)
-                                    
-                                #    else:
-                                #        #genv.text_code += self.token_str
-                                #        #genv.text_code += current_ident
-                                #        showInfo("ooo>>\n" + genv.text_code)
-                                #        c = self.skip_white_spaces(self.dbase_parser)
-                                #        if c == genv.ptNoMoreData:
-                                #            genv.have_errors = True
-                                #            raise e_no_more_data()
-                                #            return
-                                #        elif c == '(':
-                                #            genv.text_code += '('
-                                #            c = self.skip_white_spaces(self.dbase_parser)
-                                #            if c == genv.ptNoMoreData:
-                                #                genv.have_errors = True
-                                #                genv.unexpectedError(_str("open paren expected."))
-                                #                return
-                                #            elif c == ')':
-                                #                genv.text_code += ')'
-                                #                continue
-                                #            else:
-                                #                genv.have_errors = True
-                                #                genv.unexpectedError(_str("unknow character found."))
-                                #                return
-                                #        elif c == '=':
-                                #            showInfo("equaallllll")
-                                #            genv.text_code += " = "
-                                #            c = self.skip_white_spaces(self.dbase_parser)
-                                #            if c == genv.ptNoMoreData:
-                                #                genv.have_errors = True
-                                #                raise e_no_more_data()
-                                #            elif c == '.':
-                                #                boolval = 'f'
-                                #                c = self.getChar()
-                                #                if c.lower() == 'f' or c.lower() == 't':
-                                #                    boolval = c.lower()
-                                #                    c = self.getChar()
-                                #                    if c == '.':
-                                #                        if boolval == 'f':
-                                #                            genv.text_code += 'False'
-                                #                            continue
-                                #                        elif boolval == 't':
-                                #                            genv.text_code += 'True'
-                                #                            continue
-                                #                        else:
-                                #                            genv.have_errors = True
-                                #                            genv.unexpectedError(_str(".f. or .t. expected"))
-                                #                            return
-                                #                    else:
-                                #                        genv.have_errors = True
-                                #                        genv.unexpectedError(_str("dot '.' expected"))
-                                #                        return
-                                #                else:
-                                #                    genv.have_errors = True
-                                #                    genv.unexpectedError(_str(".f. or .t. expected"))
-                                #                    return
-                                #            elif c.isnumeric():
-                                #                showInfo("todo: c.isnumeric()")
-                                #               genv.have_errors = True
-                                #                break
-                                #            elif c.isalpha():
-                                #                self.getIdent(c)
-                                #                showInfo("token:  " + self.token_str)
-                                #                if self.token_str.lower() == "false":
-                                #                    genv.text_code += "False\r"
-                                #                elif self.token_str.lower() == "true":
-                                #                    genv.text_code += "True\r"
-                                #                else:
-                                #                    genv.have_errors = True
-                                #                    genv.unexpectedError(_str("false or true or .t. or .f. expected."))
-                                #                    return
-                                #                showInfo("102\n" + genv.text_code)
-                                #                continue
-                                #            else:
-                                #                genv.have_errors = True
-                                #                genv.unexpectedError(_str("boolean value expected."))
-                                #                return
-                                #else:
-                                #    genv.text_code += self.token_str
-                                #    return
+                            
                             elif genv.char_curr == '=':
                                 showInfo("===\n" + genv.text_code)
                                 genv.text_code += " = "
@@ -8001,7 +7846,7 @@ try:
                 
                 while True:
                     genv.char_prev = genv.char_curr
-                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                    genv.char_curr = self.skip_white_spaces()
                     
                     # <program> <name> <;>
                     if genv.char_curr == genv.TOKEN_IDENT and self.token_str.lower() == "program":
@@ -8011,13 +7856,15 @@ try:
                         genv.text_code_indent += 4
                         #
                         genv.char_prev = genv.char_curr
-                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                        genv.char_curr = self.skip_white_spaces()
                         #
                         if genv.char_curr == genv.TOKEN_IDENT:
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                            genv.char_curr = self.skip_white_spaces()
                             if genv.char_curr == ';':
                                 self.handle_pascal_program()
+                                if self.program_reach_end:
+                                    break
                             else:
                                 raise ParserSyntaxError(_str("semicolon expected."))
                         else:
@@ -8047,6 +7894,14 @@ try:
                     else:
                         raise ParserSyntaxError(_str("PROGRAM, LIBRARY or UNIT expected."))
                         
+                if genv.have_errors:
+                    raise ParserReachEOFError(_str("source code has errors."))
+                
+                # ------------------------
+                # no errors, start ...
+                # ------------------------
+                self.run()
+                
             except e_no_more_data as nodata:
                 showInfo("no error.\nno more data.")
             except ParserSyntaxError as e:
@@ -8056,10 +7911,6 @@ try:
                 
         def run(self):
             #self.finalize()
-            
-            if genv.have_errors == True:
-                showError(_str("source code has errors."))
-                return
             
             #genv.text_code += "\tcon.reset()\n"
             #genv.counter_indent -= 1
@@ -8132,22 +7983,28 @@ try:
                     break
                     
                 genv.char_prev = genv.char_curr
-                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                genv.char_curr = self.skip_white_spaces()
                 
                 if genv.char_curr == genv.TOKEN_IDENT:
                     if self.token_str.lower() == "begin":
+                        genv.text_code += (genv.text_code_indent * " ")
+                        self.text_update()
                         self.begin_counter += 1
                         while True:
                             if self.program_reach_end:
                                 break
                             
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                            genv.char_curr = self.skip_white_spaces()
                             
                             if genv.char_curr == genv.TOKEN_IDENT:
                                 if self.token_str.lower() == "end":
+                                    genv.text_code += (genv.text_code_indent * " ")
+                                    genv.text_code += "return\n"
+                                    genv.text_code_indent -= 4
+                                    
                                     genv.char_prev = genv.char_curr
-                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                    genv.char_curr = self.skip_white_spaces()
                                     
                                     if genv.char_curr == '.':
                                         self.begin_counter -= 1
@@ -8164,6 +8021,8 @@ try:
                                             self.program_reach_end = True
                                             break
                                 elif self.token_str.lower() == "begin":
+                                    genv.text_code += (genv.text_code_indent * " ")
+                                    self.text_update()
                                     self.begin_counter += 1
                                     continue
                                 else:
@@ -8179,7 +8038,7 @@ try:
                             break
                         
                         genv.char_prev = genv.char_curr
-                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                        genv.char_curr = self.skip_white_spaces()
                         
                         if genv.char_curr == genv.TOKEN_IDENT:
                             if self.token_str.lower() in self.pascal_keywords:
@@ -8187,7 +8046,7 @@ try:
                             showInfo("---===>>> " + self.token_str)
                             
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                            genv.char_curr = self.skip_white_spaces()
                             
                             if genv.char_curr == ';':
                                 while True:
@@ -8195,22 +8054,30 @@ try:
                                         break
                                         
                                     genv.char_prev = genv.char_curr
-                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                    genv.char_curr = self.skip_white_spaces()
                                     
                                     if genv.char_curr == genv.TOKEN_IDENT:
                                         if self.token_str.lower() == "begin":
+                                            genv.text_code += (genv.text_code_indent * " ")
+                                            self.text_update()
                                             self.begin_counter += 1
                                             genv.char_prev = genv.char_curr
-                                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                            genv.char_curr = self.skip_white_spaces()
                                             
                                             if genv.char_curr == genv.TOKEN_IDENT:
                                                 if self.token_str.lower() == "begin":
+                                                    genv.text_code += (genv.text_code_indent * " ")
+                                                    self.text_update()
                                                     self.begin_counter += 1
                                                     continue
                                                 elif self.token_str.lower() == "end":
                                                     self.begin_counter -= 1
+                                                    genv.text_code += (genv.text_code_indent * " ")
+                                                    genv.text_code += "return\n"
+                                                    genv.text_code_indent -= 4
+                                                    
                                                     genv.char_prev = genv.char_curr
-                                                    genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                                    genv.char_curr = self.skip_white_spaces()
                                                     
                                                     if genv.char_curr == ';':
                                                         continue
@@ -8223,12 +8090,15 @@ try:
                                                 raise ParserSyntaxError(_str("keyword expected."))
                                         elif self.token_str.lower() == "end":
                                             self.begin_counter -= 1
+                                            genv.text_code += (genv.text_code_indent * " ")
+                                            genv.text_code += "return\n"
+                                            genv.text_code_indent -= 4
                                             if self.begin_counter > 0:
                                                 continue
                                             break
                                         elif self.token_str.lower() == "procedure":
                                             genv.char_prev = genv.char_curr
-                                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                            genv.char_curr = self.skip_white_spaces()
                                             
                                             showInfo("procedure: " + self.token_str)
                                             continue
@@ -8245,16 +8115,17 @@ try:
                                 raise ParserSyntaxError(_str("semicolon Expected."))
                         else:
                             raise ParserSyntaxError(_str("ident expected."))
+                    # -------------
                     elif self.token_str.lower() == "function":
                         genv.char_prev = genv.char_curr
-                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                        genv.char_curr = self.skip_white_spaces()
                         
                         if genv.char_curr == genv.TOKEN_IDENT:
                             if self.token_str.lower() in self.pascal_keywords:
                                 raise ParserSyntaxError(_str("no keyword expected."))
                                 
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                            genv.char_curr = self.skip_white_spaces()
                             
                             if genv.char_curr == ';':
                                 break
@@ -8270,92 +8141,6 @@ try:
             if not self.program_reach_end:
                 raise ParserSyntaxError(_str("END of PROGRAM not gound."))
                 
-                #if self.program_reach_end:
-                #    break
-                #if self.handle_pascal_white_spaces():
-                #    continue
-                #if self.check_ident("begin"):
-                #    genv.text_code += (genv.text_code_indent * " ")
-                #    self.text_update()
-                #    #
-                #    self.begin_counter += 1
-                #    #showInfo("begin I")
-                #    while True:
-                #        if self.handle_pascal_white_spaces():
-                #            continue
-                #        if self.check_ident("end"):
-                #            genv.text_code += (genv.text_code_indent * " ")
-                #            genv.text_code += "return\n"
-                #            genv.text_code_indent -= 4
-                #            #
-                #            self.end_counter += 1
-                #            while True:
-                #                if self.handle_pascal_white_spaces():
-                #                    continue
-                #                if self.check_char('.'):
-                #                    return
-                #                else:
-                #                    raise Exception(_str("point expected."))
-                #        elif self.check_ident("begin", 1):
-                #            genv.text_code += (genv.text_code_indent * " ")
-                #            self.text_update()
-                #            #
-                #            self.begin_counter += 1
-                #            while True:
-                #                if self.handle_pascal_white_spaces():
-                #                    continue
-                #                if self.check_ident("end"):
-                #                    genv.text_code += (genv.text_code_indent * " ")
-                #                    genv.text_code += "\nreturn\n"
-                #                    genv.text_code_indent -= 4
-                #                    #
-                #                    self.end_counter += 1
-                #                    #showInfo("end inner")
-                #                    while True:
-                #                        if self.handle_pascal_white_spaces():
-                #                            continue
-                #                        if self.check_char(';'):
-                #                            #showInfo("inner semi end")
-                #                            break
-                #                        else:
-                #                            raise ParserSyntaxError(_str("semicolon expected."))
-                #                    break
-                #                else:
-                #                    raise ParserSyntaxError(_str("keyword expected."))
-                #            break
-                #        else:
-                #            raise ParserSyntaxError('keyword expected.')
-                #    continue
-                #elif self.check_ident("procedure", 1):
-                #    while True:
-                #        showInfo("proc")
-                #        if self.handle_pascal_white_spaces():
-                #            continue
-                #        if self.check_ident():
-                #            showInfo("procedure: " + self.token_str)
-                #            genv.text_code += (genv.text_code_indent * " ")
-                #            self.text_update()
-                #            self.handle_pascal_procedure(self.token_str)
-                #        else:
-                #            raise ParserSyntaxError(_str("procedure name expected."))
-                #    continue
-                #elif self.check_ident("function", 1):
-                #    #showInfo("fufufu")
-                #    while True:
-                #        if self.handle_pascal_white_spaces():
-                #            continue
-                #        if self.check_ident(''):
-                #            self.handle_pascal_function_name(self.token_str)
-                #            if self.check_char(';'):
-                #                #showInfo("ooooooo")
-                #                break
-                #            else:
-                #                raise ParserSyntaxError(_str("semicolon expected."))
-                #        else:
-                #            raise ParserSyntaxError(_str("function name expected."))
-                #else:
-                #    raise ParserSyntaxError(_str("BEGIN, PROCEDURE or FUNCTION expected."))
-        
         def text_update(self):
             genv.text_code += "def scope_"
             genv.text_code += str(genv.text_code_scope_new) + "():\n"
@@ -8395,14 +8180,14 @@ try:
         
         def handle_pascal_white_spaces(self):
             genv.char_prev = genv.char_curr
-            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+            genv.char_curr = self.skip_white_spaces()
             if genv.char_curr == ';':
                 return ';'
             return genv.char_curr
         
         def handle_pascal_ident(self):
             while True:
-                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                genv.char_curr = self.skip_white_spaces()
                 if genv.char_curr == genv.TOKEN_IDENT:
                     return self.handle_pascal_procedure(self.token_str)
                 else:
@@ -8414,20 +8199,20 @@ try:
             self.block_var   = False
             self.token_array = [genv.TOKEN_IDENT, genv.TOKEN_NUMBER, genv.TOKEN_STRING]
             while True:
-                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                genv.char_curr = self.skip_white_spaces()
                 if genv.char_curr == genv.TOKEN_IDENT:
                     if self.token_str.lower() == "const":
                         print("const-->> " + self.token_str)
                         self.block_var = False
                         self.block_const = True
                         while True:
-                            self.skip_white_spaces(self.pascal_parser)
+                            self.skip_white_spaces()
                             if genv.char_curr == genv.TOKEN_IDENT:
-                                self.skip_white_spaces(self.pascal_parser)
+                                self.skip_white_spaces()
                                 if self.check_char('='):
-                                    self.skip_white_spaces(self.pascal_parser)
+                                    self.skip_white_spaces()
                                     if genv.char_curr in self.token_array:
-                                        self.skip_white_spaces(self.pascal_parser)
+                                        self.skip_white_spaces()
                                         if genv.char_curr == ',':
                                             continue
                                         if genf.char_curr == ';':
@@ -8443,15 +8228,15 @@ try:
                         self.block_const = False
                         self.block_var = True
                         while True:
-                            self.skip_white_spaces(self.pascal_parser)
+                            self.skip_white_spaces()
                             if genv.char_curr == genv.TOKEN_IDENT:
-                                self.skip_white_spaces(self.pascal_parser)
+                                self.skip_white_spaces()
                                 if self.check_char(','):
                                     continue
                                 elif self.check_char(':'):
-                                    self.skip_white_spaces(self.pascal_parser)
+                                    self.skip_white_spaces()
                                     if genv.char_curr == genv.TOKEN_IDENT:
-                                        self.skip_white_spaces(self.pascal_parser)
+                                        self.skip_white_spaces()
                                         if self.check_char(';'):
                                             break
                                         else:
@@ -8487,7 +8272,7 @@ try:
         
         def handle_pascal_body(self):
             while True:
-                genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                genv.char_curr = self.skip_white_spaces()
                 print("-->" + str(genv.char_curr) + "<--")
                 if genv.char_curr == genv.TOKEN_IDENT:
                     print("IDD: " + self.token_str)
@@ -8499,7 +8284,7 @@ try:
                         #
                         self.end_counter += 1
                         #print("begin counter2 => " + str(self.begin_counter))
-                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                        genv.char_curr = self.skip_white_spaces()
                         if self.check_char(';'):
                             print("end ende ;")
                             self.token_str = ""
@@ -8518,7 +8303,7 @@ try:
                             
                     elif self.token_str.lower() == "procedure":
                         print("--EEEE---")
-                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                        genv.char_curr = self.skip_white_spaces()
                         if genv.char_curr == genv.TOKEN_IDENT:
                             print("proceduire: " + self.token_str)
                             self.handle_pascal_procedure(self.token_str)
@@ -8542,7 +8327,7 @@ try:
                     raise ParserSyntaxError(_str("BEGIN or END expected."))
         
         def handle_pascal_procedure(self, name):
-            genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+            genv.char_curr = self.skip_white_spaces()
             showInfo("==>>  " + name + " >" + str(genv.char_curr) + "<" + " >>" + self.token_str +"<<")
             if self.begin_counter == self.end_counter:
                 self.begin_counter = 0
@@ -8553,10 +8338,10 @@ try:
                 showInfo("klamm")
                 genv.text_code += "("
                 while True:
-                    self.skip_white_spaces(self.pascal_parser)
+                    self.skip_white_spaces()
                     if self.check_char(')'):
                         genv.text_code += ")"
-                        self.skip_white_spaces(self.pascal_parser)
+                        self.skip_white_spaces()
                         if self.check_char(';'):
                             genv.text_code += ":\n"
                             genv.text_code_ident += 4
@@ -8582,14 +8367,14 @@ try:
                                         continue
                                     if self.check_ident("procedure"):
                                         print("MMMMM")
-                                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                        genv.char_curr = self.skip_white_spaces()
                                         if genv.char_curr == genv.TOKEN_IDENT:
                                             print("PROCE: " + self.token_str)
                                             continue
                                         else:
                                             raise Exception(_str("procedure ident expected."))
                                     elif self.check_ident("function", 1):
-                                        genv.char_curr = self.skip_white_spaces(self.pascal_parser)
+                                        genv.char_curr = self.skip_white_spaces()
                                         if genv.char_curr == genv.TOKEN_IDENT:
                                             print("FUNC: " + self.token_str)
                                             continue
@@ -9705,274 +9490,7 @@ try:
             
         def parse(self):
             self.token_str = ""
-
-    class PascalParser:
-        def __init__(self, script_name):
-            self.script_name = script_name
-            self.line_number = 0
-            
-            # Ergebnisse
-            self.comments = []
-            self.tokens = []
-            self.errors = []
-            
-            # Pascal-Schlüsselwörter
-            self.keywords = {"PROGRAM", "BEGIN", "END", "VAR", "PROCEDURE", "FUNCTION", "IF", "THEN", "ELSE", "WHILE", "DO"}
-
-            # Muster für Tokenisierung
-            self.token_patterns = [
-                (r"[a-zA-Z_][a-zA-Z0-9_]*", "ident"),  # Identifikatoren und Schlüsselwörter
-                (r"\d+", "number"),                    # Zahlen
-                (r"[+\-*/:=<>();,.]", "symbol"),       # Trennzeichen
-                (r"\"(?:[^\"]|(?<=\\)\")*\"", "string1"),  # Strings mit doppelten Anführungszeichen
-                (r"'(?:[^\']|(?<=\\)')*'", "string2")   # Strings mit einfachen Anführungszeichen
-            ]
-            self.token_regex = re.compile("|".join(f"(?P<{name}>{pattern})" for pattern, name in self.token_patterns))
-            self.macro_regex = re.compile(r"\{\$(ifdef|else|endif)\s*([a-zA-Z0-9_]*)\}")
-
-            # Kommentar-Tokens
-            self.comment_tokens = {
-                "curly": {"start": "{", "end": "}"},
-                "round": {"start": "(*", "end": "*)"},
-                "single_line": {"start": "//"}  # Einzeiliger Kommentar
-            }
-
-            # Pascal-Grammatik als JSON
-            self.pascal_grammar = """
-            {
-              "sequence": [
-                {"type": "keyword", "value": "PROGRAM"},
-                {"type": "ident"},
-                {"type": "symbol", "value": ";"}
-              ],
-              "repeated": [
-                {
-                  "type": "keyword", "value": "VAR",
-                  "declarations": [
-                    {"type": "ident"},
-                    {"type": "symbol", "value": ":"},
-                    {"type": "ident"},
-                    {"type": "symbol", "value": ";"},
-                    {
-                      "optional": [
-                        {"type": "symbol", "value": ","},
-                        {"type": "ident"}
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-            """
-
-        def parse(self):
-            with open(self.script_name, 'r', encoding='utf-8') as file:
-                lines = file.readlines()
-                stack = []  # Verschachtelungs-Stack für Makros und Kommentare
-
-                for line in lines:
-                    self.line_number += 1
-                    i = 0
-
-                    while i < len(line):
-                        # Prüfe auf Makro-Kommentare
-                        macro_match = self.macro_regex.match(line[i:])
-                        if macro_match:
-                            macro_type = macro_match.group(1)  # ifdef, else, endif
-                            macro_name = macro_match.group(2)  # Name des Makros (falls vorhanden)
-                            position = i + macro_match.start() + 1
-
-                            if macro_type == "ifdef":
-                                stack.append({"type": "ifdef", "line": self.line_number, "pos": position, "name": macro_name, "else_used": False})
-                                self.tokens.append((self.line_number, position, f"ifdef {macro_name}", "macro"))
-                            elif macro_type == "else":
-                                if not stack or stack[-1]["type"] != "ifdef":
-                                    self.errors.append((self.line_number, position, "Unerwartetes {$else} außerhalb eines {$ifdef}-Blocks."))
-                                elif stack[-1]["else_used"]:
-                                    self.errors.append((self.line_number, position, "Mehrfache {$else} im selben {$ifdef}-Block."))
-                                else:
-                                    stack[-1]["else_used"] = True
-                                    self.tokens.append((self.line_number, position, "else", "macro"))
-                            elif macro_type == "endif":
-                                if not stack or stack[-1]["type"] != "ifdef":
-                                    self.errors.append((self.line_number, position, "Unerwartetes {$endif} ohne passendes {$ifdef}."))
-                                else:
-                                    stack.pop()
-                                    self.tokens.append((self.line_number, position, "endif", "macro"))
-
-                            i += macro_match.end()  # Überspringe den gesamten Makro-Kommentar
-                            continue
-
-                        # Prüfe auf Kommentare
-                        if line[i:i+2] == self.comment_tokens["single_line"]["start"]:
-                            # Einzeiliger Kommentar
-                            self.comments.append((self.line_number, i + 1, line[i:].strip()))
-                            break  # Rest der Zeile ignorieren
-
-                        elif line[i] == self.comment_tokens["curly"]["start"]:
-                            # Mehrzeiliger Kommentar `{ ... }`
-                            start_pos = i
-                            i += 1
-                            while i < len(line):
-                                if line[i] == self.comment_tokens["curly"]["end"]:
-                                    self.comments.append((self.line_number, start_pos + 1, line[start_pos:i + 1]))
-                                    i += 1
-                                    break
-                                else:
-                                    i += 1
-                            continue
-
-                        elif line[i:i+2] == self.comment_tokens["round"]["start"]:
-                            # Mehrzeiliger Kommentar `(* ... *)`
-                            start_pos = i
-                            i += 2
-                            while i < len(line):
-                                if line[i:i+2] == self.comment_tokens["round"]["end"]:
-                                    self.comments.append((self.line_number, start_pos + 1, line[start_pos:i + 2]))
-                                    i += 2
-                                    break
-                                else:
-                                    i += 1
-                            continue
-
-                        # Prüfe auf reguläre Tokens
-                        token_match = self.token_regex.match(line[i:])
-                        if token_match:
-                            token = token_match.group()
-                            token_type = token_match.lastgroup
-                            position = i + 1
-
-                            # Bestimme den Token-Typ
-                            if token.upper() in self.keywords:
-                                token_type = "keyword"
-                            elif token_match.lastgroup == "number":
-                                token_type = "number"
-                            elif token_match.lastgroup == "symbol":
-                                token_type = "symbol"
-                            elif token_match.lastgroup == "string1":
-                                token_type = "string"
-                            elif token_match.lastgroup == "string2":
-                                token_type = "string"
-                            else:
-                                token_type = "ident"
-                            
-                            self.tokens.append((self.line_number, position, token, token_type))
-                            i += len(token)
-                            continue
-                        i += 1
-            
-            # Überprüfe auf nicht abgeschlossene Makros
-            while stack:
-                macro = stack.pop()
-                if macro["type"] == "ifdef":
-                    self.errors.append((macro["line"], macro["pos"], f"Unvollständiger Makro-Block: $ifdef {macro['name']} wurde nicht geschlossen."))
-            
-            genv.source_comments = self.comments
-            genv.source_tokens   = self.tokens
-            genv.source_errors   = self.errors
-            
-            # Starte die Validierung der Struktur
-            success, start_index = self.validate_structure(self.pascal_grammar)
-            if not success:
-                showError(_str(f"syntax error:\n{genv.source_errors}"))
-            return
-            
-        def handle_multi_line_comment(self, match, line_number):
-            """Hilfsmethode zum Verarbeiten von mehrzeiligen Kommentaren."""
-            self.comments.append((line_number, match.start(), match.group()))
-            # Ersetze den Kommentar durch Leerzeichen, um die Token-Trennung beizubehalten
-            return " " * (match.end() - match.start())
-        
-        # ------------------------------------------------
-        # Validiert die Struktur der Tokens basierend
-        # auf einer JSON-Vorlage.
-        # ------------------------------------------------
-        def validate_structure(self, grammar, start_index=0):
-            try:
-                structure = json.loads(grammar)
-            except json.JSONDecodeError as e:
-                self.errors.append((0, 0, f"JSON-Fehler in der Grammatik: {str(e)}"))
-                return False, start_index
-
-            sequence = structure.get("sequence", [])
-            repeated = structure.get("repeated", [])
-            token_index = start_index
-
-            # Überprüfe die Sequenz
-            for expected in sequence:
-                if token_index >= len(self.tokens):
-                    self.errors.append((0, 0, f"Fehlendes Token: {expected}"))
-                    return False, token_index
-
-                line, pos, token, token_type = self.tokens[token_index]
-
-                # Überprüfe Typ und optionalen Wert
-                if token_type != expected["type"]:
-                    self.errors.append((line, pos, f"Erwarteter Typ '{expected['type']}', gefunden '{token_type}'."))
-                    return False, token_index
-                if "value" in expected and token.upper() != expected["value"]:
-                    self.errors.append((line, pos, f"Erwarteter Wert '{expected['value']}', gefunden '{token}'."))
-                    return False, token_index
-
-                token_index += 1
-
-            # Überprüfe wiederholte Abschnitte
-            for repeat_section in repeated:
-                while token_index < len(self.tokens):
-                    line, pos, token, token_type = self.tokens[token_index]
-
-                    # Prüfe, ob das Token dem Beginn des wiederholbaren Abschnitts entspricht
-                    if token_type == repeat_section["type"] and token.upper() == repeat_section["value"]:
-                        token_index += 1  # Überspringe das Schlüsselwort (z. B. "VAR")
-
-                        # Überprüfe die Deklarationen in diesem Abschnitt
-                        for declaration in repeat_section["declarations"]:
-                            if not isinstance(declaration, dict) or "type" not in declaration:
-                                self.errors.append((line, pos, f"Ungültige Deklaration in der Grammatik: {declaration}"))
-                                return False, token_index
-
-                            if token_index >= len(self.tokens):
-                                self.errors.append((line, pos, f"Fehlendes Token für Deklaration: {declaration}"))
-                                return False, token_index
-
-                            line, pos, token, token_type = self.tokens[token_index]
-
-                            # Überprüfe Typ und optionalen Wert
-                            if token_type != declaration["type"]:
-                                self.errors.append((line, pos, f"Erwarteter Typ '{declaration['type']}', gefunden '{token_type}'."))
-                                return False, token_index
-                            if "value" in declaration and token.upper() != declaration["value"]:
-                                self.errors.append((line, pos, f"Erwarteter Wert '{declaration['value']}', gefunden '{token}'."))
-                                return False, token_index
-
-                            token_index += 1
-
-                        # Optionaler Abschnitt für Mehrfachdeklarationen
-                        while token_index < len(self.tokens):
-                            line, pos, token, token_type = self.tokens[token_index]
-
-                            if token_type == "symbol" and token == ",":
-                                token_index += 1  # Überspringe Komma
-
-                                # Erwarte einen weiteren Bezeichner
-                                if token_index < len(self.tokens) and self.tokens[token_index][3] == "ident":
-                                    token_index += 1
-                                else:
-                                    self.errors.append((line, pos, "Fehlender Bezeichner nach ','."))
-                                    return False, token_index
-                            else:
-                                break
-                    else:
-                        break  # Kein weiteres Schlüsselwort gefunden
-
-            return True, token_index
-        
-        # -------------------------------------------
-        # Konvertiert den Pascal-Code in Python-Code.
-        # -------------------------------------------
-        def convert_to_python(self, parsed_program):
-            pass
-            
+    
     class dBaseParser:
         def __init__(self, script_name):
             self.script_name = script_name
@@ -10021,7 +9539,7 @@ try:
 
                     # Einzeilige Kommentare entfernen
                     stripped_line = self.single_line_regex.sub("", stripped_line).strip()
-
+                    
                     # Wenn nach Entfernen der Kommentare nichts übrig bleibt, weiter zur nächsten Zeile
                     if not stripped_line:
                         continue
@@ -10498,9 +10016,51 @@ try:
                 return
             except Exception as e:
                 DebugPrint(e)
-
+    
+    # ---------------------------------------------------------------------------
+    # \brief limits the scroll bar thumb between top/bottom and left/right 
+    # ---------------------------------------------------------------------------
+    class CustomScrollBarStyle(QProxyStyle):
+        ARROW_SIZE = 20 # arrow height/width
+        
+        def subControlRect(self, control, option, subControl, widget=None):
+            rect = super().subControlRect(control, option, subControl, widget)
+            if control == QStyle.CC_ScrollBar:
+                if subControl == QStyle.SC_ScrollBarSlider:
+                    if option.orientation == Qt.Horizontal:
+                        rect.setLeft(rect.left() + self.ARROW_SIZE)
+                        rect.setRight(rect.right() - self.ARROW_SIZE)
+                    else:  # Vertical
+                        rect.setTop(rect.top() + self.ARROW_SIZE)
+                        rect.setBottom(rect.bottom() - self.ARROW_SIZE)
+            return rect
+    # ---------------------------------------------------------------------------
+    # \brief display a QScrollArea for components that does not fit into a single
+    #        QWidget.
+    # ---------------------------------------------------------------------------
+    class CustomScrollArea(QScrollArea):
+        def __init__(self, min_width, parent=None):
+            super(CustomScrollArea, self).__init__(parent)
+            
+            # Scrollbar-Style setzen
+            self.verticalScrollBar  ().setStyle(CustomScrollBarStyle())
+            self.horizontalScrollBar().setStyle(CustomScrollBarStyle())
+            #
+            self.setMinimumWidth(min_width)
+            self.setStyleSheet(_css("ScrollBarCSS"))
+    
+    # ---------------------------------------------------------------------------
+    # \brief display a QFrame Line for QWidget components separator.
+    # ---------------------------------------------------------------------------
+    class CustomFrameLine(QFrame):
+        def __init__(self, parent=None):
+            super(CustomFrameLine, self).__init__(parent)
+            self.setFrameShape(QFrame.HLine)
+            self.setFrameShadow(QFrame.Sunken)
+    
     # ------------------------------------------------------------------------
-    #
+    # \brief display a sub classed QPushButton - to hold many code under one
+    #        class object.
     # ------------------------------------------------------------------------
     class CustomPushButton(QPushButton):
         def __init__(self, font, text, callback=None):
@@ -10514,6 +10074,10 @@ try:
             if self.callback:
                 self.callback()
     
+    # ------------------------------------------------------------------------
+    # \brief display a sub classed QSpinBox - to hold many code under one
+    #        class object.
+    # ------------------------------------------------------------------------
     class CustomSpinBox(QSpinBox):
         def __init__(self, font, r1, r2, value):
             super(CustomSpinBox, self).__init__()
@@ -10521,13 +10085,22 @@ try:
             self.setFont(font)
             self.setRange(r1, r2)
             self.setValue(value)
-
+    
+    # ------------------------------------------------------------------------
+    # \brief display a sub classed QComboBox - to hold many code under one
+    #        class object.
+    # ------------------------------------------------------------------------
     class CustomComboBox(QComboBox):
         def __init__(self, font=None):
             super(CustomComboBox, self).__init__()
-            if font:
+            if isinstance(font, QFont):
                 self.setFont(font)
+            self.setStyleSheet(_css("ScrollBarCSS"))
     
+    # ------------------------------------------------------------------------
+    # \brief display a sub classed QLabel - to hold many code under one class
+    #        object.
+    # ------------------------------------------------------------------------
     class CustomLabel(QLabel):
         def __init__(self, font, text, max_width=-1, max_height=-1):
             super(CustomLabel, self).__init__()
@@ -10538,12 +10111,22 @@ try:
             if max_height > -1:
                 self.setMaximumHeight(max_height)
     
+    # ------------------------------------------------------------------------
+    # \brief display a sub classed QCheck - to hold many code under one class
+    #        object.
+    # ------------------------------------------------------------------------
     class CustomCheckBox(QCheckBox):
-        def __init__(self, font, text):
-            super(CustomCheckBox, self).__init__()
-            self.setText(text)
-            self.setFont(font)
+        def __init__(self, text="", font=None, parent=None):
+            super(CustomCheckBox, self).__init__(parent)
+            if len(text) > 0:
+                self.setText(text)
+            if isinstance(font, QFont):
+                self.setFont(font)
     
+    # ------------------------------------------------------------------------
+    # \brief display a sub classed QFrame - to hold many code under one class
+    #        object.
+    # ------------------------------------------------------------------------
     class CustomFrame(QFrame):
         def __init__(self, font=None, width=0, height=0):
             super(CustomFrame, self).__init__()
@@ -10554,7 +10137,11 @@ try:
                 self.setMinimumWidth(width)
             if height > 0:
                 self.setMinimumHeight(height)
-            
+    
+    # ------------------------------------------------------------------------
+    # \brief display a sub classed QLineEdit - to hold many code under one
+    #        class object.
+    # ------------------------------------------------------------------------
     class CustomLineEdit(QLineEdit):
         def __init__(self, font, width=120, placeholdertext=""):
             super(CustomLineEdit, self).__init__()
@@ -14415,8 +14002,8 @@ try:
             self.setStyleSheet("background-color:white;")
             
             self.hlayout = QVBoxLayout()
-            self.check_box_1 = QCheckBox("FiELD A")
-            self.check_box_2 = QCheckBox("FiELD B")
+            self.check_box_1 = CustomCheckBox("FiELD A")
+            self.check_box_2 = CustomCheckBox("FiELD B")
             #
             self.hlayout.addWidget(self.check_box_1)
             self.hlayout.addWidget(self.check_box_2)
@@ -16210,9 +15797,9 @@ try:
             while self.parent.child_item_others.rowCount() > 0:
                 self.parent.child_item_others.removeRow(0)
 
-    class CustomListWidget(QListWidget):
+    class CustomApplicationListWidget(QListWidget):
         def __init__(self, parent=None):
-            super(CustomListWidget, self).__init__(parent)
+            super(CustomApplicationListWidget, self).__init__(parent)
             self.parent = parent
         
         def mouseDoubleClickEvent(self, event):
@@ -16888,7 +16475,7 @@ try:
             self.list_label = QLabel("Favorites:")
             self.list_label.setFont(font3)
             
-            self.list_widget = CustomListWidget(self)
+            self.list_widget = CustomApplicationListWidget(self)
             self.list_widget.setMaximumHeight(150)
             self.list_widget.setFont(font4)
             
@@ -25816,9 +25403,7 @@ try:
             #
             bios_frame_timer_layout = QVBoxLayout(self.bios_frame_timer)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
+            scroll_area = CustomScrollArea(600)
             
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
@@ -25847,19 +25432,13 @@ try:
             #
             bios_frame_com1_layout = QVBoxLayout(self.bios_frame_com1)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            com1_enabled = QCheckBox(_str("Enabled"))
-            com1_enabled.setFont(font)
+            com1_enabled = CustomCheckBox(_str("Enabled"), font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(com1_enabled)
             content_layout.addWidget(line)
@@ -25878,20 +25457,15 @@ try:
             #
             bios_frame_com2_layout = QVBoxLayout(self.bios_frame_com2)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             com2_enabled = QCheckBox(_str("Enabled"))
             com2_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
-            
+            line = CustomFrameLine()
+
             content_layout.addWidget(com2_enabled)
             content_layout.addWidget(line)
             content_layout.addStretch()
@@ -25909,19 +25483,14 @@ try:
             #
             bios_frame_com3_layout = QVBoxLayout(self.bios_frame_com3)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             com3_enabled = QCheckBox(_str("Enabled"))
             com3_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(com3_enabled)
             content_layout.addWidget(line)
@@ -25940,19 +25509,14 @@ try:
             #
             bios_frame_com4_layout = QVBoxLayout(self.bios_frame_com4)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             com4_enabled = QCheckBox(_str("Enabled"))
             com4_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(com4_enabled)
             content_layout.addWidget(line)
@@ -25971,19 +25535,14 @@ try:
             #
             bios_frame_keyboard_layout = QVBoxLayout(self.bios_frame_keyboard)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             keyboard_enabled = QCheckBox(_str("Enabled"))
             keyboard_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(keyboard_enabled)
             content_layout.addWidget(line)
@@ -26002,19 +25561,14 @@ try:
             #
             bios_frame_mouse_layout = QVBoxLayout(self.bios_frame_mouse)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             mouse_enabled = QCheckBox(_str("Enabled"))
             mouse_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(mouse_enabled)
             content_layout.addWidget(line)
@@ -26033,19 +25587,14 @@ try:
             #
             bios_frame_boot_layout = QVBoxLayout(self.bios_frame_boot)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             boot_enabled = QCheckBox(_str("Enabled"))
             boot_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(boot_enabled)
             content_layout.addWidget(line)
@@ -26064,19 +25613,14 @@ try:
             #
             bios_frame_floppyA_layout = QVBoxLayout(self.bios_frame_floppyA)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             floppya_enabled = QCheckBox(_str("Enabled"))
             floppya_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(floppya_enabled)
             content_layout.addWidget(line)
@@ -26095,19 +25639,14 @@ try:
             #
             bios_frame_floppyB_layout = QVBoxLayout(self.bios_frame_floppyB)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             floppyb_enabled = QCheckBox(_str("Enabled"))
             floppyb_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(floppyb_enabled)
             content_layout.addWidget(line)
@@ -26126,19 +25665,14 @@ try:
             #
             bios_frame_lpt1_layout = QVBoxLayout(self.bios_frame_lpt1)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             lpt1_enabled = QCheckBox(_str("Enabled"))
             lpt1_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(lpt1_enabled)
             content_layout.addWidget(line)
@@ -26157,19 +25691,14 @@ try:
             #
             bios_frame_lpt2_layout = QVBoxLayout(self.bios_frame_lpt2)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
             lpt2_enabled = QCheckBox(_str("Enabled"))
             lpt2_enabled.setFont(font)
             
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = CustomFrameLine()
             
             content_layout.addWidget(lpt2_enabled)
             content_layout.addWidget(line)
@@ -26188,24 +25717,21 @@ try:
             #
             bios_frame_layout = QVBoxLayout(self.bios_frame_vga)
             ###
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setMinimumWidth(600)
-            
+            scroll_area    = CustomScrollArea(600)
             scroll_content = QWidget()
             content_layout = QVBoxLayout(scroll_content)
             
-            vga_active = CustomCheckBox(font, _str("Enabled"))
+            vga_active = CustomCheckBox(_str("Enabled"), font)
             
-            line = CustomFrame()
+            line = CustomFrameLine()
             
             vga_chrom = CustomLabel(font, _str("VGA Monitor chrome / black + white:"))
             vga_label = CustomLabel(font, _str("VGA Adapter:"))
             
             vga_hlayout = QHBoxLayout()
             
-            vga_chrom_check = CustomCheckBox(font, _str("YES"))
-            vga_red_borders = CustomCheckBox(font, _str("VGA have RED Border"))
+            vga_chrom_check = CustomCheckBox(_str("YES"), font)
+            vga_red_borders = CustomCheckBox(_str("VGA have RED Border"), font)
             
             vga_hlayout.addWidget(vga_chrom_check)
             vga_hlayout.addWidget(vga_red_borders)
@@ -26800,11 +26326,9 @@ try:
             hlayout0.addLayout(vlayout1)
             
             # left scroll area
-            scroll_area0 = QScrollArea()
-            scroll_area0.setWidgetResizable(True)
-            
+            scroll_area0      = QScrollArea()
             container_widget0 = QWidget()
-            country_layout = QVBoxLayout()
+            country_layout    = QVBoxLayout()
             
             # ------------------------------------
             # read in external url image data ...
@@ -26828,11 +26352,9 @@ try:
             groupBox.setMinimumWidth(400)
             groupBox.setFont(font)
             
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            
+            scroll_area      = QScrollArea()
             container_widget = QWidget()
-            groupvLayout = QVBoxLayout()
+            groupvLayout     = QVBoxLayout()
             
             #
             self.localeliste = [
@@ -28468,7 +27990,6 @@ try:
         # okay, to accept it, then start the application ...
         # -----------------------------------------------------
         genv.v__app_object = QApplication(sys.argv)
-        
         genv.servers_scroll = QScrollArea()
         genv.servers_widget = QWidget()
         genv.servers_layout = QVBoxLayout()
