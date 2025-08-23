@@ -26,7 +26,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Build for Windows
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
       # ------------------------------
       # pre-installed Python check ...
       # ------------------------------
@@ -108,7 +108,7 @@ jobs:
       name: Build for Linux
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Set up Python 3.10
         uses: actions/setup-python@v3
         with:
