@@ -1,5 +1,12 @@
 # HelpNDocTools
-Some stuff for "HelpNDoc" (www.helpndoc.com) - the Help authoring Software for CHM, HTML, PDF, ... help projects.
+Working pre-alpha Release Code available under: [Playground](https://kallup.net/py/packed.zip). <br>
+Tested with Python 3.13 under Windows 11 64-Bit Pro. <br>
+**0.** - download and depack zip archive<br>
+**1.** - start -> setup.bat <br>
+**2.** - navigate to .\src (**cd src**)<br>
+**3-** - start -> start.bat <br>
+<hr>
+Some stuff for "HelpNDoc" the Help authoring Software for CHM, HTML, PDF, ... help projects.
 To download the Windows 10 64-Bit Professional based Application, you can visit:<br>
 [Application](https://kallup.net/woops/)
 
