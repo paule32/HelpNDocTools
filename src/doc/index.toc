@@ -1,0 +1,272 @@
+﻿   <p class="rvps30"><a class="rvts38" href="ListederTabellen.htm">Liste der Tabellen</a></p>
+   <p class="rvps30"><a class="rvts38" href="UberdiesesHandbuch.htm">Über diesen Leitfaden</a></p>
+   <p class="rvps30"><a class="rvts38" href="Bezeichnungen.htm">Bezeichnungen</a></p>
+   <p class="rvps30"><a class="rvts38" href="SyntaxDiagramme.htm">Syntax Diagramme</a></p>
+   <p class="rvps30"><a class="rvts38" href="UberdieSprachePascal.htm">Über die Sprache Pascal</a></p>
+   <a class="rvts39"><a class="rvts38" href="11Symbole.htm#Symbole">1. Pascal Zeichen und Symbole</a></p>
+   <p class="rvps23"><a class="rvts39" href="11Symbole.htm#Symbole">1.1. Symbole</a></p>
+   <p class="rvps23"><a class="rvts39" href="12Kommentare.htm#Kommentare">1.2. Kommentare</a></p>
+   <p class="rvps23"><a class="rvts39" href="13ReservierteSchlusselworter.htm#Reservierte_Schl%C3%BCsselw%C3%B6rter">1.3. Reservierte Schlüsselwörter</a></p>
+   <p class="rvps24"><a class="rvts39" href="131TurboPascal.htm#Turbo_Pascal">1.3.1. Turbo Pascal</a></p>
+   <p class="rvps24"><a class="rvts39" href="132ObjectPascal.htm#Object_Pascal">1.3.2. Object Pascal</a></p>
+   <p class="rvps24"><a class="rvts39" href="133Modifikationen.htm#Modifikationen">1.3.3. Modifikationen</a></p>
+   <p class="rvps23"><a class="rvts39" href="14Bezeichner.htm#Kennzeichnungen">1.4. Kennzeichnungen</a></p>
+   <p class="rvps23"><a class="rvts39" href="15HinweiseundDirektiven.htm#Hinweise_f%C3%BCr_Direktiven">1.5. Hinweise für Direktiven</a></p>
+   <p class="rvps23"><a class="rvts39" href="16Zahlen.htm#Zahlen">1.6. Zahlen</a></p>
+   <p class="rvps23"><a class="rvts39" href="17Bezeichner.htm#Bezeichner">1.7. Bezeichner</a></p>
+   <p class="rvps23"><a class="rvts39" href="18Sprungmarken.htm#Sprungmarken">1.8. Sprungmarken</a></p>
+   <p class="rvps23"><a class="rvts39" href="19Zeichenketten.htm#Zeichenketten">1.9. Zeichenketten</a></p>
+   <p class="rvps25"><a class="rvts39" href="2Konstanten.htm#Konstanten">2. Konstanten</a></p>
+   <p class="rvps26"><a class="rvts39" href="21GewohnlicheKonstanten.htm#Gew%C3%B6hnliche_Konstanten">2.1. Gewöhnliche Konstanten</a></p>
+   <p class="rvps26"><a class="rvts39" href="22TypisierteKonstanten.htm#Typesierte_Konstanten">2.2. Typisierte</a></p>
+   <p class="rvps26"><a class="rvts39" href="23ResourcenZeichenketten.htm#Resourcen_Zeichenketten">2.3. Resourcen Zeichenketten</a></p>
+   <p class="rvps25"><a class="rvts39" href="3Typen.htm#Typen"                             >3. Typen</a></p>
+   <p class="rvps26"><a class="rvts39" href="31Basistypen.htm#Basis_Typen"                 >3.1. Basis-Typen</a></p>
+   <p class="rvps27"><a class="rvts39" href="311OrdinaleTypen.htm#Ordinale_Typen"          >3.1.1. Ordinale Typen</a></p>
+   <p class="rvps27"><a class="rvts39" href="312GanzeZahlenInteger.htm#Ganze_Zahlen"       >3.1.2. Ganze Zahlen (Integer)</a></p>
+   <p class="rvps27"><a class="rvts39" href="313BoolescheTypen.htm#Boolesche_Typen"        >3.1.3. Boolesche Typen</a></p>
+   <p class="rvps27"><a class="rvts39" href="314Aufzahlungen.htm#Aufz%C3%A4hlungen"        >3.1.4. Aufzählungen</a></p>
+   <p class="rvps27"><a class="rvts39" href="315Untermengen.htm#Untermengen"               >3.1.5. Untermengen</a></p>
+   <p class="rvps27"><a class="rvts39" href="316Zeichen.htm#Zeichen"                       >3.1.6. Zeichen</a></p>
+   <p class="rvps26"><a class="rvts39" href="32Zeichen-Typen.htm#Zeichen_Typen"            >3.2. Zeichen-Typen</a></p>
+   <p class="rvps27"><a class="rvts39" href="321CharoderAnsiChar.htm#Char_oder_AnsiChar"   >3.2.1. Char oder AnsiChar</a></p>
+   <p class="rvps27"><a class="rvts39" href="322WideChar.htm#WideChar"                     >3.2.2. WideChar</a></p>
+   <p class="rvps27"><a class="rvts39" href="323Sonstige.htm#Sonstige"                     >3.2.3. Sonstige</a></p>
+   <p class="rvps27"><a class="rvts39" href="324Einzel-ByteZeichenketten.htm#Einzel"       >3.2.4. Einzel-Byte Zeichenketten</a></p>
+   <p class="rvps28"><a class="rvts39" href="3241ShortString.htm#ShortString"              >3.2.4.1. ShortString</a></p>
+   <p class="rvps28"><a class="rvts39" href="3241ShortString.htm#ShortString"              >3.2.4.2. ShortString</a></p>
+   <a class="rvts39"><a class="rvts39" href="3242AnsiString.htm#AnsiString"                >3.2.4.3. AnsiString</a></p>
+   <p class="rvps28"><a class="rvts39" href="3241ShortString.htm#ShortString"              >3.2.4.4. WideString</a></p>
+   <a class="rvts39"><a class="rvts39" href="3244RawByteString.htm#RawByteString"          >3.2.4.5. RawByteString</a></p>
+   <a class="rvts39"><a class="rvts39" href="3245UTF8String.htm#UTF8String"                >3.2.4.6. UTF8String</a></p>
+   <p class="rvps28"><a class="rvts39" href="3251UnicodeString.htm#UnicodeString"          >3.2.4.7. UnicodeString</a></p>
+   <a class="rvts39"><a class="rvts39" href="3243Zeichen-CodeUmwandlung.htm#Zeicheg"       >3.2.5. Zeichen-Code Umwandlung</a></p>
+   <p class="rvps27"><a class="rvts39" href="325Multi-ByteZeichenketten.htm#n"             >3.2.5.1. Multi-Byte Zeichenketten</a></p>
+   <p class="rvps27"><a class="rvts39" href="326KonstanteZeichenketten.htm#Konsen"         >3.2.6. Konstante Zeichenketten</a></p>
+   <p class="rvps27"><a class="rvts39" href="327NullterminierenteZeichenkette.htm#Nulten"  >3.2.7. Nullterminierente Zeichenketten (PChar)</a></p>
+   <p class="rvps27"><a class="rvts39" href="328Zeichenketten-Grossen.htm#Zeichenketteen"  >3.2.8. Zeichenketten-Größen</a></p>
+   <p class="rvps26"><a class="rvts39" href="33StrukturierteTypen.htm#Strukturierte_Typen" >3.3. Strukturierte Typen</a></p>
+   <p class="rvps27"><a class="rvts39" href="331GepackteStruktur-Typen.htm#Gepackte_Stn"   >3.3.1. Gepackte Struktur-Typen</a></p>
+   <p class="rvps27"><a class="rvts39" href="332Arrays.htm#Arrays"                         >3.3.2. Array's</a></p>
+   <p class="rvps28"><a class="rvts39" href="3321StatischeArrays.htm#Statische_Arrays"     >3.3.2.1. Statische Array's</a></p>
+   <p class="rvps28"><a class="rvts39" href="3321StatischeArrays.htm#Statische_Arrays"     >3.3.2.2. Dynamische Array's</a></p>
+   <p class="rvps28"><a class="rvts39" href="3321StatischeArrays.htm#Statische_Arrays"     >3.3.2.3. Typen-Kompatibilität dynamischer Array's</a>
+   <p class="rvps28"><a class="rvts39" href="3321StatischeArrays.htm#Statische_Arrays"     >3.3.2.4. Constucktor dynamischer Array's</a></p>
+   <p class="rvps28"><a class="rvts39" href="3321StatischeArrays.htm#Statische_Arrays"     >3.3.2.5. Feldkonstanten-Ausdrücke dynamiscer Array's</a></p>
+   <p class="rvps28"><a class="rvts39" href="3321StatischeArrays.htm#Statische_Arrays"     >3.3.2.6. Packen und Entpacken eines Array's</a></p>
+   <p class="rvps27"><a class="rvts39" href="333Records.htm#Records"                       >3.3.3. Record's</a></p>
+   <p class="rvps28"><a class="rvts39" href="3331LayoutundGrosse.htm#Layout_und_G3%9Fe"    >3.3.3.1. Layout und Größe</a></p>
+   <p class="rvps28"><a class="rvts39" href="3332BemerkungenundBeispiele.htm#Bemerkungen_und_Beispiele">3.3.3.2. Bemerkungen und Beispiele</a></p>
+   <p class="rvps27"><a class="rvts39" href="334Mengen-Typen.htm#Mengen_Typen">3.3.4. Mengen-Typen</a></p>
+   <p class="rvps27"><a class="rvts39" href="335Datei-Typen.htm#Datei_Typen">3.3.6. Datei-Typen</a></p>
+   <p class="rvps26"><a class="rvts39" href="34Zeiger.htm#Zeiger">3.4. Zeiger</a></p>
+   <p class="rvps26"><a class="rvts39" href="35Forward-Deklarationen.htm#Forward_Deklarationen">3.5. Foeward-Deklarationen</a></p>
+   <p class="rvps26"><a class="rvts39" href="36Prozedur-Typen.htm#Prozedzur_Typen">3.6. Prozedur-Typen</a></p>
+   <p class="rvps26"><a class="rvts39" href="37Variants.htm#Variants">3.7. Variant's</a></p>
+   <p class="rvps27"><a class="rvts39" href="371Definition.htm#Definition">3.7.1. Definition</a></p>
+   <p class="rvps27"><a class="rvts39" href="372VariantsinZuweisungenundAusdr.htm#Variants_in_Zuweisungen_und_Ausdr%C3%BCcken">3.7.1. Variant's in Zuweisungen und Ausdrücken</a></p>
+   <p class="rvps27"><a class="rvts39" href="373VariantsimInterface-Teil.htm#Variants_im_interface_Teil">3.7.3. Variant's im Interface-Teil</a></p>
+   <p class="rvps26"><a class="rvts39" href="38Alias-Typen.htm#Alias_Typen">3.8. Alias-Typen</a></p>
+   <p class="rvps26"><a class="rvts39" href="39VerwalteteTypen.htm#Verwaltete_Typen">3.9. Verwaltete Typen</a></p>
+   <p class="rvps25"><a class="rvts39" href="4Variablen.htm#Variablen">4. Variablen</a></p>
+   <p class="rvps26"><a class="rvts39" href="41Definition.htm#Definition">4.1. Definition</a></p>
+   <p class="rvps26"><a class="rvts39" href="42Erklarung.htm#Erkl%C3%A4rung">4.2. Erklärung</a></p>
+   <p class="rvps26"><a class="rvts39" href="43Geltungssbereich.htm#Geltungsbereich">4.3. Geltungssbereich</a></p>
+   <p class="rvps26"><a class="rvts39" href="44InitialisierteVariablen.htm#Initialisierte_Variablen">4.4. Initialisierte Variablen</a></p>
+   <p class="rvps26"><a class="rvts39" href="45InitialisierteVariablenmitStan.htm#Initialisierte_Variablen_mit_Standard_Wert">4.5. Initialisierte Variablen mit Standard-Wert</a></p>
+   <p class="rvps26"><a class="rvts39" href="46Thread-Variablen.htm#Thread_Variablen">4.6. Thread-Variablen</a></p>
+   <p class="rvps26"><a class="rvts39" href="47Eigenschaften.htm#Eigenschaften">4.7. Eigenschaften</a></p>
+   <p class="rvps25"><a class="rvts39" href="5Objekte.htm#Objekte">5. Objekte</a></p>
+   <p class="rvps26"><a class="rvts39" href="51Deklaration.htm#Deklaration">5.1. Deklaration</a></p>
+   <p class="rvps26"><a class="rvts39" href="52AbtrakteundSealedObjekte.htm#Abstrakte_und_Sealed_Objekte">5.2. Abtrakte und Sealed Objekte</a></p>
+   <p class="rvps26"><a class="rvts39" href="53Felder.htm#Felder">5.3. Felder</a></p>
+   <p class="rvps26"><a class="rvts39" href="54KlassenoderstatischeFelder.htm#Klassen_oder_statische_Felder">5.4. Klassen oder statische Felder</a></p>
+   <p class="rvps26"><a class="rvts39" href="55ConstructorundDestructor.htm#Constructor_und_Destructor">5.5. Constructor und Destructor</a></p>
+   <p class="rvps26"><a class="rvts39" href="56Methoden.htm#Methoden">5.6. Methoden</a></p>
+   <p class="rvps27"><a class="rvts39" href="561Erklarung.htm#Erkl%C3%A4rung">5.6.1. Erklärung</a></p>
+   <p class="rvps27"><a class="rvts39" href="562Methoden-Aufruf.htm#Methoden_Aufruf">5.6.2. Methoden-Aufruf</a></p>
+   <p class="rvps28"><a class="rvts39" href="5621StatischeMethoden.htm#Statische_Methoden">5.6.2.1. Statische Methoden</a></p>
+   <p class="rvps28"><a class="rvts39" href="5621StatischeMethoden.htm#Statische_Methoden">5.6.2.2. Virtuelle Methoden</a></p>
+   <p class="rvps28"><a class="rvts39" href="5621StatischeMethoden.htm#Statische_Methoden">5.6.2.3. Abstrakthierte Methoden</a></p>
+   <p class="rvps28"><a class="rvts39" href="5621StatischeMethoden.htm#Statische_Methoden">5.6.2.4. Klassen-Methoden oder statische Methoden</a></p>
+   <p class="rvps26"><a class="rvts39" href="57Sichtbarkeit.htm#Sichtbarkeit">5.7. Sichtbarkeit</a></p>
+   <p class="rvps25"><a class="rvts39" href="6Klassen.htm#Klassen">6. Klassen</a></p>
+   <p class="rvps26"><a class="rvts39" href="61Klassen-Definitionen.htm#Klassen_Definition">6.1. Klassen-Definitionen</a></p>
+   <p class="rvps26"><a class="rvts39" href="62AbstrakteundSealedKlassen.htm#Abstrakte_und_Sealed_Klassen">6.2. Abstrakte und Sealed Klassen</a></p>
+   <p class="rvps26"><a class="rvts39" href="63NormaleundstatischeFelder.htm#Normale_und_statische_Felder">6.3. Normale und statische Felder</a></p>
+   <p class="rvps27"><a class="rvts39" href="631NormalisierteFelderVariablen.htm#Normalisierte_Felder_Variablen">6.3.1. Normalisierte Felder / Variablen</a></p>
+   <p class="rvps27"><a class="rvts39" href="632Klassen-FelderVariablen.htm#Klassen_Felder_Variablen">6.3.2. Klassen-Felder / Variablen</a></p>
+   <p class="rvps26"><a class="rvts39" href="64Klassen-CTORconstructor.htm#Klassen_CTOR">6.4. Klassen - CTOR</a></p>
+   <p class="rvps26"><a class="rvts39" href="65Klassen-DTORdestructor.htm#Klassen_DTOR">6.5. Klassen - DTOR</a></p>
+   <p class="rvps26"><a class="rvts39" href="66Methoden.htm#Methoden">6.6. Methoden</a></p>
+   <p class="rvps27"><a class="rvts39" href="661Erklarung.htm#Erkl%C3%A4rung">6.6.1. Erklärung</a></p>
+   <p class="rvps27"><a class="rvts39" href="661Erklarung.htm#Erkl%C3%A4rung">6.6.2. Aufrufen</a></p>
+   <p class="rvps27"><a class="rvts39" href="661Erklarung.htm#Erkl%C3%A4rung">6.6.3. Virtuelle Methoden</a></p>
+   <p class="rvps27"><a class="rvts39" href="661Erklarung.htm#Erkl%C3%A4rung">6.6.4. Klassen - Methoden</a></p>
+   <p class="rvps27"><a class="rvts39" href="661Erklarung.htm#Erkl%C3%A4rung">6.6.5. Klassen CTOR und DTOR</a></p>
+   <p class="rvps27"><a class="rvts39" href="661Erklarung.htm#Erkl%C3%A4rung">6.6.6. Statische Klassen - Methoden</a></p>
+   <p class="rvps27"><a class="rvts39" href="661Erklarung.htm#Erkl%C3%A4rung">6.6.7. Nachrichten - Methoden</a></p>
+   <p class="rvps27"><a class="rvts39" href="661Erklarung.htm#Erkl%C3%A4rung">6.6.8. Vererbung</a></p>
+   <p class="rvps27"><a class="rvts39" href="67Eigenschaften.htm#Eigenschaften">6.7. Eigenschaften</a></p>
+   <p class="rvps28"><a class="rvts39" href="671Definition.htm#Definition">6.7.1. Definition</a></p>
+   <p class="rvps28"><a class="rvts39" href="671Definition.htm#Definition">6.7.2. Indezierte Eigenschaften</a></p>
+   <p class="rvps28"><a class="rvts39" href="671Definition.htm#Definition">6.7.3. Array basierte Eigenschaften</a></p>
+   <p class="rvps28"><a class="rvts39" href="671Definition.htm#Definition">6.7.4. Standard - Eigenschaften (public)</a></p>
+   <p class="rvps28"><a class="rvts39" href="671Definition.htm#Definition">6.7.5. Veröffentliche - Eigenschaften (published)</a></p>
+   <p class="rvps28"><a class="rvts39" href="671Definition.htm#Definition">6.7.6. Speicherinformationen</a></p>
+   <p class="rvps28"><a class="rvts39" href="671Definition.htm#Definition">6.7.7. Eigenschaften überschreiben und neu deklarieren</a></p>
+   <p class="rvps27"><a class="rvts39" href="68Klassen-Eigenschaften.htm#Klassen_Eigenschaften">6.8. Klassen - Eigenschaften</a></p>
+   <p class="rvps27"><a class="rvts39" href="69VerschachtelteTypenKonstantenu.htm#Verschachtelte_Typen_Konstanten_und_Variablen">6.9 Verschachtelte Typen, Konstanten, und Variablen</a></p>
+   <p class="rvps25"><a class="rvts39" href="7SchnittstellenInterfaces.htm#Schnittstellen">7. Schnittstellen (Interface's)</a></p>
+   <p class="rvps26"><a class="rvts39" href="71Definition.htm#Definition">7.1. Definition</a></p>
+   <p class="rvps26"><a class="rvts39" href="71Definition.htm#Definition">7.2. Identifikation</a></p>
+   <p class="rvps26"><a class="rvts39" href="71Definition.htm#Definition">7.3. Implementierung</a></p>
+   <p class="rvps26"><a class="rvts39" href="71Definition.htm#Definition">7.4. Vererbung</a></p>
+   <p class="rvps26"><a class="rvts39" href="71Definition.htm#Definition">7.5. Delegation</a></p>
+   <p class="rvps26"><a class="rvts39" href="71Definition.htm#Definition">7.6. COM</a></p>
+   <p class="rvps26"><a class="rvts39" href="71Definition.htm#Definition">7.7. CORBA und andere Schnittstellen</a></p>
+   <p class="rvps26"><a class="rvts39" href="71Definition.htm#Definition">7.8. Referenzzählung</a></p>
+   <p class="rvps25"><a class="rvts39" href="8Generics.htm#Generics">8. Generics</a></p>
+   <p class="rvps26"><a class="rvts39" href="81Einfuhrung.htm#Einf%C3%BChrung">8.1. Einführung</a></p>
+   <p class="rvps26"><a class="rvts39" href="82GetterTyp-Definition.htm#Getter_Typ_Definition">8.2. Get'ter Typ - Definition</a></p>
+   <p class="rvps26"><a class="rvts39" href="83Typen-Spezialisierung.htm#Typen_Spezialisierung">8.3. Typen - Spezialsierung</a></p>
+   <p class="rvps26"><a class="rvts39" href="84Einschrankungen.htm#Einschr%C3%A4nkungen">8.4. Einschränkungen</a></p>
+   <p class="rvps26"><a class="rvts39" href="85KompatibilitatzuDelphi.htm#Kompatibilit%C3%A4t_zu_Delphi">8.5. Kompatibilität zu Delphi</a></p>
+   <p class="rvps27"><a class="rvts39" href="851Syntax-Elemente.htm#Syntax_Elemente">8.5.1. Syntax - Elemente</a></p>
+   <p class="rvps27"><a class="rvts39" href="852EinschrankungenfurRecords.htm#Einschr%C3%A4nkungen_f%C3%BCr_Records">8.5.2. Einschränken für Record's</a></p>
+   <p class="rvps27"><a class="rvts39" href="853Typen-Uberladungen.htm#Typen_%C3%9Cberladungen">8.5.3. Typen - Überladung(en)</a></p>
+   <p class="rvps27"><a class="rvts39" href="854UberlegungenfurNamensbereiche.htm#%C3%9Cberlegungen_f%C3%BCr_Namensbereiche">8.5.4. Überlegungen für Namensbereiche</a></p>
+   <p class="rvps26"><a class="rvts39" href="86Typen-Kompatibilitat1.htm#Typen_Kompatibilit%C3%A4t">8.6. Typen-Kompatibilität</a></p>
+   <p class="rvps26"><a class="rvts39" href="87VerwendungdereingebautenFunkti.htm#Verwendung_der_eingebauten_Funktionen">8.7. Verwendung der eingebauten Funktionen</a></p>
+   <p class="rvps26"><a class="rvts39" href="88UberlegungenzumGeltungsbereich.htm#%C3%9Cberlegungen_zum_Geltungsbereich">8.8. Überlegungen zum Geltungsbereich</a></p>
+   <p class="rvps26"><a class="rvts39" href="89Operator-UberladungundGenerics.htm#Operator_%C3%9Cberladung_und_Generics">8.9. Operator-Überladung und Generics</a></p>
+   <p class="rvps25"><a class="rvts39" href="9ErweiterteRecords.htm#Erweiterte_Records">9. Erweiterte Record's</a></p>
+   <p class="rvps26"><a class="rvts39" href="91Definition.htm#Definition">9.1. Definition</a></p>
+   <p class="rvps26"><a class="rvts39" href="92ErweiterteRecord-Aufzahler.htm#Erweiterte_Record_Aufz%C3%A4hler">9.2. Erweiterte Record-Aufzähler</a></p>
+   <p class="rvps26"><a class="rvts39" href="93Record-Operationen.htm#Record_Operationen">9.3. Record-Operationen</a></p>
+   <p class="rvps25"><a class="rvts39" href="10KlassenRecordsundTypen-Helfer.htm#Klassen_Records_und_Typen_Helper">10. Klassen, Record's, und Typen-Helfer</a></p>
+   <p class="rvps26"><a class="rvts39" href="101Definition.htm#Definition">10.1 Definition</a></p>
+   <p class="rvps26"><a class="rvts39" href="102EinschrankungenbeiKlassenHelf.htm#Einschr%C3%A4nkungen_bei_Klassen_Helper">10.2 Einschränkungen bei Klassen Helfer</a></p>
+   <p class="rvps26"><a class="rvts39" href="103EinschrankungenbeiRecordHelfe.htm#Einschr%C3%A4nkungen_bei_Record_Helper">10.3 Einschränkungen bei Record &nbsp;Helfer</a></p>
+   <p class="rvps26"><a class="rvts39" href="104UberlegungenzueinfachenHelper.htm#%C3%9Cberlegungen_zu_einfachen_Helper">10.4 Überlegungen zu einfachen Helper</a></p>
+   <p class="rvps26"><a class="rvts39" href="105AnmerkungenzuUmfangundLebensd.htm#Anmerkungen_zu_Umfang_und_Lebensdauer_von_Record_Helper">10.5 Anmerkungen zu Umfang und Lebensdauer von Record-Helper</a></p>
+   <p class="rvps26"><a class="rvts39" href="106Vererbung.htm#Vererbung">10.6 Vererbung</a></p>
+   <p class="rvps26"><a class="rvts39" href="107Verwendung.htm#Verwendung">10.7 Verwendung</a></p>
+   <p class="rvps25"><a class="rvts39" href="11ObjektorientiertePascal-Klasse.htm#Objektorientierte_Pascal_Klassen">11. Objektorientierte Pascal - Klassen</a></p>
+   <p class="rvps26"><a class="rvts39" href="111Einfuhrung.htm#Einf%C3%BChrung">11.1. Einführung</a></p>
+   <p class="rvps26"><a class="rvts39" href="112Klassendeklarationen.htm#Klassendeklarationen">11.2. Klassendeklarationen</a></p>
+   <p class="rvps26"><a class="rvts39" href="113FormeleDeklaration.htm#Formele_Deklaration">11.3. Formele Deklaration</a></p>
+   <p class="rvps26"><a class="rvts39" href="114Instanzenzuteilenundzuordnen.htm#Instanzen_zuteilen_und_zuordnen">11.4. Instanzen zuteilen und zuordnen</a></p>
+   <p class="rvps26"><a class="rvts39" href="115Protokolldefinitionen.htm#Protokolldefinitionen">11.5. Protokolldefinitionen</a></p>
+   <p class="rvps26"><a class="rvts39" href="116Kategorien.htm#Kategorien">11.6. Kategorien</a></p>
+   <p class="rvps26"><a class="rvts39" href="117NamensumfangundBezeichner.htm#Namensumfang_und_Bezeichner">11.7. Namensumfang und Bezeichner</a></p>
+   <p class="rvps26"><a class="rvts39" href="118Selektoren.htm#Selektoren">11.8. Selektoren</a></p>
+   <p class="rvps26"><a class="rvts39" href="119DerIDTyp.htm#Der_ID_Typ">11.9. Der ID Type</a></p>
+   <p class="rvps26"><a class="rvts39" href="1110AufzahlungeninObjective-CKla.htm#Aufz%C3%A4hlungen_in_Objective_C_Klassen">11.10. Aufzählungen in Objective-C Klassen</a></p>
+   <p class="rvps25"><a class="rvts39" href="12Ausdrucke.htm#Ausdr%C3%BCcke">12. Ausdrücke</a></p>
+   <p class="rvps26"><a class="rvts39" href="121Ausdrucks-Syntax.htm#Ausdr%C3%BCcke_Syntax">12.1. Ausdrucks - Syntax</a></p>
+   <p class="rvps26"><a class="rvts39" href="122Funktionsaufrufe.htm#Funktionsaufrufe">12.2. Funktionsaufrufe</a></p>
+   <p class="rvps26"><a class="rvts39" href="123Mengen-CTOR.htm#Mengen_CTOR">12.3. Mengen - CTOR</a></p>
+   <p class="rvps26"><a class="rvts39" href="124Typ-CastingvonWerten.htm#Typ_Casting_von_Werten">12.4. Typ-Casting von Werten</a></p>
+   <p class="rvps26"><a class="rvts39" href="125Typ-CastingvonVariablen.htm#Typ_Casting_von_Variablen">12.5. Typ-Casting von Variablen</a></p>
+   <p class="rvps26"><a class="rvts39" href="126SonstigeTyp-Castings.htm#Sonstige_Typ_Castings">12.6. Sonstige Typ-Casting's</a></p>
+   <p class="rvps26"><a class="rvts39" href="127Der-Operator.htm#Der_et_Operator">12.7. Der @ - Operator</a></p>
+   <p class="rvps26"><a class="rvts39" href="128Operatoren.htm#Operatoren">12.8. Operatoren</a></p>
+   <p class="rvps27"><a class="rvts39" href="1281ArithmetischeOperatoren.htm#Arithmetische_Operatoren">12.8.1. Arithmetische Operatoren</a></p>
+   <p class="rvps27"><a class="rvts39" href="1282LogischeOperatoren.htm#Logische_Operatoren">12.8.2. Logische Operatoren</a></p>
+   <p class="rvps27"><a class="rvts39" href="1283BoolescheOperatoren.htm#Boolesche_Operatoren">12.8.3. Boolesche Operatoren</a></p>
+   <p class="rvps27"><a class="rvts39" href="1284ZeichenkettenOperatoren.htm#Zeichenketten_Operatoren">12.8.4. Zeichenketten Operatoren</a></p>
+   <p class="rvps27"><a class="rvts39" href="1285OperatorenbeidynamischenArra.htm#Operatoren_bei_dynamischen_Arrays">12.8.5. Operatoren bei dynamischen Array's</a></p>
+   <p class="rvps27"><a class="rvts39" href="1286Mengen-Operatoren.htm#Mengen_Operatoren">12.8.6. Mengen - Operatoren</a></p>
+   <p class="rvps27"><a class="rvts39" href="1287RelationaleOperatoren.htm#Relationale_Operatoren">12.8.7. Relationale Operatoren</a></p>
+   <p class="rvps27"><a class="rvts39" href="1288Klassen-Operatoren.htm#Klassen_Operatoren">12.8.8. Klassen - Operatoren</a></p>
+   <p class="rvps25"><a class="rvts39" href="13Anweisungen.htm#Anweisungen">13. Anweisungen</a></p>
+   <p class="rvps26"><a class="rvts39" href="131EinfacheAnweisungen.htm#Einfache_Anweisungen">13.1. Einfache Anweisungen</a></p>
+   <p class="rvps27"><a class="rvts39" href="1311Zuweisungen.htm#Zuweisungen">13.1.1. Zuweisungen</a></p>
+   <p class="rvps27"><a class="rvts39" href="1312Prozeduren-PROCEDURE.htm#Prozeduren">13.1.2. Prozeduren - PROCEDURE</a></p>
+   <p class="rvps27"><a class="rvts39" href="1313Sprungs-AnweisungGOTO.htm#Sprung_Anweisung_GOTO">13.1.3. Sprungs - Anweisung GOTO</a></p>
+   <p class="rvps26"><a class="rvts39" href="132StrukturierteAnweisungen.htm#Strukturierte_Anweisungen">13.2. Strukturierte Anweisungen</a></p>
+   <p class="rvps27"><a class="rvts39" href="1321ZusammengesetzteAnweisungen.htm#Zusammengesetzte_Anweisungen">13.2.1. Zusammengesetzte Anweisungen</a></p>
+   <p class="rvps27"><a class="rvts39" href="1322CASE.htm#CASE">13.2.2. CASE</a></p>
+   <p class="rvps27"><a class="rvts39" href="1323IFTHEN.htm#IF_THEN">13.2.3. IF ... THEN</a></p>
+   <p class="rvps27"><a class="rvts39" href="1324FORTODOWNTODO.htm#FOR_TO_DOWNTO_DO">13.2.4. FOR ... TO / DOWNTO ... DO</a></p>
+   <p class="rvps27"><a class="rvts39" href="1325FORINDO.htm#FOR_IN_DO">13.2.5. FOR .. IN .. DO</a></p>
+   <p class="rvps27"><a class="rvts39" href="1326REPEATUNTIL.htm#REPEAT_UNTIL">13.2.6. REPEAT ... UNTIL</a></p>
+   <p class="rvps27"><a class="rvts39" href="1327WHILEDO.htm#WHILE_DO">13.2.7. WHILE ... DO</a></p>
+   <p class="rvps27"><a class="rvts39" href="1328WITH.htm#WITH">13.2.8. WITH</a></p>
+   <p class="rvps27"><a class="rvts39" href="1329AusnahmenEXCEPT.htm#Ausnahmen">13.2.9. Ausnahmen (EXCEPT)</a></p>
+   <p class="rvps26"><a class="rvts39" href="133AssemblerAnweisungen.htm#Assembler_Anweisungen">13.3. Assembler Anweisungen</a></p>
+   <p class="rvps25"><a class="rvts39" href="14BenutzungvonFunktionenundProze.htm#Benutzung_von_Funktionen_und_Prozeduren">14. Benutzung von Funktionen und Prozeduren</a></p>
+   <p class="rvps26"><a class="rvts39" href="141FUNCTIONDeklarationen.htm#FUNCTION_Deklarationen">14.1. FUNCTION Deklarationen</a></p>
+   <p class="rvps26"><a class="rvts39" href="142PROCEDUREDeklarationen.htm#PROCEDURE_Deklarationen">14.2. PROCEDURE Deklarationen</a></p>
+   <p class="rvps26"><a class="rvts39" href="143FunktionRuckgabewertmittelsRE.htm#Funktion_R%C3%BCckgabewert_mittels_RESULT">14.3. Funktion Rückgabewert mittels RESULT</a></p>
+   <p class="rvps26"><a class="rvts39" href="144ParameterListen.htm#Parameter_Listen">14.4. Parameter Listen</a></p>
+   <p class="rvps27"><a class="rvts39" href="1441Werte.htm#Werte">14.4.1. Werte</a></p>
+   <p class="rvps27"><a class="rvts39" href="1442Variablen.htm#Variablen">14.4.2. Variablen</a></p>
+   <p class="rvps27"><a class="rvts39" href="1443AusgabeParameter.htm#Ausgabe_Parameter">14.4.3. Ausgabe Parameter</a></p>
+   <p class="rvps27"><a class="rvts39" href="1444KonstanteParameter.htm#Konstante_Parameter">14.4.4. Konstante Parameter</a></p>
+   <p class="rvps27"><a class="rvts39" href="1445OffeneArrays.htm#Offene_Arrays">14.4.5. Offene Array's</a></p>
+   <p class="rvps27"><a class="rvts39" href="1446ArrayofConst.htm#Array_of_Const">14.4.6. Array of Const</a></p>
+   <p class="rvps27"><a class="rvts39" href="1447UntypisierteParameter.htm#Untypisierte_Parameter">14.4.7. Untypisierte Parameter</a></p>
+   <p class="rvps27"><a class="rvts39" href="1448VerwalteteTypenundReferenzza.htm#Verwaltete_Typen_und_Referenzz%C3%A4hler">14.4.8. Verwaltete Typen und Referenzzähler</a></p>
+   <p class="rvps26"><a class="rvts39" href="145UberladungvonFunktionen.htm#%C3%9Cberladung_von_Funktionen">14.5. Überladung von Funktionen</a></p>
+   <p class="rvps26"><a class="rvts39" href="146MitFORWARDdeklarierteFunktion.htm#Mit_FORWARD_deklarierte_Funktionen">14.6. Mit FORWARD deklarierte Funktionen</a></p>
+   <p class="rvps26"><a class="rvts39" href="147ExterneFunktionen.htm#Externe_Funktionen">14.7. Externe Funktionen</a></p>
+   <p class="rvps26"><a class="rvts39" href="148AssemblerFunktionen.htm#Assembler_Funktionen">14.8. Assembler Funktionen</a></p>
+   <p class="rvps26"><a class="rvts39" href="149Modifikatoren.htm#Derivate">14.9. Modifikatoren</a></p>
+   <p class="rvps27"><a class="rvts39" href="1491alias.htm#alias">14.9.1. alias</a></p>
+   <p class="rvps27"><a class="rvts39" href="1492cdecl.htm#cdecl">14.9.2. cdecl</a></p>
+   <p class="rvps27"><a class="rvts39" href="1493cppdecl.htm#cppdecl">14.9.3. cppdecl</a></p>
+   <p class="rvps27"><a class="rvts39" href="1494export.htm#export">14.9.4. export</a></p>
+   <p class="rvps27"><a class="rvts39" href="1495hardfloat.htm#hardfloat">14.9.5. hardfloat</a></p>
+   <p class="rvps27"><a class="rvts39" href="1496inline.htm#inline">14.9.6. inline</a></p>
+   <p class="rvps27"><a class="rvts39" href="1497interrupt.htm#interrupt">14.9.7. interrupt</a></p>
+   <p class="rvps27"><a class="rvts39" href="1498iocheck.htm#iocheck">14.9.8. iocheck</a></p>
+   <p class="rvps27"><a class="rvts39" href="1499local.htm#local">14.9.9. local</a></p>
+   <p class="rvps27"><a class="rvts39" href="14910MS_ABI_Default.htm#MS_ABI_Default">14.9.10. MS_ABI_Default</a></p>
+   <p class="rvps27"><a class="rvts39" href="14911MS_ABI_CDecl.htm#MS_ABI_CDecl">14.9.11. MS_ABI_CDecl</a></p>
+   <p class="rvps27"><a class="rvts39" href="14912MWPascal.htm#WMPascal">14.9.12. MWPascal</a></p>
+   <p class="rvps27"><a class="rvts39" href="14913noreturn.htm#noreturn">14.9.13. noreturn</a></p>
+   <p class="rvps27"><a class="rvts39" href="14914nostackframe.htm#nostackframe">14.9.14. nostackframe</a></p>
+   <p class="rvps27"><a class="rvts39" href="14915overload.htm#overload">14.9.15. overload</a></p>
+   <p class="rvps27"><a class="rvts39" href="14916pascal.htm#pascal">14.9.16. pascal</a></p>
+   <p class="rvps27"><a class="rvts39" href="14917public.htm#public">14.9.17. public</a></p>
+   <p class="rvps27"><a class="rvts39" href="14918register.htm#register">14.9.18. register</a></p>
+   <p class="rvps27"><a class="rvts39" href="14919safecall.htm#safecall">14.9.19. safecall</a></p>
+   <p class="rvps27"><a class="rvts39" href="14920saveregisters.htm#saveregisters">14.9.20. saveregisters</a></p>
+   <p class="rvps27"><a class="rvts39" href="14921softfloat.htm#softfloat">14.9.21. softfloat</a></p>
+   <p class="rvps27"><a class="rvts39" href="14922stdcall.htm#stdcall">14.9.22. stdcall</a></p>
+   <p class="rvps27"><a class="rvts39" href="14923SYSV_ABI_Default.htm#SYSV_ABI_Default">14.9.23. SYSV_ABI_Default</a></p>
+   <p class="rvps27"><a class="rvts39" href="14924SYSV_ABI_CDecl.htm#SYSV_ABI_CDecl">14.9.24. SYSV_ABI_CDecl</a></p>
+   <p class="rvps27"><a class="rvts39" href="14925VectorCall.htm#VectorCall">14.9.25. VectorCall</a></p>
+   <p class="rvps27"><a class="rvts39" href="14926varargs.htm#varargs">14.9.26. varargs</a></p>
+   <p class="rvps27"><a class="rvts39" href="14927winapi.htm#winapi">14.9.27. winapi</a></p>
+   <p class="rvps26"><a class="rvts39" href="1410NichtunterstutzteModifikator.htm#Nicht_unterst%C3%BCtzte_Modifikatoren">14.10. Nicht unterstützte Modifikatoren</a></p>
+   <p class="rvps25"><a class="rvts39" href="15OperatorenUberladung.htm#Operatoren_%C3%9Cberladung">15. Operatoren Überladung</a></p>
+   <p class="rvps26"><a class="rvts39" href="151Einleitung.htm#Einleitung">15.1. Einleitung</a></p>
+   <p class="rvps26"><a class="rvts39" href="152Operatoren-Deklarationen.htm#Operatoren_Deklarationen">15.2. Operatoren - Deklarationen</a></p>
+   <p class="rvps26"><a class="rvts39" href="153Operator-Zuweisung.htm#Operator_Ziweisung">15.3. Operator - Zuweisung</a></p>
+   <p class="rvps26"><a class="rvts39" href="154ArithmetischeOperatoren.htm#Arithmetische_Operatoren">15.4. Arithmetische Operatoren</a></p>
+   <p class="rvps26"><a class="rvts39" href="155VergleichendeOperatoren.htm#Vergleichende_Operatoren">15.5. Vergleichende Operatoren</a></p>
+   <p class="rvps26"><a class="rvts39" href="156InOperator.htm#IN_Operator">15.6. In Operator</a></p>
+   <p class="rvps26"><a class="rvts39" href="157LogikOperatoren.htm#Logik_Operatoren">15.7. Logik Operatoren</a></p>
+   <p class="rvps26"><a class="rvts39" href="158Auf-undAb-ZahlungsOperatoren.htm#Auf_und_Abz%C3%A4hlungs_Operatoren">15.8. Auf- und Ab-Zählungs Operatoren</a></p>
+   <p class="rvps26"><a class="rvts39" href="159Aufzahlungs-Operator.htm#Aufz%C3%A4hlungs_Operator">15.9. Aufzählungs - Operator</a></p>
+   <p class="rvps25"><a class="rvts39" href="16ProgrammeModuleundBlocke.htm#Programme_Module_und_Bl%C3%B6cke">16. Programme, Module und Blöcke</a></p>
+   <p class="rvps26"><a class="rvts39" href="161Programme.htm#Programme">16.1. Programme</a></p>
+   <p class="rvps26"><a class="rvts39" href="162ModuleUnits.htm#Module">16.2. Module (Unit's)</a></p>
+   <p class="rvps26"><a class="rvts39" href="163Namensraume.htm#Namensr%C3%A4ume">16.3. Namensräume</a></p>
+   <p class="rvps26"><a class="rvts39" href="164AbhangigkeitenvonModulen.htm#Abh%C3%A4ngigkeiten_von_Modulen">16.4. Abhängigkeiten von Modulen</a></p>
+   <p class="rvps26"><a class="rvts39" href="165Blocke.htm#Bl%C3%B6cke">16.5. Blöcke</a></p>
+   <p class="rvps26"><a class="rvts39" href="166AnwendungsbereicheScope.htm#Anwendungsbereiche_SCOPE">16.6. Anwendungsbereiche (Scope)</a></p>
+   <p class="rvps27"><a class="rvts39" href="1661Blocke.htm#Bl%C3%B6cke">16.6.1. Blöcke</a></p>
+   <p class="rvps27"><a class="rvts39" href="1662Records.htm#Records">16.6.2. Record's</a></p>
+   <p class="rvps27"><a class="rvts39" href="1663Klassen.htm#Klassen">16.6.3. Klassen</a></p>
+   <p class="rvps27"><a class="rvts39" href="1664Units.htm#Units">16.6.4. Unit's</a></p>
+   <p class="rvps26"><a class="rvts39" href="167Bibliotheken.htm#Bibliotheken">16.7. Bibliotheken</a></p>
+   <p class="rvps25"><a class="rvts39" href="17Ausnahmen.htm#Ausnahmen">17. Ausnahmen</a></p>
+   <p class="rvps26"><a class="rvts39" href="171DieRAISEAnweisung.htm#Die_RAISE_Anweisung">17.1. Die RAISE Anweisung</a></p>
+   <p class="rvps26"><a class="rvts39" href="172Ausnahme-BehandlungundVerscha.htm#Ausnahme_Behandlung_und_Verschachtelung">17.2. Ausnahme-Behandlung und Verschachtelung</a></p>
+   <p class="rvps25"><a class="rvts39" href="18Assembler.htm#Assembler">18. Assembler</a></p>
+   <p class="rvps26"><a class="rvts39" href="181Anweisungen.htm#Anweisungen">18.1. Anweisungen</a></p>
+   <p class="rvps26"><a class="rvts39" href="182ProzedurenundFunktionen.htm#Prozeduren_und_Funktionen">18.2. Prozeduren und Funktionen</a></p>

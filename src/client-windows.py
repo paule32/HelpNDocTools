@@ -13,7 +13,7 @@ global os_name; os_name = ""
 global res_file
 
 GUI_DEBUG = True
-res_file  = 'resources_rc.cpython-313.pyc.gz'  # we use Python 3.13.3 !
+res_file  = "resources_rc.py"  #cpython-313.pyc.gz'  # we use Python 3.13.3 !
 
 # ANSI-Konsolenfarben (Standard)
 DEFAULT_COLORS = [
@@ -30,22 +30,69 @@ import importlib
 import subprocess
 import sys            # system specifies
 import os             # operating system stuff
+import re
 import platform
 import hashlib
 import traceback      # stack exception trace back
-import ctypes
 
 from   io  import StringIO
 
+# -----------------------------------------------------------------------
+# under the windows console, python paths can make problems ...
+# -----------------------------------------------------------------------
+#if 'PYTHONHOME' in os.environ:
+#    del os.environ['PYTHONHOME']
+#if 'PYTHONPATH' in os.environ:
+#    del os.environ['PYTHONPATH']
+
+sys.path.append('.')
+
+
+# ----------------------------------------------------------------------
+# \brief This function definition is a helper to save storage resources.
+#        It will be used more as one alone.
+# ----------------------------------------------------------------------
+def handle_exception(err, msg):
+    tb = traceback.extract_tb(sys.exc_info()[2])
+    last_line = tb[-1]
+    # -----------------------------------------
+    # Traceback extrahieren ...
+    # -----------------------------------------
+    tb = sys.exc_info()[2]
+    while tb.tb_next:  # zum letzten Frame durchhangeln
+        tb = tb.tb_next
+    frame = tb.tb_frame
+    # -----------------------------------------
+    line_numb = tb.tb_lineno
+    name_clas = ""
+    code_line = traceback.extract_tb(tb)[-1].line
+    file_name = frame.f_code.co_filename
+    func_name = frame.f_code.co_name
+    # -----------------------------------------
+    # Klassenname ermitteln (wenn möglich) ...
+    # -----------------------------------------
+    if 'self' in frame.f_locals:
+        name_clas = type(frame.f_locals['self']).__name__
+    # -----------------------------------------
+    error_text = (""
+        + msg  + ":\n"
+        + "Error" + ": "       + str(err) + "\n\n"
+        + "Error in File"+": " + str(file_name) + "\n"
+        + "At Line"+"      : " + str(line_numb) + "\n"
+        + "In Function"+"  : " + str(func_name) + "\n"
+        + "In Class"+"     : " + str(name_clas) + "\n"
+        + "Code"+"         : " + str(code_line)
+    )
+    print(error_text)
+
 # ---------------------------------------------------------------------------
 try:
-    # -----------------------------------------------------------------------
-    # under the windows console, python paths can make problems ...
-    # -----------------------------------------------------------------------
-    if 'PYTHONHOME' in os.environ:
-        del os.environ['PYTHONHOME']
-    if 'PYTHONPATH' in os.environ:
-        del os.environ['PYTHONPATH']
+    import resources_rc
+    import dbf, polib, timer, requests, datetime, gmpy2, webbrowser
+    import locale, io, random, ipapi, string, capstone
+    import httpx, ctypes, sqlite3, configparser, traceback
+    import marshal, inspect, logging, PyQt5, pathlib, rich, string
+    import codecs, screeninfo
     
     # -----------------------------------------------------------------------
     # error output function
@@ -66,7 +113,7 @@ try:
     # ------------------------------------------------------------------------
     def check_and_install_module():
         required_modules = [
-            "dbf", "polib", "requests", "timer", "datetime", "gmpy2", "webbrowser",
+            "dbf", "polib", "requests", "datetime", "gmpy2", "webbrowser",
             "locale", "io", "random", "ipapi", "ipcore", "string", "capstone",
             "httpx", "httpx-auth", "ctypes", "sqlite3", "configparser", "traceback",
             "marshal", "inspect", "logging", "PyQt5", "pathlib", "rich", "string",
@@ -285,7 +332,7 @@ try:
     if not font_check_installed("C64 Pro Mono"):
         if sys.platform.startswith("win"):
             if os.environ["observer_second"] == "":
-                check_and_install_module()
+                #check_and_install_module()
                 os.environ["observer_second"] = "true"
                 
                 # ---------------------------------------------------------
@@ -350,6 +397,8 @@ try:
     import gettext        # localization
     import locale         # internal system locale
     import polib          # create .mo locales files from .po files
+    import zlib           # de/compression
+    import tempfile
 
     import io             # memory streams
 
@@ -378,9 +427,9 @@ try:
     # ------------------------------------------------------------------------
     # asmjit for Python ...
     # ------------------------------------------------------------------------
-    if sys.platform.startswith("win"):
-        from peachpy        import *
-        from peachpy.x86_64 import *
+    #if sys.platform.startswith("win"):
+    #    #from peachpy        import *
+    #    #from peachpy.x86_64 import *
 
     # ------------------------------------------------------------------------
     # windows os stuff ...
@@ -398,7 +447,8 @@ try:
                 or missing_module == "win32con":
                     print("Win32Api functions not available.")
                 
-    from screeninfo import get_monitors
+    from screeninfo         import get_monitors
+    from charset_normalizer import from_bytes
 
     # ------------------------------------------------------------------------
     # gnu multi precision version 2 (gmp2 for python)
@@ -429,7 +479,7 @@ try:
     
     import types
     from   types import *
-
+    
     # ---------------------------------------------------------------------------
     # support only for Microsoft Windows
     # ---------------------------------------------------------------------------
@@ -486,7 +536,14 @@ try:
     # ------------------------------------------------------------------------
     def contains_unicode(input_string):
         return any(ord(char) > 127 for char in input_string)
-
+    
+    def open_chm(chm_path, topic, anchor):
+        chm_arg = f"mk:@MSITStore:{chm_path}::/{topic}::{anchor}"
+        try:
+            subprocess.Popen(['hh.exe', chm_arg])
+        except Exception as e:
+            showError(e)
+    
     # ------------------------------------------------------------------------
     # \brief  Generiert einen Hash String aus Zeit + Zufall ...
     # \param  nothing
@@ -538,7 +595,13 @@ try:
             
     class ParserReachEOF(Exception):
         def __init__(self, text):
-            self.message = _str("no more data.")
+            if genv.have_errors:
+                if genv.actual_parser == genv.pascal_parser:
+                    self.message = _str("Pascal with errors.")
+                if genv.actual_parser == genv.dbase_parser:
+                    self.message = _str("dBASE with errors")
+            else:
+                self.message = text
             super().__init__(0)
     
     class unexpectedParserException(Exception):
@@ -548,12 +611,12 @@ try:
             super().__init__(value)
 
     class noDataNoError(Exception):
-        def __init__(self, text="no more data"):
+        def __init__(self, text="no more data 6"):
             self.message = text
             super().__init__(0)
             
     class e_no_more_data(Exception):
-        def __init__(self, text="no more data"):
+        def __init__(self, text="no more data 7"):
             self.message = text
             super().__init__(0)
 
@@ -656,9 +719,9 @@ try:
     # ------------------------------------------------------------------------
     # message box code place holder ...
     # ------------------------------------------------------------------------
-    class showMessage(QDialog):
+    class showMessageGUI(QDialog):
         def __init__(self, text="", msgtype=0):
-            super(showMessage, self).__init__()
+            super(showMessageGUI, self).__init__()
             #
             msgtypes = [
                 [ QMessageBox.Information, _str("Information") ],
@@ -709,6 +772,14 @@ try:
             self.close()
             return True
     
+    class showMessage:
+        def __init__(self, text="", id=0):
+            app = QApplication.instance()
+            if app is None:
+                print(text)
+            else:
+                d = showMessageGUI(text, id)
+ 
     # ------------------------------------------------------------------------
     # code shortner definitions ...
     # ------------------------------------------------------------------------
@@ -749,21 +820,30 @@ try:
             error_text = _str("QApplication Main-Thread does not run.")
             error_flag = True
         #
-        if flag == 1:   # pascal parser
-            error_txt = (""
-            + f"{_str("Parser Notification")}\n"
-            + f"  " + f"{_str("Message: ") + ex.message}\n"
-            + f"  " + f"{_str("Line   : ") + str(genv.line_row)}"
-            )
+        #if genv.actual_parser == genv.pascal_parser:   # pascal parser
+        if flag == 1:
+            error_text = ""
+            print("-------> " + str(genv.have_errors))
+            if genv.have_errors == genv.PARSER_ERROR_NO:
+                error_txt = (""
+                + "Parser Notification\n"
+                + "no error."
+                )
+            else:
+                error_txt = (""
+                + "Parser Notification\n"
+                + "  " + _str("Message: ") + ex.message + "\n"
+                + "  " + _str("Line   : ") + str(genv.line_row)
+                )
             return error_txt
         # -------
         error_txt = (""
         + f"{error_type}:\n"
         + f"{error_text} \n" 
-        + f"  " + f"{_str("Message   :")} {str(ex)}"       + "\n"
-        + f"  " + f"{_str("File      :")} {last.filename}" + "\n"
-        + f"  " + f"{_str("Function  :")} {last.name}"     + "\n"
-        + f"  " + f"{_str("Line      :")} {last.lineno}"   + "\n")
+        + "  " + _str("Message :") + str(ex)           + "\n"
+        + "  " + _str("File    :") + last.filename     + "\n"
+        + "  " + _str("Function:") + last.name         + "\n"
+        + "  " + _str("Line    :") + str(last.lineno)  + "\n")
         # -------
         return error_txt
         
@@ -845,9 +925,11 @@ try:
             
     def showError(text):
         if isinstance(text, ParserReachEOFError):
-            error_text = (""
-            + f"{prepareException(text, _str("Parser Reach End of File Error"), text.message, 1)}"
-            )
+            error_text = prepareException(
+                text,
+                _str("Parser Reach End of File Error"),
+                text.message,
+                1)
             if get_console_mode():
                 if GUI_DEBUG == True:
                     showMessage(error_text, 0)
@@ -860,9 +942,11 @@ try:
                 return True
         # ----------------------
         if isinstance(text, ParserReachEOF):
-            error_text = (""
-            + f"{prepareException(text, _str("Parser No Error"), text.message, 1)}"
-            )
+            error_text = prepareException(
+                text,
+                _str("Parser No Error"),
+                text.message,
+                1)
             if get_console_mode():
                 if GUI_DEBUG == True:
                     showMessage(error_text, 0)
@@ -876,8 +960,8 @@ try:
         # ----------------------
         if isinstance(text, ParserSyntaxError):
             error_text = (""
-            + f"{text.message}\n"
-            + f"{prepareException(text, _str("Parser Error"), text.message, 1)}"
+            + text.message + "\n"
+            + prepareException(text, _str("Parser Error"), text.message, 1)
             )
             if get_console_mode():
                 if GUI_DEBUG == True:
@@ -891,9 +975,10 @@ try:
                 return True
         # ----------------------
         elif isinstance(text, AttributeError):
+            text_msg = f"{str(text)}"
             error_text = (""
-            + f"{text.message}\n"
-            + f"{prepareException(text, _str("Attribute Error"), text.message)}"
+            + text_msg + "\n"
+            + prepareException(text, _str("Attribute Error"), text_msg)
             )
             if get_console_mode():
                 if GUI_DEBUG == True:
@@ -908,8 +993,8 @@ try:
         # ----------------------
         elif isinstance(text, RuntimeError):
             error_text = (""
-            + f"{text.message}\n"
-            + f"{prepareException(text, _str("Runtime Error"), text.message)}"
+            + text.message + "\n"
+            + prepareException(text, _str("Runtime Error"), text.message)
             )
             if get_console_mode():
                 if GUI_DEBUG == True:
@@ -924,8 +1009,13 @@ try:
         # ----------------------
         elif isinstance(text, SyntaxError):
             error_text = (""
-            + f"{text.message}\n"
-            + f"{prepareException(text, _str("Syntax Error"), text.message)}"
+            + f"type     : {type(text)}    \n"
+            + f"tuple    : {text.args}     \n"
+            + f"message  : {text.msg}      \n"
+            + f"file name: {text.filename} \n"
+            + f"line num : {text.lineno}   \n"
+            + f"offset   : {text.offset}   \n"
+            + f"code line: {text.text}     \n"
             )
             if get_console_mode():
                 if GUI_DEBUG == True:
@@ -939,9 +1029,9 @@ try:
                 return True
         # ----------------------
         elif isinstance(text, NameError):
-            error_text = (""
-            + f"{prepareException(text, _str("Name Error"), text)}"
-            )
+            error_text = prepareException(
+                text,
+                _str("Name Error"), text)
             if get_console_mode():
                 if GUI_DEBUG == True:
                     showMessage(error_text, 0)
@@ -955,8 +1045,8 @@ try:
         # ----------------------
         elif isinstance(text, Exception):
             error_text = (""
-            + f"Exception\n"
-            + f"{prepareException(text, _str("Exception Error"), text)}"
+            + "Exception\n"
+            + prepareException(text, _str("Exception Error"), text)
             )
             if get_console_mode():
                 if GUI_DEBUG == True:
@@ -995,21 +1085,21 @@ try:
             tb = traceback.extract_tb(e.__traceback__)
             last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
             print(_str("ERROR:"))
-            print(f"  " + f"{_str("Message A :")} {str(e)}")
-            print(f"  " + f"{_str("Message B :")} {str(text)}")
-            print(f"  " + f"{_str("File      :")} {last.filename}")
-            print(f"  " + f"{_str("Line      :")} {last.lineno}")
-            print(f"  " + f"{_str("Function  :")} {last.name}")
+            print("  " + _str("Message A : ") + str(e))
+            print("  " + _str("Message B : ") + str(text))
+            print("  " + _str("File      : ") + str(last.filename))
+            print("  " + _str("Line      : ") + str(last.lineno))
+            print("  " + _str("Function  : ") + str(last.name))
             return False
         except SyntaxError as e:
             tb = traceback.extract_tb(e.__traceback__)
             last = tb[-1]  # Letzter Punkt im Stack-Trace = Ursprungsort des Fehlers
             print(_str("Syntax Error:"))
-            print(f"  " + f"{_str("Message A :")} {str(e)}")
-            print(f"  " + f"{_str("Message B :")} {str(text)}")
-            print(f"  " + f"{_str("File      :")} {last.filename}")
-            print(f"  " + f"{_str("Line      :")} {last.lineno}")
-            print(f"  " + f"{_str("Function  :")} {last.name}")
+            print("  " + _str("Message A : ") + str(e))
+            print("  " + _str("Message B : ") + str(text))
+            print("  " + _str("File      : ") + str(last.filename))
+            print("  " + _str("Line      : ") + str(last.lineno))
+            print("  " + _str("Function  : ") + str(last.name))
             return False
 
     # ---------------------------------------------------------------------------
@@ -1028,6 +1118,8 @@ try:
             self.v__app__name         = "observer"
             self.v__app__help         = "help"
             self.v__app__meta         = "pcbios"
+            self.v__app__mepa         = "parser"
+            
             self.v__app__pin_name     = ""
             self.v__app__pin_control  = ""
             
@@ -1037,6 +1129,7 @@ try:
             self.v__app__help_mo      = self.v__app__help + ".mo"
             self.v__app__css__mo      = self.v__app__name + ".mo"
             self.v__app__meta_mo      = self.v__app__meta + ".mo"
+            self.v__app__mepa_mo      = self.v__app__mepa + ".mo"
             
             self.v__app__cdn_host     = "http://localhost/cdn"
             self.v__app__internal__   = os.path.join(self.v__app__modul__, "_internal")
@@ -1159,6 +1252,9 @@ try:
             self.c64_parsed  = None
             self.c64_console = None
             
+            self.PROC_HEAD_OK    = True
+            self.PROC_HEAD_ERROR = False
+            
             # Konstante für Sicherheitsberechtigungen
             self.GENERIC_ALL = 0x10000000
             
@@ -1179,6 +1275,14 @@ try:
                 "c64": []
             }
             
+            self.dbase_parser      = 1
+            self.pascal_parser     = 2
+            self.java_parser       = 3
+            self.isoc_parser       = 4
+            self.prolog_parser     = 5
+            self.lisp_parser       = 6
+            self.javascript_parser = 7
+
             # ------------------------------------------------------------------------
             # programming language stuff ...
             # ------------------------------------------------------------------------
@@ -1313,6 +1417,12 @@ try:
             self.TOK_EOF            = 3000
             
             # ------------------------------------------------------------------------
+            # META data types
+            # ------------------------------------------------------------------------
+            self.PCBIOS = 0
+            self.PARSER = 1
+            
+            # ------------------------------------------------------------------------
             # dbase reserved keywords ...
             # ------------------------------------------------------------------------
             self.dbase_keywords = [
@@ -1413,15 +1523,18 @@ try:
                 "Index", "HTML", "LaTeX", "RTF", "Man", "XML", "DocBook",    \
                 "AutoGen", "SQLite3", "PerlMod", "Preprocessor", "External", \
                 "Dot" ]
-                
+            
+            self.help_content_view    = None
+            
             self.v__app_object        = None
             self.v__app_win           = None
             #
-            self.v__app__locales           = ""
-            self.v__app__locales_messages  = ""
-            self.v__app__locales_help      = ""
-            self.v__app__locales_css       = ""
-            self.v__app__locales_meta      = ""
+            self.v__app__locales             = ""
+            self.v__app__locales_messages    = ""
+            self.v__app__locales_help        = ""
+            self.v__app__locales_css         = ""
+            self.v__app__locales_meta        = ""
+            self.v__app__locales_meta_parser = ""
             
             self.v__app__img_ext__    = ".png"
             self.v__app__font         = "Arial"
@@ -1554,6 +1667,19 @@ try:
             self.type_textedit     = 8
             
             self.doc_project_open       = False
+            
+            self.PARSER_ERROR_NO            = 1000
+            self.PARSER_ERROR_LINE_ENDING   = 1001
+            self.PARSER_ERROR_COMMENT_COPEN = 1002
+            self.PARSER_ERROR_IDENT         = 1003
+            self.PARSER_ERROR_CLASS         = 1004
+            self.PARSER_ERROR_OF            = 1005
+            self.PARSER_ERROR_FORM          = 1006
+            self.PARSER_ERROR_ENDCLASS      = 1007
+            self.PARSER_ERROR_WITH          = 1008
+            self.PARSER_ERROR_ENDWITH       = 1009
+            self.PARSER_ERROR_OPEN_PAREN    = 1010
+            self.PARSER_ERROR_CLOSE_PAREN   = 1011
             
             self.DOC_LANG_CPP           = 0
             self.DOC_LANG_JAVA          = 1
@@ -1755,8 +1881,10 @@ try:
     # ------------------------------------------------------------------------
     #import resources_rc
     def import_resource_module(gzip_path, module_name):
-        """Lädt ein kompiliertes .pyc-Modul aus einer gzip-komprimierten Datei im Speicher."""
-        with gzip.open(gzip_path, 'rb') as f:
+        #"""Lädt ein kompiliertes .pyc-Modul aus einer gzip-komprimierten Datei im Speicher."""
+        #with gzip.open(gzip_path, 'rb') as f:
+        #    pyc_data = f.read()
+        with open(gzip_path, "r") as f:
             pyc_data = f.read()
 
         # Die ersten 16 Bytes (Header) ignorieren (Python 3.7+)
@@ -1770,7 +1898,7 @@ try:
         sys.modules[module_name] = module
         return module
 
-    gmod = import_resource_module(res_file, 'resources_rc')
+    #gmod = import_resource_module(res_file, 'resources_rc')
 
     # ------------------------------------------------------------------------
     # read a file into memory ...
@@ -1854,27 +1982,7 @@ try:
             
             showError(error_str)
             sys.exit(genv.EXIT_FAILURE)
-     
-    def handle_help(lang):
-        try:
-            _hlp = read_gzfile_to_memory(genv.v__app__locales_help)
-            return _hlp
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-            tb = traceback.extract_tb(e.__traceback__)[-1]
-            
-            error_str = (f""
-            + exc_type.__name__ + f":\n"
-            + f"  Message   : Exception occur during handle language (meta):\n"
-            + f"  Message   : {exc_value}\n"
-            + f"  File      : {tb.filename}\n"
-            + f"  Line      : {tb.lineno}\n"
-            + ("-" * 40)
-            )
-            
-            showError(error_str)
-            sys.exit(genv.EXIT_FAILURE)
-
+    
     def handle_css(lang):
         try:
             _css = read_gzfile_to_memory(genv.v__app__locales_css)
@@ -1897,7 +2005,9 @@ try:
     
     def handle_meta(lang):
         try:
-            _dat = read_gzfile_to_memory(genv.v__app__locales_meta)
+            _dat = [genv.PCBIOS, genv.PARSER]
+            _dat[genv.PCBIOS] = read_gzfile_to_memory(genv.v__app__locales_meta)
+            #_dat[genv.PARSER] = read_gzfile_to_memory(genv.v__app__locales_meta_parser)
             return _dat
         except Exception as e:
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
@@ -1999,20 +2109,22 @@ try:
             DebugPrint("Error: loacles directory not found.")
             DebugPrint("abort.")
             sys.exit(1)
-
+        
         DebugPrint(genv.v__app__config["common"]["language"])
         genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
         genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
         
-        genv.v__app__locales_messages = os.path.join(genv.v__app__locales, "LC_MESSAGES")
-        genv.v__app__locales_help     = os.path.join(genv.v__app__locales, "LC_HELP")
-        genv.v__app__locales_css      = os.path.join(genv.v__app__locales, "LC_STYLE")
-        genv.v__app__locales_meta     = os.path.join(genv.v__app__locales, "LC_META")
+        genv.v__app__locales_messages    = os.path.join(genv.v__app__locales, "LC_MESSAGES")
+        genv.v__app__locales_help        = os.path.join(genv.v__app__locales, "LC_HELP")
+        genv.v__app__locales_css         = os.path.join(genv.v__app__locales, "LC_STYLE")
+        genv.v__app__locales_meta        = os.path.join(genv.v__app__locales, "LC_META")
+        genv.v__app__locales_meta_parser = os.path.join(genv.v__app__locales, genv.v__app__locales_meta)
         
-        genv.v__app__locales_messages = os.path.join(genv.v__app__locales_messages, genv.v__app__name_mo + ".gz")
-        genv.v__app__locales_help     = os.path.join(genv.v__app__locales_help    , genv.v__app__help_mo + ".gz")
-        genv.v__app__locales_css      = os.path.join(genv.v__app__locales_css     , genv.v__app__css__mo + ".gz")
-        genv.v__app__locales_meta     = os.path.join(genv.v__app__locales_meta    , genv.v__app__meta_mo + ".gz")
+        genv.v__app__locales_messages    = os.path.join(genv.v__app__locales_messages   , genv.v__app__name_mo + ".gz")
+        genv.v__app__locales_help        = os.path.join(genv.v__app__locales_help       , genv.v__app__help_mo + ".zlib")
+        genv.v__app__locales_css         = os.path.join(genv.v__app__locales_css        , genv.v__app__css__mo + ".gz")
+        genv.v__app__locales_meta        = os.path.join(genv.v__app__locales_meta       , genv.v__app__meta_mo + ".gz")
+        genv.v__app__locales_meta_parser = os.path.join(genv.v__app__locales_meta_parser, genv.v__app__mepa_mo + ".gz")
         #
         if len(genv.v__app__locales) < 5:
             DebugPrint("Error: locale out of seed.")
@@ -2020,7 +2132,6 @@ try:
             sys.exit(1)
             
         _str = handle_language(ini_lang)
-        _hlp = handle_help    (ini_lang)
         _css = handle_css     (ini_lang)
         _dat = handle_meta    (ini_lang)
         
@@ -3295,7 +3406,30 @@ try:
         def set_data(self, dat):
             self.hex_edit.set_hex_data(dat)
             self.asc_edit.set_asc_data(dat)
+    
+    class DelegateButton(QStyledItemDelegate):
+        def paint(self, painter, option, index):
+            if index.column() == 4:  # 4. Spalte (Index 3)
+                button = QStyleOptionButton()
+                button.rect = option.rect
+                button.text = "Klick mich"
+                button.state = QStyle.State_Enabled
+                QApplication.style().drawControl(QStyle.CE_PushButton, button, painter)
+            else:
+                super().paint(painter, option, index)
 
+        def editorEvent(self, event, model, option, index):
+            if index.column() == 3 and event.type() == event.MouseButtonRelease:
+                print(f"Button in Zeile {index.row()} geklickt!")
+            return super().editorEvent(event, model, option, index)
+    
+    class DelegateFont(QStyledItemDelegate):
+        def initStyleOption(self, option, index):
+            super().initStyleOption(option, index)
+            if index.column() == 1 \
+            or index.column() == 2:
+                option.font = QFont("Consolas", 10)
+    
     class ExecutableExplorer(QWidget):
         def __init__(self, parent=None):
             try:
@@ -3339,12 +3473,16 @@ try:
                 # ----------------------------------------------
                 # Rechts: QListTree für Symbole und Funktionen
                 # ----------------------------------------------
-                self.symbols_tree = QTreeView()
+                self.symbols_tree = CustomTreeView(4)
                 self.symbols_tree.setHeaderHidden(False)
                 self.symbols_tree.setMinimumWidth(320)
                 
                 self.symbols_tree.setModel(self._create_symbols_model())
                 self.symbols_tree.setToolTip("Symbole und Funktionen")
+                
+                self.symbols_tree.setItemDelegateForColumn(1, DelegateFont  (self.symbols_tree))
+                self.symbols_tree.setItemDelegateForColumn(2, DelegateFont  (self.symbols_tree))
+                self.symbols_tree.setItemDelegateForColumn(4, DelegateButton(self.symbols_tree))
                 
                 header = self.symbols_tree.header()
                 #header.setSectionResizeMode(0, header.Stretch)  # Dynamisch
@@ -3431,7 +3569,8 @@ try:
                 _str("Name"),
                 _str("Offset"),
                 _str("RVA"),
-                _str("Ordinal")
+                _str("Ordinal"),
+                _str("Help")
             ])
             return model
         
@@ -3461,12 +3600,14 @@ try:
 
             for item in sym_list2:
                 button = item[4]
-                hexstr = hex(int(item[3]))
+                hexrva = "0x" + item[2]
+                hexstr = "0x" + item[3]
                 sym_item2.appendRow([
                     QStandardItem(item[0]),
                     QStandardItem(hexstr ),
-                    QStandardItem(item[2]),
+                    QStandardItem(hexrva ),
                     QStandardItem(item[1]),
+                    QStandardItem("btn")
                 ])
             
             self.symbols_tree.model().appendRow(sym_item1)
@@ -3500,12 +3641,12 @@ try:
                         helpbtn = CustomPushButton(font, _str("Help"), self.get_dll_export_help)
                         helpbtn.data = {"name": name}
                         # ---------------------------------------
-                        exports.append((    # index
-                            str(name),      # 0
-                            str(ordinal),   # 1
-                            str(rva),       # 2
-                            str(offset),    # 3
-                            helpbtn         # extern help
+                        exports.append((      # index
+                            str(name),        # 0
+                            str(ordinal),     # 1
+                            f"{rva:08X}",     # 2
+                            f"{offset:08X}",  # 3
+                            helpbtn           # extern help
                         ))
             return exports
         
@@ -5842,7 +5983,7 @@ try:
             self.close_paren =  0
             
             # default, no error's at parse time ...
-            genv.have_errors = False
+            genv.have_errors = 0
             
             genv.open_paren = 0
             genv.text_paren = ""
@@ -5870,14 +6011,6 @@ try:
             self.token_comment_flag  = 0
             
             self.in_comment = 0
-            
-            self.dbase_parser      = 1
-            self.pascal_parser     = 2
-            self.java_parser       = 3
-            self.isoc_parser       = 4
-            self.prolog_parser     = 5
-            self.lisp_parser       = 6
-            self.javascript_parser = 7
             
             genv.counter_for    = 0
             genv.counter_indent = 1
@@ -5946,21 +6079,23 @@ try:
             DebugPrint("source: ", self.source)
         
         # -----------------------------------------------------------------------
-        # \brief  get one char from the input stream/source line.
-        #         the internal position cursor self.pos for the self.source will
-        #         be incdrement by 1 character. for statistics, the line column
-        #         position wull be updated.
-        #         if the sel.pos cursor is greater as self.source codem then the
-        #         end of data is marked, and python raise a silent "no errpr"
-        #         exception to stop the processing of data (to prevent data/buffer
-        #         overflow.
-        #
-        # \param  nothing
-        # \return char - The "non" whitespace character that was found between
-        #                existing comment types.
-        # \author paule32
-        # \since  1.0.0
         # -----------------------------------------------------------------------
+        def PARSER_ERROR(self, num):
+            error_list = [
+                [ genv.PARSER_ERROR_NO                , _str("no error")                            ],
+                [ genv.PARSER_ERROR_LINE_ENDING       , _str("line ending error")                   ],
+                [ genv.PARSER_ERROR_COMMENT_COPEN     , _str("C comment open but not terminated")   ],
+                [ genv.PARSER_ERROR_IDENT             , _str("identifier expected")                 ],
+                [ genv.PARSER_ERROR_CLASS             , _str("CLASS keyword expected")              ],
+                [ genv.PARSER_ERROR_OF                , _str("OF keyword expected")                 ],
+                [ genv.PARSER_ERROR_FORM              , _str("FORM keyword expected")               ],
+                [ genv.PARSER_ERROR_ENDCLASS          , _str("ENDCLASS keyword expected")           ],
+            ]
+            for code in error_list:
+                if code[0] == num:
+                    return str(code[1]) + "."
+                else:
+                    return "no error text available."
         
         # -----------------------------------------------------------------------
         # \brief check the end of line, because windows and linux use differnt
@@ -5973,20 +6108,29 @@ try:
             genv.line_col += 1
             self.pos += 1
             
-            genv.have_errors = False
+            #genv.have_errors = False
             genv.char_prev   = genv.char_curr
             
             if self.pos >= len(self.source):
-                if genv.actual_parser == self.pascal_parser:
+                if genv.actual_parser == genv.pascal_parser:
                     if genv.open_pascal_comment_soft > 0 \
                     or genv.open_pascal_comment_hard > 0 :
                         genv.have_errors = True
                         raise Exception(_str("Error:\nno terminated comment found."))
                         
-                if not self.program_reach_end:
-                    raise ParserReachEOFError(_str("PROGRAM without END."))
+                if not self.program_reach_end or genv.have_errors:
+                    if genv.actual_parser == genv.dbase_parser:
+                        if genv.have_errors:
+                            raise ParserReachEOFError(self.PARSER_ERROR(genv.have_errors))
+                        else:
+                            raise ParserReachEOF(_str("dBASE ends without errors."))
+                    elif genv.actual_parser == genv.pascal_parser:
+                        if genv.have_errors:
+                            raise ParserReachEOFError(_str("PROGRAM without END."))
+                        else:
+                            raise ParserReachEOFError(_str("Pascal ends without errors."))
                 else:
-                    raise ParserReachEOF(_str("no more data"))
+                    raise ParserReachEOF(_str("no more data 1"))
             else:
                 genv.char_curr = self.source[self.pos]
                 if genv.char_curr == '\n':
@@ -5996,8 +6140,8 @@ try:
                     
                 elif genv.char_curr == '\r':
                     if self.pos >= len(self.source):
-                        genv.have_errors = True
-                        raise Exception(_str("line ending error."))
+                        genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                        raise ParserSyntaxError(_str("line ending error."))
                         
                     self.pos += 1
                     
@@ -6010,7 +6154,7 @@ try:
                         
                         return genv.char_curr
                     else:
-                        genv.have_errors = True
+                        genv.have_errors = genv.PARSER_ERROR_EOL
                         raise Exception(_str("Error:\nEnd Of Line error: ") + str(genv.line_row))
                 else:
                     return genv.char_curr
@@ -6040,7 +6184,7 @@ try:
                 genv.line_row += 1
                 self.getChar()
                 if not genv.char_curr == '\n':
-                    genv.have_errors = True
+                    genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
                     genv.unexpectedError(_str("line error"))
                     return False
                 else:
@@ -6072,28 +6216,24 @@ try:
         
         def getNumber(self):
             have_point = False
-            self.token_str = ""
+            self.token_str = genv.char_curr
             while True:
-                genv.char_prev = genv.char_curr
                 self.getChar()
-                
-                if genv.char_curr.isdigit():
+                if genv.char_curr == '.':
+                    if have_point:
+                        raise ParserSyntaxError(_str("float point already exists"))
+                    self.have_point = True
+                    self.token_str += '.'
+                    continue
+                elif genv.char_curr.isdigit():
                     self.token_str += genv.char_curr
                     continue
-                    
-                elif genv.char_curr == '.':
-                    if have_point == True:
-                        genv.have_errors = True
-                        raise Exception(_str("Error:\ntoo many points."))
-                    else:
-                        have_point = True
-                        continue
                 else:
-                    #self.ungetChar(1)
-                    return True
+                    self.ungetChar(1)
+                    return genv.TOKEN_NUMBER
         
         def expect_ident(self, token=""):
-            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
+            genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
             if genv.char_curr.isalpha() or genv.char_curr == '_':
                 self.getIdent()
                 if len(token) > 0:
@@ -6109,7 +6249,7 @@ try:
                 return False
         
         def expect_op(self):
-            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
+            genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
             if genv.char_curr in genv.parser_op:
                 genv.temp_code += c
                 return True
@@ -6118,7 +6258,7 @@ try:
                 return False
         
         def expect_expr(self):
-            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
+            genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
             if genv.char_curr.isdigit():
                 self.token_str = genv.char_curr
                 self.getNumber()
@@ -6144,7 +6284,7 @@ try:
                 return False
         
         def expect_assign(self):
-            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
+            genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
             if not genv.char_curr == '=':
                 genv.unexpectedError(_str("assign sign expected."))
                 return '\0'
@@ -6152,7 +6292,7 @@ try:
         
         def check_null(self, c):
             if self.pos >= len(self.source):
-                showError("no more data.")
+                showError("no more data 2.")
                 return False
             if genv.char_curr == '\0':
                 return True
@@ -6206,31 +6346,56 @@ try:
         
         def handle_pascal_argument(self):
             while True:
-                if self.handle_pascal_white_spaces():
-                    continue
-                if self.check_char(':'):
-                    print(":::::")
-                    while True:
-                        if self.handle_pascal_white_spaces():
-                            continue
-                        if genv.char_curr.isalpha():
-                            self.handle_pascal_argument_type()
-                            
-                            while True:
-                                if self.handle_pascal_white_spaces():
-                                    continue
-                                if self.check_char(')'):
-                                    print("list ende.")
-                                    self.handle_pascal_list_end()
-                                    break
-                        else:
-                            raise ParserSyntaxError(_str("argument type expected."))
-                        break
-                    break
-                else:
-                    raise ParserSyntaxError(_str("colon (:) expected."))
-                break
+                genv.char_prev = genv.char_curr
+                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                 
+                if genv.char_curr == ')':
+                    genv.char_prev = genv.char_curr
+                    genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                    
+                    if genv.char_curr == ';':
+                        return genv.PROC_HEAD_OK
+                    else:
+                        return genv.PROC_HEAD_ERROR
+                elif genv.char_curr == genv.TOKEN_IDENT:
+                    genv.char_prev = genv.char_curr
+                    genv.char_curr = self.skip_white_spaces(self.pascal_patser)
+                    
+                    arg_name = self.token_str
+                    
+                    if self.check_char(':'):
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.skip_white_spaces(self.pascal_patser)
+                        
+                        if genv.char_curr == genv.TOKEN_IDENT:
+                            arg_type = self.token_str
+                            
+                            showInfo("Argument: " + arg_name + ': ' + arg_type)
+                            
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.skip_white_spaces(self.pascal_patser)
+                            
+                            if genv.char_curr == ';':
+                                continue
+                            elif genv.char_curr == ',':
+                                continue
+                            elif genv.char_curr == ')':
+                                genv.char_prev = genv.char_curr
+                                genv.char_curr = self.skip_white_spaces(self.pascal_patser)
+                                
+                                if genv.char_curr == ';':
+                                    return genv.PROC_HEAD_OK
+                                else:
+                                    raise ParserSyntaxError(_str("SEMI Expected."))
+                            else:
+                                raise ParserSyntaxError(_str("sign error"))
+                        else:
+                            raise ParserSyntaxError(_str("token expected."))
+                    else:
+                        raise ParserSyntaxError(_str("::: expected"))
+                else:
+                    raise ParserSyntaxError(_str("token expo"))
+        
         def handle_pascal_list_end(self):
             while True:
                 genv.char_prev = genv.char_curr
@@ -6254,46 +6419,67 @@ try:
                 else:
                     raise ParserSyntaxError(_str("semicolon (;) expected."))
         
-        def handle_pascal_argument_type(self):
-            #self.ungetChar(1)
-            self.check_ident()
-            print("argument type: " + self.token_str)
-            
         # -----------------------------------------------------------------------
         # \brief skip all whitespaces. whitespaces are empty lines, lines with
         #        one or more spaces (0x20): " ", \t, "\n".
         # -----------------------------------------------------------------------
         def skip_white_spaces(self, parser_type=0):  # wöö
-            #genv.actual_parser = parser_type
+            genv.actual_parser = parser_type
             self.have_point    = False
             while True:
                 self.getChar()
                 if genv.char_curr.isspace():
                     continue
                 elif genv.char_curr.isdigit():
-                    self.token_str = genv.char_curr
-                    while True:
-                        self.getChar()
-                        if genv.char_curr == '.':
-                            if have_point:
-                                raise ParserSyntaxError(_str("float point already exists"))
-                            self.have_point = True
-                            self.token_str += '.'
-                            continue
-                        elif genv.char_curr.isdigit():
-                            self.token_str += genv.char_curr
-                            continue
-                        else:
-                            self.ungetChar(1)
-                            return genv.TOKEN_NUMBER
+                    self.getNumber()
+                    return genv.TOKEN_NUMBER
                 
                 elif genv.char_curr.isalpha() or genv.char_curr == '_':
                     self.getIdent()
-                    #showInfo("ident: " + self.token_str)
                     return genv.TOKEN_IDENT
                 
+                elif genv.char_curr == '&':
+                    if genv.actual_parser == genv.dbase_parser:
+                        self.getChar()
+                        if genv.char_curr == '&':
+                            while True:
+                                self.getChar()
+                                if genv.char_curr == '\n':
+                                    break
+                                elif genv.char_curr == '\r':
+                                    self.getChar()
+                                    if not genv.char_curr == '\n':
+                                        genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                                        raise ParserSyntaxError(_str("Line Ending Error."))
+                                    break
+                        else:
+                            self.ungetChar(1)
+                            return '&'
+                    else:
+                        raise ParserSyntaxError(_str("wrong parser"))
+                
+                elif genv.char_curr == '*':
+                    if genv.actual_parser == genv.dbase_parser:
+                        self.getChar()
+                        if genv.char_curr == '*':
+                            while True:
+                                self.getChar()
+                                if genv.char_curr == '\n':
+                                    break
+                                elif genv.char_curr == '\r':
+                                    self.getChar()
+                                    if not genv.char_curr == '\n':
+                                        genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                                        raise ParserSyntaxError(_str("Line Ending Error."))
+                                    break
+                        else:
+                            self.ungetChar(1)
+                            return '*'
+                    else:
+                        raise ParserSyntaxError(_str("wrong parser"))
+                
                 elif genv.char_curr == '(':
-                    if genv.actual_parser == self.pascal_parser:
+                    if genv.actual_parser == genv.pascal_parser:
                         genv.open_paren += 1
                         self.getChar()
                         if genv.char_curr == '*':
@@ -6308,13 +6494,15 @@ try:
                         else:
                             genv.char_prev = genv.char_curr
                             self.ungetChar(1)
-                            return genv.char_curr
+                            return '('
+                    elif genv.actual_parser == genv.dbase_parser:
+                        return '('
                     else:
                         raise ParserSyntaxError(_str("wrong parser"))
                 
                 elif genv.char_curr == '{':
                     #showInfo("comment block")
-                    if genv.actual_parser == self.pascal_parser:
+                    if genv.actual_parser == genv.pascal_parser:
                         while True:
                             self.getChar()
                             if genv.char_curr == '}':
@@ -6325,17 +6513,19 @@ try:
                         raise ParserSyntaxError(_str("wrong parser"))
                 
                 elif genv.char_curr == '/':
-                    if genv.actual_parser == self.pascal_parser:
-                        #showInfo("kloooo")
+                    if genv.actual_parser == genv.pascal_parser:
                         self.getChar()
                         if genv.char_curr =='/':
-                            #showInfo("c++ comment")
                             while True:
                                 self.getChar()
                                 if genv.char_curr == '\r':
                                     self.getChar()
                                     if not genv.char_curr == '\n':
+                                        genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
                                         raise ParserSyntaxError(_str("Line Ending error."))
+                                    genv.line_row += 1
+                                    genv.line_col  = 1
+                                    break
                                 elif genv.char_curr == '\n':
                                     genv.line_row += 1
                                     genv.line_col  = 1
@@ -6345,8 +6535,46 @@ try:
                             genv.char_prev = genv.char_curr
                             self.ungetChar(1)
                             return genv.char_curr
+                            
+                    elif genv.actual_parser == genv.dbase_parser:
+                        self.getChar()
+                        if genv.char_curr == '*':
+                            genv.have_errors = genv.PARSER_ERROR_COMMENT_COPEN
+                            while True:
+                                self.getChar()
+                                if genv.char_curr == '*':
+                                    self.getChar()
+                                    if genv.char_curr == '/':
+                                        genv.have_errors = genv.PARSER_ERROR_NO
+                                        break
+                                    continue
+                                elif genv.char_curr == '/':
+                                    genv.have_errors = genv.PARSER_ERROR_NO
+                                    break
+                            continue
+                        elif genv.char_curr == '/':
+                            while True:
+                                self.getChar()
+                                if genv.char_curr == '\r':
+                                    self.getChar()
+                                    if not genv.char_curr == '\n':
+                                        genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                                        raise ParserSyntaxError(_str("Line Ending Error."))
+                                    genv.line_row += 1
+                                    genv.line_col  = 1
+                                    break
+                                elif genv.char_curr == '\n':
+                                    genv.line_row += 1
+                                    genv.line_col  = 1
+                                    break
+                            continue
+                        else:
+                            genv.char_prev = genv.char_curr
+                            self.ungetChar(1)
+                            return genv.char_curr
                     else:
                         raise ParserSyntaxError(_str("C++ comment expected."))
+                        
                 elif genv.char_curr == ';':
                     return ';'
                 elif genv.char_curr == '.':
@@ -6360,7 +6588,7 @@ try:
             if genv.char_curr == '\r':
                 self.getChar()
                 if not genv.char_curr == '\n':
-                    genv.have_errors = True
+                    genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
                     genv.unexpectedError(_str("invalide line end."))
                     return False
                 elif (genv.char_curr == '\n') or (genv.char_curr == '\t') or (genv.char_curr == ' '):
@@ -6443,7 +6671,18 @@ try:
                 genv.text_code   = ""
                 genv.header_code = ""
                 showException(traceback.format_exc())
-
+                
+    # ---------------------------------------------------------------------------
+    # \brief  provide dBase DSL (domain source language)- dBL (data base language
+    #         class for handling and programming database applications.
+    #
+    # \param  filename - a string based file/script that shall be handled.
+    # \return objref - ctor's return the created object referenz from an memory
+    #         internal address that is managed by the operating system logic.
+    #
+    # \author paule32
+    # \since  1.0.0
+    # ---------------------------------------------------------------------------
     class interpreter_dBase(interpreter_base):
         def __init__(self, file_name):
             super(interpreter_dBase, self).__init__(file_name)
@@ -6469,1354 +6708,341 @@ try:
                 [['rg+','gr+'] , '#FFFF00' ], # yellow
                 [['w+']        , '#FFFFFF' ]  # white
             ]
-                    
+            
             self.fg_color  = "#FF0000"
             self.bg_color  = "#000000"
             
             genv.header_code = ""
             
             global textertext
-            textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2024 by Jens Kallup - paule32.'
-            self.byte_code = ""
-        
-        def add_command(self, name, link):
-            self.token_command = dbase_command(self, name, link)
-            return self.token_command
-        
-        def handle_commands(self):
-            if self.token_str.lower() == "date":
-                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                if genv.char_curr == '(':
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr == ')':
-                        genv.text_code += ('\t' * genv.counter_indent)
-                        genv.text_code += ("console.win.gotoxy(" +
-                        str(self.xpos) + ","   +
-                        str(self.ypos) + ")\n" +
-                        ('\t' * genv.counter_indent) + "console.win.print_date()\n")
-                        
-                        self.command_ok = True
-                    else:
-                        genv.unexpectedChar(genv.char_curr)
-                else:
-                    genv.unexpectedChar(genv.char_curr)
-            elif self.token_str.lower() == "str":
-                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                if genv.char_curr == '(':
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr == ')':
-                        DebugPrint("strrr")
-                        self.command_ok = True
-                    else:
-                        genv.unexpectedChar(genv.char_curr)
-                else:
-                    genv.unexpectedChar(genv.char_curr)
-            else:
-                genv.unexpectedToken(self.token_str)
-        
-        def handle_string(self, mode=0):
-            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-            if genv.char_curr == '"':
-                self.temp_code += '"'
-                while True:
-                    genv.char_curr = self.getChar()
-                    if genv.char_curr == genv.ptNoMoreData:
-                        return genv.char_curr
-                    elif genv.char_curr == '"':
-                        self.temp_code += '"'
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr == '+':
-                            self.temp_code += " + "
-                            return self.handle_string()
-                        else:
-                            self.ungetChar(1)
-                            return self.temp_code
-                    elif genv.char_curr == '\\':
-                        genv.char_curr = self.getChar()
-                        if genv.char_curr == "\n" or genv.char_curr == "\r":
-                            genv.unexpectedEndOfLine(genv.line_row)
-                        elif genv.char_curr == " ":
-                            genv.unexpectedEscapeSign(genv.line_row)
-                        elif genv.char_curr == '\\':
-                            self.temp_code += "\\"
-                        elif genv.char_curr == 't':
-                            self.temp_code += "\t"
-                        elif genv.char_curr == 'n':
-                            self.temp_code += "\n"
-                        elif genv.char_curr == 'r':
-                            self.temp_code += "\r"
-                        elif genv.char_curr == 'a':
-                            self.temp_code += "\a"
-                        else:
-                            self.temp_code += genv.char_curr
-                        continue
-                    else:
-                        self.temp_code += genv.char_curr
-                        continue
-                return self.temp_code
-        
-        def handle_parens(self):
-            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-            if genv.char_curr == '(':
-                self.open_paren += 1
-                genv.temp_code  += c
-                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                if genv.char_curr == genv.ptNoMoreData:
-                    genv.unexpectedError(_str("no more data."))
-                elif genv.char_curr == '(':
-                    self.ungetChar(1)
-                    self.handle_parens()
-                    return self.temp_code # todo !!!
-                return self.get_brace_code()
-            elif genv.char_curr == ')':
-                genv.open_paren -= 1
-                genv.temp_code  += genv.char_curr
-                if genv.open_paren < 1:
-                    return genv.temp_code
-            elif genv.char_curr in genv.parser_op:
-                genv.temp_code += genv.char_curr
-                return handle_parens()
-            elif genv.char_curr.isdigit():
-                self.token_str = genv.char_curr
-                self.getNumber()
-                genv.temp_code += self.token_str
-                return self.get_brace_code()
-            elif genv.char_curr.isalpha():
-                self.token_str = genv.char_curr
-                self.getIdent()
-                genv.text_code += self.token_str
-                return self.get_brace_code()
-            elif genv.char_curr in genv.parser_op:
-                genv.text_code += genv.char_curr
-                return self.get_brace_code()
-            elif genv.char_curr == ',':
-                return genv.char_curr
-            else:
-                if genv.counter_brace > 0:
-                    raise unexpectedParserException(_str("missing closed parens"), genv.line_row)
-                    return '\0'
-            return False
-        
-        def handle_numalpha(self):
-            while True:
-                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                if genv.char_curr.isdigit():
-                    self.token_str = genv.char_curr
-                    self.getNumber()
-                    genv.text_code += self.token_str
-                    continue
-                elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                    self.token_str = genv.char_curr
-                    self.getIdent()
-                    genv.text_code += self.token_str
-                    continue
-                elif genv.char_curr in genv.parser_op:
-                    genv.text_code += genv.char_curr
-                    continue
-                elif genv.char_curr == '(':
-                    genv.counter_brace += 1
-                    genv.text_code += genv.char_curr
-                    continue
-                elif genv.char_curr == ')':
-                    genv.counter_brace -= 1
-                    if self.second_part:
-                        return genv.char_curr
-                    continue
-                elif genv.char_curr == ',':
-                    return genv.char_curr
-            return '\0'
-        
-        def tokenString(self):
-            self.token_str = ""
-            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-            if genv.char_curr == '\"':
-                genv.temp_code  = ('\t' * genv.counter_indent)
-                genv.temp_code += 'console.win.print_line('
-                genv.text_code += genv.temp_code
-                genv.temp_code  = ""
-                genv.last_command = False
-                #
-                self.ungetChar(1)
-                self.handle_string()
-                genv.text_code += ')\n'
-                genv.last_command = True
-                return True
-            else:
-                genv.unexpectedError(_str("qoute expected"))
-                return '\0'
-        
-        def handle_say(self):
-            self.command_ok  = False
-            self.second_part = False
-            #
-            self.temp_code   = ""
-            self.text_paren  = ""
-            #
-            self.prev_sign   = False
-            self.prev_expr   = False
-            #
-            while True:
-                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                if genv.char_curr.isdigit():
-                    self.token_str = genv.char_curr
-                    self.getNumber()
-                    genv.text_code += ('\t' * genv.counter_indent)
-                    genv.text_code += "console.win.gotoxy("
-                    genv.text_code += self.token_str
-                    #
-                    #showInfo("digit:\n" + genv.text_code)
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr == ',':
-                        genv.text_code += ","
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr.isdigit():
-                            self.token_str = c
-                            self.getNumber()
-                            genv.text_code += self.token_str
-                            genv.text_code += ")\n"
-                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                            if genv.char_curr.isalpha() or genv.char_curr == '_':
-                                self.token_str = genv.char_curr
-                                self.getIdent()
-                                if self.token_str.lower() == "say":
-                                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                    if genv.char_curr == '"':
-                                        self.ungetChar(1)
-                                        self.token_str  = ('\t' * genv.counter_indent)
-                                        self.token_str += "console.win.print_line("
-                                        self.token_str += self.handle_string()
-                                        self.token_str += ")\n"
-                                        genv.text_code += self.token_str
-                                        #showInfo("nachricht:\n\n" + genv.text_code)
-                                    return
-                                elif self.token_str.lower() == "get":
-                                    #showInfo("getter")
-                                    return
-                        else:
-                            genv.unexpectedError(_str(" l l k k k "))
-                    #
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr in['-','+','*','/']:
-                        self.temp_code += c
-                        self.prev_sign = True
-                        continue
-                    elif genv.char_curr == ',':
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if c.isdigit():
-                            self.token_str = c
-                            self.getNumber()
-                            genv.temp_code += "," + self.token_str + ")\n"
-                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                            if genv.char_curr.isalpha():
-                                self.token_str = c
-                                self.getIdent()
-                                if self.token_str == "say":
-                                    genv.text_code += ('\t' * genv.counter_indent)
-                                    genv.text_code += "console.win.print("
-                                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                    if genv.char_curr == '"':
-                                        self.ungetChar(1)
-                                        self.token_str  = self.handle_string()
-                                        genv.text_code += self.token_str
-                                        genv.text_code += "\n"
-                                        #showInfo("nachricht 22:\n\n" + genv.text_code)
-                                        break
-                                if self.token_str == "get":
-                                    showInfo("get not implemented")
-                                    break
-                            else:
-                                genv.unexpectedError(_str("say or get expected"))
-                        else:
-                            genv.unexpectedError(_str("prev comma"))
-                    else:
-                        genv.unexpectedError(_str("unexpected character found."))
-                elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                    #showInfo("a identerig")
-                    self.token_str = genv.char_curr
-                    self.getIdent()
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if c in['-','+','*','/']:
-                        #showInfo("alpaha")
-                        self.temp_code += genv.char_curr
-                        self.prev_sign = True
-                        continue
-                    elif genv.char_curr == ',':
-                        if self.prev_expr:
-                            genv.unexpectedError(_str("comma prevv"))
-                        self.prev_expr = True
-                        continue
-                    else:
-                        genv.unexpectedError(_str("unexpected character found 2."))
-                elif genv.char_curr == '(':
-                    genv.open_paren += 1
-                    genv.temp_code += '('
-                    continue
-                elif genv.char_curr == ')':
-                    genv.open_paren -= 1
-                    if genv.open_paren < 1:
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr in['-','+','*','/']:
-                            continue
-                        elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                            self.token_str = genv.char_curr
-                            self.getIdent()
-                            if self.token_str.lower() == "say":
-                                #showInfo("saaayyyyer 111")
-                                break
-                            elif self.token_str.lower() == "get":
-                                #showInfo("getter")
-                                break
-                        elif genv.char_curr.isdigit():
-                            self.token_str = genv.char_curr
-                            self.getNumber()
-                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                            if genv.char_curr in['-','+','*','/']:
-                                self.temp_code += genv.char_curr
-                                self.prev_sign = True
-                                continue
-                            elif genv.char_curr == ',':
-                                if self.prev_expr:
-                                    genv.unexpectedError(_str("comma prevv"))
-                                self.prev_expr = True
-                                continue
-                            else:
-                                genv.unexpectedError(_str("loliutz"))
-                    else:
-                        continue
-                elif genv.char_curr == ',':
-                    #showInfo("mupslochj")
-                    if self.prev_expr:
-                        genv.unexpectedError(_str("comma prevv 22"))
-                    self.prev_sign = True
-                    continue
-                else:
-                    genv.unexpectedError(_str("say command not okay."))
-                    return '\0'
-        
-        # -----------------------------------------------
-        # CLASS ident OF FORM ... ENDCLASS
-        # -----------------------------------------------
-        def handle_class_commands(self):
-            #showInfo("commando: " + str(self.pos));
-            pass
-        
-        def handle_class(self):
-            try:
-                while True:
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr == genv.ptNoMoreData:
-                        raise e_no_more_data()
-                    if genv.char_curr.isalpha():
-                        self.token_str = genv.char_curr
-                        self.getIdent()
-                        if self.token_str.lower() == "class":
-                            genv.class_code += "class ";
-                            self.token_str = ""
-                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                            if genv.char_curr == genv.ptNoMoreData:
-                                raise e_no_more_data()
-                            if genv.char_curr.isalpha():
-                                self.token_str = genv.char_curr
-                                self.getIdent()
-                                ClassName = self.token_str
-                                genv.class_code += self.token_str + "("
-                                # class ClassName(
-                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                if genv.char_curr == genv.ptNoMoreData:
-                                    raise e_no_more_data()
-                                elif genv.char_curr.isalpha():
-                                    self.token_str = genv.char_curr
-                                    self.getIdent()
-                                    if self.token_str.lower() == "of":
-                                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                        if genv.char_curr == genv.ptNoMoreData:
-                                            raise e_no_more_data()
-                                        elif genv.char_curr.isalpha():
-                                            self.token_str = genv.char_curr
-                                            self.getIdent()
-                                            if self.token_str.lower() == "container":
-                                                genv.class_code += (""
-                                                + "dbase_TContainer):\n"
-                                                + ('\t' * genv.counter_indent)
-                                                + "def __init__(self, parent=None):\n"
-                                                + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
-                                                + "\t\tself.setText('My Container')\n"
-                                                + "\t\tself.ClassName = '" + ClassName + "'\n"
-                                                + "\t\tself.ClassType = 'CONTAINER'\n")
-                                                genv.counter_indent += 1
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == '(':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                #showInfo("oooooooooooooooooo")
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == ')':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                elif genv.char_curr.isalpha():
-                                                    self.token_str = genv.char_curr
-                                                    self.getIdent()
-                                                    showInfo(self.token_str)
-                                                showInfo("KLASSE:\n" + genv.class_code)
-                                            elif self.token_str.lower() == "grid":
-                                                genv.class_code += (""
-                                                + "dbase_TPushButton):\n"
-                                                + ('\t' * genv.counter_indent)
-                                                + "def __init__(self, parent=None):\n"
-                                                + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
-                                                + "\t\tself.setText('My Grid')\n"
-                                                + "\t\tself.ClassName = '" + ClassName + "'\n"
-                                                + "\t\tself.ClassType = 'GRID'\n")
-                                                genv.counter_indent += 1
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == '(':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == ')':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                showInfo("KLASSE:\n" + genv.class_code)
-                                            elif self.token_str.lower() == "pushbutton":
-                                                genv.class_code += (""
-                                                + "dbase_TPushButton):\n"
-                                                + ('\t' * genv.counter_indent)
-                                                + "def __init__(self, parent=None):\n"
-                                                + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
-                                                + "\t\tself.setText('My Button')\n"
-                                                + "\t\tself.ClassName = '" + ClassName + "'\n"
-                                                + "\t\tself.ClassType = 'PUSHBUTTON'\n")
-                                                genv.counter_indent += 1
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == '(':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == ')':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                showInfo("KLASSE:\n" + genv.class_code)
-                                            elif self.token_str.lower() == "memo":
-                                                genv.class_code += (""
-                                                + "dbase_TMemo):\n"
-                                                + ('\t' * genv.counter_indent)
-                                                + "def __init__(self, parent=None):\n"
-                                                + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
-                                                + "\t\tself.setText('My Button')\n"
-                                                + "\t\tself.ClassName = '" + ClassName + "'\n"
-                                                + "\t\tself.ClassType = 'MEMO'\n")
-                                                genv.counter_indent += 1
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == '(':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == ')':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                showInfo("KLASSE:\n" + genv.class_code)
-                                            elif self.token_str.lower() == "text":
-                                                genv.class_code += (""
-                                                + "dbase_TLabelText):\n"
-                                                + ('\t' * genv.counter_indent)
-                                                + "def __init__(self, parent=None):\n"
-                                                + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
-                                                + "\t\tself.setText('My Text')\n"
-                                                + "\t\tself.ClassName = '" + ClassName + "'\n"
-                                                + "\t\tself.ClassType = 'TEXT'\n")
-                                                genv.counter_indent += 1
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == '(':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == ')':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                showInfo("KLASSE:\n" + genv.class_code)
-                                            elif self.token_str.lower() == "editfield":
-                                                genv.class_code += (""
-                                                + "dbase_TEditField):\n"
-                                                + ('\t' * genv.counter_indent)
-                                                + "def __init__(self, parent=None):\n"
-                                                + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
-                                                + "\t\tself.setText('My EditField')\n"
-                                                + "\t\tself.ClassName = '" + ClassName + "'\n"
-                                                + "\t\tself.ClassType = 'EDITFIELD'\n")
-                                                genv.counter_indent += 1
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == '(':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if not genv.char_curr == ')':
-                                                    genv.have_errors = True
-                                                    genv.unexpectedChar(genv.char_curr)
-                                                    return
-                                                showInfo("KLASSE:\n" + genv.class_code)
-                                            elif self.token_str.lower() == "form":
-                                                genv.class_code += (""
-                                                + "dbase_TForm):\n"
-                                                + ('\t' * genv.counter_indent)
-                                                + "def __init__(self, parent=None):\n"
-                                                + "\t\tsuper(" + ClassName + ", self).__init__(parent)\n"
-                                                + "\t\tself.setWindowTitle('Main Dialog')\n"
-                                                + "\t\tself.ClassName = '" + ClassName + "'\n"
-                                                + "\t\tself.ClassType = 'FORM'\n")
-                                                genv.counter_indent += 1
-                                                #showInfo("KLASSE:\n" + genv.class_code)
-                                                self.handle_class_commands()
-                                        
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if genv.char_curr == genv.ptNoMoreData:
-                                                    raise e_no_more_data(_str("endclass expected"))
-                                                if genv.char_curr.isalpha():
-                                                    self.token_str = genv.char_curr
-                                                    self.getIdent()
-                                                    if self.token_str.lower() == "endclass":
-                                                        raise e_no_more_data("classend") # + genv.temp_code)
-                                                    else:
-                                                        genv.have_errors = True
-                                                        genv.unexpectedError(_str("endclass expected."))
-                                                else:
-                                                    genv.have_errors = True
-                                                    genv.unexpectedError(_str("alpha value expected"))
-                                                    return
-                                            else:
-                                                genv.have_errors = True
-                                                genv.unexpectedError(_str("OF expected"))
-                                                return
-                                        else:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_str("alpha value expected"))
-                                            return
-                                    else:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_str("form expected."))
-                                        return
-                                else:
-                                    genv.have_errors = True
-                                    genv.unexpectedError(_str("alpha value expected"))
-                                    return
-                            else:
-                                genv.have_errors = True
-                                genv.unexpectedError(_str("OF expected."))
-                                return
-                        else:
-                            genv.have_errors = True
-                            genv.unexpectedError(_str("alpha value expected"))
-                            return
-                    else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_str("alpha value expected"))
-                        return
-            except e_no_more_data as noerror:
-                #showInfo(f"dBase class information:\n{noerror.message}")
-                if noerror.message == "classend":
-                    genv.header_code += "\n\n"
-                    self.update_code(genv.header_code)
-                    self.update_code(genv.class_code)
-                    
-                    # delete first line:
-                    lines = genv.text_code.splitlines()
-                    rline = lines[1:]
-                    lines = "\n".join(rline)
-                    
-                    genv.text_code = lines
-                    
-                    #showInfo("braker:\n" + genv.text_code)
-        
-        def handle_scoped_commands(self):
-            self.ident = ""
-            while True:
-                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                showInfo('----> ' + str(genv.char_curr))
-                return
-                if genv.char_curr == genv.ptNoMoreData:
-                    return genv.char_curr
-                elif genv.char_curr == '\n':
-                    continue
-                elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                    self.getIdent(genv.char_curr)
-                    if self.token_str.lower() == "class":
-                        #showInfo("---------class------")
-                        genv.class_code += "class "
-                        self.handle_class()
-                        return
-                        
-                    elif self.token_str.lower() == "set":
-                        #showInfo("token:  " + self.token_str)
-                        self.token_str = ""
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr.isalpha() or genv.char_curr == '_':
-                            self.token_str = genv.char_curr
-                            self.getIdent(genv.char_curr)
-                            #showInfo("22 token:  " + self.token_str)
-                            if self.token_str.lower() == "color":
-                                self.token_str = ""
-                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                if genv.char_curr.isalpha() or genv.char_curr == '_':
-                                    self.token_str = genv.char_curr
-                                    self.getIdent(genv.char_curr)
-                                    #showInfo("33 token:  " + self.token_str)
-                                    if self.token_str.lower() == "to":
-                                        #showInfo("TTOOOOO")
-                                        # ------------------------------------
-                                        # fg / bg color: 1 / 2
-                                        # ------------------------------------
-                                        genv.char_curr = self.check_color_token(1)
-                                        if genv.char_curr == 1000:
-                                            genv.text_code += ('\t' * genv.counter_indent)
-                                            genv.text_code += (
-                                            f"console.win.setcolor('{self.fg_color}','{self.bg_color}')\n")
-                                            #showInfo("connnnn:  " + genv.text_code)
-                                            continue
-                                        else:
-                                            #showInfo('121212-------')
-                                            break
-                                            #sys.exit(1)
-                                    else:
-                                        genv.unexpectedError(_str("TO expected"))
-                                        return '\0'
-                                else:
-                                    genv.unexpectedError(_str("TO expected"))
-                                    return '\0'
-                            else:
-                                genv.unexpectedToken(_str("COLOR expected"))
-                                return '\0'
-                    elif self.token_str.lower() == "for":
-                        #showInfo("foooor")
-                        genv.counter_for += 1
-                        if not self.expect_ident():
-                            genv.unexpectedError(_str("expected ident."))
-                        self.ident = self.token_str
-                        self.temp_code = self.token_str
-                        genv.text_code += ("\t" * genv.counter_indent)
-                        genv.text_code += self.token_str
-                        if not self.expect_assign():
-                            genv.unexpectedError(_str("assign sign expected."))
-                        genv.text_code += self.token_str
-                        genv.text_code += "_cnt = range("
-                        if not self.expect_expr():
-                            genv.unexpectedError(_str("expr expected."))
-                        genv.text_code += self.temp_code
-                        if not self.expect_ident("to"):
-                            genv.unexpectedError(_str("expect TO"))
-                        genv.text_code += ", "
-                        if not self.expect_expr():
-                            genv.unexpectedError(_str("expr2 expected."))
-                        genv.text_code += self.temp_code
-                        genv.text_code += ")\n"
-                        genv.text_code += ('\t' * genv.counter_indent)
-                        genv.text_code += "for "
-                        genv.text_code += self.ident
-                        genv.text_code += " in "
-                        genv.text_code += self.ident + "_cnt:\n"
-                        continue
-                    elif self.token_str.lower() == "next":
-                        genv.counter_for -= 1
-                        continue
-                    else:
-                        str_closed = False
-                        genv.temp_code  = ('\t' * genv.counter_indent)
-                        genv.temp_code += self.token_str
-                        #
-                        self.token_str = ""
-                        #
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr == genv.ptNoMoreData:
-                            #showInfo(_str("temp code"))
-                            #showInfo(genv.class_code)
-                            raise e_no_more_data("temp code")
-                        if genv.char_curr == '=':
-                            genv.temp_code += " = "
-                            genv.text_code += genv.temp_code
-                            genv.temp_code = ""
-                            #showInfo(genv.text_code)
-                            while True:
-                                genv.char_curr = self.getChar()
-                                if genv.char_curr == '\n':
-                                    break
-                                elif genv.char_curr in genv.ascii_charset:
-                                    self.token_str += genv.char_curr
-                                    continue
-                                #else:
-                                #    break
-                            genv.text_code += self.token_str
-                            genv.text_code += '\n'
-                            #showInfo("variable:  " + self.token_str)
-                            #showInfo(genv.text_code)
-                        elif genv.char_curr == '(':
-                            # todo: callee
-                            #showInfo("todo callee")
-                            pass
-                        elif genv.char_curr.isalpha():
-                            self.token_str = genv.char_curr
-                            self.getIdent(genv.char_curr)
-                            #showInfo('oo\n' + self.token_str)
-                        else:
-                            genv.unexpectedError(_str("variable can not assign."))
-                            return '\0'
-                elif genv.char_curr == '@':
-                    #showInfo('sayer')
-                    self.handle_say()
-                    #showInfo("next sayer")
-                    continue
-                elif genv.char_curr == '?':
-                    genv.text_code += ('\t' * genv.counter_indent)
-                    genv.text_code += "console.win.print_line("
-                    genv.last_command = False
-                    #
-                    self.token_str = ""
-                    #
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr == '[':
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr == '\"' or genv.char_curr == '\'':
-                            self.ungetChar(1)
-                            self.handle_string()
-                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                            if not genv.char_curr == ']':
-                                genv.unexpectedError(_str("] expected."))
-                            else:
-                                break
-                            #showInfo("STRING: ", self.token_str)
-                        else:
-                            genv.unexpectedError(self.err_unknownCS)
-                            return '\0'
-                    elif (genv.char_curr == '\"') or (genv.char_curr == '\''):
-                        self.ungetChar(1)
-                        self.handle_string(0)
-                else:
-                    genv.unexpectedChar(genv.char_curr)
-            return
+            textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2025 by Jens Kallup - paule32.'
         
         def parse(self):
+            genv.line_col = 1
+            genv.line_row = 1
+            #
+            open_paren    = 0
+            self.pos     = -1
+            
             try:
-                genv.counter_digits = 0
-                genv.counter_indent = 1
-                genv.counter_for    = 0
-                genv.counter_brace  = 0
+                genv.actual_parser = genv.dbase_parser
                 
-                genv.first_part  = False
-                genv.second_part = False
-                
-                genv.line_row  = 1
-                genv.line_col  = 1
-                
-                self.token_str = ""
-                            
-                if len(self.source) < 1:
-                    genv.unexpectedError(_str("no data available."))
-                    return
-                
-                # ------------------------------------
-                # dbase plus ?
-                # ------------------------------------
-                if not genv.editor_check.isChecked():
-                    self.handle_scoped_commands()
-                    return
-                return
-                if genv.editor_check.isChecked():
-                    content = self.source
-                    pattern = re.compile(r"\*\* END HEADER.*?\n(.*?)\n*[cC][lL][aA][sS][sS]", re.DOTALL)
-                    plus_code = self.source
-                    line_code = plus_code.splitlines()
-                    
-                    for i, line in enumerate(line_code):
-                        if '**' in line:
-                            genv.start_idx = i + 1
-                        if "class" in line.lower():
-                            genv.end_idx = i + 1
-                            break
-                    match = pattern.search(plus_code)
-                    if not match:
-                        try:
-                            genv.editor_check.setChecked(False)
-                            self.handle_scoped_commands()
-                            return
-                        except:
-                            showError("nor header")
-                            return
-                        
-                        raise ENoSourceHeader("Header not found.")
-                        return
-                    
-                    # ------------------------------------
-                    # handle class header ...
-                    # ------------------------------------
-                    genv.line_col = 1
-                    genv.line_row = genv.start_idx
-                    
-                    self.pos      = -1
-                    
-                    genv.header_code = match.group(1).strip()
-                    self.source = genv.header_code
-                    
-                    if len(self.source) < 1:
-                        showInfo(_str("source have no header"))
-                        return
-                    
-                    genv.isGuiApplication = True
-                    #showInfo(self.source)
-                    self.handle_dbase_header(self.source)
-                    
-                    # ------------------------------------
-                    # handle class ...
-                    # ------------------------------------
-                    genv.line_col = 1
-                    genv.line_row = genv.end_idx
-                    
-                    self.pos   = -1
-                    
-                    class_code = content
-                    class_text = re.sub(r"\*\* END HEADER.*?\n.*?\bCLASS\b",
-                        "CLASS",
-                        content,
-                        flags = re.DOTALL or re.IGNORECASE)
-                    pattern   = re.compile(r"(CLASS.*ENDCLASS)",
-                                re.DOTALL or re.IGNORECASE)
-                    match = pattern.search(class_text)
-                    if match:
-                        class_text  = match.group(1).strip()
-                        self.source = class_text
-                        #showInfo(self.source)
-                        self.handle_dbase_class(self.source)
-                        return
-                    else:
-                        showInfo(_str("no class found"))
-                        return
-                        
-            except noDataNoError:
-                showInfo("nachricht:\n\n" + self.temp_code)
-                if not genv.last_command:
-                    genv.text_code += ")\n"
-                    genv.last_command = True
-                #if len(genv.text_paren) > 0:
-                #genv.text_code += genv.text_paren + "\n"
-                genv.text_paren = ""
-                #showInfo(genv.text_code)
-                pass
-            except e_expr_error as err:
-                genv.have_errors = True
-                genv.code_error  =   err.code
-                genv.unexpectedError(err.message)
-                return
-            except e_expr_empty as err:
-                genv.have_errors = True
-                genv.unexpectedError(err.message)
-                return
-            except Exception as e:
-                showError(f"Error: --> {e}")
-                #showException(traceback.format_exc())
-        
-        def handle_dbase_class(self, code):
-            self.source = code
-            self.handle_class();
-        
-        # ----------------------------------------------------
-        # \brief  dbase_expr handle a dBase expression.
-        # \param  nothing
-        # \return expr
-        # ----------------------------------------------------
-        def dbase_expr(self):
-            while True:
-                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                if genv.char_curr == genv.ptNoMoreData:
-                    genv.have_errors = True
-                    raise e_expr_error(
-                        message=_str("syntax error."),
-                        line=genv.line_row,
-                        code=genv.DBASE_EXPR_SYNTAX_ERROR
-                        )
-                elif genv.char_curr == '(':
-                    genv.text_code += genv.char_curr
-                    continue
-                elif genv.char_curr == ')':
-                    genv.text_code += '):'
-                    break
-                elif genv.char_curr.isnumeric():
-                    self.token_str = genv.char_curr
-                    self.getNumber()
-                    genv.text_code += self.token_str
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr in['-','+','*','/']:
-                        genv.text_code += c
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr == genv.ptNoMoreData:
-                            genv.have_errors = True
-                            raise e_expr_error(
-                                message=_str("data out."),
-                                line=genv.line.row,
-                                code=genv.DBASE_EXPR_SYNTAX_ERROR
-                                )
-                            return 0
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr == '(':
-                            genv.text_code += genv.char_curr
-                            continue
-                        elif genv.char_curr.isnumeric():
-                            self.token_str = genv.char_curr
-                            self.getNumber()
-                            genv.text_code += self.token_str
-                            continue
-                        elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                            self.token_str = genv.char_curr
-                            self.getIdent(genv.char_curr)
-                            if self.token_str.lower() in genv.dbase_keywords:
-                                genv.have_errors = True
-                                raise e_expr_error(
-                                    message=_str("keywords not allowed there."),
-                                    line=genv.line_row,
-                                    code=genv.DBASE_EXPR_KEYWORD_ERROR
-                                    )
-                                return 0
-                            genv.text_code += self.token_str
-                            continue
-                        else:
-                            genv.have_errors = True
-                            raise e_expr_error(
-                                message=_str("numeric or alpha expected."),
-                                line=genv.line_row,
-                                code=genv.DBASE_EXPR_SYNTAX_ERROR
-                                )
-                            return 0
-                    elif genv.char_curr == ')':
-                        genv.text_code += c
-                        continue
-                elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                    self.token_str = genv.char_curr
-                    self.getIdent(genv.char_curr)
-                    if self.token_str.lower() in genv.dbase_keywords:
-                        genv.have_errors = True
-                        raise e_expr_error(
-                            message=_str("keywords not allowed there."),
-                            line=genv.line_row,
-                            code=genv.DBASE_EXPR_KEYWORD_ERROR
-                            )
-                        return
-                    genv.text_code += self.token_str
-                    continue
-                else:
-                    genv.have_errors = True
-                    raise e_expr_error(
-                        message=_str("if syntax error."),
-                        line=genv.line_row
-                        )
-                    return 0
-        
-        def handle_dbase_header(self, code):
-            self.source = code
-            try:
                 while True:
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr == genv.ptNoMoreData:
-                        raise e_no_more_data();
-                        return
-                    elif genv.char_curr.isalpha():
-                        self.getIdent(genv.char_curr)
-                        if self.token_str.lower() == "parameter":
-                            self.temp_code = ""
-                            while True:
-                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                if genv.char_curr == genv.ptNoMoreData:
-                                    raise e_no_more_data();
-                                elif genv.char_curr.isalpha():
-                                    self.getIdent(genv.char_curr)
-                                    if self.token_str.lower() in genv.dbase_keywords:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_str("keywords can not be used as variable"))
-                                        return
-                                    genv.temp_code += self.token_str
-                                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                    if genv.char_curr == genv.ptNoMoreData:
-                                        raise e_no_more_data();
-                                    elif genv.char_curr == ',':
-                                        genv.temp_code += ","
-                                        continue
-                                    else:
-                                        self.ungetChar(1)
-                                        genv.temp_code += "):\n"
-                                        break
-                            
-                            genv.text_code = "def pre_EntryPoint(" + genv.temp_code
-                            genv.temp_code = ""
-                            
-                            #showInfo("texter;\n" + genv.text_code)
-                            #genv.text_code += "\n"
-                            
-                            #genv.text_code +=
-                            
-                            continue
-                        elif self.token_str.lower() == "local":
-                            showInfo("lokaler " + self.token_str + "\n>" + str(genv.char_curr))
-                            genv.text_code += ('\t' * genv.counter_indent)
-                            while True:
-                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                if genv.char_curr == genv.ptNoMoreData:
-                                    raise e_no_more_data();
-                                if genv.char_curr.isalpha():
-                                    self.getIdent(genv.char_curr)
-                                    if self.token_str.lower() in genv.dbase_keywords:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_str("keywords can not be used as variable"))
-                                        return
-                                    genv.text_code += self.token_str
-                                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                    if genv.char_curr == genv.ptNoMoreData:
-                                        raise e_no_more_data();
-                                    elif genv.char_curr == ',':
-                                        genv.text_code += ","
-                                        continue
-                                    else:
-                                        self.ungetChar(1)
-                                        genv.text_code += " = None\n"
-                                        break
-                            showInfo("local:\n" + genv.text_code)
-                            #showInfo("parss: "  + self.token_str + "\n>" + str(genv.char_curr))
-                            continue
-                        elif self.token_str.lower() == "if":
-                            genv.text_code += "if "
-                            self.dbase_expr()
-                            
-                            genv.text_code += '\n'
-                            
-                            showInfo("if: ------\n" + genv.text_code)
-                        elif self.token_str.lower() == "else":
-                            genv.text_code += "\relse:\r\t"
-                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                            if genv.char_curr == genv.ptNoMoreData:
-                                raise e_no_more_data()
-                            elif genv.char_curr.isalpha():
-                                self.getIdent(genv.char_curr)
-                                genv.text_code += ('\t' * genv.counter_indent)
-                                genv.text_code += self.token_str
-                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                if genv.char_curr == genv.ptNoMoreData:
-                                    raise e_no_more_data();
-                                elif genv.char_curr == '.':
-                                    genv.text_code += "."
-                                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                    if genv.char_curr == genv.ptNoMoreData:
-                                        raise e_no_more_data();
-                                    if genv.char_curr.isalpha():
-                                        self.getIdent(genv.char_curr)
-                                        if self.token_str.lower() == "open":
-                                            genv.text_code += "open"
-                                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                            if genv.char_curr == genv.ptNoMoreData:
-                                                raise e_no_more_data();
-                                            elif genv.char_curr == '(':
-                                                genv.text_code += "("
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if genv.char_curr == genv.ptNoMoreData:
-                                                    raise e_no_more_data();
-                                                elif genv.char_curr == ')':
-                                                    genv.text_code += ")"
-                                                    #showInfo("else:\n" + genv.header_code)
-                                                    continue
-                                                else:
-                                                    genv.have_errors = True
-                                                    genv.unexpectedError(_str("closed paren expected."))
-                                                    return
-                                            else:
-                                                genv.have_errors = True
-                                                genv.unexpectedError(_str("open paren expected."))
-                                                return
-                                        else:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_str("open expected."))
-                                            return
-                                    else:
-                                        genv.have_errors = True
-                                        genv.unexpectedError(_str("unexpected character fund."))
-                                        return
-                                elif genv.char_curr == '(':
-                                    showInfo("not implemented paren")
-                                    genv.have_errors = True
-                                    genv.unexpectedError(_str("not implemented."))
-                                    return
-                        elif self.token_str.lower() == "endif":
-                            genv.counter_endif += 1
-                            showInfo("IF:  " + str(genv.counter_if) + "\nBB: " + str(genv.counter_endif))
-                            if not (genv.counter_if == genv.counter_endif):
-                                genv.have_errors = True
-                                genv.unexpectedError(_str("closed paren overflow."))
-                                return 0
-                            continue
-                        else:
-                            genv.text_code += ('\t' * genv.counter_indent)
-                            showInfo("--->>>\n" + self.token_str)
-                            genv.text_code += self.token_str
-                            showInfo("VV\n" + genv.text_code)
-                            
-                            self.check_point()
-                            self.check_token_ident(genv.char_curr)
-                            self.check_token_expr(["readmodal","open"])
-                            if b == False:
-                                genv.have_errors = True
-                                genv.unexpectedError(_str("readmodal or open expected."))
-                                return False
-                                    
-                                showInfo("zzzzzz\n" + genv.text_code)
-                            
-                            elif genv.char_curr == '=':
-                                showInfo("===\n" + genv.text_code)
-                                genv.text_code += " = "
-                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                if genv.char_curr == genv.ptNoMoreData:
-                                    genv.have_errors = True
-                                    raise e_no_more_data();
-                                elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                                    self.getIdent(genv.char_curr)
-                                    if self.token_str.lower() == "new":
-                                        showInfo("new er")
-                                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                        if genv.char_curr == genv.ptNoMoreData:
-                                            genv.have_errors = True
-                                            genv.unexpectedError(_str("new expected."))
-                                            return
-                                        elif genv.char_curr.isalpha() or genv.char_curr == '_':
-                                            self.getIdent(genv.char_curr)
-                                            if self.token_str.lower() in genv.dbase_keywords:
-                                                genv.have_errors = True
-                                                genv.unexpectedError(_str("keywords not allowed there"))
-                                                return
-                                            genv.text_code += self.token_str
-                                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                            if genv.char_curr == genv.ptNoMoreData:
-                                                genv.have_errors = True
-                                                genv.unexpectedError(_str("open paren expected."))
-                                                return
-                                            elif genv.char_curr == '(':
-                                                genv.text_code += '('
-                                                genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                                                if genv.char_curr == genv.ptNoMoreData:
-                                                    genv.have_errors = True
-                                                    genv.unexpectedError(_str("open paren expected."))
-                                                    return
-                                                elif genv.char_curr == ')':
-                                                    genv.text_code += ')\n'
-                                                    genv.text_code += ('\t' * genv.counter_indent)
-                                                    showInfo("parne:\n" + genv.text_code)
-                                                    continue
-                                            else:
-                                                raise e_expr_error()
-                                                return
-                                        else:
-                                            raise e_expr_error()
-                                            return
-                                    else:
-                                        raise e_expr_error()
-                                        return
-                                else:
-                                    raise e_expr_error()
-                                    break
-                            else:
-                                raise e_expr_error()
-                                break
-                    else:
-                        genv.have_errors = True
-                        genv.unexpectedError(_str("unexpected syntax"))
-                        return
+                    genv.char_prev = genv.char_curr
+                    genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
                     
-                    #showInfo("Line: " + str(genv.start_idx) + "\n" + genv.text_code)
-                    #showInfo(genv.text_code)
-                    #self.update_code(genv.text_code)
-                else:
-                    self.handle_scoped_commands()
-            
-            except e_no_more_data as ex:
-                showInfo("-->IF:  " + str(genv.counter_if) + "\nBB: " + str(genv.counter_endif))
-                if not (genv.counter_if == genv.counter_endif):
-                    genv.have_errors = True
-                    genv.unexpectedError(_str("if/endif syntax error."))
-        
-        def check_point(self):
-            genv.char_curr = self.check_token_no_more_data(_str("check point"))
-            if genv.char_curr == '.':
-                genv.text_code += '.'
-                return '.'
-            else:
-                genv.habe_errors = True
-                genv.unexpectedError(_str("point expected."))
-                return False
-        
-        def check_token_ident_macro(self, token):
-            if token in genv.token_macro:
-                return True
-            else:
-                genv.have_errors = True
-                genv.unexpectedError(_str("macro condition expected."))
-            return False
-        
-        def check_token_ident(self):
-            self.check_token_no_more_data()
-            if genv.char_curr.isalpha() or genv.char_curr == '_':
-                self.getIdent(genv.check_curr)
-                genv.text_code += self.token_str
-                return True
-            else:
-                genv.have_errors = True
-                genv.unexpectedError(_str("ident expected."))
-            return False
-        
-        def check_token_keywords(self, tokens):
-            for item in tokens:
-                if item in genv.dbase_keywords:
-                    genv.have_errors = True
-                    genv.unexpectedError(_str("keywords not allowed there."))
-                    return False
-                else:
-                    if item.lower() == self.token_str.lower():
-                        return True
-                return False
-        
-        def check_token_expr(self, tokens):
-            if self.check_token_keywords(tokens) == False:
-                self.check_token_char('(')
-                self.expect_expr()
-                self.check_token_char(')')
-                return True
-            return False
-        
-        def check_token_char(self, ch):
-            if genv.char_curr == ch:
-                return True
-            return False
-        
-        def check_color_token(self, flag):
-            self.token_str = ""
-            #
-            fg_color = "#FF0000"
-            bg_color = "#000000"
-            #
-            fg_found = False
-            bg_found = False
-            #
-            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-            if genv.char_curr.isalpha():
-                self.token_str = genv.char_curr
-                genv.char_curr = self.getChar()
-                if genv.char_curr == '+':
-                    self.token_str += genv.char_curr
-                    fg_color = self.token_str
-                    if self.token_str in genv.concolors:
-                        index    = genv.concolors.index(self.token_str)
-                        fg_color = genv.convalues[index]
-                        fg_found = True
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr == '/':
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr.isalpha():
-                            self.token_str = genv.char_curr
-                            genv.char_curr = self.getChar()
-                            if genv.char_curr == '+':
-                                self.token_str += genv.char_curr
-                            elif genv.char_curr.isalpha():
-                                self.token_str += genv.char_curr
-                            if self.token_str in genv.concolors:
-                                if self.token_str in genv.concolors:
-                                    index    = genv.concolors.index(self.token_str)
-                                    bg_color = genv.convalues[index]
-                                    bg_found = True
-                                else:
-                                    genv.unexpectedError(_str("invalide bg color"))
-                            else:
-                                genv.unexpectedError(_str("bg error"))
-                        else:
-                            self.ungetChar(1)
-                elif genv.char_curr == '/':
-                    fg_color = self.token_str
-                    if self.token_str in genv.concolors:
-                        index    = genv.concolors.index(self.token_str)
-                        fg_color = genv.convalues[index]
-                        fg_found = True
-                    genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                    if genv.char_curr.isalpha():
-                        self.token_str = genv.char_curr
-                        genv.char_curr = self.getChar()
-                        if genv.char_curr == '+':
-                            self.token_str += genv.char_curr
-                        elif genv.char_curr.isalpha():
-                            self.token_str += genv.char_curr
-                        if self.token_str in genv.concolors:
-                            if self.token_str in genv.concolors:
-                                index    = genv.concolors.index(self.token_str)
-                                bg_color = genv.convalues[index]
-                                bg_found = True
-                            else:
-                                genv.unexpectedError(_str("invalide bg color"))
-                        else:
-                            genv.unexpectedError(_str("bg error"))
-                    else:
-                        self.ungetChar(1)
-                elif genv.char_curr.isalpha():
-                    self.token_str += genv.char_curr
-                    fg_color = self.token_str
-                    if self.token_str in genv.concolors:
-                        index    = genv.concolors.index(self.token_str)
-                        fg_color = genv.convalues[index]
-                        fg_found = True
-                        genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                        if genv.char_curr == '/':
-                            genv.char_curr = self.skip_white_spaces(self.dbase_parser)
-                            if genv.char_curr.isalpha() or genv.char_curr == '_':
-                                self.getIdent(genv.char_curr)
-                                #showInfo('color: ' + self.token_str)
-                                if self.token_str in genv.concolors:
-                                    index    = genv.concolors.index(self.token_str)
-                                    bg_color = genv.convalues[index]
-                                    bg_found = True
-                                else:
-                                    genv.unexpectedError(_str("invalide bg color"))
-                            else:
-                                genv.unexpectedError(_str("bg error"))
-                        else:
-                            self.ungetChar(1)
-                    else:
-                        # todo: variable !!!
-                        genv.unexpectedError(_str("invalide fg color"))
-                        #
-                else:
-                    genv.unexpectedError(_str("color error"))
-            self.fg_color = fg_color
-            self.bg_color = bg_color
-            
-            #showInfo("-->FG_color:  \n" + self.fg_color + "\n" + self.bg_color)
-            return 1000
+                    if genv.char_curr == genv.TOKEN_IDENT:
+                        if self.token_str.lower() == 'class':
+                            genv.text_code  += "class "
+                            genv.have_errors = genv.PARSER_ERROR_CLASS
+                            genv.char_prev   = genv.char_curr
+                            genv.char_curr   = self.skip_white_spaces(genv.dbase_parser)
+                            
+                            if genv.char_curr == genv.TOKEN_IDENT:
+                                class_ident = self.token_str
+                                genv.text_code  += self.token_str + '('
+                                genv.have_errors = genv.PARSER_ERROR_IDENT
+                                genv.char_prev   = genv.char_curr
+                                genv.char_curr   = self.skip_white_spaces(genv.dbase_parser)
+                                
+                                if genv.char_curr == genv.TOKEN_IDENT:
+                                    if self.token_str.lower() == 'of':
+                                        genv.have_errors = genv.PARSER_ERROR_OF
+                                        genv.char_prev   = genv.char_curr
+                                        genv.char_curr   = self.skip_white_spaces(genv.dbase_parser)
+                                        
+                                        if genv.char_curr == genv.TOKEN_IDENT:
+                                            if self.token_str.lower() == 'form':
+                                                genv.text_code += "TForm):\n"
+                                                genv.text_code_indent += 4
+                                                genv.text_code += (' ' * genv.text_code_indent)
+                                                genv.text_code += "def __init__(self, parent=None):\n"
+                                                genv.text_code_indent += 4
+                                                genv.text_code += (' ' * genv.text_code_indent)
+                                                genv.text_code += "super(class_ident, self).__init__(self, parent)\n"
+                                                while True:
+                                                    genv.char_prev = genv.char_curr
+                                                    genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
+                                                    
+                                                    if genv.char_curr == genv.TOKEN_IDENT:
+                                                        if self.token_str.lower() == 'endclass':
+                                                            showInfo("endclass")
+                                                            genv.have_errors = genv.PARSER_ERROR_NO
+                                                            showInfo(genv.text_code)
+                                                            break
+                                                        elif self.token_str.lower() == "with":
+                                                            genv.char_prev   = genv.char_curr
+                                                            genv.char_curr   = self.skip_white_spaces(genv.dbase_parser)
 
-    # ---------------------------------------------------------------------------
-    # \brief  provide dBase DSL (domain source language)- dBL (data base language
-    #         class for handling and programming database applications.
-    #
-    # \param  filename - a string based file/script that shall be handled.
-    # \return objref - ctor's return the created object referenz from an memory
-    #         internal address that is managed by the operating system logic.
-    #
-    # \author paule32
-    # \since  1.0.0
-    # ---------------------------------------------------------------------------
-    class dBaseDSL():
-        def __init__(self, script_name):
-            try:
-                self.parser = None
-                self.parser = interpreter_dBase(script_name)
-            except ENoSourceHeader as e:
-                showError(e.message)
-                self.parser = None
-
+                                                            if genv.char_curr == '(':
+                                                                #genv.have_errors = genv.PARSER_ERROR_CLOSE_PAREN
+                                                                tmp_ident = ""
+                                                                while True:
+                                                                    genv.char_prev   = genv.char_curr
+                                                                    genv.char_curr   = self.skip_white_spaces(genv.dbase_parser)
+                                                                    
+                                                                    if genv.char_curr == genv.TOKEN_IDENT:
+                                                                        if self.token_str.lower() == "this":
+                                                                            tmp_ident += "this"
+                                                                    elif genv.char_curr == '.':
+                                                                        tmp_ident += "."
+                                                                    elif genv.char_curr == ')':
+                                                                        break
+                                                                if tmp_ident[0] == "." or tmp_ident.endswith("."):
+                                                                    raise ParserSyntaxError(_str("with ident error"))
+                                                                
+                                                                # properties
+                                                                while True:
+                                                                    genv.char_prev   = genv.char_curr
+                                                                    genv.char_curr   = self.skip_white_spaces(genv.dbase_parser)
+                                                                    
+                                                                    if genv.char_curr == genv.TOKEN_IDENT:
+                                                                        if self.token_str.lower() == "endwith":
+                                                                            showInfo("EDWI")
+                                                                            genv.have_errors = genv.PARSER_ERROR_NO
+                                                                            break
+                                                                        else:
+                                                                            property_name = self.token_str.lower()
+                                                                            name_set = 0
+                                                                            
+                                                                            genv.char_prev   = genv.char_curr
+                                                                            genv.char_curr   = self.skip_white_spaces(genv.dbase_parser)
+                                                                            
+                                                                            if genv.char_curr == '=':
+                                                                                property_expr = ""
+                                                                                while True:
+                                                                                    genv.char_prev = genv.char_curr
+                                                                                    genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
+                                                                                    
+                                                                                    if genv.char_curr == genv.TOKEN_IDENT:
+                                                                                        if self.token_str.lower() == "endwith":
+                                                                                            showInfo("WWWWEEEE")
+                                                                                            break
+                                                                                        else:
+                                                                                            property_expr += self.token_str.lower()
+                                                                                            
+                                                                                            genv.char_prev = genv.char_curr
+                                                                                            genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
+                                                                                            
+                                                                                            if genv.char_curr == genv.TOKEN_IDENT \
+                                                                                            or genv.char_curr == genv.TOKEN_NUMBER:
+                                                                                                raise ParserSyntaxError(_str("syntax error."))
+                                                                                            else:
+                                                                                                self.ungetChar(len(self.token_str))
+                                                                                                continue
+                                                                                    elif genv.char_curr == genv.TOKEN_NUMBER:
+                                                                                        property_expr += self.token_str
+                                                                                        continue
+                                                                                    elif genv.char_curr == '+':
+                                                                                        property_expr += '+'
+                                                                                        
+                                                                                        while True:
+                                                                                            self.getChar()
+                                                                                            if genv.char_curr == ' ' \
+                                                                                            or genv.char_curr == '\t':
+                                                                                                continue
+                                                                                            elif genv.char_curr.isalpha() \
+                                                                                            or   genv.char_curr == '_':
+                                                                                                self.getIdent()
+                                                                                                break
+                                                                                            elif genv.char_curr.isdigit():
+                                                                                                self.getNumber()
+                                                                                                break
+                                                                                            else:
+                                                                                                break
+                                                                                                
+                                                                                    elif genv.char_curr == '-':
+                                                                                        property_expr += '-'
+                                                                                        
+                                                                                        while True:
+                                                                                            self.getChar()
+                                                                                            if genv.char_curr == ' ' \
+                                                                                            or genv.char_curr == '\t':
+                                                                                                continue
+                                                                                            elif genv.char_curr.isalpha() \
+                                                                                            or   genv.char_curr == '_':
+                                                                                                self.getIdent()
+                                                                                                break
+                                                                                            elif genv.char_curr.isdigit():
+                                                                                                self.getNumber()
+                                                                                                break
+                                                                                            else:
+                                                                                                break
+                                                                                            
+                                                                                    elif genv.char_curr == '(':
+                                                                                        property_expr += '('
+                                                                                        continue
+                                                                                    elif genv.char_curr == ')':
+                                                                                        property_expr += ')'
+                                                                                        continue
+                                                                                    elif genv.char_curr == '*':
+                                                                                        self.getChar()
+                                                                                        if genv.char_curr == '*':
+                                                                                            while True:
+                                                                                                self.getChar()
+                                                                                                if genv.char_curr == '\r':
+                                                                                                    self.getChar()
+                                                                                                    if not genv.char_curr == '\n':
+                                                                                                        gemv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                                                                                                        raise ParserSyntaxError(_str("line ending error."))
+                                                                                                    else:
+                                                                                                        genv.line_col  = 1
+                                                                                                        genv.line_row += 1
+                                                                                                        break
+                                                                                                elif genv.char_curr == '\n':
+                                                                                                    genv.line_col  = 1
+                                                                                                    genv.line_row += 1
+                                                                                                    break
+                                                                                            continue
+                                                                                        else:
+                                                                                            property_expr += "*"
+                                                                                            
+                                                                                            genv.char_prev = genv.char_curr
+                                                                                            genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
+                                                                                            
+                                                                                            if genv.char_curr == genv.TOKEN_IDENT \
+                                                                                            or genv.char_curr == genv.TOKEN_NUMBER:
+                                                                                                property_expr += self.token_str
+                                                                                            else:
+                                                                                                showInfo("3len: " + str(len(self.token_str)))
+                                                                                                self.ungetChar(len(self.token_str))
+                                                                                                continue
+                                                                                                
+                                                                                    elif genv.char_curr == '&':
+                                                                                        self.getChar()
+                                                                                        if genv.char_curr == '&':
+                                                                                            while True:
+                                                                                                self.getChar()
+                                                                                                if genv.char_curr == '\r':
+                                                                                                    self.getChar()
+                                                                                                    if not genv.char_curr == '\n':
+                                                                                                        genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                                                                                                        raise ParserSyntaxError(_str("line ending error."))
+                                                                                                    else:
+                                                                                                        genv.line_col  = 1
+                                                                                                        genv.line_row += 1
+                                                                                                        break
+                                                                                                elif genv.char_curr == '\n':
+                                                                                                    genv.line_col  = 1
+                                                                                                    genv.line_row += 1
+                                                                                                    break
+                                                                                        else:
+                                                                                            self.ungetChar(1)
+                                                                                            property_expr += '&'
+                                                                                            continue
+                                                                                    elif genv.char_curr == '/':
+                                                                                        while True:
+                                                                                            self.getChar()
+                                                                                            if genv.char_curr == ' ' \
+                                                                                            or genv.char_curr == '\t':
+                                                                                                continue
+                                                                                            elif genv.char_curr.isalpha() \
+                                                                                            or   genv.char_curr == '_':
+                                                                                                self.getIdent()
+                                                                                            elif genv.char_curr == '(':
+                                                                                                showInfo("xxxxxxx")
+                                                                                                break
+                                                                                        if genv.char_curr == '/':
+                                                                                            while True:
+                                                                                                self.getChar()
+                                                                                                if gemv.char_curr == '\r':
+                                                                                                    self.getChar()
+                                                                                                    if not genv.char_curr == '\n':
+                                                                                                        genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                                                                                                        raise ParserSyntaxError(_str("line ending error."))
+                                                                                                    else:
+                                                                                                        genv.line_col  = 1
+                                                                                                        genv.line_row += 1
+                                                                                                        break
+                                                                                                elif genv.char_curr == '\n':
+                                                                                                    genv.line_col  = 1
+                                                                                                    genv.line_row += 1
+                                                                                                    break
+                                                                                            continue
+                                                                                        elif genv.char_curr == '*':
+                                                                                            while True:
+                                                                                                self.getChar()
+                                                                                                if genv.char_curr == '*':
+                                                                                                    self.getChar()
+                                                                                                    if genv.char_curr == '/':
+                                                                                                        break
+                                                                                                    elif genv.char_curr == '\r':
+                                                                                                        self.getChar()
+                                                                                                        if not genv.char_curr == '\n':
+                                                                                                            genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                                                                                                            raise ParserSyntaxError(_str("line ending error."))
+                                                                                                        else:
+                                                                                                            genv.line_col  = 1
+                                                                                                            genv.line_row += 1
+                                                                                                            break
+                                                                                                    elif genv.char_curr == '\n':
+                                                                                                        genv.line_col  = 1
+                                                                                                        genv.line_row += 1
+                                                                                                        break
+                                                                                            continue
+                                                                                        else:
+                                                                                            property_expr += '/'
+                                                                                            
+                                                                                            genv.char_prev = genv.char_curr
+                                                                                            genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
+                                                                                            
+                                                                                            if genv.char_curr == genv.TOKEN_IDENT \
+                                                                                            or genv.char_curr == genv.TOKEN_NUMBER:
+                                                                                                property_expr += self.token_str
+                                                                                            else:
+                                                                                                showInfo("aalen: " + str(len(self.token_str)))
+                                                                                                raise ParserSyntaxError(_str("syntax error."))
+                                                                                                
+                                                                                    elif genv.char_curr == '\r':
+                                                                                        self.getChar()
+                                                                                        if not genv.char_curr == '\n':
+                                                                                            genv.have_errors = genv.PARSER_ERROR_LINE_ENDING
+                                                                                            raise ParserSyntaxError(_str("line ending error."))
+                                                                                        else:
+                                                                                            genv.line_col  = 1
+                                                                                            genv.line_row += 1
+                                                                                            continue
+                                                                                    elif genv.char_curr == '\n':
+                                                                                        genv.line_col  = 1
+                                                                                        genv.line_row += 1
+                                                                                        continue
+                                                                                if self.token_str.lower() == "endwith":
+                                                                                    break;
+                                                                            else:
+                                                                                raise ParserSyntaxError(_str("assign = expected."))
+                                                                    else:
+                                                                        raise ParserSyntaxError(_str("keywprd expected."))
+                                                                continue
+                                                            else:
+                                                                raise ParserSyntaxError(_str("open paren expected"))
+                                                        elif self.token_str.lower() == "endwith":
+                                                            continue
+                                                        else:
+                                                            raise ParserSyntaxError(_str("ENDCLASS expected."))
+                                                else:
+                                                    raise ParserSyntaxError(_str("keyword expecred."))
+                                            else:
+                                                raise ParserSyntaxError(_str("FORM expected."))
+                                        else:
+                                            raise ParserSyntaxError(_str("ident name expected."))
+                                    else:
+                                        raise ParserSyntaxError(_str("OF expected"))
+                                else:
+                                    raise ParserSyntaxError(_str("keyword expected."))
+                            else:
+                                raise ParserSyntaxError(_str("ident name expected."))
+                        else:
+                            raise ParserSyntaxError(_str("CLASS expected"))
+                    else:
+                        raise ParserSyntaxError(_str("keyword expected."))
+                        
+            except e_no_more_data as nodata:
+                showInfo("no error.\nno more data 3.")
+            except ParserSyntaxError as e:
+                showError(e)
+            except Exception as e:
+                showError(e)
+    
     class interpreter_Pascal(interpreter_base):
         def __init__(self, file_name):
             super(interpreter_Pascal, self).__init__(file_name)
@@ -7830,7 +7056,6 @@ try:
             ]
         
         def parse(self):
-            showInfo("parser")
             genv.line_col = 1
             genv.line_row = 1
             #
@@ -7842,11 +7067,11 @@ try:
             script_app_name = ""
             
             try:
-                genv.actual_parser = self.pascal_parser
+                genv.actual_parser = genv.pascal_parser
                 
                 while True:
                     genv.char_prev = genv.char_curr
-                    genv.char_curr = self.skip_white_spaces()
+                    genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                     
                     # <program> <name> <;>
                     if genv.char_curr == genv.TOKEN_IDENT and self.token_str.lower() == "program":
@@ -7856,11 +7081,11 @@ try:
                         genv.text_code_indent += 4
                         #
                         genv.char_prev = genv.char_curr
-                        genv.char_curr = self.skip_white_spaces()
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                         #
                         if genv.char_curr == genv.TOKEN_IDENT:
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces()
+                            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                             if genv.char_curr == ';':
                                 self.handle_pascal_program()
                                 if self.program_reach_end:
@@ -7903,7 +7128,7 @@ try:
                 self.run()
                 
             except e_no_more_data as nodata:
-                showInfo("no error.\nno more data.")
+                showInfo("no error.\nno more data 4.")
             except ParserSyntaxError as e:
                 showError(e)
             except Exception as e:
@@ -7975,7 +7200,62 @@ try:
                 genv.text_code   = ""
                 genv.header_code = ""
                 showException(traceback.format_exc())
+        
+        def handle_pascal_begin_end(self):
+            while True:
+                if self.program_reach_end:
+                    break
+                    
+                genv.char_prev = genv.char_curr
+                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                 
+                if genv.char_curr == genv.TOKEN_IDENT:
+                    if self.token_str.lower() == "begin":
+                        genv.text_code += (genv.text_code_indent * " ")
+                        self.text_update()
+                        self.begin_counter += 1
+                        
+                        continue
+                    elif self.token_str.lower() == "end":
+                        self.begin_counter -= 1
+                        genv.text_code += (genv.text_code_indent * " ")
+                        genv.text_code += "return\n"
+                        genv.text_code_indent -= 4
+                                
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                        
+                        if genv.char_curr == ';':
+                            continue
+                        elif genv.char_curr == '.':
+                            self.program_reach_end = True
+                            break
+                        else:
+                            raise ParserSyntaxError(_str("END missing semi or dot"))
+                    elif self.token_str.lower() == "procedure":
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                        
+                        showInfo("procedure: " + self.token_str)
+                        
+                        if genv.char_curr == '(':
+                            showInfo("aarrrgggs")
+                            if self.handle_pascal_argument() == genv.PROC_HEAD_ERROR:
+                                raise ParserSyntaxError(_str("semicolon missing"))
+                            else:
+                                break
+                        elif genv.char_curr == ';':
+                            showInfo("ende smei")
+                            if self.program_reach_end:
+                                break
+                            continue
+                        else:
+                            raise ParserSyntaxError(_str("semicolon Expected."))
+                    else:
+                        raise ParserSyntaxError(_str("BEGOIN expected."))
+                else:
+                    raise ParserSyntaxError(_str("keyword expected."))
+        
         def handle_pascal_program(self):
             genv.begin_counter = 0
             while True:
@@ -7983,7 +7263,7 @@ try:
                     break
                     
                 genv.char_prev = genv.char_curr
-                genv.char_curr = self.skip_white_spaces()
+                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                 
                 if genv.char_curr == genv.TOKEN_IDENT:
                     if self.token_str.lower() == "begin":
@@ -7995,7 +7275,7 @@ try:
                                 break
                             
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces()
+                            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                             
                             if genv.char_curr == genv.TOKEN_IDENT:
                                 if self.token_str.lower() == "end":
@@ -8004,7 +7284,7 @@ try:
                                     genv.text_code_indent -= 4
                                     
                                     genv.char_prev = genv.char_curr
-                                    genv.char_curr = self.skip_white_spaces()
+                                    genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                                     
                                     if genv.char_curr == '.':
                                         self.begin_counter -= 1
@@ -8038,7 +7318,7 @@ try:
                             break
                         
                         genv.char_prev = genv.char_curr
-                        genv.char_curr = self.skip_white_spaces()
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                         
                         if genv.char_curr == genv.TOKEN_IDENT:
                             if self.token_str.lower() in self.pascal_keywords:
@@ -8046,71 +7326,17 @@ try:
                             showInfo("---===>>> " + self.token_str)
                             
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces()
+                            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                             
-                            if genv.char_curr == ';':
-                                while True:
-                                    if self.program_reach_end:
-                                        break
-                                        
-                                    genv.char_prev = genv.char_curr
-                                    genv.char_curr = self.skip_white_spaces()
-                                    
-                                    if genv.char_curr == genv.TOKEN_IDENT:
-                                        if self.token_str.lower() == "begin":
-                                            genv.text_code += (genv.text_code_indent * " ")
-                                            self.text_update()
-                                            self.begin_counter += 1
-                                            genv.char_prev = genv.char_curr
-                                            genv.char_curr = self.skip_white_spaces()
-                                            
-                                            if genv.char_curr == genv.TOKEN_IDENT:
-                                                if self.token_str.lower() == "begin":
-                                                    genv.text_code += (genv.text_code_indent * " ")
-                                                    self.text_update()
-                                                    self.begin_counter += 1
-                                                    continue
-                                                elif self.token_str.lower() == "end":
-                                                    self.begin_counter -= 1
-                                                    genv.text_code += (genv.text_code_indent * " ")
-                                                    genv.text_code += "return\n"
-                                                    genv.text_code_indent -= 4
-                                                    
-                                                    genv.char_prev = genv.char_curr
-                                                    genv.char_curr = self.skip_white_spaces()
-                                                    
-                                                    if genv.char_curr == ';':
-                                                        continue
-                                                    elif genv.char_curr == '.':
-                                                        self.program_reach_end = True
-                                                        continue
-                                                    else:
-                                                        raise ParserSyntaxError(_str("END missing semi or dot"))
-                                            else:
-                                                raise ParserSyntaxError(_str("keyword expected."))
-                                        elif self.token_str.lower() == "end":
-                                            self.begin_counter -= 1
-                                            genv.text_code += (genv.text_code_indent * " ")
-                                            genv.text_code += "return\n"
-                                            genv.text_code_indent -= 4
-                                            if self.begin_counter > 0:
-                                                continue
-                                            break
-                                        elif self.token_str.lower() == "procedure":
-                                            genv.char_prev = genv.char_curr
-                                            genv.char_curr = self.skip_white_spaces()
-                                            
-                                            showInfo("procedure: " + self.token_str)
-                                            continue
-                                        else:
-                                            raise ParserSyntaxError(_str("BEGOIN expected."))
-                                    elif genv.char_curr == ';':
-                                        
-                                        continue
-                                    else:
-                                        raise ParserSyntaxError(_str(""
-                                        + "semicolon or parameter list expected "
-                                        + "after procedure name."))
+                            if genv.char_curr == '(':
+                                if not self.handle_pascal_argument():
+                                    raise ParserSyntaxError(_str("semicolon missing"))
+                                else:
+                                    break
+                            elif genv.char_curr == ';':
+                                self.handle_pascal_begin_end()
+                                if self.program_reach_end:
+                                    break
                             else:
                                 raise ParserSyntaxError(_str("semicolon Expected."))
                         else:
@@ -8118,14 +7344,14 @@ try:
                     # -------------
                     elif self.token_str.lower() == "function":
                         genv.char_prev = genv.char_curr
-                        genv.char_curr = self.skip_white_spaces()
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                         
                         if genv.char_curr == genv.TOKEN_IDENT:
                             if self.token_str.lower() in self.pascal_keywords:
                                 raise ParserSyntaxError(_str("no keyword expected."))
                                 
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces()
+                            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                             
                             if genv.char_curr == ';':
                                 break
@@ -8180,14 +7406,14 @@ try:
         
         def handle_pascal_white_spaces(self):
             genv.char_prev = genv.char_curr
-            genv.char_curr = self.skip_white_spaces()
+            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
             if genv.char_curr == ';':
                 return ';'
             return genv.char_curr
         
         def handle_pascal_ident(self):
             while True:
-                genv.char_curr = self.skip_white_spaces()
+                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                 if genv.char_curr == genv.TOKEN_IDENT:
                     return self.handle_pascal_procedure(self.token_str)
                 else:
@@ -8199,20 +7425,20 @@ try:
             self.block_var   = False
             self.token_array = [genv.TOKEN_IDENT, genv.TOKEN_NUMBER, genv.TOKEN_STRING]
             while True:
-                genv.char_curr = self.skip_white_spaces()
+                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                 if genv.char_curr == genv.TOKEN_IDENT:
                     if self.token_str.lower() == "const":
                         print("const-->> " + self.token_str)
                         self.block_var = False
                         self.block_const = True
                         while True:
-                            self.skip_white_spaces()
+                            self.skip_white_spaces(genv.pascal_parser)
                             if genv.char_curr == genv.TOKEN_IDENT:
-                                self.skip_white_spaces()
+                                self.skip_white_spaces(genv.pascal_parser)
                                 if self.check_char('='):
-                                    self.skip_white_spaces()
+                                    self.skip_white_spaces(genv.pascal_parser)
                                     if genv.char_curr in self.token_array:
-                                        self.skip_white_spaces()
+                                        self.skip_white_spaces(genv.pascal_parser)
                                         if genv.char_curr == ',':
                                             continue
                                         if genf.char_curr == ';':
@@ -8228,15 +7454,15 @@ try:
                         self.block_const = False
                         self.block_var = True
                         while True:
-                            self.skip_white_spaces()
+                            self.skip_white_spaces(genv.pascal_parser)
                             if genv.char_curr == genv.TOKEN_IDENT:
-                                self.skip_white_spaces()
+                                self.skip_white_spaces(genv.pascal_parser)
                                 if self.check_char(','):
                                     continue
                                 elif self.check_char(':'):
-                                    self.skip_white_spaces()
+                                    self.skip_white_spaces(genv.pascal_parser)
                                     if genv.char_curr == genv.TOKEN_IDENT:
-                                        self.skip_white_spaces()
+                                        self.skip_white_spaces(genv.pascal_parser)
                                         if self.check_char(';'):
                                             break
                                         else:
@@ -8272,7 +7498,7 @@ try:
         
         def handle_pascal_body(self):
             while True:
-                genv.char_curr = self.skip_white_spaces()
+                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                 print("-->" + str(genv.char_curr) + "<--")
                 if genv.char_curr == genv.TOKEN_IDENT:
                     print("IDD: " + self.token_str)
@@ -8284,7 +7510,7 @@ try:
                         #
                         self.end_counter += 1
                         #print("begin counter2 => " + str(self.begin_counter))
-                        genv.char_curr = self.skip_white_spaces()
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                         if self.check_char(';'):
                             print("end ende ;")
                             self.token_str = ""
@@ -8303,7 +7529,7 @@ try:
                             
                     elif self.token_str.lower() == "procedure":
                         print("--EEEE---")
-                        genv.char_curr = self.skip_white_spaces()
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                         if genv.char_curr == genv.TOKEN_IDENT:
                             print("proceduire: " + self.token_str)
                             self.handle_pascal_procedure(self.token_str)
@@ -8327,7 +7553,7 @@ try:
                     raise ParserSyntaxError(_str("BEGIN or END expected."))
         
         def handle_pascal_procedure(self, name):
-            genv.char_curr = self.skip_white_spaces()
+            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
             showInfo("==>>  " + name + " >" + str(genv.char_curr) + "<" + " >>" + self.token_str +"<<")
             if self.begin_counter == self.end_counter:
                 self.begin_counter = 0
@@ -8338,10 +7564,10 @@ try:
                 showInfo("klamm")
                 genv.text_code += "("
                 while True:
-                    self.skip_white_spaces()
+                    self.skip_white_spaces(genv.pascal_parser)
                     if self.check_char(')'):
                         genv.text_code += ")"
-                        self.skip_white_spaces()
+                        self.skip_white_spaces(genv.pascal_parser)
                         if self.check_char(';'):
                             genv.text_code += ":\n"
                             genv.text_code_ident += 4
@@ -8367,14 +7593,14 @@ try:
                                         continue
                                     if self.check_ident("procedure"):
                                         print("MMMMM")
-                                        genv.char_curr = self.skip_white_spaces()
+                                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                                         if genv.char_curr == genv.TOKEN_IDENT:
                                             print("PROCE: " + self.token_str)
                                             continue
                                         else:
                                             raise Exception(_str("procedure ident expected."))
                                     elif self.check_ident("function", 1):
-                                        genv.char_curr = self.skip_white_spaces()
+                                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                                         if genv.char_curr == genv.TOKEN_IDENT:
                                             print("FUNC: " + self.token_str)
                                             continue
@@ -8406,118 +7632,7 @@ try:
                     self.current_state = "function"
                     self.handle_pascal_white_spaces()
                     break
-                    
-        def handle_pascal_body_alt(self):
-            while True:
-                if self.handle_pascal_white_spaces():
-                    continue
-                if self.check_ident():
-                    if self.token_str.lower() == "end":
-                        self.end_counter += 1
-                        while True:
-                            if self.handle_pascal_white_spaces():
-                                continue
-                            #if self.check_char('.'):
-                            #    print("program end.")
-                            #    return True
-                            if self.check_char(';'):
-                                print("ENDE")
-                                while True:
-                                    if self.handle_pascal_white_spaces():
-                                        continue
-                                    if self.check_ident():
-                                        showInfo(self.token_str)
-                                        if self.token_str.lower() == "begin":
-                                            showInfo("333333333333")
-                                            while True:
-                                                if self.handle_pascal_white_spaces():
-                                                    continue 
-                                                if self.check_ident():
-                                                    showInfo("o>> " + self.token_str)
-                                                    if self.token_str.lower() == "end":
-                                                        while True:
-                                                            if self.handle_pascal_white_spaces():
-                                                                continue 
-                                                            if self.check_char('.'):
-                                                                break
-                                                            else:
-                                                                raise ParserSyntaxError("Point expected.")
-                                                        break
-                                                    else:
-                                                        raise ParserSyntaxError("end expected.")
-                                                else:
-                                                    raise ParserSyntaxError("ident expected.")
-                                            break
-                                        elif self.token_str.lower() == "procedure":
-                                            self.handle_pascal_procedure_name()
-                                            showInfo("8888888888888888888")
-                                            while True:
-                                                if self.handle_pascal_white_spaces():
-                                                    continue
-                                                if self.check_ident():
-                                                    showInfo("UUuii: " + self.token_str)
-                                                    if self.token_str.lower() == "begin":
-                                                        while True:
-                                                            if self.handle_pascal_white_spaces():
-                                                                continue
-                                                            if self.check_ident():
-                                                                showInfo("ccccc> " + self.token_str)
-                                                                if self.token_str.lower() == "end":
-                                                                    while True:
-                                                                        self.getChar()
-                                                                        if genv.char_curr == ' ':
-                                                                            continue
-                                                                        if genv.char_curr == ';':
-                                                                            while True:
-                                                                                if self.handle_pascal_white_spaces():
-                                                                                    continue
-                                                                                if self.check_ident():
-                                                                                    if self.token_str == "begin":
-                                                                                        while True:
-                                                                                            if self.handle_pascal_white_spaces():
-                                                                                                continue
-                                                                                            if self.check_ident():
-                                                                                                if self.token_str == "end":
-                                                                                                    while True:
-                                                                                                        self.getChar()
-                                                                                                        if genv.char_curr == '.':
-                                                                                                            break
-                                                                                                        elif genv.char_curr == ' ' \
-                                                                                                        or   genv.char_curr == '\t'\
-                                                                                                        or   genv.char_curr == '\n':
-                                                                                                            continue
-                                                                                                        elif self.handle_pascal_white_spaces():
-                                                                                                            continue
-                                                                                                        raise Exception("point expected.")
-                                                                                                else:
-                                                                                                    raise Exception("end expected.")
-                                                                                            else:
-                                                                                                raise Exception("ident expected.")
-                                                                                        break
-                                                                            break
-                                                                        if genv.char_curr == '.':
-                                                                            print("pppppp")
-                                                                            break
-                                                                        else:
-                                                                            print("g: " + genv.char_curr)
-                                                                            print("t: " + self.token_str)
-                                                                            raise Exception(_str("Point expected."))
-                                                                    break
-                                                        break
-                                        else:
-                                            raise Exception(f"Line: {genv.line_row}\nBegin expected.")
-                                continue
-                            elif self.check_ident():
-                                if self.token_str.lower() == "procedure":
-                                    self.current_state = "procedure"
-                                    self.handle_pascal_procedure_name()
-                                    continue
-                            else:
-                                raise ParserSyntaxError(_str("point (.) expected."))
-                        break
-                    else:
-                        raise ParserSyntaxError(_str("syntax error."))
-                    
+        
         def handle_pascal_begin(self):
             pass
         
@@ -8570,14 +7685,14 @@ try:
             self.parser = None
             self.parser = interpreter_Java(script_name)
             self.parser.parse()
-
+    
     class interpreter_JavaScript(interpreter_base):
         def __init__(self, file_name):
             super(interpreter_JavaScript, self).__init__(file_name)
             
         def parse(self):
             self.token_str = ""
-
+    
     class javaScriptDSL():
         def __init__(self, script_name):
             self.script = None
@@ -8585,18 +7700,18 @@ try:
             self.parser = None
             self.parser = interpreter_JavaScript(script_name)
             self.parser.parse()
-
+    
     class interpreter_ISOC(interpreter_base):
         def __init__(self, file_name):
             super(interpreter_ISOC, self).__init__(file_name)
             
         def parse(self):
             self.token_str = ""
-
+    
     class interpreter_Prolog(interpreter_base):
         def __init__(self, file_name):
             super(interpreter_Prolog, self).__init__(file_name)
-
+    
     class interpreter_LISP(interpreter_base):
         def __init__(self, file_name):
             super(interpreter_LISP, self).__init__(file_name)
@@ -8647,11 +7762,11 @@ try:
             self.setLayout(layout)
 
             self.offset = None
-
+        
         def mousePressEvent(self, event):
             if event.button() == Qt.LeftButton:
                 self.offset = event.globalPos() - self.parent().frameGeometry().topLeft()
-
+        
         def mouseMoveEvent(self, event):
             if self.offset is not None and event.buttons() == Qt.LeftButton:
                 self.parent().move(event.globalPos() - self.offset)
@@ -10073,6 +9188,30 @@ try:
         def btn_clicked(self):
             if self.callback:
                 self.callback()
+    
+    # ------------------------------------------------------------------------
+    # \brief display a sub classed QTreeView - to hold many code under one
+    #        class object.
+    # ------------------------------------------------------------------------
+    class CustomTreeView(QTreeView):
+        def __init__(self, flag=0, parent=None):
+            super(CustomTreeView, self).__init__(parent)
+        
+        def mousePressEvent(self, event):
+            if event.button() == Qt.LeftButton:
+                index = self.indexAt(event.pos())  # Position -> QModelIndex
+                if index.isValid():
+                    row = index.row()
+                    col = index.column()
+                    if flag > 0 and col == flag:
+                        par = index.parent()
+                        idx = self.model().index(row, 0, par)
+                        txt = self.model().data(idx, Qt.DisplayRole)
+                        self.DelegateButtonHelp(txt)
+            super().mousePressEvent(event)
+        
+        def DelegateButtonHelp(self, text):
+            showInfo(text)
     
     # ------------------------------------------------------------------------
     # \brief display a sub classed QSpinBox - to hold many code under one
@@ -13472,16 +12611,32 @@ try:
                     self.parse_source(genv.SIDE_BUTTON_C64, script_name)
                     
                 elif self.edit_type == "dbase":
-                    if script_name.endswith("/"):
-                        script_name += "default.prg"
-                        self.check_default()
-                        with open(script_name, 'w',
-                            encoding='utf-8') as file:
+                    if not script_name:
+                        if script_name.endswith("/"):
+                            script_name += "/default.prg"
+                            self.check_default()
+                    try:
+                        with open(script_name, 'w', encoding='utf-8') as file:
                             file.write(self.toPlainText())
                             file.close()
-                            
-                    self.parse_source(genv.SIDE_BUTTON_DBASE, script_name)
-                    
+                        #
+                        prg = interpreter_dBase(script_name)
+                        prg.parse()
+                        
+                        return
+                    except PermissionError as e:
+                        showError(_str(f"not enough permissions:\n{e}"))
+                        return False
+                    except AttributeError as e:
+                        return handle_exception(e, _str("Attribute Error occured"))
+                    except ENoSourceHeader as e:
+                        showError(f"SourceReaderError:\n{e}")
+                        return False
+                    except TypeError as e:
+                        return handle_exception(e, _str("A TypeError occured"))
+                    except Exception as e:
+                        return handle_exception(e, _str("A common Exception occured"))
+                
                 elif self.edit_type == "java":
                     if not script_name:
                         if script_name.endswith("/"):
@@ -13620,8 +12775,9 @@ try:
                     showInfo(s)
                     
                 elif edit_type == genv.SIDE_BUTTON_PASCAL:
-                    parser = PascalParser(script_name)
-                    parsed = parser.parse()
+                    pass
+                    #parser = PascalParser(script_name)
+                    #parsed = parser.parse()
                 
                 self.display_comment_summary()
                 
@@ -14290,7 +13446,7 @@ try:
             layout.addWidget(scroll_area)
         
         def load_c64_font(self):
-            font_id = QFontDatabase.addApplicationFont("C64_Pro-STYLE.ttf")
+            font_id = QFontDatabase.addApplicationFont("./_internal/fonts/C64_Pro-STYLE.ttf")
             if font_id == -1:
                 DebugPrint("Fehler beim Laden des C64 Pro Fonts.")
                 sys.exit(1)
@@ -20964,10 +20120,11 @@ try:
         
         def on_button_click(self):
             DebugPrint("jjjj")
-            html_code = _str("paypaldonate")
-            with open("temp_form.html", "w") as file:
-                file.write(html_code)
-            webbrowser.open("temp_form.html")
+            #html_code = _str("paypaldonate")
+            #with open("temp_form.html", "w") as file:
+            #    file.write(html_code)
+            #webbrowser.open("temp_form.html")
+            webbrowser.open("https://www.paypal.com/paypalme/paule32")
         
         def enterEvent(self, event):
             self.is_hovered = True
@@ -21160,6 +20317,7 @@ try:
                 
                 self.setWindowTitle(self.windowtitle)
                 self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
+                self.setMinimumHeight(700)
                 
                 self.my_list = MyItemRecord(0, QStandardItem(""))
                 
@@ -21192,6 +20350,21 @@ try:
                     self.c64_tabs,
                     self.settings_tabs
                 ]
+            except AttributeError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during handle language (meta):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
             except NameError as e:
                 exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
                 tb = traceback.extract_tb(e.__traceback__)[-1]
@@ -21227,20 +20400,69 @@ try:
         # dialog exit ? ...
         # --------------------
         def keyPressEvent(self, event):
-            if event.key() == Qt.Key_F1:
-                os.chdir("T:/a/Qt_FPC/doc/dox/chm")
-                genv.help_dialog = HelpWindow(self,"http://help/index.html")
-                genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
-            
-            elif event.key() == Qt.Key_Escape:
-                exitBox = myExitDialog(_str("Exit Dialog"))
-                exitBox.exec_()
-            elif event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
-                if self.worker_hasFocus == True:
-                    # c64
-                    DebugPrint("xxx")
-            else:
-                super().keyPressEvent(event)
+            try:
+                if event.key() == Qt.Key_F1:
+                    chm_path = genv.basedir + "/help/windows.chm"
+                    chm_path = chm_path.replace("/", "\\")
+                    
+                    genv.help_dialog = HelpWindow(self,"index.html")
+                    genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+                
+                elif event.key() == Qt.Key_Escape:
+                    exitBox = myExitDialog(_str("Exit Dialog"))
+                    exitBox.exec_()
+                elif event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+                    if self.worker_hasFocus == True:
+                        # c64
+                        DebugPrint("xxx")
+                else:
+                    super().keyPressEvent(event)
+                    
+            except AttributeError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during handle language (meta):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
+            except NameError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during handle language (meta):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during handle language (meta):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
         
         def menu_help_clicked_about(self):
             QMessageBox.information(self,
@@ -26038,7 +25260,7 @@ try:
             self.bios_image = bytearray([0xFF] * self.bios_IMAGE_SIZE)
             
             # pcbios.mo unter ./locales
-            self.bios_bda = _dat("pcbios")
+            self.bios_bda = _dat[genv.PCBIOS]("pcbios")
             self.bios_bda.strip()   # white spaces entfernen
             self.bios_bda_list = ast.literal_eval(self.bios_bda)
             
@@ -27051,15 +26273,76 @@ try:
     # ------------------------------------------------------------------------
     # chm help window ...
     # ------------------------------------------------------------------------
+    def displayHelp(parent=None, topic="index.html"):
+        try:
+            with open(genv.v__app__locales_help, "rb") as f:
+                compressed_data = f.read()
+                mo_data = zlib.decompress(compressed_data)
+                program_dir = os.path.dirname(os.path.abspath(__file__))
+                with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
+                    tmp.write(mo_data)
+                    tmp_path = tmp.name
+                    po = polib.mofile(tmp_path)
+                    if topic.lower() == "index.html":
+                        entry = po.find("index.html|TEXT")
+                        b64_string = entry.msgstr
+                        compressed_data = base64.b64decode(b64_string)
+                        decompressed_data = zlib.decompress(compressed_data)
+                        decoded_text = decompressed_data.decode("utf-8-sig")
+                        parent.file_content = "decoded_data"
+                        parent.file_toc = decoded_text
+                    else:
+                        topic = topic.split('|')
+                        if topic[1] == "TEXT":
+                            entry = po.find(topic[0]+"|TEXT")
+                        else:
+                            entry = po.find(topic[0]+"|BINARY")
+                    if not entry:
+                        parent.file_content = "<b>no content available</b>"
+                        parent.file_toc     = "<b>no topics  available</b>"
+                    else:
+                        b64_string = entry.msgstr
+                        compressed_data = base64.b64decode(b64_string)
+                        decompressed_data = zlib.decompress(compressed_data)
+                        decoded_text = decompressed_data.decode("utf-8-sig")
+                        parent.file_content = "decoded_data"
+                        parent.file_toc = decoded_text
+                
+                parent.browser_toc.setHtml(parent.file_toc)
+
+                os.remove(tmp_path)
+            
+        except FileNotFoundError as e:
+            handle_exception(e, (_str("A File operation Exception occured:")))
+            return
+        except PermissionError as e:
+            handle_exception(e, (_str("A File operation Exception occured (permission error):")))
+            return
+        except OSError as e:
+            handle_exception(e, (_str("A OS Error operation Exception occured:")))
+            return
+        except Exception as e:
+            handle_exception(e, (_str("A Exception occured:")))
+            return
+    
+    class MyWebEnginePage(QWebEnginePage):
+        def certificateError(self, certificateError: QWebEngineCertificateError) -> bool:
+            # Hier ignorierst du alle Zertifikatfehler (unsicher, aber für Tests ok)
+            print("Zertifikatfehler ignoriert:", certificateError.errorDescription())
+            certificateError.ignoreCertificateError()
+            return True
+    
+    class LinkInterceptPage(QWebEnginePage):
+        def acceptNavigationRequest(self, url, _type, isMainFrame):
+            if _type == QWebEnginePage.NavigationTypeLinkClicked:
+                print("Link geklickt:", url.toString())
+                displayHelp(genv.help_content_view, url.toString())
+                return False  # Navigation im linken View verhindern
+            return super().acceptNavigationRequest(url, _type, isMainFrame)
+    
     class HelpWindow(QMainWindow):
-        def __init__(self, parent=None, file="index.html"):
-            
-            #genv.saved_style = genv.window_login.styleSheet()
-            #genv.window_login.setStyleSheet("")
-            
+        def __init__(self, parent=None, topic="", anchor="#"):
             super(HelpWindow, self).__init__(parent)
-            
-            self.file = QUrl(file)
             
             # Splitter erstellen
             splitter = QSplitter(Qt.Horizontal)
@@ -27068,7 +26351,7 @@ try:
             self.setContentsMargins(0,0,0,0)
             self.setStyleSheet("background-color:gray;")
             self.setWindowTitle(_str("Help Dialog"))
-            self.setGeometry(100, 100, 700, 600)
+            self.setGeometry(100, 100, 720, 600)
             
             # Hauptlayout des Dialogs
             layout = QVBoxLayout()
@@ -27116,39 +26399,21 @@ try:
             # Setze das Layout für das Navigations-Widget
             navigation_widget.setLayout(navigation_layout)
             
-            # Erstes Widget
-            widget1 = QWidget()
-            #widget1.setContentsMargins(0,0,0,0)
-            
-            layout1 = QVBoxLayout()
+            #container_widget = QWidget()
+            layout1 = QHBoxLayout()
             #layout1.setContentsMargins(0,0,0,0)
             
-            self.browser = QWebEngineView()
-            #self.browser.setContentsMargins(0,0,0,0)
-            #self.browser.setStyleSheet("background-color: black;")
+            # linker Bereich - TOC
+            self.browser_toc = QWebEngineView()
+            self.page_toc    = LinkInterceptPage()
+            self.browser_toc.setPage(self.page_toc)
             
-            layout1.addWidget(self.browser)
-            widget1.setLayout(layout1)
-            
-            self.browser.load(self.file)
-            
-            # Zweites Widget
-            #widget2 = QWidget()
-            #widget2.setContentsMargins(0,0,0,0)
-            
-            #layout2 = QVBoxLayout()
-            #layout2.setContentsMargins(1,0,0,1)
-            
-            #layout2.addWidget(self.browser)
-            #layout2.setContentsMargins(0,0,0,0)
-            #widget2.setLayout(layout2)
-            
-            # Widgets zum Splitter hinzufügen
-            #splitter.addWidget(widget1)
-            #splitter.addWidget(widget2)
+            genv.help_content_view = self.browser_toc
             
             layout.addWidget(navigation_widget)
-            layout.addWidget(widget1)
+            layout.addWidget(self.browser_toc)
+            
+            displayHelp(self, "index.html")
             
             # Schließen-Button
             button_widget = QWidget()
@@ -27162,22 +26427,20 @@ try:
             image_label.setMaximumHeight(64)
             image_label.setMaximumWidth (64)
             
-            image_label.setStyleSheet("""
-            background-color: orange;
-            background-image: url('./_internal/img/py.png');
-            background-repeat: no-repeat;
-            border: 1px solid red;
-            """)
+            image_label.setStyleSheet(""
+            + "background-color: orange;"
+            + "background-image: url('./_internal/img/py.png');"
+            + "background-repeat: no-repeat;"
+            + "border: 1px solid red;")
             
             # Text "Made with Python"
             text_label = QLabel(_str("Made with Python\n(c) 2024 by paule32"))
-            text_label.setStyleSheet("""
-            background-color: navy;
-            border: 1px solid red;
-            font-size: 14px;
-            font-weight: bold;
-            color: yellow;
-            """)
+            text_label.setStyleSheet(""
+            + "background-color: navy;"
+            + "border: 1px solid red;"
+            + "font-size: 14px;"
+            + "font-weight: bold;"
+            + "color: yellow;")
             
             # Zum Button-Layout hinzufügen
             button_layout.addWidget(image_label)
@@ -27195,6 +26458,7 @@ try:
             container.setLayout(layout)
             
             self.setCentralWidget(container)
+            self.browser_toc.show()
             self.show()
         
         def home_click(self):
@@ -27213,8 +26477,8 @@ try:
         def closeEvent(self, event):
             #if not genv.window_login == None:
             #    genv.window_login.setStyleSheet(genv.saved_style)
-            if not self.browser == None:
-                self.browser.deleteLater()
+            if not self.browser_toc == None:
+                self.browser_toc.deleteLater()
             event.accept()
         
         def on_close(self):
@@ -27224,11 +26488,11 @@ try:
             # Zeichnet einen Rahmen um das Hauptfenster
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
-
+            
             pen = QPen(Qt.green)  # Grün
             pen.setWidth(5)  # Rahmenbreite
             painter.setPen(pen)
-
+            
             # Rechteck für den Rahmen definieren
             rect = self.rect()
             rect = rect.adjusted(2, 2, -2, -2)  # Den Rahmen leicht nach innen verschieben
@@ -28365,7 +27629,7 @@ try:
         if (major < 3 and minor < 12):
             DebugPrint("Python 3.12+ are required for the script")
             sys.exit(1)
-        
+            
         # Determine the path to the script and its name.
         script = os.path.abspath(sys.argv[0])
         script_path, script_name = os.path.split(script)
@@ -28419,10 +27683,11 @@ try:
                     handleExceptionApplication(parserPascalPoint,sys.argv[idx])
                     sys.exit(0)
                 else:
-                    if item.endswith(".exe"):
-                        DebugPrint("check: " + item)
-                        analyze_pe(item)
-                        sys.exit(1)
+                    handleExceptionApplication(EntryPoint)
+                    #if item.endswith(".exe"):
+                    #    DebugPrint("check: " + item)
+                    #    analyze_pe(item)
+                    #   sys.exit(0)
             else:
                 DebugPrint("parameter unknown.")
                 DebugPrint(genv.v__app__parameter)
@@ -28430,36 +27695,38 @@ try:
     else:
         raise Exception(_str("no startup routine found."))
 
+except SyntaxError as e:
+    handle_exception(e, ("Syntax Error occured"))
 except NameError as e:
-    handle_exception(e, _str("NameError occured"))
+    handle_exception(e, ("NameError occured"))
 except TypeError as e:
-    handle_exception(e, _str("A type error Exception occured."))
+    handle_exception(e, ("A type error Exception occured."))
 except ImportError as e:
     # Extrahiere den Modulnamen aus der Fehlermeldung
     match = re.search(r"No module named '([^']+)'", str(e))
     if match:
         missing_module = match.group(1)
-        self.handle_exception(e, _str(""
+        handle_exception(e, (""
         + "A module import exception occured:\nModule: "
         + missing_module + "\ncould not be found.\n"
         + "make sure, your are in the VENV of Python-Session."))
     else:
-        handle_exception(e, _str("A import error was occurred"))
+        handle_exception(e, ("A import error was occurred"))
         #DebugPrint(f"A ImportError was occured: {e}")
 except FileNotFoundError as e:
-    handle_exception(e, _str("A File operation Exception occured:"))
+    handle_exception(e, (_str("A File operation Exception occured:")))
     #DebugPrint(e)
     #sys.exit(1)
 except PermissionError as e:
-    handle_exception(e, _str("A access violation Exception occured:"))
+    handle_exception(e, ("A access violation Exception occured:"))
     #DebugPrint(e)
     #sys.exit(1)
 except RuntimeError as e:
-    self.handle_exception(e, _str("A Runtime Error Exception occured:"))
+    handle_exception(e, ("A Runtime Error Exception occured:"))
     #DebugPrint(e)
     #sys.exit(1)
 except Exception as e:
-    handle_exception(e, _str("A common Exception occured:"))
+    handle_exception(e, ("A common Exception occured:"))
     #exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     #tb = traceback.extract_tb(e.__traceback__)[-1]
     
