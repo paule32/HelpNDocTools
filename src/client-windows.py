@@ -26,6 +26,9 @@ DEFAULT_COLORS = [
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
 
+HTTP_PORT      = 8000
+HTTP_DIRECTORY = "./__pycache__/temp"
+        
 import importlib
 import subprocess
 import sys            # system specifies
@@ -423,7 +426,7 @@ try:
 
     import pefile         # MS-Windows PE executable image
     import capstone       # disassembly
-    
+
     # ------------------------------------------------------------------------
     # asmjit for Python ...
     # ------------------------------------------------------------------------
@@ -449,6 +452,8 @@ try:
                 
     from screeninfo         import get_monitors
     from charset_normalizer import from_bytes
+    from urllib.parse       import urlparse, parse_qs
+    from bs4                import BeautifulSoup
 
     # ------------------------------------------------------------------------
     # gnu multi precision version 2 (gmp2 for python)
@@ -476,6 +481,12 @@ try:
     # ------------------------------------------------------------------------
     import ipapi
     import httpx
+
+    # ------------------------------------------------------------------------
+    # internal http server for help sites ...
+    # ------------------------------------------------------------------------
+    from   http.server import SimpleHTTPRequestHandler, HTTPServer
+    import socketserver
     
     import types
     from   types import *
@@ -1146,7 +1157,10 @@ try:
             im_path = self.v__app__img__int__
             
             self.isGuiApplication = False
-            self.parent_array    = []
+            self.parent_array     = []
+            self.safe_debug       = True    # enabled for security (e.g.: delete files) !
+            self.decoded_text     = ""
+            self.decoded_index_text = ""
             
             self.start_idx = 1
             self.end_idx   = 1
@@ -1524,7 +1538,8 @@ try:
                 "AutoGen", "SQLite3", "PerlMod", "Preprocessor", "External", \
                 "Dot" ]
             
-            self.help_content_view    = None
+            self.help_content      = None
+            self.help_content_code = None
             
             self.v__app_object        = None
             self.v__app_win           = None
@@ -1562,6 +1577,7 @@ try:
             self.v__app__devmode  = -1
             
             self.toolbar_css      = "toolbar_css"
+            self.actual_click_link = ""
             
             self.css__widget_item = "listview_css"
             self.css_model_header = "model_hadr"
@@ -1900,6 +1916,30 @@ try:
 
     #gmod = import_resource_module(res_file, 'resources_rc')
 
+    # ------------------------------------------------------------------------
+    # a minimal http server thread for display help pages ...
+    # ------------------------------------------------------------------------
+    class CORSRequestHandler(SimpleHTTPRequestHandler):
+        def end_headers(self):
+            # CORS Header setzen
+            self.send_header('Access-Control-Allow-Origin', '*')
+            super().end_headers()
+    
+    class HTTPServerThread(threading.Thread):
+        def __init__(self, port=8000, directory="./__pycache__/temp"):
+            super().__init__(daemon=True)
+            self.port = port
+            self.directory = directory
+        
+        def run(self):
+            # Handler-Klasse an Server übergeben, nicht instanziieren
+            handler_class = CORSRequestHandler
+            handler_class.directory = self.directory
+            
+            server = HTTPServer(("", self.port), handler_class)
+            print(f"Server läuft auf http://localhost:{self.port}")
+            server.serve_forever()
+    
     # ------------------------------------------------------------------------
     # read a file into memory ...
     # ------------------------------------------------------------------------
@@ -11225,7 +11265,6 @@ try:
 
     class MyProjectOption():
         def __init__(self):
-            msg = None
             msg = QMessageBox()
             msg.setWindowTitle("Information")
             msg.setText(_str(genv.project_not_known))
@@ -11420,6 +11459,11 @@ try:
                 
             #self.disconnectEvents()
             genv.v__app_win.write_config_part()
+            
+            # clean up ./temp
+            tree = os.path.dirname(os.path.abspath(__file__))
+            tree += "/temp"
+            saveDeleteDirectoryTree(tree)
             
             sys.exit(0)
 
@@ -26269,61 +26313,170 @@ try:
     #                self.parent_view.setUrl(url)
     #                return False
     #        return super().acceptNavigationRequest(url, _type, isMainFrame)
-
     # ------------------------------------------------------------------------
-    # chm help window ...
-    # ------------------------------------------------------------------------
-    def displayHelp(parent=None, topic="index.html"):
+    
+    def extract_assets_from_html(html_content):
+        #
+        program_dir = os.path.dirname(os.path.abspath(__file__)).replace("\\","/")
+        program_dir = program_dir + "/temp"
+        
+        with open(program_dir+"/"+genv.actual_click_link,"w",encoding="utf-8") as f:
+            f.write(html_content)
+            f.close()
+        
+        soup      = BeautifulSoup(html_content, "html.parser")
+        images    = [img .get("src" ) for img  in soup.find_all("img") if img.get("src")]
+        css_files = [link.get("href") for link in soup.find_all("link", rel="stylesheet") if link.get("href")]
+        
+        # 3. JavaScript-Dateien (script src)
+        js_files = [script.get("src") for script in soup.find_all("script") if script.get("src")]
         try:
-            with open(genv.v__app__locales_help, "rb") as f:
+            #genv.decoded_text = ""
+            with open(genv.v__app__locales_help,"rb") as f:
                 compressed_data = f.read()
                 mo_data = zlib.decompress(compressed_data)
-                program_dir = os.path.dirname(os.path.abspath(__file__))
+                os.makedirs(program_dir,exist_ok=True)
                 with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
                     tmp.write(mo_data)
                     tmp_path = tmp.name
                     po = polib.mofile(tmp_path)
-                    if topic.lower() == "index.html":
-                        entry = po.find("index.html|TEXT")
+                    for js in js_files:
+                        if js.startswith("qrc:"):
+                            continue
+                        entry = po.find(js+"|TEXT")
+                        if not entry:
+                            showError(_str("internal js file not found."))
+                            return
                         b64_string = entry.msgstr
                         compressed_data = base64.b64decode(b64_string)
                         decompressed_data = zlib.decompress(compressed_data)
-                        decoded_text = decompressed_data.decode("utf-8-sig")
-                        parent.file_content = "decoded_data"
-                        parent.file_toc = decoded_text
-                    else:
-                        topic = topic.split('|')
-                        if topic[1] == "TEXT":
-                            entry = po.find(topic[0]+"|TEXT")
-                        else:
-                            entry = po.find(topic[0]+"|BINARY")
-                    if not entry:
-                        parent.file_content = "<b>no content available</b>"
-                        parent.file_toc     = "<b>no topics  available</b>"
-                    else:
+                        genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                        folder = os.path.dirname(program_dir+"/"+js).replace("\\","/")
+                        os.makedirs(folder,exist_ok=True)
+                        with open(program_dir+"/"+js,"w",encoding="utf-8") as f:
+                            f.write(genv.decoded_text)
+                            f.close()
+                    for css in css_files:
+                        if js.startswith("qrc:"):
+                            continue
+                        entry = po.find(css+"|TEXT")
+                        if not entry:
+                            showError(_str("internal css file: ") + css + _str(" not found."))
+                            return
                         b64_string = entry.msgstr
                         compressed_data = base64.b64decode(b64_string)
                         decompressed_data = zlib.decompress(compressed_data)
-                        decoded_text = decompressed_data.decode("utf-8-sig")
-                        parent.file_content = "decoded_data"
-                        parent.file_toc = decoded_text
-                
-                parent.browser_toc.setHtml(parent.file_toc)
-
-                os.remove(tmp_path)
-            
+                        genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                        folder = os.path.dirname(program_dir+"/"+css).replace("\\","/")
+                        os.makedirs(folder,exist_ok=True)
+                        with open(program_dir+"/"+css,"w",encoding="utf-8") as f:
+                            f.write(genv.decoded_text)
+                            f.close()
+                    for img in images:
+                        if js.startswith("qrc:"):
+                            continue
+                        folder = os.path.dirname(program_dir).replace("\\","/")
+                        folder_a = folder + "/temp/lib"
+                        folder_b = folder + "/temp/"
+                        os.makedirs(folder,exist_ok=True)
+                        entry = po.find(img+"|BINARY")
+                        if not entry:
+                            showError(_str("internal image: ") + img + _str(" file not found."))
+                            return
+                        compressed_data = base64.b64decode(entry.msgstr)
+                        decompressed_data = zlib.decompress(compressed_data)
+                        with open(folder_b+img,"wb") as f:
+                            f.write(decompressed_data)
+                            f.close()
+            return {
+                "images": images,
+                "css_files": css_files,
+                "js_files": js_files
+            }
         except FileNotFoundError as e:
             handle_exception(e, (_str("A File operation Exception occured:")))
-            return
+            return ""
         except PermissionError as e:
             handle_exception(e, (_str("A File operation Exception occured (permission error):")))
-            return
+            return ""
         except OSError as e:
             handle_exception(e, (_str("A OS Error operation Exception occured:")))
-            return
+            return ""
         except Exception as e:
             handle_exception(e, (_str("A Exception occured:")))
-            return
+            return ""
+    
+    # ------------------------------------------------------------------------
+    # chm help window ...
+    # ------------------------------------------------------------------------
+    def preconfigHelp(parent=None, topic="index.html", container="") -> str:
+        try:
+            print("Klick erkannt:", topic)
+            genv.actual_click_link = topic
+            genv.decoded_text = ""
+            with open(genv.v__app__locales_help, "rb") as f:
+                compressed_data = f.read()
+                mo_data = zlib.decompress(compressed_data)
+                #
+                program_dir = os.path.dirname(os.path.abspath(__file__))
+                program_dir = (program_dir + "/temp/").replace("\\", "/")
+                program_lib = (program_dir + "lib")
+                program_css = (program_dir + "css")
+                program_jav = (program_dir + "js" )
+                #
+                os.makedirs(program_dir, exist_ok=True)
+                os.makedirs(program_lib, exist_ok=True)
+                os.makedirs(program_css, exist_ok=True)
+                os.makedirs(program_jav, exist_ok=True)
+                #
+                with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
+                    tmp.write(mo_data)
+                    tmp_path = tmp.name
+                    po = polib.mofile(tmp_path)
+                    index = False
+                    if topic.lower() == "index.html":
+                        index = True
+                        entry = po.find("index.html|TEXT")
+                    else:
+                        if topic.endswith(".htm"):
+                            entry = po.find(topic+"|TEXT")
+                        else:
+                            entry = po.find(topic+"|BINARY")
+                    if not entry:
+                        parent.file_toc = "<b>no topics  available</b>"
+                        parent.browser_toc.setHtml(parent.file_toc)
+                    else:
+                        b64_string = entry.msgstr
+                        compressed_data = base64.b64decode(b64_string)
+                        decompressed_data = zlib.decompress(compressed_data)
+                        genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                        
+                        if index:
+                            genv.decoded_index_text = genv.decoded_text
+
+                        assets = extract_assets_from_html(genv.decoded_text)
+                        #showInfo(str(assets))
+                        
+                        if not index:
+                            genv.help_content_code.dataContent.emit(genv.decoded_text)
+                        else:
+                            parent.browser_toc.setHtml(genv.decoded_index_text)
+                            #load(QUrl("http://localhost:8000/temp/index.html"))
+                
+                os.remove(tmp_path)
+                return genv.decoded_text
+        except FileNotFoundError as e:
+            handle_exception(e, (_str("A File operation Exception occured:")))
+            return ""
+        except PermissionError as e:
+            handle_exception(e, (_str("A File operation Exception occured (permission error):")))
+            return ""
+        except OSError as e:
+            handle_exception(e, (_str("A OS Error operation Exception occured:")))
+            return ""
+        except Exception as e:
+            handle_exception(e, (_str("A Exception occured:")))
+            return ""
     
     class MyWebEnginePage(QWebEnginePage):
         def certificateError(self, certificateError: QWebEngineCertificateError) -> bool:
@@ -26332,20 +26485,155 @@ try:
             certificateError.ignoreCertificateError()
             return True
     
+    class MyMessageBox(QDialog):
+        def __init__(self, parent=None):
+            super(MyMessageBox, self).__init__(parent)
+            
+            self.iconlay = QHBoxLayout()
+            self.iconlbl = QLabel("icon")
+            
+            self.textbox = QPlainTextEdit()
+            self.textbox.setFont(QFont("Consolas", 10))
+            
+            self.blayout = QVBoxLayout()
+            self.vlayout = QVBoxLayout()
+            self.hlayout = QHBoxLayout()
+            
+            self.hlayout.addWidget(self.iconlbl)
+            self.hlayout.addWidget(self.textbox)
+            self.hlayout.addLayout(self.blayout)
+            
+            self.vlayout.addLayout(self.hlayout)
+            
+            self.setLayout(self.vlayout)
+        
+        def setText(self, text):
+            self.textbox.document().setPlainText(text)
+        
+        def addButton(self, btn_text, callback):
+            btn = QPushButton(btn_text)
+            btn.clicked.connect(callback)
+            self.blayout.addWidget(btn)
+        
+        def setIcon(self, icon_type):
+            icon = QApplication.style().standardIcon(icon_type)
+            pixmap = icon.pixmap(32,32)
+            self.iconlbl.setPixmap(pixmap)
+            self.iconlbl.show()
+            
+    class saveDeleteDirectoryTree(QObject):
+        def __init__(self, tree, parent=None):
+            super(saveDeleteDirectoryTree, self).__init__(parent)
+            self.tree = tree
+            self.msg  = None
+            if genv.safe_debug:
+                self.initUI()
+            else:
+                self.on_doit_clicked()
+            return
+        
+        def remove_tree(self, path, exclude=None):
+            if exclude is None:
+                exclude = []
+
+            for root, dirs, files in os.walk(path, topdown=False):
+                for name in files:
+                    file_path = os.path.join(root, name)
+                    if file_path not in exclude:
+                        os.remove(file_path)
+                for name in dirs:
+                    dir_path = os.path.join(root, name)
+                    if dir_path not in exclude:
+                        try:
+                            os.rmdir(dir_path)
+                        except OSError:
+                            pass
+            # Zum Schluss das Hauptverzeichnis entfernen, wenn nicht ausgeschlossen
+            if path not in exclude:
+                shutil.rmtree(path, ignore_errors=True)
+        
+        def on_doit_clicked(self):
+            try:
+                self.remove_tree(self.tree, exclude=[])
+                print(_str("files deleted"))
+                self.msg.close()
+            except Exception as e:
+                showInfo(str(e))
+        
+        def on_dont_clicked(self):
+            print("dont pressed")
+            self.msg.close()
+        
+        def on_exit_clicked(self):
+            print("abort pressed")
+            self.msg.close()
+        
+        def initUI(self):
+            if genv.safe_debug:
+                if not os.path.exists(self.tree):
+                    showError(_str("delete tree does not exists."))
+                    return
+                    
+                liste  = _str("The following files and directories will be delete.") + "\n"
+                liste += _str("you are sure to do this ?\n\n")
+                
+                for root, dirs, files in os.walk(self.tree):
+                    level = root.replace(self.tree,"").count(os.sep)
+                    indent = (" " * level)
+                    liste += f"{indent}{os.path.basename(root)}/\n"
+                    subindent = (" " * (level + 1))
+                    for f in files:
+                        liste += f"{subindent}{f}\n"
+                        
+                self.msg = MyMessageBox()
+                self.msg.setWindowTitle(_str("Warning: Destructive Action"))
+                self.msg.setText(liste)
+                
+                self.msg.setIcon(QStyle.SP_MessageBoxQuestion)
+                self.msg.setStyleSheet(_css("msgbox_css"))
+                
+                self.msg.addButton(_str("Yes"  ), self.on_doit_clicked)
+                self.msg.addButton(_str("No"   ), self.on_dont_clicked)
+                self.msg.addButton(_str("Abort"), self.on_exit_clicked)
+                
+                result = self.msg.exec_()
+    
+    # Python-Objekt für JavaScript
+    class JsBridge(QObject):
+        dataContent = pyqtSignal(str)
+        
+        @pyqtSlot(str)
+        def nodeClicked(self, href):
+            genv.help_content_code = self
+            # delete old data informations
+            tree = os.path.dirname(os.path.abspath(__file__))
+            tree += "/temp"
+            #showInfo(tree)
+            with open(tree+"/index.html","w",encoding="utf-8") as f:
+                f.write(genv.decoded_index_text)
+                f.close()
+            #saveDeleteDirectoryTree(tree)
+            html = "http://localhost:8000/temp/"+href
+            # refresh sata
+            preconfigHelp(genv.help_content,href)
+            genv.help_content.browser_content.page().load(QUrl(html))
+            genv.help_content.browser_toc.page().setHtml(genv.decoded_index_text)
+            #load(QUrl("http://localhost:8000/temp/index.html"))
+    
     class LinkInterceptPage(QWebEnginePage):
-        def acceptNavigationRequest(self, url, _type, isMainFrame):
-            if _type == QWebEnginePage.NavigationTypeLinkClicked:
-                print("Link geklickt:", url.toString())
-                displayHelp(genv.help_content_view, url.toString())
-                return False  # Navigation im linken View verhindern
-            return super().acceptNavigationRequest(url, _type, isMainFrame)
+        def acceptNavigationRequest(self, url, nav_type, is_main_frame):
+            if nav_type == QWebEnginePage.NavigationTypeLinkClicked:
+                showInfo("Benutzer hat auf Link geklickt: " + url.toString())
+                # Rückgabe False = nicht navigieren
+                return False
+            return super().acceptNavigationRequest(url, nav_type, is_main_frame)
     
     class HelpWindow(QMainWindow):
         def __init__(self, parent=None, topic="", anchor="#"):
             super(HelpWindow, self).__init__(parent)
             
             # Splitter erstellen
-            splitter = QSplitter(Qt.Horizontal)
+            #splitter = QSplitter(Qt.Horizontal)
             
             self.hide()
             self.setContentsMargins(0,0,0,0)
@@ -26404,16 +26692,27 @@ try:
             #layout1.setContentsMargins(0,0,0,0)
             
             # linker Bereich - TOC
-            self.browser_toc = QWebEngineView()
-            self.page_toc    = LinkInterceptPage()
-            self.browser_toc.setPage(self.page_toc)
+            self.browser_toc     = QWebEngineView()
+            self.browser_content = QWebEngineView()
             
-            genv.help_content_view = self.browser_toc
+            self.browser_toc.setMaximumWidth(320)
+            # WebChannel für JS-Kommunikation
+            self.channel = QWebChannel()
+            self.bridge  = JsBridge()
+            self.channel.registerObject("bridge", self.bridge)
+            self.browser_toc.page().setWebChannel(self.channel)
+            
+            genv.help_content = self
+            
+            # Splitter erstellen (horizontal)
+            self.splitter = QSplitter(Qt.Horizontal)
+            self.splitter.addWidget(self.browser_toc)
+            self.splitter.addWidget(self.browser_content)
             
             layout.addWidget(navigation_widget)
-            layout.addWidget(self.browser_toc)
+            layout.addWidget(self.splitter)
             
-            displayHelp(self, "index.html")
+            preconfigHelp(self, "index.html")
             
             # Schließen-Button
             button_widget = QWidget()
@@ -26459,7 +26758,14 @@ try:
             
             self.setCentralWidget(container)
             self.browser_toc.show()
+            self.browser_content.show()
             self.show()
+        
+        def on_url_changed(self, url):
+            parsed = urlparse(url.toString())
+            params = parse_qs(parsed.query)
+            print("Basis:", parsed.scheme + "://" + parsed.netloc + parsed.path)
+            print("Parameter:", params)
         
         def home_click(self):
             pass
@@ -27253,12 +27559,16 @@ try:
         # show a license window, when readed, and user give a
         # okay, to accept it, then start the application ...
         # -----------------------------------------------------
-        genv.v__app_object = QApplication(sys.argv)
+        genv.v__app_object  = QApplication(sys.argv)
         genv.servers_scroll = QScrollArea()
         genv.servers_widget = QWidget()
         genv.servers_layout = QVBoxLayout()
         
         genv.splitter = QSplitter()
+        
+        # Http Server starten
+        server_thread = HTTPServerThread()
+        server_thread.start()
         
         # ---------------------------------------------------------
         # doxygen.exe directory path ...

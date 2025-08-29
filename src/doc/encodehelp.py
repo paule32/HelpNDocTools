@@ -52,12 +52,16 @@ def compress_and_base64(data: bytes) -> tuple[str, int]:
     return base64.b64encode(compressed).decode("ascii"), len(compressed)
 
 def detect_type(file_path: Path) -> str:
-    if str(file_path).endswith(".toc"):
+    txt_ext = [".js", ".css", ".htm", ".html"]
+    bin_ext = [".png", ".gif", ".jpg", ".jpeg"]
+    if str(file_path).endswith(tuple(txt_ext)):
         return "TEXT"
     mime_type, _ = mimetypes.guess_type(file_path.as_posix())
     if mime_type and mime_type.startswith("text/"):
         return "TEXT"
-    return "BINARY"
+    if str(file_path).endswith(tuple(bin_ext)):
+        return "BINARY"
+    return "UNKNOWN"
 
 def write_header(out) -> None:
     now = datetime.now().strftime("%Y-%m-%d %H:%M%z")
@@ -80,7 +84,7 @@ def write_header(out) -> None:
     out.write(f'msgid "index"\n')
     out.write(f'msgstr "{str(index)}"\n\n')
 
-def write_catalog(files: list[Path], out_path: Path) -> None:
+def write_catalog(files: list[Path], out_path: Path, base_path: Path) -> None:
     total_original = total_compressed = total_base64 = 0
     
     # file_stats enthält jetzt den **vollen Pfad**:
@@ -112,7 +116,8 @@ def write_catalog(files: list[Path], out_path: Path) -> None:
         
         for full_path, name, orig_size, compressed_size, base64_size, b64_data in file_stats:
             file_type = detect_type(full_path)
-
+            rel_path = full_path.relative_to(base_path).as_posix()
+            
             # Zahlen mit Punkt-Trennzeichen
             orig_str = f"{orig_size:,}".replace(",", ".")
             comp_str = f"{compressed_size:,}".replace(",", ".")
@@ -128,13 +133,13 @@ def write_catalog(files: list[Path], out_path: Path) -> None:
             
             # PO-Katalog schreiben
             out.write(f'# TYPE: {file_type}\n')
-            out.write(f'msgid "{name}|{file_type}"\n')
+            out.write(f'msgid "{rel_path}|{file_type}"\n')
             out.write(f'msgstr "{b64_data}"\n\n')
     
         # Gesamt-Benchmark
         total_orig_str = f"{total_original:,}".replace(",", ".")
         total_comp_str = f"{total_compressed:,}".replace(",", ".")
-        total_b64_str = f"{total_base64:,}".replace(",", ".")
+        total_b64_str  = f"{total_base64:,}".replace(",", ".")
         
         print("\n===== BENCHMARK GESAMT =====")
         print(f"Original:    {total_orig_str.rjust(max_number_len)} Bytes")
@@ -217,11 +222,12 @@ def main():
         index.append(entry)
 
     files = iter_input_files(args.paths)
+    base_path = Path(args.paths[0]).resolve()
     if not files:
         raise SystemExit("Keine passenden Dateien (.html/.htm/.css) gefunden.")
     
     # Katalog schreiben:
-    write_catalog(files, Path(args.output))
+    write_catalog(files, Path(args.output), base_path)
     
     # Katalog von .po nach .mo
     po_file = Path(Path(args.output))

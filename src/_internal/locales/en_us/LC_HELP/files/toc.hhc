@@ -1,0 +1,3137 @@
+
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+	<meta name="generator" content="HelpNDoc Ultimate Edition 9.9.0.637">
+</head>
+
+<body>
+
+	<object type="text/site properties">
+		<param name="Font" value="Arial,10,0">
+		<param name="Window Styles" value="0x800025">
+	</object>
+    
+	<ul>
+
+	
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Lizenz - Bitte lesen !!!">
+				
+					<param name="Local" value="Lizenz-Bittelesen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="&Uuml;berblick">
+				
+					<param name="Local" value="Uberblick.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Lizenzen">
+				
+					<param name="Local" value="its:LizenzenDark.chm::/lizenzen.htm#">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Deutsch">
+				
+					<param name="Local" value="its:LizenzenDark.chm::/deutsch.htm#">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Englisch">
+				
+					<param name="Local" value="its:LizenzenDark.chm::/englisch.htm#">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Franzz&ouml;sisch">
+				
+					<param name="Local" value="">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Spanisch">
+				
+					<param name="Local" value="its:LizenzenDark.chm::/spanisch.htm#">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Polnisch">
+				
+					<param name="Local" value="its:LizenzenDark.chm::/polnisch.htm#">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Russisch">
+				
+					<param name="Local" value="ms-its:LizenzenDark.chm::/russisch.htm#">
+				
+			</object>
+
+	</li></ul></li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Inhalt">
+				
+					<param name="Local" value="Inhalt.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Liste der Tabellen">
+				
+					<param name="Local" value="ListederTabellen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="&Uuml;ber dieses Handbuch">
+				
+					<param name="Local" value="UberdiesesHandbuch.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Bezeichnungen">
+				
+					<param name="Local" value="Bezeichnungen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Syntax Diagramme">
+				
+					<param name="Local" value="SyntaxDiagramme.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="&Uuml;ber die Sprache Pascal">
+				
+					<param name="Local" value="UberdieSprachePascal.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.  Pascal Zeichen und Symbole">
+				
+					<param name="Local" value="1PascalZeichenundSymbole.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.1  Symbole">
+				
+					<param name="Local" value="11Symbole.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.2  Kommentare">
+				
+					<param name="Local" value="12Kommentare.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.3  Reservierte Schl&uuml;sselw&ouml;rter">
+				
+					<param name="Local" value="13ReservierteSchlusselworter.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.3.1.  Turbo Pascal">
+				
+					<param name="Local" value="131TurboPascal.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.3.2.  Object Pascal">
+				
+					<param name="Local" value="132ObjectPascal.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.3.3.  Modifikationen">
+				
+					<param name="Local" value="133Modifikationen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.4.  Bezeichner">
+				
+					<param name="Local" value="14Bezeichner.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.5.  Hinweise und Direktiven">
+				
+					<param name="Local" value="15HinweiseundDirektiven.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.6.  Zahlen">
+				
+					<param name="Local" value="16Zahlen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.7.  Bezeichner">
+				
+					<param name="Local" value="17Bezeichner.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.8.  Sprungmarken">
+				
+					<param name="Local" value="18Sprungmarken.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="1.9.  Zeichenketten">
+				
+					<param name="Local" value="19Zeichenketten.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="2.  Konstanten">
+				
+					<param name="Local" value="2Konstanten.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="2.1.  Gew&ouml;hnliche Konstanten">
+				
+					<param name="Local" value="21GewohnlicheKonstanten.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="2.2.  Typisierte Konstanten">
+				
+					<param name="Local" value="22TypisierteKonstanten.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="2.3.  Resourcen Zeichenketten">
+				
+					<param name="Local" value="23ResourcenZeichenketten.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.  Typen">
+				
+					<param name="Local" value="3Typen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.1.  Basistypen">
+				
+					<param name="Local" value="31Basistypen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.1.1.  Ordinale Typen">
+				
+					<param name="Local" value="311OrdinaleTypen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.1.2.  Ganze Zahlen (Integer)">
+				
+					<param name="Local" value="312GanzeZahlenInteger.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.1.3.  Boolesche Typen">
+				
+					<param name="Local" value="313BoolescheTypen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.1.4.  Aufz&auml;hlungen">
+				
+					<param name="Local" value="314Aufzahlungen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.1.5.  Untermengen">
+				
+					<param name="Local" value="315Untermengen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.1.6.  Zeichen">
+				
+					<param name="Local" value="316Zeichen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.  Zeichen-Typen">
+				
+					<param name="Local" value="32Zeichen-Typen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.1.  Char oder AnsiChar">
+				
+					<param name="Local" value="321CharoderAnsiChar.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.2.  WideChar">
+				
+					<param name="Local" value="322WideChar.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.3.  Sonstige">
+				
+					<param name="Local" value="323Sonstige.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.4.  Einzel-Byte Zeichenketten">
+				
+					<param name="Local" value="324Einzel-ByteZeichenketten.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.4.1.  ShortString">
+				
+					<param name="Local" value="3241ShortString.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.4.2.  AnsiString">
+				
+					<param name="Local" value="3242AnsiString.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.4.3.  Zeichen-Code Umwandlung">
+				
+					<param name="Local" value="3243Zeichen-CodeUmwandlung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.4.4.  RawByteString">
+				
+					<param name="Local" value="3244RawByteString.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.4.5.  UTF8String">
+				
+					<param name="Local" value="3245UTF8String.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.5.  Multi-Byte Zeichenketten">
+				
+					<param name="Local" value="325Multi-ByteZeichenketten.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.5.1.  UnicodeString">
+				
+					<param name="Local" value="3251UnicodeString.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.5.2.  WideString">
+				
+					<param name="Local" value="3252WideString.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.6.  Konstante Zeichenketten">
+				
+					<param name="Local" value="326KonstanteZeichenketten.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.7.  Nullterminierente Zeichenketten (PChar)">
+				
+					<param name="Local" value="327NullterminierenteZeichenkette.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.2.8.  Zeichenketten-Gr&ouml;&szlig;en">
+				
+					<param name="Local" value="328Zeichenketten-Grossen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.  Strukturierte Typen">
+				
+					<param name="Local" value="33StrukturierteTypen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.1.  Gepackte Struktur-Typen">
+				
+					<param name="Local" value="331GepackteStruktur-Typen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.2.  Array's">
+				
+					<param name="Local" value="332Arrays.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.2.1.  Statische Array's">
+				
+					<param name="Local" value="3321StatischeArrays.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.2.2.  Dynamische Array's">
+				
+					<param name="Local" value="3322DynamischeArrays.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.2.3:  Typen-Kompatibilit&auml;t dynamischer Array's">
+				
+					<param name="Local" value="3323Typen-Kompatibilitatdynamisc.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.2.4.  Constuctor dynamischer Array's">
+				
+					<param name="Local" value="3324ConstuctordynamischerArrays.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.2.5.  Feldkonstanten-Ausdr&uuml;cke dynamiscer Array's">
+				
+					<param name="Local" value="3325Feldkonstanten-Ausdruckedyna.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.2.6.  Packen und Entpacken eines Array's">
+				
+					<param name="Local" value="3326PackenundEntpackeneinesArray.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.3.  Record's">
+				
+					<param name="Local" value="333Records.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.3.1.  Layout und Gr&ouml;&szlig;e">
+				
+					<param name="Local" value="3331LayoutundGrosse.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.3.2.  Bemerkungen und Beispiele">
+				
+					<param name="Local" value="3332BemerkungenundBeispiele.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.4.  Mengen-Typen">
+				
+					<param name="Local" value="334Mengen-Typen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.3.5.  Datei-Typen">
+				
+					<param name="Local" value="335Datei-Typen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.4.  Zeiger">
+				
+					<param name="Local" value="34Zeiger.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.5.  Forward-Deklarationen">
+				
+					<param name="Local" value="35Forward-Deklarationen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.6.  Prozedur-Typen">
+				
+					<param name="Local" value="36Prozedur-Typen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.7.  Variant's">
+				
+					<param name="Local" value="37Variants.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.7.1.  Definition">
+				
+					<param name="Local" value="371Definition.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.7.2.  Variant's in Zuweisungen und Ausdr&uuml;cken">
+				
+					<param name="Local" value="372VariantsinZuweisungenundAusdr.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.7.3.  Variant's im Interface-Teil">
+				
+					<param name="Local" value="373VariantsimInterface-Teil.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.8.  Alias-Typen">
+				
+					<param name="Local" value="38Alias-Typen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="3.9.  Verwaltete Typen">
+				
+					<param name="Local" value="39VerwalteteTypen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="4.  Variablen">
+				
+					<param name="Local" value="4Variablen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="4.1.  Definition">
+				
+					<param name="Local" value="41Definition.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="4.2.  Erkl&auml;rung">
+				
+					<param name="Local" value="42Erklarung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="4.3.  Geltungssbereich">
+				
+					<param name="Local" value="43Geltungssbereich.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="4.4.  Initialisierte Variablen">
+				
+					<param name="Local" value="44InitialisierteVariablen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="4.5.  Initialisierte Variablen mit Standard-Wert">
+				
+					<param name="Local" value="45InitialisierteVariablenmitStan.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="4.6.  Thread-Variablen">
+				
+					<param name="Local" value="46Thread-Variablen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="4.7.  Eigenschaften">
+				
+					<param name="Local" value="47Eigenschaften.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.  Objekte">
+				
+					<param name="Local" value="5Objekte.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.1.  Deklaration">
+				
+					<param name="Local" value="51Deklaration.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.2.  Abtrakte und Sealed Objekte">
+				
+					<param name="Local" value="52AbtrakteundSealedObjekte.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.3.  Felder">
+				
+					<param name="Local" value="53Felder.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.4.  Klassen oder statische Felder">
+				
+					<param name="Local" value="54KlassenoderstatischeFelder.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.5.  Constructor und Destructor">
+				
+					<param name="Local" value="55ConstructorundDestructor.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.6.  Methoden">
+				
+					<param name="Local" value="56Methoden.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.6.1.  Erkl&auml;rung">
+				
+					<param name="Local" value="561Erklarung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.6.2.  Methoden-Aufruf">
+				
+					<param name="Local" value="562Methoden-Aufruf.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.6.2.1.  Statische Methoden">
+				
+					<param name="Local" value="5621StatischeMethoden.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.6.2.2.  Virtuelle Methoden">
+				
+					<param name="Local" value="5622VirtuelleMethoden.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.6.2.3.  Abstrakte Methoden">
+				
+					<param name="Local" value="5623AbstrakteMethoden.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.6.2.4.  Klassen-Methoden oder statische Methoden">
+				
+					<param name="Local" value="5624Klassen-Methodenoderstatisch.htm">
+				
+			</object>
+
+	</li></ul></li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="5.7.  Sichtbarkeit">
+				
+					<param name="Local" value="57Sichtbarkeit.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.  Klassen">
+				
+					<param name="Local" value="6Klassen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.1.  Klassen-Definitionen">
+				
+					<param name="Local" value="61Klassen-Definitionen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.2.  Abstrakte und Sealed Klassen">
+				
+					<param name="Local" value="62AbstrakteundSealedKlassen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.3.  Normale und statische Felder">
+				
+					<param name="Local" value="63NormaleundstatischeFelder.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.3.1.  Normalisierte Felder / Variablen">
+				
+					<param name="Local" value="631NormalisierteFelderVariablen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.3.2.  Klassen-Felder / Variablen">
+				
+					<param name="Local" value="632Klassen-FelderVariablen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.4.  Klassen - CTOR (constructor)">
+				
+					<param name="Local" value="64Klassen-CTORconstructor.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.5.  Klassen - DTOR (destructor)">
+				
+					<param name="Local" value="65Klassen-DTORdestructor.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.  Methoden">
+				
+					<param name="Local" value="66Methoden.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.1.  Erkl&auml;rung">
+				
+					<param name="Local" value="661Erklarung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.2.  Aufrufen">
+				
+					<param name="Local" value="662Aufrufen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.3.  Virtuelle Methoden">
+				
+					<param name="Local" value="663VirtuelleMethoden.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.4.  Klassen - Methoden">
+				
+					<param name="Local" value="664Klassen-Methoden.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.5.  Klassen CTOR und DTOR">
+				
+					<param name="Local" value="665KlassenCTORundDTOR.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.6.  Statische Klassen - Methoden">
+				
+					<param name="Local" value="666StatischeKlassen-Methoden.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.7.  Nachrichten - Methoden">
+				
+					<param name="Local" value="667Nachrichten-Methoden.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.6.8.  Vererbung">
+				
+					<param name="Local" value="668Vererbung.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.7.  Eigenschaften">
+				
+					<param name="Local" value="67Eigenschaften.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.7.1.  Definition">
+				
+					<param name="Local" value="671Definition.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.7.2.  Indezierte Eigenschaften">
+				
+					<param name="Local" value="672IndezierteEigenschaften.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.7.3.  Array basierte Eigenschaften">
+				
+					<param name="Local" value="673ArraybasierteEigenschaften.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.7.4.  Standard - Eigenschaften (public)">
+				
+					<param name="Local" value="674Standard-Eigenschaftenpublic.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.7.5.  Ver&ouml;ffentlichte - Eigenschaften (published)">
+				
+					<param name="Local" value="675Veroffentlichte-Eigenschaften.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.7.6.  Speicherinformationen">
+				
+					<param name="Local" value="676Speicherinformationen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.7.7.  Eigenschaften &uuml;berschreiben und neu deklarieren">
+				
+					<param name="Local" value="677Eigenschaftenuberschreibenund.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.8.  Klassen - Eigenschaften">
+				
+					<param name="Local" value="68Klassen-Eigenschaften.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="6.9.  Verschachtelte Typen, Konstanten, und Variablen">
+				
+					<param name="Local" value="69VerschachtelteTypenKonstantenu.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.  Schnittstellen (Interface's)">
+				
+					<param name="Local" value="7SchnittstellenInterfaces.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.1.  Definition">
+				
+					<param name="Local" value="71Definition.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.2.  Identifikation">
+				
+					<param name="Local" value="72Identifikation.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.3.  Implementierung">
+				
+					<param name="Local" value="73Implementierung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.4.  Vererbung">
+				
+					<param name="Local" value="74Vererbung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.5.  Delegation">
+				
+					<param name="Local" value="75Delegation.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.6.  COM">
+				
+					<param name="Local" value="76COM.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.7.  CORBA und andere Schnittstellen">
+				
+					<param name="Local" value="77CORBAundandereSchnittstellen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="7.8.  Referenzz&auml;hlung">
+				
+					<param name="Local" value="78Referenzzahlung.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.  Generics">
+				
+					<param name="Local" value="8Generics.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.1.  Einf&uuml;hrung">
+				
+					<param name="Local" value="81Einfuhrung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.2.  Get'ter Typ - Definition">
+				
+					<param name="Local" value="82GetterTyp-Definition.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.3.  Typen - Spezialisierung">
+				
+					<param name="Local" value="83Typen-Spezialisierung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.4.  Einschr&auml;nkungen">
+				
+					<param name="Local" value="84Einschrankungen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.5.  Kompatibilit&auml;t zu Delphi">
+				
+					<param name="Local" value="85KompatibilitatzuDelphi.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.5.1.  Syntax - Elemente">
+				
+					<param name="Local" value="851Syntax-Elemente.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.5.2.  Einschr&auml;nkungen f&uuml;r Record's">
+				
+					<param name="Local" value="852EinschrankungenfurRecords.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.5.3.  Typen - &Uuml;berladung(en)">
+				
+					<param name="Local" value="853Typen-Uberladungen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.5.4.  &Uuml;berlegungen f&uuml;r Namensbereiche">
+				
+					<param name="Local" value="854UberlegungenfurNamensbereiche.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.6.  Typen-Kompatibilit&auml;t">
+				
+					<param name="Local" value="86Typen-Kompatibilitat1.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.7.  Verwendung der eingebauten Funktionen">
+				
+					<param name="Local" value="87VerwendungdereingebautenFunkti.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.8.  &Uuml;berlegungen zum Geltungsbereich">
+				
+					<param name="Local" value="88UberlegungenzumGeltungsbereich.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="8.9.  Operator-&Uuml;berladung und Generics">
+				
+					<param name="Local" value="89Operator-UberladungundGenerics.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="9.  Erweiterte Record's">
+				
+					<param name="Local" value="9ErweiterteRecords.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="9.1.  Definition">
+				
+					<param name="Local" value="91Definition.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="9.2.  Erweiterte Record-Aufz&auml;hler">
+				
+					<param name="Local" value="92ErweiterteRecord-Aufzahler.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="9.3.  Record-Operationen">
+				
+					<param name="Local" value="93Record-Operationen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="10.  Klassen, Record's, und Typen-Helfer">
+				
+					<param name="Local" value="10KlassenRecordsundTypen-Helfer.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="10.1.  Definition">
+				
+					<param name="Local" value="101Definition.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="10.2.  Einschr&auml;nkungen bei Klassen Helfer">
+				
+					<param name="Local" value="102EinschrankungenbeiKlassenHelf.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="10.3.  Einschr&auml;nkungen bei Record  Helfer">
+				
+					<param name="Local" value="103EinschrankungenbeiRecordHelfe.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="10.4.  &Uuml;berlegungen zu einfachen Helper">
+				
+					<param name="Local" value="104UberlegungenzueinfachenHelper.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="10.5.  Anmerkungen zu Umfang und Lebensdauer von Record-Helper">
+				
+					<param name="Local" value="105AnmerkungenzuUmfangundLebensd.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="10.6.  Vererbung">
+				
+					<param name="Local" value="106Vererbung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="10.7.  Verwendung">
+				
+					<param name="Local" value="107Verwendung.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.  Objektorientierte Pascal - Klassen">
+				
+					<param name="Local" value="11ObjektorientiertePascal-Klasse.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.1.  Einf&uuml;hrung">
+				
+					<param name="Local" value="111Einfuhrung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.2.  Klassendeklarationen">
+				
+					<param name="Local" value="112Klassendeklarationen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.3.  Formele Deklaration">
+				
+					<param name="Local" value="113FormeleDeklaration.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.4.  Instanzen zuteilen und zuordnen">
+				
+					<param name="Local" value="114Instanzenzuteilenundzuordnen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.5.  Protokolldefinitionen">
+				
+					<param name="Local" value="115Protokolldefinitionen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.6.  Kategorien">
+				
+					<param name="Local" value="116Kategorien.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.7.  Namensumfang und Bezeichner">
+				
+					<param name="Local" value="117NamensumfangundBezeichner.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.8.  Selektoren">
+				
+					<param name="Local" value="118Selektoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.9.  Der ID Typ">
+				
+					<param name="Local" value="119DerIDTyp.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="11.10. Aufz&auml;hlungen in Objective-C Klassen">
+				
+					<param name="Local" value="1110AufzahlungeninObjective-CKla.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.  Ausdr&uuml;cke">
+				
+					<param name="Local" value="12Ausdrucke.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.1.  Ausdrucks - Syntax">
+				
+					<param name="Local" value="121Ausdrucks-Syntax.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.2.  Funktionsaufrufe">
+				
+					<param name="Local" value="122Funktionsaufrufe.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.3.  Mengen - CTOR">
+				
+					<param name="Local" value="123Mengen-CTOR.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.4.  Typ-Casting von Werten">
+				
+					<param name="Local" value="124Typ-CastingvonWerten.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.5.  Typ-Casting von Variablen">
+				
+					<param name="Local" value="125Typ-CastingvonVariablen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.6.  Sonstige Typ-Casting's">
+				
+					<param name="Local" value="126SonstigeTyp-Castings.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.7.  Der @ - Operator">
+				
+					<param name="Local" value="127Der-Operator.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.  Operatoren">
+				
+					<param name="Local" value="128Operatoren.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.1.  Arithmetische Operatoren">
+				
+					<param name="Local" value="1281ArithmetischeOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.2.  Logische Operatoren">
+				
+					<param name="Local" value="1282LogischeOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.3.  Boolesche Operatoren">
+				
+					<param name="Local" value="1283BoolescheOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.4.  Zeichenketten Operatoren">
+				
+					<param name="Local" value="1284ZeichenkettenOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.5.  Operatoren bei dynamischen Array's">
+				
+					<param name="Local" value="1285OperatorenbeidynamischenArra.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.6.  Mengen - Operatoren">
+				
+					<param name="Local" value="1286Mengen-Operatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.7.  Relationale Operatoren">
+				
+					<param name="Local" value="1287RelationaleOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="12.8.8.  Klassen - Operatoren">
+				
+					<param name="Local" value="1288Klassen-Operatoren.htm">
+				
+			</object>
+
+	</li></ul></li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.  Anweisungen">
+				
+					<param name="Local" value="13Anweisungen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.1.  Einfache Anweisungen">
+				
+					<param name="Local" value="131EinfacheAnweisungen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.1.1.  Zuweisungen">
+				
+					<param name="Local" value="1311Zuweisungen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.1.2.  Prozeduren - PROCEDURE">
+				
+					<param name="Local" value="1312Prozeduren-PROCEDURE.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.1.3.  Sprungs - Anweisung GOTO">
+				
+					<param name="Local" value="1313Sprungs-AnweisungGOTO.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.  Strukturierte Anweisungen">
+				
+					<param name="Local" value="132StrukturierteAnweisungen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.1.  Zusammengesetzte Anweisungen">
+				
+					<param name="Local" value="1321ZusammengesetzteAnweisungen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.2.  CASE">
+				
+					<param name="Local" value="1322CASE.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.3.  IF ... THEN">
+				
+					<param name="Local" value="1323IFTHEN.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.4.  FOR ... TO / DOWNTO ... DO">
+				
+					<param name="Local" value="1324FORTODOWNTODO.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.5.  FOR .. IN .. DO">
+				
+					<param name="Local" value="1325FORINDO.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.6.  REPEAT ... UNTIL">
+				
+					<param name="Local" value="1326REPEATUNTIL.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.7.  WHILE ... DO">
+				
+					<param name="Local" value="1327WHILEDO.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.8.  WITH">
+				
+					<param name="Local" value="1328WITH.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.2.9.  Ausnahmen (EXCEPT)">
+				
+					<param name="Local" value="1329AusnahmenEXCEPT.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="13.3.  Assembler Anweisungen">
+				
+					<param name="Local" value="133AssemblerAnweisungen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.  Benutzung von Funktionen und Prozeduren">
+				
+					<param name="Local" value="14BenutzungvonFunktionenundProze.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.1.  FUNCTION Deklarationen">
+				
+					<param name="Local" value="141FUNCTIONDeklarationen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.2.  PROCEDURE Deklarationen">
+				
+					<param name="Local" value="142PROCEDUREDeklarationen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.3.  Funktion R&uuml;ckgabewert mittels RESULT">
+				
+					<param name="Local" value="143FunktionRuckgabewertmittelsRE.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.  Parameter Listen">
+				
+					<param name="Local" value="144ParameterListen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.1.  Werte">
+				
+					<param name="Local" value="1441Werte.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.2.  Variablen">
+				
+					<param name="Local" value="1442Variablen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.3.  Ausgabe Parameter">
+				
+					<param name="Local" value="1443AusgabeParameter.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.4.  Konstante Parameter">
+				
+					<param name="Local" value="1444KonstanteParameter.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.5.  Offene Array's">
+				
+					<param name="Local" value="1445OffeneArrays.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.6.  Array of Const">
+				
+					<param name="Local" value="1446ArrayofConst.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.7.  Untypisierte Parameter">
+				
+					<param name="Local" value="1447UntypisierteParameter.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.4.8.  Verwaltete Typen und Referenzz&auml;hler">
+				
+					<param name="Local" value="1448VerwalteteTypenundReferenzza.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.5.  &Uuml;berladung von Funktionen">
+				
+					<param name="Local" value="145UberladungvonFunktionen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.6.  Mit FORWARD deklarierte Funktionen">
+				
+					<param name="Local" value="146MitFORWARDdeklarierteFunktion.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.7.  Externe Funktionen">
+				
+					<param name="Local" value="147ExterneFunktionen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.8.  Assembler Funktionen">
+				
+					<param name="Local" value="148AssemblerFunktionen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.  Modifikatoren">
+				
+					<param name="Local" value="149Modifikatoren.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.1.  alias">
+				
+					<param name="Local" value="1491alias.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.2.  cdecl">
+				
+					<param name="Local" value="1492cdecl.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.3.  cppdecl">
+				
+					<param name="Local" value="1493cppdecl.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.4.  export">
+				
+					<param name="Local" value="1494export.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.5.  hardfloat">
+				
+					<param name="Local" value="1495hardfloat.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.6.  inline">
+				
+					<param name="Local" value="1496inline.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.7.  interrupt">
+				
+					<param name="Local" value="1497interrupt.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.8.  iocheck">
+				
+					<param name="Local" value="1498iocheck.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.9.  local">
+				
+					<param name="Local" value="1499local.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.10.  MS_ABI_Default">
+				
+					<param name="Local" value="14910MS_ABI_Default.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.11.  MS_ABI_CDecl">
+				
+					<param name="Local" value="14911MS_ABI_CDecl.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.12.  MWPascal">
+				
+					<param name="Local" value="14912MWPascal.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.13.  noreturn">
+				
+					<param name="Local" value="14913noreturn.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.14.  nostackframe">
+				
+					<param name="Local" value="14914nostackframe.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.15.  overload">
+				
+					<param name="Local" value="14915overload.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.16.  pascal">
+				
+					<param name="Local" value="14916pascal.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.17.  public">
+				
+					<param name="Local" value="14917public.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.18.  register">
+				
+					<param name="Local" value="14918register.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.19.  safecall">
+				
+					<param name="Local" value="14919safecall.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.20.  saveregisters">
+				
+					<param name="Local" value="14920saveregisters.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.21.  softfloat">
+				
+					<param name="Local" value="14921softfloat.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.22.  stdcall">
+				
+					<param name="Local" value="14922stdcall.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.23.  SYSV_ABI_Default">
+				
+					<param name="Local" value="14923SYSV_ABI_Default.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.24.  SYSV_ABI_CDecl">
+				
+					<param name="Local" value="14924SYSV_ABI_CDecl.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.25.  VectorCall">
+				
+					<param name="Local" value="14925VectorCall.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.26.  varargs">
+				
+					<param name="Local" value="14926varargs.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.9.27.  winapi">
+				
+					<param name="Local" value="14927winapi.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="14.10.  Nicht unterst&uuml;tzte Modifikatoren">
+				
+					<param name="Local" value="1410NichtunterstutzteModifikator.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.  Operatoren &Uuml;berladung">
+				
+					<param name="Local" value="15OperatorenUberladung.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.1.  Einleitung">
+				
+					<param name="Local" value="151Einleitung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.2.  Operatoren - Deklarationen">
+				
+					<param name="Local" value="152Operatoren-Deklarationen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.3.  Operator - Zuweisung">
+				
+					<param name="Local" value="153Operator-Zuweisung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.4.  Arithmetische Operatoren">
+				
+					<param name="Local" value="154ArithmetischeOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.5.  Vergleichende Operatoren">
+				
+					<param name="Local" value="155VergleichendeOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.6.  In Operator">
+				
+					<param name="Local" value="156InOperator.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.7.  Logik Operatoren">
+				
+					<param name="Local" value="157LogikOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.8.  Auf- und Ab-Z&auml;hlungs Operatoren">
+				
+					<param name="Local" value="158Auf-undAb-ZahlungsOperatoren.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="15.9.  Aufz&auml;hlungs - Operator">
+				
+					<param name="Local" value="159Aufzahlungs-Operator.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.  Programme, Module und Bl&ouml;cke">
+				
+					<param name="Local" value="16ProgrammeModuleundBlocke.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.1.  Programme">
+				
+					<param name="Local" value="161Programme.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.2.  Module (Unit's)">
+				
+					<param name="Local" value="162ModuleUnits.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.3.  Namensr&auml;ume">
+				
+					<param name="Local" value="163Namensraume.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.4.  Abh&auml;ngigkeiten von Modulen">
+				
+					<param name="Local" value="164AbhangigkeitenvonModulen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.5.  Bl&ouml;cke">
+				
+					<param name="Local" value="165Blocke.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.6.  Anwendungsbereiche (Scope)">
+				
+					<param name="Local" value="166AnwendungsbereicheScope.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.6.1.  Bl&ouml;cke">
+				
+					<param name="Local" value="1661Blocke.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.6.2.  Record's">
+				
+					<param name="Local" value="1662Records.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.6.3.  Klassen">
+				
+					<param name="Local" value="1663Klassen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.6.4.  Unit's">
+				
+					<param name="Local" value="1664Units.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="16.7.  Bibliotheken">
+				
+					<param name="Local" value="167Bibliotheken.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="17.  Ausnahmen">
+				
+					<param name="Local" value="17Ausnahmen.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="17.1.  Die RAISE Anweisung">
+				
+					<param name="Local" value="171DieRAISEAnweisung.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="17.2.  Ausnahme-Behandlung und Verschachtelung">
+				
+					<param name="Local" value="172Ausnahme-BehandlungundVerscha.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="18.  Assembler">
+				
+					<param name="Local" value="18Assembler.htm">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="18.1.  Anweisungen">
+				
+					<param name="Local" value="181Anweisungen.htm">
+				
+			</object>
+
+	</li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="18.2.  Prozeduren und Funktionen">
+				
+					<param name="Local" value="182ProzedurenundFunktionen.htm">
+				
+			</object>
+
+	</li></ul></li>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Anhang">
+				
+			</object>
+
+	<ul>
+
+
+
+			<li> <object type="text/sitemap">
+				<param name="Name" value="Syntax">
+				
+					<param name="Local" value="Syntax.htm">
+				
+			</object>
+
+	</li></ul></li>
+	
+	</ul>
+    
+</body>
+
+</html>
+

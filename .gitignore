@@ -211,3 +211,4 @@ src/pasyacc.py.bak
 *.bak
 *.bak
 /src/build
+*.bak
