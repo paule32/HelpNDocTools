@@ -151,6 +151,7 @@ function buildTree(nodes, container) {
         }
         container.appendChild(li);
     });
+    restoreExpandedNodes();
 }
 
 const tocEl = document.getElementById('toc');
@@ -197,6 +198,44 @@ async function updateContent() {
         alert(error);
     }
 }
+
+function saveExpandedNodes() {
+    const expandedNodes = [];
+    document.querySelectorAll('.node[aria-expanded="true"]').forEach(node => {
+        expandedNodes.push(node.dataset.id);
+    });
+
+    const selectedNode = document.querySelector('.node[aria-selected="true"]');
+    const selectedId = selectedNode ? selectedNode.dataset.id : null;
+
+    // Speichern als JSON im window.name
+    window.name = JSON.stringify({ expandedNodes, selectedNode: selectedId });
+}
+
+function restoreExpandedNodes() {
+    if (!window.name) return;
+    try {
+        const state = JSON.parse(window.name);
+        if (state.expandedNodes) {
+            state.expandedNodes.forEach(id => {
+                const node = document.querySelector(`.node[data-id="${id}"]`);
+                if (node) {
+                    node.setAttribute('aria-expanded', 'true');
+                }
+            });
+        }
+        if (state.selectedNode) {
+            const selectedNode = document.querySelector(`.node[data-id="${state.selectedNode}"]`);
+            if (selectedNode) {
+                selectedNode.setAttribute('aria-selected', 'true');
+                selectedNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    } catch (e) {
+        console.error('Fehler beim Wiederherstellen des Zustands:', e);
+    }
+}
+
 // Klick-Handler nach WebChannel-Init
 document.addEventListener("DOMContentLoaded", function() {
     new QWebChannel(qt.webChannelTransport, function(channel) {
@@ -206,22 +245,25 @@ document.addEventListener("DOMContentLoaded", function() {
             label.addEventListener('click', e => {
                 e.stopPropagation();
                 const li = e.currentTarget.parentElement;
+                
                 // Baum auf-/zuklappen
                 if(li.querySelector('.children')) {
                     const expanded = li.getAttribute('aria-expanded') === 'true';
                     li.setAttribute('aria-expanded', !expanded);
                 }
+                
                 // Content lokal
                 document.getElementById('content').innerHTML = `<h2>${li.textContent}</h2><p>Lade Inhalt von: ${li.dataset.href}</p>`;
                 
                 // Python informieren
                 if (window.bridge) {
-                    // Signal abonnieren
                     bridge.dataContent.connect(function(message) {
                         updateContent();
                     });
                     window.bridge.nodeClicked(li.dataset.href);
                 }
+                
+                saveExpandedNodes();
             });
         });
     });

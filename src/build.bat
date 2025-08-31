@@ -7,6 +7,9 @@
 ::
 :: only for education, and for non-profit usage !!!
 :: commercial use ist not allowed.
+::
+:: start this batch file with:  build.bat --mode tui --version 3.13
+:: or for help:                 build.bat --help
 :: ---------------------------------------------------------------------------
 @echo off
 :start
@@ -20,8 +23,15 @@ set CLTAPP=client.py
 :: Python 3.1.0 - there should be a Tools directory which comes with the
 :: official installation files.
 :: ---------------------------------------------------------------------------
-set PY=python.exe
-set PO=msgfmt.exe
+set PY=python3
+set PO=msgfmt
+
+:: ---------------------------------------------------------------------------
+:: store all given argumente to the batch file.
+:: ---------------------------------------------------------------------------
+set args=%*
+powershell -NoProfile -ExecutionPolicy Bypass -File "build.ps1" %args%
+exit
 
 :: ---------------------------------------------------------------------------
 :: First, check if python is installed. If not, try to install it, else try to
@@ -36,7 +46,7 @@ set BASEDIR=%cd%
 ::%PY%\Lib;%PY%\Lib\site-packagesss
 ::set PYTHONHOME=
 set SRC=%BASEDIR%/src
-set VPA=%BASEDIR%/venv
+set VPA=%BASEDIR%/venv2
 
 :: ---------------------------------------------------------------------------
 :: check, if Python is installed ...
@@ -48,6 +58,45 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+
+:: ---------------------------------------------------------------------------
+:: save python version in variable ...
+:: ---------------------------------------------------------------------------
+for /f "tokens=2 delims= " %%i in ('python3 --version') do set PYTHON_VER=%%i
+echo Found Python-Version: %PYTHON_VER%
+
+:: ---------------------------------------------------------------------------
+::  extract mainstream version (first two parts: 3.13)
+:: ---------------------------------------------------------------------------
+for /f "tokens=1,2 delims=." %%a in ("%PYTHON_VER%") do set PYTHON_MAJOR=%%a& ^
+set PYTHON_MINOR=%%b
+
+:: ---------------------------------------------------------------------------
+:: check version >= 3.13 ...
+:: ---------------------------------------------------------------------------
+if %PYTHON_MAJOR% LSS 3 (
+    echo Python version is too old. Please install Python 3.13 or higher.
+    pause
+    exit /b 1
+)
+:: ---------------------------------------------------------------------------
+:: try to download + install python 3.13 ...
+:: ---------------------------------------------------------------------------
+if %PYTHON_MAJOR% == 3 if %PYTHON_MINOR% LSS 13 (
+    echo Python version is too old. Try to install Python 3.13 or higher.
+    powershell -ExecutionPolicy Bypass -File "build.ps1"
+    ::powershell -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe' -OutFile '%TEMP%\python-3.13.1-amd64.exe'"
+    ::powershell -Command "Start-Process '%TEMP%\python-3.13.1-amd64.exe' -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait"
+    echo Python 3.13 wurde installiert.
+)
+
+echo Python version %PYTHON_VER% is OK.
+
+:: ---------------------------------------------------------------------------
+:: 
+:: ---------------------------------------------------------------------------
+pause
+exit
 
 :: ---------------------------------------------------------------------------
 :: create virtual user environment...
@@ -66,7 +115,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=%BASEDIR%\venv
+set VIRTUAL_ENV=%BASEDIR%\venv2
 
 if not defined PROMPT set PROMPT=$P$G
 
@@ -85,24 +134,26 @@ if not defined _OLD_VIRTUAL_PATH set _OLD_VIRTUAL_PATH=%PATH%
 set PATH=%VIRTUAL_ENV%\Scripts;%PATH%
 set VIRTUAL_ENV_PROMPT=venv
 
-cd %BASEDIR%\venv\Scripts
+cd %BASEDIR%\venv2\Scripts
 dir
 
 :: ---------------------------------------------------------------------------
 :: check, if pip3 is installed ...
 :: ---------------------------------------------------------------------------
-python -m pip install --upgrade pip >nul 2>&1
+python3 -m pip3 install --upgrade pip >nul 2>&1
 if errorlevel 1 (
-    echo pip is not installed. Try to install pip...
-    python -m ensurepip
+    echo pip3 is not installed. Try to install pip...
+    python3 -m ensurepip
     if errorlevel 1 (
         echo Error: could not install pip. Please install it manually.
         pause
         exit /b 1
     )
 )
-python -m pip install --upgrade pip
-python -m pip install ast >nul 2>&1
+echo erstmal ende
+exit /b 2
+python3 -m pip3 install --upgrade pip3
+python3 -m pip3 install ast >nul 2>&1
 
 echo install requirements...
 python -m pip install -r requirements.txt

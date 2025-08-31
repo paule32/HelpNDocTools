@@ -212,3 +212,4 @@ src/pasyacc.py.bak
 *.bak
 /src/build
 *.bak
+*.webp

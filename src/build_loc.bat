@@ -36,7 +36,7 @@ set BASEDIR=%cd%
 set SRC=%BASEDIR%/src
 set VPA=%BASEDIR%/venv
 
-pyrcc5 resources.qrc -o resources_rc.py
+::pyrcc5 resources.qrc -o resources_rc.py
 python -m compileall    resources_rc.py
 
 cd %BASEDIR%\locales\de_de\LC_MESSAGES
@@ -52,17 +52,17 @@ gzip -9 observer.mo
 copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_MESSAGES
 :: ----------------------------------
 
-cd %BASEDIR%\locales\de_de\LC_HELP
-rm -rf help.mo.gz
-msgfmt -o help.mo help.po
-gzip -9 help.mo
-copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_HELP
+::cd %BASEDIR%\locales\de_de\LC_HELP
+::rm -rf help.mo.gz
+::msgfmt -o help.mo help.po
+::gzip -9 help.mo
+::copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_HELP
 
-cd %BASEDIR%\locales\en_us\LC_HELP
-rm -rf help.mo.gz
-msgfmt -o help.mo help.po
-gzip -9 help.mo
-copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP
+::cd %BASEDIR%\locales\en_us\LC_HELP
+::rm -rf help.mo.gz
+::msgfmt -o help.mo help.po
+::gzip -9 help.mo
+::copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP
 :: ----------------------------------
 
 cd %BASEDIR%\locales\de_de\LC_STYLE
@@ -80,15 +80,29 @@ copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_STYLE
 
 cd %BASEDIR%\locales\de_de\LC_META
 rm -rf pcbios.mo.gz
+rm -rf parser.mo.gz
+
 msgfmt -o pcbios.mo pcbios.po
+msgfmt -o parser.mo parser.po
+
 gzip -9 pcbios.mo
+gzip -9 parser.mo
+
 copy pcbios.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
+copy parser.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
 
 cd %BASEDIR%\locales\en_us\LC_META
 rm -rf pcbios.mo.gz
+rm -rf parser.mo.gz
+
 msgfmt -o pcbios.mo pcbios.po
+msgfmt -o parser.mo parser.po
+
 gzip -9 pcbios.mo
+gzip -9 parser.mo
+
 copy pcbios.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
+copy parser.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
 :: ----------------------------------
 cd %BASEDIR%
 exit

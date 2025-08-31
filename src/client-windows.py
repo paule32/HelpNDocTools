@@ -13,7 +13,7 @@ global os_name; os_name = ""
 global res_file
 
 GUI_DEBUG = True
-res_file  = "resources_rc.py"  #cpython-313.pyc.gz'  # we use Python 3.13.3 !
+res_file  = "./_internal/resources_rc.pyc.gz"    # we use Python 3.13.3 !
 
 # ANSI-Konsolenfarben (Standard)
 DEFAULT_COLORS = [
@@ -22,6 +22,18 @@ DEFAULT_COLORS = [
     "#808080", "#ff0000", "#00ff00", "#ffff00",
     "#0000ff", "#ff00ff", "#00ffff", "#ffffff"
 ]
+# ---------------------------------------------------------------------------
+# Bekannte Magic Numbers für verschiedene Versionen (Auszug)
+# ---------------------------------------------------------------------------
+MAGIC_NUMBERS = {
+    b'\x42\x0d\x0d\x0a': 'Python 3.13',
+    b'\x40\x0d\x0d\x0a': 'Python 3.12',
+    b'\x3f\x0d\x0d\x0a': 'Python 3.11',
+    b'\x3e\x0d\x0d\x0a': 'Python 3.10',
+    b'\x33\x0d\x0d\x0a': 'Python 3.9' ,
+    b'\x17\x0d\x0d\x0a': 'Python 3.8' ,
+    # ggf. mehr hinzufügen
+}
 
 # Dictionary to store the mapping from object instances to variable names
 instance_names = {}
@@ -49,7 +61,6 @@ from   io  import StringIO
 #    del os.environ['PYTHONPATH']
 
 sys.path.append('.')
-
 
 # ----------------------------------------------------------------------
 # \brief This function definition is a helper to save storage resources.
@@ -90,7 +101,6 @@ def handle_exception(err, msg):
 
 # ---------------------------------------------------------------------------
 try:
-    import resources_rc
     import dbf, polib, timer, requests, datetime, gmpy2, webbrowser
     import locale, io, random, ipapi, string, capstone
     import httpx, ctypes, sqlite3, configparser, traceback
@@ -449,7 +459,7 @@ try:
                 if missing_module == "win32api" \
                 or missing_module == "win32con":
                     print("Win32Api functions not available.")
-                
+    
     from screeninfo         import get_monitors
     from charset_normalizer import from_bytes
     from urllib.parse       import urlparse, parse_qs
@@ -534,10 +544,40 @@ try:
         print("Error: This application is optimized for Windows 64-Bit.")
         sys.exit(1)
     # ---------------------------------------------------------------------------
-
     if getattr(sys, 'frozen', False):
         import pyi_splash
 
+    def detect_pyc_version(pyc_file):
+        with open(pyc_file, "rb") as f:
+            magic = f.read(4)  # Die ersten 4 Bytes sind die Magic Number
+            msg = "unknown magic bytes version"
+            if "_str" in globals():
+                return MAGIC_NUMBERS.get(magic, _str(msg))
+            else:
+                return MAGIC_NUMBERS.get(magic, msg)
+            
+    def version_from_filename(filename):
+        match = re.search(r'cpython-(\d+)', filename)
+        if match:
+            num = match.group(1)
+            if len(num) == 2:
+                return f"Python {num[0]}.{num[1]}"
+            elif len(num) == 3:
+                return f"Python {num[0]}.{num[1:]}"
+        return "could not dedect version."
+        
+    pyc_path = sys.argv[0]
+    version  = detect_pyc_version(pyc_path)
+    msg = "unknown magic bytes version"
+    if "_str" in globals():
+        if version == _str(msg):
+            print(version_from_filename(pyc_path))
+    else:
+        if version == msg:
+            print(f"{pyc_path} => {version} OK")
+        else:
+            print("could not dedect magic bytes.")
+    
     # ------------------------------------------------------------------------
     # \brief  Überprüft, ob der String Unicode-Zeichen enthält, die nicht
     #         ASCII sind.
@@ -676,15 +716,33 @@ try:
         if 'self' in frame.f_locals:
             name_clas = type(frame.f_locals['self']).__name__
         # -----------------------------------------
-        error_text = (""
-            + msg  + ":\n"
-            + _str("Error") + ": "       + str(err) + "\n\n"
-            + _str("Error in File")+": " + str(file_name) + "\n"
-            + _str("At Line")+"      : " + str(line_numb) + "\n"
-            + _str("In Function")+"  : " + str(func_name) + "\n"
-            + _str("In Class")+"     : " + str(name_clas) + "\n"
-            + _str("Code")+"         : " + str(code_line)
-        )
+        txt_001 = "Error      "
+        txt_002 = "File Name  "
+        txt_003 = "At Line    "
+        txt_004 = "In Function"
+        txt_005 = "In Class   "
+        txt_006 = "Code       "
+        if "_txt" in globals():
+            error_text = (""
+                + msg  + ":\n"
+                + _str(txt_001) + " : " + str(err)       + "\n\n"
+                + _str(txt_002) + " : " + str(file_name) + "\n"
+                + _str(txt_003) + " : " + str(line_numb) + "\n"
+                + _str(txt_004) + " : " + str(func_name) + "\n"
+                + _str(txt_005) + " : " + str(name_clas) + "\n"
+                + _str(txt_006) + " : " + str(code_line)
+            )
+        else:
+            error_text = (""
+                + msg  + ":\n"
+                + txt_001 + " : " + str(err)       + "\n\n"
+                + txt_002 + " : " + str(file_name) + "\n"
+                + txt_003 + " : " + str(line_numb) + "\n"
+                + txt_004 + " : " + str(func_name) + "\n"
+                + txt_005 + " : " + str(name_clas) + "\n"
+                + txt_006 + " : " + str(code_line)
+            )
+        
         showError(error_text)
         genv.error_dialog_open = False
 
@@ -1150,7 +1208,9 @@ try:
             self.v__app__config_ini_help    = ""
             self.v__app__logging      = None
             
-            #self.v__app__img__int__   = os.path.join(self.v__app__internal__, "img")
+            self.v__app__img__key__   = os.path.join(self.v__app__internal__, "img")
+            self.v__app__img__key__  += "/keyboard/"
+            
             self.v__app__img__int__   = ":/images/_internal/img/"
             self.v__app__helprojects  = []
             
@@ -1891,30 +1951,29 @@ try:
     # ---------------------------------------------------------------------------
     global genv
     genv = globalEnv()
-
+    
     # ------------------------------------------------------------------------
     # resource data like pictures or icons ...
+    # Lädt ein kompiliertes .pyc-Modul aus einer gzip-komprimierten Datei
+    # im Speicher.
     # ------------------------------------------------------------------------
-    #import resources_rc
     def import_resource_module(gzip_path, module_name):
-        #"""Lädt ein kompiliertes .pyc-Modul aus einer gzip-komprimierten Datei im Speicher."""
-        #with gzip.open(gzip_path, 'rb') as f:
-        #    pyc_data = f.read()
-        with open(gzip_path, "r") as f:
+        with gzip.open(gzip_path, 'rb') as f:
             pyc_data = f.read()
-
+        
         # Die ersten 16 Bytes (Header) ignorieren (Python 3.7+)
         code_obj = marshal.loads(pyc_data[16:])
-
+        
         # Neues Modul aus Bytecode erstellen
         module = types.ModuleType(module_name)
         exec(code_obj, module.__dict__)
-
+        
         # Modul im sys-Modulcache speichern
         sys.modules[module_name] = module
         return module
 
-    #gmod = import_resource_module(res_file, 'resources_rc')
+    gmod = import_resource_module(res_file, 'resources_rc')
+    import resources_rc
 
     # ------------------------------------------------------------------------
     # a minimal http server thread for display help pages ...
@@ -4633,12 +4692,7 @@ try:
             super().__init__()
             
             self.setReadOnly(False)
-            self.setStyleSheet("""
-            background-color: black;
-            font-family: 'Courier New';
-            font-size: 10pt;
-            color: gray;
-            """)
+            self.setStyleSheet(_css("DOSConsoleWindow"))
             #
             self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
             self.setVerticalScrollBarPolicy  (Qt.ScrollBarAlwaysOff)
@@ -4911,17 +4965,7 @@ try:
             self.key_count       =  0
             self.str_buffer      = ""
             
-            self.setStyleSheet("""
-            QTextEdit {
-                background-color: black;
-                border: none;       /* Kein Rahmen */
-                padding: 0px;       /* Kein Innenabstand */
-                margin: 0px;        /* Kein äußerer Abstand */
-                font-family: 'C64 Pro Mono';
-                font-size: 9pt;
-                color: gray;
-            }
-            """)
+            self.setStyleSheet(_css("C64ConsoleWindow"))
             
             self.setFrameShape(QTextEdit.NoFrame)
             #
@@ -5338,14 +5382,7 @@ try:
         def __init__(self, parent=None):
             super().__init__()
             
-            self.setStyleSheet("""
-            QWidget {
-                background-color: #4040F8;
-                border: none;       /* Kein Rahmen */
-                padding: 0px;       /* Kein Innenabstand */
-                margin: 0px;        /* Kein äußerer Abstand */
-            }
-            """)
+            self.setStyleSheet(_css("C64ConsoleBorder"))
             
             w1 = QWidget()
             w2 = QWidget()
@@ -5356,11 +5393,7 @@ try:
             w7 = QWidget()
             w8 = QWidget()
             
-            w2.setStyleSheet("""
-            background-image: url('./_internal/img/dresden.png');
-            background-repeat: no-repeat;
-            background-position: center;
-            """)
+            w2.setStyleSheet(_css("C64ConsoleBorder_w2"))
             #vlayout = QVBoxLayout()
             #vlabel  = QLabel()
             #vlabel.setMaximumWidth(320)
@@ -7794,8 +7827,7 @@ try:
 
             self.close_button = QPushButton("X")
             self.close_button.setFixedSize(30, 20)
-            self.close_button.setStyleSheet("QPushButton { background: transparent; color: white; border: none; }"
-                                            "QPushButton:hover { background: red; }")
+            self.close_button.setStyleSheet(_css("CustomCompileTitleBar_close_button"))
             self.close_button.clicked.connect(parent.close)
             layout.addStretch()
             layout.addWidget(self.close_button)
@@ -13939,8 +13971,8 @@ try:
             horizontal_header = self.table_widget.horizontalHeader()
             vertical_header   = self.table_widget.verticalHeader()
             
-            horizontal_header.setStyleSheet("QHeaderView::section { background-color: lightgreen; color: black; font-weight: bold; }")
-            vertical_header  .setStyleSheet("QHeaderView::section { background-color: lightblue; color: black; font-weight: bold; }")
+            horizontal_header.setStyleSheet(_css("myDataTabWidget_hhdr"))
+            vertical_header  .setStyleSheet(_css("myDataTabWidget_vhdr"))
             
             
             # Delegate für die erste Spalte setzen
@@ -15443,25 +15475,7 @@ try:
             action.setDefaultWidget(container_widget)
             self.addAction(action)
             
-            self.setStyleSheet("""
-                QMenu {
-                    background-color: navy;
-                    color: yellow;
-                    font-family: Arial;
-                    font-size: 11pt;
-                    font-style: italic;
-                    border: 2px outset gray;  /* Outset border */
-                }
-                QMenu::item {
-                    background-color: navy;
-                    font-weight: bold;
-                    font-style: italic;
-                }
-                QMenu::item:selected {
-                    background-color: green;
-                    color: yellow;
-                }
-            """)
+            self.setStyleSheet(_css(""))
             self.setMinimumWidth(200 + 84)  # Adjust the width to be 200 + 32 + 200 for text width
         
         def paintEvent(self, event):
@@ -15491,39 +15505,26 @@ try:
             action_button.setFixedWidth(200)  # Set the fixed width for the text
             action_button.clicked.connect(action.triggered)
             action_button.setFlat(True)
-            action_button.setStyleSheet(f"""
-                QPushButton {{
-                    text-align: left;
-                    padding: 5px;
-                    background: {self.bg_enabled};
-                    border: none;
-                    color: {self.fg_enabled};
-                    font-family: Arial;
-                    font-size: 11pt;
-                    font-style: italic;
-                    font-weight: bold;
-                }}
-                QPushButton:hover {{
-                    background: {self.bg_hover};
-                    color: {self.fg_hover};
-                }}
-            """)
+            action_button.setStyleSheet(""
+                +"QPushButton {"
+                +"text-align: left;"
+                +"padding: 5px;"
+                +"background: " + self.bg_enabled + ";"
+                +"border: none;"
+                +"color: "      + self.fg_enabled + ";"
+                +"font-family: Arial;"
+                +"font-size: 11pt;"
+                +"font-style: italic;"
+                +"font-weight: bold;"
+                +"}"
+                +"QPushButton:hover {"
+                +"background: " + self.bg_hover   + ";"
+                +"color: "      + self.fg_hover   + ";}")
             item_layout.addWidget(action_button)
             
             if shortcut:
                 shortcut_label = QLabel(shortcut, self)
-                shortcut_label.setStyleSheet("""
-                    QLabel {
-                        text-align: left;
-                        padding: 5px;
-                        background: navy;
-                        color: yellow;
-                        font-family: Arial;
-                        font-size: 11pt;
-                        font-style: italic;
-                        font-weight: bold;
-                    }
-                """)
+                shortcut_label.setStyleSheet(_css("myCustomContextMenu_shortcut"))
                 item_layout.addWidget(shortcut_label)
             else:
                 spacer = QWidget(self)
@@ -16784,12 +16785,7 @@ try:
             self.title  = title
             
             self.setFixedHeight(30)
-            self.setStyleSheet("""
-                background-color: blue;
-                color: yellow;
-                font-weight: bold;
-                padding-left: 10px;
-            """)
+            self.setStyleSheet(_css("CustomDialogTitleBar"))
             
             self.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
             self.parent = parent
@@ -16890,14 +16886,7 @@ try:
             self.setMaximumSize(640, 460)
             
             # Roter Rahmen
-            self.setStyleSheet("""
-                QDialog {
-                    background-color: #202020;
-                    color: yellow;
-                    border: 4px solid red;
-                    border-radius: 6px;
-                }
-            """)
+            self.setStyleSheet(_css("CustomFileDialog"))
             
             self.visited_dirs = []
             self.selected_file = ""
@@ -16951,20 +16940,7 @@ try:
             self.tree_right.setRootIndex(self.file_model.index(QDir.rootPath()))
             self.tree_right.clicked.connect(self.on_file_clicked)
             self.tree_right.doubleClicked.connect(self.on_right_double_click)
-            self.tree_right.setStyleSheet("""
-                QTreeView {
-                    background-color: #111;
-                    font-family: "Arial";
-                    width: 100px;
-                    color: yellow;
-                    font-size: 10pt;
-                }
-                QHeaderView::section {
-                    background-color: lightgray;
-                    color: black;
-                    font-size: 10pt;
-                }
-            """ + _css("scrollbar_stylesheet"))
+            self.tree_right.setStyleSheet(_css("CustomFileDialog_tree_rhs") + _css("scrollbar_stylesheet"))
             splitter.addWidget(self.tree_right)
             
             # Filter
@@ -16972,25 +16948,10 @@ try:
             self.filter_combo = QComboBox()
             self.filter_combo.addItems(["*.*", "*.py", "*.txt", "*.md", "*.jpg", "*.png"])
             self.filter_combo.setEditable(True)
-            self.filter_combo.setStyleSheet("""
-                QComboBox {
-                    font-family: "Arial";
-                    background-color: #222;
-                    font-size: 10pt;
-                    color: yellow;
-                    border: 1px solid #444;
-                }
-            """)
+            self.filter_combo.setStyleSheet(_css("CustomFileDialog_filter_cmb"))
             self.filter_combo.currentTextChanged.connect(self.update_file_filter)
             self.filter_label = QLabel(_str("Rilter:"))
-            self.filter_label.setStyleSheet("""
-                QLabel {
-                    font-family: "Arial";
-                    width: 100px;
-                    color: yellow;
-                    font-size: 10pt;
-                }
-            """)
+            self.filter_label.setStyleSheet(_css("CustomFileDialog_filter_lbl"))
             filter_layout.addWidget(self.filter_label)
             filter_layout.addWidget(self.filter_combo)
             layout.addLayout(filter_layout)
@@ -24813,6 +24774,96 @@ try:
             content_layout.addWidget(keyboard_enabled)
             content_layout.addWidget(line)
             content_layout.addStretch()
+            
+            # keyboard layout
+            kbl = _str(" Keyboard Layout")
+            winlay = "-windows-keyboard-layout-keyshorts_1024x1024.webp"
+            keyboard_imglist = [
+                [_str("US English")                  + kbl, genv.v__app__img__key__ + "usenglish"               + winlay ],
+                [_str("US English International")    + kbl, genv.v__app__img__key__ + "usinternational"         + winlay ],
+                [_str("Arabic")                      + kbl, genv.v__app__img__key__ + "arabic"                  + winlay ],
+                [_str("Armenian")                    + kbl, genv.v__app__img__key__ + "armenian"                + winlay ],
+                [_str("Azeri/Azerbaijani")           + kbl, genv.v__app__img__key__ + "azeri"                   + winlay ],
+                [_str("Belgian")                     + kbl, genv.v__app__img__key__ + "belgian"                 + winlay ],
+                [_str("Bengali")                     + kbl, genv.v__app__img__key__ + "bengali"                 + winlay ],
+                [_str("Bosnian")                     + kbl, genv.v__app__img__key__ + "Bosnian"                 + winlay ],
+                [_str("Bulgarian")                   + kbl, genv.v__app__img__key__ + "Bulgarian"               + winlay ],
+                [_str("Burmese")                     + kbl, genv.v__app__img__key__ + "Burmese"                 + winlay ],
+                [_str("Cherokee")                    + kbl, genv.v__app__img__key__ + "Cherokee"                + winlay ],
+                [_str("Chinese")                     + kbl, genv.v__app__img__key__ + "Chinese"                 + winlay ],
+                [_str("Colemak")                     + kbl, genv.v__app__img__key__ + "Colemak"                 + winlay ],
+                [_str("Croatian")                    + kbl, genv.v__app__img__key__ + "Croatian"                + winlay ],
+                [_str("Czech")                       + kbl, genv.v__app__img__key__ + "Czech"                   + winlay ],
+                [_str("Danish")                      + kbl, genv.v__app__img__key__ + "Danish"                  + winlay ],
+                [_str("Dvorak")                      + kbl, genv.v__app__img__key__ + "Dvorak"                  + winlay ],
+                [_str("Dutch")                       + kbl, genv.v__app__img__key__ + "Dutch"                   + winlay ],
+                [_str("Estonian")                    + kbl, genv.v__app__img__key__ + "Estonian"                + winlay ],
+                [_str("Finnish")                     + kbl, genv.v__app__img__key__ + "Finnish"                 + winlay ],
+                [_str("French")                      + kbl, genv.v__app__img__key__ + "French"                  + winlay ],
+                [_str("French (BÉPO)")               + kbl, genv.v__app__img__key__ + "French_BÉPO"             + winlay ],
+                [_str("French (Canadian)")           + kbl, genv.v__app__img__key__ + "French_Canadian"         + winlay ],
+                [_str("German")                      + kbl, genv.v__app__img__key__ + "German"                  + winlay ],
+                [_str("Georgian")                    + kbl, genv.v__app__img__key__ + "Georgian"                + winlay ],
+                [_str("Greek")                       + kbl, genv.v__app__img__key__ + "Greek"                   + winlay ],
+                [_str("Greek (Polytonic)")           + kbl, genv.v__app__img__key__ + "Greek_Polytonic"         + winlay ],
+                [_str("Gujarati")                    + kbl, genv.v__app__img__key__ + "Gujarati"                + winlay ],
+                [_str("Hebrew")                      + kbl, genv.v__app__img__key__ + "Hebrew"                  + winlay ],
+                [_str("Hindi")                       + kbl, genv.v__app__img__key__ + "Hindi"                   + winlay ],
+                [_str("Hungarian")                   + kbl, genv.v__app__img__key__ + "Hungarian"               + winlay ],
+                [_str("Icelandic")                   + kbl, genv.v__app__img__key__ + "Icelandic"               + winlay ],
+                [_str("Inuktitut (Naqittaut)")       + kbl, genv.v__app__img__key__ + "Inuktitut_Naqittaut"     + winlay ],
+                [_str("Italian")                     + kbl, genv.v__app__img__key__ + "Italian"                 + winlay ],
+                [_str("Japanese")                    + kbl, genv.v__app__img__key__ + "Japanese"                + winlay ],
+                [_str("Kannada")                     + kbl, genv.v__app__img__key__ + "Kannada"                 + winlay ],
+                [_str("Kazakh")                      + kbl, genv.v__app__img__key__ + "Kazakh"                  + winlay ],
+                [_str("Khmer")                       + kbl, genv.v__app__img__key__ + "Khmer"                   + winlay ],
+                [_str("Korean")                      + kbl, genv.v__app__img__key__ + "Korean"                  + winlay ],
+                [_str("Kurdish")                     + kbl, genv.v__app__img__key__ + "Kurdish"                 + winlay ],
+                [_str("Latvian")                     + kbl, genv.v__app__img__key__ + "Latvian"                 + winlay ],
+                [_str("Lithuanian")                  + kbl, genv.v__app__img__key__ + "Lithuanian"              + winlay ],
+                [_str("Macedonian")                  + kbl, genv.v__app__img__key__ + "Macedonian"              + winlay ],
+                [_str("Malayalam")                   + kbl, genv.v__app__img__key__ + "Malayalam"               + winlay ],
+                [_str("Maltese")                     + kbl, genv.v__app__img__key__ + "Maltese"                 + winlay ],
+                [_str("Nepali")                      + kbl, genv.v__app__img__key__ + "Nepali"                  + winlay ],
+                [_str("Northern Sami")               + kbl, genv.v__app__img__key__ + "Northern_Sami"           + winlay ],
+                [_str("Norwegian")                   + kbl, genv.v__app__img__key__ + "Norwegian"               + winlay ],
+                [_str("Odia/Oriya")                  + kbl, genv.v__app__img__key__ + "Odia_Oriya"              + winlay ],
+                [_str("Pashto")                      + kbl, genv.v__app__img__key__ + "Pashto"                  + winlay ],
+                [_str("Persian/Farsi")               + kbl, genv.v__app__img__key__ + "Persian_Farsi"           + winlay ],
+                [_str("Polish")                      + kbl, genv.v__app__img__key__ + "Polish"                  + winlay ],
+                [_str("Polish (214)")                + kbl, genv.v__app__img__key__ + "Polish_typist_214"       + winlay ],
+                [_str("Portuguese")                  + kbl, genv.v__app__img__key__ + "Portuguese"              + winlay ],
+                [_str("Portuguese (Brazilian)")      + kbl, genv.v__app__img__key__ + "Portuguese_Brazilian"    + winlay ],
+                [_str("Punjabi (Gurmukhi)")          + kbl, genv.v__app__img__key__ + "Punjabi_Gurmukhi"        + winlay ],
+                [_str("Romanian")                    + kbl, genv.v__app__img__key__ + "Romanian"                + winlay ],
+                [_str("Russian")                     + kbl, genv.v__app__img__key__ + "Russian"                 + winlay ],
+                [_str("Russian (Phonetic)")          + kbl, genv.v__app__img__key__ + "Russian_Phonetic"        + winlay ],
+                [_str("Serbian")                     + kbl, genv.v__app__img__key__ + "Serbian"                 + winlay ],
+                [_str("Serbian (Latin)")             + kbl, genv.v__app__img__key__ + "Serbian_Latin"           + winlay ],
+                [_str("Sinhala")                     + kbl, genv.v__app__img__key__ + "Sinhala"                 + winlay ],
+                [_str("Slovak")                      + kbl, genv.v__app__img__key__ + "Slovak"                  + winlay ],
+                [_str("Slovene/Slovenian")           + kbl, genv.v__app__img__key__ + "Slovene"                 + winlay ],
+                [_str("Spanish")                     + kbl, genv.v__app__img__key__ + "Spanish"                 + winlay ],
+                [_str("Spanish (Latin America)")     + kbl, genv.v__app__img__key__ + "Spanish_latam"           + winlay ],
+                [_str("Swedish")                     + kbl, genv.v__app__img__key__ + "Swedish"                 + winlay ],
+                [_str("Swiss")                       + kbl, genv.v__app__img__key__ + "Swiss"                   + winlay ],
+                [_str("Tamil")                       + kbl, genv.v__app__img__key__ + "Tamil"                   + winlay ],
+                [_str("Telugu")                      + kbl, genv.v__app__img__key__ + "Telugu"                  + winlay ],
+                [_str("Thai (Kedmanee)")             + kbl, genv.v__app__img__key__ + "Thai_Kedmanee"           + winlay ],
+                [_str("Tibetan")                     + kbl, genv.v__app__img__key__ + "Tibetan"                 + winlay ],
+                [_str("Turkish F")                   + kbl, genv.v__app__img__key__ + "TurkishF"                + winlay ],
+                [_str("Turkish Q")                   + kbl, genv.v__app__img__key__ + "TurkishQ"                + winlay ],
+                [_str("Ukrainian")                   + kbl, genv.v__app__img__key__ + "Ukrainian"               + winlay ],
+                [_str("Urdu")                        + kbl, genv.v__app__img__key__ + "Urdu"                    + winlay ],
+                [_str("Uyghur")                      + kbl, genv.v__app__img__key__ + "Uyghur"                  + winlay ],
+                [_str("Uzbek")                       + kbl, genv.v__app__img__key__ + "Uzbek"                   + winlay ],
+                [_str("Vietnamese")                  + kbl, genv.v__app__img__key__ + "Vietnamese"              + winlay ],
+            ]
+            self.keyboard_combo = QComboBox()
+            for item in keyboard_imglist:
+                self.keyboard_combo.addItem(item[0])
+            content_layout.addWidget(self.keyboard_combo)
+            self.keyboard_combo.currentIndexChanged.connect(self.on_keyboard_combo_index_changed)
             #
             scroll_area.setWidget(scroll_content)
             bios_frame_keyboard_layout.addWidget(scroll_area)
@@ -24822,6 +24873,10 @@ try:
             vlayout_bios_frame_keyboard.addStretch()
             
             return vlayout_bios_frame_keyboard
+        
+        def on_keyboard_combo_index_changed(self):
+            text = self.keyboard_combo.currentText()
+            print(text)
         
         def showBIOS_Mouse_settings(self, font, vlayout_bios_label_3):
             #
@@ -26726,20 +26781,12 @@ try:
             image_label.setMaximumHeight(64)
             image_label.setMaximumWidth (64)
             
-            image_label.setStyleSheet(""
-            + "background-color: orange;"
-            + "background-image: url('./_internal/img/py.png');"
-            + "background-repeat: no-repeat;"
-            + "border: 1px solid red;")
+            image_label.setStyleSheet(_css("HelpWindow_image"))
+            
             
             # Text "Made with Python"
             text_label = QLabel(_str("Made with Python\n(c) 2024 by paule32"))
-            text_label.setStyleSheet(""
-            + "background-color: navy;"
-            + "border: 1px solid red;"
-            + "font-size: 14px;"
-            + "font-weight: bold;"
-            + "color: yellow;")
+            text_label.setStyleSheet(_css("HelpWindow_text"))
             
             # Zum Button-Layout hinzufügen
             button_layout.addWidget(image_label)
@@ -27370,25 +27417,7 @@ try:
             self.setLayout(main_layout)
 
             # --- Stylesheet für navy-blaue Titelleiste mit gelber Schrift und vertieftem Rahmen ---
-            self.title_bar_widget.setStyleSheet("""
-                QWidget#TitleBar {
-                    background-color: navy;
-                    border: 2px inset #555;        /* Vertiefter (inset) 3D-Rahmen */
-                }
-                QWidget#TitleBar QLabel {
-                    color: yellow;                 /* Schriftfarbe Label */
-                    font-size: 14px;
-                    font-weight: bold;
-                }
-                QWidget#TitleBar QPushButton {
-                    color: yellow;                 /* Schriftfarbe Buttons */
-                    background-color: navy;        /* Gleiche Hintergrundfarbe */
-                    border: none;
-                }
-                QWidget#TitleBar QPushButton:hover {
-                    background-color: #001f5b;     /* Leicht dunkler beim Hover */
-                }
-            """)
+            self.title_bar_widget.setStyleSheet(_css("ClientSocketWindow"))
         
         def handle_key_up(self, key, text):
             print("key: " + key + ", value: " + text)
@@ -28024,19 +28053,35 @@ except ImportError as e:
         handle_exception(e, ("A import error was occurred"))
         #DebugPrint(f"A ImportError was occured: {e}")
 except FileNotFoundError as e:
-    handle_exception(e, (_str("A File operation Exception occured:")))
+    msg = "A File operation Exception occured:"
+    if "_str" in globals():
+        handle_exception(e, _str(msg))    # =/= language
+    else:
+        handle_exception(e, msg)          # fallback: english
     #DebugPrint(e)
     #sys.exit(1)
 except PermissionError as e:
-    handle_exception(e, ("A access violation Exception occured:"))
+    msg = "A access violation Exception occured:"
+    if "_str" in globals():
+        handle_exception(e, _str(msg))
+    else:
+        handle_exception(e, msg)
     #DebugPrint(e)
     #sys.exit(1)
 except RuntimeError as e:
-    handle_exception(e, ("A Runtime Error Exception occured:"))
+    msg = "A Runtime Error Exception occured:"
+    if "_str" in globals():
+        handle_exception(e, _str(msg))
+    else:
+        handle_exception(e, msg)
     #DebugPrint(e)
     #sys.exit(1)
 except Exception as e:
-    handle_exception(e, ("A common Exception occured:"))
+    msg = "A common Exception occured:"
+    if "_str" in globals():
+        handle_exception(e, _str(msg))
+    else:
+        handle_exception(e, msg)
     #exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
     #tb = traceback.extract_tb(e.__traceback__)[-1]
     

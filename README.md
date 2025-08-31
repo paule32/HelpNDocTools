@@ -10,8 +10,14 @@ Some stuff for "HelpNDoc" the Help authoring Software for CHM, HTML, PDF, ... he
 To download the Windows 10 64-Bit Professional based Application, you can visit:<br>
 [Application](https://kallup.net/woops/)
 
+Now, I working on a Setup Script to install the Python Application and the used Modules, used in this Reprository Applicationö.
+Only Windows 10/11 64 Bit is supported.
+
 Here are some out dated screen shoot on running the application:
 For the Commodore C-64 TrueType Font, visit: [C64Font](https://style64.org/release/c64-truetype-v1.2.1-style)
+
+Setup PowerShell Applet:
+![Preview](src/img/screen.png)
 
 Electronic Playground:
 ![image](https://github.com/user-attachments/assets/dd35ad1c-886c-4683-9947-9993a38f0a95)
