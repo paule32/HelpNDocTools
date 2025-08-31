@@ -17,7 +17,7 @@ Here are some out dated screen shoot on running the application:
 For the Commodore C-64 TrueType Font, visit: [C64Font](https://style64.org/release/c64-truetype-v1.2.1-style)
 
 Setup PowerShell Applet:
-![Preview](src/img/screen.png)
+![Preview](src/img/setup.png)
 
 Electronic Playground:
 ![image](https://github.com/user-attachments/assets/dd35ad1c-886c-4683-9947-9993a38f0a95)
