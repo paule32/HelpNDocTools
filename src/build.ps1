@@ -24,6 +24,214 @@ $PY = "python3.exe"
 $PO = "msgfmt.exe"
 
 # ---------------------------------------------------------------------------
+# hard coded Python version (default values).
+# ---------------------------------------------------------------------------
+$python_tmpdir  = "$env:TEMP"
+$python_version = "3.13.1"
+$python_setup   = "python-"+$python_version+"-amd64.exe"
+$python_last    = "/"+$python_setup
+$python_outdir  = $python_tmpdir+"\"+$python_setup
+$python_weburl  = "https://www.python.org/ftp/python"
+$python_webver  = $python_weburl+$python_version+"/"+$python_setup
+$oldURLLabel    = ""
+
+# ---------------------------------------------------------------------------
+# list of available Windows python .exe setup files (2025-09-ß2)
+# ---------------------------------------------------------------------------
+$script:keyValueListe = @(
+    [PSCustomObject]@{ Key="2.0.1"         ; Value="$python_weburl/2.0.1   /Python-2.0.1.exe"           }
+    
+    [PSCustomObject]@{ Key="2.1"           ; Value="$python_weburl/2.1     /Python-2.1.exe"             }
+    [PSCustomObject]@{ Key="2.1.1"         ; Value="$python_weburl/2.1.1   /Python-2.1.1.exe"           }
+    [PSCustomObject]@{ Key="2.1.2"         ; Value="$python_weburl/2.1.2   /Python-2.1.2.exe"           }
+    [PSCustomObject]@{ Key="2.1.3"         ; Value="$python_weburl/2.1.3   /Python-2.1.3.exe"           }
+    
+    [PSCustomObject]@{ Key="2.2"           ; Value="$python_weburl/2.2     /Python-2.2.exe"             }
+    [PSCustomObject]@{ Key="2.2.1"         ; Value="$python_weburl/2.2.1   /Python-2.2.1.exe"           }
+    [PSCustomObject]@{ Key="2.2.2"         ; Value="$python_weburl/2.2.2   /Python-2.2.2.exe"           }
+    [PSCustomObject]@{ Key="2.2.3"         ; Value="$python_weburl/2.2.3   /Python-2.2.3.exe"           }
+    
+    [PSCustomObject]@{ Key="2.3"           ; Value="$python_weburl/2.3     /Python-2.3.exe"             }
+    [PSCustomObject]@{ Key="2.3.1"         ; Value="$python_weburl/2.3.1   /Python-2.3.1.exe"           }
+    [PSCustomObject]@{ Key="2.3.2-1"       ; Value="$python_weburl/2.3.2   /Python-2.3.2-1.exe"         }
+    [PSCustomObject]@{ Key="2.3.3"         ; Value="$python_weburl/2.3.3   /Python-2.3.3.exe"           }
+    [PSCustomObject]@{ Key="2.3.4"         ; Value="$python_weburl/2.3.4   /Python-2.3.4.exe"           }
+    [PSCustomObject]@{ Key="2.3.5"         ; Value="$python_weburl/2.3.5   /Python-2.3.5.exe"           }
+    
+    [PSCustomObject]@{ Key="2.4"           ; Value="$python_weburl/2.4     /python-2.4.ia64.msi"        }
+    [PSCustomObject]@{ Key="2.4.1"         ; Value="$python_weburl/2.4.1   /python-2.4.1.ia64.msi"      }
+    [PSCustomObject]@{ Key="2.4.2"         ; Value="$python_weburl/2.4.2   /python-2.4.2.ia64.msi"      }
+    [PSCustomObject]@{ Key="2.4.3"         ; Value="$python_weburl/2.4.3   /python-2.4.3.ia64.msi"      }
+    [PSCustomObject]@{ Key="2.4.4"         ; Value="$python_weburl/2.4.4   /python-2.4.4.ia64.msi"      }
+    
+    [PSCustomObject]@{ Key="2.5"           ; Value="$python_weburl/2.5     /python-2.5.ia64.msi"        }
+    [PSCustomObject]@{ Key="2.5.1"         ; Value="$python_weburl/2.5     /python-2.5.1.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.5.2"         ; Value="$python_weburl/2.5.2   /python-2.5.2.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.5.3"         ; Value="$python_weburl/2.5.3   /python-2.5.3.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.5.4"         ; Value="$python_weburl/2.5.4   /python-2.5.4.amd64.msi"     }
+    
+    [PSCustomObject]@{ Key="2.6"           ; Value="$python_weburl/2.6     /python-2.6.amd64.msi"       }
+    [PSCustomObject]@{ Key="2.6.1"         ; Value="$python_weburl/2.6.1   /python-2.6.1.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.6.2"         ; Value="$python_weburl/2.6.2   /python-2.6.2.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.6.3"         ; Value="$python_weburl/2.6.3   /python-2.6.3.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.6.4"         ; Value="$python_weburl/2.6.4   /python-2.6.4.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.6.5"         ; Value="$python_weburl/2.6.5   /python-2.6.5.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.6.6"         ; Value="$python_weburl/2.6.6   /python-2.6.6.amd64.msi"     }
+    
+    [PSCustomObject]@{ Key="2.7"           ; Value="$python_weburl/2.7     /python-2.7.amd64.msi"       }
+    [PSCustomObject]@{ Key="2.7.1"         ; Value="$python_weburl/2.7.1   /python-2.7.1.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.2"         ; Value="$python_weburl/2.7.2   /python-2.7.2.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.3"         ; Value="$python_weburl/2.7.3   /python-2.7.3.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.4"         ; Value="$python_weburl/2.7.4   /python-2.7.4.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.5"         ; Value="$python_weburl/2.7.5   /python-2.7.5.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.6"         ; Value="$python_weburl/2.7.6   /python-2.7.6.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.7"         ; Value="$python_weburl/2.7.7   /python-2.7.7.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.8"         ; Value="$python_weburl/2.7.8   /python-2.7.8.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.9"         ; Value="$python_weburl/2.7.9   /python-2.7.9.amd64.msi"     }
+    [PSCustomObject]@{ Key="2.7.10"        ; Value="$python_weburl/2.7.10  /python-2.7.10.amd64.msi"    }
+    [PSCustomObject]@{ Key="2.7.11"        ; Value="$python_weburl/2.7.11  /python-2.7.11.amd64.msi"    }
+    [PSCustomObject]@{ Key="2.7.12"        ; Value="$python_weburl/2.7.12  /python-2.7.12.amd64.msi"    }
+    [PSCustomObject]@{ Key="2.7.13"        ; Value="$python_weburl/2.7.13  /python-2.7.13.amd64.msi"    }
+    [PSCustomObject]@{ Key="2.7.14"        ; Value="$python_weburl/2.7.14  /python-2.7.14.amd64.msi"    }
+    [PSCustomObject]@{ Key="2.7.15"        ; Value="$python_weburl/2.7.15  /python-2.7.15.amd64.msi"    }
+    [PSCustomObject]@{ Key="2.7.16"        ; Value="$python_weburl/2.7.16  /python-2.7.16.amd64.msi"    }
+    [PSCustomObject]@{ Key="2.7.17"        ; Value="$python_weburl/2.7.17  /python-2.7.17.amd64.msi"    }
+    [PSCustomObject]@{ Key="2.7.18"        ; Value="$python_weburl/2.7.18  /python-2.7.18.amd64.msi"    }
+    
+    [PSCustomObject]@{ Key="3.0"           ; Value="$python_weburl/3.0     /python-3.0.amd64.msi"       }
+    [PSCustomObject]@{ Key="3.0       RC 1"; Value="$python_weburl/3.0     /python-3.0rc1.amd64.msi"    }
+    [PSCustomObject]@{ Key="3.0       RC 2"; Value="$python_weburl/3.0     /python-3.0rc2.amd64.msi"    }
+    [PSCustomObject]@{ Key="3.0       RC 3"; Value="$python_weburl/3.0     /python-3.0rc3.amd64.msi"    }
+    [PSCustomObject]@{ Key="3.0.1"         ; Value="$python_weburl/3.0.1   /python-3.0.1.amd64.msi"     }
+    
+    [PSCustomObject]@{ Key="3.1"           ; Value="$python_weburl/3.1     /python-3.1.amd64.msi"       }
+    [PSCustomObject]@{ Key="3.1.1"         ; Value="$python_weburl/3.1.1   /python-3.1.1.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.1.2"         ; Value="$python_weburl/3.1.2   /python-3.1.2.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.1.2     RC 1"; Value="$python_weburl/3.1.2   /python-3.1.2rc1.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.1.3"         ; Value="$python_weburl/3.1.3   /python-3.1.3.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.1.3     RC 1"; Value="$python_weburl/3.1.3   /python-3.1.3rc1.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.1.4"         ; Value="$python_weburl/3.1.4   /python-3.1.4.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.1.4     RC 1"; Value="$python_weburl/3.1.4   /python-3.1.4rc1.amd64.msi"  }
+    
+    [PSCustomObject]@{ Key="3.2"           ; Value="$python_weburl/3.2     /python-3.2.amd64.msi"       }
+    [PSCustomObject]@{ Key="3.2.1"         ; Value="$python_weburl/3.2.1   /python-3.2.1.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.2.2"         ; Value="$python_weburl/3.2.2   /python-3.2.2.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.2.3"         ; Value="$python_weburl/3.2.3   /python-3.2.3.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.2.4"         ; Value="$python_weburl/3.2.4   /python-3.2.4.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.2.5"         ; Value="$python_weburl/3.2.5   /python-3.2.5.amd64.msi"     }
+    
+    [PSCustomObject]@{ Key="3.3.0"         ; Value="$python_weburl/3.3.0   /python-3.3.0.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.3.0"         ; Value="$python_weburl/3.3.0   /python-3.3.0.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.3.1"         ; Value="$python_weburl/3.3.1   /python-3.3.1.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.3.2"         ; Value="$python_weburl/3.3.2   /python-3.3.2.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.3.3"         ; Value="$python_weburl/3.3.3   /python-3.3.3.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.3.4"         ; Value="$python_weburl/3.3.4   /python-3.3.4.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.3.4     RC 1"; Value="$python_weburl/3.3.4   /python-3.3.4rc1.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.3.5"         ; Value="$python_weburl/3.3.4   /python-3.3.5.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.3.5     RC 1"; Value="$python_weburl/3.3.5   /python-3.3.5rc1.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.3.5     RC 2"; Value="$python_weburl/3.3.5   /python-3.3.5rc2.amd64.msi"  }
+    
+    [PSCustomObject]@{ Key="3.4.0"         ; Value="$python_weburl/3.4.0   /python-3.4.0.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.4.0     RC 1"; Value="$python_weburl/3.4.0   /python-3.4.0rc1.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.4.0     RC 2"; Value="$python_weburl/3.4.0   /python-3.4.0rc2.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.4.0     RC 3"; Value="$python_weburl/3.4.0   /python-3.4.0rc3.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.4.1"         ; Value="$python_weburl/3.4.1   /python-3.4.1.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.4.1     RC 1"; Value="$python_weburl/3.4.1   /python-3.4.1rc1.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.4.2"         ; Value="$python_weburl/3.4.2   /python-3.4.2.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.4.2     RC 1"; Value="$python_weburl/3.4.2   /python-3.4.2rc1.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.4.3"         ; Value="$python_weburl/3.4.3   /python-3.4.3.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.4.3     RC 1"; Value="$python_weburl/3.4.3   /python-3.4.3rc1.amd64.msi"  }
+    [PSCustomObject]@{ Key="3.4.4"         ; Value="$python_weburl/3.4.4   /python-3.4.4.amd64.msi"     }
+    [PSCustomObject]@{ Key="3.4.4     RC 1"; Value="$python_weburl/3.4.4   /python-3.4.4rc1.amd64.msi"  }
+    
+    [PSCustomObject]@{ Key="3.5.0"         ; Value="$python_weburl/3.5.0   /python-3.5.0-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.5.0     RC 1"; Value="$python_weburl/3.5.0   /python-3.5.0rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.5.0     RC 2"; Value="$python_weburl/3.5.0   /python-3.5.0rc2-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.5.0     RC 3"; Value="$python_weburl/3.5.0   /python-3.5.0rc3-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.5.0     RC 4"; Value="$python_weburl/3.5.0   /python-3.5.0rc4-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.5.1"         ; Value="$python_weburl/3.5.1   /python-3.5.1-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.5.1     RC 1"; Value="$python_weburl/3.5.1   /python-3.5.1rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.5.2"         ; Value="$python_weburl/3.5.2   /python-3.5.2-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.5.2     RC 1"; Value="$python_weburl/3.5.2   /python-3.5.2rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.5.3"         ; Value="$python_weburl/3.5.3   /python-3.5.3-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.5.3     RC 1"; Value="$python_weburl/3.5.3   /python-3.5.3rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.5.4"         ; Value="$python_weburl/3.5.4   /python-3.5.4-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.5.4     RC 1"; Value="$python_weburl/3.5.4   /python-3.5.4rc1-amd64.exe"  }
+    
+    [PSCustomObject]@{ Key="3.6.0"         ; Value="$python_weburl/3.6.0   /python-3.6.0-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.0     RC 1"; Value="$python_weburl/3.6.0   /python-3.6.0rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.0     RC 2"; Value="$python_weburl/3.6.0   /python-3.6.0rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.1"         ; Value="$python_weburl/3.6.1   /python-3.6.1-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.1     RC 1"; Value="$python_weburl/3.6.1   /python-3.6.1rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.2"         ; Value="$python_weburl/3.6.2   /python-3.6.2-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.2     RC 1"; Value="$python_weburl/3.6.2   /python-3.6.2rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.2     RC 2"; Value="$python_weburl/3.6.2   /python-3.6.2rc2-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.3"         ; Value="$python_weburl/3.6.3   /python-3.6.3-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.3     RC 1"; Value="$python_weburl/3.6.3   /python-3.6.3rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.4"         ; Value="$python_weburl/3.6.4   /python-3.6.4-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.4     RC 1"; Value="$python_weburl/3.6.4   /python-3.6.4rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.5"         ; Value="$python_weburl/3.6.5   /python-3.6.5-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.5     RC 1"; Value="$python_weburl/3.6.5   /python-3.6.5rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.6"         ; Value="$python_weburl/3.6.6   /python-3.6.6-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.6     RC 1"; Value="$python_weburl/3.6.6   /python-3.6.6rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.7"         ; Value="$python_weburl/3.6.7   /python-3.6.7-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.7     RC 1"; Value="$python_weburl/3.6.7   /python-3.6.7rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.6.8"         ; Value="$python_weburl/3.6.8   /python-3.6.8-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.6.8     RC 1"; Value="$python_weburl/3.6.8   /python-3.6.8rc1-amd64.exe"  }
+    
+    [PSCustomObject]@{ Key="3.7.0"         ; Value="$python_weburl/3.7.0   /python-3.7.0-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.0     RC 1"; Value="$python_weburl/3.7.0   /python-3.7.0rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.1"         ; Value="$python_weburl/3.7.1   /python-3.7.1-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.1     RC 1"; Value="$python_weburl/3.7.1   /python-3.7.1rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.1     RC 2"; Value="$python_weburl/3.7.1   /python-3.7.1rc2-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.2"         ; Value="$python_weburl/3.7.2   /python-3.7.2-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.2     RC 1"; Value="$python_weburl/3.7.2   /python-3.7.2rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.3"         ; Value="$python_weburl/3.7.3   /python-3.7.3-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.3     RC 1"; Value="$python_weburl/3.7.3   /python-3.7.3rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.4"         ; Value="$python_weburl/3.7.4   /python-3.7.4-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.4     RC 1"; Value="$python_weburl/3.7.4   /python-3.7.4rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.4     RC 1"; Value="$python_weburl/3.7.4   /python-3.7.4rc2-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.5"         ; Value="$python_weburl/3.7.5   /python-3.7.5-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.5     RC 1"; Value="$python_weburl/3.7.5   /python-3.7.5rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.6"         ; Value="$python_weburl/3.7.6   /python-3.7.6-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.6     RC 1"; Value="$python_weburl/3.7.6   /python-3.7.6rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.7"         ; Value="$python_weburl/3.7.7   /python-3.7.7-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.7     RC 1"; Value="$python_weburl/3.7.7   /python-3.7.7rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.8"         ; Value="$python_weburl/3.7.8   /python-3.7.8-amd64.exe"     }
+    [PSCustomObject]@{ Key="3.7.8     RC 1"; Value="$python_weburl/3.7.8   /python-3.7.8rc1-amd64.exe"  }
+    [PSCustomObject]@{ Key="3.7.9"         ; Value="$python_weburl/3.7.9   /python-3.7.9-amd64.exe"     }
+    
+    [PSCustomObject]@{ Key="3.10.0    RC 1"; Value="$python_weburl/3.10    /python-3.10.0rc1-amd64.exe" }
+    [PSCustomObject]@{ Key="3.10.0    RC 2"; Value="$python_weburl/3.10    /python-3.10.0rc2-amd64.exe" }
+    [PSCustomObject]@{ Key="3.10.1"        ; Value="$python_weburl/3.10.1  /python-3.10.1-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.2"        ; Value="$python_weburl/3.10.2  /python-3.10.2-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.3"        ; Value="$python_weburl/3.10.3  /python-3.10.3-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.4"        ; Value="$python_weburl/3.10.4  /python-3.10.4-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.5"        ; Value="$python_weburl/3.10.5  /python-3.10.5-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.6"        ; Value="$python_weburl/3.10.6  /python-3.10.6-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.7"        ; Value="$python_weburl/3.10.7  /python-3.10.7-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.8"        ; Value="$python_weburl/3.10.8  /python-3.10.8-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.9"        ; Value="$python_weburl/3.10.9  /python-3.10.9-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.10.10"       ; Value="$python_weburl/3.10.10 /python-3.10.10-amd64.exe"   }
+    [PSCustomObject]@{ Key="3.10.11"       ; Value="$python_weburl/3.10.11 /python-3.10.11-amd64.exe"   }
+    
+    [PSCustomObject]@{ Key="3.13.0"        ; Value="$python_weburl/3.13.0  /python-3.13.0-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.13.0    RC 1"; Value="$python_weburl/3.13.0  /python-3.13.0rc1-amd64.exe" }
+    [PSCustomObject]@{ Key="3.13.0    RC 2"; Value="$python_weburl/3.13.0  /python-3.13.0rc2-amd64.exe" }
+    [PSCustomObject]@{ Key="3.13.0    RC 3"; Value="$python_weburl/3.13.0  /python-3.13.0rc3-amd64.exe" }
+    [PSCustomObject]@{ Key="3.13.1"        ; Value="$python_weburl/3.13.1  /python-3.13.1-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.13.2"        ; Value="$python_weburl/3.13.2  /python-3.13.2-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.13.3"        ; Value="$python_weburl/3.13.3  /python-3.13.3-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.13.4"        ; Value="$python_weburl/3.13.4  /python-3.13.4-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.13.5"        ; Value="$python_weburl/3.13.5  /python-3.13.5-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.13.6"        ; Value="$python_weburl/3.13.6  /python-3.13.6-amd64.exe"    }
+    [PSCustomObject]@{ Key="3.13.7"        ; Value="$python_weburl/3.13.7  /python-3.13.7-amd64.exe"    }
+    
+    [PSCustomObject]@{ Key="3.14.0    RC 1"; Value="$python_weburl/3.14.0  /python-3.14.0rc1-amd64.exe" }
+    [PSCustomObject]@{ Key="3.14.0-1  RC 2"; Value="$python_weburl/3.14.0  /python-3.14.0rc2-amd64.exe" }
+)
+
+# ---------------------------------------------------------------------------
 # load Microsoft Windows Forms assemblies.
 # ---------------------------------------------------------------------------
 Add-Type -AssemblyName System.Windows.Forms
@@ -31,6 +239,26 @@ Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Net.http
 Add-Type -AssemblyName System.Runtime.InteropServices
 
+function Get-DriveLetterFromPath($Path) {
+    $item = Get-Item $Path
+    return $item.PSDrive.Name + ":\"
+}
+function Get-DriveSpace($Drive) {
+    $driveInfo = Get-PSDrive | Where-Object { $_.Name -eq $Drive.TrimEnd(':') }
+    $driveLetter = ($Drive.Substring(0,1)).ToUpper()
+    $driveInfo = Get-PSDrive | Where-Object { $_.Name -eq $driveLetter }
+    if (-not $driveInfo) {
+        throw "Laufwerk $Drive wurde nicht gefunden oder ist nicht verfügbar."
+    }
+    $total = $driveInfo.Used + $driveInfo.Free
+    if ($total -eq 0) {
+        throw "Laufwerk $Drive hat keine Speicherinformationen (Total = 0)."
+    }
+    return [PSCustomObject]@{
+        Total = $total
+        Free  = $driveInfo.Free
+    }
+}
 function Get-ScriptStartMode {
     # check, if console window exists
     Add-Type @"
@@ -46,15 +274,9 @@ function Get-ScriptStartMode {
     # get parent process
     $parent = (Get-Process -Id (Get-CimInstance Win32_Process -Filter "ProcessId=$PID").ParentProcessId).Name
 
-    if ($hasConsole -and ($parent -ne 'explorer')) {
-        return "TUI"
-    }
-    elseif ($parent -eq 'explorer') {
-        return "Explorer"
-    }
-    else {
-        return "GUI"
-    }
+    if ($hasConsole -and ($parent -ne 'explorer')) { return "TUI"      }
+    elseif ($parent -eq 'explorer')                { return "Explorer" }
+    else                                           { return "GUI"      }
 }
 
 $mode = Get-ScriptStartMode
@@ -124,33 +346,50 @@ foreach ($req in $required) {
 # ---------------------------------------------------------------------------
 # evaluate options settings.
 # ---------------------------------------------------------------------------
-#Write-Host "`nErkannte Optionen:"
-#$options.GetEnumerator() | ForEach-Object { Write-Host "$($_.Key) = $($_.Value)" }
+Write-Host "`nErkannte Optionen:"
+$options.GetEnumerator() | ForEach-Object {
+    Write-Host "$($_.Key) = $($_.Value)"
+}
+function displaymode {
+    if ($options.ContainsKey("mode"   )) {
+        return $options["mode"]
+    }   elseif ($options.ContainsKey("m")) {
+        return $options["m"]
+    }   else {
+        return ""
+    }
+}
+function pythonversion {
+    if ($options.ContainsKey("version")) {
+        return $options["version"]
+    }   else {
+        return "unknown"
+    }
+}
+$python_version = pythonversion
+$display_mode   = displaymode
 
-$displaymode   = if ($options.ContainsKey("mode"   )) { $options["mode"   ] } elseif ($options.ContainsKey("m")) { $options["m"] } else { "" }
-$pythonversion = if ($options.ContainsKey("version")) { $options["version"] } else { "unknown" }
-
-$displaymode = $displaymode.ToLower()
-if (($displaymode -ne "tui") -and ($displaymode -ne "gui")) {
+$display_mode   = $display_mode.ToLower()
+if (($display_mode -ne "tui") -and ($display_mode -ne "gui")) {
     Write-Host "wrong display mode - use TUI or GUI."
     ShowHelpTUI
     exit 1
 }
 
-$cond1 = ($pythonversion -eq "unknown")
-$cond2 = ($pythonversion -eq "")
-$cond3 = ($pythonversion -eq "3.13.1")
-$cond4 = ($pythonversion -eq "3.13")
-$cond5 = ($pythonversion -eq "313")
-$cond6 = ($pythonversion -eq "3")
+$cond1 = ($python_version -eq "unknown")
+$cond2 = ($python_version -eq "")
+$cond3 = ($python_version -eq "3.13.1")
+$cond4 = ($python_version -eq "3.13")
+$cond5 = ($python_version -eq "313")
+$cond6 = ($python_version -eq "3.0")
 
 $cond0 = ((($cond1) -or ($cond2)) -or (!($cond3 -or $cond4 -or $cond5 -or $cond6)))
 if ($cond0) {
     Write-Host "python version unknown."
     exit 1
 }
-#Write-Host "mode   : $displaymode"
-#Write-Host "Version: $pythonversion"
+#Write-Host "mode   : $display_mode"
+Write-Host "Version: $python_version"
 
 if ($options.ContainsKey("verbose")) {
     Write-Host "Verbose-Modus aktiv!"
@@ -189,21 +428,75 @@ function ShowMessage {
 # ---------------------------------------------------------------------------
 function initUI {
     # -----------------------------------------------------------------------
+    # read out parameter given to initUI
+    # -----------------------------------------------------------------------
+    param (
+        $percentFree
+    )
+    
+    # -----------------------------------------------------------------------
     # main window
     # -----------------------------------------------------------------------
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Setup GUI"
-    $form.Size = New-Object System.Drawing.Size(800, 500)
+    $form.Text = "Setup GUI (c) 2025 by paule32"
+    $form.Size = New-Object System.Drawing.Size(800, 565)
     $form.StartPosition = "CenterScreen"
     $form.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
     
     # -----------------------------------------------------------------------
+    # Menüleiste erstellen
+    # -----------------------------------------------------------------------
+    $menuPanel = New-Object System.Windows.Forms.Panel
+    $menuPanel.Size = New-Object System.Drawing.Size(400, 32)
+    $menuPanel.Dock = [System.Windows.Forms.DockStyle]::Top
+    $form.Controls.Add($menuPanel)
+    
+    $menuStrip = New-Object System.Windows.Forms.MenuStrip
+    $menuStrip.Font = New-Object System.Drawing.Font("Arial", 11, [System.Drawing.FontStyle]::Bold)
+    $menuStrip.Dock = [System.Windows.Forms.DockStyle]::Top
+
+    # -----------------------------------------------------------------------
+    # Menü "Datei"
+    # -----------------------------------------------------------------------
+    $fileMenu = New-Object System.Windows.Forms.ToolStripMenuItem "Application"
+    $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem "Exit"
+    $exitItem.Add_Click({ $form.Close() })  # Schließt das Fenster
+    $fileMenu.DropDownItems.Add($exitItem)
+
+    # -----------------------------------------------------------------------
+    # Menü "Hilfe"
+    # -----------------------------------------------------------------------
+    $helpMenu = New-Object System.Windows.Forms.ToolStripMenuItem "Help"
+    $aboutItem = New-Object System.Windows.Forms.ToolStripMenuItem "About"
+    $aboutItem.Add_Click({ [System.Windows.Forms.MessageBox]::Show("Menüleiste Beispiel v1.0") })
+    $helpMenu.DropDownItems.Add($aboutItem)
+
+    # -----------------------------------------------------------------------
+    # Menüs zur Menüleiste hinzufügen
+    # -----------------------------------------------------------------------
+    $menuStrip.Items.Add($fileMenu)
+    $menuStrip.Items.Add($helpMenu)
+
+    # -----------------------------------------------------------------------
+    # Menüleiste dem Formular hinzufügen
+    # -----------------------------------------------------------------------
+    $form.MainMenuStrip = $menuStrip
+    $menuPanel.Controls.Add($menuStrip)
+
+    # -----------------------------------------------------------------------
     # left panel
     # -----------------------------------------------------------------------
     $panel = New-Object System.Windows.Forms.Panel
-    $panel.Size = New-Object System.Drawing.Size(200, 500)
-    $panel.Dock = 'Left'
-    $panel.BorderStyle = 'Fixed3D'
+    $panel.Size = New-Object System.Drawing.Size(191, 415)
+    $panel.Location = New-Object System.Drawing.Point(10, 32)
+    $panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+    $panel.Add_Paint({
+        param($sender, $e)
+        $graphics = $e.Graphics
+        $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Black, 2)
+        $graphics.DrawRectangle($pen, 0, 0, $sender.Width-2, $sender.Height-2)
+        $pen.Dispose()
+    })
     $form.Controls.Add($panel)
     
     # -----------------------------------------------------------------------
@@ -211,7 +504,7 @@ function initUI {
     # -----------------------------------------------------------------------
     $setupImage = New-Object System.Windows.Forms.PictureBox
     $setupImage.Size = New-Object System.Drawing.Size(180, 400)
-    $setupImage.Location = New-Object System.Drawing.Point(10, 10)
+    $setupImage.Location = New-Object System.Drawing.Point(5, 5)
     $setupImage.SizeMode = 'StretchImage'
     $panel.Controls.Add($setupImage)
     
@@ -226,146 +519,413 @@ function initUI {
     }
     
     # -----------------------------------------------------------------------
-    # Bild von URL laden
+    # create TabControl erstellen
     # -----------------------------------------------------------------------
-    #$setupUrl = "https://example.com/setup-image.png"
-    #$webClient = New-Object System.Net.WebClient
-    #$tempFile = [System.IO.Path]::GetTempFileName()
-    #$webClient.DownloadFile($setupUrl, $tempFile)
-    #$setupImage.Image = [System.Drawing.Image]::FromFile($tempFile)
+    $tabControl = New-Object System.Windows.Forms.TabControl
+    $tabControl.Location = New-Object System.Drawing.Point(220, 32)
+    $tabControl.Size = New-Object System.Drawing.Size(550, 490)
+    
+    $licenseTabPage = New-Object System.Windows.Forms.TabPage
+    $licenseTabPage.Text = "License"
+
+    $licenseLabel = New-Object System.Windows.Forms.Label
+    $licenseLabel.Location = New-Object System.Drawing.Point(10, 15)
+    $licenseLabel.Text = "Please read the License before Install..."
+    $licenseLabel.AutoSize = $true
+    
+    $licenseTextBox = New-Object System.Windows.Forms.TextBox
+    $licenseTextBox.Location = New-Object System.Drawing.Point(10, 50)
+    $licenseTextBox.Size = New-Object System.Drawing.Size(520, 380)
+    $licenseTextBox.Font = New-Object System.Drawing.Font("Arial", 11, [System.Drawing.FontStyle]::Bold)
+    $licenseTextBox.Multiline = $true
+    $licenseTextBox.ScrollBars = "Vertical"
+    $licenseTextBox.Text = @"
+By reading this License Text and using the shipped files in this Repository, You accept the MIT License.
+If you will not accept it, close the Setup Application and/or delete
+all the Artefact's that was shipping with this Reprository !
+
+MIT License
+
+Copyright (c) 2022, 2023, 2024, 2025 Jens Kallup
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software,
+and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+OR OTHER DEALINGS IN THE SOFTWARE.
+"@
+    # -----------------------------------------------------------------------
+    # panel with scroll bar
+    # -----------------------------------------------------------------------
+    $licenseTabPageScrollPanel = New-Object System.Windows.Forms.Panel
+    $licenseTabPageScrollPanel.Dock = 'Fill'
+    $licenseTabPageScrollPanel.AutoScroll = $true
+        
+    $licenseTabPageScrollPanel.Controls.Add($licenseLabel)
+    $licenseTabPageScrollPanel.Controls.Add($licenseTextBox)
+    
+    $licenseTabPage.Controls.Add($licenseTabPageScrollPanel)
+    
+    $pythonTabPage = New-Object System.Windows.Forms.TabPage
+    $pythonTabPage.Text = "Python Setup"
+    
+    # Panel mit Scrollbalken
+    $pythonTabPageScrollPanel = New-Object System.Windows.Forms.Panel
+    $pythonTabPageScrollPanel.Dock = 'Fill'
+    $pythonTabPageScrollPanel.AutoScroll = $true
+    $pythonTabPage.Controls.Add($pythonTabPageScrollPanel)
+    
+    $applicationTabPage = New-Object System.Windows.Forms.TabPage
+    $applicationTabPage.Text = "Application"
+    $label2 = New-Object System.Windows.Forms.Label
+    $label2.Text = "Inhalt von Registerkarte 2"
+    $label2.AutoSize = $true
+    $applicationTabPage.Controls.Add($label2)
     
     # -----------------------------------------------------------------------
-    # Label
+    # add tab pages to TabControl
     # -----------------------------------------------------------------------
-    $label = New-Object System.Windows.Forms.Label
-    $label.Text = "Select Python Version:"
-    $label.Location = New-Object System.Drawing.Point(220, 20)
-    $label.AutoSize = $true
-    $form.Controls.Add($label)
+    $tabControl.TabPages.Add($licenseTabPage)
+    $tabControl.TabPages.Add($pythonTabPage)
+    $tabControl.TabPages.Add($applicationTabPage)
+    
+    $form.Controls.Add($tabControl)
+
+    # -----------------------------------------------------------------------
+    # Python version label
+    # -----------------------------------------------------------------------
+    $PyVersionLabel = New-Object System.Windows.Forms.Label
+    $PyVersionLabel.Location = New-Object System.Drawing.Point(10, 15)
+    $PyVersionLabel.Text = "Python Version:"
+    $PyVersionLabel.AutoSize = $true
+    $pythonTabPageScrollPanel.Controls.Add($PyVersionLabel)
     
     # -----------------------------------------------------------------------
     # ComboBox
     # -----------------------------------------------------------------------
     $comboBox = New-Object System.Windows.Forms.ComboBox
-    $comboBox.Location = New-Object System.Drawing.Point(220, 50)
+    $comboBox.Location = New-Object System.Drawing.Point(10, 40)
     $comboBox.Size = New-Object System.Drawing.Size(200, 25)
-    $comboBox.Items.AddRange(@("Python 3.13.1","Python 3.13","Python 3"))
-    $form.Controls.Add($comboBox)
+    $comboBox.Font = New-Object System.Drawing.Font("Consolas", 11, [System.Drawing.FontStyle]::Bold)
+    $comboBox.Text = "$python_version"
+    
+    # -----------------------------------------------------------------------
+    # add Keys to ComboBox backwards
+    # -----------------------------------------------------------------------
+    for ($i = $keyValueListe.Count - 1; $i -ge 0; $i--) {
+        $comboBox.Items.Add($keyValueListe[$i].Key)
+    }
+    $comboBox.Add_SelectedIndexChanged({
+        $index        = $comboBox.Items.Count - $comboBox.SelectedIndex - 1
+        $selectedItem = $script:keyValueListe[$index]
+        
+        if ($index -ge 0) {
+            # Version dynamisch finden (z. B. 3.13.6)
+            if ($($selectedItem.Value) -match "ftp/python/([\d\.]+)") {
+                $python_version = $Matches[1]
+            }
+
+            # Alles vor dem Leerzeichen (also https://...Version)
+            if ($($selectedItem.Value) -match "^(https:\/\/\S+)") {
+                $python_weburl = $Matches[1]
+            }
+
+            # Alles nach ftp/python/<version>
+            if ($($selectedItem.Value) -match "ftp/python/$python_version(.*)") {
+                $python_last = $Matches[1].Trim()
+            }
+            
+            $python_last   = $python_last -replace "\s+", ""
+            $python_weburl = $python_weburl + $python_last
+            $urlLabel.Text = "From: " + $python_weburl
+            
+            Write-Host "Found Version: $python_version"
+            Write-Host "From1        : $python_weburl/"
+            Write-Host "File         : $python_last"
+            Write-Host ""
+        }   else {
+            Write-Host "Keine gültige Auswahl"
+        }
+    })
+    $pythonTabPageScrollPanel.Controls.Add($comboBox)
     
     # -----------------------------------------------------------------------
     # create CheckBox
     # -----------------------------------------------------------------------
     $checkbox = New-Object System.Windows.Forms.CheckBox
     $checkbox.Text = "Download + Install from Internet"
-    $checkbox.Location = New-Object System.Drawing.Point(450,45)
+    $checkbox.Location = New-Object System.Drawing.Point(240,35)
     $checkbox.AutoSize = $true
-    $form.Controls.Add($checkbox)
     $checkBox.Add_Click({
         if ($checkbox.Checked) {
             $checkbox.Text = "Install from local directory"
+            $dstLabel.Text = "To  : "  + $installToBox.Text
+            $urlLabel.Text = "From: "  + $installFromBox.Text + "\temp_python.exe"
         }   else {
             $checkbox.Text = "Download + Install from Internet"
+            $dstLabel.Text = "To  : "  + $installToBox.Text
+            
+            $python_last = $python_last -replace "\s+", ""
+            $python_weburl = $python_weburl + "/$python_version"
+            $urlLabel.Text = "From: "
         }
     })
+    $pythonTabPageScrollPanel.Controls.Add($checkbox)
     
     # -----------------------------------------------------------------------
-    # TextBox for dieectories
+    # Python install TO label
     # -----------------------------------------------------------------------
-    $textBox = New-Object System.Windows.Forms.TextBox
-    $textBox.Location = New-Object System.Drawing.Point(220, 90)
-    $textBox.Size = New-Object System.Drawing.Size(200, 25)
-    $form.Controls.Add($textBox)
+    $installToLabel = New-Object System.Windows.Forms.Label
+    $installToLabel.Text = "Install TO:"
+    $installToLabel.Location = New-Object System.Drawing.Point(10, 70)
+    $installToLabel.AutoSize = $true
+    $pythonTabPageScrollPanel.Controls.Add($installToLabel)
     
     # -----------------------------------------------------------------------
-    # Button to select directory
+    # TextBox for install TO dieectory
     # -----------------------------------------------------------------------
-    $browseButton = New-Object System.Windows.Forms.Button
-    $browseButton.Text = "Select..."
-    $browseButton.Location = New-Object System.Drawing.Point(430, 90)
-    $browseButton.Add_Click({
+    $installToBox = New-Object System.Windows.Forms.TextBox
+    $installToBox.Location = New-Object System.Drawing.Point(10, 95)
+    $installToBox.Size = New-Object System.Drawing.Size(200, 25)
+    $installToBox.Text = "$env:ProgramFiles\Python313"
+    $pythonTabPageScrollPanel.Controls.Add($installToBox)
+    
+    # -----------------------------------------------------------------------
+    # Python install FROM label
+    # -----------------------------------------------------------------------
+    $installFromLabel = New-Object System.Windows.Forms.Label
+    $installFromLabel.Text = "Install FROM:"
+    $installFromLabel.Location = New-Object System.Drawing.Point(10, 130)
+    $installFromLabel.AutoSize = $true
+    $pythonTabPageScrollPanel.Controls.Add($installFromLabel)
+    
+    # -----------------------------------------------------------------------
+    # TextBox for install from dieectory
+    # -----------------------------------------------------------------------
+    $installFromBox = New-Object System.Windows.Forms.TextBox
+    $installFromBox.Location = New-Object System.Drawing.Point(10, 155)
+    $installFromBox.Size = New-Object System.Drawing.Size(200, 25)
+    $installFromBox.Text = "$env:Temp\Python313"
+    $pythonTabPageScrollPanel.Controls.Add($installFromBox)
+    
+    # -----------------------------------------------------------------------
+    # Button to select "install from" directory
+    # -----------------------------------------------------------------------
+    $installFromButton = New-Object System.Windows.Forms.Button
+    $installFromButton.Text = "Select..."
+    $installFromButton.Size = New-Object System.Drawing.Size(100,25)
+    $installFromButton.Location = New-Object System.Drawing.Point(220,155)
+    $installFromButton.BackColor = [System.Drawing.Color]::LightBlue
+    $installFromButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $installFromButton.ForeColor = [System.Drawing.Color]::Black
+    $installFromButton.Add_Click({
         $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
         if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $textBox.Text = $folderBrowser.SelectedPath
+            $installFromBox.Text = $folderBrowser.SelectedPath
             # Prüfen ob Verzeichnis schreibbar
             try {
                 $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
                 New-Item -Path $testFile -ItemType File -Force | Out-Null
                 Remove-Item $testFile
-                ShowMessage("Verzeichnis ist beschreibbar")
-            } catch {
-                ShowMessage("Verzeichnis kann nicht beschrieben werden!")
+            }   catch {
+                ShowMessage("You have no permissions to directory!")
+                return
             }
         }
     })
-    $form.Controls.Add($browseButton)
+    $pythonTabPageScrollPanel.Controls.Add($installFromButton)
+    
+    # -----------------------------------------------------------------------
+    # Button to select "install to" directory
+    # -----------------------------------------------------------------------
+    $installToButton = New-Object System.Windows.Forms.Button
+    $installToButton.Text = "Select..."
+    $installToButton.Size = New-Object System.Drawing.Size(100,25)
+    $installToButton.Location = New-Object System.Drawing.Point(220,95)
+    $installToButton.BackColor = [System.Drawing.Color]::LightBlue
+    $installToButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $installToButton.ForeColor = [System.Drawing.Color]::Black
+    $installToButton.Add_Click({
+        $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+        if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            $installToBox.Text = $folderBrowser.SelectedPath
+            # Prüfen ob Verzeichnis schreibbar
+            try {
+                $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
+                New-Item -Path $testFile -ItemType File -Force | Out-Null
+                Remove-Item $testFile
+                $dstLabel.Text = "To: " + $installToBox.Text
+            }   catch {
+                ShowMessage("You have no permissions to directory!")
+                return
+            }
+        }
+    })
+    $pythonTabPageScrollPanel.Controls.Add($installToButton)
+    
+    # -----------------------------------------------------------------------
+    # destination (to install) and (install from) -> url label
+    # -----------------------------------------------------------------------
+    $dstLabel = New-Object Windows.Forms.Label
+    $dstLabel.Text = "To:  " + $installToBox.Text
+    $dstLabel.AutoSize = $true
+    $dstLabel.Font = New-Object Drawing.Font("Arial", 10)
+    $dstLabel.Location = New-Object Drawing.Point(10,190)
+    
+    $urlLabel = New-Object Windows.Forms.Label
+    $urlLabel.Text = "From4: " + $python_weburl
+    $urlLabel.AutoSize = $true
+    $urlLabel.Font = New-Object Drawing.Font("Arial", 10)
+    $urlLabel.Location = New-Object Drawing.Point(10,207)
+    
+    $pythonTabPageScrollPanel.Controls.Add($dstLabel)
+    $pythonTabPageScrollPanel.Controls.Add($urlLabel)
     
     # -----------------------------------------------------------------------
     # ProgressBar
     # -----------------------------------------------------------------------
     $progressBar = New-Object System.Windows.Forms.ProgressBar
-    $progressBar.Location = New-Object System.Drawing.Point(220, 130)
+    $progressBar.Location = New-Object System.Drawing.Point(10, 230)
     $progressBar.Size = New-Object System.Drawing.Size(400, 25)
     $progressBar.Style = 'Continuous'
-    $form.Controls.Add($progressBar)
+    $progressBar.Minimum = 0
+    $progressBar.Maximum = 100
+    $progressBar.Value   = 0
+    $pythonTabPageScrollPanel.Controls.Add($progressBar)
     
     # -----------------------------------------------------------------------
     # ListBox for available .exe files
     # -----------------------------------------------------------------------
-    $listBox = New-Object System.Windows.Forms.ListBox
-    $listBox.Location = New-Object System.Drawing.Point(220, 170)
-    $listBox.Size = New-Object System.Drawing.Size(400, 250)
-    $form.Controls.Add($listBox)
+    $textOutputBox = New-Object System.Windows.Forms.TextBox
+    $textOutputBox.Location = New-Object System.Drawing.Point(10, 270)
+    $textOutputBox.Size = New-Object System.Drawing.Size(400, 180)
+    $textOutputBox.Multiline = $true
+    $textOutputBox.ScrollBars = "Vertical"
+    $pythonTabPageScrollPanel.Controls.Add($textOutputBox)
     
     # -----------------------------------------------------------------------
     # start setup with this button
     # -----------------------------------------------------------------------
     $setupButton = New-Object System.Windows.Forms.Button
     $setupButton.Text = "Start"
-    $setupButton.Location = New-Object System.Drawing.Point(630, 170)
-    $form.Controls.Add($setupButton)
+    $setupButton.Size = New-Object System.Drawing.Size(100, 25)
+    $setupButton.Location = New-Object System.Drawing.Point(330, 95)
+    $setupButton.BackColor = [System.Drawing.Color]::LightGreen
+    $setupButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $setupButton.ForeColor = [System.Drawing.Color]::Black
     $setupButton.Add_Click({
-        if ($textBox.Text -eq "") {
+        $progressBar.Value = 0
+        $textOutputBox.Clear()
+        if ($installFromBox.Text -eq "") {
+            $progressBar.Value = 100
             ShowMessage("no download directory selected.")
             return
         }
         if ($comboBox.SelectedIndex -eq -1) {
+            $progressBar.Value = 100
             ShowMessage("Python Version not available","Warning")
             return
         }
+        if ($installToBox.Text -eq "") {
+            $progressBar.Value = 100
+            ShowMessage("no install destination selected.")
+            return
+        }
+        $textOutputBox.AppendText("Start Download..."+[Environment]::NewLine)
+        # -------------------------------------------------------------------
+        try {
+            $python_dstdir = $installToBox.Text
+            $python_tmpdir = $installFromBox.Text
+
+            $webres    = $urlLabel.Text.Substring(6)
+            
+            $client    = [System.Net.Http.HttpClient]::new()
+            $response  = $client.GetAsync($webres, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+            $stream    = $response.Content.ReadAsStreamAsync().Result
+            $file      = [System.IO.File]::Create($python_tmpdir + "\temp_python.exe")
+
+            $buffer    = New-Object byte[] 8192
+            $totalRead = 0
+            $total     = $response.Content.Headers.ContentLength
+            while (($read = $stream.ReadAsync($buffer, 0, $buffer.Length).Result) -gt 0) {
+                $file.WriteAsync($buffer, 0, $read).Wait()
+                $totalRead += $read
+                $percent    = [math]::Round(($totalRead / $total) * 100)
+                $progressBar.Value = $percent
+            }
+            $file.Close()
+            $textOutputBox.AppendText("Done."+[Environment]::NewLine)
+        }   catch {
+            $textOutputBox.AppendText("Error: $($_.Exception.Message)"+[Environment]::NewLine)
+            return
+        }
+        # -------------------------------------------------------------------
+        # First, check if python is installed. If not, try to install it,
+        # else try to create the application.
+        # -------------------------------------------------------------------
+        
     })
+    $pythonTabPageScrollPanel.Controls.Add($setupButton)
     
     # -----------------------------------------------------------------------
     # exit powershell applet
     # -----------------------------------------------------------------------
     $exitButton = New-Object System.Windows.Forms.Button
     $exitButton.Text = "Exit"
-    $exitButton.Location = New-Object System.Drawing.Point(630, 380)
-    $form.Controls.Add($exitButton)
+    $exitButton.Location = New-Object System.Drawing.Point(10, 475)
+    $exitButton.Size = New-Object System.Drawing.Size(190, 38)
+    $exitButton.BackColor = [System.Drawing.Color]::LightCoral
+    $exitButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $exitButton.ForeColor = [System.Drawing.Color]::Black
     $exitButton.Add_Click({
         $form.Close()
         Stop-Process -Id $PID
     })
-
+    $form.Controls.Add($exitButton)
+    
     # -----------------------------------------------------------------------
     # start GUI
     # -----------------------------------------------------------------------
     $form.Topmost = $true
-    $form.Add_Shown({$form.Activate()})
-    [void]$form.ShowDialog()
+    $form.Add_Shown({
+        $form.Activate()
+        $exitButton.Focus()
+    })
+    $form.ShowDialog()
 }
 
-if ($displaymode -eq "gui") {
-    initUI
+# ---------------------------------------------------------------------------
+# set drive information's
+# ---------------------------------------------------------------------------
+$folderPath = "C:\Windows"
+$drive = Get-DriveLetterFromPath $folderPath
+$space = Get-DriveSpace $drive
+
+$percentFree = [math]::Round(($space.Free / $space.Total) * 100)
+
+if ($display_mode -eq "gui") {
+    initUI($percentFree)
 }
 exit 0
 # ---------------------------------------------------------------------------
 # First, check if python is installed. If not, try to install it, else try to
 # create the application.
 # ---------------------------------------------------------------------------
-$python_tmpdir = "$env:TEMP"
-$python_setup  = "python-3.13.1-amd64.exe"
-$python_webver = "https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe"
-
 if (Test-Path (Join-Path $verzeichnis $dateiname)) {
     Write-Host "Installationsdatei existiert."
     try {
