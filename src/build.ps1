@@ -33,7 +33,6 @@ $python_last    = "/"+$python_setup
 $python_outdir  = $python_tmpdir+"\"+$python_setup
 $python_weburl  = "https://www.python.org/ftp/python"
 $python_webver  = $python_weburl+$python_version+"/"+$python_setup
-$oldURLLabel    = ""
 
 # ---------------------------------------------------------------------------
 # list of available Windows python .exe setup files (2025-09-ß2)
@@ -523,7 +522,7 @@ function initUI {
     # -----------------------------------------------------------------------
     $tabControl = New-Object System.Windows.Forms.TabControl
     $tabControl.Location = New-Object System.Drawing.Point(220, 32)
-    $tabControl.Size = New-Object System.Drawing.Size(550, 490)
+    $tabControl.Size = New-Object System.Drawing.Size(550, 430)
     
     $licenseTabPage = New-Object System.Windows.Forms.TabPage
     $licenseTabPage.Text = "License"
@@ -581,28 +580,151 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     
     $licenseTabPage.Controls.Add($licenseTabPageScrollPanel)
     
+    # -----------------------------------------------------------------------
+    # python settings page
+    # -----------------------------------------------------------------------
     $pythonTabPage = New-Object System.Windows.Forms.TabPage
     $pythonTabPage.Text = "Python Setup"
     
-    # Panel mit Scrollbalken
     $pythonTabPageScrollPanel = New-Object System.Windows.Forms.Panel
     $pythonTabPageScrollPanel.Dock = 'Fill'
     $pythonTabPageScrollPanel.AutoScroll = $true
     $pythonTabPage.Controls.Add($pythonTabPageScrollPanel)
     
+    # -----------------------------------------------------------------------
+    # application settings page
+    # -----------------------------------------------------------------------
     $applicationTabPage = New-Object System.Windows.Forms.TabPage
     $applicationTabPage.Text = "Application"
-    $label2 = New-Object System.Windows.Forms.Label
-    $label2.Text = "Inhalt von Registerkarte 2"
-    $label2.AutoSize = $true
-    $applicationTabPage.Controls.Add($label2)
+
+    $applicationTabPageScrollPanel = New-Object System.Windows.Forms.Panel
+    $applicationTabPageScrollPanel.Dock = 'Fill'
+    $applicationTabPageScrollPanel.AutoScroll = $true
+    $applicationTabPage.Controls.Add($applicationTabPageScrollPanel)
     
+    # -----------------------------------------------------------------------
+    # application version label
+    # -----------------------------------------------------------------------
+    $applicationVersionLabel = New-Object System.Windows.Forms.Label
+    $applicationVersionLabel.Location = New-Object System.Drawing.Point(10, 15)
+    $applicationVersionLabel.Text = "Application Version:"
+    $applicationVersionLabel.AutoSize = $true
+    $applicationTabPageScrollPanel.Controls.Add($applicationVersionLabel)
+    
+    # -----------------------------------------------------------------------
+    # application ComboBox
+    # -----------------------------------------------------------------------
+    $applicationComboBox = New-Object System.Windows.Forms.ComboBox
+    $applicationComboBox.Location = New-Object System.Drawing.Point(10, 40)
+    $applicationComboBox.Size = New-Object System.Drawing.Size(200, 25)
+    $applicationComboBox.Font = New-Object System.Drawing.Font("Consolas", 11, [System.Drawing.FontStyle]::Bold)
+    $applicationComboBox.Text = "$python_version"
+    $applicationTabPageScrollPanel.Controls.Add($applicationComboBox)
+    
+    #######
+    # -----------------------------------------------------------------------
+    # Python install TO label
+    # -----------------------------------------------------------------------
+    $applicationinstallToLabel = New-Object System.Windows.Forms.Label
+    $applicationinstallToLabel.Text = "Install TO:"
+    $applicationinstallToLabel.Location = New-Object System.Drawing.Point(10, 70)
+    $applicationinstallToLabel.AutoSize = $true
+    $applicationTabPageScrollPanel.Controls.Add($applicationinstallToLabel)
+    
+    # -----------------------------------------------------------------------
+    # TextBox for install TO dieectory
+    # -----------------------------------------------------------------------
+    $applicationinstallToBox = New-Object System.Windows.Forms.TextBox
+    $applicationinstallToBox.Location = New-Object System.Drawing.Point(10, 95)
+    $applicationinstallToBox.Size = New-Object System.Drawing.Size(200, 25)
+    $applicationinstallToBox.Text = "$env:ProgramFiles\Python313"
+    $applicationTabPageScrollPanel.Controls.Add($applicationinstallToBox)
+    
+    # -----------------------------------------------------------------------
+    # Python install FROM label
+    # -----------------------------------------------------------------------
+    $applicationinstallFromLabel = New-Object System.Windows.Forms.Label
+    $applicationinstallFromLabel.Text = "Install FROM:"
+    $applicationinstallFromLabel.Location = New-Object System.Drawing.Point(10, 130)
+    $applicationinstallFromLabel.AutoSize = $true
+    $applicationTabPageScrollPanel.Controls.Add($applicationinstallFromLabel)
+    
+    # -----------------------------------------------------------------------
+    # TextBox for install from dieectory
+    # -----------------------------------------------------------------------
+    $applicationinstallFromBox = New-Object System.Windows.Forms.TextBox
+    $applicationinstallFromBox.Location = New-Object System.Drawing.Point(10, 155)
+    $applicationinstallFromBox.Size = New-Object System.Drawing.Size(200, 25)
+    $applicationinstallFromBox.Text = "$env:Temp\Python313"
+    $applicationTabPageScrollPanel.Controls.Add($applicationinstallFromBox)
+    
+    # -----------------------------------------------------------------------
+    # Button to select "install from" directory
+    # -----------------------------------------------------------------------
+    $applicationinstallFromButton = New-Object System.Windows.Forms.Button
+    $applicationinstallFromButton.Text = "Select..."
+    $applicationinstallFromButton.Size = New-Object System.Drawing.Size(100,25)
+    $applicationinstallFromButton.Location = New-Object System.Drawing.Point(220,155)
+    $applicationinstallFromButton.BackColor = [System.Drawing.Color]::LightBlue
+    $applicationinstallFromButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $applicationinstallFromButton.ForeColor = [System.Drawing.Color]::Black
+    $applicationinstallFromButton.Add_Click({
+        $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+        if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            $applicationinstallFromBox.Text = $folderBrowser.SelectedPath
+            # Prüfen ob Verzeichnis schreibbar
+            try {
+                $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
+                New-Item -Path $testFile -ItemType File -Force | Out-Null
+                Remove-Item $testFile
+            }   catch {
+                ShowMessage("You have no permissions to directory!")
+                return
+            }
+        }
+    })
+    $applicationTabPageScrollPanel.Controls.Add($applicationinstallFromButton)
+    
+    # -----------------------------------------------------------------------
+    # Button to select "install to" directory
+    # -----------------------------------------------------------------------
+    $applicationinstallToButton = New-Object System.Windows.Forms.Button
+    $applicationinstallToButton.Text = "Select..."
+    $applicationinstallToButton.Size = New-Object System.Drawing.Size(100,25)
+    $applicationinstallToButton.Location = New-Object System.Drawing.Point(220,95)
+    $applicationinstallToButton.BackColor = [System.Drawing.Color]::LightBlue
+    $applicationinstallToButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $applicationinstallToButton.ForeColor = [System.Drawing.Color]::Black
+    $applicationinstallToButton.Add_Click({
+        $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+        if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            $applicationinstallToBox.Text = $folderBrowser.SelectedPath
+            # Prüfen ob Verzeichnis schreibbar
+            try {
+                $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
+                New-Item -Path $testFile -ItemType File -Force | Out-Null
+                Remove-Item $testFile
+                $dstLabel.Text = "To: " + $installToBox.Text
+            }   catch {
+                ShowMessage("You have no permissions to directory!")
+                return
+            }
+        }
+    })
+    $applicationpythonTabPageScrollPanel.Controls.Add($applicationinstallToButton)
+    #######
     # -----------------------------------------------------------------------
     # add tab pages to TabControl
     # -----------------------------------------------------------------------
     $tabControl.TabPages.Add($licenseTabPage)
     $tabControl.TabPages.Add($pythonTabPage)
     $tabControl.TabPages.Add($applicationTabPage)
+    
+    $tabControl.TabPages.Remove($pythonTabPage)
+    $tabControl.TabPages.Remove($applicationTabPage)
+    
+    $pythonTabPage.Visible = $false
+    $applicationTabPage.Visible = $false
     
     $form.Controls.Add($tabControl)
 
@@ -813,7 +935,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     # -----------------------------------------------------------------------
     $textOutputBox = New-Object System.Windows.Forms.TextBox
     $textOutputBox.Location = New-Object System.Drawing.Point(10, 270)
-    $textOutputBox.Size = New-Object System.Drawing.Size(400, 180)
+    $textOutputBox.Size = New-Object System.Drawing.Size(400, 120)
     $textOutputBox.Multiline = $true
     $textOutputBox.ScrollBars = "Vertical"
     $pythonTabPageScrollPanel.Controls.Add($textOutputBox)
@@ -897,6 +1019,69 @@ OR OTHER DEALINGS IN THE SOFTWARE.
         Stop-Process -Id $PID
     })
     $form.Controls.Add($exitButton)
+    
+    # -----------------------------------------------------------------------
+    # accept license Button
+    # -----------------------------------------------------------------------
+    $acceptLicenseButton = New-Object System.Windows.Forms.Button
+    $acceptLicenseButton.Text = "Accept License"
+    $acceptLicenseButton.Location = New-Object System.Drawing.Point(220, 475)
+    $acceptLicenseButton.Size = New-Object System.Drawing.Size(190, 38)
+    $acceptLicenseButton.BackColor = [System.Drawing.Color]::LightGreen
+    $acceptLicenseButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $acceptLicenseButton.ForeColor = [System.Drawing.Color]::Black
+    $acceptLicenseButton.Add_Click({
+        if (!($pythonTabPage.Visible -eq $true)) {
+            $tabControl.TabPages.Add($pythonTabPage)
+            $tabControl.TabPages.Add($applicationTabPage)
+        }
+        $acceptLicenseButton.Visible = $false
+        $installPythonButton.Visible = $true
+        $applicationTabPage.Visible  = $true
+        $installAppButton.Visible    = $true
+        $pythonTabPage.Visible       = $true
+        
+        $tabControl.SelectedIndex    = 1
+        $comboBox.Focus()
+    })
+    $form.Controls.Add($acceptLicenseButton)
+    
+    # -----------------------------------------------------------------------
+    # python install button
+    # -----------------------------------------------------------------------
+    $installPythonButton = New-Object System.Windows.Forms.Button
+    $installPythonButton.Text = "Install Python"
+    $installPythonButton.Location = New-Object System.Drawing.Point(220, 475)
+    $installPythonButton.Size = New-Object System.Drawing.Size(190, 38)
+    $installPythonButton.BackColor = [System.Drawing.Color]::LightBlue
+    $installPythonButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $installPythonButton.ForeColor = [System.Drawing.Color]::Black
+    $installPythonButton.Add_Click({
+        $acceptLicenseButton.Text = "Install Python"
+        $pythonTabPage.Visible = $true
+        $pythonTabPage.Focus()
+        $applicationTabPage.Visible = $true
+        $tabControl.SelectedIndex   = 2
+    })
+    $form.Controls.Add($installPythonButton)
+    
+    # -----------------------------------------------------------------------
+    # application install button
+    # -----------------------------------------------------------------------
+    $installAppButton = New-Object System.Windows.Forms.Button
+    $installAppButton.Text = "Install App"
+    $installAppButton.Location = New-Object System.Drawing.Point(430, 475)
+    $installAppButton.Size = New-Object System.Drawing.Size(190, 38)
+    $installAppButton.BackColor = [System.Drawing.Color]::LightGreen
+    $installAppButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $installAppButton.ForeColor = [System.Drawing.Color]::Black
+    $installAppButton.Add_Click({
+        $applicationTabPage.Visible = $true
+    })
+    
+    $form.Controls.Add($installAppButton)
+    $installPythonButton.Visible = $false
+    $installAppButton.Visible = $false
     
     # -----------------------------------------------------------------------
     # start GUI
