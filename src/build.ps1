@@ -29,10 +29,19 @@ $PO = "msgfmt.exe"
 $python_tmpdir  = "$env:TEMP"
 $python_version = "3.13.1"
 $python_setup   = "python-"+$python_version+"-amd64.exe"
+$python_inidata = "setup.ini"
 $python_last    = "/"+$python_setup
 $python_outdir  = $python_tmpdir+"\"+$python_setup
 $python_weburl  = "https://www.python.org/ftp/python"
 $python_webver  = $python_weburl+$python_version+"/"+$python_setup
+
+# ---------------------------------------------------------------------------
+# load Microsoft Windows Forms assemblies.
+# ---------------------------------------------------------------------------
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Net.http
+Add-Type -AssemblyName System.Runtime.InteropServices
 
 # ---------------------------------------------------------------------------
 # list of available Windows python .exe setup files (2025-09-ß2)
@@ -228,20 +237,105 @@ $script:keyValueListe = @(
     
     [PSCustomObject]@{ Key="3.14.0    RC 1"; Value="$python_weburl/3.14.0  /python-3.14.0rc1-amd64.exe" }
     [PSCustomObject]@{ Key="3.14.0-1  RC 2"; Value="$python_weburl/3.14.0  /python-3.14.0rc2-amd64.exe" }
-)
+)   | Out-Null
 
 # ---------------------------------------------------------------------------
-# load Microsoft Windows Forms assemblies.
+# read the contents of a .ini file
 # ---------------------------------------------------------------------------
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-Add-Type -AssemblyName System.Net.http
-Add-Type -AssemblyName System.Runtime.InteropServices
+function Get-IniContent {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [string]$Encoding = 'utf8'
+    )
+    $enc = switch -Regex ($Encoding.ToLower()) {
+        'utf8nobom' { New-Object System.Text.UTF8Encoding($false) }
+        'utf8'      { New-Object System.Text.UTF8Encoding($true)  }
+        'default'   { [System.Text.Encoding]::Default             }
+        default     { [System.Text.Encoding]::GetEncoding($Encoding) }
+    }
 
+    $ini = @{}
+    $section = ''
+
+    foreach ($line in [System.IO.File]::ReadAllLines($Path, $enc)) {
+        if ($line -match '^\s*[;#]') { continue }      # Kommentare überspringen
+        if ($line -match '^\s*$')     { continue }      # Leerzeilen
+        if ($line -match '^\s*\[([^\]]+)\]\s*$') {
+            $section = $matches[1]
+            if (-not $ini.ContainsKey($section)) { $ini[$section] = @{} }
+            continue
+        }
+        if ($line -match '^\s*([^=]+?)\s*=\s*(.*)\s*$' -and $section) {
+            $ini[$section][$matches[1]] = $matches[2]
+        }
+    }
+    return $ini
+}
+# ---------------------------------------------------------------------------
+# set the content of a .ini file key-value item
+# ---------------------------------------------------------------------------
+function Set-IniValue {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Section,
+        [Parameter(Mandatory)][string]$Key,
+        [Parameter(Mandatory)][string]$Value,
+        [string]$Encoding = 'utf8'
+    )
+
+    # Datei einlesen oder leeres Array vorbereiten
+    $lines = if (Test-Path $Path) {
+        Get-Content -Path $Path -Encoding $Encoding
+    } else {
+        @()
+    }
+
+    # In eine List<string> umwandeln, damit wir Insert nutzen können
+    $list = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $lines) { $list.Add($line) }
+
+    $secPattern = "^\s*\[$([regex]::Escape($Section))\]\s*$"
+    $keyPattern = "^\s*$([regex]::Escape($Key))\s*="
+
+    $secIndex = -1
+    for ($i=0; $i -lt $list.Count; $i++) {
+        if ($list[$i] -match $secPattern) { $secIndex = $i; break }
+    }
+
+    if ($secIndex -ge 0) {
+        # Section existiert
+        $insertAt = $secIndex + 1
+        for ($j = $secIndex + 1; $j -lt $list.Count; $j++) {
+            if ($list[$j] -match '^\s*\[.*\]\s*$') { break } # nächste Section
+            if ($list[$j] -match $keyPattern) {
+                $list[$j] = "$Key=$Value"
+                $list -join [Environment]::NewLine | Set-Content -Path $Path -Encoding $Encoding
+                return
+            }
+            $insertAt = $j + 1
+        }
+        $list.Insert($insertAt, "$Key=$Value")
+    }
+    else {
+        # Section existiert nicht -> am Ende hinzufügen
+        if ($list.Count -gt 0 -and $list[-1].Trim() -ne '') { $list.Add('') }
+        $list.Add("[$Section]")
+        $list.Add("$Key=$Value")
+    }
+
+    # Datei mit echten Newlines schreiben
+    $list -join [Environment]::NewLine | Set-Content -Path $Path -Encoding $Encoding
+}
+# ---------------------------------------------------------------------------
+# get the drive letter from a given path
+# ---------------------------------------------------------------------------
 function Get-DriveLetterFromPath($Path) {
     $item = Get-Item $Path
     return $item.PSDrive.Name + ":\"
 }
+# ---------------------------------------------------------------------------
+# get the free disk space of a given drive (see: Get-DriveLetterFromPath)
+# ---------------------------------------------------------------------------
 function Get-DriveSpace($Drive) {
     $driveInfo = Get-PSDrive | Where-Object { $_.Name -eq $Drive.TrimEnd(':') }
     $driveLetter = ($Drive.Substring(0,1)).ToUpper()
@@ -258,6 +352,9 @@ function Get-DriveSpace($Drive) {
         Free  = $driveInfo.Free
     }
 }
+# ---------------------------------------------------------------------------
+# get the mode flag, how the application was started: (explorer or console)
+# ---------------------------------------------------------------------------
 function Get-ScriptStartMode {
     # check, if console window exists
     Add-Type @"
@@ -277,7 +374,29 @@ function Get-ScriptStartMode {
     elseif ($parent -eq 'explorer')                { return "Explorer" }
     else                                           { return "GUI"      }
 }
-
+# ---------------------------------------------------------------------------
+# Funktion zum Laden eines Icons aus einer DLL
+# ---------------------------------------------------------------------------
+function Get-IconFromDll {
+    param (
+        [string]$dllPath,
+        [int]$iconIndex
+    )
+    $large = [IntPtr]::Zero
+    $small = [IntPtr]::Zero
+    Add-Type -MemberDefinition @"
+    [DllImport("shell32.dll", CharSet=CharSet.Auto)]
+    public static extern int ExtractIconEx(string lpszFile, int nIconIndex, out IntPtr phiconLarge, out IntPtr phiconSmall, int nIcons);
+"@ -Name "WinAPI" -Namespace "Win32"
+    [Win32.WinAPI]::ExtractIconEx($dllPath, $iconIndex, [ref]$large, [ref]$small, 1) | Out-Null
+    if ($small -ne [IntPtr]::Zero) {
+        return [System.Drawing.Icon]::FromHandle($small)
+    }   elseif ($large -ne [IntPtr]::Zero) {
+        return [System.Drawing.Icon]::FromHandle($large)
+    }   else {
+        return $null
+    }
+}
 $mode = Get-ScriptStartMode
 #Write-Output "Startmodus: $mode"
 
@@ -349,6 +468,9 @@ Write-Host "`nErkannte Optionen:"
 $options.GetEnumerator() | ForEach-Object {
     Write-Host "$($_.Key) = $($_.Value)"
 }
+# ---------------------------------------------------------------------------
+# returns the display mode argument from the options on command line
+# ---------------------------------------------------------------------------
 function displaymode {
     if ($options.ContainsKey("mode"   )) {
         return $options["mode"]
@@ -358,6 +480,9 @@ function displaymode {
         return ""
     }
 }
+# ---------------------------------------------------------------------------
+# returns the version argument from the options on command line
+# ---------------------------------------------------------------------------
 function pythonversion {
     if ($options.ContainsKey("version")) {
         return $options["version"]
@@ -375,6 +500,9 @@ if (($display_mode -ne "tui") -and ($display_mode -ne "gui")) {
     exit 1
 }
 
+# ---------------------------------------------------------------------------
+# split a long command into seperate blocks
+# ---------------------------------------------------------------------------
 $cond1 = ($python_version -eq "unknown")
 $cond2 = ($python_version -eq "")
 $cond3 = ($python_version -eq "3.13.1")
@@ -425,6 +553,8 @@ function ShowMessage {
 # ---------------------------------------------------------------------------
 # build on the gui, if the script is running with gui flag.
 # ---------------------------------------------------------------------------
+$ini_file_isok = $false
+# ---------------------------------------------------------------------------
 function initUI {
     # -----------------------------------------------------------------------
     # read out parameter given to initUI
@@ -443,6 +573,26 @@ function initUI {
     $form.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
     
     # -----------------------------------------------------------------------
+    # check, if .ini file exists. if so, fill the menu with the informations
+    # -----------------------------------------------------------------------
+    if ((Test-Path $python_inidata) -and (Get-Item $python_inidata).PSIsContainer -eq $false) {
+        $ini_file_isok = $true
+        $script:config = Get-IniContent $python_inidata
+        Write-Host $script:config["python"]["version"]
+        Write-Host $script:config["python"]["installto"]
+        Write-Host $script:config["python"]["installfrom"]
+    }   else {
+        $ini_file_isok = $false
+        Set-IniValue -path $python_inidata -section "python" -key "version"     -value "3.13.1"
+        Set-IniValue -path $python_inidata -section "python" -key "installto"   -value "$python_outdir"
+        Set-IniValue -path $python_inidata -section "python" -key "installfrom" -value "$python_outdir"
+        
+        Set-IniValue -path $python_inidata -section "application" -key "version"     -value "3.13.1"
+        Set-IniValue -path $python_inidata -section "application" -key "installto"   -value "$python_outdir"
+        Set-IniValue -path $python_inidata -section "application" -key "installfrom" -value "$python_outdir"
+    }
+    
+    # -----------------------------------------------------------------------
     # Menüleiste erstellen
     # -----------------------------------------------------------------------
     $menuPanel = New-Object System.Windows.Forms.Panel
@@ -458,8 +608,27 @@ function initUI {
     # Menü "Datei"
     # -----------------------------------------------------------------------
     $fileMenu = New-Object System.Windows.Forms.ToolStripMenuItem "Application"
+    $loadItem = New-Object System.Windows.Forms.ToolStripMenuItem "Load Setting..."
+    $saveItem = New-Object System.Windows.Forms.ToolStripMenuItem "Save Setting"
+    
+    $subOption1 = New-Object System.Windows.Forms.ToolStripMenuItem("Unterpunkt A")
+    $subOption2 = New-Object System.Windows.Forms.ToolStripMenuItem("Unterpunkt B")
+    
+    $loadItem.DropDownItems.Add($subOption1) | Out-Null
+    $loadItem.DropDownItems.Add($subOption2) | Out-Null
+    
+    $diskIcon = Get-IconFromDll "C:\Windows\System32\shell32.dll" 2
+    $exitIcon = Get-IconFromDll "C:\Windows\System32\shell32.dll" 27
+    
+    $saveItem.Image = $diskIcon.ToBitmap()
+    
     $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem "Exit"
+    $exitItem.Image = $exitIcon.ToBitmap()
     $exitItem.Add_Click({ $form.Close() })  # Schließt das Fenster
+    
+    $fileMenu.DropDownItems.Add($loadItem)
+    $fileMenu.DropDownItems.Add($saveItem)
+    $fileMenu.DropDownItems.Add((New-Object Windows.Forms.ToolStripSeparator))
     $fileMenu.DropDownItems.Add($exitItem)
 
     # -----------------------------------------------------------------------
@@ -538,6 +707,7 @@ function initUI {
     $licenseTextBox.Font = New-Object System.Drawing.Font("Arial", 11, [System.Drawing.FontStyle]::Bold)
     $licenseTextBox.Multiline = $true
     $licenseTextBox.ScrollBars = "Vertical"
+    $licenseTextBox.ReadOnly = $true
     $licenseTextBox.Text = @"
 By reading this License Text and using the shipped files in this Repository, You accept the MIT License.
 If you will not accept it, close the Setup Application and/or delete
@@ -621,7 +791,29 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $applicationComboBox.Text = "$python_version"
     $applicationTabPageScrollPanel.Controls.Add($applicationComboBox)
     
-    #######
+    # -----------------------------------------------------------------------
+    # application install (local or internet) CheckBox
+    # -----------------------------------------------------------------------
+    $applicationcheckbox = New-Object System.Windows.Forms.CheckBox
+    $applicationcheckbox.Text = "Download + Install from Internet"
+    $applicationcheckbox.Location = New-Object System.Drawing.Point(240,35)
+    $applicationcheckbox.AutoSize = $true
+    $applicationcheckBox.Add_Click({
+        if ($applicationcheckbox.Checked) {
+            $checkbox.Text = "Install from local directory"
+            $dstLabel.Text = "To  : "  + $installToBox.Text
+            $urlLabel.Text = "From: "  + $installFromBox.Text + "\temp_python.exe"
+        }   else {
+            $checkbox.Text = "Download + Install from Internet"
+            $dstLabel.Text = "To  : "  + $installToBox.Text
+            
+            $python_last = $python_last -replace "\s+", ""
+            $python_weburl = $python_weburl + "/$python_version"
+            $urlLabel.Text = "From: "
+        }
+    })
+    $applicationTabPageScrollPanel.Controls.Add($applicationcheckbox)
+    ####
     # -----------------------------------------------------------------------
     # Python install TO label
     # -----------------------------------------------------------------------
@@ -711,7 +903,42 @@ OR OTHER DEALINGS IN THE SOFTWARE.
             }
         }
     })
-    $applicationpythonTabPageScrollPanel.Controls.Add($applicationinstallToButton)
+    $applicationTabPageScrollPanel.Controls.Add($applicationinstallToButton)
+    
+    # -----------------------------------------------------------------------
+    # start application setup with this button
+    # -----------------------------------------------------------------------
+    $appsetupButton = New-Object System.Windows.Forms.Button
+    $appsetupButton.Text      = "Start"
+    $appsetupButton.Size      = New-Object System.Drawing.Size(100, 25)
+    $appsetupButton.Location  = New-Object System.Drawing.Point(330, 95)
+    $appsetupButton.BackColor = [System.Drawing.Color]::LightGreen
+    $appsetupButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $appsetupButton.ForeColor = [System.Drawing.Color]::Black
+    $applicationTabPageScrollPanel.Controls.Add($appsetupButton)
+    
+    # -----------------------------------------------------------------------
+    # application ProgressBar
+    # -----------------------------------------------------------------------
+    $appprogressBar = New-Object System.Windows.Forms.ProgressBar
+    $appprogressBar.Location = New-Object System.Drawing.Point(10, 230)
+    $appprogressBar.Size     = New-Object System.Drawing.Size(400, 25)
+    $appprogressBar.Style    = 'Continuous'
+    $appprogressBar.Minimum  = 0
+    $appprogressBar.Maximum  = 100
+    $appprogressBar.Value    = 0
+    $applicationTabPageScrollPanel.Controls.Add($appprogressBar)
+    
+    # -----------------------------------------------------------------------
+    # application text box
+    # -----------------------------------------------------------------------
+    $apptextOutputBox = New-Object System.Windows.Forms.TextBox
+    $apptextOutputBox.Location   = New-Object System.Drawing.Point(10, 270)
+    $apptextOutputBox.Size       = New-Object System.Drawing.Size(400, 120)
+    $apptextOutputBox.Multiline  = $true
+    $apptextOutputBox.ScrollBars = "Vertical"
+    $applicationTabPageScrollPanel.Controls.Add($apptextOutputBox)
+    
     #######
     # -----------------------------------------------------------------------
     # add tab pages to TabControl
@@ -787,7 +1014,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $pythonTabPageScrollPanel.Controls.Add($comboBox)
     
     # -----------------------------------------------------------------------
-    # create CheckBox
+    # python install (local or internet) CheckBox
     # -----------------------------------------------------------------------
     $checkbox = New-Object System.Windows.Forms.CheckBox
     $checkbox.Text = "Download + Install from Internet"
@@ -919,7 +1146,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $pythonTabPageScrollPanel.Controls.Add($urlLabel)
     
     # -----------------------------------------------------------------------
-    # ProgressBar
+    # python ProgressBar
     # -----------------------------------------------------------------------
     $progressBar = New-Object System.Windows.Forms.ProgressBar
     $progressBar.Location = New-Object System.Drawing.Point(10, 230)
@@ -931,7 +1158,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $pythonTabPageScrollPanel.Controls.Add($progressBar)
     
     # -----------------------------------------------------------------------
-    # ListBox for available .exe files
+    # python TextBox for available .exe files
     # -----------------------------------------------------------------------
     $textOutputBox = New-Object System.Windows.Forms.TextBox
     $textOutputBox.Location = New-Object System.Drawing.Point(10, 270)
@@ -1040,6 +1267,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
         $applicationTabPage.Visible  = $true
         $installAppButton.Visible    = $true
         $pythonTabPage.Visible       = $true
+        $settingsbtn.Visible         = $true
         
         $tabControl.SelectedIndex    = 1
         $comboBox.Focus()
@@ -1061,7 +1289,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
         $pythonTabPage.Visible = $true
         $pythonTabPage.Focus()
         $applicationTabPage.Visible = $true
-        $tabControl.SelectedIndex   = 2
+        $tabControl.SelectedIndex   = 1
     })
     $form.Controls.Add($installPythonButton)
     
@@ -1077,11 +1305,50 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $installAppButton.ForeColor = [System.Drawing.Color]::Black
     $installAppButton.Add_Click({
         $applicationTabPage.Visible = $true
+        $tabControl.SelectedIndex   = 2
     })
     
+    # -----------------------------------------------------------------------
+    # ContextMenu (Popup)
+    # -----------------------------------------------------------------------
+    $settingsbtnmenu = New-Object System.Windows.Forms.ContextMenuStrip
+    $settingsbtnmenu.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+    $mitem1 = New-Object System.Windows.Forms.ToolStripMenuItem('Load From...')
+    $mitem2 = New-Object System.Windows.Forms.ToolStripMenuItem('Save As...')
+    $sep1   = New-Object System.Windows.Forms.ToolStripSeparator
+    $mitemA = New-Object System.Windows.Forms.ToolStripMenuItem('Saved A')
+    $mitemB = New-Object System.Windows.Forms.ToolStripMenuItem('Saved B')
+    $sep2   = New-Object System.Windows.Forms.ToolStripSeparator
+    
+    $settingsbtnmenu.Items.AddRange(@(
+        $mitem1,
+        $mitem2,
+        $sep1,
+        $mitemA,
+        $mitemB,
+        $sep2
+    ))
+
+    # -----------------------------------------------------------------------
+    # button with arrow right
+    # -----------------------------------------------------------------------
+    $settingsbtn = New-Object System.Windows.Forms.Button
+    $settingsbtn.Size      = [System.Drawing.Size]::new(128,38)
+    $settingsbtn.Location  = [System.Drawing.Point]::new(640, 475)
+    $settingsbtn.FlatStyle = 'System'
+    $settingsbtn.Padding   = New-Object System.Windows.Forms.Padding(10,0,24,0)
+    $settingsbtn.TextAlign = 'MiddleCenter'
+    $settingsbtn_arrow     = [char]0x25BC
+    $settingsbtn.Text      = "Settings  " + $settingsbtn_arrow
+    $settingsbtn.Visible   = $false
+    $settingsbtn.Add_Click({
+        $settingsbtnmenu.Show($settingsbtn, [System.Drawing.Point]::new(0, $settingsbtn.Height))
+    })
+    $form.Controls.Add($settingsbtn)
     $form.Controls.Add($installAppButton)
+    
     $installPythonButton.Visible = $false
-    $installAppButton.Visible = $false
+    $installAppButton.Visible    = $false
     
     # -----------------------------------------------------------------------
     # start GUI
