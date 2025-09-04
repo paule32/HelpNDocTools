@@ -35,6 +35,8 @@ $python_outdir  = $python_tmpdir+"\"+$python_setup
 $python_weburl  = "https://www.python.org/ftp/python"
 $python_webver  = $python_weburl+$python_version+"/"+$python_setup
 
+$allKeys = @()
+
 # ---------------------------------------------------------------------------
 # load Microsoft Windows Forms assemblies.
 # ---------------------------------------------------------------------------
@@ -242,6 +244,50 @@ $script:keyValueListe = @(
 # ---------------------------------------------------------------------------
 # read the contents of a .ini file
 # ---------------------------------------------------------------------------
+ function Read-IniFile {
+    param([string]$Path)
+    $ini = @{}
+    if (-not (Test-Path $Path)) { return $ini }
+
+    # Ganze Datei als Text einlesen (so bleibt die BOM sichtbar falls vorhanden)
+    $text = Get-Content -Raw -Encoding UTF8 -Path $Path
+
+    # BOM entfernen, falls vorhanden
+    $text = $text -replace '^\uFEFF', ''
+
+    # in Zeilen auftrennen (Windows + Unix safe)
+    $lines = $text -split "`r?`n"
+
+    $currentSection = ""
+    foreach ($rawLine in $lines) {
+        # keine globale Trim-Operation, weil wir Werte 1:1 übernehmen wollen
+        $line = $rawLine
+
+        # Leerzeilen oder Kommentarzeilen überspringen
+        if ($line -match '^\s*$' -or $line -match '^\s*[;#]') { continue }
+
+        # Section-Header
+        if ($line -match '^\s*\[(.+?)\]\s*$') {
+            $currentSection = $matches[1]
+            if (-not $ini.ContainsKey($currentSection)) { $ini[$currentSection] = @{} }
+            continue
+        }
+
+        # Key=Value (VALUE kann leer sein, dann ist $matches[2] = "")
+        if ($line -match '^\s*([^=]+?)\s*=(.*)$') {
+            $key = $matches[1].Trim()           # Key trimmen (Sauberkeit)
+            $value = $matches[2]                # VALUE 1:1 übernehmen (nicht trimmen)
+            if ($currentSection -ne "") {
+                $ini[$currentSection][$key] = $value
+            }
+        }
+    }
+
+    return $ini
+}
+# ---------------------------------------------------------------------------
+# read the contents of a .ini file
+# ---------------------------------------------------------------------------
 function Get-IniContent {
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -325,6 +371,21 @@ function Set-IniValue {
 
     # Datei mit echten Newlines schreiben
     $list -join [Environment]::NewLine | Set-Content -Path $Path -Encoding $Encoding
+}
+# ---------------------------------------------------------------------------
+# write content to .ini file
+# ---------------------------------------------------------------------------
+function Write-IniFile {
+    param([string]$Path, [hashtable]$Content)
+    $lines = @()
+    foreach ($section in $Content.Keys) {
+        $lines += "[$section]"
+        foreach ($key in $Content[$section].Keys) {
+            $lines += "$key=$($Content[$section][$key])"
+        }
+        $lines += ""  # leere Zeile zwischen Sections
+    }
+    $lines | Set-Content -Path $Path -Encoding UTF8
 }
 # ---------------------------------------------------------------------------
 # get the drive letter from a given path
@@ -554,7 +615,68 @@ function ShowMessage {
 # build on the gui, if the script is running with gui flag.
 # ---------------------------------------------------------------------------
 $ini_file_isok = $false
+$script:settingsLoaded = $false
 # ---------------------------------------------------------------------------
+function Check-IniFile {
+    param($flag)
+    $sections = 1..9 | ForEach-Object { "section$_" }
+    $iniContent = ""
+    if (Test-Path $python_inidata) {
+        $iniContent = Read-IniFile -Path $python_inidata
+        # Menü-Items erstellen
+        $loadOptions = @()
+        $saveOptions = @()
+        for ($i = 1; $i -le 9; $i++) {
+            $loadOptions += New-Object System.Windows.Forms.ToolStripMenuItem("Load Config $i")
+            $saveOptions += New-Object System.Windows.Forms.ToolStripMenuItem("Save Config $i")
+        }
+        # Texte setzen: wenn date existiert UND nicht leer -> anhängen, sonst nur "Load Setting N"
+        # Texte setzen
+        for ($i = 1; $i -le 9; $i++) {
+            $sectionName = "setting$i"
+            $dateValue = $null
+            if ($iniContent.ContainsKey($sectionName)) {
+                if ($iniContent[$sectionName].ContainsKey("date")) {
+                    # Direkt 1:1 übernehmen, auch wenn leer
+                    $dateValue = $iniContent[$sectionName]["date"]
+                }
+            }
+            if ([string]::IsNullOrEmpty($dateValue)) {
+                # Value leer -> kein Datum anzeigen
+                $loadOptions[$i-1].Text = "Load Config $i"
+                $saveOptions[$i-1].Text = "Save Config $i"
+            }   else {
+                # Value vorhanden -> 1:1 übernehmen
+                $loadOptions[$i-1].Text = "Load Config $i - $dateValue"
+                $saveOptions[$i-1].Text = "Save Config $i - $dateValue"
+            }
+        }
+        # TODO: add save click
+        if ($script:settingsLoaded -eq $false -and $flag -eq 0) {
+            for ($i = 0; $i -le 8; $i++) {
+                $loadItem.DropDownItems.Add($loadOptions[$i]) | Out-Null
+                $saveItem.DropDownItems.Add($saveOptions[$i]) | Out-Null
+            }
+            $loadsep = New-Object System.Windows.Forms.ToolStripSeparator
+            $loaddef = New-Object System.Windows.Forms.ToolStripMenuItem("Set Default Values")
+            $loadItem.DropDownItems.Add($loadsep)
+            $loadItem.DropDownItems.Add($loaddef)
+        }   elseif ($script:settingsLoaded -eq $false -and $flag -eq 1) {
+            for ($i = 0; $i -le 8; $i++) {
+                $mitem1.DropDownItems.Add($loadOptions[$i]) | Out-Null
+                $mitem2.DropDownItems.Add($saveOptions[$i]) | Out-Null
+            }
+            $mitem1sep     = New-Object System.Windows.Forms.ToolStripSeparator
+            $mitem1default = New-Object System.Windows.Forms.ToolStripMenuItem("Set Default Values")
+            $mitem1.DropDownItems.Add($mitem1sep)
+            $mitem1.DropDownItems.Add($mitem1default)
+        }
+        
+        $script:settingsLoaded1 = $true
+    }   else {
+        $iniContent = @{}
+    }
+}
 function initUI {
     # -----------------------------------------------------------------------
     # read out parameter given to initUI
@@ -609,18 +731,17 @@ function initUI {
     # -----------------------------------------------------------------------
     $fileMenu = New-Object System.Windows.Forms.ToolStripMenuItem "Application"
     $loadItem = New-Object System.Windows.Forms.ToolStripMenuItem "Load Setting..."
-    $saveItem = New-Object System.Windows.Forms.ToolStripMenuItem "Save Setting"
+    $saveItem = New-Object System.Windows.Forms.ToolStripMenuItem "Save Setting..."
     
-    $subOption1 = New-Object System.Windows.Forms.ToolStripMenuItem("Unterpunkt A")
-    $subOption2 = New-Object System.Windows.Forms.ToolStripMenuItem("Unterpunkt B")
-    
-    $loadItem.DropDownItems.Add($subOption1) | Out-Null
-    $loadItem.DropDownItems.Add($subOption2) | Out-Null
-    
-    $diskIcon = Get-IconFromDll "C:\Windows\System32\shell32.dll" 2
+    $loadIcon = Get-IconFromDll "C:\Windows\System32\shell32.dll" 1
+    $diskIcon = Get-IconFromDll "C:\Windows\System32\shell32.dll" 161
     $exitIcon = Get-IconFromDll "C:\Windows\System32\shell32.dll" 27
     
+    $loadItem.Image = $loadIcon.ToBitmap()
     $saveItem.Image = $diskIcon.ToBitmap()
+    
+    $loadItem.Enabled = $false
+    $saveItem.Enabled = $false
     
     $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem "Exit"
     $exitItem.Image = $exitIcon.ToBitmap()
@@ -1269,6 +1390,9 @@ OR OTHER DEALINGS IN THE SOFTWARE.
         $pythonTabPage.Visible       = $true
         $settingsbtn.Visible         = $true
         
+        $loadItem.Enabled = $true
+        $saveItem.Enabled = $true
+        
         $tabControl.SelectedIndex    = 1
         $comboBox.Focus()
     })
@@ -1354,6 +1478,10 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     # start GUI
     # -----------------------------------------------------------------------
     $form.Topmost = $true
+    
+    Check-IniFile(0)
+    Check-IniFile(1)
+    
     $form.Add_Shown({
         $form.Activate()
         $exitButton.Focus()
