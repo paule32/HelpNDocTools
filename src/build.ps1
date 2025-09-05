@@ -617,6 +617,18 @@ function ShowMessage {
 $ini_file_isok = $false
 $script:settingsLoaded = $false
 # ---------------------------------------------------------------------------
+function Load-AddClick {
+    param($item)
+    #$opt = $script:loadOptions[$item]
+    Write-Host "load item: $item"
+}
+# ---------------------------------------------------------------------------
+function Save-AddClick {
+    param($item)
+    #$opt = $script:loadOptions[$item]
+    Write-Host "save item: $item"
+}
+# ---------------------------------------------------------------------------
 function Check-IniFile {
     param($flag)
     $sections = 1..9 | ForEach-Object { "section$_" }
@@ -624,11 +636,14 @@ function Check-IniFile {
     if (Test-Path $python_inidata) {
         $iniContent = Read-IniFile -Path $python_inidata
         # Menü-Items erstellen
-        $loadOptions = @()
-        $saveOptions = @()
+        $script:loadOptions = @()
+        $script:saveOptions = @()
         for ($i = 1; $i -le 9; $i++) {
-            $loadOptions += New-Object System.Windows.Forms.ToolStripMenuItem("Load Config $i")
-            $saveOptions += New-Object System.Windows.Forms.ToolStripMenuItem("Save Config $i")
+            $script:loadOptions += New-Object System.Windows.Forms.ToolStripMenuItem("Load Config $i")
+            $script:saveOptions += New-Object System.Windows.Forms.ToolStripMenuItem("Save Config $i")
+            
+            $script:loadOptions[$i-1].Add_Click( { Load-AddClick ($i-1) }.GetNewClosure() )
+            $script:saveOptions[$i-1].Add_Click( { Save-AddClick ($i-1) }.GetNewClosure() )
         }
         # Texte setzen: wenn date existiert UND nicht leer -> anhängen, sonst nur "Load Setting N"
         # Texte setzen
@@ -643,19 +658,19 @@ function Check-IniFile {
             }
             if ([string]::IsNullOrEmpty($dateValue)) {
                 # Value leer -> kein Datum anzeigen
-                $loadOptions[$i-1].Text = "Load Config $i"
-                $saveOptions[$i-1].Text = "Save Config $i"
+                $script:loadOptions[$i-1].Text = "Load Config $i"
+                $script:saveOptions[$i-1].Text = "Save Config $i"
             }   else {
                 # Value vorhanden -> 1:1 übernehmen
-                $loadOptions[$i-1].Text = "Load Config $i - $dateValue"
-                $saveOptions[$i-1].Text = "Save Config $i - $dateValue"
+                $script:loadOptions[$i-1].Text = "Load Config $i - $dateValue"
+                $script:saveOptions[$i-1].Text = "Save Config $i - $dateValue"
             }
         }
         # TODO: add save click
         if ($script:settingsLoaded -eq $false -and $flag -eq 0) {
             for ($i = 0; $i -le 8; $i++) {
-                $loadItem.DropDownItems.Add($loadOptions[$i]) | Out-Null
-                $saveItem.DropDownItems.Add($saveOptions[$i]) | Out-Null
+                $loadItem.DropDownItems.Add($script:loadOptions[$i]) | Out-Null
+                $saveItem.DropDownItems.Add($script:saveOptions[$i]) | Out-Null
             }
             $loadsep = New-Object System.Windows.Forms.ToolStripSeparator
             $loaddef = New-Object System.Windows.Forms.ToolStripMenuItem("Set Default Values")
@@ -663,8 +678,8 @@ function Check-IniFile {
             $loadItem.DropDownItems.Add($loaddef)
         }   elseif ($script:settingsLoaded -eq $false -and $flag -eq 1) {
             for ($i = 0; $i -le 8; $i++) {
-                $mitem1.DropDownItems.Add($loadOptions[$i]) | Out-Null
-                $mitem2.DropDownItems.Add($saveOptions[$i]) | Out-Null
+                $mitem1.DropDownItems.Add($script:loadOptions[$i]) | Out-Null
+                $mitem2.DropDownItems.Add($script:saveOptions[$i]) | Out-Null
             }
             $mitem1sep     = New-Object System.Windows.Forms.ToolStripSeparator
             $mitem1default = New-Object System.Windows.Forms.ToolStripMenuItem("Set Default Values")
