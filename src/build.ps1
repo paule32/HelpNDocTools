@@ -239,7 +239,7 @@ $script:keyValueListe = @(
     
     [PSCustomObject]@{ Key="3.14.0    RC 1"; Value="$python_weburl/3.14.0  /python-3.14.0rc1-amd64.exe" }
     [PSCustomObject]@{ Key="3.14.0-1  RC 2"; Value="$python_weburl/3.14.0  /python-3.14.0rc2-amd64.exe" }
-)   | Out-Null
+)
 
 # ---------------------------------------------------------------------------
 # read the contents of a .ini file
@@ -619,19 +619,36 @@ $script:settingsLoaded = $false
 # ---------------------------------------------------------------------------
 function Load-AddClick {
     param($item)
-    #$opt = $script:loadOptions[$item]
-    Write-Host "load item: $item"
+    $string = $script:loadOptions[$item]
+    
+    # Regex für yyyy-MM-dd
+    $regex = '\bLoad Config (\d{1}) - (\d{4}-\d{2}-\d{2})\b'
+    
+    # Prüfen, ob ein Datum enthalten ist
+    if ($string -match $regex) {
+        $conf = $matches[1]
+        $date = $matches[2]
+        Write-Host "load item: $conf"
+        Write-Host "load date: $date"
+    }
 }
 # ---------------------------------------------------------------------------
 function Save-AddClick {
     param($item)
-    #$opt = $script:loadOptions[$item]
-    Write-Host "save item: $item"
+    $opt   = $script:saveOptions[$item]
+    $today = (Get-Date).ToString("yyyy-MM-dd")
+    
+    $opt.Text = "Save Config - $date"
+    
+    if ($opt.Owner) {
+        $opt.Owner.Invalidate()
+        $opt.Owner.Refresh()
+    }
 }
 # ---------------------------------------------------------------------------
 function Check-IniFile {
     param($flag)
-    $sections = 1..9 | ForEach-Object { "section$_" }
+    $sections = 1..9 | ForEach-Object { "stting$_" }
     $iniContent = ""
     if (Test-Path $python_inidata) {
         $iniContent = Read-IniFile -Path $python_inidata
@@ -639,11 +656,57 @@ function Check-IniFile {
         $script:loadOptions = @()
         $script:saveOptions = @()
         for ($i = 1; $i -le 9; $i++) {
-            $script:loadOptions += New-Object System.Windows.Forms.ToolStripMenuItem("Load Config $i")
-            $script:saveOptions += New-Object System.Windows.Forms.ToolStripMenuItem("Save Config $i")
+            $item = New-Object System.Windows.Forms.ToolStripMenuItem("Load Config $i")
+            $script:loadOptions += $item
+            $item.Add_Click({
+                $string = $item.Text
+                $regex  = '\bLoad Config (\d{1}) - (\d{4}-\d{2}-\d{2})\b'
+                # -------------------------------------------------------
+                # Prüfen, ob ein Datum enthalten ist
+                # -------------------------------------------------------
+                if ($string -match $regex) {
+                    $sectionName = "setting$i"
+                    
+                    $conf = $matches[1]
+                    $date = $matches[2]
+                    
+                    $check_date = $iniContent[$sectionName]["date"]
+                    if (!($date -eq $check_date)) {
+                        ShowMessage("date check error.")
+                        return
+                    }
+                    #if (!($null -eq $python_comboBox)) {
+                        #$python_comboBox.Text = $iniContent[$sectionName]["python_version"]
+                    #}
+                    if ($python_checkbox.Checked) {
+                        $python_checkbox.Text = "Install from local directory"
+                        $script:python_dstLabel.Text = "To10  : "  + $python_installToBox.Text
+                        $script:python_urlLabel.Text = "From: "  + $python_installFromBox.Text + "\temp_python.exe"
+                    }   else {
+                        if (!($null -eq $script:python_checkbox)) {
+                            $python_checkbox.Text = "Download + Install from Internet"
+                            $python_dstLabel.Text = "To1  : "  + $python_installToBox.Text
+                        
+                            $python_last = $python_last -replace "\s+", ""
+                            $python_weburl = $python_weburl + "/$python_version"
+                            $script:python_urlLabel.Text = "From: "
+                        }
+                    }
+                    Write-Host "load item: $conf"
+                    Write-Host "load date: $date"
+                }
+            }.GetNewClosure())
             
-            $script:loadOptions[$i-1].Add_Click( { Load-AddClick ($i-1) }.GetNewClosure() )
-            $script:saveOptions[$i-1].Add_Click( { Save-AddClick ($i-1) }.GetNewClosure() )
+            $item = New-Object System.Windows.Forms.ToolStripMenuItem("Save Config $i")
+            $script:saveOptions += $item
+            $item.Add_Click({
+                $date = (Get-Date).ToString("yyyy-MM-dd")
+                $item.Text = "Save Config $i - $date"
+                if ($item.Owner) {
+                    $item.Owner.Invalidate()
+                    $item.Owner.Refresh()
+                }
+            }.GetNewClosure())
         }
         # Texte setzen: wenn date existiert UND nicht leer -> anhängen, sonst nur "Load Setting N"
         # Texte setzen
@@ -699,13 +762,12 @@ function initUI {
     param (
         $percentFree
     )
-    
     # -----------------------------------------------------------------------
     # main window
     # -----------------------------------------------------------------------
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "Setup GUI (c) 2025 by paule32"
-    $form.Size = New-Object System.Drawing.Size(800, 565)
+    $form.Size = New-Object System.Drawing.Size(800, 580)
     $form.StartPosition = "CenterScreen"
     $form.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
     
@@ -829,22 +891,22 @@ function initUI {
     $tabControl.Location = New-Object System.Drawing.Point(220, 32)
     $tabControl.Size = New-Object System.Drawing.Size(550, 430)
     
-    $licenseTabPage = New-Object System.Windows.Forms.TabPage
-    $licenseTabPage.Text = "License"
+    $license_TabPage = New-Object System.Windows.Forms.TabPage
+    $license_TabPage.Text = "License"
 
-    $licenseLabel = New-Object System.Windows.Forms.Label
-    $licenseLabel.Location = New-Object System.Drawing.Point(10, 15)
-    $licenseLabel.Text = "Please read the License before Install..."
-    $licenseLabel.AutoSize = $true
+    $license_Label = New-Object System.Windows.Forms.Label
+    $license_Label.Location = New-Object System.Drawing.Point(10, 15)
+    $license_Label.Text = "Please read the License before Install..."
+    $license_Label.AutoSize = $true
     
-    $licenseTextBox = New-Object System.Windows.Forms.TextBox
-    $licenseTextBox.Location = New-Object System.Drawing.Point(10, 50)
-    $licenseTextBox.Size = New-Object System.Drawing.Size(520, 380)
-    $licenseTextBox.Font = New-Object System.Drawing.Font("Arial", 11, [System.Drawing.FontStyle]::Bold)
-    $licenseTextBox.Multiline = $true
-    $licenseTextBox.ScrollBars = "Vertical"
-    $licenseTextBox.ReadOnly = $true
-    $licenseTextBox.Text = @"
+    $license_TextBox = New-Object System.Windows.Forms.TextBox
+    $license_TextBox.Location = New-Object System.Drawing.Point(10, 50)
+    $license_TextBox.Size = New-Object System.Drawing.Size(520, 380)
+    $license_TextBox.Font = New-Object System.Drawing.Font("Arial", 11, [System.Drawing.FontStyle]::Bold)
+    $license_TextBox.Multiline = $true
+    $license_TextBox.ScrollBars = "Vertical"
+    $license_TextBox.ReadOnly = $true
+    $license_TextBox.Text = @"
 By reading this License Text and using the shipped files in this Repository, You accept the MIT License.
 If you will not accept it, close the Setup Application and/or delete
 all the Artefact's that was shipping with this Reprository !
@@ -877,129 +939,148 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     # -----------------------------------------------------------------------
     # panel with scroll bar
     # -----------------------------------------------------------------------
-    $licenseTabPageScrollPanel = New-Object System.Windows.Forms.Panel
-    $licenseTabPageScrollPanel.Dock = 'Fill'
-    $licenseTabPageScrollPanel.AutoScroll = $true
+    $license_TabPageScrollPanel = New-Object System.Windows.Forms.Panel
+    $license_TabPageScrollPanel.Dock = 'Fill'
+    $license_TabPageScrollPanel.AutoScroll = $true
         
-    $licenseTabPageScrollPanel.Controls.Add($licenseLabel)
-    $licenseTabPageScrollPanel.Controls.Add($licenseTextBox)
+    $license_TabPageScrollPanel.Controls.Add($license_Label)
+    $license_TabPageScrollPanel.Controls.Add($license_TextBox)
     
-    $licenseTabPage.Controls.Add($licenseTabPageScrollPanel)
+    $license_TabPage.Controls.Add($license_TabPageScrollPanel)
     
     # -----------------------------------------------------------------------
     # python settings page
     # -----------------------------------------------------------------------
-    $pythonTabPage = New-Object System.Windows.Forms.TabPage
-    $pythonTabPage.Text = "Python Setup"
+    $python_TabPage = New-Object System.Windows.Forms.TabPage
+    $python_TabPage.Text = "Python Setup"
     
-    $pythonTabPageScrollPanel = New-Object System.Windows.Forms.Panel
-    $pythonTabPageScrollPanel.Dock = 'Fill'
-    $pythonTabPageScrollPanel.AutoScroll = $true
-    $pythonTabPage.Controls.Add($pythonTabPageScrollPanel)
+    $python_TabPageScrollPanel = New-Object System.Windows.Forms.Panel
+    $python_TabPageScrollPanel.Dock = 'Fill'
+    $python_TabPageScrollPanel.AutoScroll = $true
+    $python_TabPage.Controls.Add($python_TabPageScrollPanel)
+
+    $python_pyImage = New-Object System.Windows.Forms.PictureBox
+    $python_pyImage.Size = New-Object System.Drawing.Size(100, 100)
+    $python_pyImage.Location = New-Object System.Drawing.Point(425, 230)
+    $python_pyImage.SizeMode = 'StretchImage'
+    $localImagePath = Join-Path (Get-Location) "img\python2.png"
+    if (Test-Path $localImagePath) {
+        $python_pyImage.Image = [System.Drawing.Image]::FromFile($localImagePath)
+    }   else {
+        [System.Windows.Forms.MessageBox]::Show("Setup-Image not found: $localImagePath")
+    }
+    $python_TabPageScrollPanel.Controls.Add($python_pyImage)
+    
+    $python_pyLabel = New-Object System.Windows.Forms.Label
+    $python_pyLabel.Location = New-Object System.Drawing.Point(420, 339)
+    $python_pyLabel.Font = New-Object Drawing.Font("Arial", 10)
+    $python_pyLabel.Text = "Made with Python"
+    $python_pyLabel.AutoSize = $true
+    $python_TabPageScrollPanel.Controls.Add($python_pyLabel)
     
     # -----------------------------------------------------------------------
     # application settings page
     # -----------------------------------------------------------------------
-    $applicationTabPage = New-Object System.Windows.Forms.TabPage
-    $applicationTabPage.Text = "Application"
+    $app_TabPage = New-Object System.Windows.Forms.TabPage
+    $app_TabPage.Text = "Application"
 
-    $applicationTabPageScrollPanel = New-Object System.Windows.Forms.Panel
-    $applicationTabPageScrollPanel.Dock = 'Fill'
-    $applicationTabPageScrollPanel.AutoScroll = $true
-    $applicationTabPage.Controls.Add($applicationTabPageScrollPanel)
+    $app_TabPageScrollPanel = New-Object System.Windows.Forms.Panel
+    $app_TabPageScrollPanel.Dock = 'Fill'
+    $app_TabPageScrollPanel.AutoScroll = $true
+    $app_TabPage.Controls.Add($app_TabPageScrollPanel)
     
     # -----------------------------------------------------------------------
     # application version label
     # -----------------------------------------------------------------------
-    $applicationVersionLabel = New-Object System.Windows.Forms.Label
-    $applicationVersionLabel.Location = New-Object System.Drawing.Point(10, 15)
-    $applicationVersionLabel.Text = "Application Version:"
-    $applicationVersionLabel.AutoSize = $true
-    $applicationTabPageScrollPanel.Controls.Add($applicationVersionLabel)
+    $app_VersionLabel = New-Object System.Windows.Forms.Label
+    $app_VersionLabel.Location = New-Object System.Drawing.Point(10, 15)
+    $app_VersionLabel.Text = "Application Version:"
+    $app_VersionLabel.AutoSize = $true
+    $app_TabPageScrollPanel.Controls.Add($app_VersionLabel)
     
     # -----------------------------------------------------------------------
     # application ComboBox
     # -----------------------------------------------------------------------
-    $applicationComboBox = New-Object System.Windows.Forms.ComboBox
-    $applicationComboBox.Location = New-Object System.Drawing.Point(10, 40)
-    $applicationComboBox.Size = New-Object System.Drawing.Size(200, 25)
-    $applicationComboBox.Font = New-Object System.Drawing.Font("Consolas", 11, [System.Drawing.FontStyle]::Bold)
-    $applicationComboBox.Text = "$python_version"
-    $applicationTabPageScrollPanel.Controls.Add($applicationComboBox)
+    $app_ComboBox = New-Object System.Windows.Forms.ComboBox
+    $app_ComboBox.Location = New-Object System.Drawing.Point(10, 40)
+    $app_ComboBox.Size = New-Object System.Drawing.Size(200, 25)
+    $app_ComboBox.Font = New-Object System.Drawing.Font("Consolas", 13, [System.Drawing.FontStyle]::Bold)
+    $app_ComboBox.Text = "python_version"
+    $app_TabPageScrollPanel.Controls.Add($app_ComboBox)
     
     # -----------------------------------------------------------------------
     # application install (local or internet) CheckBox
     # -----------------------------------------------------------------------
-    $applicationcheckbox = New-Object System.Windows.Forms.CheckBox
-    $applicationcheckbox.Text = "Download + Install from Internet"
-    $applicationcheckbox.Location = New-Object System.Drawing.Point(240,35)
-    $applicationcheckbox.AutoSize = $true
-    $applicationcheckBox.Add_Click({
-        if ($applicationcheckbox.Checked) {
-            $checkbox.Text = "Install from local directory"
-            $dstLabel.Text = "To  : "  + $installToBox.Text
-            $urlLabel.Text = "From: "  + $installFromBox.Text + "\temp_python.exe"
+    $app_checkbox = New-Object System.Windows.Forms.CheckBox
+    $app_checkbox.Text = "Download + Install from Internet"
+    $app_checkbox.Location = New-Object System.Drawing.Point(240,35)
+    $app_checkbox.AutoSize = $true
+    $app_checkBox.Add_Click({
+        if ($app_checkbox.Checked) {
+            $app_checkbox.Text = "Install from local directory"
+            $app_dstLabel.Text = "To2  : "  + $app_installToBox.Text
+            $app_urlLabel.Text = "From: "  + $app_installFromBox.Text + "\temp_python.exe"
         }   else {
-            $checkbox.Text = "Download + Install from Internet"
-            $dstLabel.Text = "To  : "  + $installToBox.Text
+            $app_checkbox.Text = "Download + Install from Internet"
+            $app_dstLabel.Text = "To3  : "  + $app_installToBox.Text
             
             $python_last = $python_last -replace "\s+", ""
             $python_weburl = $python_weburl + "/$python_version"
-            $urlLabel.Text = "From: "
+            $app_urlLabel.Text = "From: "
         }
     })
-    $applicationTabPageScrollPanel.Controls.Add($applicationcheckbox)
+    $app_TabPageScrollPanel.Controls.Add($app_checkbox)
     ####
     # -----------------------------------------------------------------------
     # Python install TO label
     # -----------------------------------------------------------------------
-    $applicationinstallToLabel = New-Object System.Windows.Forms.Label
-    $applicationinstallToLabel.Text = "Install TO:"
-    $applicationinstallToLabel.Location = New-Object System.Drawing.Point(10, 70)
-    $applicationinstallToLabel.AutoSize = $true
-    $applicationTabPageScrollPanel.Controls.Add($applicationinstallToLabel)
+    $app_installToLabel = New-Object System.Windows.Forms.Label
+    $app_installToLabel.Text = "Install TO:"
+    $app_installToLabel.Location = New-Object System.Drawing.Point(10, 70)
+    $app_installToLabel.AutoSize = $true
+    $app_TabPageScrollPanel.Controls.Add($app_installToLabel)
     
     # -----------------------------------------------------------------------
     # TextBox for install TO dieectory
     # -----------------------------------------------------------------------
-    $applicationinstallToBox = New-Object System.Windows.Forms.TextBox
-    $applicationinstallToBox.Location = New-Object System.Drawing.Point(10, 95)
-    $applicationinstallToBox.Size = New-Object System.Drawing.Size(200, 25)
-    $applicationinstallToBox.Text = "$env:ProgramFiles\Python313"
-    $applicationTabPageScrollPanel.Controls.Add($applicationinstallToBox)
+    $app_installToBox = New-Object System.Windows.Forms.TextBox
+    $app_installToBox.Location = New-Object System.Drawing.Point(10, 95)
+    $app_installToBox.Size = New-Object System.Drawing.Size(200, 25)
+    $app_installToBox.Text = "$env:ProgramFiles\Python313"
+    $app_TabPageScrollPanel.Controls.Add($app_installToBox)
     
     # -----------------------------------------------------------------------
     # Python install FROM label
     # -----------------------------------------------------------------------
-    $applicationinstallFromLabel = New-Object System.Windows.Forms.Label
-    $applicationinstallFromLabel.Text = "Install FROM:"
-    $applicationinstallFromLabel.Location = New-Object System.Drawing.Point(10, 130)
-    $applicationinstallFromLabel.AutoSize = $true
-    $applicationTabPageScrollPanel.Controls.Add($applicationinstallFromLabel)
+    $app_installFromLabel = New-Object System.Windows.Forms.Label
+    $app_installFromLabel.Text = "Install FROM:"
+    $app_installFromLabel.Location = New-Object System.Drawing.Point(10, 130)
+    $app_installFromLabel.AutoSize = $true
+    $app_TabPageScrollPanel.Controls.Add($app_installFromLabel)
     
     # -----------------------------------------------------------------------
     # TextBox for install from dieectory
     # -----------------------------------------------------------------------
-    $applicationinstallFromBox = New-Object System.Windows.Forms.TextBox
-    $applicationinstallFromBox.Location = New-Object System.Drawing.Point(10, 155)
-    $applicationinstallFromBox.Size = New-Object System.Drawing.Size(200, 25)
-    $applicationinstallFromBox.Text = "$env:Temp\Python313"
-    $applicationTabPageScrollPanel.Controls.Add($applicationinstallFromBox)
+    $app_installFromBox = New-Object System.Windows.Forms.TextBox
+    $app_installFromBox.Location = New-Object System.Drawing.Point(10, 155)
+    $app_installFromBox.Size = New-Object System.Drawing.Size(200, 25)
+    $app_installFromBox.Text = "$env:Temp\Python313"
+    $app_TabPageScrollPanel.Controls.Add($app_installFromBox)
     
     # -----------------------------------------------------------------------
     # Button to select "install from" directory
     # -----------------------------------------------------------------------
-    $applicationinstallFromButton = New-Object System.Windows.Forms.Button
-    $applicationinstallFromButton.Text = "Select..."
-    $applicationinstallFromButton.Size = New-Object System.Drawing.Size(100,25)
-    $applicationinstallFromButton.Location = New-Object System.Drawing.Point(220,155)
-    $applicationinstallFromButton.BackColor = [System.Drawing.Color]::LightBlue
-    $applicationinstallFromButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
-    $applicationinstallFromButton.ForeColor = [System.Drawing.Color]::Black
-    $applicationinstallFromButton.Add_Click({
+    $app_installFromButton = New-Object System.Windows.Forms.Button
+    $app_installFromButton.Text = "Select..."
+    $app_installFromButton.Size = New-Object System.Drawing.Size(100,25)
+    $app_installFromButton.Location = New-Object System.Drawing.Point(220,155)
+    $app_installFromButton.BackColor = [System.Drawing.Color]::LightBlue
+    $app_installFromButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $app_installFromButton.ForeColor = [System.Drawing.Color]::Black
+    $app_installFromButton.Add_Click({
         $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
         if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $applicationinstallFromBox.Text = $folderBrowser.SelectedPath
+            $app_installFromBox.Text = $folderBrowser.SelectedPath
             # Prüfen ob Verzeichnis schreibbar
             try {
                 $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
@@ -1011,83 +1092,110 @@ OR OTHER DEALINGS IN THE SOFTWARE.
             }
         }
     })
-    $applicationTabPageScrollPanel.Controls.Add($applicationinstallFromButton)
+    $app_TabPageScrollPanel.Controls.Add($app_installFromButton)
     
     # -----------------------------------------------------------------------
     # Button to select "install to" directory
     # -----------------------------------------------------------------------
-    $applicationinstallToButton = New-Object System.Windows.Forms.Button
-    $applicationinstallToButton.Text = "Select..."
-    $applicationinstallToButton.Size = New-Object System.Drawing.Size(100,25)
-    $applicationinstallToButton.Location = New-Object System.Drawing.Point(220,95)
-    $applicationinstallToButton.BackColor = [System.Drawing.Color]::LightBlue
-    $applicationinstallToButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
-    $applicationinstallToButton.ForeColor = [System.Drawing.Color]::Black
-    $applicationinstallToButton.Add_Click({
+    $app_installToButton = New-Object System.Windows.Forms.Button
+    $app_installToButton.Text = "Select..."
+    $app_installToButton.Size = New-Object System.Drawing.Size(100,25)
+    $app_installToButton.Location = New-Object System.Drawing.Point(220,95)
+    $app_installToButton.BackColor = [System.Drawing.Color]::LightBlue
+    $app_installToButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $app_installToButton.ForeColor = [System.Drawing.Color]::Black
+    $app_installToButton.Add_Click({
         $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
         if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $applicationinstallToBox.Text = $folderBrowser.SelectedPath
+            $app_installToBox.Text = $folderBrowser.SelectedPath
             # Prüfen ob Verzeichnis schreibbar
             try {
                 $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
                 New-Item -Path $testFile -ItemType File -Force | Out-Null
                 Remove-Item $testFile
-                $dstLabel.Text = "To: " + $installToBox.Text
+                $app_dstLabel.Text = "To4: " + $app_installToBox.Text
             }   catch {
                 ShowMessage("You have no permissions to directory!")
                 return
             }
         }
     })
-    $applicationTabPageScrollPanel.Controls.Add($applicationinstallToButton)
+    $app_TabPageScrollPanel.Controls.Add($app_installToButton)
     
     # -----------------------------------------------------------------------
     # start application setup with this button
     # -----------------------------------------------------------------------
-    $appsetupButton = New-Object System.Windows.Forms.Button
-    $appsetupButton.Text      = "Start"
-    $appsetupButton.Size      = New-Object System.Drawing.Size(100, 25)
-    $appsetupButton.Location  = New-Object System.Drawing.Point(330, 95)
-    $appsetupButton.BackColor = [System.Drawing.Color]::LightGreen
-    $appsetupButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
-    $appsetupButton.ForeColor = [System.Drawing.Color]::Black
-    $applicationTabPageScrollPanel.Controls.Add($appsetupButton)
+    $app_setupButton = New-Object System.Windows.Forms.Button
+    $app_setupButton.Text      = "Start"
+    $app_setupButton.Size      = New-Object System.Drawing.Size(100, 25)
+    $app_setupButton.Location  = New-Object System.Drawing.Point(330, 95)
+    $app_setupButton.BackColor = [System.Drawing.Color]::LightGreen
+    $app_setupButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $app_setupButton.ForeColor = [System.Drawing.Color]::Black
+    $app_TabPageScrollPanel.Controls.Add($app_setupButton)
     
+    $app_dstLabel = New-Object Windows.Forms.Label
+    $app_dstLabel.Text = "To5:  " + $installToBox.Text
+    $app_dstLabel.AutoSize = $true
+    $app_dstLabel.Font = New-Object Drawing.Font("Arial", 10)
+    $app_dstLabel.Location = New-Object Drawing.Point(10,190)
+    
+    $app_urlLabel = New-Object Windows.Forms.Label
+    $app_urlLabel.Text = "From4: " + $python_weburl
+    $app_urlLabel.AutoSize = $true
+    $app_urlLabel.Font = New-Object Drawing.Font("Arial", 10)
+    $app_urlLabel.Location = New-Object Drawing.Point(10,207)
+
     # -----------------------------------------------------------------------
     # application ProgressBar
     # -----------------------------------------------------------------------
-    $appprogressBar = New-Object System.Windows.Forms.ProgressBar
-    $appprogressBar.Location = New-Object System.Drawing.Point(10, 230)
-    $appprogressBar.Size     = New-Object System.Drawing.Size(400, 25)
-    $appprogressBar.Style    = 'Continuous'
-    $appprogressBar.Minimum  = 0
-    $appprogressBar.Maximum  = 100
-    $appprogressBar.Value    = 0
-    $applicationTabPageScrollPanel.Controls.Add($appprogressBar)
+    $app_progressBar = New-Object System.Windows.Forms.ProgressBar
+    $app_progressBar.Location = New-Object System.Drawing.Point(10, 230)
+    $app_progressBar.Size     = New-Object System.Drawing.Size(400, 25)
+    $app_progressBar.Style    = 'Continuous'
+    $app_progressBar.Minimum  = 0
+    $app_progressBar.Maximum  = 100
+    $app_progressBar.Value    = 0
+    $app_TabPageScrollPanel.Controls.Add($app_progressBar)
     
     # -----------------------------------------------------------------------
     # application text box
     # -----------------------------------------------------------------------
-    $apptextOutputBox = New-Object System.Windows.Forms.TextBox
-    $apptextOutputBox.Location   = New-Object System.Drawing.Point(10, 270)
-    $apptextOutputBox.Size       = New-Object System.Drawing.Size(400, 120)
-    $apptextOutputBox.Multiline  = $true
-    $apptextOutputBox.ScrollBars = "Vertical"
-    $applicationTabPageScrollPanel.Controls.Add($apptextOutputBox)
+    $app_textOutputBox = New-Object System.Windows.Forms.TextBox
+    $app_textOutputBox.Location   = New-Object System.Drawing.Point(10, 270)
+    $app_textOutputBox.Size       = New-Object System.Drawing.Size(400, 120)
+    $app_textOutputBox.Multiline  = $true
+    $app_textOutputBox.ScrollBars = "Vertical"
+    $app_TabPageScrollPanel.Controls.Add($app_textOutputBox)
+
+    # -----------------------------------------------------------------------
+    # logo on app page
+    # -----------------------------------------------------------------------
+    $app_pyImage = New-Object System.Windows.Forms.PictureBox
+    $app_pyImage.Size = New-Object System.Drawing.Size(100, 100)
+    $app_pyImage.Location = New-Object System.Drawing.Point(425, 230)
+    $app_pyImage.SizeMode = 'StretchImage'
+    $localImagePath = Join-Path (Get-Location) "img\python2.png"
+    if (Test-Path $localImagePath) {
+        $app_pyImage.Image = [System.Drawing.Image]::FromFile($localImagePath)
+    }   else {
+        [System.Windows.Forms.MessageBox]::Show("Setup-Image not found: $localImagePath")
+    }
+    $app_TabPageScrollPanel.Controls.Add($app_pyImage)
     
     #######
     # -----------------------------------------------------------------------
     # add tab pages to TabControl
     # -----------------------------------------------------------------------
-    $tabControl.TabPages.Add($licenseTabPage)
-    $tabControl.TabPages.Add($pythonTabPage)
-    $tabControl.TabPages.Add($applicationTabPage)
+    $tabControl.TabPages.Add($license_TabPage)
+    $tabControl.TabPages.Add($python_TabPage)
+    $tabControl.TabPages.Add($app_TabPage)
     
-    $tabControl.TabPages.Remove($pythonTabPage)
-    $tabControl.TabPages.Remove($applicationTabPage)
+    $tabControl.TabPages.Remove($python_TabPage)
+    $tabControl.TabPages.Remove($app_TabPage)
     
-    $pythonTabPage.Visible = $false
-    $applicationTabPage.Visible = $false
+    $python_TabPage.Visible = $false
+    $app_TabPage.Visible = $false
     
     $form.Controls.Add($tabControl)
 
@@ -1098,25 +1206,22 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $PyVersionLabel.Location = New-Object System.Drawing.Point(10, 15)
     $PyVersionLabel.Text = "Python Version:"
     $PyVersionLabel.AutoSize = $true
-    $pythonTabPageScrollPanel.Controls.Add($PyVersionLabel)
+    $python_TabPageScrollPanel.Controls.Add($PyVersionLabel)
     
     # -----------------------------------------------------------------------
-    # ComboBox
+    # ComboBox Python
     # -----------------------------------------------------------------------
-    $comboBox = New-Object System.Windows.Forms.ComboBox
-    $comboBox.Location = New-Object System.Drawing.Point(10, 40)
-    $comboBox.Size = New-Object System.Drawing.Size(200, 25)
-    $comboBox.Font = New-Object System.Drawing.Font("Consolas", 11, [System.Drawing.FontStyle]::Bold)
-    $comboBox.Text = "$python_version"
+    $python_comboBox = New-Object System.Windows.Forms.ComboBox
+    $python_comboBox.Location = New-Object System.Drawing.Point(10, 40)
+    $python_comboBox.Size = New-Object System.Drawing.Size(200, 25)
+    $python_comboBox.Font = New-Object System.Drawing.Font("Consolas", 11, [System.Drawing.FontStyle]::Bold)
+    $python_comboBox.Text = "$python_version"
     
     # -----------------------------------------------------------------------
     # add Keys to ComboBox backwards
     # -----------------------------------------------------------------------
-    for ($i = $keyValueListe.Count - 1; $i -ge 0; $i--) {
-        $comboBox.Items.Add($keyValueListe[$i].Key)
-    }
-    $comboBox.Add_SelectedIndexChanged({
-        $index        = $comboBox.Items.Count - $comboBox.SelectedIndex - 1
+    $python_comboBox.Add_SelectedIndexChanged({
+        $index        = $python_comboBox.Items.Count - $python_comboBox.SelectedIndex - 1
         $selectedItem = $script:keyValueListe[$index]
         
         if ($index -ge 0) {
@@ -1137,91 +1242,91 @@ OR OTHER DEALINGS IN THE SOFTWARE.
             
             $python_last   = $python_last -replace "\s+", ""
             $python_weburl = $python_weburl + $python_last
-            $urlLabel.Text = "From: " + $python_weburl
+            $script:python_urlLabel.Text = "From: " + $python_weburl
             
             Write-Host "Found Version: $python_version"
             Write-Host "From1        : $python_weburl/"
             Write-Host "File         : $python_last"
             Write-Host ""
         }   else {
-            Write-Host "Keine gültige Auswahl"
+            Write-Host "no valide option"
         }
     })
-    $pythonTabPageScrollPanel.Controls.Add($comboBox)
+    $python_TabPageScrollPanel.Controls.Add($python_comboBox)
     
     # -----------------------------------------------------------------------
     # python install (local or internet) CheckBox
     # -----------------------------------------------------------------------
-    $checkbox = New-Object System.Windows.Forms.CheckBox
-    $checkbox.Text = "Download + Install from Internet"
-    $checkbox.Location = New-Object System.Drawing.Point(240,35)
-    $checkbox.AutoSize = $true
-    $checkBox.Add_Click({
-        if ($checkbox.Checked) {
-            $checkbox.Text = "Install from local directory"
-            $dstLabel.Text = "To  : "  + $installToBox.Text
-            $urlLabel.Text = "From: "  + $installFromBox.Text + "\temp_python.exe"
+    $python_checkbox = New-Object System.Windows.Forms.CheckBox
+    $python_checkbox.Text = "Download + Install from Internet"
+    $python_checkbox.Location = New-Object System.Drawing.Point(240,35)
+    $python_checkbox.AutoSize = $true
+    $python_checkbox.Add_Click({
+        if ($python_checkbox.Checked) {
+            $python_checkbox.Text = "Install from local directory"
+            $python_dstLabel.Text = "To6  : "  + $python_installToBox.Text
+            $script:python_urlLabel.Text = "From: "  + $python_installFromBox.Text + "\temp_python.exe"
         }   else {
-            $checkbox.Text = "Download + Install from Internet"
-            $dstLabel.Text = "To  : "  + $installToBox.Text
+            $python_checkbox.Text = "Download + Install from Internet"
+            $python_dstLabel.Text = "To7  : "  + $python_installToBox.Text
             
             $python_last = $python_last -replace "\s+", ""
             $python_weburl = $python_weburl + "/$python_version"
-            $urlLabel.Text = "From: "
+            $script:python_urlLabel.Text = "From: "
         }
     })
-    $pythonTabPageScrollPanel.Controls.Add($checkbox)
+    $python_TabPageScrollPanel.Controls.Add($python_checkbox)
     
     # -----------------------------------------------------------------------
     # Python install TO label
     # -----------------------------------------------------------------------
-    $installToLabel = New-Object System.Windows.Forms.Label
-    $installToLabel.Text = "Install TO:"
-    $installToLabel.Location = New-Object System.Drawing.Point(10, 70)
-    $installToLabel.AutoSize = $true
-    $pythonTabPageScrollPanel.Controls.Add($installToLabel)
+    $python_installToLabel = New-Object System.Windows.Forms.Label
+    $python_installToLabel.Text = "Install TO:"
+    $python_installToLabel.Location = New-Object System.Drawing.Point(10, 70)
+    $python_installToLabel.AutoSize = $true
+    $python_TabPageScrollPanel.Controls.Add($python_installToLabel)
     
     # -----------------------------------------------------------------------
     # TextBox for install TO dieectory
     # -----------------------------------------------------------------------
-    $installToBox = New-Object System.Windows.Forms.TextBox
-    $installToBox.Location = New-Object System.Drawing.Point(10, 95)
-    $installToBox.Size = New-Object System.Drawing.Size(200, 25)
-    $installToBox.Text = "$env:ProgramFiles\Python313"
-    $pythonTabPageScrollPanel.Controls.Add($installToBox)
+    $python_installToBox = New-Object System.Windows.Forms.TextBox
+    $python_installToBox.Location = New-Object System.Drawing.Point(10, 95)
+    $python_installToBox.Size = New-Object System.Drawing.Size(200, 25)
+    $python_installToBox.Text = "$env:ProgramFiles\Python313"
+    $python_TabPageScrollPanel.Controls.Add($python_installToBox)
     
     # -----------------------------------------------------------------------
     # Python install FROM label
     # -----------------------------------------------------------------------
-    $installFromLabel = New-Object System.Windows.Forms.Label
-    $installFromLabel.Text = "Install FROM:"
-    $installFromLabel.Location = New-Object System.Drawing.Point(10, 130)
-    $installFromLabel.AutoSize = $true
-    $pythonTabPageScrollPanel.Controls.Add($installFromLabel)
+    $python_installFromLabel = New-Object System.Windows.Forms.Label
+    $python_installFromLabel.Text = "Install FROM:"
+    $python_installFromLabel.Location = New-Object System.Drawing.Point(10, 130)
+    $python_installFromLabel.AutoSize = $true
+    $python_TabPageScrollPanel.Controls.Add($python_installFromLabel)
     
     # -----------------------------------------------------------------------
     # TextBox for install from dieectory
     # -----------------------------------------------------------------------
-    $installFromBox = New-Object System.Windows.Forms.TextBox
-    $installFromBox.Location = New-Object System.Drawing.Point(10, 155)
-    $installFromBox.Size = New-Object System.Drawing.Size(200, 25)
-    $installFromBox.Text = "$env:Temp\Python313"
-    $pythonTabPageScrollPanel.Controls.Add($installFromBox)
+    $python_installFromBox = New-Object System.Windows.Forms.TextBox
+    $python_installFromBox.Location = New-Object System.Drawing.Point(10, 155)
+    $python_installFromBox.Size = New-Object System.Drawing.Size(200, 25)
+    $python_installFromBox.Text = "$env:Temp\Python313"
+    $python_TabPageScrollPanel.Controls.Add($python_installFromBox)
     
     # -----------------------------------------------------------------------
     # Button to select "install from" directory
     # -----------------------------------------------------------------------
-    $installFromButton = New-Object System.Windows.Forms.Button
-    $installFromButton.Text = "Select..."
-    $installFromButton.Size = New-Object System.Drawing.Size(100,25)
-    $installFromButton.Location = New-Object System.Drawing.Point(220,155)
-    $installFromButton.BackColor = [System.Drawing.Color]::LightBlue
-    $installFromButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
-    $installFromButton.ForeColor = [System.Drawing.Color]::Black
-    $installFromButton.Add_Click({
+    $python_installFromButton = New-Object System.Windows.Forms.Button
+    $python_installFromButton.Text = "Select..."
+    $python_installFromButton.Size = New-Object System.Drawing.Size(100,25)
+    $python_installFromButton.Location = New-Object System.Drawing.Point(220,155)
+    $python_installFromButton.BackColor = [System.Drawing.Color]::LightBlue
+    $python_installFromButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $python_installFromButton.ForeColor = [System.Drawing.Color]::Black
+    $python_installFromButton.Add_Click({
         $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
         if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $installFromBox.Text = $folderBrowser.SelectedPath
+            $python_installFromBox.Text = $folderBrowser.SelectedPath
             # Prüfen ob Verzeichnis schreibbar
             try {
                 $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
@@ -1233,111 +1338,121 @@ OR OTHER DEALINGS IN THE SOFTWARE.
             }
         }
     })
-    $pythonTabPageScrollPanel.Controls.Add($installFromButton)
+    $python_TabPageScrollPanel.Controls.Add($python_installFromButton)
     
     # -----------------------------------------------------------------------
     # Button to select "install to" directory
     # -----------------------------------------------------------------------
-    $installToButton = New-Object System.Windows.Forms.Button
-    $installToButton.Text = "Select..."
-    $installToButton.Size = New-Object System.Drawing.Size(100,25)
-    $installToButton.Location = New-Object System.Drawing.Point(220,95)
-    $installToButton.BackColor = [System.Drawing.Color]::LightBlue
-    $installToButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
-    $installToButton.ForeColor = [System.Drawing.Color]::Black
-    $installToButton.Add_Click({
+    $python_installToButton = New-Object System.Windows.Forms.Button
+    $python_installToButton.Text = "Select..."
+    $python_installToButton.Size = New-Object System.Drawing.Size(100,25)
+    $python_installToButton.Location = New-Object System.Drawing.Point(220,95)
+    $python_installToButton.BackColor = [System.Drawing.Color]::LightBlue
+    $python_installToButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $python_installToButton.ForeColor = [System.Drawing.Color]::Black
+    $python_installToButton.Add_Click({
         $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
         if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $installToBox.Text = $folderBrowser.SelectedPath
+            $python_installToBox.Text = $folderBrowser.SelectedPath
             # Prüfen ob Verzeichnis schreibbar
             try {
                 $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
                 New-Item -Path $testFile -ItemType File -Force | Out-Null
                 Remove-Item $testFile
-                $dstLabel.Text = "To: " + $installToBox.Text
+                $python_dstLabel.Text = "To: " + $python_installToBox.Text
             }   catch {
                 ShowMessage("You have no permissions to directory!")
                 return
             }
         }
     })
-    $pythonTabPageScrollPanel.Controls.Add($installToButton)
+    $python_TabPageScrollPanel.Controls.Add($python_installToButton)
     
     # -----------------------------------------------------------------------
     # destination (to install) and (install from) -> url label
     # -----------------------------------------------------------------------
-    $dstLabel = New-Object Windows.Forms.Label
-    $dstLabel.Text = "To:  " + $installToBox.Text
-    $dstLabel.AutoSize = $true
-    $dstLabel.Font = New-Object Drawing.Font("Arial", 10)
-    $dstLabel.Location = New-Object Drawing.Point(10,190)
+    $script:python_dstLabel = New-Object Windows.Forms.Label
+    $script:python_dstLabel.Text = "To:  " + $python_installToBox.Text
+    $script:python_dstLabel.AutoSize = $true
+    $script:python_dstLabel.Font = New-Object Drawing.Font("Arial", 10)
+    $script:python_dstLabel.Location = New-Object Drawing.Point(10,190)
     
-    $urlLabel = New-Object Windows.Forms.Label
-    $urlLabel.Text = "From4: " + $python_weburl
-    $urlLabel.AutoSize = $true
-    $urlLabel.Font = New-Object Drawing.Font("Arial", 10)
-    $urlLabel.Location = New-Object Drawing.Point(10,207)
+    $script:python_urlLabel = New-Object Windows.Forms.Label
+    $script:python_urlLabel.Text = "From4: " + $python_weburl
+    $script:python_urlLabel.AutoSize = $true
+    $script:python_urlLabel.Font = New-Object Drawing.Font("Arial", 10)
+    $script:python_urlLabel.Location = New-Object Drawing.Point(10,207)
     
-    $pythonTabPageScrollPanel.Controls.Add($dstLabel)
-    $pythonTabPageScrollPanel.Controls.Add($urlLabel)
+    $python_TabPageScrollPanel.Controls.Add($script:python_dstLabel)
+    $python_TabPageScrollPanel.Controls.Add($script:python_urlLabel)
     
     # -----------------------------------------------------------------------
     # python ProgressBar
     # -----------------------------------------------------------------------
-    $progressBar = New-Object System.Windows.Forms.ProgressBar
-    $progressBar.Location = New-Object System.Drawing.Point(10, 230)
-    $progressBar.Size = New-Object System.Drawing.Size(400, 25)
-    $progressBar.Style = 'Continuous'
-    $progressBar.Minimum = 0
-    $progressBar.Maximum = 100
-    $progressBar.Value   = 0
-    $pythonTabPageScrollPanel.Controls.Add($progressBar)
+    $python_progressBar = New-Object System.Windows.Forms.ProgressBar
+    $python_progressBar.Location = New-Object System.Drawing.Point(10, 230)
+    $python_progressBar.Size = New-Object System.Drawing.Size(400, 25)
+    $python_progressBar.Style = 'Continuous'
+    $python_progressBar.Minimum = 0
+    $python_progressBar.Maximum = 100
+    $python_progressBar.Value   = 0
+    $python_TabPageScrollPanel.Controls.Add($python_progressBar)
     
     # -----------------------------------------------------------------------
-    # python TextBox for available .exe files
+    # python TextBox for logging
     # -----------------------------------------------------------------------
-    $textOutputBox = New-Object System.Windows.Forms.TextBox
-    $textOutputBox.Location = New-Object System.Drawing.Point(10, 270)
-    $textOutputBox.Size = New-Object System.Drawing.Size(400, 120)
-    $textOutputBox.Multiline = $true
-    $textOutputBox.ScrollBars = "Vertical"
-    $pythonTabPageScrollPanel.Controls.Add($textOutputBox)
+    $python_textOutputBox = New-Object System.Windows.Forms.TextBox
+    $python_textOutputBox.Location = New-Object System.Drawing.Point(10, 270)
+    $python_textOutputBox.Size = New-Object System.Drawing.Size(400, 120)
+    $python_textOutputBox.Multiline = $true
+    $python_textOutputBox.ScrollBars = "Vertical"
+    $python_TabPageScrollPanel.Controls.Add($python_textOutputBox)
+    
+    $current_date = (Get-Date).ToString("yyyy-MM-dd")
+    $current_time = (Get-Date).ToString("HH:mm:ss")
+    $current_text = $current_date + " - " + $current_time + ": start setup..."
+    
+    $python_textOutputBox.AppendText($current_text + [Environment]::NewLine)
     
     # -----------------------------------------------------------------------
     # start setup with this button
     # -----------------------------------------------------------------------
-    $setupButton = New-Object System.Windows.Forms.Button
-    $setupButton.Text = "Start"
-    $setupButton.Size = New-Object System.Drawing.Size(100, 25)
-    $setupButton.Location = New-Object System.Drawing.Point(330, 95)
-    $setupButton.BackColor = [System.Drawing.Color]::LightGreen
-    $setupButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
-    $setupButton.ForeColor = [System.Drawing.Color]::Black
-    $setupButton.Add_Click({
-        $progressBar.Value = 0
-        $textOutputBox.Clear()
-        if ($installFromBox.Text -eq "") {
-            $progressBar.Value = 100
+    $python_setupButton = New-Object System.Windows.Forms.Button
+    $python_setupButton.Text = "Start"
+    $python_setupButton.Size = New-Object System.Drawing.Size(100, 25)
+    $python_setupButton.Location = New-Object System.Drawing.Point(330, 95)
+    $python_setupButton.BackColor = [System.Drawing.Color]::LightGreen
+    $python_setupButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+    $python_setupButton.ForeColor = [System.Drawing.Color]::Black
+    $python_setupButton.Add_Click({
+        $python_progressBar.Value = 0
+        if ($python_installFromBox.Text -eq "") {
+            $python_progressBar.Value = 100
             ShowMessage("no download directory selected.")
             return
         }
-        if ($comboBox.SelectedIndex -eq -1) {
-            $progressBar.Value = 100
+        if ($python_comboBox.SelectedIndex -eq -1) {
+            $python_progressBar.Value = 100
             ShowMessage("Python Version not available","Warning")
             return
         }
-        if ($installToBox.Text -eq "") {
-            $progressBar.Value = 100
+        if ($python_installToBox.Text -eq "") {
+            $python_progressBar.Value = 100
             ShowMessage("no install destination selected.")
             return
         }
-        $textOutputBox.AppendText("Start Download..."+[Environment]::NewLine)
+        
+        $current_date = (Get-Date).ToString("yyyy-MM-dd")
+        $current_time = (Get-Date).ToString("HH:mm:ss")
+        $current_text = $current_date + " - " + $current_time + ": start download..."
+        
+        $python_textOutputBox.AppendText($current_text + [Environment]::NewLine)
         # -------------------------------------------------------------------
         try {
-            $python_dstdir = $installToBox.Text
-            $python_tmpdir = $installFromBox.Text
+            $python_dstdir = $python_installToBox.Text
+            $python_tmpdir = $python_installFromBox.Text
 
-            $webres    = $urlLabel.Text.Substring(6)
+            $webres    = $script:python_urlLabel.Text.Substring(6)
             
             $client    = [System.Net.Http.HttpClient]::new()
             $response  = $client.GetAsync($webres, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
@@ -1351,12 +1466,16 @@ OR OTHER DEALINGS IN THE SOFTWARE.
                 $file.WriteAsync($buffer, 0, $read).Wait()
                 $totalRead += $read
                 $percent    = [math]::Round(($totalRead / $total) * 100)
-                $progressBar.Value = $percent
+                $python_progressBar.Value = $percent
             }
             $file.Close()
-            $textOutputBox.AppendText("Done."+[Environment]::NewLine)
+            $current_date = (Get-Date).ToString("yyyy-MM-dd")
+            $current_time = (Get-Date).ToString("HH:mm:ss")
+            $current_text = $current_date + " - " + $current_time + ": done." + [Environment]::NewLine
+            
+            $python_textOutputBox.AppendText($current_text)
         }   catch {
-            $textOutputBox.AppendText("Error: $($_.Exception.Message)"+[Environment]::NewLine)
+            $python_textOutputBox.AppendText("Error: $($_.Exception.Message)"+[Environment]::NewLine)
             return
         }
         # -------------------------------------------------------------------
@@ -1365,7 +1484,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
         # -------------------------------------------------------------------
         
     })
-    $pythonTabPageScrollPanel.Controls.Add($setupButton)
+    $python_TabPageScrollPanel.Controls.Add($python_setupButton)
     
     # -----------------------------------------------------------------------
     # exit powershell applet
@@ -1395,24 +1514,28 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $acceptLicenseButton.ForeColor = [System.Drawing.Color]::Black
     $acceptLicenseButton.Add_Click({
         if (!($pythonTabPage.Visible -eq $true)) {
-            $tabControl.TabPages.Add($pythonTabPage)
-            $tabControl.TabPages.Add($applicationTabPage)
+            $tabControl.TabPages.Add($python_TabPage)
+            $tabControl.TabPages.Add($app_TabPage)
         }
         $acceptLicenseButton.Visible = $false
         $installPythonButton.Visible = $true
-        $applicationTabPage.Visible  = $true
+        $app_TabPage.Visible         = $true
         $installAppButton.Visible    = $true
-        $pythonTabPage.Visible       = $true
+        $python_TabPage.Visible      = $true
         $settingsbtn.Visible         = $true
         
         $loadItem.Enabled = $true
         $saveItem.Enabled = $true
         
         $tabControl.SelectedIndex    = 1
-        $comboBox.Focus()
+
+        $python_comboBox.Items.Clear()
+        for ($i = $script:keyValueListe.Count - 1; $i -ge 0; $i--) {
+            $python_comboBox.Items.Add($script:keyValueListe[$i].Key)
+        }   $python_comboBox.Focus()
     })
     $form.Controls.Add($acceptLicenseButton)
-    
+
     # -----------------------------------------------------------------------
     # python install button
     # -----------------------------------------------------------------------
@@ -1425,9 +1548,9 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $installPythonButton.ForeColor = [System.Drawing.Color]::Black
     $installPythonButton.Add_Click({
         $acceptLicenseButton.Text = "Install Python"
-        $pythonTabPage.Visible = $true
-        $pythonTabPage.Focus()
-        $applicationTabPage.Visible = $true
+        $python_TabPage.Visible = $true
+        $python_TabPage.Focus()
+        $app_TabPage.Visible = $true
         $tabControl.SelectedIndex   = 1
     })
     $form.Controls.Add($installPythonButton)
@@ -1443,7 +1566,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $installAppButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
     $installAppButton.ForeColor = [System.Drawing.Color]::Black
     $installAppButton.Add_Click({
-        $applicationTabPage.Visible = $true
+        $app_TabPage.Visible = $true
         $tabControl.SelectedIndex   = 2
     })
     
@@ -1490,6 +1613,53 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $installAppButton.Visible    = $false
     
     # -----------------------------------------------------------------------
+    # create statusbar at bottom of form
+    # -----------------------------------------------------------------------
+    $statusBar = New-Object System.Windows.Forms.StatusBar
+    $statusBar.ShowPanels = $true  # wichtig: Panels aktivieren
+    $statusBar.SizingGrip = $true  # optional: Resize-Griff rechts unten anzeigen
+
+    # -----------------------------------------------------------------------
+    # create panels
+    # -----------------------------------------------------------------------
+    $panel1             = New-Object System.Windows.Forms.StatusBarPanel
+    $panel1.Text        = "Ready."
+    $panel1.BorderStyle = [System.Windows.Forms.StatusBarPanelBorderStyle]::Sunken
+    $panel1.Width       = 100
+
+    $panel2             = New-Object System.Windows.Forms.StatusBarPanel
+    $panel2.Text        = "User:  " + ($env:USERDOMAIN + " \ " + $env:USERNAME)
+    $panel2.BorderStyle = [System.Windows.Forms.StatusBarPanelBorderStyle]::Sunken
+    $panel2.Width       = 400
+
+    $panel3             = New-Object System.Windows.Forms.StatusBarPanel
+    
+    $current_date       = (Get-Date).ToString("yyyy-MM-dd")
+    $current_time       = (Get-Date).ToString("HH:mm:ss")
+    
+    $current_text       = "  $current_date  -  $current_time"
+    $panel3.Text        = $current_text
+    
+    $panel3.BorderStyle = [System.Windows.Forms.StatusBarPanelBorderStyle]::Sunken
+    $panel3.Alignment   = [System.Windows.Forms.HorizontalAlignment]::Right
+    $panel3.Width       = 200
+
+    $statusBar.Panels.AddRange(@($panel1, $panel2, $panel3))
+    $form.Controls.Add($statusBar)
+
+    # -----------------------------------------------------------------------
+    # Timer erstellen
+    # -----------------------------------------------------------------------
+    $timer = New-Object System.Windows.Forms.Timer
+    $timer.Interval = 1000  # alle 1 Sekunde
+    $timer.Add_Tick({
+        $current_date = (Get-Date).ToString("yyyy-MM-dd")
+        $current_time = (Get-Date).ToString("HH:mm:ss")
+        $current_text = "  $current_date  -  $current_time  "
+        $panel3.Text  = $current_text
+    })
+    
+    # -----------------------------------------------------------------------
     # start GUI
     # -----------------------------------------------------------------------
     $form.Topmost = $true
@@ -1500,6 +1670,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $form.Add_Shown({
         $form.Activate()
         $exitButton.Focus()
+        $timer.Start()
     })
     $form.ShowDialog()
 }
