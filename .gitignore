@@ -213,3 +213,9 @@ src/pasyacc.py.bak
 /src/build
 *.bak
 *.webp
+src/_internal/img/keyboard/1
+src/__pycache__/_internal/img/keyboard/1
+/src/__pycache__/_internal/img/keyboard
+src/__pycache__/client-windows.cpython-313.pyc
+src/__pycache__/client-windows.cpython-313.pyc
+src/resources_rc.py
