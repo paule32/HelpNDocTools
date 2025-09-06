@@ -19,6 +19,10 @@ For the Commodore C-64 TrueType Font, visit: [C64Font](https://style64.org/relea
 Setup PowerShell Applet:
 ![Preview](src/img/setup002.png)
 
+Setup PowerShell Applet:
+![Preview](src/img/setup003.png)
+
+
 Electronic Playground:
 ![image](https://github.com/user-attachments/assets/dd35ad1c-886c-4683-9947-9993a38f0a95)
 

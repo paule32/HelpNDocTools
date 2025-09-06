@@ -582,21 +582,104 @@ Write-Host "Version: $python_version"
 if ($options.ContainsKey("verbose")) {
     Write-Host "Verbose-Modus aktiv!"
 }
-
+# ---------------------------------------------------------------------------
+# helper functio to shorten Form
+# ---------------------------------------------------------------------------
+function TForm {
+    param([string]$title="TForm")
+    $form = New-Object Windows.Forms.Form
+    $form.Text = $title
+}
+# ---------------------------------------------------------------------------
+# helper function to set the size (width, and height) of a gui object
+# ---------------------------------------------------------------------------
+function TSize {
+    param([int]$width,
+          [int]$height)
+    New-Object System.Drawing.Size($width, $height)
+}
+# ---------------------------------------------------------------------------
+# helper function to set the position of a gui object
+# ---------------------------------------------------------------------------
+function TPoint {
+    param([int]$width,
+          [int]$height)
+    New-Object System.Drawing.Point($width, $height)
+}
+# ---------------------------------------------------------------------------
+# helper function to create a panel
+# ---------------------------------------------------------------------------
+function TPanel {
+    param([int]$xpos , [int]$ypos,
+          [int]$width, [int]$height)
+    
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Location = TPoint $xpos $ypos
+    $panel.Size     = TSize $width $height
+    $panel
+}
+# ---------------------------------------------------------------------------
+# helper function to shorten ToolStripMenuItem
+# ---------------------------------------------------------------------------
+function TMenuItem {
+    param([string]$title)
+    New-Object System.Windows.Forms.ToolStripMenuItem $title
+}
+function TMenuSeparator {
+    New-Object System.Windows.Forms.ToolStripSeparator
+}
+# ---------------------------------------------------------------------------
+# helper function to shorten PictureBox
+# ---------------------------------------------------------------------------
+function TPictureBox {
+    param([int]$xpos , [int]$ypos,
+          [int]$width, [int]$height)
+          
+    $box = New-Object System.Windows.Forms.PictureBox
+    $box.Location = TPoint $xpos $ypos
+    $box.Size     = TSize $width $height
+    $box
+}
+# ---------------------------------------------------------------------------
+# helper function to shorten Label
+# ---------------------------------------------------------------------------
+function TLabel {
+    param([int]$xpos   , [int]$ypos,
+          [int]$width=0, [int]$height=0, [string]$text="")
+    
+    $label = New-Object System.Windows.Forms.Label
+    
+    if ($width -eq 0 -and $height -eq 0) {
+        $label.AutoSize = $true
+    }   else {
+        $label.AutoSize = $false
+        $label.Size = TSize $width $height
+    }
+    $label.Location = TPoint $xpos $ypos
+    $label.Text = $text
+    $label
+}
+# ---------------------------------------------------------------------------
+# properties
+# ---------------------------------------------------------------------------
+function FixedSingle {
+    [System.Windows.Forms.BorderStyle]::FixedSingle
+}
+function TColor {
+    [System.Drawing.Color]
+}
 # ---------------------------------------------------------------------------
 # custom message box workaround (because Windows.Forms.ShowMessage have Too
 # tiny texts for inform the user with a message).
 # ---------------------------------------------------------------------------
 function ShowMessage {
     param([string]$TextContent="Text")
-    $form = New-Object Windows.Forms.Form
-    $form.Text = "Information"
+    $form = TForm "Information"
     $form.Size = New-Object Drawing.Size(400,200)
     $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
     $form.TopMost = $true
 
-    $label = New-Object Windows.Forms.Label
-    $label.Text = "$TextContent"
+    $label = TLabel 20 20 200 64 $TextContent
     $label.AutoSize = $true
     $label.Font = New-Object Drawing.Font("Comic Sans MS", 12)
     $label.Location = New-Object Drawing.Point(20,30)
@@ -656,7 +739,7 @@ function Check-IniFile {
         $script:loadOptions = @()
         $script:saveOptions = @()
         for ($i = 1; $i -le 9; $i++) {
-            $item = New-Object System.Windows.Forms.ToolStripMenuItem("Load Config $i")
+            $item = TMenuItem("Load Config $i")
             $script:loadOptions += $item
             $item.Add_Click({
                 $string = $item.Text
@@ -697,7 +780,7 @@ function Check-IniFile {
                 }
             }.GetNewClosure())
             
-            $item = New-Object System.Windows.Forms.ToolStripMenuItem("Save Config $i")
+            $item = TMenuItem("Save Config $i")
             $script:saveOptions += $item
             $item.Add_Click({
                 $date = (Get-Date).ToString("yyyy-MM-dd")
@@ -735,8 +818,8 @@ function Check-IniFile {
                 $loadItem.DropDownItems.Add($script:loadOptions[$i]) | Out-Null
                 $saveItem.DropDownItems.Add($script:saveOptions[$i]) | Out-Null
             }
-            $loadsep = New-Object System.Windows.Forms.ToolStripSeparator
-            $loaddef = New-Object System.Windows.Forms.ToolStripMenuItem("Set Default Values")
+            $loadsep = TMenuSeparator
+            $loaddef = TMenuItem "Set Default Values"
             $loadItem.DropDownItems.Add($loadsep)
             $loadItem.DropDownItems.Add($loaddef)
         }   elseif ($script:settingsLoaded -eq $false -and $flag -eq 1) {
@@ -744,8 +827,8 @@ function Check-IniFile {
                 $mitem1.DropDownItems.Add($script:loadOptions[$i]) | Out-Null
                 $mitem2.DropDownItems.Add($script:saveOptions[$i]) | Out-Null
             }
-            $mitem1sep     = New-Object System.Windows.Forms.ToolStripSeparator
-            $mitem1default = New-Object System.Windows.Forms.ToolStripMenuItem("Set Default Values")
+            $mitem1sep     = TMenuSeparator
+            $mitem1default = TMenuItem "Set Default Values"
             $mitem1.DropDownItems.Add($mitem1sep)
             $mitem1.DropDownItems.Add($mitem1default)
         }
@@ -795,7 +878,7 @@ function initUI {
     # Menüleiste erstellen
     # -----------------------------------------------------------------------
     $menuPanel = New-Object System.Windows.Forms.Panel
-    $menuPanel.Size = New-Object System.Drawing.Size(400, 32)
+    $menuPanel.Size = TSize 400 32
     $menuPanel.Dock = [System.Windows.Forms.DockStyle]::Top
     $form.Controls.Add($menuPanel)
     
@@ -806,9 +889,9 @@ function initUI {
     # -----------------------------------------------------------------------
     # Menü "Datei"
     # -----------------------------------------------------------------------
-    $fileMenu = New-Object System.Windows.Forms.ToolStripMenuItem "Application"
-    $loadItem = New-Object System.Windows.Forms.ToolStripMenuItem "Load Setting..."
-    $saveItem = New-Object System.Windows.Forms.ToolStripMenuItem "Save Setting..."
+    $fileMenu = TMenuItem "Application"
+    $loadItem = TMenuItem "Load Setting..."
+    $saveItem = TMenuItem "Save Setting..."
     
     $loadIcon = Get-IconFromDll "C:\Windows\System32\shell32.dll" 1
     $diskIcon = Get-IconFromDll "C:\Windows\System32\shell32.dll" 161
@@ -820,20 +903,20 @@ function initUI {
     $loadItem.Enabled = $false
     $saveItem.Enabled = $false
     
-    $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem "Exit"
+    $exitItem = TMenuItem "Exit"
     $exitItem.Image = $exitIcon.ToBitmap()
     $exitItem.Add_Click({ $form.Close() })  # Schließt das Fenster
     
     $fileMenu.DropDownItems.Add($loadItem)
     $fileMenu.DropDownItems.Add($saveItem)
-    $fileMenu.DropDownItems.Add((New-Object Windows.Forms.ToolStripSeparator))
+    $fileMenu.DropDownItems.Add((TMenuSeparator))
     $fileMenu.DropDownItems.Add($exitItem)
 
     # -----------------------------------------------------------------------
     # Menü "Hilfe"
     # -----------------------------------------------------------------------
-    $helpMenu = New-Object System.Windows.Forms.ToolStripMenuItem "Help"
-    $aboutItem = New-Object System.Windows.Forms.ToolStripMenuItem "About"
+    $helpMenu  = TMenuItem "Help"
+    $aboutItem = TMenuItem "About"
     $aboutItem.Add_Click({ [System.Windows.Forms.MessageBox]::Show("Menüleiste Beispiel v1.0") })
     $helpMenu.DropDownItems.Add($aboutItem)
 
@@ -852,14 +935,12 @@ function initUI {
     # -----------------------------------------------------------------------
     # left panel
     # -----------------------------------------------------------------------
-    $panel = New-Object System.Windows.Forms.Panel
-    $panel.Size = New-Object System.Drawing.Size(191, 415)
-    $panel.Location = New-Object System.Drawing.Point(10, 32)
-    $panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+    $panel = TPanel 10 32 191 415
+    $panel.BorderStyle = FixedSingle
     $panel.Add_Paint({
         param($sender, $e)
         $graphics = $e.Graphics
-        $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Black, 2)
+        $pen = New-Object System.Drawing.Pen((TColor)::Black, 2)
         $graphics.DrawRectangle($pen, 0, 0, $sender.Width-2, $sender.Height-2)
         $pen.Dispose()
     })
@@ -868,9 +949,7 @@ function initUI {
     # -----------------------------------------------------------------------
     # setup-image within the psnel
     # -----------------------------------------------------------------------
-    $setupImage = New-Object System.Windows.Forms.PictureBox
-    $setupImage.Size = New-Object System.Drawing.Size(180, 400)
-    $setupImage.Location = New-Object System.Drawing.Point(5, 5)
+    $setupImage = TPictureBox 5 5 180 400
     $setupImage.SizeMode = 'StretchImage'
     $panel.Controls.Add($setupImage)
     
@@ -959,9 +1038,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $python_TabPageScrollPanel.AutoScroll = $true
     $python_TabPage.Controls.Add($python_TabPageScrollPanel)
 
-    $python_pyImage = New-Object System.Windows.Forms.PictureBox
-    $python_pyImage.Size = New-Object System.Drawing.Size(100, 100)
-    $python_pyImage.Location = New-Object System.Drawing.Point(425, 230)
+    $python_pyImage = TPictureBox 425 230 100 100
     $python_pyImage.SizeMode = 'StretchImage'
     $localImagePath = Join-Path (Get-Location) "img\python2.png"
     if (Test-Path $localImagePath) {
@@ -981,6 +1058,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     # -----------------------------------------------------------------------
     # application settings page
     # -----------------------------------------------------------------------
+    $app_TabPageScrollPanel = New-Object System.Windows.Forms.Panel
     $app_TabPage = New-Object System.Windows.Forms.TabPage
     $app_TabPage.Text = "Application"
 
@@ -1167,13 +1245,17 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     $app_textOutputBox.Multiline  = $true
     $app_textOutputBox.ScrollBars = "Vertical"
     $app_TabPageScrollPanel.Controls.Add($app_textOutputBox)
+    
+    $current_date = (Get-Date).ToString("yyyy-MM-dd")
+    $current_time = (Get-Date).ToString("HH:mm:ss")
+    $current_text = $current_date + " - " + $current_time + ": start setup..."
+    
+    $app_textOutputBox.AppendText($current_text + [Environment]::NewLine)
 
     # -----------------------------------------------------------------------
     # logo on app page
     # -----------------------------------------------------------------------
-    $app_pyImage = New-Object System.Windows.Forms.PictureBox
-    $app_pyImage.Size = New-Object System.Drawing.Size(100, 100)
-    $app_pyImage.Location = New-Object System.Drawing.Point(425, 230)
+    $app_pyImage = TPictureBox 425 230 100 100
     $app_pyImage.SizeMode = 'StretchImage'
     $localImagePath = Join-Path (Get-Location) "img\python2.png"
     if (Test-Path $localImagePath) {
@@ -1183,19 +1265,324 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     }
     $app_TabPageScrollPanel.Controls.Add($app_pyImage)
     
+    $app_pyLabel = New-Object System.Windows.Forms.Label
+    $app_pyLabel.Location = New-Object System.Drawing.Point(420, 339)
+    $app_pyLabel.Font = New-Object Drawing.Font("Arial", 10)
+    $app_pyLabel.Text = "Made with Python"
+    $app_pyLabel.AutoSize = $true
+    $app_TabPageScrollPanel.Controls.Add($app_pyLabel)
+    
     #######
+    
+    # -----------------------------------------------------------------------
+    # config settings page
+    # -----------------------------------------------------------------------
+    $config_TabPage = New-Object System.Windows.Forms.TabPage
+    $config_TabPage.Text = "Config"
+
+    $config_TabPageScrollPanel = New-Object System.Windows.Forms.Panel
+    $config_TabPageScrollPanel.Dock = 'Fill'
+    $config_TabPageScrollPanel.AutoScroll = $true
+    $config_TabPage.Controls.Add($config_TabPageScrollPanel)
+    
+    $inner = New-Object System.Windows.Forms.TabControl
+    $inner.Alignment = [System.Windows.Forms.TabAlignment]::Left
+    $inner.Multiline = $true
+    $inner.SizeMode  = [System.Windows.Forms.TabSizeMode]::Fixed
+    $inner.ItemSize  = New-Object System.Drawing.Size(40,120)
+    $inner.Dock      = 'Fill'
+    $inner.DrawMode  = [System.Windows.Forms.TabDrawMode]::OwnerDrawFixed
+    $inner.add_DrawItem({
+        param($sender, $e)
+
+        # -------------------------------------------------------------------
+        # rectangle for the tab
+        # -------------------------------------------------------------------
+        $rect = [System.Drawing.RectangleF]::FromLTRB($e.Bounds.Left, $e.Bounds.Top, $e.Bounds.Right, $e.Bounds.Bottom)
+
+        # -------------------------------------------------------------------
+        # background color
+        # -------------------------------------------------------------------
+        if ($e.State -band [System.Windows.Forms.DrawItemState]::Selected) {
+            $back = [System.Drawing.Brushes]::LightBlue
+        }   else {
+            $back = [System.Drawing.Brushes]::LightGray
+        }
+        $e.Graphics.FillRectangle($back, $rect)
+
+        # -------------------------------------------------------------------
+        # text alignment
+        # -------------------------------------------------------------------
+        $sf = New-Object System.Drawing.StringFormat
+        $sf.Alignment = [System.Drawing.StringAlignment]::Center
+        $sf.LineAlignment = [System.Drawing.StringAlignment]::Center
+
+        # -------------------------------------------------------------------
+        # horizontal text draw
+        # -------------------------------------------------------------------
+        $text = $sender.TabPages[$e.Index].Text
+        $e.Graphics.DrawString($text, $e.Font, [System.Drawing.Brushes]::Black, $rect, $sf)
+    })
+
+    # -----------------------------------------------------------------------
+    # create 9 config pages ...
+    # -----------------------------------------------------------------------
+    $lbl_python               = @()
+    $lbl_python_date          = @()
+    $lbl_python_datePicker    = @()
+    $lbl_python_textbox_from  = @()
+    $lbl_python_textbox_to    = @()
+    $lbl_python_install_from  = @()
+    $lbl_python_install_to    = @()
+    # -----------------------------
+    $lbl_app                  = @()
+    $lbl_app_date             = @()
+    $lbl_app_datePicker       = @()
+    $lbl_app_textbox          = @()
+    $lbl_app_textbox_from     = @()
+    $lbl_app_textbox_to       = @()
+    $lbl_app_install_from     = @()
+    $lbl_app_install_to       = @()
+    # -----------------------------
+    $apply_button             = @()
+    $reset_button             = @()
+    # -----------------------------
+    $lbl_python_button_to     = @()
+    $lbl_python_button_from   = @()
+    $lbl_app_button_to        = @()
+    $lbl_app_button_from      = @()
+    # -----------------------------
+    
+    for ($i = 1; $i -le 9; $i++) {
+        $tp = New-Object System.Windows.Forms.TabPage("Setting: $i")
+        
+        # -------------------------------------------------------------------
+        # python
+        # -------------------------------------------------------------------
+        $lbl_python += New-Object System.Windows.Forms.Label
+        $lbl_python[$i-1].Location = New-Object System.Drawing.Point(10, 10)
+        $lbl_python[$i-1].Text = "Python:"
+        $lbl_python[$i-1].AutoSize = $true
+        
+        $lbl_python_date += New-Object System.Windows.Forms.Label
+        $lbl_python_date[$i-1].Location = New-Object System.Drawing.Point(10, 50)
+        $lbl_python_date[$i-1].Text = "Date:"
+        $lbl_python[$i-1].AutoSize = $true
+        
+        $lbl_python_datePicker += New-Object System.Windows.Forms.DateTimePicker
+        $lbl_python_datePicker[$i-1].Location = New-Object System.Drawing.Point(150, 50)
+        $lbl_python_datePicker[$i-1].Format = [System.Windows.Forms.DateTimePickerFormat]::Short
+        
+        $lbl_python_install_to += New-Object System.Windows.Forms.Label
+        $lbl_python_install_to[$i-1].Location = New-Object System.Drawing.Point(10, 80)
+        $lbl_python_install_to[$i-1].Size = New-Object System.Drawing.Size(100, 32)
+        $lbl_python_install_to[$i-1].Text = "Install To:"
+        
+        $lbl_python_textbox_to += New-Object System.Windows.Forms.TextBox
+        $lbl_python_textbox_to[$i-1].Location = New-Object System.Drawing.Point(150, 80)
+        $lbl_python_textbox_to[$i-1].Size = New-Object System.Drawing.Size(200, 32)
+        $lbl_python_textbox_to[$i-1].Text = "y"
+        
+        $lbl_python_button_to += New-Object System.Windows.Forms.Button
+        $lbl_python_button_to[$i-1].Size = New-Object System.Drawing.Size(26,26)
+        $lbl_python_button_to[$i-1].Location = New-Object System.Drawing.Point(360,80)
+        $lbl_python_button_to[$i-1].Text = "O"
+        $lbl_python_button_to[$i-1].Add_Click({
+            $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+            if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+                $python_installFromBox.Text = $folderBrowser.SelectedPath
+                # Prüfen ob Verzeichnis schreibbar
+                try {
+                    $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
+                    New-Item -Path $testFile -ItemType File -Force | Out-Null
+                    Remove-Item $testFile
+                }   catch {
+                    ShowMessage("You have no permissions to directory!")
+                    return
+                }
+            }
+        })
+        #
+        $lbl_python_button_from += New-Object System.Windows.Forms.Button
+        $lbl_python_button_from[$i-1].Size = New-Object System.Drawing.Size(26,26)
+        $lbl_python_button_from[$i-1].Location = New-Object System.Drawing.Point(360,110)
+        $lbl_python_button_from[$i-1].Text = "O"
+        $lbl_python_button_from[$i-1].Add_Click({
+            $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+            if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+                $python_installFromBox.Text = $folderBrowser.SelectedPath
+                # Prüfen ob Verzeichnis schreibbar
+                try {
+                    $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
+                    New-Item -Path $testFile -ItemType File -Force | Out-Null
+                    Remove-Item $testFile
+                }   catch {
+                    ShowMessage("You have no permissions to directory!")
+                    return
+                }
+            }
+        })
+        
+        $tp.Controls.Add($lbl_python_button_to[$i-1])
+        $tp.Controls.Add($lbl_python_button_from[$i-1])
+
+        $lbl_python_install_from += New-Object System.Windows.Forms.Label
+        $lbl_python_install_from[$i-1].Location = New-Object System.Drawing.Point(10, 110)
+        $lbl_python_install_from[$i-1].Text = "Install From:"
+        $lbl_python_install_from[$i-1].AutoSize = $true
+        
+        $lbl_python_textbox_from += New-Object System.Windows.Forms.TextBox
+        $lbl_python_textbox_from[$i-1].Location = New-Object System.Drawing.Point(150, 110)
+        $lbl_python_textbox_from[$i-1].Size = New-Object System.Drawing.Size(200, 32)
+        $lbl_python_textbox_from[$i-1].Text = "x"
+        
+        $tp.Controls.Add($lbl_python[$i-1])
+        
+        $tp.Controls.Add($lbl_python_date[$i-1])
+        $tp.Controls.Add($lbl_python_datePicker[$i-1])
+        
+        $tp.Controls.Add($lbl_python_install_to[$i-1])
+        $tp.Controls.Add($lbl_python_textbox_to[$i-1])
+        
+        $tp.Controls.Add($lbl_python_install_from[$i-1])
+        $tp.Controls.Add($lbl_python_textbox_from[$i-1])
+        
+        # -------------------------------------------------------------------
+        # application
+        # -------------------------------------------------------------------
+        $lbl_app += New-Object System.Windows.Forms.Label
+        $lbl_app[$i-1].Location = New-Object System.Drawing.Point(10, 155)
+        $lbl_app[$i-1].Text = "Application:"
+        $lbl_app[$i-1].AutoSize = $true
+        
+        $lbl_app_date += New-Object System.Windows.Forms.Label
+        $lbl_app_date[$i-1].Location = New-Object System.Drawing.Point(10, 200)
+        $lbl_app_date[$i-1].Text = "Date:"
+        $lbl_app_date[$i-1].AutoSize = $true
+        
+        $lbl_app_datePicker += New-Object System.Windows.Forms.DateTimePicker
+        $lbl_app_datePicker[$i-1].Location = New-Object System.Drawing.Point(150, 200)
+        $lbl_app_datePicker[$i-1].Format = [System.Windows.Forms.DateTimePickerFormat]::Short
+
+        $lbl_app_install_to += New-Object System.Windows.Forms.Label
+        $lbl_app_install_to[$i-1].Location = New-Object System.Drawing.Point(10, 230)
+        $lbl_app_install_to[$i-1].Text = "Install To:"
+        $lbl_app_install_to[$i-1].AutoSize = $true
+        
+        $lbl_app_textbox_to += New-Object System.Windows.Forms.TextBox
+        $lbl_app_textbox_to[$i-1].Location = New-Object System.Drawing.Point(150, 230)
+        $lbl_app_textbox_to[$i-1].Size = TSize 200 32
+        $lbl_app_textbox_to[$i-1].Text = ""
+        
+        $lbl_app_install_from += New-Object System.Windows.Forms.Label
+        $lbl_app_install_from[$i-1].Location = New-Object System.Drawing.Point(10, 260)
+        $lbl_app_install_from[$i-1].Text = "Install From:"
+        $lbl_app_install_from[$i-1].AutoSize = $true
+        
+        $lbl_app_textbox_from += New-Object System.Windows.Forms.TextBox
+        $lbl_app_textbox_from[$i-1].Location = New-Object System.Drawing.Point(150, 260)
+        $lbl_app_textbox_from[$i-1].Size = New-Object System.Drawing.Size(200, 32)
+        $lbl_app_textbox_from[$i-1].Text = ""
+        
+        $lbl_app_button_to += New-Object System.Windows.Forms.Button
+        $lbl_app_button_to[$i-1].Size = New-Object System.Drawing.Size(26,26)
+        $lbl_app_button_to[$i-1].Location = New-Object System.Drawing.Point(360,230)
+        $lbl_app_button_to[$i-1].Text = "O"
+        $lbl_app_button_to[$i-1].Add_Click({
+            $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+            if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+                $python_installFromBox.Text = $folderBrowser.SelectedPath
+                # Prüfen ob Verzeichnis schreibbar
+                try {
+                    $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
+                    New-Item -Path $testFile -ItemType File -Force | Out-Null
+                    Remove-Item $testFile
+                }   catch {
+                    ShowMessage("You have no permissions to directory!")
+                    return
+                }
+            }
+        })
+        #
+        $lbl_app_button_from += New-Object System.Windows.Forms.Button
+        $lbl_app_button_from[$i-1].Size = New-Object System.Drawing.Size(26,26)
+        $lbl_app_button_from[$i-1].Location = New-Object System.Drawing.Point(360,260)
+        $lbl_app_button_from[$i-1].Text = "O"
+        $lbl_app_button_from[$i-1].Add_Click({
+            $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+            if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+                $python_installFromBox.Text = $folderBrowser.SelectedPath
+                # Prüfen ob Verzeichnis schreibbar
+                try {
+                    $testFile = [System.IO.Path]::Combine($folderBrowser.SelectedPath, "test.txt")
+                    New-Item -Path $testFile -ItemType File -Force | Out-Null
+                    Remove-Item $testFile
+                }   catch {
+                    ShowMessage("You have no permissions to directory!")
+                    return
+                }
+            }
+        })
+        
+        $tp.Controls.Add($lbl_app_button_to[$i-1])
+        $tp.Controls.Add($lbl_app_button_from[$i-1])
+        
+        $apply_button += New-Object System.Windows.Forms.Button
+        $apply_button[$i-1].Text = "Apply"
+        $apply_button[$i-1].Size = New-Object System.Drawing.Size(100,25)
+        $apply_button[$i-1].Location = New-Object System.Drawing.Point(20,320)
+        
+        $reset_button += New-Object System.Windows.Forms.Button
+        $reset_button[$i-1].Text = "Reset"
+        $reset_button[$i-1].Size = New-Object System.Drawing.Size(100,25)
+        $reset_button[$i-1].Location = New-Object System.Drawing.Point(140,320)
+        
+        $tp.Controls.Add($lbl_app[$i-1])
+        
+        $tp.Controls.Add($lbl_app_date[$i-1])
+        $tp.Controls.Add($lbl_app_datePicker[$i-1])
+        
+        $tp.Controls.Add($lbl_app_install_to[$i-1])
+        $tp.Controls.Add($lbl_app_textbox_to[$i-1])
+        
+        $tp.Controls.Add($lbl_app_install_from[$i-1])
+        $tp.Controls.Add($lbl_app_textbox_from[$i-1])
+        
+        $tp.Controls.Add($apply_button[$i-1])
+        $tp.Controls.Add($reset_button[$i-1])
+        
+        $tp.Add_Paint({
+            param($sender, $e)
+            $g   = $e.Graphics
+            $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Blue, 3)
+            # ----------------------------------
+            # DrawLine(Pen, x1, y1, x2, y2)
+            # ----------------------------------
+            $g.DrawLine($pen, 10,  33, 250,  33)
+            $g.DrawLine($pen, 10, 180, 250, 180)
+            $g.DrawLine($pen, 10, 300, 250, 300)
+            $pen.Dispose()
+        })
+        
+        $inner.TabPages.Add($tp)
+    }
+    $config_TabPageScrollPanel.Controls.Add($inner)
+    
     # -----------------------------------------------------------------------
     # add tab pages to TabControl
     # -----------------------------------------------------------------------
     $tabControl.TabPages.Add($license_TabPage)
     $tabControl.TabPages.Add($python_TabPage)
     $tabControl.TabPages.Add($app_TabPage)
+    $tabControl.TabPages.Add($config_TabPage)
     
     $tabControl.TabPages.Remove($python_TabPage)
     $tabControl.TabPages.Remove($app_TabPage)
+    $tabControl.TabPages.Remove($config_TabPage)
     
     $python_TabPage.Visible = $false
     $app_TabPage.Visible = $false
+    $config_TabPage.Visible = $false
     
     $form.Controls.Add($tabControl)
 
@@ -1516,10 +1903,12 @@ OR OTHER DEALINGS IN THE SOFTWARE.
         if (!($pythonTabPage.Visible -eq $true)) {
             $tabControl.TabPages.Add($python_TabPage)
             $tabControl.TabPages.Add($app_TabPage)
+            $tabControl.TabPages.Add($config_TabPage)
         }
         $acceptLicenseButton.Visible = $false
         $installPythonButton.Visible = $true
         $app_TabPage.Visible         = $true
+        $config_TabPage.Visible      = $true
         $installAppButton.Visible    = $true
         $python_TabPage.Visible      = $true
         $settingsbtn.Visible         = $true
@@ -1575,12 +1964,12 @@ OR OTHER DEALINGS IN THE SOFTWARE.
     # -----------------------------------------------------------------------
     $settingsbtnmenu = New-Object System.Windows.Forms.ContextMenuStrip
     $settingsbtnmenu.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
-    $mitem1 = New-Object System.Windows.Forms.ToolStripMenuItem('Load From...')
-    $mitem2 = New-Object System.Windows.Forms.ToolStripMenuItem('Save As...')
-    $sep1   = New-Object System.Windows.Forms.ToolStripSeparator
-    $mitemA = New-Object System.Windows.Forms.ToolStripMenuItem('Saved A')
-    $mitemB = New-Object System.Windows.Forms.ToolStripMenuItem('Saved B')
-    $sep2   = New-Object System.Windows.Forms.ToolStripSeparator
+    $mitem1 = TMenuItem "Load From..."
+    $mitem2 = TMenuItem "Save As..."
+    $sep1   = TMenuSeparator
+    $mitemA = TMenuItem "Saved A"
+    $mitemB = TMenuItem "Saved B"
+    $sep2   = TMenuSeparator
     
     $settingsbtnmenu.Items.AddRange(@(
         $mitem1,
