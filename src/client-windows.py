@@ -17691,6 +17691,7 @@ try:
     class GridGraphicsViewFormDesigner(QGraphicsView):
         def __init__(self, scene, window_size):
             super().__init__(scene)
+            self.scene = scene
             self.setRenderHint(QPainter.Antialiasing)
             self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
             self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
@@ -17726,442 +17727,810 @@ try:
         
         def drawForeground(self, painter, rect):
             super().drawForeground(painter, rect)
-            
-            if self.selected_item:
-                pen = QPen(QColor("red"), 4, Qt.DashLine)
-                painter.setPen(pen)
-                item_rect = self.selected_item.sceneBoundingRect()
-                painter.drawRect(item_rect)
+        
+        def mouseDoubleClickEvent(self, event):
+            pos = event.pos()
+            # w 70 h 40
+            or_l = OrGateTest("OR_L",  40,  40, 90, 60, self, "OR",  orientation="left")
+            or_r = OrGateTest("OR_R", 150,  40, 90, 60, self, "OR",  orientation="right")
+            or_t = OrGateTest("OR_T", 260,  40, 90, 60, self, "OR",  orientation="top")
+            or_b = OrGateTest("OR_B", 370,  40, 90, 60, self, "OR",  orientation="bottom")
 
-                # Füllfarbe und Größe für die Ziehpunkte festlegen
-                painter.setBrush(QBrush(QColor("red")))
-                rect_size = 12
+            # XOR
+            xor_l = XorGateTest("XOR_L",  40, 130, 90, 60, self, "XOR", orientation="left",  xor_gap_px=6)
+            xor_r = XorGateTest("XOR_R", 150, 130, 90, 60, self, "XOR", orientation="right", xor_gap_px=6)
+            xor_t = XorGateTest("XOR_T", 260, 130, 90, 60, self, "XOR", orientation="top",   xor_gap_px=6)
+            xor_b = XorGateTest("XOR_B", 370, 130, 90, 60, self, "XOR", orientation="bottom",xor_gap_px=6)
 
-                # Berechne und zeichne die Positionen der Ziehpunkte auf jeder Seite
-                for point in self.calculate_resize_handles(item_rect):
-                    painter.drawRect(int(point.x() - rect_size / 2), int(point.y() - rect_size / 2), rect_size, rect_size)
+            for item in (or_l, or_r, or_t, or_b, xor_l, xor_r, xor_t, xor_b):
+                self.scene.addItem(item)
+    
+    # history redo/undo
+    class DeleteWireCommand(QUndoCommand):
+        def __init__(self, scene, wire, description="Wire gelöscht"):
+            super().__init__(description)
+            self.scene = scene
+            self.wire = wire
+            self.start_port = wire.start_port
+            self.end_port = wire.end_port
 
-        def calculate_resize_handles(self, item_rect):
-            """Berechnet die Positionen der Ziehpunkte an den Seiten des Rahmens."""
-            left_center   = QPointF(item_rect.left ()     , item_rect.center().y())
-            right_center  = QPointF(item_rect.right()     , item_rect.center().y())
-            top_center    = QPointF(item_rect.center().x(), item_rect.top())
-            bottom_center = QPointF(item_rect.center().x(), item_rect.bottom())
-            return [left_center, right_center, top_center, bottom_center]
+        def redo(self):
+            if self.wire.scene() is not None:
+                self.scene.removeItem(self.wire)
 
-        def mousePressEvent(self, event):
-            # Bestimme das ausgewählte Element und speichere es
-            item = self.itemAt(event.pos())
-            if isinstance(item, QGraphicsItem):
-                self.selected_item = item
-                self.last_resize_pos = self.mapToScene(event.pos())  # Setze die Ausgangsposition
-            else:
-                self.selected_item   = None
-                self.last_resize_pos = None
-            
-            # Prüfe, ob ein Ziehpunkt angeklickt wurde
-            pos = self.mapToScene(event.pos())
-            item_rect = self.selected_item.sceneBoundingRect() if self.selected_item else None
-            handles = self.calculate_resize_handles(item_rect) if item_rect else []
-
-            # Zuordnung der Ziehpunkte zu den Seiten mit einem Toleranzbereich von 10 Pixel
-            # zur Zeit durch left2, right2, ... zugeordnet, um größe nicht zu ändern => TODO !!!
-            if self.selected_item and self.is_near_point(pos, handles[0], threshold=10):
-                self.resize_mode = 'left'
-            elif self.selected_item and self.is_near_point(pos, handles[1], threshold=10):
-                self.resize_mode = 'right'
-            elif self.selected_item and self.is_near_point(pos, handles[2], threshold=10):
-                self.resize_mode = 'top'
-            elif self.selected_item and self.is_near_point(pos, handles[3], threshold=10):
-                self.resize_mode = 'bottom'
-            else:
-                self.resize_mode = None  # Keine Ziehpunkte ausgewählt
-
-            self.viewport().update()
-            super().mousePressEvent(event)
-
-        def mouseMoveEvent(self, event):
-            # Begrenze die Mausbewegung auf die Fenstergröße
-            if event.pos().x() < 0 or event.pos().y() < 0 or event.pos().x() > self.window_size.width() or event.pos().y() > self.window_size.height():
-                return
-
-            if self.selected_item and self.resize_mode:
-                pos = self.mapToScene(event.pos())
-                delta = pos - self.last_resize_pos  # Berechne die Verschiebung seit dem letzten Schritt
-
-                # Anpassung des Rechtecks in 10-Pixel-Schritten
-                if self.resize_mode == 'left2' and abs(delta.x()) >= 10:
-                    adjustment = 10 * (-1 if delta.x() > 0 else 1)
-                    new_width = max(10, self.selected_item.rect().width() + adjustment)
-                    self.selected_item.setRect(self.selected_item.rect().x() - adjustment, 
-                                               self.selected_item.rect().y(), 
-                                               new_width, 
-                                               self.selected_item.rect().height())
-                    self.last_resize_pos = pos  # Aktualisiere die Position
-
-                elif self.resize_mode == 'right2' and abs(delta.x()) >= 10:
-                    adjustment = 10 * (1 if delta.x() > 0 else -1)
-                    new_width = max(10, self.selected_item.rect().width() + adjustment)
-                    self.selected_item.setRect(self.selected_item.rect().x(), 
-                                               self.selected_item.rect().y(), 
-                                               new_width, 
-                                               self.selected_item.rect().height())
-                    self.last_resize_pos = pos  # Aktualisiere die Position
-
-                elif self.resize_mode == 'top2' and abs(delta.y()) >= 10:
-                    adjustment = 10 * (-1 if delta.y() > 0 else 1)
-                    new_height = max(10, self.selected_item.rect().height() + adjustment)
-                    self.selected_item.setRect(self.selected_item.rect().x(), 
-                                               self.selected_item.rect().y() - adjustment, 
-                                               self.selected_item.rect().width(), 
-                                               new_height)
-                    self.last_resize_pos = pos  # Aktualisiere die Position
-
-                elif self.resize_mode == 'bottom2' and abs(delta.y()) >= 10:
-                    adjustment = 10 * (1 if delta.y() > 0 else -1)
-                    new_height = max(10, self.selected_item.rect().height() + adjustment)
-                    self.selected_item.setRect(self.selected_item.rect().x(), 
-                                               self.selected_item.rect().y(), 
-                                               self.selected_item.rect().width(), 
-                                               new_height)
-                    self.last_resize_pos = pos  # Aktualisiere die Position
-
-                self.viewport().update()
-            elif self.selected_item:
-                # Snap-Funktion beim Bewegen des Elements
-                grid_size = 10
-                new_pos = self.mapToScene(event.pos())
-                snapped_x = round(new_pos.x() / grid_size) * grid_size
-                snapped_y = round(new_pos.y() / grid_size) * grid_size
-
-                # Verschieben der Szene, wenn sich das Element an den Rand nähert
-                buffer_zone = 20  # Abstand zum Rand, um die Szene zu verschieben
-                move_offset = 10  # Verschiebung der Szene in Pixeln
-                if new_pos.x() > self.window_size.width() - buffer_zone:
-                    self.setSceneRect(self.sceneRect().adjusted(-move_offset, 0, move_offset, 0))
-                elif new_pos.x() < buffer_zone:
-                    self.setSceneRect(self.sceneRect().adjusted(move_offset, 0, -move_offset, 0))
-                if new_pos.y() > self.window_size.height() - buffer_zone:
-                    self.setSceneRect(self.sceneRect().adjusted(0, -move_offset, 0, move_offset))
-                elif new_pos.y() < buffer_zone:
-                    self.setSceneRect(self.sceneRect().adjusted(0, move_offset, 0, -move_offset))
-
-                self.selected_item.setPos(snapped_x, snapped_y)
-                self.viewport().update()
-            else:
-                super().mouseMoveEvent(event)
-
-        def mouseReleaseEvent(self, event):
-            # Zurücksetzen des Resize-Modus nach dem Loslassen
-            self.resize_mode = None
-            super().mouseReleaseEvent(event)
-
-        def is_near_point(self, pos, point, threshold=10):
-            """Hilfsfunktion zur Überprüfung, ob die Position `pos` nahe an einem bestimmten Punkt `point` liegt."""
-            return abs(pos.x() - point.x()) < threshold and abs(pos.y() - point.y()) < threshold
-
-    class DraggableComponentFormDesigner(QGraphicsRectItem):
-        def __init__(self, name, x=0, y=0, width=50, height=50, view=None, label="", connections=[]):
-            super().__init__(0, 0, width, height)
-            self.setFlag(QGraphicsItem.ItemIsMovable)
-            self.setFlag(QGraphicsItem.ItemIsSelectable)
+        def undo(self):
+            if self.wire.scene() is None:
+                self.scene.addItem(self.wire)
+                self.wire.start_port = self.start_port
+                self.wire.end_port = self.end_port
+                self.wire.updatePath()
+    
+    class WireHandleItem(QGraphicsEllipseItem):
+        def __init__(self, parent_wire, x, y, radius=5):
+            super().__init__(-radius, -radius, 2*radius, 2*radius)
+            self.setBrush(QBrush(Qt.red))
+            self.setPen(QPen(Qt.black, 1))
+            self.setFlag(self.ItemIsMovable, True)
+            self.setFlag(self.ItemSendsGeometryChanges, True)
+            self.setZValue(2)
+            self.parent_wire = parent_wire
             self.setPos(x, y)
-            self.name = name
-            self.label = label
-            self.connections = connections  # Speichert relative Positionen der Verankerungen
-            self.view = view
-            self.last_snap_pos = QPointF(x, y)
-            self.scroll_timer = QTimer()
-            self.scroll_timer.setSingleShot(True)
-            self.scroll_timer.timeout.connect(self.resume_movement)
-            self.is_scrolling = False
-            
-        def resume_movement(self):
-            self.is_scrolling = False
+
+        def itemChange(self, change, value):
+            if change == self.ItemPositionChange:
+                # Update Leitung beim Verschieben
+                self.parent_wire.updatePath()
+            return super().itemChange(change, value)
+    
+    class WireItem(QGraphicsLineItem):
+        def __init__(self, x1, y1, x2, y2, parent=None):
+            super().__init__(QLineF(x1, y1, x2, y2), parent)
+            self.setPen(QPen(Qt.darkGreen, 3))
+            self.setFlags(QGraphicsLineItem.ItemIsSelectable)  # Nur auswählbar
+            self.setAcceptedMouseButtons(Qt.LeftButton)
+
+            # Ports an den Enden
+            self.port_top    = PortItem(parent=self)
+            self.port_bottom = PortItem(parent=self)
+
+            self.port_top   .setPos(x1, y1)
+            self.port_bottom.setPos(x2, y2)
+
+            # Verbindungs-Referenzen
+            self.connected_port = None  # der Port im Bauteil, an dem diese Leitung hängt
         
-        def paint(self, painter, option, widget):
-            # Hintergrundfarbe und Rahmen zeichnen
-            painter.setBrush(QColor("skyblue"))
-            painter.drawRect(self.rect())
-            
-            # Text im Zentrum des Bauteils zeichnen
-            painter.setPen(QPen(Qt.black))
-            painter.drawText(self.rect(), Qt.AlignCenter, self.label)
-
-
-    class GridGraphicsView(QGraphicsView):
-        def __init__(self, scene, window_size):
-            super().__init__(scene)
-            self.setRenderHint(QPainter.Antialiasing)
-            self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-            self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-            
-            # Setze die Größe der Szene auf das Doppelte der Fenstergröße
-            scene.setSceneRect(0, 0, window_size.width() * 2, window_size.height() * 2)
-            self.selected_item = None  # Aktuell ausgewähltes Element
-            self.resize_mode = None  # Speichert den aktiven Ziehpunkt
-            self.last_resize_pos = None  # Speichert die letzte Position für die 10-Pixel-Schritte
-        
-        def drawBackground(self, painter, rect):
-            super().drawBackground(painter, rect)
-
-            # Gitterabstand und Punktgröße festlegen
-            grid_size  = 10  # Abstand zwischen den Punkten
-            point_size =  2  # Punktgröße: 2x2 Pixel
-
-            # Pinsel und Farbe für das Gitter definieren
-            pen = QPen(QColor(200, 200, 200))  # Farbe der Punkte
-            painter.setPen(pen)
-            brush = QBrush(QColor(200, 200, 200))  # Füllfarbe der Punkte
-            painter.setBrush(brush)
-
-            # Start- und Endkoordinaten des sichtbaren Bereichs bestimmen
-            left = int(rect.left()) - (int(rect.left()) % grid_size)
-            top = int(rect.top()) - (int(rect.top()) % grid_size)
-
-            # Punkt-Gitter zeichnen als 2x2 Pixel Rechtecke
-            for x in range(left, int(rect.right()), grid_size):
-                for y in range(top, int(rect.bottom()), grid_size):
-                    painter.drawRect(x, y, point_size, point_size)
-        
-        def drawForeground(self, painter, rect):
-            super().drawForeground(painter, rect)
-            
-            if self.selected_item:
-                pen = QPen(QColor("red"), 4, Qt.DashLine)
-                painter.setPen(pen)
-                item_rect = self.selected_item.sceneBoundingRect()
-                painter.drawRect(item_rect)
-
-                # Füllfarbe und Größe für die Ziehpunkte festlegen
-                painter.setBrush(QBrush(QColor("red")))
-                rect_size = 12
-
-                # Berechne und zeichne die Positionen der Ziehpunkte auf jeder Seite
-                for point in self.calculate_resize_handles(item_rect):
-                    painter.drawRect(int(point.x() - rect_size / 2), int(point.y() - rect_size / 2), rect_size, rect_size)
-
-        def calculate_resize_handles(self, item_rect):
-            """Berechnet die Positionen der Ziehpunkte an den Seiten des Rahmens."""
-            left_center   = QPointF(item_rect.left (),      item_rect.center().y())
-            right_center  = QPointF(item_rect.right(),      item_rect.center().y())
-            top_center    = QPointF(item_rect.center().x(), item_rect.top())
-            bottom_center = QPointF(item_rect.center().x(), item_rect.bottom())
-            return [left_center, right_center, top_center, bottom_center]
-
         def mousePressEvent(self, event):
-            # Bestimme das ausgewählte Element und speichere es
-            item = self.itemAt(event.pos())
-            if isinstance(item, QGraphicsItem):
-                self.selected_item = item
-                self.last_resize_pos = self.mapToScene(event.pos())  # Setze die Ausgangsposition
+            if (event.button() == Qt.LeftButton and 
+                (event.modifiers() & Qt.ControlModifier) and 
+                (event.modifiers() & Qt.AltModifier)):
+                # Wire entfernen
+                scene = self.scene()
+                if scene and hasattr(scene, "undo_stack"):
+                    cmd = DeleteWireCommand(scene, self)
+                    scene.undo_stack.push(cmd)
+                if scene:
+                    scene.removeItem(self)
+                event.accept()
             else:
-                self.selected_item   = None
-                self.last_resize_pos = None
+                super().mousePressEvent(event)
+    
+    class PortItem(QGraphicsItem):
+        def __init__(self, radius=5, hover_radius=8, parent=None):
+            super().__init__(parent)
+            self.objectName = "PortItem"
+            self.radius = radius
+            self.hover_radius = hover_radius
+            self.hovered = False
+            self.setAcceptHoverEvents(True)
+            self.setZValue(1)  # Über dem Gatter zeichnen
+
+        def boundingRect(self) -> QRectF:
+            r = self.hover_radius
+            return QRectF(-r, -r, 2*r, 2*r)
+
+        def paint(self, painter, option, widget=None):
+            if self.hovered:
+                painter.setPen(QPen(Qt.blue, 1))
+                painter.setBrush(QBrush(Qt.transparent))
+                painter.drawEllipse(QRectF(-self.hover_radius, -self.hover_radius,
+                                           2 * self.hover_radius, 2 * self.hover_radius))
+            else:
+                painter.setPen(Qt.NoPen)
+                painter.setBrush(Qt.NoBrush)
+        
+        def mouseReleaseEvent(self, event: QMouseEvent):
+            self.update()
             
-            # Prüfe, ob ein Ziehpunkt angeklickt wurde
-            #pos = self.mapToScene(event.pos())
-            #item_rect = self.selected_item.sceneBoundingRect() if self.selected_item else None
-            #handles = self.calculate_resize_handles(item_rect) if item_rect else []
-
-            # Zuordnung der Ziehpunkte zu den Seiten mit einem Toleranzbereich von 10 Pixel
-            # zur Zeit durch left2, right2, ... zugeordnet, um größe nicht zu ändern => TODO !!!
-            if self.selected_item and self.is_near_point(pos, handles[0], threshold=10):
-                self.resize_mode = 'left'
-            elif self.selected_item and self.is_near_point(pos, handles[1], threshold=10):
-                self.resize_mode = 'right'
-            elif self.selected_item and self.is_near_point(pos, handles[2], threshold=10):
-                self.resize_mode = 'top'
-            elif self.selected_item and self.is_near_point(pos, handles[3], threshold=10):
-                self.resize_mode = 'bottom'
+        def mousePressEvent(self, event: QMouseEvent):
+            if event.button() == Qt.LeftButton:
+                scene = self.scene()
+                if scene:
+                    if event.modifiers() & Qt.AltModifier:
+                        wire = WireItem(self.x(), self.y(), self.x()-20, self.y(), parent=self.parentItem())
+                    else:
+                        wire = WireItem(self.x(), self.y(), self.x(), self.y() + 30, parent=self.parentItem())
+                    scene.addItem(wire)
+                event.accept()
+            elif event.button() == Qt.RightButton:
+                scene = self.scene()
+                if scene:
+                    if event.modifiers() & Qt.AltModifier:
+                        wire = WireItem(self.x(), self.y(), self.x()+20, self.y(), parent=self.parentItem())
+                    else:
+                        wire = WireItem(self.x(), self.y(), self.x()   , self.y() - 30, parent=self.parentItem())
+                    scene.addItem(wire)
+                event.accept()
             else:
-                self.resize_mode = None  # Keine Ziehpunkte ausgewählt
+                super().mousePressEvent(event)
+        
+        def hoverEnterEvent(self, event: QMouseEvent):
+            self.hovered = True
+            self.update()
 
-            self.viewport().update()
-            super().mousePressEvent(event)
-
-        def mouseMoveEvent(self, event):
-            if self.selected_item and self.resize_mode:
-                pos = self.mapToScene(event.pos())
-                delta = pos - self.last_resize_pos  # Berechne die Verschiebung seit dem letzten Schritt
-
-                # Anpassung des Rechtecks in 10-Pixel-Schritten
-                if self.resize_mode == 'left2' and abs(delta.x()) >= 10:
-                    adjustment = 10 * (-1 if delta.x() > 0 else 1)
-                    new_width = max(10, self.selected_item.rect().width() + adjustment)
-                    self.selected_item.setRect(self.selected_item.rect().x() - adjustment, 
-                                               self.selected_item.rect().y(), 
-                                               new_width, 
-                                               self.selected_item.rect().height())
-                    self.last_resize_pos = pos  # Aktualisiere die Position
-
-                elif self.resize_mode == 'right2' and abs(delta.x()) >= 10:
-                    adjustment = 10 * (1 if delta.x() > 0 else -1)
-                    new_width = max(10, self.selected_item.rect().width() + adjustment)
-                    self.selected_item.setRect(self.selected_item.rect().x(), 
-                                               self.selected_item.rect().y(), 
-                                               new_width, 
-                                               self.selected_item.rect().height())
-                    self.last_resize_pos = pos  # Aktualisiere die Position
-
-                elif self.resize_mode == 'top2' and abs(delta.y()) >= 10:
-                    adjustment = 10 * (-1 if delta.y() > 0 else 1)
-                    new_height = max(10, self.selected_item.rect().height() + adjustment)
-                    self.selected_item.setRect(self.selected_item.rect().x(), 
-                                               self.selected_item.rect().y() - adjustment, 
-                                               self.selected_item.rect().width(), 
-                                               new_height)
-                    self.last_resize_pos = pos  # Aktualisiere die Position
-
-                elif self.resize_mode == 'bottom2' and abs(delta.y()) >= 10:
-                    adjustment = 10 * (1 if delta.y() > 0 else -1)
-                    new_height = max(10, self.selected_item.rect().height() + adjustment)
-                    self.selected_item.setRect(self.selected_item.rect().x(), 
-                                               self.selected_item.rect().y(), 
-                                               self.selected_item.rect().width(), 
-                                               new_height)
-                    self.last_resize_pos = pos  # Aktualisiere die Position
-
-                self.viewport().update()
-            else:
-                super().mouseMoveEvent(event)
-
-        def mouseReleaseEvent(self, event):
-            # Zurücksetzen des Resize-Modus nach dem Loslassen
-            self.resize_mode = None
-            super().mouseReleaseEvent(event)
-
-        def is_near_point(self, pos, point, threshold=10):
-            """Hilfsfunktion zur Überprüfung, ob die Position `pos` nahe an einem bestimmten Punkt `point` liegt."""
-            return abs(pos.x() - point.x()) < threshold and abs(pos.y() - point.y()) < threshold
-
+        def hoverLeaveEvent(self, event: QMouseEvent):
+            self.hovered = False
+            self.update()
 
     class DraggableComponent(QGraphicsRectItem):
-        def __init__(self, name, x=0, y=0, width=50, height=50, view=None, label="", connections=[]):
+        def __init__(self, name, x, y, width, height, view, label, **kwargs):
+            # Unbekannte/aus Versehen durchgereichte Keys entfernen
+            kwargs.pop("orientation", None)
+            kwargs.pop("in_curve_px", None)
+            kwargs.pop("arc_radius_px", None)
+            kwargs.pop("xor_gap_px", None)
+            
             super().__init__(0, 0, width, height)
-            self.carray = [
-                "chip_7400_pin14", "chip_7408_pin14"
-            ]
-            if name in self.carray:
-                print("dragger")
-                self.setFlag(QGraphicsItem.ItemIsSelectable, False)
-                self.setFlag(QGraphicsItem.ItemIsMovable, False)
-                
-                self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
-                self.setFlag(QGraphicsItem.ItemIgnoresParentOpacity, True)
-            else:
-                self.setFlag(QGraphicsItem.ItemIsMovable, True)
-                self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+            self.name   = name
+            self.xpos   = x
+            self.ypos   = y
+            self.width  = width
+            self.height = height
+            
+            self.setFlag(QGraphicsItem.ItemIsMovable, True)
+            self.setFlag(QGraphicsItem.ItemIsSelectable, True)
             
             self.setPos(x, y)
             self.name = name
             self.label = label
-            self.connections = connections
             self.view = view
             self.last_snap_pos = QPointF(x, y)
-            self.scroll_timer = QTimer()
-            self.scroll_timer.setSingleShot(True)
-            self.scroll_timer.timeout.connect(self.resume_movement)
-            self.is_scrolling = False
-            
-        def paint(self, painter, option, widget):
-            # Hintergrundfarbe und Rahmen zeichnen
-            painter.setBrush(QColor("skyblue"))
-            painter.drawRect(self.rect())
-            
-            # Text im Zentrum des Bauteils zeichnen
-            font = QFont("Arial", 10, QFont.Bold)
-            painter.setFont(font)
-            painter.setPen(Qt.black)
-            text_rect = self.rect()
-            painter.drawText(text_rect, Qt.AlignCenter, self.label)
-            
-            # Verankerungen relativ zur aktuellen Position zeichnen
-            pen = QPen(Qt.black, 2)
-            painter.setPen(pen)
-            for connection in self.connections:
-                start_offset, end_offset = connection
-                start_point = self.rect().topLeft() + start_offset
-                end_point = self.rect().topLeft() + end_offset
-                painter.drawLine(start_point, end_point)
-
-                # Kreis an den Endpunkten der Linie zeichnen
-                painter.setBrush(Qt.black)
-                painter.drawEllipse(start_point, 2, 2)  # Startpunkt Kreis
-                painter.drawEllipse(end_point, 2, 2)    # Endpunkt Kreis
         
         def mouseMoveEvent(self, event):
-            if not self.is_scrolling:
-                delta = event.scenePos() - self.last_snap_pos
-                snapped_x, snapped_y = self.last_snap_pos.x(), self.last_snap_pos.y()
-                
-                if abs(delta.y()) >= 10:
-                    snapped_y += 10 * (1 if delta.y() > 0 else -1)
-
-                self.setPos(QPointF(snapped_x, snapped_y))
-                self.last_snap_pos = QPointF(snapped_x, snapped_y)
-
-                self.update()
-                self.view.update()
-
-                self.snap_based_scroll()
-                self.restrict_cursor_within_window()
-        
-        def snap_based_scroll(self):
-            view_rect = self.view.viewport().rect()
-            scene_pos = self.view.mapFromScene(self.scenePos())
-            width_threshold = self.rect().width() * 0.75
-            height_threshold = self.rect().height() * 0.75
-            scroll_step = 10
-
-            if scene_pos.x() + width_threshold > view_rect.width():
-                self.is_scrolling = True
-                self.view.horizontalScrollBar().setValue(
-                    self.view.horizontalScrollBar().value() + scroll_step
-                )
-                self.scroll_timer.start(25)
-            elif scene_pos.x() < width_threshold:
-                self.is_scrolling = True
-                self.view.horizontalScrollBar().setValue(
-                    self.view.horizontalScrollBar().value() - scroll_step
-                )
-                self.scroll_timer.start(25)
-
-            if scene_pos.y() + height_threshold > view_rect.height():
-                self.is_scrolling = True
-                self.view.verticalScrollBar().setValue(
-                self.view.verticalScrollBar().value() + scroll_step
-                )
-                self.scroll_timer.start(25)
-            elif scene_pos.y() < height_threshold:
-                self.is_scrolling = True
-                self.view.verticalScrollBar().setValue(
-                    self.view.verticalScrollBar().value() - scroll_step
-                )
-                self.scroll_timer.start(25)
-
-            # Aktualisiere den gesamten View nach jedem Scrollschritt
             self.view.update()
+            super().mouseMoveEvent(event)
+        
+        def boundingRect(self) -> QRectF:
+            rect = super().rect()
+            margin = 10
+            return rect.adjusted(-margin, -margin, margin, margin)
+            
+        def paint(self, painter, option, widget):
+            if self.name == "AND":
+                pass
+            else:
+                # Hintergrundfarbe und Rahmen zeichnen
+                painter.setBrush(QColor("skyblue"))
+                painter.drawRect(self.rect())
+                
+                # Text im Zentrum des Bauteils zeichnen
+                font = QFont("Arial", 10, QFont.Bold)
+                painter.setFont(font)
+                painter.setPen(Qt.black)
+                text_rect = self.rect()
+                painter.drawText(text_rect, Qt.AlignCenter, self.label)
+                
+                # Verankerungen relativ zur aktuellen Position zeichnen
+                pen = QPen(Qt.black, 2)
+                painter.setPen(pen)
+        
+    class PixmapRectItem(DraggableComponent):
+        def __init__(self, rect, image_path, parent=None):
+            super().__init__(rect, parent)
 
-        def resume_movement(self):
-            self.is_scrolling = False
+            # Pixmap laden
+            self.pixmap = QPixmap(image_path)
+            if self.pixmap.isNull():
+                raise FileNotFoundError(f"Fehler: '{image_path}' konnte nicht geladen werden.")
 
-        def restrict_cursor_within_window(self):
-            cursor_pos = self.view.mapFromGlobal(QCursor.pos())
-            view_rect = self.view.viewport().rect()
+            # Optional: Rahmenfarbe setzen
+            self.setPen(Qt.black)
+            # Optional: verschiebbar / selektierbar machen
+            self.setFlags(
+                QGraphicsRectItem.ItemIsMovable | QGraphicsRectItem.ItemIsSelectable
+            )
 
-            if cursor_pos.x() < 0:
-                cursor_pos.setX(0)
-            elif cursor_pos.x() > view_rect.width():
-                cursor_pos.setX(view_rect.width())
+        def paint(self, painter: QPainter, option, widget=None):
+            # Rechteckrahmen zeichnen (z. B. zur Kontrolle)
+            super().paint(painter, option, widget)
 
-            if cursor_pos.y() < 0:
-                cursor_pos.setY(0)
-            elif cursor_pos.y() > view_rect.height():
-                cursor_pos.setY(view_rect.height())
+            if not self.pixmap.isNull():
+                # Pixmap ins Rechteck skalieren und zeichnen
+                target_rect = self.rect()
+                painter.drawPixmap(target_rect, self.pixmap, self.pixmap.rect())
+    
+    
+    # ---------------------------------------------------------------------------
+    # AND-Gatter für QGraphicsScene/QGraphicsView.
+    #
+    # Parameter
+    # ---------
+    # name : str
+    # x, y : float
+    #     Position im Szenenkoordinatensystem (wird von DraggableComponent verwendet).
+    # width, height : float
+    #     Gehäusebreite/-höhe des Gates (ohne Port-Überstand).
+    # view, label : Any
+    #     Projekt-spezifisch (aus DraggableComponent übernommen).
+    # orientation : str
+    #     'left' | 'right' | 'top' | 'bottom'
+    # arc_radius_px : Optional[float]
+    #     Halbkreis-Radius in Pixeln. None -> h/2 (füllt die volle Höhe).
+    #     Bei orientation=='right' wird der Halbkreis **um +r** nach rechts verschoben.
+    # ---------------------------------------------------------------------------
+    class AndGateTest(DraggableComponent):
+        def __init__(self, name, x, y, width, height, view, label, orientation="left"):
+            super().__init__(name, x, y, width, height, view, label)
+            self.width = width
+            self.height = height
+            self.orientation = orientation
+            self.arc_radius_px = None  # None -> wird in paint() zu h/2
+            
+            # Ports je nach Orientierung
+            if orientation == "left":
+                p1 = PortItem(); p1.setPos(-20, self.height * 0.25); p1.setParentItem(self)
+                p2 = PortItem(); p2.setPos(-20, self.height * 0.75); p2.setParentItem(self)
+                po = PortItem(); po.setPos(self.width + 5, self.height / 2); po.setParentItem(self)
+            elif orientation == "right":
+                p1 = PortItem(); p1.setPos(self.width + 20, self.height * 0.25); p1.setParentItem(self)
+                p2 = PortItem(); p2.setPos(self.width + 20, self.height * 0.75); p2.setParentItem(self)
+                po = PortItem(); po.setPos(-5, self.height / 2); po.setParentItem(self)
+            elif orientation == "top":
+                p1 = PortItem(); p1.setPos(self.width * 0.25, -20); p1.setParentItem(self)
+                p2 = PortItem(); p2.setPos(self.width * 0.75, -20); p2.setParentItem(self)
+                po = PortItem(); po.setPos(self.width / 2, self.height + 15); po.setParentItem(self)
+            else:  # bottom
+                p1 = PortItem(); p1.setPos(self.width * 0.25, self.height + 20); p1.setParentItem(self)
+                p2 = PortItem(); p2.setPos(self.width * 0.75, self.height + 20); p2.setParentItem(self)
+                po = PortItem(); po.setPos(self.width / 2, -15); po.setParentItem(self)
 
-            QCursor.setPos(self.view.mapToGlobal(cursor_pos))
+        def paint(self, painter, option, widget):
+            path = QPainterPath()
+            w = self.width
+            h = self.height
+            r = (self.arc_radius_px if self.arc_radius_px is not None else h / 2.0)
+            d = 2 * r
+            
+            # Falls r != h/2, kannst du den Bogen vertikal zentrieren:
+            y_arc = 0  # alternativ: y_arc = max(0, (h - d) / 2.0)
+            
+            if self.orientation == "left":
+                # Standard: Bogen rechts (zentriert um w/2)
+                cx = w / 2.0
+                x_arc = cx - r
+                path.moveTo(cx, y_arc)
+                path.arcTo(x_arc, y_arc, d, d, 90, -180)
+                path.lineTo(0, h)
+                path.lineTo(0, 0)
+                path.lineTo(cx, y_arc)
+            elif self.orientation == "right":
+                # Bogen nach links – um genau +r (Pixel) nach rechts verschoben
+                cx = w / 2.0           # << Verschiebung um den Kreisradius
+                x_arc = cx - r
+                path.moveTo(cx, y_arc)
+                path.arcTo(x_arc, y_arc, d, d, 90, 180)
+                path.lineTo(w, h)
+                path.lineTo(w, 0)
+                path.lineTo(cx, y_arc)
 
+            elif self.orientation == "top":
+                # Bogen nach unten (Breite w als Durchmesser)
+                cx = w / 2.0
+                x_arc = 0
+                path.moveTo(w, h / 2.0)
+                path.arcTo(x_arc, h / 2.0 - w / 2.0, w, w, 0, -180)
+                path.lineTo(0, 0)
+                path.lineTo(w, 0)
+                path.lineTo(w, h / 2.0)
+
+            else:  # bottom
+                # Bogen nach oben (Breite w als Durchmesser)
+                cx = w / 2.0
+                x_arc = 0
+                path.moveTo(0, h / 2.0)
+                path.arcTo(x_arc, h / 2.0 - w / 2.0, w, w, 180, -180)
+                path.lineTo(w, h)
+                path.lineTo(0, h)
+                path.lineTo(0, h / 2.0)
+
+            # Ein-/Ausgänge zeichnen (Linien)
+            if self.orientation == "left":
+                y1, y2 = h * 0.25, h * 0.75
+                path.moveTo(-20, y1); path.lineTo(0, y1)
+                path.moveTo(-20, y2); path.lineTo(0, y2)
+                path.moveTo(w - 20, h / 2.0); path.lineTo(w + 5, h / 2.0)
+
+            elif self.orientation == "right":
+                y1, y2 = h * 0.25, h * 0.75
+                path.moveTo(w + 20, y1); path.lineTo(w, y1)
+                path.moveTo(w + 20, y2); path.lineTo(w, y2)
+                path.moveTo(0 + 20, h / 2.0); path.lineTo(0, h / 2.0)
+
+            elif self.orientation == "top":
+                x1, x2 = w * 0.25, w * 0.75
+                path.moveTo(x1, -20); path.lineTo(x1, 0)
+                path.moveTo(x2, -20); path.lineTo(x2, 0)
+                path.moveTo(w / 2.0, h); path.lineTo(w / 2.0, h + 15)
+
+            else:  # bottom
+                x1, x2 = w * 0.25, w * 0.75
+                path.moveTo(x1, h + 20); path.lineTo(x1, h)
+                path.moveTo(x2, h + 20); path.lineTo(x2, h)
+                path.moveTo(w / 2.0, 0); path.lineTo(w / 2.0, -15)
+
+            painter.setBrush(Qt.lightGray)
+            painter.setPen(QPen(Qt.black, 3))
+            painter.drawPath(path)
+            
+    # ---------------------------------------------------------------------------
+    # NAND-Gatter für QGraphicsScene/QGraphicsView.
+    #
+    # orientation : 'left' | 'right' | 'top' | 'bottom'
+    # arc_radius_px : Optional[float]
+    #     Radius des Halbkreis-Korpus. None -> h/2 (füllt die Höhe).
+    # not_radius_px : float
+    #     Radius der Inversionsblase (Pixel).
+    # ---------------------------------------------------------------------------
+    class NAndGateTest(DraggableComponent):
+        # Leitungs-Längen
+        IN_EXT  = 20
+        OUT_EXT = 15
+
+        # Zeichenstil
+        PEN_WIDTH = 3
+
+        # Zusätzlicher Rand für boundingRect
+        MARGIN = 24
+
+        def __init__(self, name, x, y, width, height, view, label,
+                     orientation="left", arc_radius_px=None, not_radius_px=6.0):
+            super().__init__(name, x, y, width, height, view, label)
+            self.width  = float(width)
+            self.height = float(height)
+            self.orientation   = orientation
+            self.arc_radius_px = arc_radius_px  # None -> wird in paint() zu h/2
+            self.not_radius_px = float(not_radius_px)
+
+            rN = self.not_radius_px
+
+            # Ports je nach Orientierung (Ausgang hinter der Blase platzieren)
+            if orientation == "left":
+                self._add_port(-self.IN_EXT,  self.height * 0.25)             # Eingang 1
+                self._add_port(-self.IN_EXT,  self.height * 0.75)             # Eingang 2
+                self._add_port(self.width + 2*rN + self.OUT_EXT, self.height / 2.0)  # Ausgang
+
+            elif orientation == "right":
+                self._add_port(self.width + self.IN_EXT,  self.height * 0.25)  # Eingang 1
+                self._add_port(self.width + self.IN_EXT,  self.height * 0.75)  # Eingang 2
+                self._add_port(-(2*rN), self.height / 2.0)      # Ausgang
+
+            elif orientation == "top":
+                self._add_port(self.width * 0.25, -self.IN_EXT)                # Eingang 1
+                self._add_port(self.width * 0.75, -self.IN_EXT)                # Eingang 2
+                self._add_port(self.width / 2.0,  self.height + 2*rN + self.OUT_EXT-5)  # Ausgang
+
+            else:  # bottom
+                self._add_port(self.width * 0.25, self.height + self.IN_EXT)   # Eingang 1
+                self._add_port(self.width * 0.75, self.height + self.IN_EXT)   # Eingang 2
+                self._add_port(self.width / 2.0, -(2*rN + self.OUT_EXT-5))       # Ausgang
+
+        # ---------- QGraphicsItem-Bounds ----------
+        def boundingRect(self) -> QRectF:
+            # Sicherheitsrand inkl. Blase/Leitungen
+            extra = max(self.MARGIN, self.IN_EXT, self.OUT_EXT) + 2*self.not_radius_px + 4
+            return QRectF(-extra, -extra, self.width + 2*extra, self.height + 2*extra)
+
+        # ---------- Zeichnen ----------
+        def paint(self, painter, option, widget):
+            path = QPainterPath()
+            w, h = self.width, self.height
+            r  = (self.arc_radius_px if self.arc_radius_px is not None else h / 2.0)
+            d  = 2.0 * r
+            rN = self.not_radius_px
+
+            # Bei r != h/2 den Bogen vertikal mittig setzen
+            y_arc = max(0.0, (h - d) / 2.0)
+
+            if self.orientation == "left":
+                # Korpus (wie AND, Wölbung rechts)
+                cx = w / 2.0
+                x_arc = cx - r
+                path.moveTo(cx, y_arc)
+                path.arcTo(x_arc, y_arc, d, d, 90, -180)
+                path.lineTo(0, h)
+                path.lineTo(0, 0)
+                path.lineTo(cx, y_arc)
+
+                # Eingänge
+                y1, y2 = h * 0.25, h * 0.75
+                path.moveTo(-self.IN_EXT, y1); path.lineTo(0, y1)
+                path.moveTo(-self.IN_EXT, y2); path.lineTo(0, y2)
+
+                # Inversionsblase + Ausgang (rechts)
+                path.addEllipse(w-15, h/2.0 - rN, 2*rN, 2*rN)  # Blase berührt Korpus
+                path.moveTo(w + 2*rN - 15, h/2.0)
+                path.lineTo(w + 2*rN, h/2.0)
+
+            elif self.orientation == "right":
+                # Korpus (wie AND gespiegelt, Wölbung links)
+                cx = w / 2.0
+                x_arc = cx - r
+                path.moveTo(cx, y_arc)
+                path.arcTo(x_arc, y_arc, d, d, 90, 180)
+                path.lineTo(w, h)
+                path.lineTo(w, 0)
+                path.lineTo(cx, y_arc)
+
+                # Eingänge (rechts)
+                y1, y2 = h * 0.25, h * 0.75
+                path.moveTo(w + self.IN_EXT, y1); path.lineTo(w, y1)
+                path.moveTo(w + self.IN_EXT, y2); path.lineTo(w, y2)
+
+                # Inversionsblase + Ausgang (links)
+                path.addEllipse(-2*rN+15, h/2.0 - rN, 2*rN, 2*rN)
+                path.moveTo(-2*rN + 15, h/2.0)
+                path.lineTo(-(2*rN ), h/2.0)
+
+            elif self.orientation == "top":
+                # Korpus (Wölbung nach unten, Durchmesser = w)
+                path.moveTo(w, h / 2.0)
+                path.arcTo(0, h / 2.0 - w / 2.0, w, w, 0, -180)
+                path.lineTo(0, 0)
+                path.lineTo(w, 0)
+                path.lineTo(w, h / 2.0)
+
+                # Eingänge (oben)
+                x1, x2 = w * 0.25, w * 0.75
+                path.moveTo(x1, -self.IN_EXT); path.lineTo(x1, 0)
+                path.moveTo(x2, -self.IN_EXT); path.lineTo(x2, 0)
+
+                # Inversionsblase + Ausgang (unten)
+                path.addEllipse(w/2.0 - rN, h-5, 2*rN, 2*rN)
+                path.moveTo(w/2.0, h + 2*rN - 5)
+                path.lineTo(w/2.0, h + 2*rN + 7)
+
+            else:  # bottom
+                # Korpus (Wölbung nach oben, Durchmesser = w)
+                path.moveTo(0, h / 2.0)
+                path.arcTo(0, h / 2.0 - w / 2.0, w, w, 180, -180)
+                path.lineTo(w, h)
+                path.lineTo(0, h)
+                path.lineTo(0, h / 2.0)
+
+                # Eingänge (unten)
+                x1, x2 = w * 0.25, w * 0.75
+                path.moveTo(x1, h + self.IN_EXT); path.lineTo(x1, h)
+                path.moveTo(x2, h + self.IN_EXT); path.lineTo(x2, h)
+
+                # Inversionsblase + Ausgang (oben)
+                path.addEllipse(w/2.0 - rN, -2*rN+5, 2*rN, 2*rN)
+                path.moveTo(w/2.0, -(2*rN)-7)
+                path.lineTo(w/2.0, -(2*rN)+3)
+
+            # Stil
+            painter.setBrush(Qt.lightGray)
+            painter.setPen(QPen(Qt.black, self.PEN_WIDTH))
+            painter.drawPath(path)
+
+        # ---------- Helper ----------
+        def _add_port(self, x: float, y: float):
+            p = PortItem()
+            p.setPos(x, y)
+            p.setParentItem(self)
+            return p
+    
+    # ---------------------------------------------------------------------------
+    # OR-Gatter für QGraphicsScene/QGraphicsView.
+    #
+    # orientation : 'left' | 'right' | 'top' | 'bottom'
+    # in_curve_px : Optional[float]
+    #     Tiefe der Eingangs-Einbuchtung (Pixel). None -> dynamisch aus w/h.
+    # ---------------------------------------------------------------------------
+    class OrGateComponent(DraggableComponent):
+        IN_EXT  = 20
+        OUT_EXT = 15
+        PEN_WIDTH = 3
+        MARGIN = 24
+        PORT_R = 4.0  # Radius der sichtbaren Port-Kreise
+
+        def __init__(self, name, x, y, width, height, view, label,
+                     orientation="left", in_curve_px=None):
+            super().__init__(name, x, y, width, height, view, label)
+            self.width  = float(width)
+            self.height = float(height)
+            self.orientation = orientation
+            self.in_curve_px = in_curve_px
+
+            # NEU: Port-Positionsspeicher (für das Zeichnen der kleinen Kreise)
+            self._port_positions = []
+
+            # Ports je Ausrichtung
+            if orientation == "left":
+                self._add_port(-self.IN_EXT,  self.height * 0.25)
+                self._add_port(-self.IN_EXT,  self.height * 0.75)
+                self._add_port(self.width + self.OUT_EXT, self.height / 2.0)
+            elif orientation == "right":
+                self._add_port(self.width + self.IN_EXT,  self.height * 0.25)
+                self._add_port(self.width + self.IN_EXT,  self.height * 0.75)
+                self._add_port(-self.OUT_EXT, self.height / 2.0)
+            elif orientation == "top":
+                self._add_port(self.width * 0.25, -self.IN_EXT)
+                self._add_port(self.width * 0.75, -self.IN_EXT)
+                self._add_port(self.width / 2.0,  self.height + self.OUT_EXT)
+            elif orientation == "bottom":
+                self._add_port(self.width * 0.25, self.height + self.IN_EXT)
+                self._add_port(self.width * 0.75, self.height + self.IN_EXT)
+                self._add_port(self.width / 2.0, -self.OUT_EXT)
+            else:
+                raise ValueError("OrGateComponent: orientation muss 'left'/'right'/'top'/'bottom' sein.")
+
+        def boundingRect(self) -> QRectF:
+            # etwas mehr Rand, damit die Port-Kreise sicher drin sind
+            extra = max(self.MARGIN, self.IN_EXT, self.OUT_EXT, int(self.PORT_R) + 6)
+            return QRectF(-extra, -extra, self.width + 2*extra, self.height + 2*extra)
+
+        def paint(self, painter, option, widget):
+            w, h = self.width, self.height
+            c = self.in_curve_px if self.in_curve_px is not None else min(w*0.35, h*0.8)
+
+            path = QPainterPath()
+
+            if self.orientation == "left":
+                x0 = c
+                path.moveTo(x0, 0)
+                path.cubicTo(w*0.50, 0,   w,        h*0.35, w,       h/2.0)
+                path.cubicTo(w,      h*0.65, w*0.50, h,     x0,      h)
+                path.cubicTo(0,      h*0.66, 0,      h*0.34, x0,      0)
+
+                y1, y2 = h*0.25, h*0.75
+                path.moveTo(-self.IN_EXT, y1); path.lineTo(0, y1)
+                path.moveTo(-self.IN_EXT, y2); path.lineTo(0, y2)
+                path.moveTo(w, h/2.0); path.lineTo(w + self.OUT_EXT, h/2.0)
+
+            elif self.orientation == "right":
+                x0 = w - c
+                path.moveTo(x0, 0)
+                path.cubicTo(w*0.50, 0,   0,        h*0.35, 0,       h/2.0)
+                path.cubicTo(0,      h*0.65, w*0.50, h,     x0,      h)
+                path.cubicTo(w,      h*0.66, w,      h*0.34, x0,      0)
+
+                y1, y2 = h*0.25, h*0.75
+                path.moveTo(w + self.IN_EXT, y1); path.lineTo(w, y1)
+                path.moveTo(w + self.IN_EXT, y2); path.lineTo(w, y2)
+                path.moveTo(0, h/2.0); path.lineTo(-self.OUT_EXT, h/2.0)
+
+            elif self.orientation == "top":
+                y0 = c
+                path.moveTo(0, y0)
+                path.cubicTo(0,  h*0.35,  w*0.35, h,       w/2.0, h)
+                path.cubicTo(w*0.65, h,   w,      h*0.35,  w,     y0)
+                path.cubicTo(w,    0,     0,      0,       0,     y0)
+
+                x1, x2 = w*0.25, w*0.75
+                path.moveTo(x1, -self.IN_EXT); path.lineTo(x1, 0)
+                path.moveTo(x2, -self.IN_EXT); path.lineTo(x2, 0)
+                path.moveTo(w/2.0, h); path.lineTo(w/2.0, h + self.OUT_EXT)
+
+            else:  # bottom
+                yb = h - c
+                path.moveTo(0, yb)
+                path.cubicTo(w*0.35, 0,   0,      h*0.65,  w/2.0, 0)
+                path.cubicTo(w*0.65, 0,   w,      h*0.65,  w,     yb)
+                path.cubicTo(w,     h,    0,      h,       0,     yb)
+
+                x1, x2 = w*0.25, w*0.75
+                path.moveTo(x1, h + self.IN_EXT); path.lineTo(x1, h)
+                path.moveTo(x2, h + self.IN_EXT); path.lineTo(x2, h)
+                path.moveTo(w/2.0, 0); path.lineTo(w/2.0, -self.OUT_EXT)
+
+            painter.setBrush(Qt.lightGray)
+            painter.setPen(QPen(Qt.black, self.PEN_WIDTH))
+            painter.drawPath(path)
+
+            # NEU: Port-Kreise sichtbar zeichnen
+            self._draw_ports(painter)
+
+        # --- Helper: Port anlegen und Position merken ---
+        def _add_port(self, x: float, y: float):
+            p = PortItem()
+            p.setPos(x, y)
+            p.setParentItem(self)
+            p.setZValue(100)  # sicher über dem Korpus
+            self._port_positions.append((x, y))
+            return p
+
+        # --- Helper: Port-Kreise zeichnen ---
+        def _draw_ports(self, painter):
+            if not getattr(self, "_port_positions", None):
+                return
+            pen = QPen(Qt.black, 1.5)
+            painter.setPen(pen)
+            painter.setBrush(Qt.white)
+            for (x, y) in self._port_positions:
+                painter.drawEllipse(QPointF(x, y), self.PORT_R, self.PORT_R)
+                
+    class OrGateTest(DraggableComponent):
+        IN_EXT  = 20
+        OUT_EXT = 15
+        PEN_WIDTH = 3
+        MARGIN = 24
+        PORT_R = 4.0  # Radius der sichtbaren Port-Kreise
+        
+        def __init__(self, name, x, y, width, height, view, label,
+                 orientation="left", in_curve_px=None):
+            super().__init__(name, x, y, width, height, view, label)
+            self.width  = float(width)
+            self.height = float(height)
+            self.orientation = orientation
+            self.in_curve_px = in_curve_px
+
+            # NEU: Port-Positionsspeicher (für das Zeichnen der kleinen Kreise)
+            self._port_positions = []
+
+            # Ports je Ausrichtung
+            if orientation == "left":
+                self._add_port(-self.IN_EXT,  self.height * 0.25)
+                self._add_port(-self.IN_EXT,  self.height * 0.75)
+                self._add_port(self.width + self.OUT_EXT, self.height / 2.0)
+            elif orientation == "right":
+                self._add_port(self.width + self.IN_EXT,  self.height * 0.25)
+                self._add_port(self.width + self.IN_EXT,  self.height * 0.75)
+                self._add_port(-self.OUT_EXT, self.height / 2.0)
+            elif orientation == "top":
+                self._add_port(self.width * 0.25, -self.IN_EXT)
+                self._add_port(self.width * 0.75, -self.IN_EXT)
+                self._add_port(self.width / 2.0,  self.height + self.OUT_EXT)
+            elif orientation == "bottom":
+                self._add_port(self.width * 0.25, self.height + self.IN_EXT)
+                self._add_port(self.width * 0.75, self.height + self.IN_EXT)
+                self._add_port(self.width / 2.0, -self.OUT_EXT)
+            else:
+                raise ValueError("OrGateComponent: orientation muss 'left'/'right'/'top'/'bottom' sein.")
+
+        def boundingRect(self) -> QRectF:
+            # etwas mehr Rand, damit die Port-Kreise sicher drin sind
+            extra = max(self.MARGIN, self.IN_EXT, self.OUT_EXT, int(self.PORT_R) + 6)
+            return QRectF(-extra, -extra, self.width + 2*extra, self.height + 2*extra)
+
+        def paint(self, painter, option, widget):
+            w, h = self.width, self.height
+            c = self.in_curve_px if self.in_curve_px is not None else min(w*0.35, h*0.8)
+
+            path = QPainterPath()
+
+            if self.orientation == "left":
+                x0 = c
+                path.moveTo(x0, 0)
+                path.cubicTo(w*0.50, 0,   w,        h*0.35, w,       h/2.0)
+                path.cubicTo(w,      h*0.65, w*0.50, h,     x0,      h)
+                path.cubicTo(0,      h*0.66, 0,      h*0.34, x0,      0)
+
+                y1, y2 = h*0.25, h*0.75
+                path.moveTo(-self.IN_EXT, y1); path.lineTo(0, y1)
+                path.moveTo(-self.IN_EXT, y2); path.lineTo(0, y2)
+                path.moveTo(w, h/2.0); path.lineTo(w + self.OUT_EXT, h/2.0)
+
+            elif self.orientation == "right":
+                x0 = w - c
+                path.moveTo(x0, 0)
+                path.cubicTo(w*0.50, 0,   0,        h*0.35, 0,       h/2.0)
+                path.cubicTo(0,      h*0.65, w*0.50, h,     x0,      h)
+                path.cubicTo(w,      h*0.66, w,      h*0.34, x0,      0)
+
+                y1, y2 = h*0.25, h*0.75
+                path.moveTo(w + self.IN_EXT, y1); path.lineTo(w, y1)
+                path.moveTo(w + self.IN_EXT, y2); path.lineTo(w, y2)
+                path.moveTo(0, h/2.0); path.lineTo(-self.OUT_EXT, h/2.0)
+
+            elif self.orientation == "top":
+                y0 = c
+                path.moveTo(0, y0)
+                path.cubicTo(0,  h*0.35,  w*0.35, h,       w/2.0, h)
+                path.cubicTo(w*0.65, h,   w,      h*0.35,  w,     y0)
+                path.cubicTo(w,    0,     0,      0,       0,     y0)
+
+                x1, x2 = w*0.25, w*0.75
+                path.moveTo(x1, -self.IN_EXT); path.lineTo(x1, 0)
+                path.moveTo(x2, -self.IN_EXT); path.lineTo(x2, 0)
+                path.moveTo(w/2.0, h); path.lineTo(w/2.0, h + self.OUT_EXT)
+
+            else:  # bottom
+                yb = h - c
+                path.moveTo(0, yb)
+                path.cubicTo(w*0.35, 0,   0,      h*0.65,  w/2.0, 0)
+                path.cubicTo(w*0.65, 0,   w,      h*0.65,  w,     yb)
+                path.cubicTo(w,     h,    0,      h,       0,     yb)
+
+                x1, x2 = w*0.25, w*0.75
+                path.moveTo(x1, h + self.IN_EXT); path.lineTo(x1, h)
+                path.moveTo(x2, h + self.IN_EXT); path.lineTo(x2, h)
+                path.moveTo(w/2.0, 0); path.lineTo(w/2.0, -self.OUT_EXT)
+
+            painter.setBrush(Qt.lightGray)
+            painter.setPen(QPen(Qt.black, self.PEN_WIDTH))
+            painter.drawPath(path)
+
+            # NEU: Port-Kreise sichtbar zeichnen
+            self._draw_ports(painter)
+
+        # --- Helper: Port anlegen und Position merken ---
+        def _add_port(self, x: float, y: float):
+            p = PortItem()
+            p.setPos(x, y)
+            p.setParentItem(self)
+            p.setZValue(100)  # sicher über dem Korpus
+            self._port_positions.append((x, y))
+            return p
+
+        # --- Helper: Port-Kreise zeichnen ---
+        def _draw_ports(self, painter):
+            if not getattr(self, "_port_positions", None):
+                return
+            pen = QPen(Qt.black, 1.5)
+            painter.setPen(pen)
+            painter.setBrush(Qt.white)
+            for (x, y) in self._port_positions:
+                painter.drawEllipse(QPointF(x, y), self.PORT_R, self.PORT_R)
+            
+    # ---------------------------------------------------------------------------
+    # XOR-Gatter: OR + zusätzliche, parallel versetzte Eingangs-Kurve.
+    # xor_gap_px : Abstand der zweiten (XOR-)Kurve zur Einbuchtung (Pixel).
+    # ---------------------------------------------------------------------------
+    class XorGateTest(OrGateTest):
+        def __init__(self, name, x, y, width, height, view, label,
+                 orientation="left", in_curve_px=None, xor_gap_px=6.0):
+            super().__init__(name, x, y, width, height, view, label,
+                             orientation=orientation, in_curve_px=in_curve_px)
+            self.xor_gap_px = float(xor_gap_px)
+
+        def boundingRect(self) -> QRectF:
+            extra = max(self.MARGIN, self.IN_EXT, self.OUT_EXT, int(self.PORT_R) + 6) + self.xor_gap_px
+            return QRectF(-extra, -extra, self.width + 2*extra, self.height + 2*extra)
+
+        def paint(self, painter, option, widget):
+            # 1) OR-Grundform + Leitungen (ohne Ports, die malen wir gleich erneut)
+            super().paint(painter, option, widget)
+
+            # 2) XOR-Zusatzkurve
+            w, h = self.width, self.height
+            c = self.in_curve_px if self.in_curve_px is not None else min(w*0.35, h*0.8)
+            g = self.xor_gap_px
+
+            extra = QPainterPath()
+            if self.orientation == "left":
+                x0 = c
+                extra.moveTo(x0 - g, h)
+                extra.cubicTo(-g, h*0.66, -g, h*0.34, x0 - g, 0)
+            elif self.orientation == "right":
+                x0 = w - c
+                extra.moveTo(x0 + g, h)
+                extra.cubicTo(w + g, h*0.66, w + g, h*0.34, x0 + g, 0)
+            elif self.orientation == "top":
+                y0 = c
+                extra.moveTo(w, y0 - g)
+                extra.cubicTo(w, -g, 0, -g, 0, y0 - g)
+            else:  # bottom
+                yb = h - c
+                extra.moveTo(0, yb + g)
+                extra.cubicTo(0, h + g, w, h + g, w, yb + g)
+
+            pen = QPen(Qt.black, self.PEN_WIDTH)
+            painter.setBrush(Qt.NoBrush)
+            painter.setPen(pen)
+            painter.drawPath(extra)
+
+            # 3) Ports zuletzt oben drüber zeichnen
+            self._draw_ports(painter)
+            
     class FormDesigner(QWidget):
         def __init__(self):
             super().__init__()
@@ -18183,43 +18552,7 @@ try:
 
         def init_components(self):
             # Bauteile mit individuellen Beschriftungen und Verankerungen hinzufügen
-            and_gate = DraggableComponentFormDesigner(
-                "AND-Gate", x=100, y=100, view=self.view, label="AND",
-                connections=[
-                    (QPointF(-10, 10), QPointF( 0, 10)),    # Linke obere Verankerung
-                    (QPointF(-10, 30), QPointF( 0, 30)),    # Linke untere Verankerung
-                    (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-                ]
-            )
-            
-            lamp = DraggableComponentFormDesigner(
-                "Lamp", x=200, y=200, view=self.view, label="LED",
-                connections=[
-                    (QPointF(-10, 20), QPointF( 0, 20)),    # Linke Verankerung
-                    (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-                ]
-            )
-            
-            battery = DraggableComponentFormDesigner(
-                "Battery", x=300, y=300, view=self.view, label="SRC",
-                connections=[
-                    (QPointF(-10, 20), QPointF( 0, 20)),    # Linke Verankerung
-                    (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-                ]
-            )
-            
-            wire1 = DraggableComponent(
-                "Wire1", x=200, y=100, width=100, height=2, view=self.view,
-                connections=[
-                    (QPointF(  0,0), QPointF(  0,0)),
-                    (QPointF(100,0), QPointF(100,0))
-                ]
-            )
-            
-            self.scene.addItem(and_gate)
-            self.scene.addItem(lamp)
-            self.scene.addItem(battery)
-            self.scene.addItem(wire1)
+            pass
 
     class PinParent():
         def __init__(self, cparent, cname):
@@ -18313,74 +18646,57 @@ try:
             event.accept()
 
     class AndGateComponent(DraggableComponent):
+        def __init__(self,   name, x, y, width, height, view, label):
+            super().__init__(name, x, y, width, height, view, label)
+            self.width  = width
+            self.heigth = height
+            
+            # Eingang 1
+            port1 = PortItem()
+            port1.setPos(-20, self.height * 0.25)
+            port1.setParentItem(self)
+            
+            # Eingang 2
+            port2 = PortItem()
+            port2.setPos(-20, self.height * 0.75)
+            port2.setParentItem(self)
+            
+            # Ausgang
+            port_out = PortItem()
+            port_out.setPos(self.width + 5, self.height / 2)
+            port_out.setParentItem(self)
+            
         def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-            rect = self.rect()
-
-            # Farben und Stift
-            painter.setBrush(QColor(173, 216, 230))  # hellblau
-            painter.setPen(QPen(Qt.black, 2))
-
-            # Pfad für AND-Gatter: rechteckiger Teil + Halbkreis
             path = QPainterPath()
-            path.moveTo(rect.left  ()    , rect.top())
-            path.lineTo(rect.center().x()-20, rect.top())
-            path.arcTo (rect.center().x()-20, rect.top(), rect.width() / 2, rect.height(), 80, -180)
-            path.lineTo(rect.left  ()    , rect.bottom())
-            path.closeSubpath()
+            w = self.width
+            h = self.height
+            r = h / 2
 
+            # Rechte Seite (Halbkreis)
+            path.moveTo(w / 2, 0)
+            path.arcTo(w / 2 - r, 0, h, h, 90, -180)
+
+            # Linke Seite (rechteckige Seite schließen)
+            path.lineTo(0, h)
+            path.lineTo(0, 0)
+            path.lineTo(w / 2, 0)
+
+            # Eingänge
+            y1 = h * 0.25
+            y2 = h * 0.75
+            path.moveTo(-20, y1)
+            path.lineTo(0, y1)
+            path.moveTo(-20, y2)
+            path.lineTo(0, y2)
+
+            # Ausgang
+            path.moveTo(w - 20, h / 2)
+            path.lineTo(w +  5, h / 2)
+
+            # Zeichnen
+            painter.setBrush(Qt.lightGray) 
+            painter.setPen(QPen(Qt.black, 3))
             painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))  # hellblau
-
-            # Durchgehende obere und untere Linien
-            painter.drawLine(QPointF(rect.left(), rect.top()), QPointF(rect.center().x(), rect.top()))
-            painter.drawLine(QPointF(rect.left(), rect.bottom()), QPointF(rect.center().x(), rect.bottom()))
-
-            # Pins zeichnen
-            pin_length = 10
-            pin_y1 = rect.top() + rect.height() * 0.33
-            pin_y2 = rect.top() + rect.height() * 0.66
-            pin_x_in = rect.left() - pin_length
-            pin_x_out = rect.right() + pin_length
-            pin_y_out = rect.center().y()
-
-            # Beschriftung
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(rect, Qt.AlignCenter, "  AND")
-            
-            pin_size = QSizeF(20, 20)
-            painter.setPen(QPen(Qt.black, 1))
-            painter.setBrush(Qt.white)
-            
-            # 2 Eingänge
-            self.pin_rect_a = QRectF(rect.left(), 1, pin_size.width() - 1, pin_size.height())
-            painter.drawRect(self.pin_rect_a)
-            painter.drawText(self.pin_rect_a, Qt.AlignCenter, "A")
-            
-            self.pin_rect_b = QRectF(rect.left(), rect.height() - pin_size.height(), pin_size.width() - 1, pin_size.height())
-            painter.drawRect(self.pin_rect_b)
-            painter.drawText(self.pin_rect_b, Qt.AlignCenter, "B")
-            
-            # 1 Ausgang
-            self.pin_rect_c = QRectF(rect.width() - pin_size.width(), 9, pin_size.width(), pin_size.height())
-            painter.drawRect(self.pin_rect_c)
-            painter.drawText(self.pin_rect_c, Qt.AlignCenter, "C")
-        
-        def mousePressEvent(self, event):
-            pos  = event.pos()
-            if (pos.x() >= self.pin_rect_a.left()) and (pos.x() <= self.pin_rect_a.width()):
-                if (pos.y() >= self.pin_rect_a.top()) and (pos.y() <= self.pin_rect_a.top() + self.pin_rect_a.height()):
-                    print("AAAA")
-                    return
-            if (pos.x() >= self.pin_rect_b.left()) and (pos.x() <= self.pin_rect_b.width()):
-                if (pos.y() >= self.pin_rect_b.top()) and (pos.y() <= self.pin_rect_b.top() + self.pin_rect_b.height()):
-                    print("BBBB")
-                    return
-            if (pos.x() >= self.pin_rect_c.left()) and (pos.x() <= self.pin_rect_c.left() + self.pin_rect_c.width()):
-                if (pos.y() >= self.pin_rect_c.top()) and (pos.y() <= self.pin_rect_c.top() + self.pin_rect_c.height()):
-                    print("CCCC")
-                    return
 
     class AndGateComponentRotated90(DraggableComponent):
         def paint(self, painter, option, widget):
@@ -18527,1421 +18843,7 @@ try:
             self.pin_rect_c = QRectF(pin_c_x, pin_c_y, pin_size.width(), pin_size.height())
             painter.drawRect(self.pin_rect_c)
             painter.drawText(self.pin_rect_c, Qt.AlignCenter, "C")
-
-    class AndGateComponentRotated270(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-            rect = self.rect()
-
-            pin_size = QSizeF(20, 20)
-            pin_inset = 10
-            arc_overlap = 40
-            gatterfarbe = QColor(173, 216, 230)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(gatterfarbe)
-
-            # Rechteckkörper (rechts)
-            body_right = rect.right() - pin_size.width() + pin_inset
-            body_width = rect.width() * 0.6
-            body_rect = QRectF(body_right - body_width, rect.top(), body_width, rect.height())
-
-            painter.drawRect(body_rect)
-            painter.fillRect(body_rect, gatterfarbe)
-
-            # Halbkreis (links gewölbt = nach außen links)
-            arc_radius = rect.height() / 2
-            arc_center_y = rect.center().y()
-            arc_center_x = body_rect.left() + arc_overlap
-            arc_rect = QRectF(
-                arc_center_x - 2 * arc_radius,
-                arc_center_y - arc_radius,
-                2 * arc_radius,
-                2 * arc_radius
-            )
-
-            arc_path = QPainterPath()
-            arc_path.moveTo(arc_center_x, arc_rect.top())
-            arc_path.arcTo(arc_rect, 90, 180)
-            arc_path.lineTo(arc_center_x, arc_rect.bottom())
-            arc_path.lineTo(arc_center_x, arc_rect.top())
-            arc_path.closeSubpath()
-
-            painter.drawPath(arc_path)
-            painter.fillPath(arc_path, gatterfarbe)
-
-            # Text
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(body_rect, Qt.AlignCenter, "AND")
-
-            # Pins
-            painter.setPen(QPen(Qt.black, 1))
-            painter.setBrush(Qt.white)
-            pin_spacing = rect.height() / 3
-
-            # Eingang A (rechts oben)
-            pin_a_x = rect.right() - pin_size.width()
-            pin_a_y = (rect.top() + pin_spacing - pin_size.height() / 2) - 3
-            self.pin_rect_a = QRectF(pin_a_x, pin_a_y, pin_size.width(), pin_size.height())
-            painter.drawRect(self.pin_rect_a)
-            painter.drawText(self.pin_rect_a, Qt.AlignCenter, "A")
-
-            # Eingang B (rechts unten)
-            pin_b_y = (rect.top() + 2 * pin_spacing - pin_size.height() / 2) + 3
-            self.pin_rect_b = QRectF(pin_a_x, pin_b_y, pin_size.width(), pin_size.height())
-            painter.drawRect(self.pin_rect_b)
-            painter.drawText(self.pin_rect_b, Qt.AlignCenter, "B")
-
-            # Ausgang (links)
-            pin_c_x = arc_rect.left() - pin_size.width()
-            pin_c_y = rect.center().y() - pin_size.height() / 2
-            self.pin_rect_c = QRectF(pin_c_x, pin_c_y, pin_size.width(), pin_size.height())
-            painter.drawRect(self.pin_rect_c)
-            painter.drawText(self.pin_rect_c, Qt.AlignCenter, "C")
-
-    class OrGateComponent(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            # Rechteck mit -5 Pixel Breite
-            original_rect = self.rect()
-            adjusted_width = original_rect.width() - 5
-            rect = QRectF(original_rect.topLeft(), QSizeF(adjusted_width, original_rect.height()))
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))  # hellblau
-
-            path = QPainterPath()
-
-            # Linker Bogen (konkav nach rechts)
-            start = QPointF(rect.left(), rect.bottom())
-            control_left = QPointF(rect.left() + rect.width() * 0.3, rect.center().y())
-            end = QPointF(rect.left(), rect.top())
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-
-            # Gerade obere Linie zur rechten Seite
-            top_right_entry = QPointF(rect.right() - rect.width() * 0.1, rect.top())
-            path.lineTo(top_right_entry)
-
-            # Verstärkte rechte Wölbung (größerer Bauch)
-            control_right = QPointF(rect.right() + rect.width() * 0.25, rect.center().y())
-            bottom_right_exit = QPointF(rect.right() - rect.width() * 0.1, rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            # Gerade untere Linie zurück zur linken Seite
-            path.lineTo(start)
-
-            # Zeichnen
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            # Pins links
-            pin_length = 10
-            pin_y1 = rect.top()    + rect.height() * 0.3
-            pin_y2 = rect.bottom() - rect.height() * 0.3
-            pin_x_in = rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(rect.left()+6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(rect.left()+6, pin_y2))
-
-            # Ausgangs-Pin rechts
-            pin_x_out = rect.right() + pin_length + 5
-            pin_y_out = rect.center().y()
-            painter.drawLine(QPointF(rect.right(), pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            # Label zentriert
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(rect, Qt.AlignCenter, self.label)
-
-    class XorGateComponent(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            # Rechteck mit -5 Pixel Breite
-            original_rect = self.rect()
-            adjusted_width = original_rect.width() - 5
-            rect = QRectF(original_rect.topLeft(), QSizeF(adjusted_width, original_rect.height()))
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))  # hellblau
-
-            path = QPainterPath()
-
-            # Zusätzlicher innerer linker Bogen (typisch für XOR)
-            offset = rect.width() * 0.11  # Versatz nach links für den inneren Bogen
-            inner_start = QPointF(rect.left() - offset, rect.bottom())
-            inner_control = QPointF(rect.left() + rect.width() * 0.23 - offset, rect.center().y())
-            inner_end = QPointF(rect.left() - offset, rect.top())
-            path.moveTo(inner_start)
-            path.quadTo(inner_control, inner_end)
-
-            # Linker Bogen (konkav nach rechts)
-            start = QPointF(rect.left(), rect.bottom())
-            control_left = QPointF(rect.left() + rect.width() * 0.3, rect.center().y())
-            end = QPointF(rect.left(), rect.top())
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-
-            # Gerade obere Linie zur rechten Seite
-            top_right_entry = QPointF(rect.right() - rect.width() * 0.1, rect.top())
-            path.lineTo(top_right_entry)
-
-            # Verstärkte rechte Wölbung (größerer Bauch)
-            control_right = QPointF(rect.right() + rect.width() * 0.25, rect.center().y())
-            bottom_right_exit = QPointF(rect.right() - rect.width() * 0.1, rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            # Gerade untere Linie zurück zur linken Seite
-            path.lineTo(start)
-
-            # Zeichnen
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            # Pins links (2 Eingänge)
-            pin_length = 10
-            pin_y1 = rect.top()    + rect.height() * 0.3
-            pin_y2 = rect.bottom() - rect.height() * 0.3
-            pin_x_in = rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(rect.left()+6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(rect.left()+6, pin_y2))
-
-            # Ausgangs-Pin rechts
-            pin_x_out = rect.right() + pin_length + 5
-            pin_y_out = rect.center().y()
-            painter.drawLine(QPointF(rect.right(), pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            # Label zentriert
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(rect, Qt.AlignCenter, self.label)
-
-    class XorGateComponentRotated90(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            rect = self.rect()
-            adjusted_width = rect.width() - 5
-            base_rect = QRectF(rect.topLeft(), QSizeF(adjusted_width, rect.height()))
-
-            painter.save()
-            center = base_rect.center()
-
-            # 90 Grad Rotation um Mittelpunkt
-            painter.translate(center)
-            painter.rotate(90)
-            painter.translate(-center)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))  # hellblau
-
-            path = QPainterPath()
-
-            w = base_rect.width()
-            h = base_rect.height()
-
-            offset = w * 0.11
-
-            inner_start = QPointF(base_rect.left() - offset, base_rect.bottom())
-            inner_control = QPointF(base_rect.left() + w * 0.23 - offset, base_rect.center().y())
-            inner_end = QPointF(base_rect.left() - offset, base_rect.top())
-            path.moveTo(inner_start)
-            path.quadTo(inner_control, inner_end)
-
-            start = QPointF(base_rect.left(), base_rect.bottom())
-            control_left = QPointF(base_rect.left() + w * 0.3, base_rect.center().y())
-            end = QPointF(base_rect.left(), base_rect.top())
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-
-            top_right_entry = QPointF(base_rect.right() - w * 0.1, base_rect.top())
-            path.lineTo(top_right_entry)
-
-            control_right = QPointF(base_rect.right() + w * 0.25, base_rect.center().y())
-            bottom_right_exit = QPointF(base_rect.right() - w * 0.1, base_rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            pin_length = 10
-
-            # Pins bleiben wie im Ursprung, Painter dreht sie automatisch mit
-            pin_y1 = base_rect.top() + h * 0.3
-            pin_y2 = base_rect.bottom() - h * 0.3
-            pin_x_in = base_rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(base_rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(base_rect.left() + 6, pin_y2))
-
-            pin_x_out = base_rect.right() + pin_length + 5
-            pin_y_out = base_rect.center().y()
-            painter.drawLine(QPointF(base_rect.right(), pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(base_rect, Qt.AlignCenter, self.label)
-
-            painter.restore()
-
-    class XorGateComponentRotated270(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            rect = self.rect()
-            adjusted_width = rect.width() - 5
-            base_rect = QRectF(rect.topLeft(), QSizeF(adjusted_width, rect.height()))
-
-            # Transformation vorbereiten: 
-            # 270° Rotation um das Rechteckzentrum mit Verschiebung
-            painter.save()
-            center = base_rect.center()
-
-            # 270° Drehung entspricht -90° (gegen den Uhrzeigersinn)
-            # Drehung um Mittelpunkt des Rechtecks
-            painter.translate(center)
-            painter.rotate(-90)  
-            painter.translate(-center)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))  # hellblau
-
-            path = QPainterPath()
-
-            w = base_rect.width()
-            h = base_rect.height()
-
-            offset = w * 0.11
-            # Jetzt die Punkte ohne Rotation im ursprünglichen Koordinatensystem definieren:
-
-            inner_start = QPointF(base_rect.left() - offset, base_rect.bottom())
-            inner_control = QPointF(base_rect.left() + w * 0.23 - offset, base_rect.center().y())
-            inner_end = QPointF(base_rect.left() - offset, base_rect.top())
-            path.moveTo(inner_start)
-            path.quadTo(inner_control, inner_end)
-
-            start = QPointF(base_rect.left(), base_rect.bottom())
-            control_left = QPointF(base_rect.left() + w * 0.3, base_rect.center().y())
-            end = QPointF(base_rect.left(), base_rect.top())
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-
-            top_right_entry = QPointF(base_rect.right() - w * 0.1, base_rect.top())
-            path.lineTo(top_right_entry)
-
-            control_right = QPointF(base_rect.right() + w * 0.25, base_rect.center().y())
-            bottom_right_exit = QPointF(base_rect.right() - w * 0.1, base_rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            pin_length = 10
-
-            # Pins anpassen (Positionsangaben bleiben im ungedrehten System, Painter rotiert sie automatisch)
-            pin_y1 = base_rect.top() + h * 0.3
-            pin_y2 = base_rect.bottom() - h * 0.3
-            pin_x_in = base_rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(base_rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(base_rect.left() + 6, pin_y2))
-
-            pin_x_out = base_rect.right() + pin_length + 5
-            pin_y_out = base_rect.center().y()
-            painter.drawLine(QPointF(base_rect.right(), pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            # Label zentrieren
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(base_rect, Qt.AlignCenter, self.label)
-
-            painter.restore()
-
-    class XorGateComponentRotated180(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-            
-            original_rect = self.rect()
-            adjusted_width = original_rect.width() - 5
-            rect = QRectF(original_rect.topLeft(), QSizeF(adjusted_width, original_rect.height()))
-            
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))  # hellblau
-            
-            path = QPainterPath()
-            
-            w = rect.width()
-            h = rect.height()
-            
-            def rotate_point_180(p):
-                # 180 Grad Drehung um die linke obere Ecke des Rechtecks
-                x = p.x() - rect.left()
-                y = p.y() - rect.top()
-                new_x = w - x
-                new_y = h - y
-                return QPointF(rect.left() + new_x, rect.top() + new_y)
-            
-            # Zusätzlicher innerer linker Bogen (typisch für XOR)
-            offset = w * 0.11
-            inner_start = rotate_point_180(QPointF(rect.left() - offset, rect.bottom()))
-            inner_control = rotate_point_180(QPointF(rect.left() + w * 0.23 - offset, rect.center().y()))
-            inner_end = rotate_point_180(QPointF(rect.left() - offset, rect.top()))
-            path.moveTo(inner_start)
-            path.quadTo(inner_control, inner_end)
-            
-            # Linker Bogen (konkav nach rechts)
-            start = rotate_point_180(QPointF(rect.left(), rect.bottom()))
-            control_left = rotate_point_180(QPointF(rect.left() + w * 0.3, rect.center().y()))
-            end = rotate_point_180(QPointF(rect.left(), rect.top()))
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-            
-            # Gerade obere Linie zur rechten Seite
-            top_right_entry = rotate_point_180(QPointF(rect.right() - w * 0.1, rect.top()))
-            path.lineTo(top_right_entry)
-            
-            # Verstärkte rechte Wölbung (größerer Bauch)
-            control_right = rotate_point_180(QPointF(rect.right() + w * 0.25, rect.center().y()))
-            bottom_right_exit = rotate_point_180(QPointF(rect.right() - w * 0.1, rect.bottom()))
-            path.quadTo(control_right, bottom_right_exit)
-            
-            # Gerade untere Linie zurück zur linken Seite
-            path.lineTo(start)
-            
-            # Zeichnen
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-            
-            # Pins links (2 Eingänge) jetzt unten (wegen 180 Grad Drehung)
-            pin_length = 10
-            pin_y1 = rect.bottom() - h * 0.3
-            pin_y2 = rect.bottom() - h * 0.7
-            pin_x_in = rect.right() + pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(rect.right() - 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(rect.right() - 6, pin_y2))
-            
-            # Ausgangs-Pin rechts jetzt links (wegen 180 Grad Drehung)
-            pin_x_out = rect.left() - pin_length - 5
-            pin_y_out = rect.center().y()
-            painter.drawLine(QPointF(rect.left(), pin_y_out), QPointF(pin_x_out, pin_y_out))
-            
-            # Label zentriert
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(rect, Qt.AlignCenter, self.label)
-
-    class NorGateComponent(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            original_rect = self.rect()
-            adjusted_width = original_rect.width() - 5
-            rect = QRectF(original_rect.topLeft(), QSizeF(adjusted_width, original_rect.height()))
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))  # hellblau
-
-            path = QPainterPath()
-
-            # Linker Bogen (konkav nach rechts)
-            start = QPointF(rect.left(), rect.bottom())
-            control_left = QPointF(rect.left() + rect.width() * 0.3, rect.center().y())
-            end = QPointF(rect.left(), rect.top())
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-
-            # Gerade obere Linie zur rechten Seite
-            top_right_entry = QPointF(rect.right() - rect.width() * 0.1, rect.top())
-            path.lineTo(top_right_entry)
-
-            # Verstärkte rechte Wölbung (größerer Bauch)
-            control_right = QPointF(rect.right() + rect.width() * 0.25, rect.center().y())
-            bottom_right_exit = QPointF(rect.right() - rect.width() * 0.1, rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            # Gerade untere Linie zurück zur linken Seite
-            path.lineTo(start)
-
-            # Pfad zeichnen und füllen
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            # Negationskreis am Ausgang (kleiner Kreis rechts)
-            circle_radius = 6
-            circle_center = QPointF(rect.right() + circle_radius, rect.center().y())
-            painter.setBrush(Qt.white)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-
-            # Pins links (2 Eingänge)
-            pin_length = 10
-            pin_y1 = rect.top() + rect.height() * 0.3
-            pin_y2 = rect.bottom() - rect.height() * 0.3
-            pin_x_in = rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(rect.left() + 6, pin_y2))
-
-            # Ausgangs-Pin rechts (nach dem Kreis)
-            pin_x_out = circle_center.x() + circle_radius + 5
-            pin_y_out = circle_center.y()
-            painter.drawLine(QPointF(circle_center.x() + circle_radius, pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            # Label zentriert
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(rect, Qt.AlignCenter, self.label)
-
-    class NorGateComponentRotated90(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            rect = self.rect()
-            adjusted_width = rect.width() - 5
-            base_rect = QRectF(rect.topLeft(), QSizeF(adjusted_width, rect.height()))
-
-            painter.save()
-            center = base_rect.center()
-
-            painter.translate(center)
-            painter.rotate(90)
-            painter.translate(-center)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))
-
-            path = QPainterPath()
-
-            # Pfad wie beim NOR (in unverändertem Koordinatensystem)
-            start = QPointF(base_rect.left(), base_rect.bottom())
-            control_left = QPointF(base_rect.left() + base_rect.width() * 0.3, base_rect.center().y())
-            end = QPointF(base_rect.left(), base_rect.top())
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-
-            top_right_entry = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.top())
-            path.lineTo(top_right_entry)
-
-            control_right = QPointF(base_rect.right() + base_rect.width() * 0.25, base_rect.center().y())
-            bottom_right_exit = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            # Negationskreis
-            circle_radius = 6
-            circle_center = QPointF(base_rect.right() + circle_radius, base_rect.center().y())
-            painter.setBrush(Qt.white)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-
-            # Pins links
-            pin_length = 10
-            pin_y1 = base_rect.top() + base_rect.height() * 0.3
-            pin_y2 = base_rect.bottom() - base_rect.height() * 0.3
-            pin_x_in = base_rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(base_rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(base_rect.left() + 6, pin_y2))
-
-            # Ausgangs-Pin rechts (hinter Kreis)
-            pin_x_out = circle_center.x() + circle_radius + 5
-            pin_y_out = circle_center.y()
-            painter.drawLine(QPointF(circle_center.x() + circle_radius, pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            # Label
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(base_rect, Qt.AlignCenter, self.label)
-
-            painter.restore()
-
-    class NorGateComponentRotated180(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            rect = self.rect()
-            adjusted_width = rect.width() - 5
-            base_rect = QRectF(rect.topLeft(), QSizeF(adjusted_width, rect.height()))
-
-            painter.save()
-            center = base_rect.center()
-
-            painter.translate(center)
-            painter.rotate(180)
-            painter.translate(-center)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))
-
-            path = QPainterPath()
-
-            start = QPointF(base_rect.left(), base_rect.bottom())
-            control_left = QPointF(base_rect.left() + base_rect.width() * 0.3, base_rect.center().y())
-            end = QPointF(base_rect.left(), base_rect.top())
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-
-            top_right_entry = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.top())
-            path.lineTo(top_right_entry)
-
-            control_right = QPointF(base_rect.right() + base_rect.width() * 0.25, base_rect.center().y())
-            bottom_right_exit = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            circle_radius = 6
-            circle_center = QPointF(base_rect.right() + circle_radius, base_rect.center().y())
-            painter.setBrush(Qt.white)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-
-            pin_length = 10
-            pin_y1 = base_rect.top() + base_rect.height() * 0.3
-            pin_y2 = base_rect.bottom() - base_rect.height() * 0.3
-            pin_x_in = base_rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(base_rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(base_rect.left() + 6, pin_y2))
-
-            pin_x_out = circle_center.x() + circle_radius + 5
-            pin_y_out = circle_center.y()
-            painter.drawLine(QPointF(circle_center.x() + circle_radius, pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(base_rect, Qt.AlignCenter, self.label)
-
-            painter.restore()
-
-    class NorGateComponentRotated270(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            rect = self.rect()
-            adjusted_width = rect.width() - 5
-            base_rect = QRectF(rect.topLeft(), QSizeF(adjusted_width, rect.height()))
-
-            painter.save()
-            center = base_rect.center()
-
-            painter.translate(center)
-            painter.rotate(-90)  # 270 Grad = -90 Grad
-            painter.translate(-center)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))
-
-            path = QPainterPath()
-
-            start = QPointF(base_rect.left(), base_rect.bottom())
-            control_left = QPointF(base_rect.left() + base_rect.width() * 0.3, base_rect.center().y())
-            end = QPointF(base_rect.left(), base_rect.top())
-            path.moveTo(start)
-            path.quadTo(control_left, end)
-
-            top_right_entry = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.top())
-            path.lineTo(top_right_entry)
-
-            control_right = QPointF(base_rect.right() + base_rect.width() * 0.25, base_rect.center().y())
-            bottom_right_exit = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            circle_radius = 6
-            circle_center = QPointF(base_rect.right() + circle_radius, base_rect.center().y())
-            painter.setBrush(Qt.white)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-
-            pin_length = 10
-            pin_y1 = base_rect.top() + base_rect.height() * 0.3
-            pin_y2 = base_rect.bottom() - base_rect.height() * 0.3
-            pin_x_in = base_rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(base_rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(base_rect.left() + 6, pin_y2))
-
-            pin_x_out = circle_center.x() + circle_radius + 5
-            pin_y_out = circle_center.y()
-            painter.drawLine(QPointF(circle_center.x() + circle_radius, pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(base_rect, Qt.AlignCenter, self.label)
-
-            painter.restore()
-
-    class NandGateComponent(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            original_rect = self.rect()
-            adjusted_width = original_rect.width() - 5
-            rect = QRectF(original_rect.topLeft(), QSizeF(adjusted_width, original_rect.height()))
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))
-
-            path = QPainterPath()
-
-            # Zwei Bögen links (typisch für AND)
-            # Äußerer linker Bogen
-            start = QPointF(rect.left(), rect.bottom())
-            control_outer = QPointF(rect.left() + rect.width() * 0.35, rect.center().y())
-            end = QPointF(rect.left(), rect.top())
-            path.moveTo(start)
-            path.quadTo(control_outer, end)
-
-            # Innerer linker Bogen (kleiner Versatz nach rechts)
-            offset = rect.width() * 0.07
-            inner_start = QPointF(rect.left() + offset, rect.bottom())
-            inner_control = QPointF(rect.left() + rect.width() * 0.27 + offset, rect.center().y())
-            inner_end = QPointF(rect.left() + offset, rect.top())
-            path.moveTo(inner_start)
-            path.quadTo(inner_control, inner_end)
-
-            # Obere gerade Linie rechts
-            top_right_entry = QPointF(rect.right() - rect.width() * 0.1, rect.top())
-            path.lineTo(top_right_entry)
-
-            # Rechte Wölbung (Bauch nach rechts)
-            control_right = QPointF(rect.right() + rect.width() * 0.25, rect.center().y())
-            bottom_right_exit = QPointF(rect.right() - rect.width() * 0.1, rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            # Linie zurück zum Start
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            # Negationskreis am Ausgang (kleiner Kreis rechts)
-            circle_radius = 6
-            circle_center = QPointF(rect.right() + circle_radius, rect.center().y())
-            painter.setBrush(Qt.white)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-
-            # Pins links (2 Eingänge)
-            pin_length = 10
-            pin_y1 = rect.top() + rect.height() * 0.3
-            pin_y2 = rect.bottom() - rect.height() * 0.3
-            pin_x_in = rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(rect.left() + 6, pin_y2))
-
-            # Ausgangs-Pin rechts (hinter Kreis)
-            pin_x_out = circle_center.x() + circle_radius + 5
-            pin_y_out = circle_center.y()
-            painter.drawLine(QPointF(circle_center.x() + circle_radius, pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            # Label zentriert
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(rect, Qt.AlignCenter, self.label)
-
-    class NandGateComponentRotated90(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            rect = self.rect()
-            adjusted_width = rect.width() - 5
-            base_rect = QRectF(rect.topLeft(), QSizeF(adjusted_width, rect.height()))
-
-            painter.save()
-            center = base_rect.center()
-            painter.translate(center)
-            painter.rotate(90)
-            painter.translate(-center)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))
-
-            path = QPainterPath()
-
-            start = QPointF(base_rect.left(), base_rect.bottom())
-            control_outer = QPointF(base_rect.left() + base_rect.width() * 0.35, base_rect.center().y())
-            end = QPointF(base_rect.left(), base_rect.top())
-            path.moveTo(start)
-            path.quadTo(control_outer, end)
-
-            offset = base_rect.width() * 0.07
-            inner_start = QPointF(base_rect.left() + offset, base_rect.bottom())
-            inner_control = QPointF(base_rect.left() + base_rect.width() * 0.27 + offset, base_rect.center().y())
-            inner_end = QPointF(base_rect.left() + offset, base_rect.top())
-            path.moveTo(inner_start)
-            path.quadTo(inner_control, inner_end)
-
-            top_right_entry = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.top())
-            path.lineTo(top_right_entry)
-
-            control_right = QPointF(base_rect.right() + base_rect.width() * 0.25, base_rect.center().y())
-            bottom_right_exit = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            circle_radius = 6
-            circle_center = QPointF(base_rect.right() + circle_radius, base_rect.center().y())
-            painter.setBrush(Qt.white)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-
-            pin_length = 10
-            pin_y1 = base_rect.top() + base_rect.height() * 0.3
-            pin_y2 = base_rect.bottom() - base_rect.height() * 0.3
-            pin_x_in = base_rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(base_rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(base_rect.left() + 6, pin_y2))
-
-            pin_x_out = circle_center.x() + circle_radius + 5
-            pin_y_out = circle_center.y()
-            painter.drawLine(QPointF(circle_center.x() + circle_radius, pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(base_rect, Qt.AlignCenter, self.label)
-
-            painter.restore()
-
-    class NandGateComponentRotated180(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            rect = self.rect()
-            adjusted_width = rect.width() - 5
-            base_rect = QRectF(rect.topLeft(), QSizeF(adjusted_width, rect.height()))
-
-            painter.save()
-            center = base_rect.center()
-            painter.translate(center)
-            painter.rotate(180)
-            painter.translate(-center)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))
-
-            path = QPainterPath()
-
-            start = QPointF(base_rect.left(), base_rect.bottom())
-            control_outer = QPointF(base_rect.left() + base_rect.width() * 0.35, base_rect.center().y())
-            end = QPointF(base_rect.left(), base_rect.top())
-            path.moveTo(start)
-            path.quadTo(control_outer, end)
-
-            offset = base_rect.width() * 0.07
-            inner_start = QPointF(base_rect.left() + offset, base_rect.bottom())
-            inner_control = QPointF(base_rect.left() + base_rect.width() * 0.27 + offset, base_rect.center().y())
-            inner_end = QPointF(base_rect.left() + offset, base_rect.top())
-            path.moveTo(inner_start)
-            path.quadTo(inner_control, inner_end)
-
-            top_right_entry = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.top())
-            path.lineTo(top_right_entry)
-
-            control_right = QPointF(base_rect.right() + base_rect.width() * 0.25, base_rect.center().y())
-            bottom_right_exit = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            circle_radius = 6
-            circle_center = QPointF(base_rect.right() + circle_radius, base_rect.center().y())
-            painter.setBrush(Qt.white)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-
-            pin_length = 10
-            pin_y1 = base_rect.top() + base_rect.height() * 0.3
-            pin_y2 = base_rect.bottom() - base_rect.height() * 0.3
-            pin_x_in = base_rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(base_rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(base_rect.left() + 6, pin_y2))
-
-            pin_x_out = circle_center.x() + circle_radius + 5
-            pin_y_out = circle_center.y()
-            painter.drawLine(QPointF(circle_center.x() + circle_radius, pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(base_rect, Qt.AlignCenter, self.label)
-
-            painter.restore()
-
-    class NandGateComponentRotated270(DraggableComponent):
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            rect = self.rect()
-            adjusted_width = rect.width() - 5
-            base_rect = QRectF(rect.topLeft(), QSizeF(adjusted_width, rect.height()))
-
-            painter.save()
-            center = base_rect.center()
-            painter.translate(center)
-            painter.rotate(-90)  # 270 Grad = -90 Grad
-            painter.translate(-center)
-
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(173, 216, 230))
-
-            path = QPainterPath()
-
-            start = QPointF(base_rect.left(), base_rect.bottom())
-            control_outer = QPointF(base_rect.left() + base_rect.width() * 0.35, base_rect.center().y())
-            end = QPointF(base_rect.left(), base_rect.top())
-            path.moveTo(start)
-            path.quadTo(control_outer, end)
-
-            offset = base_rect.width() * 0.07
-            inner_start = QPointF(base_rect.left() + offset, base_rect.bottom())
-            inner_control = QPointF(base_rect.left() + base_rect.width() * 0.27 + offset, base_rect.center().y())
-            inner_end = QPointF(base_rect.left() + offset, base_rect.top())
-            path.moveTo(inner_start)
-            path.quadTo(inner_control, inner_end)
-
-            top_right_entry = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.top())
-            path.lineTo(top_right_entry)
-
-            control_right = QPointF(base_rect.right() + base_rect.width() * 0.25, base_rect.center().y())
-            bottom_right_exit = QPointF(base_rect.right() - base_rect.width() * 0.1, base_rect.bottom())
-            path.quadTo(control_right, bottom_right_exit)
-
-            path.lineTo(start)
-
-            painter.drawPath(path)
-            painter.fillPath(path, QColor(173, 216, 230))
-
-            circle_radius = 6
-            circle_center = QPointF(base_rect.right() + circle_radius, base_rect.center().y())
-            painter.setBrush(Qt.white)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(circle_center, circle_radius, circle_radius)
-
-            pin_length = 10
-            pin_y1 = base_rect.top() + base_rect.height() * 0.3
-            pin_y2 = base_rect.bottom() - base_rect.height() * 0.3
-            pin_x_in = base_rect.left() - pin_length
-            painter.drawLine(QPointF(pin_x_in, pin_y1), QPointF(base_rect.left() + 6, pin_y1))
-            painter.drawLine(QPointF(pin_x_in, pin_y2), QPointF(base_rect.left() + 6, pin_y2))
-
-            pin_x_out = circle_center.x() + circle_radius + 5
-            pin_y_out = circle_center.y()
-            painter.drawLine(QPointF(circle_center.x() + circle_radius, pin_y_out), QPointF(pin_x_out, pin_y_out))
-
-            painter.setPen(Qt.black)
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(base_rect, Qt.AlignCenter, self.label)
-
-            painter.restore()
-
-    class AndGateSymbol(QGraphicsItem):
-        def __init__(self, width=40, height=30, parent=None):
-            super().__init__(parent)
-            self.width = width
-            self.height = height
-            
-            self.setFlag(QGraphicsItem.ItemIsMovable, False)
-            self.setFlag(QGraphicsItem.ItemIsSelectable, False)
-            self.setFlag(QGraphicsItem.ItemIsFocusable, False)
-            
-            self.setAcceptedMouseButtons(Qt.NoButton)
-            
-        def boundingRect(self):
-            return QRectF(0, 0, self.width, self.height)
-        
-        def paint(self, painter, option, widget):
-            painter.setRenderHint(QPainter.Antialiasing)
-            pen = QPen(Qt.black, 2)
-            painter.setPen(pen)
-            painter.setBrush(QColor("white"))
-            
-            # Rechteck linker Teil
-            rect_width = self.width / 2
-            rect = QRectF(0, 0, rect_width, self.height)
-            painter.drawRect(rect)
-
-            # Halbkreis rechter Teil
-            path = QPainterPath()
-            path.moveTo(rect.right(), 0)
-            path.arcTo (rect.right() - self.height, 0, self.height, self.height, 90, -180)
-            path.lineTo(rect.right(), self.height)
-            painter.drawPath(path)
-
-            # Eingänge (links)
-            in_y1 = self.height * 0.3
-            in_y2 = self.height * 0.7
-            painter.drawLine(QPointF(-10, in_y1), QPointF(0, in_y1))
-            painter.drawLine(QPointF(-10, in_y2), QPointF(0, in_y2))
-
-            # Ausgang (rechts)
-            out_y = self.height / 4
-            painter.drawLine(QPointF(self.width, out_y), QPointF(self.width + 10, out_y))
-
-    class NotAndGateSymbol2(QGraphicsItem):
-        def __init__(self, width=20, height=20, parent=None):
-            super().__init__(parent)
-            self.width  = width
-            self.height = height
-            #self.setAcceptedMouseButtons(Qt.AllButtons)
-            self.setAcceptedMouseButtons(Qt.NoButton)
-            
-            self.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-            self.setFlag(QGraphicsItem.ItemIsMovable, False)
-            self.setFlag(QGraphicsItem.ItemIsSelectable, False)
-            self.setFlag(QGraphicsItem.ItemIsFocusable, False)
-            
-        def boundingRect(self):
-            return QRectF(0, 0, self.width, self.height)
-        
-        def paint(self, painter, option, widget):
-            painter.setPen(QPen(Qt.black, 1.5))
-            painter.setBrush(QBrush(Qt.lightGray))
-            
-            rect = QRectF(0, 0, self.width, self.height)
-            radius = self.width / 2
-            
-            # Rechte Seite Bogen (AND)
-            path = QPainterPath()
-            path.moveTo(0, 0)
-            path.lineTo(radius, 0)
-            path.arcTo(0, 0, self.width, self.height, 90, -180)
-            path.lineTo(0, self.height)
-            path.lineTo(0, 0)
-            
-            painter.drawPath(path)
-            
-            # AND Gatter Labels
-            painter.setFont(QFont('Small', 8))
-            painter.setPen(Qt.black)
-            label_rect = QRectF(2, 4, 25, 14)
-            painter.drawText(label_rect, Qt.AlignLeft, 'NAND')
-        
-        def mousePressEvent(self, event):
-            event.ignore() 
-
-    class ConnectionLine(QGraphicsPathItem):
-        def __init__(self, points, parent=None):
-            super().__init__(parent)
-            path = QPainterPath()
-            path.moveTo(points[0])
-            for pt in points[1:]:
-                path.lineTo(pt)
-            self.setPath(path)
-            self.setPen(QPen(Qt.black, 1.5))
-
-    class Chip7408Component(DraggableComponent):
-        def __init__(self, name="7408", xpos=0, ypos=0, width=300, height=150, view=None, scene=None, label="7408", degree=0, connections=[]):
-            super().__init__(name, xpos, ypos, width, height, view, label, connections)
-            self.setBrush(QColor(220, 220, 220))  # hellgrau Chipfarbe
-            self.painted = False
-            self.degree  = degree
-            self.xpos    = xpos
-            self.ypos    = ypos
-            self.view    = view
-            self.scene   = scene
-            
-            # Positionen für 4 Gatter (2 oben, 2 unten)
-            self.gate_width  = 24
-            self.gate_height = 21
-            spacing_x   = 10
-            spacing_y   = 10
-            
-            self.pin_size = QSizeF(20, 20)
-            self.bounds   = self.sceneBoundingRect()
-            
-        def paint(self, painter: QPainter, option, widget=None):
-            rect = self.rect()
-            
-            painter.setRenderHint(QPainter.Antialiasing)
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(220, 220, 220))
-            painter.drawRoundedRect(rect, 10, 10)
-            
-            pin_size = QSizeF(20, 20)
-            spacing = (pin_size.width() - 40) / 6  # für 7 Pins → 6 Lücken
-            pin_x_offset = -10  # alle Pins 10px nach links verschieben
-            pin_y_adjust = 5     # Y-Anpassung für Pins
-
-            spacing = (rect.width() - 40) / 6  # für 7 Pins → 6 Lücken
-            pin_x_offset = -10  # alle Pins 10px nach links verschieben
-            pin_y_adjust = 5     # Y-Anpassung für Pins
-            
-            # Linke Wölbung (Halbkreis nach innen rechts)
-            radius = 15
-            center_y = rect.center().y()
-            path = QPainterPath()
-            arc_rect = QRectF(rect.left() - radius, center_y - radius, 2 * radius, 2 * radius)
-            path.moveTo(rect.left(), center_y - radius)
-            path.arcTo(arc_rect, 90, -180)
-            painter.setBrush(QColor(220, 220, 220))
-            painter.drawPath(path)
-
-            # Vcc-Text (Pin 14)
-            painter.setFont(QFont("Arial", 10, QFont.Bold))
-            painter.setPen(Qt.black)
-            vcc_rect = QRectF(rect.left() + 10, rect.top() + 5, 50, 20)
-            painter.drawText(vcc_rect, Qt.AlignLeft, "Vcc")
-
-            # GND-Text (Pin 7)
-            gnd_rect = QRectF(rect.right() - 38, rect.bottom() - 25, 50, 20)
-            painter.drawText(gnd_rect, Qt.AlignLeft, "GND")
-            
-            pen = QPen(Qt.black, 1.2)
-            painter.setPen(pen)
-            
-            #-----
-            self.paint_and_gate(painter, 65, 25)
-            self.paint_and_gate(painter, 40, self.rect().height() - self.gate_height - 25)
-            self.paint_and_gate(painter,     self.rect().width () - self.gate_width  - 31, 25)
-            self.paint_and_gate(painter,     self.rect().width () - self.gate_width  - 60, self.rect().height() - self.gate_height - 25)
-            #-----
-            
-            # Beispiel: Gatter unten links (Pin 1, 2 → Eingang, Pin 3 → Ausgang)
-            # Positionen anpassen an tatsächliche Gatter/Pin-Kästchen
-            
-            # --- Eingang 1 (Pin 1 zu Gatter-Eingang)
-            painter.drawLine(QPointF(21, 62), QPointF(40, 62))
-            painter.drawLine(QPointF(21, 62), QPointF(21, 94))
-            # --- Eingang 2 (Pin 2 zu Gatter-Eingang)
-            painter.drawLine(QPointF(30, 70), QPointF(40, 70))
-            painter.drawLine(QPointF(30, 70), QPointF(30, 84))
-            painter.drawLine(QPointF(30, 84), QPointF(46, 84))
-            painter.drawLine(QPointF(46, 84), QPointF(46, 94))
-            # --- Ausgang (Gatter zu Pin 3)
-            painter.drawLine(QPointF(65, 65), QPointF(74, 65))
-            painter.drawLine(QPointF(74, 65), QPointF(74, 94))  # rechts raus zum Pin 3
-            
-            
-            # --- Eingang 1 (Pin 6 zu Gatter-Eingang)
-            painter.drawLine(QPointF(21+ 79, 62), QPointF(40+ 95, 62))
-            painter.drawLine(QPointF(21+ 79, 62), QPointF(21+ 79, 94))
-            # --- Eingang 2 (Pin 7 zu Gatter-Eingang)
-            painter.drawLine(QPointF(110, 70), QPointF(115, 70))
-            painter.drawLine(QPointF(110, 70), QPointF(110, 84))
-            painter.drawLine(QPointF(110, 84), QPointF(125, 84))
-            painter.drawLine(QPointF(125, 84), QPointF(125, 94))
-            # --- Ausgang (Gatter zu Pin 8)
-            painter.drawLine(QPointF(21+110, 65), QPointF(40+115, 65))
-            painter.drawLine(QPointF(40+115, 65), QPointF(40+115, 94))
-            
-            
-            # --- Eingang 1 (Pin 13 zu Gatter-Eingang)
-            painter.drawLine(QPointF(47, 41), QPointF(66, 41))
-            painter.drawLine(QPointF(47, 41), QPointF(47,  7))
-            # --- Eingang 2 (Pin 12 zu Gatter-Eingang)
-            painter.drawLine(QPointF(57, 32), QPointF(66, 32))
-            painter.drawLine(QPointF(57, 32), QPointF(57, 18))
-            painter.drawLine(QPointF(57, 18), QPointF(74, 18))
-            painter.drawLine(QPointF(74, 18), QPointF(74,  7))
-            # --- Ausgang (Gatter zu Pin 11)
-            painter.drawLine(QPointF( 90, 37), QPointF(100, 37))
-            painter.drawLine(QPointF(100, 37), QPointF(100,  7))
-            
-            
-            # --- Eingang 1 (Pin 10 zu Gatter-Eingang)
-            painter.drawLine(QPointF(125, 41), QPointF(144, 41))
-            painter.drawLine(QPointF(125, 41), QPointF(125,  7))
-            # --- Eingang 2 (Pin 9 zu Gatter-Eingang)
-            painter.drawLine(QPointF(135, 32), QPointF(144, 32))
-            painter.drawLine(QPointF(135, 32), QPointF(135, 18))
-            painter.drawLine(QPointF(135, 18), QPointF(152, 18))
-            painter.drawLine(QPointF(152, 18), QPointF(152,  7))
-            # --- Ausgang (Gatter zu Pin 8)
-            painter.drawLine(QPointF(174, 37), QPointF(180, 37))
-            painter.drawLine(QPointF(180, 37), QPointF(180,  7))
-            
-            # Chip-Label (zentral im Chip)
-            if self.label:
-                painter.setFont(QFont("Arial", 12, QFont.Bold))
-                painter.setPen(Qt.black)
-                label_rect = QRectF(rect.left(), rect.center().y() - 10, rect.width(), 20)
-                painter.drawText(label_rect, Qt.AlignCenter, self.label)
-            
-            #self.copy_item()
-            
-            if self.degree == 0:
-                # Obere Pins (14 bis 8)
-                for i, pin in enumerate(range(14, 7, -1)):
-                    x = 20 + i * spacing + pin_x_offset
-                    y = rect.top() - pin_size.height() + pin_y_adjust
-                    pin_rect = QRectF(x, y, pin_size.width(), pin_size.height())
-                    pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
-                               pin_rect.left (), pin_rect.top(),
-                               pin_rect.width(), pin_rect.height())
-
-                # Untere Pins (1 bis 7)
-                for i, pin in enumerate(range(1, 8)):
-                    x = 20 + i * spacing + pin_x_offset
-                    y = rect.bottom() - pin_y_adjust
-                    pin_rect = QRectF(x, y, pin_size.width(), pin_size.height())
-                    pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
-                               pin_rect.left (), pin_rect.top(),
-                               pin_rect.width(), pin_rect.height())
-                               
-            elif self.degree == 90:
-                # Mittelpunkt des Rechtecks (Zentrum der Drehung)
-                cx = rect.center().x()
-                cy = rect.center().y()
-
-                # Obere Pins (14 bis 8)
-                for i, pin in enumerate(range(14, 7, -1)):
-                    x = 20 + i * spacing + pin_x_offset
-                    y = rect.top() - pin_size.height() + pin_y_adjust
-
-                    # Manuelle Drehung um 90 Grad (im Uhrzeigersinn)
-                    dx = x - cx
-                    dy = y - cy
-                    rotated_x = cx + dy
-                    rotated_y = cy - dx
-
-                    pin_rect = QRectF(rotated_x, rotated_y, pin_size.width(), pin_size.height())
-                    pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
-                                pin_rect.left(), pin_rect.top(),
-                                pin_rect.width(), pin_rect.height())
-
-                # Untere Pins (1 bis 7)
-                for i, pin in enumerate(range(1, 8)):
-                    x = 20 + i * spacing + pin_x_offset
-                    y = rect.bottom() - pin_y_adjust
-
-                    # Manuelle Drehung um 90 Grad (im Uhrzeigersinn)
-                    dx = x - cx
-                    dy = y - cy
-                    rotated_x = cx + dy
-                    rotated_y = cy - dx
-
-                    pin_rect = QRectF(rotated_x, rotated_y, pin_size.width(), pin_size.height())
-                    pin_num  = PinConnection(self, self.view, "chip_7408_pin" + str(pin), str(pin),
-                                pin_rect.left(), pin_rect.top(),
-                                pin_rect.width(), pin_rect.height())
-        
-        def paint_and_gate(self, painter, xpos, ypos):
-            painter.setPen(QPen(Qt.black, 1.5))
-            painter.setBrush(QBrush(Qt.lightGray))
-            
-            #g1.setPos(65, 25)
-            grect = QRectF(xpos, ypos, self.gate_width, self.gate_height)
-            
-            # Rechte Seite Bogen (AND)
-            path = QPainterPath()
-            path.moveTo(xpos, ypos)
-            path.lineTo(xpos + self.gate_width-10, ypos)
-            path.arcTo (xpos, ypos, self.gate_width, self.gate_height, 90, -180)
-            path.lineTo(xpos, self.gate_height+ ypos)
-            path.lineTo(xpos, ypos)
-            
-            painter.drawPath(path)
-            
-            # AND Gatter Labels
-            painter.setFont(QFont('Small', 8))
-            painter.setPen(Qt.black)
-            label_grect = QRectF(xpos + 2, ypos + 4, 19, 14)
-            painter.drawText(label_grect, Qt.AlignLeft, 'AND')
-        
-        def mousePressEvent(self, event):
-            genv.v__app__pin_name     = ""
-            genv.v__app__pin_control  = "7408"
-        
-        def copy_item(self):
-            if   self.degree ==   0: self.single_copy(0)
-            elif self.degree ==  90: self.single_copy(1)
-            elif self.degree == 180: self.single_copy(2)
-            elif self.degree == 270: self.single_copy(3)
-        
-        def single_copy(self, n=0):
-            if  self.painted == False:
-                self.painted  = True
-                # item in pixmap rendern
-                self.pixmap_item = QPixmap(int(self.bounds.width()), int(self.bounds.height()))
-                self.pixmap_item.fill(Qt.transparent)
-                painter = QPainter(self.pixmap_item)
-                self.scene.render(painter, target=QRectF(self.pixmap_item.rect()), source=self.bounds)
-                painter.end()
-                # pixmap um 90 grad drehen
-                self.transform = QTransform().rotate(n * 90) # n x 90 degree => 90
-                self.pixmap_t1 = self.pixmap_item.transformed(self.transform, Qt.SmoothTransformation)
-                self.pixmap_r1 = QGraphicsPixmapItem(self.pixmap_t1)
-                self.pixmap_r1.setPos(self.xpos, self.ypos)
-                self.scene.addItem(self.pixmap_r1)
-                #self.view.show()
-
-    class Chip7400Component(DraggableComponent):
-        def __init__(self, name="7408", x=0, y=0, width=300, height=150, view=None, label="7400", connections=[]):
-            super().__init__(name, x, y, width, height, view, label, connections)
-            self.setBrush(QColor(220, 220, 220))  # hellgrau Chipfarbe
-            
-            # Positionen für 4 Gatter (2 oben, 2 unten)
-            gate_width = 24
-            gate_height = 21
-            spacing_x = 10
-            spacing_y = 10
-            
-            # Oben links
-            g1 = NotAndGateSymbol2(gate_width, gate_height, self)
-            g1.setPos(65, 25)
-            
-            # Oben rechts
-            g2 = NotAndGateSymbol2(gate_width, gate_height, self)
-            g2.setPos(self.rect().width() - gate_width - 31, 25)
-            
-            # Unten links
-            g3 = NotAndGateSymbol2(gate_width, gate_height, self)
-            g3.setPos(40, self.rect().height() - gate_height - 25)
-            
-            # Unten rechts
-            g4 = NotAndGateSymbol2(gate_width, gate_height, self)
-            g4.setPos(self.rect().width() - gate_width - 60, self.rect().height() - gate_height - 25)
-            
-            # Als Kindobjekte hinzufügen (damit sie mitverschoben werden)
-            for g in [g1, g2, g3, g4]:
-                g.setParentItem(self)
-        
-        def paint(self, painter: QPainter, option, widget=None):
-            rect = self.rect()
-
-            painter.setRenderHint(QPainter.Antialiasing)
-            painter.setPen(QPen(Qt.black, 2))
-            painter.setBrush(QColor(220, 220, 220))
-            painter.drawRoundedRect(rect, 10, 10)
-
-            pin_size = QSizeF(20, 20)
-            spacing = (rect.width() - 40) / 6  # für 7 Pins → 6 Lücken
-            pin_x_offset = -10  # alle Pins 10px nach links verschieben
-            pin_y_adjust = 5     # Y-Anpassung für Pins
-
-            # Obere Pins (14 bis 8)
-            for i, pin in enumerate(range(14, 7, -1)):
-                x = 20 + i * spacing + pin_x_offset
-                y = rect.top() - pin_size.height() + pin_y_adjust
-                pin_rect = QRectF(x, y, pin_size.width(), pin_size.height())
-                pin_num  = PinConnection(self, self.view, "chip_7400_pin" + str(pin), str(pin),
-                           pin_rect.left (), pin_rect.top(),
-                           pin_rect.width(), pin_rect.height())
-            
-            # Untere Pins (1 bis 7)
-            for i, pin in enumerate(range(1, 8)):
-                x = 20 + i * spacing + pin_x_offset
-                y = rect.bottom() - pin_y_adjust
-                pin_rect = QRectF(x, y, pin_size.width(), pin_size.height())
-                pin_num  = PinConnection(self, self.view, "chip_7400_pin" + str(pin), str(pin),
-                           pin_rect.left (), pin_rect.top(),
-                           pin_rect.width(), pin_rect.height())
-            
-            # Linke Wölbung (Halbkreis nach innen rechts)
-            radius = 15
-            center_y = rect.center().y()
-            path = QPainterPath()
-            arc_rect = QRectF(rect.left() - radius, center_y - radius, 2 * radius, 2 * radius)
-            path.moveTo(rect.left(), center_y - radius)
-            path.arcTo(arc_rect, 90, -180)
-            painter.setBrush(QColor(220, 220, 220))
-            painter.drawPath(path)
-
-            # Vcc-Text (Pin 14)
-            painter.setFont(QFont("Arial", 10, QFont.Bold))
-            painter.setPen(Qt.black)
-            vcc_rect = QRectF(rect.left() + 10, rect.top() + 5, 50, 20)
-            painter.drawText(vcc_rect, Qt.AlignLeft, "Vcc")
-
-            # GND-Text (Pin 7)
-            gnd_rect = QRectF(rect.right() - 38, rect.bottom() - 25, 50, 20)
-            painter.drawText(gnd_rect, Qt.AlignLeft, "GND")
-            
-            pen = QPen(Qt.black, 1.2)
-            painter.setPen(pen)
-            
-            # Beispiel: Gatter unten links (Pin 1, 2 → Eingang, Pin 3 → Ausgang)
-            # Positionen anpassen an tatsächliche Gatter/Pin-Kästchen
-            
-            # --- Eingang 1 (Pin 1 zu Gatter-Eingang)
-            painter.drawLine(QPointF(21, 62), QPointF(40, 62))
-            painter.drawLine(QPointF(21, 62), QPointF(21, 94))
-            # --- Eingang 2 (Pin 2 zu Gatter-Eingang)
-            painter.drawLine(QPointF(30, 70), QPointF(40, 70))
-            painter.drawLine(QPointF(30, 70), QPointF(30, 84))
-            painter.drawLine(QPointF(30, 84), QPointF(46, 84))
-            painter.drawLine(QPointF(46, 84), QPointF(46, 94))
-            # --- Ausgang (Gatter zu Pin 3)
-            painter.drawLine(QPointF(65, 65), QPointF(74, 65))
-            painter.drawLine(QPointF(74, 65), QPointF(74, 94))  # rechts raus zum Pin 3
-            
-            
-            # --- Eingang 1 (Pin 6 zu Gatter-Eingang)
-            painter.drawLine(QPointF(21+ 79, 62), QPointF(40+ 95, 62))
-            painter.drawLine(QPointF(21+ 79, 62), QPointF(21+ 79, 94))
-            # --- Eingang 2 (Pin 7 zu Gatter-Eingang)
-            painter.drawLine(QPointF(110, 70), QPointF(115, 70))
-            painter.drawLine(QPointF(110, 70), QPointF(110, 84))
-            painter.drawLine(QPointF(110, 84), QPointF(125, 84))
-            painter.drawLine(QPointF(125, 84), QPointF(125, 94))
-            # --- Ausgang (Gatter zu Pin 8)
-            painter.drawLine(QPointF(21+110, 65), QPointF(40+115, 65))
-            painter.drawLine(QPointF(40+115, 65), QPointF(40+115, 94))
-            
-            
-            # --- Eingang 1 (Pin 13 zu Gatter-Eingang)
-            painter.drawLine(QPointF(47, 41), QPointF(66, 41))
-            painter.drawLine(QPointF(47, 41), QPointF(47,  7))
-            # --- Eingang 2 (Pin 12 zu Gatter-Eingang)
-            painter.drawLine(QPointF(57, 32), QPointF(66, 32))
-            painter.drawLine(QPointF(57, 32), QPointF(57, 18))
-            painter.drawLine(QPointF(57, 18), QPointF(74, 18))
-            painter.drawLine(QPointF(74, 18), QPointF(74,  7))
-            # --- Ausgang (Gatter zu Pin 11)
-            painter.drawLine(QPointF( 90, 37), QPointF(100, 37))
-            painter.drawLine(QPointF(100, 37), QPointF(100,  7))
-            
-            
-            # --- Eingang 1 (Pin 10 zu Gatter-Eingang)
-            painter.drawLine(QPointF(125, 41), QPointF(144, 41))
-            painter.drawLine(QPointF(125, 41), QPointF(125,  7))
-            # --- Eingang 2 (Pin 9 zu Gatter-Eingang)
-            painter.drawLine(QPointF(135, 32), QPointF(144, 32))
-            painter.drawLine(QPointF(135, 32), QPointF(135, 18))
-            painter.drawLine(QPointF(135, 18), QPointF(152, 18))
-            painter.drawLine(QPointF(152, 18), QPointF(152,  7))
-            # --- Ausgang (Gatter zu Pin 8)
-            painter.drawLine(QPointF(174, 37), QPointF(180, 37))
-            painter.drawLine(QPointF(180, 37), QPointF(180,  7))
-            
-            # Chip-Label (zentral im Chip)
-            if self.label:
-                painter.setFont(QFont("Arial", 12, QFont.Bold))
-                painter.setPen(Qt.black)
-                label_rect = QRectF(rect.left(), rect.center().y() - 10, rect.width(), 20)
-                painter.drawText(label_rect, Qt.AlignCenter, self.label)
-        
-        def mousePressEvent(self, event):
-            genv.v__app__pin_name     = ""
-            genv.v__app__pin_control  = "7408"
-            
+    
     class CircuitDesigner(QWidget):
         def __init__(self):
             super().__init__()
@@ -19953,6 +18855,7 @@ try:
             
             # Layout für das QWidget
             layout = QVBoxLayout()
+            layout.setContentsMargins(0,0,0,0)
             layout.addWidget(self.view)
             self.setLayout(layout)
             
@@ -19962,94 +18865,16 @@ try:
             self.init_components()
 
         def init_components(self):
-            chip7408 = Chip7408Component(self,
-            xpos   =  50,
-            ypos   =  50,
-            width  = 200,
-            height = 100,
-            degree =   0,
-            view   = self.view,
-            scene  = self.scene)
-            chip7408.setScale(0.95)
-            self.scene.addItem(chip7408)
-            
-            testing = 0
-            # Bauteile mit individuellen Beschriftungen und Verankerungen hinzufügen
-            if testing == 1:
-                and_gate = DraggableComponentFormDesigner(
-                    "AND-Gate", x=100, y=100, view=self.view, label="AND",
-                    connections=[
-                        (QPointF(-10, 10), QPointF( 0, 10)),    # Linke obere Verankerung
-                        (QPointF(-10, 30), QPointF( 0, 30)),    # Linke untere Verankerung
-                        (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-                    ]
-                )
+            and_gate = AndGateComponent(
+                "AND",
+                x   = 100,
+                y   = 100,
+                width  =  75,
+                height =  40,
+                view   = self.view,
+                label  = "AND")
                 
-                lamp = DraggableComponentFormDesigner(
-                    "Lamp", x=200, y=200, view=self.view, label="LED",
-                    connections=[
-                        (QPointF(-10, 20), QPointF( 0, 20)),    # Linke Verankerung
-                        (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-                    ]
-                )
-                
-                battery = DraggableComponentFormDesigner(
-                    "Battery", x=300, y=300, view=self.view, label="SRC",
-                    connections=[
-                        (QPointF(-10, 20), QPointF( 0, 20)),    # Linke Verankerung
-                        (QPointF( 50, 20), QPointF(60, 20))     # Rechte Verankerung
-                    ]
-                )
-                
-                wire1 = DraggableComponent(
-                    "Wire1", x=200, y=100, width=100, height=2, view=self.view,
-                    connections=[
-                        (QPointF(  0,0), QPointF(  0,0)),
-                        (QPointF(100,0), QPointF(100,0))
-                    ]
-                )
-                
-                and_gate2 = AndGateComponent(
-                    "AND-Gate", x=100, y=100, width=75, height=40, view=self.view, label="AND",
-                    connections=[
-                        (QPointF(-10, 15), QPointF(0, 15)),
-                        (QPointF(-10, 35), QPointF(0, 35)),
-                        (QPointF(60, 25), QPointF(70, 25))
-                    ]
-                )
-
-                or_gate = OrGateComponent(
-                    "OR-Gate", x=200, y=150, width=60, height=50, view=self.view, label="OR",
-                    connections=[
-                        (QPointF(-10, 15), QPointF(30, 15)),
-                        (QPointF(-10, 35), QPointF(30, 35)),
-                        (QPointF(60, 25), QPointF(70, 25))
-                    ]
-                )
-                
-                and_gate = AndGateComponentRotated270(
-                    "AND-Gate", x=200, y=150, width=75, height=40, view=self.view, label="AND",
-                    connections=[
-                        (QPointF(-10, 15), QPointF(30, 15)),
-                        (QPointF(-10, 35), QPointF(30, 35)),
-                        (QPointF(60, 25), QPointF(70, 25))
-                    ]
-                )
-                and_gate.setScale(0.95)
-                
-                #chip7408 = Chip7408Component(self, x=50, y=50, width=200, height=100, view=self.view, scene=self.scene)
-                #chip7408.setScale(0.95)
-                
-                #chip7400 = Chip7400Component(self, x=50, y=150, width=200, height=100, view=self.view)
-                #chip7400.setScale(0.95)
-                
-                self.scene.addItem(and_gate)
-                self.scene.addItem(lamp)
-                self.scene.addItem(battery)
-                self.scene.addItem(wire1)
-                self.scene.addItem(and_gate2)
-                self.scene.addItem(or_gate)
-                self.scene.addItem(and_gate)
+            self.scene.addItem(and_gate)
             
             #self.scene.addItem(chip7408)
             #self.scene.addItem(chip7400)
@@ -23355,13 +22180,84 @@ try:
             
             self.electro_tabs_designer_widget = QWidget()
             
+            vlayout = QVBoxLayout()
             hlayout = QHBoxLayout()
-            component_list = QListWidget()
-            component_list.addItems(["item1", "item2"])
+            
+            vlayout.setContentsMargins(0,0,0,0)
+            hlayout.setContentsMargins(5,5,5,5)
+            
+            font = QFont("Arial", 10)
+            
+            imgpath = "_internal/img/electro/"
+            rhs_png = "_left.png"
+
+            self.electro_components = [
+                ["NOT" , imgpath + "not"  + rhs_png,
+                    [ "LR",
+                        [ "BODY", [  2, 18, 67,  84 ]],
+                        [ "A"   , [ 11, 86, 32, 100 ]],
+                        [ "B"   , [ 40, 86, 59, 100 ]]
+                    ],
+                    [ "RR",
+                        [ "BODY", [  2, 18, 67,  84 ]],
+                        [ "A"   , [ 11, 86, 32, 100 ]],
+                        [ "B"   , [ 40, 86, 59, 100 ]]
+                    ]
+                ],
+                ["AND" , imgpath + "and"  + rhs_png,
+                    [ "DR",
+                        [ "BODY", [  2, 18, 67,  84 ]],
+                        [ "A"   , [ 11, 86, 32, 100 ]],
+                        [ "B"   , [ 40, 86, 59, 100 ]],
+                        [ "C"   , [ 23,  0, 45,  16 ]]
+                    ],
+                    [ "UR",
+                        [ "BODY", [  2, 18, 67,  84 ]],
+                        [ "A"   , [ 11, 86, 32, 100 ]],
+                        [ "B"   , [ 40, 86, 59, 100 ]],
+                        [ "C"   , [ 23,  0, 45,  16 ]]
+                    ],
+                    [ "LR",
+                        [ "BODY", [  2, 18, 67,  84 ]],
+                        [ "A"   , [ 11, 86, 32, 100 ]],
+                        [ "B"   , [ 40, 86, 59, 100 ]],
+                        [ "C"   , [ 23,  0, 45,  16 ]]
+                    ],
+                    [ "RR",
+                        [ "BODY", [  2, 18, 67,  84 ]],
+                        [ "A"   , [ 11, 86, 32, 100 ]],
+                        [ "B"   , [ 40, 86, 59, 100 ]],
+                        [ "C"   , [ 23,  0, 45,  16 ]]
+                    ]
+                ],
+                ["NAND", imgpath + "nand" + rhs_png ],
+                ["OR"  , imgpath + "or"   + rhs_png ],
+                ["NOR" , imgpath + "nor"  + rhs_png ],
+                ["XOR" , imgpath + "xor"  + rhs_png ],
+                ["XNOR", imgpath + "nxor" + rhs_png ]
+            ]
+            self.component_list = QListWidget()
+            self.component_list.setMinimumWidth(150)
+            self.component_list.setFont(font)
+            self.component_list.currentItemChanged.connect(self.component_list_item_changed)
+            
+            for item in self.electro_components:
+                self.component_list.addItem(item[0])
+            
+            self.component_image_label = QLabel("Logic Gater:")
+            self.component_image_label.setFont(font)
+            
+            self.component_image_graph = QLabel("")
+            self.component_image_graph.setMinimumHeight(100)
+            self.component_image_graph.setMaximumHeight(100)
             
             component_designer = CircuitDesigner()
             
-            hlayout.addWidget(component_list)
+            vlayout.addWidget(self.component_list)
+            vlayout.addWidget(self.component_image_label)
+            vlayout.addWidget(self.component_image_graph)
+            
+            hlayout.addLayout(vlayout)
             hlayout.addWidget(component_designer)
             
             #self.electro_tabs.addLayout(hlayout)
@@ -23370,7 +22266,20 @@ try:
             self.electro_tabs.addTab(self.electro_tabs_designer_widget, _str("electro"))
             self.main_layout.addWidget(self.electro_tabs)
             return
-                
+            
+        def component_list_item_changed(self, current, previous):
+            if current:
+                for item in self.electro_components:
+                    if item[0] == current.text():
+                        print(item[1])
+                        pixmap = QPixmap(item[1])
+                        if pixmap.isNull():
+                            showError("image could not be loaded.")
+                            return
+                        self.component_image_graph.setPixmap(pixmap)
+                        self.component_image_graph.show()
+                        return
+        
         # pascal
         def handlePascal(self):
             self.pascal_tabs = ApplicationTabWidget([
