@@ -1,5 +1,5 @@
 # HelpNDocTools
-Working pre-alpha Release Code available under: [Playground](https://kallup.net/py/packed.zip). <br>
+Working pre-alpha Release Code available under: [Playground](https://kallup.net/myapp/packed.zip). <br>
 Tested with Python 3.13 under Windows 11 64-Bit Pro. <br>
 **0.** - download and depack zip archive<br>
 **1.** - start -> setup.bat <br>

@@ -40,17 +40,37 @@ instance_names = {}
 
 HTTP_PORT      = 8000
 HTTP_DIRECTORY = "./__pycache__/temp"
-        
+
+import argparse, textwrap
+import datetime as dt
 import importlib
 import subprocess
 import sys            # system specifies
 import os             # operating system stuff
-import re
+import regex as re
 import platform
 import hashlib
 import traceback      # stack exception trace back
 
-from   io  import StringIO
+from io      import StringIO
+from pathlib import Path
+
+import html as _html
+
+# -----------------------------------------------------------------------
+# for fetch html websites ...
+# -----------------------------------------------------------------------
+from urllib.request import Request, urlopen
+from urllib.error   import URLError, HTTPError
+from urllib.parse   import quote_plus
+
+VALID_ASM_CHARS_RE = re.compile(r'[^A-Za-z0-9_$.#@~.?]')
+
+DOCS_UA      = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Python/urllib"
+DOCS_HREF_RE = re.compile(
+    r"/([a-z]{2}-[a-z]{2})/windows/win32/api/[^\"]*nf-[^/\"]*-([a-z0-9_]+)\"",
+    re.IGNORECASE,
+)
 
 # -----------------------------------------------------------------------
 # under the windows console, python paths can make problems ...
@@ -383,7 +403,7 @@ try:
     # ---------------------------------------------------------------------
     # this is a double check for application imports ...
     # ---------------------------------------------------------------------
-    import re             # regular expression handling
+    import regex as re    # regular expression handling
     import requests       # get external url stuff
     import itertools
 
@@ -624,6 +644,12 @@ try:
         
         return unihash
     
+    # Hilfe-Formatter: Defaults + schöne Epilog-Blöcke
+    class RichHelp(
+        argparse.ArgumentDefaultsHelpFormatter,
+        argparse.RawDescriptionHelpFormatter):
+        pass
+
     class ParserSyntaxError(Exception):
         def __init__(self, text, value=-1):
             self.value   = str(value)
@@ -2155,8 +2181,6 @@ try:
         if genv.run_in_gui:
             DebugPrint("run in gui")
         
-        from pathlib import Path
-        
         # ------------------------------------------------------------------------
         # developers modules ...
         # ------------------------------------------------------------------------
@@ -2323,6 +2347,845 @@ try:
             DebugPrint(f"file : {tb.filename}")
             DebugPrint(f"line : {tb.lineno}")
             sys.exit(1)
+
+    # \desc Modus 1: Erzeugt aus den Exporten (Ordinal + Funktionsname)
+    #                einer Windows-DLL eine msgfmt-kompatible .po-Datei und
+    #                baut daraus eine .mo-Datei. Optional: Assembler-Include.
+    #
+    # \desc Modus 2: Win32-API-Doku von learn.microsoft.com ermitteln,
+    #                HTML speichern und zusätzlich HTML-escaped in eine .po
+    #                schreiben. Sprach-Präferenz konfigurierbar und URL-
+    #                Ermittlung via Suchseite von Microsoft Learn.
+    #
+    #  CLI mit Subcommands:
+    #      - exports (kompatibel zum vorhandenen Skript)
+    #      - docs    (mit den gewünschten Flags: --out-html/--out-po/--no-*)
+    #
+    # Beispiel (Exports  – ohne Subcommand):
+    # ------------------------------------------------------
+    # python dllord.py --dll user32.dll --dll-dir "C:\\Windows\\System32" ^
+    #      --out-po exports_user32.po --hex ^
+    #      --out-asm exports_user32.inc --asm-strip-stdcall --asm-sanitize
+    #
+    # Beispiel (Docs für MessageBoxA):
+    # ------------------------------------------------------
+    # python dllord.py docs --dll user32.dll --out-html ./docs --out-po ./docs.po ^
+    #      --langs de-de,en-us --function MessageBoxA
+    #
+    # Beispiel (Docs aus allen Exports der DLL generieren):
+    # ------------------------------------------------------
+    # python dllord.py docs --dll user32.dll --dll-dir "C:\\Windows\\System32" ^
+    #      --out-html ./docs --out-po ./docs.po --langs de-de,en-us --from-exports
+    #
+    # Voraussetzungen:
+    #   pip install pefile
+    #   pip install regex
+    #   msgfmt.exe (GNU gettext) im PATH oder via --msgfmt angeben
+    # ----------------------------------------------------------------------------
+    class handleExports:
+        # ----------------------------------------------------------------------------
+        # PO-String escapen (Doppelpunkte, Quotes, Backslashes, Zeilenumbrüche).
+        # ----------------------------------------------------------------------------
+        def escape_po(s: str) -> str:
+            return (
+                s.replace('\\', '\\\\')
+                 .replace('"' , '\\"' )
+                 .replace('\r', '\\r' )
+                 .replace('\n', '\\n' )
+            )
+
+        # ----------------------------------------------------------------------------
+        # Liest Ordinal + Name der Exporte aus dll_path.
+        # ----------------------------------------------------------------------------
+        def enumerate_exports(dll_path: Path):
+            pe = pefile.PE(str(dll_path))
+            exports = []
+            if not hasattr(pe, "DIRECTORY_ENTRY_EXPORT"):
+                return exports
+            for sym in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+                ordinal = sym.ordinal
+                name = None
+                if sym.name:
+                    try:
+                        name = sym.name.decode("ascii")
+                    except Exception:
+                        name = sym.name.decode("utf-8", errors = "replace")
+                exports.append((ordinal, name))
+            exports.sort(key=lambda t: t[0])
+            return exports
+
+        # ----------------------------------------------------------------------------
+        # N kann int, str oder etwas int-artiges sein.
+        # str wird mit Basis 0 geparst (unterstützt 0x..., 0o..., 0b..., dezimal).
+        # ----------------------------------------------------------------------------
+        def format_ordinal(n, use_hex: bool) -> str:
+            try:
+                if isinstance(n, str):
+                    n_int = int(n.strip(), 0)
+                else:
+                    n_int = int(n)
+            except (TypeError, ValueError) as e:
+                raise ValueError(f"Ungültige Ordinalzahl: {n!r}") from e
+            return f"0x{n_int:X}" if use_hex else str(n_int)
+
+        # ----------------------------------------------------------------------------
+        # Assembler %include
+        # ----------------------------------------------------------------------------
+        # Erzeuge einen NASM-kompatiblen Makronamen.
+        # ----------------------------------------------------------------------------
+        def sanitize_asm_name(name: str) -> str:
+            s = VALID_ASM_CHARS_RE.sub('_', name)
+            if s and s[0].isdigit():
+                s = '_' + s
+            return s or "_noname_"
+
+        # ----------------------------------------------------------------------------
+        # Entfernt stdcall-Dekoration '@NN' am Ende (x86).
+        # ----------------------------------------------------------------------------
+        def strip_stdcall_suffix(name: str) -> str:
+            return re.sub(r'@\d+\Z', '', name)
+
+        # ----------------------------------------------------------------------------
+        # Schreibt %define <name> 0x<HEX> (nur benannte Exporte).
+        # ----------------------------------------------------------------------------
+        def write_asm_defines(
+            exports, out_inc: Path, dll_path: Path,
+            strip_stdcall: bool = False,
+            sanitize     : bool = False,
+            hex_lower    : bool = False):
+            
+            def hex_str(n: int) -> str:
+                return f"0x{n:x}" if hex_lower else f"0x{n:X}"
+
+            # ------------------------------------------------------------------------
+            # Name -> Ordinal (erste Vorkommnis gewinnt)
+            # ------------------------------------------------------------------------
+            mapping = {}
+            for ordinal, name in exports:
+                if not name:
+                    continue
+                n = strip_stdcall_suffix(name) if strip_stdcall else name
+                key = sanitize_asm_name(n) if sanitize else n
+                mapping.setdefault(key, ordinal)
+
+            out_inc.parent.mkdir(parents=True, exist_ok=True)
+            with out_inc.open("w", encoding="utf-8", newline="\n") as f:
+                f.write("; Auto-generated from exports of: {}\n".format(dll_path))
+                f.write("; Schema: %define <funktionsname> <hex-ordinal>\n\n")
+                for fname in sorted(mapping):
+                    f.write(f"%define {fname} {hex_str(mapping[fname])}\n")
+
+        # ----------------------------------------------------------------------------
+        # Schreibt eine .po mit Header + Einträgen msgid=<ordinal>, msgstr=<name>.
+        # ----------------------------------------------------------------------------
+        def write_po_exports(exports, out_po: Path, use_hex: bool,
+            project = "dll-exports", lang = ""):
+            now = dt.datetime.now().strftime("%Y-%m-%d %H:%M%z")
+            
+            # ------------------------------------------------------------------------
+            # Sicherstellen, dass Ordinale als Strings kommen – Darstellung ent-
+            # scheidet Aufrufer (dezimal/hex)
+            # ------------------------------------------------------------------------
+            with out_po.open("w", encoding="utf-8", newline="\n") as f:
+                # ------------------------------------------------------------------------
+                # Minimaler, msgfmt-tauglicher Header
+                # ------------------------------------------------------------------------
+                f.write('# Generated from DLL exports\n')
+                f.write('msgid ""\n')
+                f.write('msgstr ""\n')
+                f.write(f'"Project-Id-Version: {escape_po(project)}\\n"\n')
+                f.write('"Report-Msgid-Bugs-To: \\n"\n')
+                f.write(f'"POT-Creation-Date: {now}\\n"\n')
+                f.write(f'"PO-Revision-Date: {now}\\n"\n')
+                f.write('"Last-Translator: \\n"\n')
+                f.write('"Language-Team: \\n"\n')
+                f.write(f'"Language: {escape_po(lang)}\\n"\n')
+                f.write('"MIME-Version: 1.0\\n"\n')
+                f.write('"Content-Type: text/plain; charset=UTF-8\\n"\n')
+                f.write('"Content-Transfer-Encoding: 8bit\\n"\n\n')
+                
+                # ------------------------------------------------------------------------
+                # 1) Ordinal -> Name
+                # ------------------------------------------------------------------------
+                f.write('# --- Forward mapping: ordinal -> name ---\n')
+                for ordinal, name in exports:
+                    ord_str = format_ordinal(ordinal, use_hex)
+                    f.write(f'msgid "{escape_po(ord_str)}"\n')
+                    f.write(f'msgstr "{escape_po(name or "")}"\n\n')
+                
+                # ------------------------------------------------------------------------
+                # 2) Name -> Ordinal (namenlose Exporte überspringen, Deduplizierung nach
+                # Name)
+                # ------------------------------------------------------------------------
+                f.write('# --- Reverse mapping: name -> ordinal ---\n')
+                seen_names = set()
+                for ordinal, name in exports:
+                    if not name:
+                        continue
+                    if name in seen_names:
+                        continue
+                    seen_names.add(name)
+                    ord_str = format_ordinal(ordinal, use_hex)
+                    f.write(f'msgid "{escape_po(name)}"\n')
+                    f.write(f'msgstr "{escape_po(ord_str)}"\n\n')
+
+        # ----------------------------------------------------------------------------
+        # Führt msgfmt aus, um aus .po -> .mo zu bauen.
+        # ----------------------------------------------------------------------------
+        def run_msgfmt(msgfmt_exe: str, po_path: Path, mo_path: Path):
+            cmd = [msgfmt_exe, "-o", str(mo_path), str(po_path)]
+            try:
+                cp = subprocess.run(cmd, check=False, capture_output=True, text=True)
+            except FileNotFoundError:
+                # Fallback: unter Unix heißt es oft "msgfmt" ohne .exe
+                if msgfmt_exe.lower().endswith(".exe"):
+                    alt = msgfmt_exe[:-4]
+                else:
+                    alt = msgfmt_exe + ".exe"
+                try:
+                    cp = subprocess.run(
+                    [alt, "-o", str(mo_path), str(po_path)],
+                    check = False,
+                    capture_output = True,
+                    text = True)
+                except FileNotFoundError:
+                    print(""
+                    + f"Fehler: '{msgfmt_exe}' nicht gefunden. Bitte --msgfmt "
+                    + f"angeben oder in PATH bereitstellen.", file = sys.stderr)
+                    sys.exit(3)
+
+            if cp.returncode != 0:
+                print("msgfmt meldete einen Fehler:", file=sys.stderr)
+                if cp.stdout:
+                    print(cp.stdout, file = sys.stderr)
+                if cp.stderr:
+                    print(cp.stderr, file = sys.stderr)
+                sys.exit(cp.returncode)
+
+        # ----------------------------------------------------------------------------
+        # CLI - command line interface ...
+        # ----------------------------------------------------------------------------
+        def build_top_parser() -> argparse.ArgumentParser:
+            textep = (""
+                + "Beispiele:\n"
+                + "# Exporte -> .po/.mo\n"
+                + "python dllord.py exports --dll user32.dll --out-po exports.po\n"
+                + "\n"
+                + "# Doku für eine Funktion (HTML + .po)\n"
+                + "python dllord.py docs --dll user32.dll --out-html ./docs --out-po "
+                + "./docs.po --langs de-de,en-us --function MessageBoxA\n"
+                + "\n"
+                + "# Doku für alle Exporte der DLL\n"
+                + "python dllord.py docs --dll user32.dll --dll-dir \"C:\\Windows\\System32\" "
+                + "--from-exports --out-html ./docs --out-po ./docs.po\n")
+            epilog = textwrap.dedent(textep)
+            p = argparse.ArgumentParser(
+                description = (""
+                    + "Extrahiert Ordinale + Funktionsnamen aus einer DLL, "
+                    + "erzeugt eine .po (beide Richtungen), optional .mo und eine "
+                    + "Assembler-%define-Datei, "
+                    + "lädt Win32-Doku (docs) und speichert HTML + .po."
+                ),
+                formatter_class = RichHelp,
+                epilog          = epilog  ,
+            )
+            help_010 = ("Name der DLL (z.B. user32.dll) oder vollständiger Pfad")
+            help_011 = ("DLL-Exporte -> .po/.mo und optional Assembler-Include")
+            help_020 = ("Verzeichnis der DLL (z.B. C:\\Windows\\System32). Optional, "
+                       +"wird mit --dll kombiniert.")
+            help_030 = ("Ausgabedatei .po")
+            help_040 = ("Ausgabedatei .mo (optional; Standard: gleicher Name wie .po "
+                       +"mit Endung .mo)")
+            help_050 = ("Keine .mo erzeugen (msgfmt nicht ausführen)")
+            help_060 = ("Pfad zu msgfmt.exe (Default: msgfmt.exe aus PATH)")
+            help_070 = ("Ordinale als Hex (z.B. 0x1A3) statt dezimal in msgid "
+                       +"schreiben")
+            help_080 = ("Project-Id-Version im PO-Header")
+            help_090 = ("Language im PO-Header (z.B. de)")
+            #
+            help_100 = ("Pfad zur Assembler-Include-Datei (optional).")
+            help_110 = ("Bei x86 stdcall-Dekoration '@NN' am Funktionsnamen entfernen.")
+            help_120 = ("Funktionsnamen für NASM validieren/säubern (ungewöhnliche "
+                       +"Zeichen -> '_').")
+            help_130 = ("Hex in Asm-Datei kleinschreiben (0x1a3 statt 0x1A3).")
+            
+            sub = p.add_subparsers(dest = "subcmd")
+            ap  = sub.add_parser("exports",
+                help = help_011,
+                formatter_class = RichHelp,
+                epilog          = textwrap.dedent("""
+                    Beispiele:
+                        python dllord.py exports --dll user32.dll --out-po exports.po
+                        python dllord.py exports --dll user32.dll --out-po exports.po --out-asm exports.inc --asm-strip-stdcall --asm-sanitize
+                """),
+            )
+            #
+            ap.add_argument("--dll"     , required = True,          help = help_010)
+            ap.add_argument("--dll-dir" , default  = None,          help = help_020)
+            ap.add_argument("--out-po"  , required = True,          help = help_030)
+            ap.add_argument("--out-mo"  , default  = None,          help = help_040)
+            ap.add_argument("--no-mo"   , action   = "store_true",  help = help_050)
+            ap.add_argument("--msgfmt"  , default  = "msgfmt.exe",  help = help_060)
+            ap.add_argument("--hex"     , action   = "store_true",  help = help_070)
+            ap.add_argument("--project" , default  = "dll-exports", help = help_080)
+            ap.add_argument("--language", default  = "",            help = help_090)
+
+            # Assembler-Include (optional)
+            ap.add_argument("--out-asm"          , default = None       , help = help_100)
+            ap.add_argument("--asm-strip-stdcall", action  = "store_true", help = help_110)
+            ap.add_argument("--asm-sanitize"     , action  = "store_true", help = help_120)
+            ap.add_argument("--asm-hex-lower"    , action  = "store_true", help = help_130)
+            
+            
+            help_200 = ("Win32-Doku von learn.microsoft.com speichern")
+            help_210 = ("DLL-Pfad oder Name (zur Ableitung des Kurz-Namens und optional "
+                       +"für --from-exports)")
+            help_220 = ("Verzeichnis der DLL (für --from-exports)")
+            help_230 = ("Kurzer DLL-Name für Dateischema (z.B. user32). Default: "
+                       +"Basename von --dll ohne Endung oder 'dll'")
+            help_240 = ("Konkrete Funktionsnamen (A/W erlaubt). Mehrfach angeben möglich.")
+            help_250 = ("Pfad zu einer Textdatei mit Funktionsnamen (eine pro Zeile)")
+            help_260 = ("Funktionsliste aus den Exporten der angegebenen DLL ableiten")
+            help_270 = ("Ordner ODER .html-Dateipfad für HTML-Output (Schema: "
+                       +"<dllshort>_<Funktion>.html)")
+            help_280 = (".po-Datei, in die der HTML-escaped Inhalt geschrieben wird")
+            help_290 = ("Nur .po schreiben, kein HTML")
+            help_300 = ("Nur HTML schreiben, kein .po")
+            help_310 = ("Sprachpräferenz, Komma-getrennt. Reihenfolge = Fallback")
+            
+            # docs (neuer Modus)
+            pd = sub.add_parser("docs"   ,
+                help            = help_200,
+                formatter_class = RichHelp,
+                epilog          = textwrap.dedent(""
+                + "Beispiele:\n"
+                + "   python dllord.py docs --dll user32.dll --out-html ./docs --out-po ./docs.po "
+                + "--langs de-de,en-us --function MessageBoxA"
+                + "\n"
+                + "   python dllord.py docs --dll user32.dll --dll-dir \"C:\\Windows\\System32\" "
+                + "--from-exports --out-html ./docs --out-po ./docs.po\n"),
+            )
+            pd.add_argument("--dll"      , required = False, help = help_210)
+            pd.add_argument("--dll-dir"  , default  = None , help = help_220)
+            pd.add_argument("--dll-short", default  = None , help = help_230)
+
+            pd.add_argument("--function"      , action  = "append"    , help = help_240)
+            pd.add_argument("--functions-file", default = None        , help = help_250)
+            pd.add_argument("--from-exports"  , action  = "store_true", help = help_260)
+
+            # Gewünschte, explizit angefragte Flags
+            pd.add_argument("--out-html", default = None        , help= help_270)
+            pd.add_argument("--out-po"  , default = None        , help= help_280)
+            pd.add_argument("--no-html" , action  = "store_true", help= help_290)
+            pd.add_argument("--no-po"   , action  = "store_true", help= help_300)
+
+            pd.add_argument("--langs"   , default ="de-de,en-us", help = help_310)
+            return p
+
+        def _ensure_dir(path: Path):
+            path.mkdir(parents = True, exist_ok = True)
+
+        def _resolve_html_output(
+            out_html : Path | None,
+            dll_short: str,
+            func_name: str) -> Path:
+            if out_html is None:
+                out_html = Path('.')
+            if out_html.suffix.lower() == '.html':
+                _ensure_dir(out_html.parent)
+                return out_html
+            _ensure_dir(out_html)
+            return out_html / f"{dll_short}_{func_name}.html"
+
+        def _po_header(now: str) -> str:
+            return (
+                'msgid ""\n'
+                'msgstr ""\n'
+                '"Project-Id-Version: msdocs-scrape 1.0\\n"\n'
+                '"Report-Msgid-Bugs-To: \\n"\n'
+                f'"POT-Creation-Date: {now}\\n"\n'
+                f'"PO-Revision-Date: {now}\\n"\n'
+                '"Last-Translator: \\n"\n'
+                '"Language-Team: \\n"\n'
+                '"MIME-Version: 1.0\\n"\n'
+                '"Content-Type: text/plain; charset=UTF-8\\n"\n'
+                '"Content-Transfer-Encoding: 8bit\\n"\n\n'
+            )
+
+        def _po_escape(s: str) -> str:
+            s = _html.escape(s)
+            s = s.replace("\\"  , "\\\\" )
+            s = s.replace('"'   , '\\"'  )
+            s = s.replace("\r\n", "\n"   )
+            s = s.replace("\r"  , "\n"   )
+            s = s.replace("\n"  , "\\n\n")
+            return s
+
+        def _po_append_entry(
+            po_path  : Path,
+            dll_short: str,
+            func_name: str,
+            url      : str,
+            html_text: str):
+            now    = dt.datetime.now().strftime("%Y-%m-%d %H:%M%z")
+            is_new = not po_path.exists() or po_path.stat().st_size == 0
+            _ensure_dir(po_path.parent)
+            with po_path.open("a", encoding="utf-8", newline="\n") as f:
+                if is_new:
+                    f.write(_po_header(now))
+                key  = f"{dll_short}_{func_name}.html"
+                body = _po_escape(html_text)
+                f.write(f"#. Source: {url}\n")
+                f.write(f"msgctxt \"{dll_short}/{func_name}\"\n")
+                f.write(f"msgid \"{key}\"\n")
+                f.write('msgstr ""\n')
+                for line in body.split("\n"):
+                    f.write(f'"{line}"\n')
+                f.write("\n")
+
+        # ----------------------------------------------------------------------------
+        # Sucht die passende Win32-API-Seite auf learn.microsoft.com.
+        # Strategie: Für jede gewünschte Sprache die Suchseite verwenden und nach
+        # einem nf-*-<funktionsname>-Treffer im Win32-API-Bereich filtern.
+        # ----------------------------------------------------------------------------
+        def discover_learn_url(func_name: str, langs: list[str]) -> str:
+            fn_lower = func_name.lower()
+            for lang in langs:
+                q = quote_plus(func_name)
+                search_url = f"https://learn.microsoft.com/{lang}/search/?terms={q}"
+                try:
+                    req = Request(search_url, headers={"User-Agent": DOCS_UA})
+                    with urlopen(req, timeout=30) as resp:
+                        html = resp.read().decode("utf-8", errors="replace")
+                except Exception:
+                    continue
+                # Nach typischem nf-<header>-<funktion> suchen
+                # und exakt auf den Funktionsnamen matchen (a/w Suffix erlaubt).
+                for m in DOCS_HREF_RE.finditer(html):
+                    _lang     = m.group(1)
+                    slug_func = m.group(2) # z.B. messageboxa
+                    if slug_func.lower() == fn_lower:
+                        return (f"https://learn.microsoft.com/{_lang}/windows/win32/api/"
+                        + html[m.start():m.end()].split("/windows/win32/api/")[1].rstrip('"'))
+                        
+            # Fallback: en-us direkter Pattern-Versuch über bekannte Header
+            headers = [
+                'winuser','libloaderapi','processthreadsapi','fileapi','errhandlingapi',
+                'handleapi','memoryapi','synchapi','securitybaseapi','winbase','wingdi',
+                'wingdi','wininet','shellapi','winreg','winsock','winhttp','psapi'
+            ]
+            for h in headers:
+                url = f"https://learn.microsoft.com/en-us/windows/win32/api/{h}/nf-{h}-{fn_lower}"
+                try:
+                    req = Request(url, headers = {"User-Agent": DOCS_UA})
+                    with urlopen(req, timeout=15) as resp:
+                        if resp.status == 200:
+                            return resp.geturl()
+                except Exception:
+                    pass
+            raise RuntimeError(f"Keine Learn-URL für Funktion gefunden: {func_name}")
+
+        # ----------------------------------------------------------------------------
+        # Entfernt Header/Footer/Nav von learn.microsoft.com-Seiten und extrahiert
+        # bevorzugt den <main>-Inhalt. Fällt robust auf eine einfache Heuristik zurück,
+        # wenn BeautifulSoup nicht verfügbar ist. Gibt ein minimales HTML-Dokument
+        # zurück.
+        # ----------------------------------------------------------------------------
+        def _clean_learn_html(html_text: str) -> str:
+            title = None
+
+            # 1) BeautifulSoup, wenn vorhanden
+            try:
+                from bs4 import BeautifulSoup  # type: ignore
+            except Exception:
+                BeautifulSoup = None  # type: ignore
+
+            if BeautifulSoup is not None:
+                try:
+                    soup = BeautifulSoup(html_text, "html.parser")
+                    if soup.title and soup.title.string:
+                        title = soup.title.string.strip()
+
+                    # Globalen Chrome löschen
+                    for tag in soup.find_all(["header", "footer", "nav"]):
+                        try: tag.decompose()
+                        except Exception:
+                            pass
+
+                    # Hauptinhalt
+                    main = soup.find("main") or soup.find(attrs={"role": "main"}) or soup.select_one("#main")
+                    content = main if main else (soup.body or soup)
+
+                    # Nav-Reste raus
+                    for tag in content.find_all("nav"):
+                        try: tag.decompose()
+                        except Exception:
+                            pass
+
+                    # ALLE <section> entfernen
+                    for sec in content.find_all("section"):
+                        try: sec.decompose()
+                        except Exception:
+                            pass
+
+                    # Ab "Feedback" kappen
+                    cut = (
+                        content.find(id=_re.compile(r"\bfeedback\b", _re.I))
+                        or content.find(attrs={"data-bi-name": _re.compile(r"feedback", _re.I)})
+                        or content.find("a", href=_re.compile(r"#feedback", _re.I))
+                    )
+                    if not cut:
+                        for hx in content.find_all(_re.compile(r"^h[1-6]$")):
+                            if _re.search(r"\bfeedback\b", hx.get_text(strip=True), _re.I):
+                                cut = hx; break
+                    if cut:
+                        node = cut
+                        while node and node.name not in ("section","div","article","main","body"):
+                            node = node.parent
+                        node = node or cut
+                        while node is not None:
+                            nxt = node.next_sibling
+                            try: node.decompose()
+                            except Exception:
+                                try: node.extract()
+                                except Exception: break
+                            node = nxt
+
+                    body_html = str(content)
+                    t = title or "Microsoft Learn"
+                    return (
+                        "<!doctype html>\n"
+                        f"<html><head><meta charset=\"utf-8\"><title>{t}</title></head>"
+                        f"<body>{body_html}</body></html>"
+                    )
+                except Exception:
+                    pass
+
+            # 2) Fallback ohne bs4
+            # Header/Footer/Nav strippen
+            cleaned = re.sub(r"(?is)<\s*(?:header|footer|nav)\b[^>]*>.*?</\s*(?:header|footer|nav)\s*>", "", html_text)
+            # ALLE <section> iterativ entfernen
+            pat_section = re.compile(r"(?is)<\s*section\b[^>]*>.*?</\s*section\s*>")
+            prev = None
+            while prev != cleaned:
+                prev = cleaned
+                cleaned = pat_section.sub("", cleaned)
+
+            # Titel
+            m_t = re.search(r"(?is)<title>(.*?)</title>", cleaned)
+            if m_t:
+                title = re.sub(r"\s+", " ", m_t.group(1)).strip()
+
+            # Hauptinhalt: <main> bevorzugt, sonst <body>
+            m = re.search(r"(?is)<\s*main\b[^>]*>(.*?)</\s*main\s*>", cleaned)
+            if m:
+                body = m.group(1)
+            else:
+                m2 = re.search(r"(?is)<\s*body\b[^>]*>(.*?)</\s*body\s*>", cleaned)
+                body = m2.group(1) if m2 else cleaned
+
+            t = title or "Microsoft Learn"
+            return (
+                "<!doctype html>\n"
+                f"<html><head><meta charset=\"utf-8\"><title>{t}</title></head>"
+                f"<body>{body}</body></html>"
+            )
+            
+        def fetch_html(url: str) -> tuple[bytes, str]:
+            req = Request(url, headers = {"User-Agent": DOCS_UA})
+            with urlopen(req, timeout  = 60) as resp:
+                data      = resp.read()
+                final_url = resp.geturl()
+            return data, final_url
+
+        def docs_process_functions(
+            functions: list[str],
+            dll_short: str,
+            out_html : Path | None,
+            out_po   : Path | None,
+            langs_csv: str,
+            no_html  : bool,
+            no_po    : bool):
+            if no_html and no_po:
+                print("Nichts zu tun: --no-html und --no-po beide gesetzt.",
+                file = sys.stderr)
+                sys.exit(2)
+            langs = [x.strip() for x in langs_csv.split(',') if x.strip()]
+            final_url = ""
+            cleaned_html = ""
+            for func in functions:
+                try:
+                    url = discover_learn_url(func, langs)
+                except Exception as e:
+                    print(f"[WARN] {func}: {e}")
+                    continue
+                try:
+                    html_bytes, final_url = fetch_html(url)
+                except (HTTPError, URLError) as e:
+                    print(f"[WARN] {func}: Laden fehlgeschlagen: {e}")
+                    continue
+                try:
+                    html_text = html_bytes.decode('utf-8', errors='replace')
+                except Exception:
+                    html_text = html_bytes.decode('latin-1', errors='replace')
+                cleaned_html = _clean_learn_html(html_text)
+                try:
+                    pat_article_header = re.compile(r"""
+          <\s*div\b
+            (?=                             # id="article-header"
+               [^>]*\bid\s*=\s*(["'])article-header\1
+            )
+            [^>]*>
+          (?:                               # Inhalt:
+              [^<]+                         #   Text
+            | <(?!/?div\b)[^<]*>            #   andere Tags (kein div)
+            | (?P<DIV>                      #   verschachtelter <div>…</div>
+                <\s*div\b[^>]*>
+                  (?:
+                      [^<]+
+                    | <(?!/?div\b)[^<]*>
+                    | (?&DIV)               #   Rekursion
+                  )*?
+                </\s*div\s*>
+              )
+          )*?
+          </\s*div\s*>                      # schließender div
+        """, flags=re.IGNORECASE | re.DOTALL | re.VERBOSE)
+                    # anwenden
+                    cleaned_html          = pat_article_header.sub("", cleaned_html)
+                    pat_ms_content_header = re.compile(r"""
+          <\s*div\b
+            (?=                             # id="ms--content-header"
+               [^>]*\bid\s*=\s*(["'])ms--content-header\1
+            )
+            [^>]*>
+          (?:                               # Inhalt:
+              [^<]+                         #   Text
+            | <(?!/?div\b)[^<]*>            #   andere Tags (kein div)
+            | (?P<DIV>                      #   verschachtelter <div>…</div>
+                <\s*div\b[^>]*>
+                  (?:
+                      [^<]+
+                    | <(?!/?div\b)[^<]*>
+                    | (?&DIV)               #   Rekursion
+                  )*?
+                </\s*div\s*>
+              )
+          )*?
+          </\s*div\s*>
+        """, flags=re.IGNORECASE | re.DOTALL | re.VERBOSE)
+
+                    cleaned_html = pat_ms_content_header.sub("", cleaned_html)
+                    pat_unauth   = re.compile(r"""
+          <\s*div\b
+            (?=[^>]*\bunauthorized-private-section\b)   # Attribut vorhanden (ohne/mit Wert)
+            [^>]*>
+          (?:
+              [^<]+                                     # Text
+            | <(?!/?div\b)[^<]*>                        # andere Tags (kein div)
+            | (?P<DIV>                                  # verschachtelter <div>…</div>
+                <\s*div\b[^>]*>
+                  (?:
+                      [^<]+
+                    | <(?!/?div\b)[^<]*>
+                    | (?&DIV)                           # Rekursion
+                  )*?
+                </\s*div\s*>
+              )
+          )*?
+          </\s*div\s*>
+        """, flags=re.IGNORECASE | re.DOTALL | re.VERBOSE)
+
+                    # anwenden (einmal reicht idR; bei vielen Vorkommen optional iterativ)
+                    cleaned_html = pat_unauth.sub("", cleaned_html)
+                except Exception as e:
+                    pass
+                
+            if not no_html:
+                target = _resolve_html_output(Path(out_html) if out_html else None, dll_short, func)
+                with open(target, 'wb') as f:
+                    f.write(cleaned_html.encode('utf-8'))
+                print(f"[OK] HTML: {target}")
+                
+            if not no_po and out_po:
+                _po_append_entry(Path(out_po), dll_short, func, final_url, cleaned_html)
+                print(f"[OK] PO : {out_po} (+{func})")
+            print(f"[INFO] Quelle: {final_url}")
+
+        def docs_from_exports(dll_path: Path) -> list[str]:
+            exps  = enumerate_exports(dll_path)
+            names = []
+            for _, name in exps:
+                if not name:
+                    continue
+                # stdcall-Suffix entfernen (für die Suche ist meist die Basis nötig)
+                clean = strip_stdcall_suffix(name)
+                # häufige Deko (@NN) ist weg, aber A/W bleiben gewünscht.
+                names.append(clean)
+            # Deduplizieren, Reihenfolge stabil
+            seen = set()
+            uniq = []
+            for n in names:
+                if n not in seen:
+                    seen.add(n)
+                    uniq.append(n)
+            return uniq
+
+        def run_exports_mode(args):
+            dll_path = Path(args.dll)
+            if args.dll_dir and not dll_path.is_absolute():
+                dll_path = Path(args.dll_dir) / dll_path
+            
+            if not dll_path.exists():
+                print(f"Fehler: DLL nicht gefunden: {dll_path}", file = sys.stderr)
+                sys.exit(1)
+            
+            out_po = Path(args.out_po)
+            out_po.parent.mkdir(parents=True, exist_ok=True)
+            
+            exports = enumerate_exports(dll_path)
+            
+            # Darstellung der Ordinale vorbereiten
+            if args.hex:
+                display = [(f"0x{ord_:X}", name) for (ord_, name) in exports]
+            else:
+                display = [(str(ord_), name) for (ord_, name) in exports]
+                
+            write_po_exports(display, out_po,
+                use_hex = args.hex,
+                project = args.project,
+                lang    = args.language)
+            
+            # .mo-Pfad bestimmen
+            out_mo = Path(args.out_mo) if args.out_mo else out_po.with_suffix(".mo")
+            if not args.no_mo:
+                run_msgfmt(args.msgfmt, out_po, out_mo)
+            
+            if args.out_asm:
+                out_inc = Path(args.out_asm)
+                write_asm_defines(
+                    exports, out_inc, dll_path,
+                    strip_stdcall = args.asm_strip_stdcall,
+                    sanitize      = args.asm_sanitize,
+                    hex_lower     = args.asm_hex_lower
+                )
+            
+            print("Fertig.");
+            print(f"PO : {out_po}")
+            
+            if not args.no_mo:
+                print(f"MO : {out_mo}")
+                
+            if args.out_asm:
+                print(f"ASM: {args.out_asm}")
+
+        def run_docs_mode(args):
+            # DLL-Kurzname ermitteln
+            dll_short = args.dll_short
+            if not dll_short:
+                if args.dll:
+                    dll_short = Path(args.dll).name
+                    if dll_short.lower().endswith('.dll'):
+                        dll_short = dll_short[:-4]
+                else:
+                    dll_short = 'dll'
+            
+            # Funktionsliste aggregieren
+            functions: list[str] = []
+            if args.function:
+                for f in args.function:
+                    if f and f.strip():
+                        functions.append(f.strip())
+            if args.functions_file:
+                p = Path(args.functions_file)
+                if not p.exists():
+                    print(f"[WARN] functions-file nicht gefunden: {p}")
+                else:
+                    for line in p.read_text(
+                        encoding = 'utf-8',
+                        errors   = 'replace').splitlines():
+                        line     = line.strip()
+                        if not line or line.startswith('#'):
+                            continue
+                        functions.append(line)
+            if args.from_exports:
+                if not args.dll:
+                    print("[FEHLER] --from-exports benötigt --dll (Pfad/Name)",
+                        file = sys.stderr)
+                    sys.exit(2)
+                dll_path = Path(args.dll)
+                if args.dll_dir and not dll_path.is_absolute():
+                    dll_path = Path(args.dll_dir) / dll_path
+                if not dll_path.exists():
+                    print(f"Fehler: DLL nicht gefunden: {dll_path}",
+                        file = sys.stderr)
+                    sys.exit(1)
+                functions.extend(docs_from_exports(dll_path))
+            
+            # Deduplizieren (stabil)
+            seen = set()
+            unique_funcs = []
+            for f in functions:
+                if f not in seen:
+                    seen.add(f)
+                    unique_funcs.append(f)
+            
+            if not unique_funcs:
+                print("[HINWEIS] Keine Funktionen angegeben. Nutze z.B. --function "
+                +"MessageBoxA oder --from-exports.")
+                sys.exit(0)
+            
+            docs_process_functions(
+                unique_funcs,
+                dll_short = dll_short,
+                out_html  = Path(args.out_html) if args.out_html else None,
+                out_po    = Path(args.out_po  ) if args.out_po   else None,
+                langs_csv = args.langs  ,
+                no_html   = args.no_html,
+                no_po     = args.no_po  ,
+            )
+
+        def main():
+            top = build_top_parser()
+            if  len(sys.argv) >= 2 and sys.argv[1] not in ("exports", "docs") \
+            and not sys.argv[1].startswith('-') and sys.argv[1] != '/?':
+                # Legacy-Aufruf: keine Subcommands angegeben -> exports-Pfad
+                # Wir parsen hier mit einem separaten Parser, der die alte CLI abbildet.
+                legacy = argparse.ArgumentParser(add_help = False)
+                legacy.add_argument("--dll"              , required = True)
+                legacy.add_argument("--dll-dir"          , default  = None)
+                legacy.add_argument("--out-po"           , required = True)
+                legacy.add_argument("--out-mo"           , default  = None)
+                legacy.add_argument("--no-mo"            , action   = "store_true")
+                legacy.add_argument("--no-po"            , action   = "store_true")
+                legacy.add_argument("--msgfmt"           , default  = "msgfmt.exe")
+                legacy.add_argument("--hex"              , action   = "store_true")
+                legacy.add_argument("--project"          , default  = "dll-exports")
+                legacy.add_argument("--language"         , default  = "")
+                legacy.add_argument("--out-asm"          , default  = None)
+                legacy.add_argument("--asm-strip-stdcall", action   = "store_true")
+                legacy.add_argument("--asm-sanitize"     , action   = "store_true")
+                legacy.add_argument("--asm-hex-lower"    , action   = "store_true")
+                
+                args = legacy.parse_args()
+                
+                # gleiche Ausführung wie exports
+                class Box: pass
+                box = Box()
+                for k, v in vars(args).items():
+                    setattr(box, k, v)
+                    
+                run_exports_mode(box)
+                return
+
+            # Reguläre Subcommands
+            args = top.parse_args()
+            if args.subcmd == "exports":
+                run_exports_mode(args)
+            elif args.subcmd == "docs":
+                run_docs_mode(args)
+            else:
+                top.print_help()
 
     # ---------------------------------------------------------------------------
     # \brief ClassObjects holds the TObject classes. TObject is the base of all
