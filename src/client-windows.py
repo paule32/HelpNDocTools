@@ -27743,174 +27743,236 @@ try:
     # ------------------------------------------------------------------------
     def add_common_args(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--out-exe", dest="out_exe", default="aout.exe", metavar="FILE", type=Path,
-                        help="output for Exe cutable file")
+                        help=_str("output for Exe cutable file"))
                         
         sp.add_argument("--out-bin", dest="out_bin", default="aout.bin", metavar="FILE", type=Path,
-                        help="output for Python bytecode")
+                        help=_str("output for Python bytecode"))
                         
         sp.add_argument("--out-asm", dest="out_asm", default="aout.asm", metavar="FILE", type=Path,
-                        help="output for Assembler")
+                        help=_str("output for Assembler"))
                         
         sp.add_argument("--out-c++", dest="out_cpp", default="aout.cc" , metavar="FILE", type=Path,
-                        help="output for C++")
+                        help=_str("output for C++"))
                         
         sp.add_argument("--out-pas", dest="out_pas", default="aout.pas", metavar="FILE", type=Path,
-                        help="output Pascal")
+                        help=_str("output Pascal"))
                         
         sp.add_argument("--asm-style", dest="asm_style", default="intel", metavar="FILE", type=str,
-                        help="output Assembly style (intel/att)")
+                        help=_str("output Assembly style (intel/att)"))
                         
         sp.add_argument("--arch", choices=["32", "64"], default="64",
-                        help="target architecture.")
+                        help=_str("target architecture."))
                         
         sp.add_argument("--asm-exe", dest="asm_exe", metavar="FILE", type=Path,
-                        help="specify the path for nasm.exe")
+                        help=_str("specify the path for nasm.exe"))
                         
         # Die Eingabedatei als POSITIONALES Argument – kann nach den Optionen stehen
         sp.add_argument("input_file", metavar="INPUT", type=Path,
-                        help="path to input file")
+                        help=_str("path to input file"))
     # ------------------------------------------------------------------------
     def add_docout_args(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--out-chm", dest="out_chm", metavar="FILE", type=Path,
-                        help="output optimized for CHM ")
+                        help=_str("output optimized for CHM "))
                         
         sp.add_argument("--out-htm", dest="out_htm", metavar="FILE", type=Path,
-                        help="output optimized for HTML ")
+                        help=_str("output optimized for HTML "))
                         
         sp.add_argument("--out-pdf", dest="out_pdf", metavar="FILE", type=Path,
-                        help="output optimized for PDF ")
+                        help=_str("output optimized for PDF "))
                         
         sp.add_argument("--chm-path", dest="chm_path", metavar="FILE", type=Path,
-                        help="Microsoft CHM Writer Path")
+                        help=_str("Microsoft CHM Writer Path"))
                         
         # Die Eingabedatei als POSITIONALES Argument – kann nach den Optionen stehen
         sp.add_argument("input_file", metavar="INPUT", type=Path,
-                        help="path to input file")
+                        help=_str("path to input file"))
     # ------------------------------------------------------------------------
     def add_application_args(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--windows", dest="windows", action="store_true",
-                        help="start gui as Windows Application")
+                        help=_str("start gui as Windows Application"))
                         
         sp.add_argument("--linux", dest="linux", action="store_true",
-                        help="start gui as X-Server Linux Applicationr")
+                        help=_str("start gui as X-Server Linux Applicationr"))
                         
         sp.add_argument("--local", dest="local", action="store_true",
-                        help="start gui on local computer (default: Windows)")
+                        help=_str("start gui on local computer (default: Windows)"))
                         
         sp.add_argument("--remote", dest="remote", action="store_true",
-                        help="start gui on remote computer")
+                        help=_str("start gui on remote computer"))
                         
         sp.add_argument("--port", dest="port", type=int,
-                        help="listen on port n")
+                        help=_str("listen on port n"))
+    # ------------------------------------------------------------------------
+    def add_infope_args(sp: argparse.ArgumentParser) -> None:
+        sp.add_argument("--pe", dest="info_pe", metavar="FILE", type=Path,
+                        help=_str("print informations of a pe file on the screen"))
+        
+        # Die Eingabedatei als POSITIONALES Argument – kann nach den Optionen stehen
+        sp.add_argument("input_file", metavar="INPUT", type=Path,
+                        help=_str("path to input file"))
     # ------------------------------------------------------------------------
     def add_config_args(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--create", dest="config_create", action="store_true",
-                        help="create a configuration file.")
+                        help=_str("create a configuration file."))
+    # ------------------------------------------------------------------------
+    def add_project_args(sp: argparse.ArgumentParser) -> None:
+        sp.add_argument("--pascal", dest="create_pascal", metavar="FILE", type=Path,
+                        help=_str("create a Pascal project."))
+        
+        sp.add_argument("--dbase", dest="create_dbase", metavar="FILE", type=Path,
+                        help=_str("create a dBASE project."))
+        
+        sp.add_argument("--doxygen", dest="create_doxygen", metavar="FILE", type=Path,
+                        help=_str("create a DoxyGen project."))
+        
+        sp.add_argument("--helpndoc", dest="create_helpndoc", metavar="FILE", type=Path,
+                        help=_str("create a HelpNDoc project."))
+        
+        # Die Eingabedatei als POSITIONALES Argument – kann nach den Optionen stehen
+        sp.add_argument("output_file", metavar="OUTPUT", type=Path,
+                        help=_str("path to output file"))
     # ------------------------------------------------------------------------
     def build_parser() -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
             prog        = "script.py",
             description = (""
-                + "Compiler for dBase  -> byte code, assmebler, .exe\n"
-                + "Compiler for Pascal -> byte code, assembler, .exe\n"
-                + "Compiler for BASIC  -> byte code, assembler, .exe\n"
+                + _str("Compiler for dBase  -> byte code, assmebler, .exe\n")
+                + _str("Compiler for Pascal -> byte code, assembler, .exe\n")
+                + _str("Compiler for BASIC  -> byte code, assembler, .exe\n")
             ),
             formatter_class = argparse.RawDescriptionHelpFormatter,
         )
         sub = parser.add_subparsers(dest = "subcmd", required=True)
 
         p_pascal = sub.add_parser("pascal",
-            help = "Input type: Pascal",
+            help = _str("Input type: Pascal"),
             formatter_class = RichHelp  ,
-            epilog          = textwrap.dedent("""
-                Examples:
-                    python script.py pascal --out-exe out.exe --asm-nasm --asm-exe E:\\nasm\\nasm.exe test.pas
-                    python script.py pascal --out-asm out.asm --asm-nasm test.pas
-                    python script.py pascal --out-pas out.pas test.pas
-            """),
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py pascal --out-exe out.exe --asm-nasm --asm-exe E:\\nasm\\nasm.exe test.pas\n"
+                + "    python script.py pascal --out-asm out.asm --asm-nasm test.pas\n"
+                + "    python script.py pascal --out-pas out.pas test.pas\n"
+            ),
         )
         p_dbase  = sub.add_parser("dbase",
-            help = "Input type: dBASE",
+            help = _str("Input type: dBASE"),
             formatter_class = RichHelp ,
-            epilog          = textwrap.dedent("""
-                Examples:
-                    python script.py dbase --out-asm out.asm test.prg
-                    python script.py dbase --out-exe out.exe test.prg
-                    python script.py dbase --out-pas out.pas test.prg
-            """),
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py dbase --out-asm out.asm test.prg\n"
+                + "    python script.py dbase --out-exe out.exe test.prg\n"
+                + "    python script.py dbase --out-pas out.pas test.prg\n"
+            ),
         )
         p_basic  = sub.add_parser("basic",
-            help = "Input type: BASIC",
+            help = _str("Input type: BASIC"),
             formatter_class = RichHelp ,
-            epilog          = textwrap.dedent("""
-                Examples:
-                    python script.py basic --out-asm out.asm test.bas
-                    python script.py basic --out-exe out.exe test.bas
-                    python script.py basic --out-pas out.pas test.bas
-            """),
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py basic --out-asm out.asm test.bas\n"
+                + "    python script.py basic --out-exe out.exe test.bas\n"
+                + "    python script.py basic --out-pas out.pas test.bas\n"
+            ),
         )
         p_doxygen = sub.add_parser("doxygen",
-            help  = "Input type: DoxyGen",
+            help  = _str("Input type: DoxyGen"),
             formatter_class = RichHelp ,
-            epilog          = textwrap.dedent("""
-                Examples:
-                    python script.py doxygen --out-chm out.chm --chm-path E:\\doxygen\\bin\\doxygen.exe main.pro
-                    python script.py doxygen --out-htm out.chm main.pro
-                    python script.py doxygen --out-pdf out.chm main.pro
-            """),
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py doxygen --out-chm out.chm --chm-path E:\\doxygen\\bin\\doxygen.exe main.pro\n"
+                + "    python script.py doxygen --out-htm out.chm main.pro\n"
+                + "    python script.py doxygen --out-pdf out.chm main.pro\n"
+            ),
         )
         p_helpndoc = sub.add_parser("helpndoc",
-            help   = "Input type: HelpNDoc",
+            help   = _str("Input type: HelpNDoc"),
             formatter_class = RichHelp ,
-            epilog          = textwrap.dedent("""
-                Examples:
-                    python script.py helpndoc --out-chm output.chm --chm-path E:\\doxygen\\bin\\doxygen.exe  main.pro
-                    python script.py helpndoc --out-htm output.chm main.pro
-                    python script.py helpndoc --out-pdf output.chm main.pro
-            """),
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py helpndoc --out-chm output.chm --chm-path E:\\doxygen\\bin\\doxygen.exe  main.pro\n"
+                + "    python script.py helpndoc --out-htm output.chm main.pro\n"
+                + "    python script.py helpndoc --out-pdf output.chm main.pro\n"
+            ),
         )
         p_gui = sub.add_parser("gui",
-            help   = "Input type: GUI",
+            help   = _str("Input type: GUI"),
             formatter_class = RichHelp ,
-            epilog          = textwrap.dedent("""
-                Examples:
-                    python script.py gui --windows
-                    python script.py gui --linux
-            """),
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py gui --windows\n"
+                + "    python script.py gui --linux\n"
+            ),
         )
-        p_console = sub.add_parser("console",
-            help   = "Input type: Console",
+        p_info = sub.add_parser("info",
+            help = _str("Display PE-Informations of EXE file."),
+            formatter_class = RichHelp  ,
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py info --pe test.exe\n"
+            ),
+        )
+        p_console = sub.add_parser(
+            "console",
+            help            = _str("Input type: Console"),
             formatter_class = RichHelp ,
-            epilog          = textwrap.dedent("""
-                Examples:
-                    python script.py console --windows
-                    python script.py console --linux
-            """),
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py console --windows\n"
+                + "    python script.py console --linux\n"
+            ),
         )
+        # ------------------------------------------------------------------------
+        p_project = sub.add_parser(
+            "project",
+            help            = _str("create a default project file."),
+            formatter_class = RichHelp ,
+            description     = _str("create a default project."),
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py project --pascal\n"
+                + "    python script.py project --dbase\n"
+            ),
+        )
+        g = p_project.add_mutually_exclusive_group(required=True)
+        g.add_argument("--pascal", dest="kind", action="store_const", const="pascal",
+                       help=_str("Create default Pascal project file."))
+        g.add_argument("--dbase",  dest="kind", action="store_const", const="dbase",
+                       help=_str("Create default dBASE project file."))
+                       
+        p_project.add_argument("--force", action="store_true",
+                       help=_str("overwrite existing project file."))
+        
+        # Optionales POSITIONALES Ziel; Default dynamisch berechnen -> hier None
+        p_project.add_argument(
+        "project_file", nargs="?", type=Path, default=None, metavar="FILE",
+        help=_str("name of the project file (default depends on kind)."))
+
+        p_project.set_defaults(func=handle_project)
+        # ------------------------------------------------------------------------
         p_config = sub.add_parser(
             "config",
-            help            = "Create/Modify a config file",
+            help            = _str("Create/Modify a config file"),
             formatter_class = RichHelp ,
             description     = (""
-                + "create a configuration file.\n"
-                + "without argument, the default config.ini will be "
-                + "writen in the current directory."),
-            epilog = textwrap.dedent("""
-                Examples:
-                    python script.py config --create
-            """),
+                + _str("create a configuration file.\n")
+                + _str("without argument, the default config.ini will be ")
+                + _str("writen in the current directory.")),
+            epilog = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py config --create\n"
+            ),
         )
         
         # Flag steuert die Aktion
         p_config.add_argument(
             "--create",
             action  = "store_true",
-            help    = "Create default config file."
+            help    = _str("Create default config file.")
         )
         p_config.add_argument(
             "--force",
             action  = "store_true",
-            help    = "overwrite existing config file."
+            help    = _str("overwrite existing config file.")
         )
         # Optionales POSITIONALES Argument (am Ende): Zielpfad der INI
         p_config.add_argument(
@@ -27919,7 +27981,7 @@ try:
             type    = Path,
             default = "default.ini",
             metavar = "FILE",
-            help    = "name of the config file."
+            help    = _str("name of the config file.")
         )
         p_config.set_defaults(func = handle_config)
         
@@ -27930,16 +27992,18 @@ try:
         add_docout_args(p_doxygen)
         add_docout_args(p_helpndoc)
         
+        add_infope_args(p_info)
+        
         add_application_args(p_gui)
         add_application_args(p_console)
         
-        #add_config_args(p_config)
+        #add_project_args(p_project)
         
         return parser
     # ------------------------------------------------------------------------
     def handle_config(args) -> int:
         if not args.create:
-            print("missing action. Use:  config --create [FILE]",
+            print(_str("missing action. Use: config --create [FILE]"),
                 file = sys.stderr)
             return 2
         
@@ -27961,6 +28025,48 @@ try:
         
         path.write_text(content, encoding = "utf-8")
         print(f"write config: {path.resolve()}")
+        return 0
+    # ------------------------------------------------------------------------
+    def handle_project(args) -> int:
+        kind: str = args.kind
+        # dynamischer Default-Dateiname
+        default_name = {
+            "pascal": "pascal.pro",
+            "dbase" : "dbase.pro"
+        }[kind]
+        
+        path: Path = args.project_file or Path(default_name)
+
+        # .pro-Suffix sicherstellen (optional)
+        if path.suffix.lower() != ".pro":
+            path = path.with_suffix(".pro")
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists() and not args.force:
+            print(f"abort: {path} exists. Use --force to overwrite project.", file=sys.stderr)
+            return 1
+
+        # Beispiel-Content je nach kind
+        if kind == "pascal":
+            content = textwrap.dedent("""
+                [project]
+                type = pascal
+                sources = main.pas
+                output  = aout.exe
+            """)
+        elif kind == "dbase":
+            content = textwrap.dedent("""
+                [project]
+                type = dbase
+                sources = main.prg
+                output  = aout.exe
+            """)
+        else:
+            print(_str("unknown project kind"), file=sys.stderr)
+            return 2
+
+        path.write_text(content, encoding="utf-8")
+        print(f"project '{kind}' written: {path.resolve()}")
         return 0
     # ------------------------------------------------------------------------
     def handle_args_pascal(args):
@@ -27987,6 +28093,13 @@ try:
     def handle_args_config(args):
         return handle_config(args)
     # ------------------------------------------------------------------------
+    def handle_args_project(args):
+        print("project")
+        return handle_project(args)
+    # ------------------------------------------------------------------------
+    def handle_args_info(args):
+        print("pe info")
+    # ------------------------------------------------------------------------
     def main(argv=None) -> int:
         parser = build_parser()
         if argv is None:
@@ -28004,7 +28117,9 @@ try:
         elif args.subcmd == "helpndoc": handle_args_helpndoc(args); return 0
         elif args.subcmd == "console" : handle_args_console (args); return 0
         elif args.subcmd == "gui"     : handle_args_gui     (args); return 0
+        elif args.subcmd == "info"    : handle_args_info    (args); return 0
         elif args.subcmd == "config"  : handle_args_config  (args); return 0
+        elif args.subcmd == "project" : handle_args_project (args); return 0
             
         parser.print_help()
         return 0
