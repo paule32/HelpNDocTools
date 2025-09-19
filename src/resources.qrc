@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/images">
+    <qresource prefix="/">
         <file>_internal/img/apache1.png</file>
         <file>_internal/img/apache2.png</file>
         <file>_internal/img/api.png</file>
@@ -123,6 +123,7 @@
         <file>_internal/img/windows1.png</file>
         <file>_internal/img/windows2.png</file>
         <file>_internal/img/winico.png</file>
+        
         <file>_internal/img/flags/AFG.gif</file>
         <file>_internal/img/flags/AGO.gif</file>
         <file>_internal/img/flags/ALB.gif</file>
@@ -318,6 +319,7 @@
         <file>_internal/img/flags/ZAF.gif</file>
         <file>_internal/img/flags/ZMB.gif</file>
         <file>_internal/img/flags/ZWE.gif</file>
+        
         <file>_internal/img/keyboard/arabic-windows-keyboard-layout-keyshorts_1024x1024.jpg</file>
         <file>_internal/img/keyboard/armenian-windows-keyboard-layout-keyshorts_1024x1024.jpg</file>
         <file>_internal/img/keyboard/azeri-windows-keyboard-layout-keyshorts_1024x1024.jpg</file>
@@ -398,5 +400,29 @@
         <file>_internal/img/keyboard/uyghur-windows-keyboard-layout-keyshorts_1024x1024.jpg</file>
         <file>_internal/img/keyboard/uzbek-arabic-windows-keyboard-layout-keyshorts_1024x1024.jpg</file>
         <file>_internal/img/keyboard/vietnamese-windows-keyboard-layout-keyshorts_1024x1024.jpg</file>
+        
+        <file>_internal/locales/de_de/LC_META/pcbios.mo.gz</file>
+        <file>_internal/locales/de_de/LC_META/parser.mo.gz</file>
+        <file>_internal/locales/de_de/LC_META/electro.mo.gz</file>
+        <file>_internal/locales/de_de/LC_META/keyboard.mo.gz</file>
+        
+        <file>_internal/locales/en_us/LC_META/pcbios.mo.gz</file>
+        <file>_internal/locales/en_us/LC_META/parser.mo.gz</file>
+        <file>_internal/locales/en_us/LC_META/electro.mo.gz</file>
+        <file>_internal/locales/en_us/LC_META/keyboard.mo.gz</file>
+
+        <file>_internal/locales/de_de/LC_MESSAGES/observer.mo.gz</file>
+        <file>_internal/locales/en_us/LC_MESSAGES/observer.mo.gz</file>
+
+        <file>_internal/locales/de_de/LC_STYLE/observer.mo.gz</file>
+        <file>_internal/locales/en_us/LC_STYLE/observer.mo.gz</file>
+        
+        <file>_internal/locales/de_de/LC_ERROR/WinLastError.mo.gz</file>
+        <file>_internal/locales/de_de/LC_ERROR/WinLastStatus.mo.gz</file>
+        <file>_internal/locales/en_us/LC_ERROR/WinLastError.mo.gz</file>
+        <file>_internal/locales/en_us/LC_ERROR/WinLastStatus.mo.gz</file>
+
+        <file>_internal/locales/de_de/LC_HELP/help.mo.gz</file>
+        <file>_internal/locales/de_de/LC_HELP/help.mo.gz</file>
     </qresource>
 </RCC>

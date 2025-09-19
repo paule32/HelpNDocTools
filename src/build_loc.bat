@@ -36,9 +36,6 @@ set BASEDIR=%cd%
 set SRC=%BASEDIR%/src
 set VPA=%BASEDIR%/venv
 
-::pyrcc5 resources.qrc -o resources_rc.py
-python -m compileall    resources_rc.py
-
 cd %BASEDIR%\locales\de_de\LC_MESSAGES
 rm -rf observer.mo.gz
 msgfmt -o observer.mo observer.po
@@ -81,30 +78,51 @@ copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_STYLE
 cd %BASEDIR%\locales\de_de\LC_META
 rm -rf pcbios.mo.gz
 rm -rf parser.mo.gz
+rm -rf electro.mo.gz
+rm -rf keyboard.mo.gz
 
-msgfmt -o pcbios.mo pcbios.po
-msgfmt -o parser.mo parser.po
+msgfmt -o pcbios.mo   pcbios.po
+msgfmt -o parser.mo   parser.po
+msgfmt -o electro.mo  electro.po
+msgfmt -o keyboard.mo keyboard.po
 
 gzip -9 pcbios.mo
 gzip -9 parser.mo
+gzip -9 electro.mo
+gzip -9 keyboard.mo
 
-copy pcbios.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
-copy parser.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
+copy pcbios.mo.gz   %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
+copy parser.mo.gz   %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
+copy electro.mo.gz  %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
+copy keyboard.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_META
 
 cd %BASEDIR%\locales\en_us\LC_META
 rm -rf pcbios.mo.gz
 rm -rf parser.mo.gz
+rm -rf electro.mo.gz
+rm -rf keyboard.mo.gz
 
-msgfmt -o pcbios.mo pcbios.po
-msgfmt -o parser.mo parser.po
+msgfmt -o pcbios.mo   pcbios.po
+msgfmt -o parser.mo   parser.po
+msgfmt -o electro.mo  electro.po
+msgfmt -o keyboard.mo keyboard.po
 
 gzip -9 pcbios.mo
 gzip -9 parser.mo
+gzip -9 electro.mo
+gzip -9 keyboard.mo
 
-copy pcbios.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
-copy parser.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
+copy pcbios.mo.gz   %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
+copy parser.mo.gz   %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
+copy electro.mo.gz  %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
+copy keyboard.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_META
 :: ----------------------------------
 cd %BASEDIR%
+pyrcc5 resources.qrc -o resources_rc.py
+python -m compileall    resources_rc.py
+
+python -m compileall  client-windows.py
+
 exit
 python -m compileall TObject.py
 python -m compileall TStream.py

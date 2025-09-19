@@ -52,8 +52,6 @@ def compress_and_base64(data: bytes) -> tuple[str, int]:
     return base64.b64encode(compressed).decode("ascii"), len(compressed)
 
 def detect_type(file_path: Path) -> str:
-    if str(file_path).endswith(".toc"):
-        return "TEXT"
     mime_type, _ = mimetypes.guess_type(file_path.as_posix())
     if mime_type and mime_type.startswith("text/"):
         return "TEXT"

@@ -11,6 +11,7 @@ global GUI_DEBUG           # set if gui debug !
 
 global os_name; os_name = ""
 global res_file
+global front_content_layout
 
 GUI_DEBUG = True
 res_file  = "./_internal/resources_rc.pyc.gz"    # we use Python 3.13.3 !
@@ -47,6 +48,7 @@ import importlib
 import subprocess
 import sys            # system specifies
 import os             # operating system stuff
+import uuid
 import regex as re
 import platform
 import hashlib
@@ -140,6 +142,53 @@ try:
         
         for key, value in kwargs.items():
             print(f"{key}: {value}")
+    
+    # -----------------------------------------------------------------------------------------
+    # Prüft:
+    #   - exists: Pfad existiert
+    #   - is_dir: ist (kein Datei-Path). Optional: keine Symlinks, wenn deny_symlink=True
+    #   - writable: Verzeichnis ist tatsächlich beschreibbar (Testdatei anlegen/löschen)
+    #
+    # Rückgabe: dict mit Feldern: path, exists, is_dir, writable, message
+    # -----------------------------------------------------------------------------------------
+    def check_directory(path: str | Path, *, deny_symlink: bool = False) -> dict:
+        p = Path(path).expanduser()
+        result = {"path": str(p), "exists": False, "is_dir": False, "writable": False, "message": ""}
+
+        if not p.exists():
+            result["message"] = "Existiert nicht."
+            return result
+
+        result["exists"] = True
+
+        if deny_symlink and p.is_symlink():
+            result["message"] = "Ist ein Symlink, kein echtes Verzeichnis."
+            return result
+
+        if not p.is_dir():
+            result["message"] = "Kein Verzeichnis."
+            return result
+
+        result["is_dir"] = True
+
+        # Schneller Rechte-Check (kann auf manchen Systemen unzuverlässig sein, aber günstig)
+        if not os.access(p, os.W_OK):
+            result["message"] = "Keine Schreibrechte (os.access)."
+            return result
+
+        # Harte Probe: temporäre Datei im Verzeichnis anlegen und wieder löschen
+        test_name = f".write_test_{uuid.uuid4().hex}"
+        try:
+            test_path = p / test_name
+            with open(test_path, "wb") as fh:
+                fh.write(b"ok")
+            test_path.unlink(missing_ok=True)
+            result["writable"] = True
+            result["message"] = "OK"
+        except Exception as e:
+            result["message"] = f"Nicht beschreibbar: {e!s}"
+
+        return result
     
     # ------------------------------------------------------------------------
     # check for installed modules ...
@@ -502,6 +551,9 @@ try:
     from PyQt5.QtWebChannel         import *
     
     # ------------------------------------------------------------------------
+    import resources_rc
+    
+    # ------------------------------------------------------------------------
     # disassembly library
     # ------------------------------------------------------------------------
     from capstone import Cs, CS_ARCH_X86, CS_MODE_64
@@ -519,7 +571,10 @@ try:
     import socketserver
     
     import types
-    from   types import *
+    from   types  import *
+    from   typing import List, Tuple, Union
+
+    front_content_layout = QHBoxLayout()
     
     # ---------------------------------------------------------------------------
     # support only for Microsoft Windows
@@ -716,10 +771,10 @@ try:
     #        It will be used more as one alone.
     # ----------------------------------------------------------------------
     def handle_exception(err, msg):
-        if genv.error_dialog_open == True:
-            return
-        else:
-            genv.error_dialog_open = True
+        #if genv.error_dialog_open == True:
+        #    return
+        #else:
+        #    genv.error_dialog_open = True
         #
         tb = traceback.extract_tb(sys.exc_info()[2])
         last_line = tb[-1]
@@ -770,7 +825,7 @@ try:
             )
         
         showError(error_text)
-        genv.error_dialog_open = False
+        #genv.error_dialog_open = False
 
     # ------------------------------------------------------------------------
     # \brief Generates all case variations of the input string.
@@ -1212,19 +1267,27 @@ try:
             
             self.v__app__name         = "observer"
             self.v__app__help         = "help"
-            self.v__app__meta         = "pcbios"
+            self.v__app__mecs         = "observer"
+            self.v__app__mebi         = "pcbios"
             self.v__app__mepa         = "parser"
+            self.v__app__meky         = "keyboard"
             
             self.v__app__pin_name     = ""
             self.v__app__pin_control  = ""
             
             self.v__class_registry    = {}
             
-            self.v__app__name_mo      = self.v__app__name + ".mo"
-            self.v__app__help_mo      = self.v__app__help + ".mo"
-            self.v__app__css__mo      = self.v__app__name + ".mo"
-            self.v__app__meta_mo      = self.v__app__meta + ".mo"
-            self.v__app__mepa_mo      = self.v__app__mepa + ".mo"
+            self.v__gnu__mo           = ".mo"
+            self.v__gnu_zip           = ".gz"
+            
+            self.v__app__css__mo      = self.v__app__mecs + self.v__gnu__mo
+            
+            self.v__app__name_mo      = self.v__app__name + self.v__gnu__mo
+            self.v__app__help_mo      = self.v__app__help + self.v__gnu__mo
+            
+            self.v__app__mebi_mo      = self.v__app__mebi + self.v__gnu__mo
+            self.v__app__mepa_mo      = self.v__app__mepa + self.v__gnu__mo
+            self.v__app__meky_mo      = self.v__app__meky + self.v__gnu__mo
             
             self.v__app__cdn_host     = "http://localhost/cdn"
             self.v__app__internal__   = os.path.join(self.v__app__modul__, "_internal")
@@ -1237,7 +1300,7 @@ try:
             self.v__app__img__key__   = os.path.join(self.v__app__internal__, "img")
             self.v__app__img__key__  += "/keyboard/"
             
-            self.v__app__img__int__   = ":/images/_internal/img/"
+            self.v__app__img__int__   = ":/_internal/img/"
             self.v__app__helprojects  = []
             
             im_path = self.v__app__img__int__
@@ -1519,8 +1582,9 @@ try:
             # ------------------------------------------------------------------------
             # META data types
             # ------------------------------------------------------------------------
-            self.PCBIOS = 0
-            self.PARSER = 1
+            self.PCBIOS   = 0
+            self.PARSER   = 1
+            self.KEYBOARD = 2
             
             # ------------------------------------------------------------------------
             # dbase reserved keywords ...
@@ -1593,25 +1657,15 @@ try:
             self.prevButton_connected = False
             self.exitButton_connected = False
             
-            self.scrollview_1  = None
-            self.scrollview_2  = None
-            self.scrollview_3  = None
-            self.scrollview_4  = None
+            self.help_project_list = []
             
-            self.scrollview_5  = None; self.scrollview_6  = None; self.scrollview_7  = None
-            self.scrollview_8  = None; self.scrollview_9  = None; self.scrollview_10 = None
-            self.scrollview_11 = None; self.scrollview_12 = None; self.scrollview_13 = None
-            self.scrollview_14 = None; self.scrollview_15 = None; self.scrollview_16 = None
-            self.scrollview_17 = None; self.scrollview_18 = None; self.scrollview_19 = None
-            self.scrollview_20 = None; self.scrollview_21 = None; self.scrollview_22 = None
+            for n in range(1, 23):
+                name = f"scrollview_{n}"
+                if hasattr(self, name): delattr(self, name)
             
-            self.scrollers = [
-                self.scrollview_5 , self.scrollview_6 , self.scrollview_7 , self.scrollview_8,
-                self.scrollview_9 , self.scrollview_10, self.scrollview_11, self.scrollview_12,
-                self.scrollview_13, self.scrollview_14, self.scrollview_15, self.scrollview_16,
-                self.scrollview_17, self.scrollview_18, self.scrollview_19, self.scrollview_20,
-                self.scrollview_21, self.scrollview_22
-            ]
+            # alle (auch None) in der Reihenfolge 5..22
+            self.scrollers = [getattr(self, f"scrollview_{n}", None) for n in range(5, 23)]
+
             
             self.list_widget_1 = None
             self.list_widget_1_elements = [
@@ -1630,12 +1684,12 @@ try:
             self.v__app_object        = None
             self.v__app_win           = None
             #
-            self.v__app__locales             = ""
-            self.v__app__locales_messages    = "./_internal/locales"
-            self.v__app__locales_help        = ""
-            self.v__app__locales_css         = ""
-            self.v__app__locales_meta        = ""
-            self.v__app__locales_meta_parser = ""
+            self.v__app__locales             = ":/_internal/locales"
+            self.v__app__locales_messages    = ":/_internala"
+            self.v__app__locales_help        = ":/_internalb"
+            self.v__app__locales_css         = ":/_internalc"
+            self.v__app__locales_meta        = ":/_internald"
+            self.v__app__locales_meta_parser = ":/_internale"
             
             self.v__app__img_ext__    = ".png"
             self.v__app__font         = "Arial"
@@ -1711,6 +1765,7 @@ try:
             #
             self.doc_framework   = -1
             self.doc_template    = -1
+            self.doc_project     = -1
             self.doc_lang        = -1
             self.doc_kind        = -1
             self.doc_type        = -1
@@ -1794,6 +1849,13 @@ try:
             self.DOC_TEMPLATE_EMPTY     = 1
             self.DOC_TEMPLATE_RECIPE    = 2
             self.DOC_TEMPLATE_SOFTWARE  = 3
+            
+            self.DOC_PROJECT_CC         = 0
+            self.DOC_PROJECT_JAVA       = 1
+            self.DOC_PROJECT_JAVASCRIPT = 2
+            self.DOC_PROJECT_PYTHON     = 3
+            self.DOC_PROJECT_PHP        = 4
+            self.DOC_PROJECT_FORTRAN    = 5
             
             self.DOC_DOCUMENT_HTML      = 0
             self.DOC_DOCUMENT_PDF       = 1
@@ -1898,11 +1960,31 @@ try:
                 for idx in range(5, 23):
                     content += "\n[expert_"    + str(idx) + "]\n"
                     elements = eval(_str("label_" + str(idx) + "_elements"))
-                    
+                
+                if not self.v__app__config_ini_help:
+                    self.v__app__config_ini_help = Path("_/internal/doxygen.po")
+                p = Path(self.v__app__config_ini_help)
+                p.parent.mkdir(parents = True, exist_ok = True)
+                
                 with open(self.v__app__config_ini_help, "w") as config_file:
                     config_file.write(content)
                     config_file.close()
                 return True
+            except FileNotFoundError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + f":\n"
+                + f"  Message   : Exception occur during handle language (meta):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
             except configparser.NoSectionError as e:
                 showError(_str("Error:\nsomething went wrong during saving settings (section)."))
                 return False
@@ -1997,10 +2079,9 @@ try:
         # Modul im sys-Modulcache speichern
         sys.modules[module_name] = module
         return module
-
-    gmod = import_resource_module(res_file, 'resources_rc')
-    import resources_rc
-
+    
+    #gmod = import_resource_module(res_file, 'resources_rc')
+    
     # ------------------------------------------------------------------------
     # a minimal http server thread for display help pages ...
     # ------------------------------------------------------------------------
@@ -2024,60 +2105,55 @@ try:
             server = HTTPServer(("", self.port), handler_class)
             print(f"Server läuft auf http://localhost:{self.port}")
             server.serve_forever()
-    
-    # ------------------------------------------------------------------------
-    # read a file into memory ...
-    # ------------------------------------------------------------------------
-    def read_gzfile_to_memory(file_path):
-        check_file = Path(file_path)
-        if not check_file.exists():
-            showError(""
-            + "Error: -> " + str(check_file.resolve()) + "\n"
-            + "gzfile directory exists, but file could not found.\n"
-            + "aborted.")
-            sys.exit(1)
-        if not check_file.is_file():
-            showError(""
-            + "Error:\n"
-            + "gzfile is not a file.\n"
-            + "aborted.")
-            sys.exit(1)
-        if check_file.is_file():
-            with open(check_file, "rb") as file:
-                file_header = file.read(3)
-                if file_header == b'\x1f\x8b\x08':
-                    file.seek(0)
-                    file_data = file.read()
-                    compressed_data = io.BytesIO(file_data)
-                    with gzip.GzipFile(fileobj=compressed_data, mode="rb") as gzip_file:
-                        uncompressed_data = gzip_file.read()
-                    file.close()
-                    mo_file = io.BytesIO(uncompressed_data)
-                    translations = gettext.GNUTranslations(mo_file)
-                    translations.install()
-                    _ = translations.gettext
-                    return _
-                elif file_header == b'\xde\x12\x04':
-                    file.seek(0)
-                    file_data = file.read()
-                    mo_file = io.BytesIO(file_data)
-                    translations = gettext.GNUTranslations(mo_file)
-                    translations.install()
-                    _ = translations.gettext
-                    return _
-                else:
-                    file.close()
-                    showError(""
-                    + "Error:\n"
-                    + "language mo file could not be load.\n"
-                    + "aborted.\n\n"
-                    + "Python-Error: "
-                    + str(e)
-                    + "\nDetails:\n"
-                    + traceback.format_exc())
-                    sys.exit(1)
-        return None
 
+    def is_gzip(data: bytes) -> bool:
+        # GZip-Magic: 1F 8B 08
+        return len(data) >= 3 and data[:3] == b"\x1f\x8b\x08"
+
+    def is_zlib(data: bytes) -> bool:
+        # Häufige zlib-Header (CMF=0x78, FLG ∈ {01,5E,9C,DA})
+        return len(data) >= 2 and data[0] == 0x78 and data[1] in (0x01, 0x5E, 0x9C, 0xDA)
+
+    def is_mo_magic(data: bytes) -> bool:
+        return len(data) >= 4 and data[:4] in (b"\x95\x04\x12\xde", b"\xde\x12\x04\x95")
+            
+    def load_mo_from_qt_resource(resource_path: str) -> gettext.GNUTranslations:
+        f = QFile(resource_path)
+        
+        if not f.open(QIODevice.ReadOnly):
+            raise RuntimeError(f"could not open: {resource_path}")
+            
+        data = bytes(f.readAll())
+        f.close()
+        
+        # --------------------------------------------------------
+        # 1) GZip-Magic prüfen (1F 8B 08)
+        # --------------------------------------------------------
+        if is_gzip(data):
+            print("is gzip")
+            with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as gz:
+                data = gz.read()
+        elif is_zlib(data):
+            print("is zlib")
+            data = zlib.decompress(data)
+            
+        # --------------------------------------------------------
+        # 2) MO-Magic prüfen (jetzt müssen es rohe .mo-Bytes sein)
+        # --------------------------------------------------------
+        if not is_mo_magic(data):
+            magic_hex = " ".join(f"{b:02x}" for b in data[:4])
+            raise ValueError(""
+                + ("Not a valid MO file after (de)compression.") + "\n"
+                + ("First 4 bytes:") + f"{magic_hex}"
+            )
+        
+        mo_file = io.BytesIO(data)
+        
+        tr = gettext.GNUTranslations(mo_file)
+        tr.install()
+        
+        return tr
+    
     # ------------------------------------------------------------------------
     # get the locale, based on the system locale settings ...
     # ------------------------------------------------------------------------
@@ -2090,7 +2166,9 @@ try:
             #file_path = os.path.join(file_path, "LC_MESSAGES")
             #file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
             #
-            _str = read_gzfile_to_memory(genv.v__app__locales_messages)
+            print("lang ----> "  + genv.v__app__locales_messages)
+            tr = load_mo_from_qt_resource(genv.v__app__locales_messages)
+            _str = tr.gettext
             return _str
         except Exception as e:
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
@@ -2110,7 +2188,9 @@ try:
     
     def handle_css(lang):
         try:
-            _css = read_gzfile_to_memory(genv.v__app__locales_css)
+            print("css ---> " + genv.v__app__locales_css)
+            tr = load_mo_from_qt_resource(genv.v__app__locales_css)
+            _css = tr.gettext
             return _css
         except Exception as e:
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
@@ -2128,19 +2208,139 @@ try:
             showError(error_str)
             sys.exit(genv.EXIT_FAILURE)
     
-    def handle_meta(lang):
+    def handle_key(lang):
         try:
-            _dat = [genv.PCBIOS, genv.PARSER]
-            _dat[genv.PCBIOS] = read_gzfile_to_memory(genv.v__app__locales_meta)
-            #_dat[genv.PARSER] = read_gzfile_to_memory(genv.v__app__locales_meta_parser)
-            return _dat
+            tr = load_mo_from_qt_resource(":/_internal/locales/de_de/LC_META/keyboard.mo.gz")
+            _key = tr.gettext
+            return _key
         except Exception as e:
             exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
             tb = traceback.extract_tb(e.__traceback__)[-1]
             
             error_str = (f""
             + exc_type.__name__ + f":\n"
-            + f"  Message   : Exception occur during handle language (meta):\n"
+            + f"  Message   : Exception occur during handle meta keyboard:\n"
+            + f"  Message   : {exc_value}\n"
+            + f"  File      : {tb.filename}\n"
+            + f"  Line      : {tb.lineno}\n"
+            + ("-" * 40)
+            )
+            
+            showError(error_str)
+            sys.exit(genv.EXIT_FAILURE)
+            
+    def handle_meta(lang):
+        try:
+            _dat = [genv.PCBIOS, genv.PARSER, genv.KEYBOARD]
+            print("bios: " + genv.v__app__locales_meta_biospc)
+            print("pars: " + genv.v__app__locales_meta_parser)
+            print("keys: " + genv.v__app__locales_meta_keybrd)
+            
+            tr1 = load_mo_from_qt_resource(genv.v__app__locales_meta_biospc)
+            tr2 = load_mo_from_qt_resource(genv.v__app__locales_meta_parser)
+            tr3 = load_mo_from_qt_resource(genv.v__app__locales_meta_keybrd)
+            
+            _dat[genv.PCBIOS  ] = tr1.gettext
+            _dat[genv.PARSER  ] = tr2.gettext
+            _dat[genv.KEYBOARD] = tr3.gettext
+            
+            return _dat
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            
+            error_str = (""
+            + exc_type.__name__ + f":\n"
+            + f"  Message   : Exception occur during handle meta data: {e}\n"
+            + f"  Message   : {exc_value}\n"
+            + f"  File      : {tb.filename}\n"
+            + f"  Line      : {tb.lineno}\n"
+            + ("-" * 40)
+            )
+            
+            showError(error_str)
+            sys.exit(genv.EXIT_FAILURE)
+            
+    # -----------------------------------------------------------------------------
+    # Liest alle msgid/msgstr aus einer .mo-Datei und gibt zwei Listen zurück.
+    # Pluralformen erscheinen als eigene Einträge. Reihenfolge ist die Iterations-
+    # reihenfolge von _catalog.
+    # -----------------------------------------------------------------------------
+    def read_mo_as_flat_lists(
+        path: str,
+        include_header: bool = False,   # Header-Eintrag msgid=="" einschließen?
+        keep_context: bool = True       # msgctxt als "\x04" im msgid belassen?
+    ) -> Tuple[List[str], List[str]]:
+        if path.startswith(":"):  # Qt-Ressource
+            f = QFile(path)
+            if not f.open(QFile.ReadOnly):
+                raise RuntimeError(f"could open resource: {path}")
+            data = bytes(f.readAll())
+            f.close()
+            
+            # ------------------------------------------------------
+            # 1) GZip-Magic prüfen (1F 8B 08)
+            # ------------------------------------------------------
+            if is_gzip(data):
+                print("is gzip")
+                with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as gz:
+                    data = gz.read()
+            elif is_zlib(data):
+                print("is zlib")
+                data = zlib.decompress(data)
+
+            # 2) MO-Magic prüfen (jetzt müssen es rohe .mo-Bytes sein)
+            if not is_mo_magic(data):
+                magic_hex = " ".join(f"{b:02x}" for b in data[:4])
+                raise ValueError(""
+                    + ("Not a valid MO file after (de)compression.") + "\n"
+                    + ("First 4 bytes:") + f"{magic_hex}"
+                )
+            
+            mo_file = io.BytesIO(data)
+            tr = gettext.GNUTranslations(mo_file)
+        else:
+            with open(path, "rb") as fp:
+                tr = gettext.GNUTranslations(fp)
+        
+        ids : List[str] = []
+        strs: List[str] = []
+        
+        for key, val in tr._catalog.items():  # key: str oder (msgid, plural_index)
+            # Header (msgid == "") ggf. überspringen
+            if not include_header and key == "":
+                continue
+            
+            plural_index: Union[int, None] = None
+            if isinstance(key, tuple):
+                msgid, plural_index = key  # (singular_msgid, n)
+            else:
+                msgid = key
+            
+            # Kontextbehandlung: msgctxt liegt in gettext als "<ctx>\x04<msgid>"
+            if isinstance(msgid, str) and "\x04" in msgid and not keep_context:
+                _, msgid = msgid.split("\x04", 1)
+
+            ids .append(msgid)
+            strs.append(val)
+        
+        return ids, strs
+    
+    # ---------------------------------------------------------------------------
+    # electronic circuits ...
+    # ---------------------------------------------------------------------------
+    def handle_circuits(lang):
+        try:
+            # todo: language
+            _pow = load_mo_from_qt_resource(":/_internal/locales/de_de/LC_META/electro.mo.gz")
+            return _pow
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            
+            error_str = (f""
+            + exc_type.__name__ + f":\n"
+            + f"  Message   : Exception occur during handle meta circuits:\n"
             + f"  Message   : {exc_value}\n"
             + f"  File      : {tb.filename}\n"
             + f"  Line      : {tb.lineno}\n"
@@ -2234,20 +2434,26 @@ try:
             sys.exit(1)
         
         DebugPrint(genv.v__app__config["common"]["language"])
-        genv.v__app__locales = os.path.join(genv.v__app__internal__, "locales")
-        genv.v__app__locales = os.path.join(genv.v__app__locales, genv.v__app__config["common"]["language"])
         
-        genv.v__app__locales_messages    = os.path.join(genv.v__app__locales, "LC_MESSAGES")
-        genv.v__app__locales_help        = os.path.join(genv.v__app__locales, "LC_HELP")
-        genv.v__app__locales_css         = os.path.join(genv.v__app__locales, "LC_STYLE")
-        genv.v__app__locales_meta        = os.path.join(genv.v__app__locales, "LC_META")
-        genv.v__app__locales_meta_parser = os.path.join(genv.v__app__locales, genv.v__app__locales_meta)
+        genv.v__app__locales += "/" + genv.v__app__config["common"]["language"] + "/"
         
-        genv.v__app__locales_messages    = os.path.join(genv.v__app__locales_messages   , genv.v__app__name_mo + ".gz")
-        genv.v__app__locales_help        = os.path.join(genv.v__app__locales_help       , genv.v__app__help_mo + ".zlib")
-        genv.v__app__locales_css         = os.path.join(genv.v__app__locales_css        , genv.v__app__css__mo + ".gz")
-        genv.v__app__locales_meta        = os.path.join(genv.v__app__locales_meta       , genv.v__app__meta_mo + ".gz")
-        genv.v__app__locales_meta_parser = os.path.join(genv.v__app__locales_meta_parser, genv.v__app__mepa_mo + ".gz")
+        genv.v__app__locales_messages    = genv.v__app__locales + "LC_MESSAGES/"
+        genv.v__app__locales_error       = genv.v__app__locales + "LC_ERROR/"
+        genv.v__app__locales_help        = genv.v__app__locales + "LC_HELP/"
+        genv.v__app__locales_css         = genv.v__app__locales + "LC_STYLE/"
+        genv.v__app__locales_meta        = genv.v__app__locales + "LC_META/"
+        
+        genv.v__app__locales_meta_biospc = genv.v__app__locales_meta + genv.v__app__mebi_mo + genv.v__gnu_zip
+        genv.v__app__locales_meta_parser = genv.v__app__locales_meta + genv.v__app__mepa_mo + genv.v__gnu_zip
+        genv.v__app__locales_meta_keybrd = genv.v__app__locales_meta + genv.v__app__meky_mo + genv.v__gnu_zip
+        
+        genv.v__app__locales_messages   += genv.v__app__name_mo + genv.v__gnu_zip
+        genv.v__app__locales_help       += genv.v__app__help_mo + ".zlib"
+        genv.v__app__locales_css        += genv.v__app__css__mo + genv.v__gnu_zip
+        
+        #genv.v__app__locales_meta_biospc += genv.v__app__mebi_mo + genv.v__gnu_zip
+        #genv.v__app__locales_meta_parser = os.path.join(genv.v__app__locales_meta_parser, genv.v__app__mepa_mo + genv.v__gnu_zip)
+        #genv.v__app__locales_meta_keybrd = os.path.join(genv.v__app__locales_meta_keybrd, genv.v__app__meky_mo + genv.v__gnu_zip)
         #
         if len(genv.v__app__locales) < 5:
             DebugPrint("Error: locale out of seed.")
@@ -2256,7 +2462,9 @@ try:
             
         _str = handle_language(ini_lang)
         _css = handle_css     (ini_lang)
+        _key = handle_key     (ini_lang)
         _dat = handle_meta    (ini_lang)
+        _pow = handle_circuits(ini_lang)
         
         # ------------------------------------------------------------------------
         # determine on which operating the application script runs ...
@@ -10403,36 +10611,11 @@ try:
         
         def set_null_state(self):
             parent = self.parent.parent
-            side_buttons = [
-                parent.side_btn0,
-                parent.side_btn1,
-                parent.side_btn2,
-                parent.side_btn3,
-                parent.side_btn4,
-                parent.side_btn5,
-                parent.side_btn6,
-                parent.side_btn7,
-                parent.side_btn8,
-                parent.side_btn9,
-                parent.side_btn10,
-                parent.side_btn11,
-                parent.side_btn12,
-                parent.side_btn13,
-                parent.side_btn14,
-                parent.side_btn15,
-                parent.side_btn16,
-                parent.side_btn17,
-                parent.side_btn18,
-                parent.side_btn19,
-                parent.side_btn20,
-                parent.side_btn21,
-                parent.side_btn22,
-                parent.side_btn23,
-                parent.side_btn24
-            ]
-            for btn in side_buttons:
-                btn.state = 0
-                btn.set_style()
+            for i in range(25):
+                if (btn := getattr(parent, f"side_btn{i}", None)):
+                    btn.state = 0
+                    btn.set_style()
+            return
 
     class myIconButton(QWidget):
         def __init__(self, parent, mode, label_text, text):
@@ -10536,6 +10719,7 @@ try:
             .replace("{bc}", self.bordercolor)
             
             self.pix_label.setStyleSheet(style)
+            front_content_layout.addStretch()
         
         def enterEvent(self, event):
             if self.state == 2:
@@ -12194,7 +12378,9 @@ try:
         
         def on_hide_clicked(self):
             return True
-
+    # ----------------------------------------------------------------
+    # open doxygem or helpndoc project file ...
+    # ----------------------------------------------------------------
     class OpenProjectButton(QPushButton):
         def __init__(self, parent=None, font=None):
             super(OpenProjectButton, self).__init__(parent)
@@ -12220,7 +12406,12 @@ try:
             dialog.setViewMode(QFileDialog.Detail)
             
             dialog.setOption  (QFileDialog.DontUseNativeDialog, True)
-            dialog.setNameFilters(["Program Files (*.pro)", "Text Files (*.txt)", "All Files (*)"])
+            dialog.setNameFilters([
+                "Program Files (*.pro)",
+                "Config  Files (*.ini)",
+                "Text    Files (*.txt)",
+                "All     Files (*)"]
+            )
             
             list_views = dialog.findChildren(QListView)
             tree_views = dialog.findChildren(QTreeView)
@@ -12239,16 +12430,17 @@ try:
                 msg.setStyleSheet(_css("msgbox_css"))
                 
                 btn_ok = msg.addButton(QMessageBox.Ok)
-                result = msg.exec_()            
+                result = msg.exec_()
                 return
             
             if not os.path.isfile(file_path):
                 msg = None
                 msg = QMessageBox()
                 msg.setWindowTitle("Information")
-                msg.setText(_str(
-                    "You selected a file, that can not be open.\n"
-                    "no file will be open."))
+                msg.setText(""
+                    + _str("You selected a file, that can not be open.") + "\n"
+                    + _str("no file will be open.")
+                )
                 msg.setIcon(QMessageBox.Question)
                 msg.setStyleSheet(_css("msgbox_css"))
                 
@@ -12256,6 +12448,9 @@ try:
                 result = msg.exec_()
                 return
             
+            # --------------------------------------------
+            # fill editfield with data ...
+            # --------------------------------------------
             self.parent.tab0_fold_edit1.clear()
             self.parent.tab0_fold_edit1.setText(file_path)
             
@@ -12272,14 +12467,74 @@ try:
                 else:
                     showError(_str("Error:\ncan not determine doc type."))
                     return False
+                    
+            except FileNotFoundError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + ":\n"
+                + f"  Message   : Could not open file: {file_path}:\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
+            except ValueError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (f""
+                + exc_type.__name__ + ":\n"
+                + f"  Message   : Could not get project type (default: doxygen):\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                genv.doc_type = genv.DOC_FRAMEWORK_DOXYGEN
             
-            except configparser.NoOptionError as error:
-                MyProjectOption()
+            except configparser.NoSectionError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (""
+                + exc_type.__name__ + ":\n"
+                + f"  Message   : NoSectionError: {e}:\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
+            except configparser.NoOptionError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (""
+                + exc_type.__name__ + ":\n"
+                + f"  Message   : NoOptionError: {e}:\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
             
-            if genv.doc_type == 0:
+            if genv.doc_type == genv.DOC_FRAMEWORK_DOXYGEN:
                 genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
                 self.parent.trigger_mouse_press(genv.img_doxygen)
-            elif genv.doc_type == 1:
+                
+            elif genv.doc_type == genv.DOC_FRAMEWORK_HELPNDOC:
                 genv.doc_framework = genv.DOC_FRAMEWORK_HELPNDOC
                 self.parent.trigger_mouse_press(genv.img_hlpndoc)
             else:
@@ -14375,9 +14630,15 @@ try:
                 #
                 {"x": ( 1 * 56)+100+3, "y": 117+110, "w": 500, "h": 53, "label": "SPACE"  , "ll": "", "sub_chars": ["!", "@"]  },
             ]
+            
+            p = Path("keyc64.json")
+            with p.open("w", encoding="utf-8") as f:
+                json.dump(self.keys, f, ensure_ascii=False, indent=2)
+            
             #
             self.load_c64_font()
             self.draw_keyboard()
+            
             
             content_layout.addWidget(self.graphics_view)
             scroll_area.setWidget(content_widget)
@@ -15722,36 +15983,10 @@ try:
         
         def set_null_state(self):
             parent = self.parent_class
-            side_buttons = [
-                parent.side_btn0,
-                parent.side_btn1,
-                parent.side_btn2,
-                parent.side_btn3,
-                parent.side_btn4,
-                parent.side_btn5,
-                parent.side_btn6,
-                parent.side_btn7,
-                parent.side_btn8,
-                parent.side_btn9,
-                parent.side_btn10,
-                parent.side_btn11,
-                parent.side_btn12,
-                parent.side_btn13,
-                parent.side_btn14,
-                parent.side_btn15,
-                parent.side_btn16,
-                parent.side_btn17,
-                parent.side_btn18,
-                parent.side_btn19,
-                parent.side_btn20,
-                parent.side_btn21,
-                parent.side_btn22,
-                parent.side_btn23,
-                parent.side_btn24
-            ]
-            for btn in side_buttons:
-                btn.state = 0
-                btn.set_style()
+            for i in range(25):
+                if (btn := getattr(parent, f"side_btn{i}", None)):
+                    btn.state = 0
+                    btn.set_style()
             return
             
         def show_context_menu(self):
@@ -20657,7 +20892,6 @@ try:
             self.status_bar.setStyleSheet("background-color:gray;")
             self.status_bar.setMaximumHeight(28)
             
-            
             # side toolbar
             self.main_layout = QVBoxLayout()
             self.main_layout.setSpacing(0)
@@ -20734,6 +20968,8 @@ try:
             self.front_content_widget = QWidget()
             self.front_content_layout = QHBoxLayout(self.front_content_widget)
             self.front_content_layout.setSpacing(0)
+            
+            front_content_layout = self.front_content_layout
 
             #genv.splitter = QSplitter(Qt.Horizontal)
             #genv.splitter.addWidget(self.side_scroll)
@@ -20797,10 +21033,10 @@ try:
             #self.tab_widget_tabs.setMinimumWidth(830)
             #self.tab_widget_tabs.setMinimumHeight(650)
             
-            self.help_tabs.removeTab(4)
-            self.help_tabs.removeTab(3)
-            self.help_tabs.removeTab(2)
-            self.help_tabs.removeTab(1)
+            #self.help_tabs.removeTab(4)
+            #self.help_tabs.removeTab(3)
+            #self.help_tabs.removeTab(2)
+            #self.help_tabs.removeTab(1)  äääääääääääääääääääääääääää
             
             self.tab_html   = QWidget()
             
@@ -20888,6 +21124,22 @@ try:
             
             hlp = customScrollView_help()
             bar = QProgressBar()
+            
+            hw3 = QHBoxLayout()
+            bt1 = QPushButton(_str("Apply"))
+            bt2 = QPushButton(_str("Open"))
+            bt3 = QPushButton(_str("Save as..."))
+            
+            self.widget_font.setBold(False)
+            
+            bt1.setFont(self.widget_font)
+            bt2.setFont(self.widget_font)
+            bt3.setFont(self.widget_font)
+            
+            hw3.addWidget(bt1)
+            hw3.addWidget(bt2)
+            hw3.addWidget(bt3)
+            
             bar.setTextVisible(False)
             #
             bar.setMinimum(1)
@@ -20897,6 +21149,7 @@ try:
             
             self.lv_1.addWidget(hlp)
             self.lv_1.addWidget(bar)
+            self.lv_1.addLayout(hw3)
             
             list_layout_a.addLayout(self.lv_1)
             ########################
@@ -20926,43 +21179,11 @@ try:
             view_instance = None
             view_object   = None
 
-            genv.scrollview_5  = customScrollViewDoxygen( 5, genv.tab_level[ 0], genv.list_widget_2_elements[ 0])
-            genv.scrollview_6  = customScrollViewDoxygen( 6, genv.tab_level[ 1], genv.list_widget_2_elements[ 1])
-            genv.scrollview_7  = customScrollViewDoxygen( 7, genv.tab_level[ 2], genv.list_widget_2_elements[ 2])
-            genv.scrollview_8  = customScrollViewDoxygen( 8, genv.tab_level[ 3], genv.list_widget_2_elements[ 3])
-            genv.scrollview_9  = customScrollViewDoxygen( 9, genv.tab_level[ 4], genv.list_widget_2_elements[ 4])
-            genv.scrollview_10 = customScrollViewDoxygen(10, genv.tab_level[ 5], genv.list_widget_2_elements[ 5])
-            genv.scrollview_11 = customScrollViewDoxygen(11, genv.tab_level[ 6], genv.list_widget_2_elements[ 6])
-            genv.scrollview_12 = customScrollViewDoxygen(12, genv.tab_level[ 7], genv.list_widget_2_elements[ 7])
-            genv.scrollview_13 = customScrollViewDoxygen(13, genv.tab_level[ 8], genv.list_widget_2_elements[ 8])
-            genv.scrollview_14 = customScrollViewDoxygen(14, genv.tab_level[ 9], genv.list_widget_2_elements[ 9])
-            genv.scrollview_15 = customScrollViewDoxygen(15, genv.tab_level[10], genv.list_widget_2_elements[10])
-            genv.scrollview_16 = customScrollViewDoxygen(16, genv.tab_level[11], genv.list_widget_2_elements[11])
-            genv.scrollview_17 = customScrollViewDoxygen(17, genv.tab_level[12], genv.list_widget_2_elements[12])
-            genv.scrollview_18 = customScrollViewDoxygen(18, genv.tab_level[13], genv.list_widget_2_elements[13])
-            genv.scrollview_19 = customScrollViewDoxygen(19, genv.tab_level[14], genv.list_widget_2_elements[14])
-            genv.scrollview_20 = customScrollViewDoxygen(20, genv.tab_level[15], genv.list_widget_2_elements[15])
-            genv.scrollview_21 = customScrollViewDoxygen(21, genv.tab_level[16], genv.list_widget_2_elements[16])
-            genv.scrollview_22 = customScrollViewDoxygen(22, genv.tab_level[17], genv.list_widget_2_elements[17])
+            for n, tab, elem in zip(range(5, 23), genv.tab_level, genv.list_widget_2_elements):
+                setattr(genv, f"scrollview_{n}", customScrollViewDoxygen(n, tab, elem))
             
-            genv.scrollers[ 0] = genv.scrollview_5
-            genv.scrollers[ 1] = genv.scrollview_6
-            genv.scrollers[ 2] = genv.scrollview_7
-            genv.scrollers[ 3] = genv.scrollview_8
-            genv.scrollers[ 4] = genv.scrollview_9
-            genv.scrollers[ 5] = genv.scrollview_10
-            genv.scrollers[ 6] = genv.scrollview_11
-            genv.scrollers[ 7] = genv.scrollview_12
-            genv.scrollers[ 8] = genv.scrollview_13
-            genv.scrollers[ 9] = genv.scrollview_14
-            genv.scrollers[10] = genv.scrollview_15
-            genv.scrollers[11] = genv.scrollview_16
-            genv.scrollers[12] = genv.scrollview_17
-            genv.scrollers[13] = genv.scrollview_18
-            genv.scrollers[14] = genv.scrollview_19
-            genv.scrollers[15] = genv.scrollview_20
-            genv.scrollers[16] = genv.scrollview_21
-            genv.scrollers[17] = genv.scrollview_22
+            for i, n in enumerate(range(5, 23)):
+                genv.scrollers[i] = getattr(genv, f"scrollview_{n}")
             
             genv.sv_help = customScrollView_help()
             genv.sv_help.setStyleSheet(_css("ScrollBarCSS"))
@@ -21071,7 +21292,8 @@ try:
             self.tab2_tree_view.setItemDelegateForColumn(4, self.delegateBuild)
             
             #self.tab2_top_layout.
-            
+            self.help_tabs.tabBar().moveTab(5,0)
+            self.help_tabs.setCurrentWidget(self.tab0_0)
             # create project tab
             self.tab0_top_layout    = QHBoxLayout(self.tab0_0)
             self.tab0_left_layout   = QVBoxLayout()
@@ -21118,14 +21340,43 @@ try:
             self.tab0_fold_edit1.setMinimumWidth(274)
             self.tab0_fold_edit1.returnPressed.connect(self.tab0_fold_edit1_return)
             
+            # default
             self.tab0_fold_push1 = OpenProjectButton(self, font)
             self.tab0_fold_userd = QDir.homePath()
             self.tab0_fold_userd = self.tab0_fold_userd.replace("\\",'/')
             
+            # directory check:
+            info = check_directory(self.tab0_fold_userd, deny_symlink=True)
+            if not info["exists"]:
+                showError(""
+                    + _str("Error:") + "\n"
+                    + _str("directory does not exists:") + f" {self.tab0_fold_userd}"
+                )
+                if   genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:  self.tab0_fold_userd = "doxygen.pro"
+                elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC: self.tab0_fold_userd = "helpndoc.pro"
+            
+            if not info["is_dir"]:
+                showError(""
+                    + _str("Error:") + "\n"
+                    + _str("path is not a directory:") + f" {self.tab0_fold_userd}"
+                )
+                if   genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:  self.tab0_fold_userd = "doxygen.pro"
+                elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC: self.tab0_fold_userd = "helpndoc.pro"
+                
+            if not info["writable"]:
+                showError(""
+                    + _str("Error:") + "\n"
+                    + _str("directory is not writeable:") + f" {self.tab0_fold_userd}"
+                )
+                if   genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:  self.tab0_fold_userd = "doxygen.pro"
+                elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC: self.tab0_fold_userd = "helpndoc.pro"
+            
             if ' ' in self.tab0_fold_userd:
-                self.tab0_fold_userd = '"' + self.tab0_fold_userd + '"' + "/unknown.pro"
+                if   genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:  self.tab0_fold_userd = '"' + "doxygen.pro"  + '"'
+                elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC: self.tab0_fold_userd = '"' + "helpndoc.pro" + '"'
             else:
-                self.tab0_fold_userd = QDir.homePath() + "/unknown.pro"
+                if   genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:  self.tab0_fold_userd = "/doxygen.pro"
+                elif genv.doc_framework == genv.DOC_FRAMEWORK_HELPNDOC: self.tab0_fold_userd = "/helpndoc.pro"
             
             self.tab0_fold_edit1.setFont(font)
             self.tab0_fold_edit1.setText(self.tab0_fold_userd)
@@ -21616,7 +21867,7 @@ try:
         def radio_button_toggled(self):
             sender = self.sender()
             if sender.isChecked():
-                showInfo(_str("Attention:\nproject properties was changed."))
+                #showInfo(_str("Attention:\nproject properties was changed."))
                 text = sender.text()
                 if text.startswith("C++"):
                     genv.doc_lang = genv.DOC_LANG_CPP
@@ -21677,19 +21928,15 @@ try:
                 return False
                 
         def tab0_help_list3_item_click(self, item):
-            found = False
-            file  = item.text()
-            for name in genv.v__app__helprojects:
-                if file.lower() == name.lower():
-                    found = True
-                    break
-            if not found:
-                showError(_str("Error:\nproject name item error."))
+            file_path = Path(item.text()).resolve()
+            if not file_path.exists():
+                showError(""
+                    + _str("Error:") + "\n"
+                    + _str("Project name item error - not exists.\n")
+                )
                 return False
-            
-            file_path = item.text()
+                
             _internal = False
-            
             try:
                 if not genv.doc_project_open:
                     genv.doc_project_open = True
@@ -21702,6 +21949,9 @@ try:
                         genv.v__app__config_help = configparser.ConfigParser()
                         genv.v__app__config_help.read(genv.v__app__config_ini_help)
                 else:
+                    if genv.v__app__config_help == None:
+                        genv.v__app__config_help = configparser.ConfigParser()
+                        # 
                     genv.v__app_win.write_config_part()
                     genv.v__app__config_help.read(genv.v__app__config_ini_help)
             
@@ -21820,9 +22070,9 @@ try:
                     else:
                         self.trigger_mouse_press(genv.img_doxygen)
                         #
-                    self.help_tabs.removeTab(3)
-                    self.help_tabs.removeTab(2)
-                    self.help_tabs.removeTab(1)
+                    #self.help_tabs.removeTab(3)
+                    #self.help_tabs.removeTab(2)
+                    #self.help_tabs.removeTab(1)
                     self.help_tabs.insertTab(1, self.tab3, _str("DoxyGen"))
                     self.help_tabs.setCurrentIndex(1)
                     #
@@ -22553,8 +22803,8 @@ try:
                         self.trigger_mouse_press(genv.img_hlpndoc)
                     else:
                         self.trigger_mouse_press(genv.img_hlpndoc)
-                    self.help_tabs.removeTab(2)
-                    self.help_tabs.removeTab(1)
+                    #self.help_tabs.removeTab(2)
+                    #self.help_tabs.removeTab(1)
                     self.help_tabs.insertTab(1, self.tab1_0, _str("Pre-/Post Actions"))
                     self.help_tabs.insertTab(2, self.tab2  , _str("Topics"))
                     self.help_tabs.insertTab(3, self.tab4  , _str("Content"))
@@ -22629,22 +22879,18 @@ try:
         
         def tab0_help_list2_item_click(self, item):
             text = item.text()
-            DebugPrint(text)
+            print(text)
             if text == _str("Empty Project"):
                 genv.doc_template = genv.DOC_TEMPLATE_EMPTY
-                genv.v__app_win.write_config_part()
                 return True
             elif text == _str("Recipe"):
                 genv.doc_template = genv.DOC_TEMPLATE_RECIPE
-                genv.v__app_win.write_config_part()
                 return True
             elif text == _str("API Project"):
                 genv.doc_template = genv.DOC_TEMPLATE_API
-                genv.v__app_win.write_config_part()
                 return True
             elif text == _str("Software Documentation"):
                 genv.doc_template = genv.DOC_TEMPLATE_SOFTWARE
-                genv.v__app_win.write_config_part()
                 return True
             else:
                 genv.doc_template = -1
@@ -22665,36 +22911,38 @@ try:
             bool_flagC = False
             bool_flagD = False
             
-            path_error = _str(""
-            + "Warning:\nA project with the corresponding name already exists.\n"
-            + "All data will be lost and override with new informations.")
+            #path_error = _str(""
+            #+ "Warning:\nA project with the corresponding name already exists.\n"
+            #+ "All data will be lost and override with new informations.")
             
-            file_path = Path(self.tab0_fold_edit1.text())
-            if not self.tab0_fold_edit1.text().endswith(".pro"):
+            file_path = Path(self.tab0_fold_edit1.text()).resolve()
+            if not str(Path(file_path).resolve()).endswith(".pro"):
                 showError(_str("Error:\nproject name does not fit the requirements."))
                 return False
-            if file_path.is_dir():
+            if Path(file_path).is_dir():
                 showError(_str("Error:\ngiven file not a file type (is dir)."))
                 return False
-            if file_path.exists():
+            if Path(file_path).exists():
                 # ------------------------------------------
                 # prüfe alle Einträge aus der QListWidget
                 # ------------------------------------------
-                items = []
-                for i in range(self.tab0_help_list3.count()):
-                    items.append(self.tab0_help_list3.item(i))
-                
-                for item in items:
-                    if item.text() == genv.v__app__config_project_ini:
-                        #showError(_str("Error:\nproject already exists."))
-                        showError(path_error)
-                        return False
-                
-                list_item = QListWidgetItem(genv.v__app__config_project_ini)
-                list_item.setIcon(QIcon(os.path.join(genv.v__app__img__int__, "project.png")))
-                list_item.setFont(self.tab0_help_list2.font())
-                self.tab0_help_list3.addItem(list_item)
-                
+                check = str(Path(file_path).resolve())
+                check = check.replace("/", "\\")
+                items = self.tab0_help_list3.findItems(check, Qt.MatchExactly)
+                if not items:
+                    check = check.replace("\\", "/")
+                    items = self.tab0_help_list3.findItems(check, Qt.MatchExactly)
+                    
+                if items:
+                    row  = self.tab0_help_list3.row(items[0])
+                    item = self.tab0_help_list3.takeItem(row)
+                    
+                    del item
+                else:
+                    list_item = QListWidgetItem(check)
+                    list_item.setIcon(QIcon(os.path.join(genv.v__app__img__int__, "project.png")))
+                    list_item.setFont(self.tab0_help_list2.font())
+                    self.tab0_help_list3.addItem(list_item)
             # ------------------------------
             if genv.radio_cpp.isChecked():
                 genv.doc_lang = genv.DOC_LANG_CPP
@@ -22739,6 +22987,8 @@ try:
                 showError(_str("Error:\nNo project documentation selected."))
                 return False
             # ------------------------------
+            # todo: wenn list3 item nicht gleich edit ist,
+            #       dann nimm edit
             genv.v__app__config_project_ini = self.tab0_fold_edit1.text()
             pro = genv.v__app__config_project_ini
             new = pro.replace('"', '')
@@ -22747,26 +22997,42 @@ try:
                 showError(_str("Error:\nproject file does not fit requierements."))
                 return False
             genv.v__app__config_project_ini = new
-            DebugPrint(new)
-            if not os.path.exists(new):
-                try:
-                    with open(genv.v__app__config_project_ini, "w", encoding="utf-8") as f:
-                        content = (""
-                        + "[common]"
-                        + "\ntype = helpdoc"
-                        + "\nlanguage = en_us"
-                        + "\ndoc_doctype = "    + str(genv.doc_type_out)
-                        + "\ndoc_template = "   + str(genv.doc_template)
-                        + "\ndoc_project = "    + str(genv.doc_project)
-                        + "\ndoc_lang = "       + str(genv.doc_lang)
-                        + "\n")
-                        f.write(content)
-                        f.close()
-                except Exception as e:
-                    DebugPrint(e)
-                    showError(_str("Error:\nproject file could not create."))
-                    genv.doc_project_open = False
-                    return False
+            if os.path.exists(new):
+                msg = QMessageBox()
+                msg.setWindowTitle(_str("Confirmation"))
+                msg.setText(_str("Would you overwrite the exisiting project ?"))
+                msg.setIcon(QMessageBox.Question)
+                
+                btn_yes = msg.addButton(QMessageBox.Yes)
+                btn_no  = msg.addButton(QMessageBox.No)
+                
+                msg.setStyleSheet(_css("msgbox_css"))
+                result = msg.exec_()
+                
+                if result == QMessageBox.No:
+                    return True
+            try:
+                with open(genv.v__app__config_project_ini, "w", encoding="utf-8") as f:
+                    content = (""
+                    + "[common]"
+                    + "\ntype = helpdoc"
+                    + "\nlanguage = en_us"
+                    + "\ndoc_doctype = "    + str(genv.doc_type_out)
+                    + "\ndoc_template = "   + str(genv.doc_template)
+                    + "\ndoc_project = "    + str(genv.doc_project)
+                    + "\ndoc_lang = "       + str(genv.doc_lang)
+                    + "\n")
+                    f.write(content)
+                    f.close()
+            except Exception as e:
+                DebugPrint(e)
+                showError(""
+                    + _str("Error:") + "\n"
+                    + _str("Project file could not create.") + "\n"
+                    + f"{e}"
+                )
+                genv.doc_project_open = False
+                return False
             # -----------------------------------------------------------
             # forward initializations ...
             # -----------------------------------------------------------
@@ -22860,8 +23126,37 @@ try:
                 genv.v__app__config.read( file_path )
             
                 genv.doc_type = int(genv.v__app__config.get("project", "type"))
-            except configparser.NoOptionError as error:
-                MyProjectOption()
+                
+            except configparser.NoSectionError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (""
+                + exc_type.__name__ + ":\n"
+                + f"  Message   : NoSectionError: {e}:\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
+            except configparser.NoOptionError as e:
+                exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                
+                error_str = (""
+                + exc_type.__name__ + ":\n"
+                + f"  Message   : NoOptionError: {e}:\n"
+                + f"  Message   : {exc_value}\n"
+                + f"  File      : {tb.filename}\n"
+                + f"  Line      : {tb.lineno}\n"
+                + ("-" * 40)
+                )
+                
+                showError(error_str)
+                return
             
             if genv.doc_framework == genv.DOC_FRAMEWORK_DOXYGEN:
                 self.trigger_mouse_press(genv.img_doxygen)
@@ -23055,7 +23350,7 @@ try:
             rhs_png = "_left.png"
 
             self.electro_components = [
-                ["NOT" , imgpath + "not"  + rhs_png,
+                ["NOT" ,  "not_left.png",
                     [ "LR",
                         [ "BODY", [  2, 18, 67,  84 ]],
                         [ "A"   , [ 11, 86, 32, 100 ]],
@@ -23067,7 +23362,7 @@ try:
                         [ "B"   , [ 40, 86, 59, 100 ]]
                     ]
                 ],
-                ["AND" , imgpath + "and"  + rhs_png,
+                ["AND" , "and_left.png",
                     [ "DR",
                         [ "BODY", [  2, 18, 67,  84 ]],
                         [ "A"   , [ 11, 86, 32, 100 ]],
@@ -23093,11 +23388,11 @@ try:
                         [ "C"   , [ 23,  0, 45,  16 ]]
                     ]
                 ],
-                ["NAND", imgpath + "nand" + rhs_png ],
-                ["OR"  , imgpath + "or"   + rhs_png ],
-                ["NOR" , imgpath + "nor"  + rhs_png ],
-                ["XOR" , imgpath + "xor"  + rhs_png ],
-                ["XNOR", imgpath + "nxor" + rhs_png ]
+                ["NAND", "nand_left.png" ],
+                ["OR"  , "or_left.png"  ],
+                ["NOR" , "nor_left.png" ],
+                ["XOR" , "xor_left.png" ],
+                ["XNOR", "nxor_left.png" ]
             ]
             self.component_list = QListWidget()
             self.component_list.setMinimumWidth(150)
@@ -24037,6 +24332,7 @@ try:
                 _str("Remote User"),
                 _str("CHM Workshop")])
             #
+            
             user32 = ctypes.windll.user32
             user32.SetProcessDPIAware()
             #
@@ -24044,9 +24340,10 @@ try:
             ymax = user32.GetSystemMetrics(1)
             
             self.settings_tabs.setMinimumWidth(xmax-280)
-            self.settings_tabs.setMaximumWidth(3200)
+            self.settings_tabs.setMaximumWidth(1200)
             
             self.tab1 = self.settings_tabs.getTab(0); self.tab1.setLayout(self.addSettingsBIOS())
+            
             self.tab2 = self.settings_tabs.getTab(1); self.tab2.setLayout(self.addSettingsRemoteUser())
             self.tab3 = self.settings_tabs.getTab(2); self.tab3.setLayout(self.addSettingsChmLayout())
             
@@ -24548,94 +24845,33 @@ try:
             content_layout.addStretch()
             
             # keyboard layout
-            kbl = _str(" Keyboard Layout")
-            winlay = "-windows-keyboard-layout-keyshorts_1024x1024.webp"
-            keyboard_imglist = [
-                [_str("US English")                  + kbl, genv.v__app__img__key__ + "usenglish"               + winlay ],
-                [_str("US English International")    + kbl, genv.v__app__img__key__ + "usinternational"         + winlay ],
-                [_str("Arabic")                      + kbl, genv.v__app__img__key__ + "arabic"                  + winlay ],
-                [_str("Armenian")                    + kbl, genv.v__app__img__key__ + "armenian"                + winlay ],
-                [_str("Azeri/Azerbaijani")           + kbl, genv.v__app__img__key__ + "azeri"                   + winlay ],
-                [_str("Belgian")                     + kbl, genv.v__app__img__key__ + "belgian"                 + winlay ],
-                [_str("Bengali")                     + kbl, genv.v__app__img__key__ + "bengali"                 + winlay ],
-                [_str("Bosnian")                     + kbl, genv.v__app__img__key__ + "Bosnian"                 + winlay ],
-                [_str("Bulgarian")                   + kbl, genv.v__app__img__key__ + "Bulgarian"               + winlay ],
-                [_str("Burmese")                     + kbl, genv.v__app__img__key__ + "Burmese"                 + winlay ],
-                [_str("Cherokee")                    + kbl, genv.v__app__img__key__ + "Cherokee"                + winlay ],
-                [_str("Chinese")                     + kbl, genv.v__app__img__key__ + "Chinese"                 + winlay ],
-                [_str("Colemak")                     + kbl, genv.v__app__img__key__ + "Colemak"                 + winlay ],
-                [_str("Croatian")                    + kbl, genv.v__app__img__key__ + "Croatian"                + winlay ],
-                [_str("Czech")                       + kbl, genv.v__app__img__key__ + "Czech"                   + winlay ],
-                [_str("Danish")                      + kbl, genv.v__app__img__key__ + "Danish"                  + winlay ],
-                [_str("Dvorak")                      + kbl, genv.v__app__img__key__ + "Dvorak"                  + winlay ],
-                [_str("Dutch")                       + kbl, genv.v__app__img__key__ + "Dutch"                   + winlay ],
-                [_str("Estonian")                    + kbl, genv.v__app__img__key__ + "Estonian"                + winlay ],
-                [_str("Finnish")                     + kbl, genv.v__app__img__key__ + "Finnish"                 + winlay ],
-                [_str("French")                      + kbl, genv.v__app__img__key__ + "French"                  + winlay ],
-                [_str("French (BÉPO)")               + kbl, genv.v__app__img__key__ + "French_BÉPO"             + winlay ],
-                [_str("French (Canadian)")           + kbl, genv.v__app__img__key__ + "French_Canadian"         + winlay ],
-                [_str("German")                      + kbl, genv.v__app__img__key__ + "German"                  + winlay ],
-                [_str("Georgian")                    + kbl, genv.v__app__img__key__ + "Georgian"                + winlay ],
-                [_str("Greek")                       + kbl, genv.v__app__img__key__ + "Greek"                   + winlay ],
-                [_str("Greek (Polytonic)")           + kbl, genv.v__app__img__key__ + "Greek_Polytonic"         + winlay ],
-                [_str("Gujarati")                    + kbl, genv.v__app__img__key__ + "Gujarati"                + winlay ],
-                [_str("Hebrew")                      + kbl, genv.v__app__img__key__ + "Hebrew"                  + winlay ],
-                [_str("Hindi")                       + kbl, genv.v__app__img__key__ + "Hindi"                   + winlay ],
-                [_str("Hungarian")                   + kbl, genv.v__app__img__key__ + "Hungarian"               + winlay ],
-                [_str("Icelandic")                   + kbl, genv.v__app__img__key__ + "Icelandic"               + winlay ],
-                [_str("Inuktitut (Naqittaut)")       + kbl, genv.v__app__img__key__ + "Inuktitut_Naqittaut"     + winlay ],
-                [_str("Italian")                     + kbl, genv.v__app__img__key__ + "Italian"                 + winlay ],
-                [_str("Japanese")                    + kbl, genv.v__app__img__key__ + "Japanese"                + winlay ],
-                [_str("Kannada")                     + kbl, genv.v__app__img__key__ + "Kannada"                 + winlay ],
-                [_str("Kazakh")                      + kbl, genv.v__app__img__key__ + "Kazakh"                  + winlay ],
-                [_str("Khmer")                       + kbl, genv.v__app__img__key__ + "Khmer"                   + winlay ],
-                [_str("Korean")                      + kbl, genv.v__app__img__key__ + "Korean"                  + winlay ],
-                [_str("Kurdish")                     + kbl, genv.v__app__img__key__ + "Kurdish"                 + winlay ],
-                [_str("Latvian")                     + kbl, genv.v__app__img__key__ + "Latvian"                 + winlay ],
-                [_str("Lithuanian")                  + kbl, genv.v__app__img__key__ + "Lithuanian"              + winlay ],
-                [_str("Macedonian")                  + kbl, genv.v__app__img__key__ + "Macedonian"              + winlay ],
-                [_str("Malayalam")                   + kbl, genv.v__app__img__key__ + "Malayalam"               + winlay ],
-                [_str("Maltese")                     + kbl, genv.v__app__img__key__ + "Maltese"                 + winlay ],
-                [_str("Nepali")                      + kbl, genv.v__app__img__key__ + "Nepali"                  + winlay ],
-                [_str("Northern Sami")               + kbl, genv.v__app__img__key__ + "Northern_Sami"           + winlay ],
-                [_str("Norwegian")                   + kbl, genv.v__app__img__key__ + "Norwegian"               + winlay ],
-                [_str("Odia/Oriya")                  + kbl, genv.v__app__img__key__ + "Odia_Oriya"              + winlay ],
-                [_str("Pashto")                      + kbl, genv.v__app__img__key__ + "Pashto"                  + winlay ],
-                [_str("Persian/Farsi")               + kbl, genv.v__app__img__key__ + "Persian_Farsi"           + winlay ],
-                [_str("Polish")                      + kbl, genv.v__app__img__key__ + "Polish"                  + winlay ],
-                [_str("Polish (214)")                + kbl, genv.v__app__img__key__ + "Polish_typist_214"       + winlay ],
-                [_str("Portuguese")                  + kbl, genv.v__app__img__key__ + "Portuguese"              + winlay ],
-                [_str("Portuguese (Brazilian)")      + kbl, genv.v__app__img__key__ + "Portuguese_Brazilian"    + winlay ],
-                [_str("Punjabi (Gurmukhi)")          + kbl, genv.v__app__img__key__ + "Punjabi_Gurmukhi"        + winlay ],
-                [_str("Romanian")                    + kbl, genv.v__app__img__key__ + "Romanian"                + winlay ],
-                [_str("Russian")                     + kbl, genv.v__app__img__key__ + "Russian"                 + winlay ],
-                [_str("Russian (Phonetic)")          + kbl, genv.v__app__img__key__ + "Russian_Phonetic"        + winlay ],
-                [_str("Serbian")                     + kbl, genv.v__app__img__key__ + "Serbian"                 + winlay ],
-                [_str("Serbian (Latin)")             + kbl, genv.v__app__img__key__ + "Serbian_Latin"           + winlay ],
-                [_str("Sinhala")                     + kbl, genv.v__app__img__key__ + "Sinhala"                 + winlay ],
-                [_str("Slovak")                      + kbl, genv.v__app__img__key__ + "Slovak"                  + winlay ],
-                [_str("Slovene/Slovenian")           + kbl, genv.v__app__img__key__ + "Slovene"                 + winlay ],
-                [_str("Spanish")                     + kbl, genv.v__app__img__key__ + "Spanish"                 + winlay ],
-                [_str("Spanish (Latin America)")     + kbl, genv.v__app__img__key__ + "Spanish_latam"           + winlay ],
-                [_str("Swedish")                     + kbl, genv.v__app__img__key__ + "Swedish"                 + winlay ],
-                [_str("Swiss")                       + kbl, genv.v__app__img__key__ + "Swiss"                   + winlay ],
-                [_str("Tamil")                       + kbl, genv.v__app__img__key__ + "Tamil"                   + winlay ],
-                [_str("Telugu")                      + kbl, genv.v__app__img__key__ + "Telugu"                  + winlay ],
-                [_str("Thai (Kedmanee)")             + kbl, genv.v__app__img__key__ + "Thai_Kedmanee"           + winlay ],
-                [_str("Tibetan")                     + kbl, genv.v__app__img__key__ + "Tibetan"                 + winlay ],
-                [_str("Turkish F")                   + kbl, genv.v__app__img__key__ + "TurkishF"                + winlay ],
-                [_str("Turkish Q")                   + kbl, genv.v__app__img__key__ + "TurkishQ"                + winlay ],
-                [_str("Ukrainian")                   + kbl, genv.v__app__img__key__ + "Ukrainian"               + winlay ],
-                [_str("Urdu")                        + kbl, genv.v__app__img__key__ + "Urdu"                    + winlay ],
-                [_str("Uyghur")                      + kbl, genv.v__app__img__key__ + "Uyghur"                  + winlay ],
-                [_str("Uzbek")                       + kbl, genv.v__app__img__key__ + "Uzbek"                   + winlay ],
-                [_str("Vietnamese")                  + kbl, genv.v__app__img__key__ + "Vietnamese"              + winlay ],
-            ]
+            kbl = _str("Keyboard Layout")
+            winlay = "-windows-keyboard-layout-keyshorts_1024x1024.jpg"
+            print("1111111")
+            self.keyboard_imglist = []
+            ids, strs = read_mo_as_flat_lists(":/_internal/locales/de_de/LC_META/keyboard.mo.gz")
+            print("2222")
+            for layout, img in zip(ids, strs):
+                self.keyboard_imglist.append([f"{layout} {kbl}", img + winlay])
+                
             self.keyboard_combo = QComboBox()
-            for item in keyboard_imglist:
+            self.keyboard_combo.setFont(QFont("Arial", 10))
+            self.keyboard_combo.setMinimumHeight(21)
+            self.keyboard_combo.setMaximumWidth(300)
+            
+            for item in self.keyboard_imglist:
                 self.keyboard_combo.addItem(item[0])
-            content_layout.addWidget(self.keyboard_combo)
+            
             self.keyboard_combo.currentIndexChanged.connect(self.on_keyboard_combo_index_changed)
+            #
+            self.keyboard_label = QLabel("")
+            self.keyboard_label.setMinimumWidth (700)
+            self.keyboard_label.setMinimumHeight(600)
+            self.keyboard_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)  
+            
+            content_layout.addWidget(self.keyboard_combo)
+            content_layout.addWidget(self.keyboard_label)
+            content_layout.addStretch()
             #
             scroll_area.setWidget(scroll_content)
             bios_frame_keyboard_layout.addWidget(scroll_area)
@@ -24646,9 +24882,23 @@ try:
             
             return vlayout_bios_frame_keyboard
         
+        # ------------------------------------------------------------
+        # \brief open keyboard layout picture from resource file ...
+        # ------------------------------------------------------------
         def on_keyboard_combo_index_changed(self):
-            text = self.keyboard_combo.currentText()
-            print(text)
+            text = self.keyboard_imglist[self.keyboard_combo.currentIndex()][1]
+            text = text.replace("\\", "/").lower()
+            
+            if text.startswith(":/"):
+                text = QDir(f":_internal/").filePath(text[2:])
+            
+            imgpix = QPixmap(text)
+            if imgpix.isNull():
+                showError(f"Image not found: {text}")
+                return
+            
+            self.keyboard_label.setPixmap(imgpix)
+            self.keyboard_label.show()
         
         def showBIOS_Mouse_settings(self, font, vlayout_bios_label_3):
             #
@@ -26048,7 +26298,7 @@ try:
             super(BIOSFramePanel, self).__init__(parent)
             self.setFrameShape (QFrame.Panel)
             self.setFrameShadow(QFrame.Sunken)
-            self.setMinimumHeight(500)
+            self.setMinimumHeight(400)
             self.setMinimumWidth (700)
             self.setLineWidth(2)
             
@@ -27790,6 +28040,8 @@ try:
     def add_application_args(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--windows", dest="windows", action="store_true",
                         help=_str("start gui as Windows Application"))
+        sp.add_argument("--win", dest="win", action="store_true",
+                        help=_str("shortcut for 'windows'"))
                         
         sp.add_argument("--linux", dest="linux", action="store_true",
                         help=_str("start gui as X-Server Linux Applicationr"))
@@ -27808,8 +28060,8 @@ try:
                         help=_str("print informations of a pe file on the screen"))
         
         # Die Eingabedatei als POSITIONALES Argument – kann nach den Optionen stehen
-        sp.add_argument("input_file", metavar="INPUT", type=Path,
-                        help=_str("path to input file"))
+        #sp.add_argument("input_file", metavar="INPUT", type=Path,
+        #                help=_str("path to input file"))
     # ------------------------------------------------------------------------
     def add_config_args(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--create", dest="config_create", action="store_true",
@@ -27895,12 +28147,22 @@ try:
             ),
         )
         p_gui = sub.add_parser("gui",
-            help   = _str("Input type: GUI"),
+            help   = _str("Start Application in GUI mode"),
             formatter_class = RichHelp ,
             epilog          = textwrap.dedent(""
                 + _str("Examples:") + "\n"
                 + "    python script.py gui --windows\n"
                 + "    python script.py gui --linux\n"
+            ),
+        )
+        p_console = sub.add_parser(
+            "console",
+            help            = _str("Start Application in Console"),
+            formatter_class = RichHelp ,
+            epilog          = textwrap.dedent(""
+                + _str("Examples:") + "\n"
+                + "    python script.py console --windows\n"
+                + "    python script.py console --linux\n"
             ),
         )
         p_info = sub.add_parser("info",
@@ -27909,16 +28171,6 @@ try:
             epilog          = textwrap.dedent(""
                 + _str("Examples:") + "\n"
                 + "    python script.py info --pe test.exe\n"
-            ),
-        )
-        p_console = sub.add_parser(
-            "console",
-            help            = _str("Input type: Console"),
-            formatter_class = RichHelp ,
-            epilog          = textwrap.dedent(""
-                + _str("Examples:") + "\n"
-                + "    python script.py console --windows\n"
-                + "    python script.py console --linux\n"
             ),
         )
         # ------------------------------------------------------------------------
@@ -27997,8 +28249,6 @@ try:
         add_application_args(p_gui)
         add_application_args(p_console)
         
-        #add_project_args(p_project)
-        
         return parser
     # ------------------------------------------------------------------------
     def handle_config(args) -> int:
@@ -28036,14 +28286,15 @@ try:
         }[kind]
         
         path: Path = args.project_file or Path(default_name)
-
+        
         # .pro-Suffix sicherstellen (optional)
         if path.suffix.lower() != ".pro":
             path = path.with_suffix(".pro")
 
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists() and not args.force:
-            print(f"abort: {path} exists. Use --force to overwrite project.", file=sys.stderr)
+            print(f"abort: {path} exists. Use --force to overwrite project.",
+            file = sys.stderr)
             return 1
 
         # Beispiel-Content je nach kind
