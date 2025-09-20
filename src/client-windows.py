@@ -45,26 +45,162 @@ HTTP_DIRECTORY = "./__pycache__/temp"
 import argparse, textwrap
 import datetime as dt
 import importlib
+import importlib.util # module check utils
 import subprocess
 import sys            # system specifies
 import os             # operating system stuff
 import uuid
-import regex as re
-import platform
-import hashlib
-import traceback      # stack exception trace back
+import site
+# ---------------------------------------------------------------------------
+# \brief os env setzen
+# ---------------------------------------------------------------------------
+os.environ["PATH"] = ".\\_internal" + os.pathsep + os.environ.get("PATH","")
 
-from io      import StringIO
-from pathlib import Path
+# ---------------------------------------------------------------------------
+# \brief Sorgt dafür, dass (user-)site-packages auf sys.path sind.
+# ---------------------------------------------------------------------------
+def add_site_paths():
+    paths = []
+    # user site (kann durch -s / PYTHONNOUSERSITE fehlen)
+    try:
+        paths.append(site.getusersitepackages())
+    except Exception:
+        pass
+    # globale/venv site-packages
+    try:
+        for p in site.getsitepackages():
+            paths.append(p)
+    except Exception:
+        pass
+    for p in paths:
+        if p and os.path.isdir(p) and p not in sys.path:
+            sys.path.append(p)
+# ---------------------------------------------------------------------------
+# \brief get application directory for "frozen" app (PyInstaller/Exe)
+# ---------------------------------------------------------------------------
+def app_dir() -> str:
+    if getattr(sys, "frozen", False):
+        # Pfad zur ausgeführten EXE
+        return os.path.dirname(sys.executable)
+    try:
+        return os.path.dirname(os.path.abspath(__file__))
+    except NameError:
+        # Fallback: interaktiv/Jupyter
+        return os.getcwd()
+# ---------------------------------------------------------------------------
+# Sichert, dass `module` importierbar ist.
+# - `package`: Name auf PyPI (falls abweichend vom Modulnamen)
+# - `spec`: Pip-Spezifikation (z.B. 'uvicorn[standard]>=0.30')
+# ---------------------------------------------------------------------------
+def ensure_package(
+    module : str,
+    package: str | None = None,
+    spec   : str | None = None,  # z.B. 'pandas>=2.2,<3'
+    upgrade: bool = False):
+    
+    pkg     = package or module
+    pip_req = spec    or pkg
+    
+    # ---------------------------------------------------------
+    # 1) Direkt versuchen
+    # ---------------------------------------------------------
+    try:
+        return importlib.import_module(module)
+    except ImportError:
+        pass  # installieren
+    
+    # ---------------------------------------------------------
+    # 2) Installieren (immer mit *diesem* Interpreter)
+    # ---------------------------------------------------------
+    pip = os.path.join(app_dir(),"venv","Scripts","pip.exe")
+    cmd = [pip,"install", pip_req]
+    if upgrade:
+        cmd.append("--upgrade")
+    try:
+        subprocess.check_call(cmd)
+    except subprocess.CalledProcessError as e:
+        # -----------------------------------------------------
+        # oft nötig in System-/venv-Setups ohne Schreibrechte
+        # -----------------------------------------------------
+        subprocess.check_call(cmd + ["--user"])
+    
+    # ---------------------------------------------------------
+    # 3) Nachinstallation: Pfade & Caches auffrischen
+    # ---------------------------------------------------------
+    add_site_paths()
+    importlib.invalidate_caches()
+    
+    # ---------------------------------------------------------
+    # 4) Nochmals importieren
+    # ---------------------------------------------------------
+    try:
+        return importlib.import_module(module)
+    except ImportError:
+        # -----------------------------------------------------
+        # 5) Notfalls: Installationsort ermitteln und anhängen
+        # -----------------------------------------------------
+        try:
+            pip = os.path.join(app_dir(),"_internal","pip.exe")
+            cmd = [pip,"show", pkg]
+            out = subprocess.check_output(cmd,
+                text=True, errors="ignore"
+            )
+            for line in out.splitlines():
+                if line.startswith("Location:"):
+                    loc = line.split("Location:", 1)[1].strip()
+                    if os.path.isdir(loc) and loc not in sys.path:
+                        sys.path.append(loc)
+                        importlib.invalidate_caches()
+                        return importlib.import_module(module)
+        except ModuleNotFoundError as e:
+            pass
+        except Exception:
+            pass
+        # -----------------------------------------------------
+        # 6) Aufgeben mit hilfreichem Hinweis
+        # -----------------------------------------------------
+        raise ImportError(
+            f"Paket '{pkg}' wurde installiert, aber Modul '{module}' ist nicht importierbar.\n"
+            f"no_site={sys.flags.no_site}, isolated={sys.flags.isolated}, "
+            f"usersite_enabled={getattr(site, 'ENABLE_USER_SITE', None)}\n"
+            f"sys.executable={sys.executable}\n"
+            f"sys.path[0:5]={sys.path[:5]} ..."
+        )
+# ---------------------------------------------------------------------------
+# \brief check the requiere import modules ...
+# ---------------------------------------------------------------------------
+req_pack = [
+    "regex", "dbf", "polib", "requests", "datetime", "gmpy2", "webbrowser",
+    "locale", "io", "random", "ipapi", "string", "capstone", "pefile",
+    "httpx", "ctypes", "sqlite3", "configparser", "traceback", "bs4",
+    "PyQt5", "PyQt5.QtWebEngineWidgets",
+    "screeninfo", "pathlib", "timer",
+    "marshal", "inspect", "logging", "rich", "string", "codecs",
+]
+for p in req_pack:
+    l = ensure_package(p)
+ 
+try:
+    import regex as re
+    import platform
+    import hashlib
+    import traceback      # stack exception trace back
 
-import html as _html
+    from io      import StringIO
+    from pathlib import Path
 
-# -----------------------------------------------------------------------
-# for fetch html websites ...
-# -----------------------------------------------------------------------
-from urllib.request import Request, urlopen
-from urllib.error   import URLError, HTTPError
-from urllib.parse   import quote_plus
+    import html as _html
+
+    # -----------------------------------------------------------------------
+    # for fetch html websites ...
+    # -----------------------------------------------------------------------
+    from urllib.request import Request, urlopen
+    from urllib.error   import URLError, HTTPError
+    from urllib.parse   import quote_plus
+    
+except ImportError as e:
+    print(e)
+    sys.exit(1)
 
 VALID_ASM_CHARS_RE = re.compile(r'[^A-Za-z0-9_$.#@~.?]')
 
@@ -252,13 +388,32 @@ try:
     # Namen zurück.
     # ---------------------------------------------------------
     def load_custom_font(font_path):
-        font_id = QFontDatabase.addApplicationFont(font_path)
-        if font_id == -1:
-            print("Error: could not load font.")
-            return None
-        font_families = QFontDatabase.applicationFontFamilies(font_id)
-        if font_families:
-            return font_families[0]
+        return
+        if importlib.util.find_spec("PyQt5.QtGui") is not None:
+            print("PyQt5 installed.")
+        else:
+            raise RuntimeError(""
+            + _str("Error:") + "\n"
+            + _str("PyQt5 not installed.")
+            )
+        try:
+            from PyQt5.QtGui import QtGui, QtCore
+            if hasattr(QtGui, "QFontDatabase"):
+                font_id = QtGui.QFontDatabase.addApplicationFont(font_path)
+                if font_id == -1:
+                    print("Error: could not load font.")
+                    return None
+                font_families = QtGui.QFontDatabase.applicationFontFamilies(font_id)
+                if font_families:
+                    return font_families[0]
+            else:
+                raise RuntimeError("QFontDatabase not abailable.")
+        except ImportError as e:
+            print(""
+            + _str("Import Error:") + "\n"
+            + _str("PyQt5.QtGui not importable.") + "\n"
+            + e
+            )
         return None
         
     def font_check_installed(font_name):
@@ -361,25 +516,46 @@ try:
     # ---------------------------------------------------------
     def install_font(font_path):
         return
-        if not os.path.exists(font_path):
-            raise FileNotFoundError(f"Font-Datei nicht gefunden: {font_path}")
+        if importlib.util.find_spec("PyQt5.QtGui") is not None:
+            print("PyQt5 installed.")
+        else:
+            raise RuntimeError(""
+            + _str("Error:") + "\n"
+            + _str("PyQt5 not installed.")
+            )
         try:
-            if sys.platform.startswith("win"):
-                font_added = ctypes.windll.gdi32.AddFontResourceExW(font_path, FR_PRIVATE, None)
-                if font_added == 0:
-                    raise RuntimeError(f"Fehler beim Hinzufügen des Fonts: {font_path}")
+            from PyQt5 import QtGui, QtCore
+            if hasattr(QtGui, "QFontDatabase"):
+                font_id = QtGui.QFontDatabase.addApplicationFont(font_path)
+                if font_id == -1:
+                    raise RuntimeError(""
+                    + "Error: could not load font.\n" + font_path)
+                    return None
+                families = QtGui.QFontDatabase.applicationFontFamilies(font_id)
+                if families:
+                    DebugPrint("SUCCESSFUL: font installed: " + font_path)
+                else:
+                    DebugPrint("FAILED: font installed: "     + font_path)
+            else:
+                raise RuntimeError("QFontDatabase not abailable.")
+        except ImportError as e:
+            print(""
+            + "Import Error:\n"
+            + "PyQt5.QtGui not importable.\n"
+            + f"{e}")
+            sys.exit(1)
         except RuntimeError as e:
-            print(e)
+            print(""
+            + "Runtime Error:\n"
+            + "PyQt5.QtGui not importable.\n"
+            + f"{e}")
             sys.exit(1)
         except Exception as e:
-            print(e)
+            print(""
+            + "Error:\n"
+            + "PyQt5.QtGui not importable.\n"
+            + f"{e}")
             sys.exit(1)
-        
-        if sys.platform.startswith("win"):
-            hwnd_broadcast = 0xFFFF
-            ctypes.windll.user32.SendMessageW(hwnd_broadcast, WM_FONTCHANGE, 0, 0)
-        
-        DebugPrint(f"SUCCESSFUL: font installed: {font_path}")
         
     # ---------------------------------------------------------------------
     # Fügt den Font dauerhaft zur Windows-Schriftartenliste hinzu,
@@ -432,10 +608,10 @@ try:
                 else:
                     DebugPrint(_str("ATTENTION: Application run in Admin mode !"))
                 
-                c64_normal = "/_internal/fonts/C64_Pro-STYLE.ttf"
-                c64_mono   = "/_internal/fonts/C64_Pro_Mono-STYLE.ttf"
+                c64_normal = ":/_internal/locales/en_us/LC_FONT/C64_Pro-STYLE.ttf"
+                c64_mono   = ":/_internal/locales/en_us/LC_FONT/C64_Pro_Mono-STYLE.ttf"
                 #
-                font_file         = os.getcwd() + c64_mono
+                font_file         = c64_mono #os.getcwd() + c64_mono
                 font_display_name = "C64 Pro Mono"
                 #
                 install_font(font_file)
@@ -443,7 +619,7 @@ try:
                 
                 DebugPrint("font OK")
         elif sys.platform.startswith("linux"):
-            font_path = "/_internal/fonts/C64_Pro_Mono-STYLE.ttf"
+            font_path = ":/_internal/fonts/C64_Pro_Mono-STYLE.ttf"
             font_name = load_custom_font(font_path)
         else:
             print(_str("no more supported operating system"))
@@ -550,6 +726,8 @@ try:
     from PyQt5.QtNetwork            import *
     from PyQt5.QtWebChannel         import *
     
+    from PyQt5 import QtGui
+    
     # ------------------------------------------------------------------------
     import resources_rc
     
@@ -573,6 +751,8 @@ try:
     import types
     from   types  import *
     from   typing import List, Tuple, Union
+    
+    from tempfile import mkdtemp, TemporaryDirectory
 
     front_content_layout = QHBoxLayout()
     
@@ -625,7 +805,7 @@ try:
     def detect_pyc_version(pyc_file):
         with open(pyc_file, "rb") as f:
             magic = f.read(4)  # Die ersten 4 Bytes sind die Magic Number
-            msg = "unknown magic bytes version"
+            msg = "magic bytes: "
             if "_str" in globals():
                 return MAGIC_NUMBERS.get(magic, _str(msg))
             else:
@@ -643,7 +823,7 @@ try:
         
     pyc_path = sys.argv[0]
     version  = detect_pyc_version(pyc_path)
-    msg = "unknown magic bytes version"
+    msg = "magic bytes: "
     if "_str" in globals():
         if version == _str(msg):
             print(version_from_filename(pyc_path))
@@ -1961,14 +2141,15 @@ try:
                     content += "\n[expert_"    + str(idx) + "]\n"
                     elements = eval(_str("label_" + str(idx) + "_elements"))
                 
-                if not self.v__app__config_ini_help:
-                    self.v__app__config_ini_help = Path("_/internal/doxygen.po")
-                p = Path(self.v__app__config_ini_help)
-                p.parent.mkdir(parents = True, exist_ok = True)
-                
-                with open(self.v__app__config_ini_help, "w") as config_file:
-                    config_file.write(content)
-                    config_file.close()
+                #### TODO !!!
+                #if not self.v__app__config_ini_help:
+                #    self.v__app__config_ini_help = Path("_internal/doxygen.po")
+                #p = Path(self.v__app__config_ini_help)
+                #p.parent.mkdir(parents = True, exist_ok = True)
+                #
+                #with open(self.v__app__config_ini_help, "w") as config_file:
+                #    config_file.write(content)
+                #    config_file.close()
                 return True
             except FileNotFoundError as e:
                 exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
@@ -2103,7 +2284,7 @@ try:
             handler_class.directory = self.directory
             
             server = HTTPServer(("", self.port), handler_class)
-            print(f"Server läuft auf http://localhost:{self.port}")
+            print(f"Server lauscht auf http://localhost:{self.port}")
             server.serve_forever()
 
     def is_gzip(data: bytes) -> bool:
@@ -2116,8 +2297,8 @@ try:
 
     def is_mo_magic(data: bytes) -> bool:
         return len(data) >= 4 and data[:4] in (b"\x95\x04\x12\xde", b"\xde\x12\x04\x95")
-            
-    def load_mo_from_qt_resource(resource_path: str) -> gettext.GNUTranslations:
+    
+    def load_qt_resource(resource_path: str):
         f = QFile(resource_path)
         
         if not f.open(QIODevice.ReadOnly):
@@ -2130,12 +2311,14 @@ try:
         # 1) GZip-Magic prüfen (1F 8B 08)
         # --------------------------------------------------------
         if is_gzip(data):
-            print("is gzip")
             with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as gz:
                 data = gz.read()
         elif is_zlib(data):
-            print("is zlib")
             data = zlib.decompress(data)
+        return data
+        
+    def load_mo_from_qt_resource(resource_path: str) -> gettext.GNUTranslations:
+        data = load_qt_resource(resource_path)
             
         # --------------------------------------------------------
         # 2) MO-Magic prüfen (jetzt müssen es rohe .mo-Bytes sein)
@@ -2166,7 +2349,6 @@ try:
             #file_path = os.path.join(file_path, "LC_MESSAGES")
             #file_path = os.path.join(file_path, genv. v__app__name_mo + ".gz")
             #
-            print("lang ----> "  + genv.v__app__locales_messages)
             tr = load_mo_from_qt_resource(genv.v__app__locales_messages)
             _str = tr.gettext
             return _str
@@ -2188,7 +2370,6 @@ try:
     
     def handle_css(lang):
         try:
-            print("css ---> " + genv.v__app__locales_css)
             tr = load_mo_from_qt_resource(genv.v__app__locales_css)
             _css = tr.gettext
             return _css
@@ -2232,9 +2413,6 @@ try:
     def handle_meta(lang):
         try:
             _dat = [genv.PCBIOS, genv.PARSER, genv.KEYBOARD]
-            print("bios: " + genv.v__app__locales_meta_biospc)
-            print("pars: " + genv.v__app__locales_meta_parser)
-            print("keys: " + genv.v__app__locales_meta_keybrd)
             
             tr1 = load_mo_from_qt_resource(genv.v__app__locales_meta_biospc)
             tr2 = load_mo_from_qt_resource(genv.v__app__locales_meta_parser)
@@ -2377,9 +2555,11 @@ try:
             genv.run_in_gui = False
         
         if genv.run_in_console:
-            DebugPrint("run in terminal")
+            #DebugPrint("run in terminal")
+            pass
         if genv.run_in_gui:
-            DebugPrint("run in gui")
+            #DebugPrint("run in gui")
+            pass
         
         # ------------------------------------------------------------------------
         # developers modules ...
@@ -2427,11 +2607,11 @@ try:
         genv.v__locale__deu = "de_de"            # deu
         genv.v__locale__sys = locale.getlocale() # system locale
         
-        check_path = Path(genv.v__locale__)
-        if not check_path.is_dir():
-            DebugPrint("Error: loacles directory not found.")
-            DebugPrint("abort.")
-            sys.exit(1)
+        #check_path = Path(genv.v__locale__)
+        #if not check_path.is_dir():
+        #    DebugPrint("Error: loacles directory not found.")
+        #    DebugPrint("abort.")
+        #    sys.exit(1)
         
         DebugPrint(genv.v__app__config["common"]["language"])
         
@@ -10339,6 +10519,7 @@ try:
     class CustomTreeView(QTreeView):
         def __init__(self, flag=0, parent=None):
             super(CustomTreeView, self).__init__(parent)
+            self.flag = flag
         
         def mousePressEvent(self, event):
             if event.button() == Qt.LeftButton:
@@ -10346,7 +10527,7 @@ try:
                 if index.isValid():
                     row = index.row()
                     col = index.column()
-                    if flag > 0 and col == flag:
+                    if self.flag > 0 and col == self.flag:
                         par = index.parent()
                         idx = self.model().index(row, 0, par)
                         txt = self.model().data(idx, Qt.DisplayRole)
@@ -10804,7 +10985,9 @@ try:
             self.font_b = QFont(genv.v__app__font);      self.font_a.setPointSize(10)
             
             self.font_a.setFamily(font_primary)
-            font_id = QFontDatabase.addApplicationFont(self.font_a.family())
+            print("aa ----- aaa")
+            font_id = QtGui.QFontDatabase.addApplicationFont(self.font_a.family())
+            print("aaaaa    ------ vvvvvv")
             if font_id != -1:
                 self.font_a.setFamily(font_primary)
                 self.font_a.setPointSize(11)
@@ -11174,6 +11357,13 @@ try:
             
             #widget_4_licon_1.setObjectName("PROJECT_LOGO:1")
             #
+            
+            widget_4_checkbox = QCheckBox()
+            widget_4_checkbox.setText("validate check")
+            widget_4_checkbox.setChecked(True)
+            widget_4_checkbox.setFont(font)
+            layout_4.addWidget(widget_4_checkbox)
+            
             layout.addLayout(layout_4)
             
             layout_5 = QHBoxLayout()
@@ -14646,7 +14836,9 @@ try:
             layout.addWidget(scroll_area)
         
         def load_c64_font(self):
-            font_id = QFontDatabase.addApplicationFont("./_internal/fonts/C64_Pro-STYLE.ttf")
+            print("aaaaa")
+            font_id = QtGui.QFontDatabase.addApplicationFont(":/_internal/locales/de_de/LC_FONT/C64_Pro-STYLE.ttf")
+            print("bbbbb")
             if font_id == -1:
                 DebugPrint("Fehler beim Laden des C64 Pro Fonts.")
                 sys.exit(1)
@@ -16900,9 +17092,10 @@ try:
                     item = QListWidgetItem(self.icon, path)
                     self.list_widget.addItem(item)
             except Exception as e:
-                self.messageBox(""
-                + "Error: something went wrong during reading the Project paths."
-                + "Command aborted.")
+                pass # TODO !!!
+                #self.messageBox(""
+                #+ "Error: something went wrong during reading the Project paths."
+                #+ "Command aborted.")
             
             self.setLayout(main_layout)
         
@@ -21199,17 +21392,17 @@ try:
             vl.addWidget(genv.sv_help)
             
             list_layout_b.addLayout(vl)
-            genv.scrollview_5.show()    
+            genv.scrollview_5.show()
             
             
             ########################
             self.tab3_top_layout.addWidget(self.tab_widget_1)
             
-            self.tab2_file_path = os.path.join(genv.v__app__internal__, "topics.txt")
-            if not os.path.exists(self.tab2_file_path):
-                showError("Error: file does not exists:\n" + self.tab2_file_path)
-                sys.exit(1)
-            DebugPrint("---> " + self.tab2_file_path)
+            #self.tab2_file_path = genv.v__app__internal__ + "/topics.txt"
+            #if not os.path.exists(self.tab2_file_path):
+            #    showError("Error: file does not exists:\n" + self.tab2_file_path)
+            #    sys.exit(1)
+            #DebugPrint("---> " + self.tab2_file_path)
             
             self.tab2_tree_view = QTreeView()
             self.tab2_tree_view.setStyleSheet(_css(genv.css_model_header) + _css("ScrollBarCSS"))
@@ -21278,7 +21471,7 @@ try:
             self.tab2_top_layout.addWidget(self.tab2_tree_view)
             self.tab2_top_layout.addLayout(self.topics_layout)
             
-            self.populate_tree_view(self.tab2_file_path,os.path.join(genv.v__app__img__int__, "edit" + genv.v__app__img_ext__))
+            #self.populate_tree_view(self.tab2_file_path,os.path.join(genv.v__app__img__int__, "edit" + genv.v__app__img_ext__))
             
             
             self.delegateID     = SpinEditDelegateID     (self.tab2_tree_view)
@@ -25198,7 +25391,9 @@ try:
             console_font_frame_label = CustomLabel(font, _str("Console Font:"))
             
             # Feste Fonts ermitteln
-            font_db = QFontDatabase()
+            print("a aa a")
+            font_db = QtGui.QFontDatabase()
+            print("b bb b")
             fixed_fonts = [f for f in font_db.families() if font_db.isFixedPitch(f)]
             console_font_frame_combo.addItems(sorted(fixed_fonts))
             console_font_frame_combo.currentTextChanged.connect(self.console_font_selected)
@@ -27629,7 +27824,33 @@ try:
                 os.environ["DOXYGEN_PATH"] = "E:/doxygen/bin"
             else:
                 try:
-                    DebugPrint(genv.v__app__config.get("doxygen","path"))
+                    print(genv.v__app__config.get("doxygen","path"))
+                except configparser.NoSectionError as e:
+                    #showError(_str("Error:\nsomething went wrong during saving settings (no section)."))
+                    print("EEEEEEE")
+                    #return True  # TODO
+                    
+                except configparser.NoOptionError as e:
+                    showError(_str("Error:\nsomething went wrong during saving settings (no option)."))
+                    #return False TODO
+                    
+                except configparser.DuplicateSectionError as e:
+                    showError(_str((""
+                    + "Error:\nsetting file logic error.\n"
+                    + "You can try to fix this error by remove all multiple section's."
+                    )))
+                    #return False TODO
+                    
+                except configparser.DuplicateOptionError as e:
+                    showError(_str((""
+                    + "Error:\nsetting file logic error.\n"
+                    + "You can try to fix this error by remove all multiple option's."
+                    )))
+                    #return False TODO
+                    
+                except AttributeError as e:
+                    print(e)
+                    #return False  TODO
                 except Exception as e:
                     # -------------------------------
                     # close tje splash screen ...
@@ -27646,26 +27867,25 @@ try:
                     win32con.MB_ICONINFORMATION or
                     win32con.MB_TOPMOST)
                     
-                    sys.exit(1)
+                    #sys.exit(1)  TODO
                 
-                file_path = genv.v__app__config["doxygen"]["path"]
-                
-                if len(file_path) < 1:
-                    if getattr(sys, 'frozen', False):
-                        pyi_splash.close()
-                        
-                    win32api.MessageBox(0,(""
-                    + "Error: "
-                    + genv.doxy_env
-                    + " is not set in your system settings."),
-                    _str("Error:"),
-                    win32con.MB_OK or
-                    win32con.MB_ICONINFORMATION or
-                    win32con.MB_TOPMOST)
-                    
-                    sys.exit(genv.EXIT_FAILURE)
-                else:
-                    os.environ["DOXYGEN_PATH"] = file_path
+                #file_path = genv.v__app__config["doxygen"]["path"]
+                #if len(file_path) < 1:
+                #    if getattr(sys, 'frozen', False):
+                #        pyi_splash.close()
+                #        
+                #    win32api.MessageBox(0,(""
+                #    + "Error: "
+                #    + genv.doxy_env
+                #    + " is not set in your system settings."),
+                #    _str("Error:"),
+                #    win32con.MB_OK or
+                #    win32con.MB_ICONINFORMATION or
+                #    win32con.MB_TOPMOST)
+                #    
+                #    #sys.exit(genv.EXIT_FAILURE)  TODO
+                #else:
+                #    os.environ["DOXYGEN_PATH"] = file_path
         else:
             genv.doxy_path = os.environ[genv.doxy_env]
         
@@ -27677,10 +27897,12 @@ try:
                 os.environ["DOXYHHC_PATH"] = "E:/doxygen/hhc"
             else:
                 try:
-                    file_path = genv.v__app__config["doxygen"]["hhc"]
+                    print("-----ooooo")
+                    #file_path = genv.v__app__config["doxygen"]["hhc"]
+                    print("-----ooooo  ssssss")
                 except Exception as e:
-                    if getattr(sys, 'frozen', False):
-                        pyi_splash.close()
+                    #if getattr(sys, 'frozen', False):
+                    #    pyi_splash.close()
                         
                     win32api.MessageBox(0,(""
                     + "Error: no section: 'doxygen' or option: 'hhc'\n"
@@ -27690,35 +27912,35 @@ try:
                     win32con.MB_ICONINFORMATION or
                     win32con.MB_TOPMOST)
                     
-                    sys.exit(1)
+                    #sys.exit(1)
                 
-                file_path = genv.v__app__config["doxygen"]["hhc"]
+                #file_path = genv.v__app__config["doxygen"]["hhc"]
                 
-                if len(file_path) < 1:
-                    if getattr(sys, 'frozen', False):
-                        pyi_splash.close()
-                        
-                    win32api.MessageBox(0,(""
-                    + "Error: "
-                    + genv.doxy_hhc
-                    + " is not set in your system settings."),
-                    _str("Error:"),
-                    win32con.MB_OK or
-                    win32con.MB_ICONINFORMATION or
-                    win32con.MB_TOPMOST)
-                    
-                    sys.exit(genv.EXIT_FAILURE)
-                else:
-                    os.environ["DOXYHHC_PATH"] = file_path
+                #if len(file_path) < 1:
+                #    if getattr(sys, 'frozen', False):
+                #        pyi_splash.close()
+                #        
+                #    win32api.MessageBox(0,(""
+                #    + "Error: "
+                #    + genv.doxy_hhc
+                #    + " is not set in your system settings."),
+                #    _str("Error:"),
+                #    win32con.MB_OK or
+                #    win32con.MB_ICONINFORMATION or
+                #    win32con.MB_TOPMOST)
+                #                
+                #    sys.exit(genv.EXIT_FAILURE)
+                #else:
+                #    os.environ["DOXYHHC_PATH"] = file_path
         else:
             genv.hhc__path = os.environ[genv.doxy_hhc]
         
         # -------------------------------
         # close tje splash screen ...
         # -------------------------------
-        if getattr(sys, 'frozen', False):
-            pyi_splash.close()
-        
+        #if getattr(sys, 'frozen', False):
+        #    pyi_splash.close()
+        print("-----ooooo")
         window_license = licenseWindow()
         window_license.exec_()
         
@@ -28009,11 +28231,11 @@ try:
                         
         sp.add_argument("--asm-style", dest="asm_style", default="intel", metavar="FILE", type=str,
                         help=_str("output Assembly style (intel/att)"))
-                        
-        sp.add_argument("--arch", choices=["32", "64"], default="64",
+        
+        sp.add_argument("--arch", choices=["32", "64"], dest="out_arch", default="64",
                         help=_str("target architecture."))
                         
-        sp.add_argument("--asm-exe", dest="asm_exe", metavar="FILE", type=Path,
+        sp.add_argument("--asm-exe", dest="asm_exe", default="nasm.exe", metavar="FILE", type=Path,
                         help=_str("specify the path for nasm.exe"))
                         
         # Die Eingabedatei als POSITIONALES Argument – kann nach den Optionen stehen
@@ -28324,7 +28546,262 @@ try:
         print("pascal handler")
     # ------------------------------------------------------------------------
     def handle_args_dbase(args):
-        print("dbase handler")
+        exe_dbase = str(args.out_exe)   # aout.exe
+        asm_dbase = str(args.out_asm)   # aout.asm
+        arc_dbase = str(args.out_arch)  # 64-bit
+        fmt_dbase = str(args.asm_style) # intel
+        bin_nasm  = str(args.asm_exe)   # nasme.exe
+        #
+        nasm_exe = shutil.which("nasm")     or \
+                   shutil.which("nasm.exe") or \
+                   shutil.which(bin_nasm)
+        if not nasm_exe:
+            print(""
+            + _str("Error:") + "\n"
+            + _str("nasm.exe could not be found per PATH"),
+            file=sys.stderr)
+            sys.exit(1)
+        # optional
+        try:
+            print(subprocess.check_output([nasm_exe, "-v"],
+            text=True).strip())
+        except Exception:
+            print(""
+            + _str("Error:") + "\n"
+            + _str("nasm.exe found, but could not execute."),
+            file=sys.stderr)
+            sys.exit(1)
+        
+        sources = [
+            "basexx.inc","code16.asm","code32.asm","data16.inc",
+            "data64.asm","doshdr.inc","winhdr.inc","nasm.exe",
+            "exports_kernel32.inc","exports_user32.inc",
+            "imports.inc","locales.deu","locales.enu",
+            "macros.inc","precalc.asm","start.asm","stdlib.inc",
+            "usefunc.inc","windows.inc","winfunc.inc"
+        ]
+        
+        tmp  = str(Path.cwd()).replace("\\","/") + "/temp/"
+        if not Path(tmp).exists():
+            p = Path(tmp)
+            p.mkdir(parents=True, exist_ok=True)
+            
+        for src in sources:
+            z_file = src + ".gz"
+            b_data = load_qt_resource(":/_internal/shared/nasm/" + z_file)
+            if src == "nasm.exe":
+                with open(tmp + src, "wb") as f:
+                    f.write(b_data)
+                    f.close()
+            else:
+                s_data = b_data.decode("utf-8")
+                with open(tmp + src, "w", encoding="utf-8") as f:
+                    f.write(s_data)
+                    f.close()
+        
+        with TemporaryDirectory(dir=tmp) as td:
+            try:
+                code64 = str(tmp) + "/code64.asm"
+                with open(code64, "w", encoding="utf-8") as f:
+                    text = textwrap.dedent(""
+                    + "_start:" + "\n"
+                    + "mov rbp,rsp" + "\n"
+                    + "and rsp,-16" + "\n"
+                    + "sub rsp,32" + "\n"
+                    + "ShowMessageW msgW,capW" + "\n"
+                    + "GETLASTERROR jnz,.ok" + "\n"
+                    + "GetLastError" + "\n"
+                    + "ShowMessageA errA,capW" + "\n"
+                    + ".ok:" + "\n"
+                    + "AddShadow 80+48+16" + "\n"
+                    + "lea rdi,[rsp+16]" + "\n"
+                    + "lea rsi,[rdi+80]" + "\n"
+                    + "Zero ecx" + "\n"
+                    + "CALL_IAT GetModuleHandleW" + "\n"
+                    + "mov r12,rax" + "\n"
+                    + "LoadCursorW IDC_ARROW" + "\n"
+                    + "mov r14,rax" + "\n"
+                    + "mov ecx,5" + "\n"
+                    + "CALL_IAT GetSysColorBrush" + "\n"
+                    + "mov [rdi+48], rax" + "\n"
+                    + "xor rax,rax" + "\n"
+                    + "mov dword [rdi+0],80" + "\n"
+                    + "mov dword [rdi+4],0" + "\n"
+                    + "lea rax,[rel WndProc]" + "\n"
+                    + "mov [rdi+8],rax" + "\n"
+                    + "mov dword [rdi+16],0" + "\n"
+                    + "mov dword [rdi+20],0" + "\n"
+                    + "mov qword [rdi+24],r12" + "\n"
+                    + "mov qword [rdi+32],0" + "\n"
+                    + "mov qword [rdi+40],r14" + "\n"
+                    + "mov qword [rdi+48],r15" + "\n"
+                    + "mov qword [rdi+56],0" + "\n"
+                    + "lea rax,[rel winclassW]" + "\n"
+                    + "mov qword [rdi+64],rax" + "\n"
+                    + "mov qword [rdi+72],0" + "\n"
+                    + "mov rcx,rdi" + "\n"
+                    + "CALL_IAT RegisterClassExW" + "\n"
+                    + "GETLASTERROR jnz,.class_ok" + "\n"
+                    + "ShowMessageW  errmsgW,titleW" + "\n"
+                    + "sub rsp,40" + "\n"
+                    + "jmp .exit" + "\n"
+                    + ".class_ok:" + "\n"
+                    + "Zero ecx" + "\n"
+                    + "lea rdx,[rel winclassW]" + "\n"
+                    + "lea r8,[rel titleW]" + "\n"
+                    + "mov r9d,WS_OVERLAPPEDWINDOW" + "\n"
+                    + "mov dword [rsp+32],CW_USEDEFAULT" + "\n"
+                    + "mov dword [rsp+40],CW_USEDEFAULT" + "\n"
+                    + "mov dword [rsp+48],800" + "\n"
+                    + "mov dword [rsp+56],600" + "\n"
+                    + "mov qword [rsp+64],0" + "\n"
+                    + "mov qword [rsp+72],0" + "\n"
+                    + "mov qword [rsp+80],r12" + "\n"
+                    + "mov qword [rsp+88],0" + "\n"
+                    + "CALL_IAT CreateWindowExW" + "\n"
+                    + "GETLASTERROR jz, .exit" + "\n"
+                    + "mov r13,rax" + "\n"
+                    + "ShowWindow r13,SW_SHOWDEFAULT" + "\n"
+                    + "UpdateWindow r13" + "\n"
+                    + ".msg_loop:" + "\n"
+                    + "GetMessageW" + "\n"
+                    + "GETLASTERROR jle, .exit" + "\n"
+                    + "TranslateMessage" + "\n"
+                    + "DispatchMessageW" + "\n"
+                    + "jmp .msg_loop" + "\n"
+                    + ".exit:" + "\n"
+                    + "ExitProcess 0" + "\n"
+                    + "resolve_by_ordinal:" + "\n"
+                    + "nop" + "\n"
+                    + "AddShadow 40" + "\n"
+                    + "lea rcx,[rel dll_win32_user32]" + "\n"
+                    + "CALL_IAT LoadLibraryA" + "\n"
+                    + "mov r12,rax" + "\n"
+                    + "mov rcx,r12" + "\n"
+                    + "mov edx,0x00E8" + "\n"
+                    + "CALL_IAT GetProcAddress" + "\n"
+                    + "mov rbx,rax" + "\n"
+                    + "DelShadow 40" + "\n"
+                    + "Return" + "\n"
+                    + "nop" + "\n"
+                    + "winclassW: WSTR 'NasmWndClass'" + "\n"
+                    + "titleW: WSTR 'NASM PE64 GUI without Linker'" + "\n"
+                    + "errmsgW: WSTR 'RegisterClassExW failed'" + "\n"
+                    )
+                    f.write(text)
+                    f.flush()
+                    os.fsync(f.fileno())
+                    f.close()
+                    
+                data64 = str(tmp) + "/data64.asm"
+                with open(data64, "w", encoding="utf-8") as f:
+                    text = textwrap.dedent(""
+                    + "times (DATA_RAW_PTR-($-$$)) db 0" + "\n"
+                    + "data_start:" + "\n"
+                    + "errA: db 'MessageBoxW failed',0" + "\n"
+                    + "capA: db 'User32',0" + "\n"
+                    + "msgW: WSTR 'Hello World'" + "\n"
+                    + "capW: WSTR 'Pure NASM PE-64'" + "\n"
+                    + "data_end:" + "\n"
+                    + "times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0"+"\n"
+                    )
+                    f.write(text)
+                    f.flush()
+                    os.fsync(f.fileno())
+                    f.close()
+                    
+                winproc = str(tmp) + "/winproc.asm"
+                with open(winproc, "w", encoding="utf-8") as f:
+                    text = textwrap.dedent(""
+                    + "WndProc:" + "\n"
+                    + "AddShadow" + "\n"
+                    + "MESSAGE WM_CLOSE,wm_close" + "\n"
+                    + "MESSAGE WM_ERASEBKGND,wm_erasebkgnd" + "\n"
+                    + "DefWindowProcW" + "\n"
+                    + "DelShadow" + "\n"
+                    + "jmp [rax]" + "\n"
+                    + ".wm_erasebkgnd:" + "\n"
+                    + "AddShadow 48" + "\n"
+                    + "mov [rsp+32],rcx" + "\n"
+                    + "mov [rsp+40],r8" + "\n"
+                    + "lea rdx,[rsp+16]" + "\n"
+                    + "mov rcx,[rsp+32]" + "\n"
+                    + "CALL_IAT GetClientRect" + "\n"
+                    + "mov rcx,[rsp+32]" + "\n"
+                    + "mov rdx,GCLP_HBRBACKGROUND" + "\n"
+                    + "CALL_IAT GetClassLongPtrW" + "\n"
+                    + "mov rcx,[rsp+40]" + "\n"
+                    + "lea rdx,[rsp+16]" + "\n"
+                    + "mov r8,rax" + "\n"
+                    + "CALL_IAT FillRect" + "\n"
+                    + "Return 1" + "\n"
+                    + "DelShadow 48" + "\n"
+                    + "DelShadow" + "\n"
+                    + "ret" + "\n"
+                    + ".wm_close:" + "\n"
+                    + "Zero ecx" + "\n"
+                    + "CALL_IAT PostQuitMessage" + "\n"
+                    + "DelShadow" + "\n"
+                    + "Zero eax" + "\n"
+                    + "ret" + "\n"
+                    )
+                    f.write(text)
+                    f.flush()
+                    os.fsync(f.fileno())
+                    f.close()
+            except OSError as e:
+                raise RuntimeError(""
+                + _str("Error:") + "\n"
+                + _str("temporary directory is not writable."))
+                
+        # ---------------------------------------
+        # live output streamen, non-blocking
+        # ---------------------------------------
+        tmp = Path(tmp)
+        exe = tmp / "nasm.exe"
+        asm = tmp / "start.asm"
+        out = tmp / "start.exe"
+        
+        if not exe.exists():
+            raise FileNotFoundError(f"{exe} not found.")
+        if not asm.exists():
+            raise FileNotFoundError(f"{exe} not found.")
+        
+        cmd = [str(exe),"-f","bin", str(asm),"-o",str(out)]
+        exe_asm = f"{tmp}nasm.exe -fbin {tmp}start.exe {tmp}start.asm"
+        print("start assembler...")
+        proc = subprocess.Popen(
+            cmd,
+            cwd     = str(tmp),
+            stdout  = subprocess.PIPE,
+            stderr  = subprocess.STDOUT,
+            text    = True,
+            bufsize = 1)
+        try:
+            for line in proc.stdout:
+                sys.stdout.write(line)
+            ret = proc.wait()
+            file_name = "tmp.tmp"
+            try:
+                for p in sources:
+                    file_name = tmp / p
+                    os.remove(file_name)
+                os.remove(tmp / "code64.asm" )
+                os.remove(tmp / "winproc.asm")
+                if ret > 0:
+                    print(f"FAILED: Exit-Code {ret}:")
+                else:
+                    print(f"SUCCESS.")
+            except FileNotFoundError as e:
+                print(f"file does not exists: {file_name}")
+            except PermissionError as e:
+                print("access denied: no permissions.")
+            except OSError as e:
+                print(f"OSError ({e.errno}): {w.strerror}")
+        finally:
+            if proc.stdout:
+                proc.stdout.close()
+                
     # ------------------------------------------------------------------------
     def handle_args_basic(args):
         print("basic handler")
@@ -28442,7 +28919,6 @@ except Exception as e:
     else:
         handle_exception(e, msg)
 sys.exit(1)
-    
 # ----------------------------------------------------------------------------
 # E O F  -  End - Of - File
 # ----------------------------------------------------------------------------

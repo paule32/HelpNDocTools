@@ -9,8 +9,4 @@
 :: commercial use ist not allowed.
 :: ---------------------------------------------------------------------------
 @echo off
-set PY=python.exe
-set BASEDIR=%cd%
-
-python.exe client-windows.cpython-313.pyc
-::python.exe client.cpython-313.pyc test.exe
+python.exe client-windows.cpython-313.pyc gui --windows

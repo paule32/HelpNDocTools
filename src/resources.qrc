@@ -410,6 +410,11 @@
         <file>_internal/locales/en_us/LC_META/parser.mo.gz</file>
         <file>_internal/locales/en_us/LC_META/electro.mo.gz</file>
         <file>_internal/locales/en_us/LC_META/keyboard.mo.gz</file>
+        
+        <file>_internal/locales/de_de/LC_FONT/C64_Pro_Mono-STYLE.ttf</file>
+        <file>_internal/locales/de_de/LC_FONT/C64_Pro_Mono-STYLE.ttf</file>
+        <file>_internal/locales/en_us/LC_FONT/C64_Pro-STYLE.ttf</file>
+        <file>_internal/locales/de_de/LC_FONT/C64_Pro-STYLE.ttf</file>
 
         <file>_internal/locales/de_de/LC_MESSAGES/observer.mo.gz</file>
         <file>_internal/locales/en_us/LC_MESSAGES/observer.mo.gz</file>
@@ -424,5 +429,27 @@
 
         <file>_internal/locales/de_de/LC_HELP/help.mo.gz</file>
         <file>_internal/locales/de_de/LC_HELP/help.mo.gz</file>
+        
+        <file>_internal/shared/nasm/nasm.exe.gz</file>
+        <file>_internal/shared/nasm/basexx.inc.gz</file>
+        <file>_internal/shared/nasm/code16.asm.gz</file>
+        <file>_internal/shared/nasm/code32.asm.gz</file>
+        <file>_internal/shared/nasm/data16.inc.gz</file>
+        <file>_internal/shared/nasm/data64.asm.gz</file>
+        <file>_internal/shared/nasm/doshdr.inc.gz</file>
+        <file>_internal/shared/nasm/exports_kernel32.inc.gz</file>
+        <file>_internal/shared/nasm/exports_user32.inc.gz</file>
+        <file>_internal/shared/nasm/imports.inc.gz</file>
+        <file>_internal/shared/nasm/locales.deu.gz</file>
+        <file>_internal/shared/nasm/locales.enu.gz</file>
+        <file>_internal/shared/nasm/macros.inc.gz</file>
+        <file>_internal/shared/nasm/precalc.asm.gz</file>
+        <file>_internal/shared/nasm/start.asm.gz</file>
+        <file>_internal/shared/nasm/stdlib.inc.gz</file>
+        <file>_internal/shared/nasm/usefunc.inc.gz</file>
+        <file>_internal/shared/nasm/windows.inc.gz</file>
+        <file>_internal/shared/nasm/winfunc.inc.gz</file>
+        <file>_internal/shared/nasm/winhdr.inc.gz</file>
+
     </qresource>
 </RCC>
