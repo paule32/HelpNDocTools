@@ -1,5 +1,6 @@
 # HelpNDocTools
-**Update** on: 2025-09-20  08:45 am<br>
+**Update** on: 2025-09-20  14:45 pm<br>
+<hr>
 Working pre-alpha Release Code available under: [Playground](https://kallup.net/myapp/packed.zip). <br>
 Tested with Python 3.13 under Windows 11 64-Bit Pro. <br>
 **0.** - download and depack zip archive<br>
