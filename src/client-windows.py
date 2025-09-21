@@ -51,6 +51,7 @@ import sys            # system specifies
 import os             # operating system stuff
 import uuid
 import site
+import math
 # ---------------------------------------------------------------------------
 # \brief os env setzen
 # ---------------------------------------------------------------------------
@@ -752,7 +753,8 @@ try:
     from   types  import *
     from   typing import List, Tuple, Union
     
-    from tempfile import mkdtemp, TemporaryDirectory
+    from tempfile   import mkdtemp, TemporaryDirectory
+    from contextlib import redirect_stdout
 
     front_content_layout = QHBoxLayout()
     
@@ -1590,6 +1592,8 @@ try:
             
             self.temp_token = ""
             self.TOKEN_TEMP = 4000
+            
+            self.scope_func_dict = {}
             
             self.c64_parser  = None
             self.c64_parsed  = None
@@ -7669,6 +7673,8 @@ try:
             return False
         
         def handle_pascal_argument(self):
+            args = []
+            args_bundle = []
             while True:
                 genv.char_prev = genv.char_curr
                 genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
@@ -7678,37 +7684,191 @@ try:
                     genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                     
                     if genv.char_curr == ';':
-                        return genv.PROC_HEAD_OK
+                        #showInfo("ooo>> " + str(args) + "\n" + str(args_bundle))
+                        return genv.PROC_HEAD_OK, args
                     else:
-                        return genv.PROC_HEAD_ERROR
+                        return genv.PROC_HEAD_ERROR, args
                 elif genv.char_curr == genv.TOKEN_IDENT:
+                    prev_token = self.token_str
+                    
                     genv.char_prev = genv.char_curr
-                    genv.char_curr = self.skip_white_spaces(self.pascal_patser)
+                    genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                     
                     arg_name = self.token_str
                     
-                    if self.check_char(':'):
+                    if genv.char_curr == ',':
+                        #showInfo("bundle = " + self.token_str)
+                        args_bundle.append(prev_token)
+                        
+                        self.token_str = ""
                         genv.char_prev = genv.char_curr
-                        genv.char_curr = self.skip_white_spaces(self.pascal_patser)
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                        
+                        if genv.char_curr == genv.TOKEN_IDENT:
+                            showInfo("bundle = " + self.token_str)
+                            args_bundle.append(self.token_str)
+                            
+                            self.token_str = ""
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                            
+                            if genv.char_curr == ':':
+                                #showInfo("bbbb")
+                                
+                                genv.char_prev = genv.char_curr
+                                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                                
+                                #showInfo("1 Argument type: " + self.token_str)
+                                #showInfo(str(args_bundle))
+                                
+                                arg_type = self.token_str
+                                
+                                in_string = ["string", "char"]
+                                in_num    = ["integer", "word", "byte"]
+                                
+                                if arg_type.lower() in in_string:
+                                    arg_default = ""
+                                elif arg_type.lower() in in_num:
+                                    arg_default = 0
+                                
+                                if len(args_bundle) > 0:
+                                    for a in args_bundle:
+                                        args.append([a, arg_type, arg_default])
+                                    #showInfo("CC name: " + arg_name + "\n" + "args: " + str(args))
+                                    
+                                genv.char_prev = genv.char_curr
+                                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                                
+                                if genv.char_curr == ';':
+                                    if len(args_bundle) > 0:
+                                        for a in args_bundle:
+                                            args.append([a, arg_type, arg_default])
+                                        #showInfo("AA name: " + arg_name + "\n" + "args: " + str(args))
+                                    else:
+                                        args.append([arg_name, arg_type, arg_default])
+                                        #showInfo("BB name: " + arg_name + "\n" + "args: " + str(args))
+                                    args_bundle = []
+                                    continue
+                                elif genv.char_curr == '=':
+                                    genv.char_prev = genv.char_curr
+                                    genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                                    
+                                    #showInfo("1 default = " + self.token_str)
+                                    
+                                    arg = [arg_name, arg_type, arg_default]
+                                    args.append(arg)
+                                    
+                                    continue
+                                elif genv.char_curr == ')':
+                                    genv.char_prev = genv.char_curr
+                                    genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                                    
+                                    if genv.char_curr == ';':
+                                        #showInfo("======> " + str(args))
+                                        return genv.PROC_HEAD_OK, args
+                                    else:
+                                        raise ParserSyntaxError(_str("SEMI Expected."))
+                                else:
+                                    raise ParserSyntaxError(_str("sign error"))
+                            continue
+                        elif genv.char_curr == ':':
+                            genv.char_prev = genv.char_curr
+                            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                            
+                            if genv.char_curr == genv.TOKEN_IDENT:
+                                arg_type = self.token_str
+                                
+                                in_string = ["string", "char"]
+                                in_num    = ["integer", "word", "byte"]
+                                
+                                if arg_type.lower() in in_string:
+                                    arg_default = ""
+                                elif arg_type.lower() in in_num:
+                                    arg_default = 0
+                                    
+                                #showInfo("2 Argument: " + arg_name + ': ' + arg_type)
+                                
+                                genv.char_prev = genv.char_curr
+                                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                                
+                                if genv.char_curr == ';':
+                                    arg = [arg_name, arg_type, arg_default]
+                                    args.append(arg)
+                                    
+                                    continue
+                                elif genv.char_curr == '=':
+                                    arg__default = self.token_str
+                                    
+                                    genv.char_prev = genv.char_curr
+                                    genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                                    
+                                    #showInfo("2 default = " + self.token_str)
+                                    
+                                    arg = [arg_name, arg_type, arg_default]
+                                    args.append(arg)
+                                    
+                                    continue
+                                elif genv.char_curr == ')':
+                                    genv.char_prev = genv.char_curr
+                                    genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                                    
+                                    if genv.char_curr == ';':
+                                        #showInfo(">>>>>>> " + str(args))
+                                        return genv.PROC_HEAD_OK, args
+                                    else:
+                                        raise ParserSyntaxError(_str("SEMI Expected."))
+                                else:
+                                    raise ParserSyntaxError(_str("sign error"))
+                            else:
+                                raise ParserSyntaxError(_str("token expected."))
+                        else:
+                            raise ParserSyntaxError(_str(""))
+                        continue
+                    elif self.check_char(':'):
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                         
                         if genv.char_curr == genv.TOKEN_IDENT:
                             arg_type = self.token_str
                             
-                            showInfo("Argument: " + arg_name + ': ' + arg_type)
+                            showInfo("3 Argument: " + arg_name + ': ' + arg_type)
+                            
+                            arg_type = self.token_str
+                                
+                            in_string = ["string", "char"]
+                            in_num    = ["integer", "word", "byte"]
+                            
+                            if arg_type.lower() in in_string:
+                                arg_default = ""
+                            elif arg_type.lower() in in_num:
+                                arg_default = 0
                             
                             genv.char_prev = genv.char_curr
-                            genv.char_curr = self.skip_white_spaces(self.pascal_patser)
+                            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                             
                             if genv.char_curr == ';':
+                                arg = [arg_name, arg_type, arg_default]
+                                args.append(arg)
+                                
                                 continue
-                            elif genv.char_curr == ',':
+                            elif genv.char_curr == '=':
+                                genv.char_prev = genv.char_curr
+                                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                                
+                                arg_default = self.token_str
+                                #showInfo("3 default = " + self.token_str)
+                                
+                                arg = [arg_name, arg_type, arg_default]
+                                args.append(arg)
+                                
                                 continue
                             elif genv.char_curr == ')':
                                 genv.char_prev = genv.char_curr
-                                genv.char_curr = self.skip_white_spaces(self.pascal_patser)
+                                genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                                 
                                 if genv.char_curr == ';':
-                                    return genv.PROC_HEAD_OK
+                                    showInfo("333333 >>> "  + str(args))
+                                    return genv.PROC_HEAD_OK, args
                                 else:
                                     raise ParserSyntaxError(_str("SEMI Expected."))
                             else:
@@ -8525,7 +8685,36 @@ try:
                 genv.header_code = ""
                 showException(traceback.format_exc())
         
-        def handle_pascal_begin_end(self):
+        def set_func_code(self, scope, code_str, entry="run"):
+            func = scope.setdefault("func", {})
+            func["code"] = code_str
+            func["entry"] = entry
+        
+        def call_func_code(self, scope, args_values=None, ctx=None):
+            func  = scope.get("func", {})
+            code  = func.get("code", "")
+            entry = func.get("entry", "run")
+
+            if not code:
+                raise RuntimeError("Kein Code unter scope['func']['code'] hinterlegt.")
+                
+            SAFE_NAMES = ("print", "len", "int", "float", "str", "bool", "dict", "list", "tuple", "set")
+            SAFE_BUILTINS = {name: getattr(__import__("builtins"), name) for name in SAFE_NAMES}
+            ns = {"__builtins__": SAFE_BUILTINS}
+            
+            # optional: Ausgabe von print() abfangen
+            buf = StringIO()
+            with redirect_stdout(buf):
+                exec(compile(code, "<user-func>", "exec"), ns, ns)
+
+            if entry not in ns or not callable(ns[entry]):
+                raise RuntimeError(f"Entry-Point '{entry}' nicht gefunden/aufrufbar.")
+
+            result = ns[entry](args_values or {}, ctx or {})
+            output = buf.getvalue()
+            return result, output
+            
+        def handle_pascal_begin_end(self, args):
             while True:
                 if self.program_reach_end:
                     break
@@ -8536,7 +8725,6 @@ try:
                 if genv.char_curr == genv.TOKEN_IDENT:
                     if self.token_str.lower() == "begin":
                         genv.text_code += (genv.text_code_indent * " ")
-                        self.text_update()
                         self.begin_counter += 1
                         
                         continue
@@ -8560,21 +8748,55 @@ try:
                         genv.char_prev = genv.char_curr
                         genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                         
-                        showInfo("procedure: " + self.token_str)
-                        
-                        if genv.char_curr == '(':
-                            showInfo("aarrrgggs")
-                            if self.handle_pascal_argument() == genv.PROC_HEAD_ERROR:
-                                raise ParserSyntaxError(_str("semicolon missing"))
+                        if genv.char_curr == genv.TOKEN_IDENT:
+                            #showInfo("procedure: " + self.token_str)
+                            saved_procname = self.token_str
+                            genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
+                            if genv.char_curr == '(':
+                                #showInfo("aarrrgggs")
+                                # Zugriff:   genv.scope_func_dict[hash_func]["func"]["name"],
+                                # Argumente: genv.scope_func_dict[hash_func]["args"]["xx"]["type"].
+                                err, args = self.handle_pascal_argument()
+                                if len(args) > 0:
+                                    hash_func = str(genv.text_code_scope_new)
+                                    scope     = genv.scope_func_dict.setdefault(hash_func, {})
+                                    func_name = scope.setdefault("proc", {})
+                                    args_list = scope.setdefault("args", [])
+                                    args_map  = scope.setdefault("arg_map", {})
+                                    func_name.update({
+                                        "name"  : saved_procname,
+                                        "return": None
+                                    })
+                                    for name, typ, default in args:
+                                        if name not in args_map:  # behält den ersten
+                                            spec = {"name": name, "type": typ, "default": default}
+                                            args_map[name] = spec
+                                            args_list.append(spec)
+                                    # Code hinterlegen (definiert Entry-Point 'run')
+                                    self.set_func_code(scope, textwrap.dedent("""\
+                                    def run(args, ctx):
+                                        x = int(args.get('x', 0))
+                                        y = int(args.get('y', 0))
+                                        print('addiere', x, '+', y)
+                                        return x + y
+                                    """), entry="run")
+                                    showInfo(str(genv.scope_func_dict))
+                                    res, out = self.call_func_code(scope, args_values={"x": 2, "y": 3})
+                                    showInfo(str(res) + "\n" + str(out))
+                                if err == genv.PROC_HEAD_ERROR:
+                                    raise ParserSyntaxError(_str("semicolon missing"))
+                                else:
+                                    self.text_update(args)
+                                    break
+                            elif genv.char_curr == ';':
+                                #showInfo("ende smei")
+                                if self.program_reach_end:
+                                    break
+                                continue
                             else:
-                                break
-                        elif genv.char_curr == ';':
-                            showInfo("ende smei")
-                            if self.program_reach_end:
-                                break
-                            continue
+                                raise ParserSyntaxError(_str("semicolon Expected."))
                         else:
-                            raise ParserSyntaxError(_str("semicolon Expected."))
+                            raise ParserSyntaxError(_str("procedure ideent expected."))
                     else:
                         raise ParserSyntaxError(_str("BEGOIN expected."))
                 else:
@@ -8582,6 +8804,7 @@ try:
         
         def handle_pascal_program(self):
             genv.begin_counter = 0
+            args = []
             while True:
                 if self.program_reach_end:
                     break
@@ -8592,7 +8815,6 @@ try:
                 if genv.char_curr == genv.TOKEN_IDENT:
                     if self.token_str.lower() == "begin":
                         genv.text_code += (genv.text_code_indent * " ")
-                        self.text_update()
                         self.begin_counter += 1
                         while True:
                             if self.program_reach_end:
@@ -8647,18 +8869,25 @@ try:
                         if genv.char_curr == genv.TOKEN_IDENT:
                             if self.token_str.lower() in self.pascal_keywords:
                                 raise ParserSyntaxError(_str("no keyword expected."))
-                            showInfo("---===>>> " + self.token_str)
+                            #showInfo("---===>>> " + self.token_str)
                             
                             genv.char_prev = genv.char_curr
                             genv.char_curr = self.skip_white_spaces(genv.pascal_parser)
                             
                             if genv.char_curr == '(':
-                                if not self.handle_pascal_argument():
+                                err, args = self.handle_pascal_argument()
+                                if len(args) > 0:
+                                    hash_func = genv.text_code_scope_new
+                                    for a in args:
+                                        genv.scope_func_dict[hash_func][a[0]]["type"   ] = a[1]
+                                        genv.scope_func_dict[hash_func][a[0]]["default"] = a[2]
+                                if err == genv.PROC_HEAD_ERROR:
                                     raise ParserSyntaxError(_str("semicolon missing"))
                                 else:
+                                    showInfo("----> " + str(args))
                                     break
                             elif genv.char_curr == ';':
-                                self.handle_pascal_begin_end()
+                                self.handle_pascal_begin_end(args)
                                 if self.program_reach_end:
                                     break
                             else:
@@ -8687,15 +8916,30 @@ try:
                             raise ParserSyntaxError(_str("ident expected."))
                     else:
                         raise ParserSyntaxError(_str("BEGIN, PROCEDURE or FUNCTION expected."))
-                        
+                else:
+                    raise ParserSyntaxError(_str("keyword expected."))
+                    
             if not self.program_reach_end:
                 raise ParserSyntaxError(_str("END of PROGRAM not gound."))
                 
-        def text_update(self):
+        def text_update(self, arg=[]):
             genv.text_code += "def scope_"
-            genv.text_code += str(genv.text_code_scope_new) + "():\n"
+            genv.text_code += str(genv.text_code_scope_new) + "("
+            showInfo("--> " + str(arg))
+            if len(arg) > 0:
+                idx = 0
+                for a in arg:
+                    if idx > len(arg):
+                        genv.text_code += a[0]
+                        break
+                    else:
+                        genv.text_code += a[0] + ","
+                    idx += 1
+            genv.text_code += str("):\n")
+            
             genv.text_code_scope_old = genv.text_code_scope_new
             genv.text_code_scope_new = unique_hash()
+            
             genv.text_code_indent += 4
             
         def handle_pascal_library_ident(self):
@@ -13152,26 +13396,11 @@ try:
             # Definiere die Schlüsselwörter, die fettgedruckt sein sollen
             self.keywords = [
                 ".AND.", ".OR.", ".NOR.", ".XOR.",
-                "BREAK",
-                "CASE",
-                "CLASS",
-                "COLOR",
-                "DO",
-                "IF",
-                "ELSE",
-                "ENDCASE",
-                "ENDCLASS",
-                "ENDFOR",
-                "ENDIF",
-                "ENDWHILE",
-                "ENDWITH",
-                "FOR",
-                "OF",
-                "RETURN",
-                "SET",
-                "TO",
-                "WHILE", 
-                "WITH"
+                "BREAK", "CASE", "CLASS", "COLOR",
+                "DO", "IF", "ELSE", "ENDCASE", "ENDCLASS",
+                "ENDFOR", "ENDIF", "ENDWHILE", "ENDWITH",
+                "FOR", "OF", "RETURN", "SET", "TO",
+                "WHILE", "WITH"
             ]
             
             self.commentStartExpression = QRegExp(r"/\*")
