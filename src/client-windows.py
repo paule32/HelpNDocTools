@@ -24800,8 +24800,10 @@ try:
                 _str("Squid Project"),
                 _str("Squid Monitor"),
                 _str("Squid Editor")])
+            self.squid_tabs.setMinimumWidth(1600)
+            
             self.squid_project = ApplicationProjectPage(self, self.squid_tabs.getTab(0), "squid")
-            self.squid_monitor = TcpSerialBridgeCLIP   (      self.squid_tabs.getTab(1))
+            self.squid_monitor = TcpSerialBridgeCLIPAndDialer(self.squid_tabs.getTab(1))
             self.squid_editors = ApplicationEditorsPage(self, self.squid_tabs.getTab(2), "squid")
             ###
             self.main_layout.addWidget(self.squid_tabs)
@@ -28444,70 +28446,586 @@ try:
                 self.finalize()
                 DebugPrint("\nend of data")
 
+    # Virtual-Modem/COM-Port wählen -> Baudrate passend zu deinem Modem/Emulator.
+    # "Öffnen" klicken -> "AT" testen sollte OK liefern.
+    # Nummer eingeben -> Wählen (Voice -> Semikolon, Daten -> Semikolon abwählen).
+    # Auflegen = ATH, Abheben = ATA.
+    # Im unteren Feld kannst du beliebige AT-Kommandos schicken (mit \r automatisch).
+    #
+    # Hinweise & Tipps
+    # Viele Modems/Emulatoren erwarten \r (CR), nicht \n.
+    # Klassische Antworten: OK, RING, CONNECT 9600, NO CARRIER, BUSY, NO DIALTONE.
+    # Manche "Virtual Modem"-Tools wählen IP-Ziele via ATDhost:port (ohne Semikolon).
+    #
+    # Wenn dein Emulator RFC2217 (Telnet-Serial) statt COM anbietet, bräuchtest du eine
+    # kleine TCP-Schicht.
+    class ModemDialer(QWidget):
+        def __init__(self,parent=None):
+            super(ModemDialer, self).__init__(parent)
+            #self.setWindowTitle("Qt5 Modem Dialer (PyQt5)")
+            #self.resize(1200, 600)
+            
+            self.setMinimumHeight(770)
+            self.setMinimumWidth(560)
+            
+            scroll = QScrollArea(self)
+            scroll.setWidgetResizable(True)
+            scroll.setMinimumHeight(500)
+            scroll.setMinimumWidth(560)
+            
+            font = QFont("Arial", 10)
+            
+            self.serial = QSerialPort(self)
+            self.serial.readyRead.connect(self.on_ready_read)
+            self.serial.errorOccurred.connect(self.on_serial_error)
+
+            self.rx_buffer = ""
+
+            # --- Top bar: Port + Baud + Steuerung ---
+            self.port_combo = QComboBox()
+            self.port_combo.setFont(font)
+            self.refresh_ports()
+
+            self.baud_combo = QComboBox()
+            self.baud_combo.setFont(font)
+            for b in [300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]:
+                self.baud_combo.addItem(str(b))
+            self.baud_combo.setCurrentText("9600")
+
+            self.open_btn = QPushButton("Öffnen")
+            self.open_btn.setFont(font)
+            self.open_btn.clicked.connect(self.toggle_open)
+            
+            self.refresh_btn = QPushButton(_str("Ports refresh"))
+            self.refresh_btn.setFont(font)
+            self.refresh_btn.clicked.connect(self.refresh_ports)
+
+            self.status_lbl = QLabel(_str("Status: closed"))
+            self.status_lbl.setFont(font)
+            self.status_lbl.setStyleSheet("font-weight: 600;")
+
+            top = QHBoxLayout()
+            top.addWidget(QLabel("Port:"))
+            top.addWidget(self.port_combo, 1)
+            top.addWidget(QLabel("Baud:"))
+            top.addWidget(self.baud_combo)
+            top.addWidget(self.open_btn)
+            top.addWidget(self.refresh_btn)
+            top.addStretch(1)
+            top.addWidget(self.status_lbl)
+
+            # --- Wähleingabe + Tasten ---
+            self.num_edit = QLineEdit()
+            self.num_edit.setFont(font)
+            self.num_edit.setPlaceholderText("Nummer / Ziel (z. B. 5551234)")
+            
+            self.voice_chk = QCheckBox("Voice-Dial (Semikolon anhängen)")
+            self.voice_chk.setFont(font)
+            self.voice_chk.setChecked(True)
+
+            self.dial_btn = QPushButton("Wählen")
+            self.dial_btn.setFont(font)
+            self.dial_btn.clicked.connect(self.cmd_dial)
+            
+            self.hangup_btn = QPushButton("Auflegen")
+            self.hangup_btn.setFont(font)
+            self.hangup_btn.clicked.connect(lambda: self.send_cmd("ATH"))
+            
+            self.answer_btn = QPushButton("Abheben")
+            self.answer_btn.setFont(font)
+            self.answer_btn.clicked.connect(lambda: self.send_cmd("ATA"))
+            
+            self.init_btn = QPushButton("Modem-Test (AT)")
+            self.init_btn.setFont(font)
+            self.init_btn.clicked.connect(lambda: self.send_cmd("AT"))
+
+            keypad = QWidget()
+            kgrid = QGridLayout(keypad)
+            keys = [
+                ("1", 0, 0), ("2", 0, 1), ("3", 0, 2),
+                ("4", 1, 0), ("5", 1, 1), ("6", 1, 2),
+                ("7", 2, 0), ("8", 2, 1), ("9", 2, 2),
+                ("*", 3, 0), ("0", 3, 1), ("#", 3, 2),
+            ]
+            for txt, r, c in keys:
+                b = QPushButton(txt)
+                b.setFixedHeight(42)
+                b.setFont(font)
+                b.clicked.connect(lambda _, t=txt: self.num_edit.insert(t))
+                kgrid.addWidget(b, r, c)
+
+            left = QVBoxLayout()
+            dial_field_lbl = QLabel(_str("Call field"))
+            dial_field_lbl.setFont(font)
+            
+            left.addWidget(dial_field_lbl)
+            left.addWidget(self.num_edit)
+            left.addWidget(self.voice_chk)
+            
+            hl = QHBoxLayout()
+            
+            hl.addWidget(self.dial_btn)
+            hl.addWidget(self.hangup_btn)
+            hl.addWidget(self.answer_btn)
+            hl.addWidget(self.init_btn)
+            
+            left.addLayout(hl)
+            left.addWidget(keypad)
+            left.addStretch(1)
+
+            # --- AT-Kommandozeile + Log ---
+            self.cmd_edit = QLineEdit()
+            self.cmd_edit.setFont(QFont("Consolas", 10))
+            self.cmd_edit.setPlaceholderText("AT-Befehl eingeben (ohne <CR>) z. B. ATZ, ATE1, AT&V …")
+            self.cmd_edit.returnPressed.connect(self.send_cmd_from_edit)
+            
+            self.send_btn = QPushButton("Senden")
+            self.send_btn.setFont(font)
+            self.send_btn.clicked.connect(self.send_cmd_from_edit)
+
+            cmdbar = QHBoxLayout()
+            cmdbar.addWidget(QLabel("AT:"))
+            cmdbar.addWidget(self.cmd_edit, 1)
+            cmdbar.addWidget(self.send_btn)
+
+            self.log = QPlainTextEdit()
+            self.log.setFont(font)
+            self.log.setReadOnly(True)
+            self.log.setPlaceholderText(_str("Modem-Output"))
+
+            right = QVBoxLayout()
+            right.addWidget(QLabel(_str("Log / Monitor")))
+            right.addWidget(self.log, 1)
+            right.addLayout(cmdbar)
+
+            # --- DTR/RTS ---
+            self.dtr_chk = QCheckBox("DTR")
+            self.dtr_chk.setFont(font)
+            self.dtr_chk.setChecked(True)
+            self.dtr_chk.toggled.connect(self.set_dtr)
+            
+            self.rts_chk = QCheckBox("RTS")
+            self.rts_chk.setFont(font)
+            self.rts_chk.setChecked(True)
+            self.rts_chk.toggled.connect(self.set_rts)
+            
+            flow = QHBoxLayout()
+            flow.addWidget(self.dtr_chk)
+            flow.addWidget(self.rts_chk)
+            flow.addStretch(1)
+            right.addLayout(flow)
+
+            # --- Layout ---
+            root = QWidget()
+            grid = QGridLayout(root)
+            grid.addLayout(top, 0, 0, 1, 2)
+            grid.addLayout(left, 1, 0)
+            grid.addLayout(right, 1, 1)
+            grid.setColumnStretch(0, 0)
+            grid.setColumnStretch(1, 1)
+            
+            scroll.setWidget(root)
+            
+            self.update_ui_state()
+        
+        # ---------- Serial Handling ----------
+        def refresh_ports(self):
+            self.port_combo.clear()
+            ports = QSerialPortInfo.availablePorts()
+            for p in ports:
+                label = f"{p.portName()} — {p.description() or 'Serial'}"
+                self.port_combo.addItem(label, p.portName())
+            if self.port_combo.count() == 0:
+                self.port_combo.addItem("(keine Ports gefunden)", "")
+            # no need to open/close here
+
+        def toggle_open(self):
+            if self.serial.isOpen():
+                self.serial.close()
+                self.append_log("[Info] Port geschlossen.\n")
+            else:
+                port_name = self.port_combo.currentData()
+                if not port_name:
+                    QMessageBox.warning(self, "Kein Port", "Bitte zuerst einen seriellen Port auswählen.")
+                    return
+                self.serial.setPortName(port_name)
+                try:
+                    baud = int(self.baud_combo.currentText())
+                except ValueError:
+                    baud = 9600
+                self.serial.setBaudRate(baud)
+                self.serial.setDataBits(QSerialPort.Data8)
+                self.serial.setParity(QSerialPort.NoParity)
+                self.serial.setStopBits(QSerialPort.OneStop)
+                self.serial.setFlowControl(QSerialPort.NoFlowControl)
+
+                if not self.serial.open(QIODevice.ReadWrite):
+                    QMessageBox.critical(self, "Fehler beim Öffnen",
+                                         f"Konnte {port_name} nicht öffnen:\n{self.serial.errorString()}")
+                    return
+
+                # Default Leitungen
+                self.serial.setDataTerminalReady(self.dtr_chk.isChecked())
+                self.serial.setRequestToSend(self.rts_chk.isChecked())
+
+                self.append_log(f"[Info] Port geöffnet: {port_name} @ {baud}.\n")
+                self.send_cmd("AT")  # schneller Check
+
+            self.update_ui_state()
+
+        def on_serial_error(self, err):
+            if err == QSerialPort.NoError:
+                return
+            self.append_log(f"[SerialError] {self.serial.errorString()}\n")
+            # Bei schwerem Fehler automatisch schließen
+            if self.serial.isOpen() and err in (QSerialPort.ResourceError, QSerialPort.DeviceNotFoundError):
+                self.serial.close()
+                self.update_ui_state()
+
+        def on_ready_read(self):
+            data = bytes(self.serial.readAll())
+            try:
+                text = data.decode("utf-8", errors="replace")
+            except Exception:
+                text = data.decode("latin1", errors="replace")
+            self.rx_buffer += text
+            self.append_log(text)
+
+            # Einfache Status-Erkennung anhand klassischer Modem-Responses:
+            for line in self.rx_buffer.splitlines():
+                s = line.strip().upper()
+                if s == "RING":
+                    self.set_status("RING (eingehender Anruf)")
+                elif s.startswith("CONNECT"):
+                    self.set_status(f"Verbunden ({line.strip()})")
+                elif s in ("NO CARRIER", "BUSY", "NO DIALTONE", "NO DIAL TONE"):
+                    self.set_status(s.title())
+            # Puffer nicht endlos wachsen lassen
+            if len(self.rx_buffer) > 10000:
+                self.rx_buffer = self.rx_buffer[-5000:]
+
+        # ---------- Commands ----------
+        def send_cmd_from_edit(self):
+            cmd = self.cmd_edit.text().strip()
+            if cmd:
+                self.send_cmd(cmd)
+                self.cmd_edit.clear()
+
+        def send_cmd(self, cmd: str):
+            if not self.serial.isOpen():
+                QMessageBox.information(self, "Port geschlossen", "Bitte zuerst den Port öffnen.")
+                return
+            line = (cmd + "\r").encode("ascii", errors="ignore")
+            n = self.serial.write(line)
+            self.serial.flush()
+            self.append_log(f">>> {cmd}\n")
+            if n <= 0:
+                self.append_log("[Warn] Nichts gesendet?\n")
+
+        def cmd_dial(self):
+            number = self.num_edit.text().strip()
+            if not number:
+                QMessageBox.information(self, "Keine Nummer", "Bitte eine Nummer/Zieladresse eingeben.")
+                return
+            # Semikolon = voice call; ohne Semikolon meist Datenverbindung
+            suffix = ";" if self.voice_chk.isChecked() else ""
+            self.send_cmd(f"ATD{number}{suffix}")
+
+        # ---------- UI helpers ----------
+        def set_status(self, text: str):
+            self.status_lbl.setText(f"Status: {text}")
+
+        def append_log(self, text: str):
+            self.log.moveCursor(self.log.textCursor().End)
+            self.log.insertPlainText(text)
+            self.log.moveCursor(self.log.textCursor().End)
+
+        def set_dtr(self, checked: bool):
+            if self.serial.isOpen():
+                self.serial.setDataTerminalReady(checked)
+
+        def set_rts(self, checked: bool):
+            if self.serial.isOpen():
+                self.serial.setRequestToSend(checked)
+
+        def update_ui_state(self):
+            is_open = self.serial.isOpen()
+            self.open_btn.setText("Schließen" if is_open else "Öffnen")
+            self.port_combo.setEnabled(not is_open)
+            self.baud_combo.setEnabled(not is_open)
+            self.dial_btn.setEnabled(is_open)
+            self.hangup_btn.setEnabled(is_open)
+            self.answer_btn.setEnabled(is_open)
+            self.send_btn.setEnabled(is_open)
+            self.cmd_edit.setEnabled(is_open)
+            self.dtr_chk.setEnabled(True)
+            self.rts_chk.setEnabled(True)
+            self.set_status("offen" if is_open else "geschlossen")
+    
+    # ---------------------------------------------------------------------------
+    # Beispiel: frei gestaltbares Cell-Widget
+    # ---------------------------------------------------------------------------
+    class CellWidget(QWidget):
+        def __init__(self, text: str = "", role: str = "default", parent=None):
+            super(CellWidget, self).__init__(parent)
+            self.role = role # z.B. unterschiedliche Gestaltung für Spalte 0 vs. Rest
+            
+            layout = QHBoxLayout(self)
+            layout.setContentsMargins(6, 3, 6, 3)
+            layout.setSpacing(6)
+            
+            if role == "server": # Spalte 0
+                self.pan = TcpSerialBridgeCLIP(self)
+                layout.addWidget(self.pan)
+            else: # Spalten 1..3
+                self.modem = ModemDialer(self)
+                layout.addWidget(self.modem)
+
+                # Beispiel-Stylesheet für das Widget selbst
+                #self.setStyleSheet("""\
+                #QWidget { background: transparent; }
+                #QLabel#leadingLabel { font-weight: bold; }
+                #QLineEdit { min-width: 120px; }
+                #QComboBox { min-width: 80px; }""")
+    
+    class ColorfulHeader(QHeaderView):
+        def __init__(self, orientation, parent=None):
+            super().__init__(orientation, parent)
+            # Für manuelles Zeichnen glatter Linien/Texte
+            self.setDefaultAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+            self.setSectionsMovable(True)
+            self.setStretchLastSection(True)
+            self.setSectionResizeMode(QHeaderView.Interactive)
+            
+        def paintSection(self, painter: QPainter, rect, logicalIndex: int):
+            if not rect.isValid():
+                return
+
+            model = self.model()
+            # Header-Daten aus dem Model lesen
+            text = str(model.headerData(logicalIndex, Qt.Horizontal, Qt.DisplayRole) or "")
+            brush = model.headerData(logicalIndex, Qt.Horizontal, Qt.BackgroundRole)
+            font  = model.headerData(logicalIndex, Qt.Horizontal, Qt.FontRole)
+
+            # Hintergrund malen (Farbe aus BackgroundRole oder Fallback)
+            painter.save()
+            if isinstance(brush, QBrush):
+                painter.fillRect(rect, brush)
+            else:
+                painter.fillRect(rect, self.palette().color(self.backgroundRole()))
+
+            # Rahmen/Trennlinie (dezent)
+            pen = QPen(self.palette().color(self.palette().Mid))
+            painter.setPen(pen)
+            painter.drawRect(rect.adjusted(0, 0, -1, -1))  # dünner Rahmen
+
+            # Text malen (Fettschrift wenn vorhanden)
+            if isinstance(font, QFont):
+                painter.setFont(font)
+            textRect = rect.adjusted(8, 0, -8, 0)
+            painter.setPen(self.palette().color(self.palette().ButtonText))
+            painter.drawText(textRect, Qt.AlignVCenter | Qt.AlignLeft, text)
+
+            # Sort-Indikator (falls aktiv)
+            if self.sortIndicatorSection() == logicalIndex and self.isSortIndicatorShown():
+                up = (self.sortIndicatorOrder() == Qt.AscendingOrder)
+                tri_w, tri_h = 10, 6
+                cx = rect.right() - 12
+                cy = rect.center().y()
+                if up:
+                    poly = QPolygon([QPoint(cx - tri_w//2, cy + tri_h//2),
+                                     QPoint(cx + tri_w//2, cy + tri_h//2),
+                                     QPoint(cx,            cy - tri_h//2)])
+                else:
+                    poly = QPolygon([QPoint(cx - tri_w//2, cy - tri_h//2),
+                                     QPoint(cx + tri_w//2, cy - tri_h//2),
+                                     QPoint(cx,            cy + tri_h//2)])
+                painter.setBrush(self.palette().color(self.palette().ButtonText))
+                painter.drawPolygon(poly)
+
+            painter.restore()
+    
+    class TcpSerialBridgeCLIPAndDialer(QWidget):
+        def __init__(self,parent=None):
+            super(TcpSerialBridgeCLIPAndDialer, self).__init__(parent)
+            self.setMinimumWidth(1600)
+            self.setMinimumHeight(580)
+            
+            # TableView
+            self.view = QTableView(self)
+            self.view.setStyleSheet("")
+            self.view.horizontalHeader().setStyleSheet("")
+            
+            h = ColorfulHeader(Qt.Horizontal, self.view)
+            self.view.setHorizontalHeader(h)
+            
+            # Model VOR setModel anlegen
+            self.model = QStandardItemModel(0, 4, self)
+            self.model.setHorizontalHeaderLabels([
+                "Server",
+                "Modem 1", "Modem 2", "Modem 3", "Modem 4", "Modem 5"])
+            
+            header_font = QFont("Arial", 10)
+            header_font.setBold(True)
+            header_colors = [
+                QColor("#bbdebb"),  # server
+                QColor("#e8f1e9"),  # modem 1
+                QColor("#aff3e0"),  # modem 2
+                QColor("#13e5f5"),  # modem 3
+                QColor("#23e5f5"),  # modem 4
+                QColor("#f3e5f5"),  # modem 5
+            ]
+            for section, color in enumerate(header_colors):
+                self.model.setHeaderData(section, Qt.Horizontal, QBrush(color), Qt.BackgroundRole)
+                self.model.setHeaderData(section, Qt.Horizontal, header_font, Qt.FontRole)
+            
+            self.view.setModel(self.model)
+            self.view.verticalHeader().setVisible(False)
+            
+            # 3) Spalten 1..3 verschiebbar, Spalte 0 fix
+            #h = self.view.horizontalHeader()
+            
+            
+            # Optional: Auswahl-/Edit-Verhalten anpassen
+            self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
+            self.view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+            self.view.setAlternatingRowColors(True)
+
+            # Demodaten
+            self._add_demo_rows(1)
+            self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+            self.view.resizeRowsToContents()
+            
+            self.view.setColumnWidth(0, 600)
+            self.view.setColumnWidth(1, 600)
+            self.view.setColumnWidth(2, 600)
+            self.view.setColumnWidth(3, 600)
+            self.view.setColumnWidth(4, 600)
+            self.view.setColumnWidth(5, 600)
+            
+            # Layout
+            root = QVBoxLayout(self)
+            root.addWidget(self.view)
+            
+            h.viewport().update()
+        
+        def _add_demo_rows(self, count: int):
+            current_rows = self.model.rowCount()
+            for r in range(count):
+                self.model.insertRow(current_rows + r, [
+                    QStandardItem(""),
+                    QStandardItem(""),
+                    QStandardItem(""),
+                    QStandardItem(""),
+                    QStandardItem(""),
+                    QStandardItem(""),
+                ])
+
+            # Für jede neue Zeile Widgets einsetzen
+            for row in range(current_rows, current_rows + count):
+                # Spalte 0: "leading" Widget (fixe Spalte)
+                idx0 = self.model.index(row, 0)
+                w0 = CellWidget(text="", role="server")
+                self.view.setIndexWidget(idx0, w0)
+
+                # Spalten 1..3: frei gestaltbare Widgets
+                for col in (1, 2, 3, 4, 5):
+                    idx = self.model.index(row, col)
+                    w = CellWidget(text="", role="modem")
+                    self.view.setIndexWidget(idx, w)
+        
     # Befehle vom COM-Port (Präfix ##)
     # Mit dieser Option kannst du z. B. per „Modem/COM-Konsole“ steuern:
-    # ##BCAST Hallo → sendet Hallo an alle Clients
-    # ##TO 0 Hallo → sendet an Client #0
-    # ##KICK 1 → trennt Client #1
-    # ##LIST → schreibt Clientliste zurück auf COM
+    # ##BCAST Hallo -> sendet Hallo an alle Clients
+    # ##TO 0 Hallo -> sendet an Client #0
+    # ##KICK 1 -> trennt Client #1
+    # ##LIST -> schreibt Clientliste zurück auf COM
     # ##HEX 0 48656C6C6F → sendet Hex-Bytes an Client #0
     class TcpSerialBridgeCLIP(QWidget):
         def __init__(self,parent=None):
             super(TcpSerialBridgeCLIP, self).__init__(parent)
             #self.setWindowTitle("TCP <-> Serial Bridge (IP-Auswahl & Caller-ID)")
             #self.resize(560, 680)
-            self.setMinimumHeight(470)
-            self.setMinimumWidth(500)
-
+            self.setMinimumHeight(770)
+            self.setMinimumWidth(610)
+            
+            scroll = QScrollArea(self)
+            scroll.setWidgetResizable(True)
+            scroll.setMinimumHeight(500)
+            scroll.setMinimumWidth(610)
+            
+            content = QWidget()
+            vbox = QVBoxLayout(content)
+            
+            self.tcp_line_buf = {}  # sock -> str
+            
             # ---- Devices / State ----
             self.serial = QSerialPort(self)
             self.serial.readyRead.connect(self.on_serial_ready_read)
             self.serial.errorOccurred.connect(self.on_serial_error)
-
+            
             self.server = QTcpServer(self)
             self.server.newConnection.connect(self.on_new_connection)
-
+            
             self.clients = []  # Liste verbundener QTcpSocket
             self.line_accu = ""  # Textpuffer für Zeilen vom Modem
-
+            
             # Letzte Caller-ID
             self.last_number = ""
             self.last_name   = ""
             self.last_dt     = None
-
+            
+            font = QFont("Arial", 10)
+            
             # ---- UI: Top-Leiste Serial + TCP ----
             self.port_combo = QComboBox()
+            self.port_combo.setFont(font)
             self.refresh_ports()
-
+            
             self.baud_combo = QComboBox()
             for b in [300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800]:
                 self.baud_combo.addItem(str(b))
+            self.baud_combo.setFont(font)
             self.baud_combo.setCurrentText("115200")
-
-            self.open_btn = QPushButton("COM öffnen")
+            
+            self.open_btn = QPushButton(_str("Open COM"))
+            self.open_btn.setFont(font)
             self.open_btn.clicked.connect(self.toggle_serial)
-
-            self.clip_chk = QCheckBox("CLIP beim Öffnen aktivieren (AT+VCID=1)")
+            
+            self.clip_chk = QCheckBox(_str("Activate 'open CLIP' at start-up (AT+VCID=1)"))
+            self.clip_chk.setFont(font)
             self.clip_chk.setChecked(True)
-            self.clip_alt_chk = QCheckBox("Alternative (AT#CID=1) zusätzlich")
+            
+            self.clip_alt_chk = QCheckBox(_str("Alternative (AT#CID=1) extra"))
+            self.clip_alt_chk.setFont(font)
             self.clip_alt_chk.setChecked(False)
 
             self.bind_combo = QComboBox()
+            self.bind_combo.setFont(font)
             self.populate_bind_addresses()
 
             self.listen_port = QSpinBox()
+            self.listen_port.setFont(font)
             self.listen_port.setRange(1, 65535)
             self.listen_port.setValue(5000)
 
-            self.listen_btn = QPushButton("TCP lauschen")
+            self.listen_btn = QPushButton(_str("Listen TCP"))
+            self.listen_btn.setMaximumWidth(120)
+            self.listen_btn.setMinimumHeight(21)
+            self.listen_btn.setFont(font)
             self.listen_btn.clicked.connect(self.toggle_listen)
 
-            self.allow_multi_chk = QCheckBox("Mehrere TCP-Clients erlauben")
+            self.allow_multi_chk = QCheckBox(_str("Multiple TCP-Clients"))
+            self.allow_multi_chk.setFont(font)
             self.allow_multi_chk.setChecked(False)
 
-            self.status_lbl_1 = QLabel("Status: Serial geschlossen")
-            self.status_lbl_2 = QLabel("TCP stoppt")
-            self.status_lbl_3 = QLabel("Clients: 0")
+            self.status_lbl_1 = QLabel(_str("Status: Serial closed"))
+            self.status_lbl_2 = QLabel(_str("TCP not running"))
+            self.status_lbl_3 = QLabel(_str("Clients:") + " 0")
+            
+            self.status_lbl_1.setFont(font)
+            self.status_lbl_2.setFont(font)
+            self.status_lbl_3.setFont(font)
             
             self.status_lbl_1.setStyleSheet("font-weight: 600;")
             self.status_lbl_2.setStyleSheet("font-weight: 600;")
@@ -28541,9 +29059,16 @@ try:
 
             # ---- Caller-ID Anzeige ----
             cid_group = QGroupBox("Caller-ID")
-            self.cid_number_lbl = QLabel("Nummer: –")
-            self.cid_name_lbl = QLabel("Name: –")
-            self.cid_time_lbl = QLabel("Zeit: –")
+            cid_group.setFont(font)
+            self.cid_number_lbl = QLabel(_str("Number: –"))
+            self.cid_number_lbl.setFont(font)
+            
+            self.cid_name_lbl = QLabel(_str("Name: –"))
+            self.cid_name_lbl.setFont(font)
+            
+            self.cid_time_lbl = QLabel(_str("Time: –"))
+            self.cid_time_lbl.setFont(font)
+            
             cid_info = QVBoxLayout()
             cid_info.addWidget(self.cid_number_lbl)
             cid_info.addWidget(self.cid_name_lbl)
@@ -28551,15 +29076,22 @@ try:
             cid_group.setLayout(cid_info)
 
             self.cid_history = QListWidget()
+            self.cid_history.setFont(font)
             self.cid_history.setSelectionMode(self.cid_history.NoSelection)
 
             self.clients_list = QListWidget()
+            self.clients_list.setFont(font)
             self.clients_list.setSelectionMode(self.clients_list.SingleSelection)
 
             self.cli_send_edit = QLineEdit()
-            self.cli_send_edit.setPlaceholderText("Nachricht an Client(s) – Enter = senden")
-            self.cli_send_btn = QPushButton("An Client senden")
-            self.cli_send_all_btn = QPushButton("An alle senden")
+            self.cli_send_edit.setFont(QFont("Consolas", 10))
+            self.cli_send_edit.setPlaceholderText(_str("Message to Client(s) - press Enter to send"))
+            
+            self.cli_send_btn = QPushButton(_str("Send to Client"))
+            self.cli_send_btn.setFont(font)
+            
+            self.cli_send_all_btn = QPushButton(_str("Send to All"))
+            self.cli_send_all_btn.setFont(font)
 
             hl_cli = QHBoxLayout()
             hl_cli.addWidget(self.cli_send_btn)
@@ -28572,7 +29104,7 @@ try:
             # ---- Log ----
             self.log = QPlainTextEdit()
             self.log.setReadOnly(True)
-            self.log.setPlaceholderText("Log-Ausgaben erscheinen hier …")
+            self.log.setPlaceholderText(_str("Loggin-Output"))
 
             # ---- Root Layout ----
             root = QWidget()
@@ -28592,24 +29124,31 @@ try:
             grid.addWidget(self.log,           6, 0, 1, 2)
             grid.setRowStretch(6, 1)
             
-            self.ser_cmd_chk = QCheckBox("Serielle Server-Befehle erlauben (Präfix ##)")
+            self.ser_cmd_chk = QCheckBox(_str("Serial Server-Commands (Prefix ##)"))
             self.ser_cmd_chk.setChecked(True)
+            self.ser_cmd_chk.setFont(font)
             top3.insertWidget(0, self.ser_cmd_chk)  # z. B. ganz links in der dritten Zeile
             
-            self.scroll = QScrollArea()
-            self.scroll.setContentsMargins(0,0,0,0)
-            #self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-            self.scroll.setWidgetResizable(True)
-            self.scroll.setMinimumHeight(520)
-            self.scroll.setMinimumWidth(500)
-            self.scroll.setWidget(root)
+            #dumlay = QVBoxLayout()
+            #dumlay.addWidget(root)
             
-            page_layout = QVBoxLayout()
-            page_layout.setContentsMargins(0, 0, 0, 0)
-            page_layout.addWidget(self.scroll)
-
-            self.setContentsMargins(0, 0, 0, 0)
-            self.setLayout(page_layout)
+            #dummy = QWidget()
+            #dummy.setMinimumHeight(100)
+            #dumlay.addWidget(dummy)
+            
+            #self.scroll = QScrollArea()
+            #self.scroll.setContentsMargins(0,0,0,0)
+            #self.scroll.setWidgetResizable(True)
+            #self.scroll.setMinimumHeight(520)
+            #self.scroll.setMinimumWidth(500)
+            #self.scroll.setLayout(dumlay)
+            
+            vbox.addWidget(root)
+            scroll.setWidget(content)
+            
+            #self.setContentsMargins(0, 0, 0, 0)
+            #self.setLayout(page_layout)
+            
             self.update_ui()
 
         # ---------- Helpers / UI ----------
@@ -28622,23 +29161,23 @@ try:
             ser_open = self.serial.isOpen()
             listening = self.server.isListening()
 
-            self.open_btn.setText("COM schließen" if ser_open else "COM öffnen")
+            self.open_btn.setText("COM schließen" if ser_open else _str("Open COM"))
             self.port_combo.setEnabled(not ser_open)
             self.baud_combo.setEnabled(not ser_open)
             self.clip_chk.setEnabled(not ser_open)
             self.clip_alt_chk.setEnabled(not ser_open)
 
-            self.listen_btn.setText("TCP stoppen" if listening else "TCP lauschen")
+            self.listen_btn.setText("TCP stoppen" if listening else _str("Listen TCP"))
             self.bind_combo.setEnabled(not listening)
             self.listen_port.setEnabled(not listening)
 
             client_count = len(self.clients)
-            ser_state = "offen" if ser_open else "geschlossen"
+            ser_state = _str("open") if ser_open else _str("closed")
             if listening:
                 addr_text = self.bind_combo.currentText()
                 tcp_state = f"lauscht auf {addr_text}:{self.listen_port.value()}"
             else:
-                tcp_state = "stoppt"
+                tcp_state = _str("not running.")
 
             self.status_lbl_1.setText(f"Status: Serial {ser_state}")
             self.status_lbl_2.setText(f"TCP {tcp_state}")
@@ -28650,13 +29189,13 @@ try:
                 label = f"{p.portName()} — {p.description() or 'Serial'}"
                 self.port_combo.addItem(label, p.portName())
             if self.port_combo.count() == 0:
-                self.port_combo.addItem("(keine Ports gefunden)", "")
+                self.port_combo.addItem(_str("(no Ports found)"), "")
 
         def populate_bind_addresses(self):
             self.bind_combo.clear()
             # Standardoptionen
-            self.bind_combo.addItem("Alle Schnittstellen (0.0.0.0)", "0.0.0.0")
-            self.bind_combo.addItem("Nur lokal (127.0.0.1)", "127.0.0.1")
+            self.bind_combo.addItem(_str("All Devices (0.0.0.0)"  ), "0.0.0.0")
+            self.bind_combo.addItem(_str("Only local  (127.0.0.1)"), "127.0.0.1")
             seen = set(["0.0.0.0", "127.0.0.1"])
             # Lokale IPv4-Adressen auflisten
             for iface in QNetworkInterface.allInterfaces():
@@ -28677,20 +29216,22 @@ try:
         def toggle_serial(self):
             if self.serial.isOpen():
                 self.serial.close()
-                self.log_msg("[SER] Port geschlossen.")
+                self.log_msg(_str("[SER] Port closed."))
                 self.update_ui()
                 return
 
             port_name = self.port_combo.currentData()
             if not port_name:
-                QMessageBox.warning(self, "Kein COM-Port", "Bitte zuerst einen gültigen COM-Port auswählen.")
+                QMessageBox.warning(self,
+                _str("No open COM-Port"),
+                _str("Please select a vaild COM-Port."))
                 return
 
             # (Optional) Busy-Check, falls Qt-Build das unterstützt
             try:
                 info = next((p for p in QSerialPortInfo.availablePorts() if p.portName() == port_name), None)
                 if info and hasattr(info, "isBusy") and info.isBusy():
-                    self.log_msg(f"[SER] Hinweis: {port_name} meldet busy – vermutlich von einem anderen Prozess geöffnet.")
+                    self.log_msg(f"[SER] Note: {port_name} is busy - access denied.")
             except Exception:
                 pass
 
@@ -28710,13 +29251,12 @@ try:
             if not self.serial.open(QIODevice.ReadWrite):
                 err = self.serial.error()
                 err_str = self.serial.errorString()
-                QMessageBox.critical(self, "COM-Fehler",
-                                     f"Konnte {port_name} nicht öffnen.\n\nFehlercode: {int(err)}\n{err_str}\n\n"
-                                     "Tipp: Ist der Port bereits von einem anderen Programm belegt?")
+                QMessageBox.critical(self, _str("COM-Error"),
+                f"could not open: {port_name}.\n\nError Code: {int(err)}\n{err_str}\n\n")
                 self.log_msg(f"[SER][OpenError] {port_name}: code={int(err)} msg='{err_str}'")
                 return
 
-            self.log_msg(f"[SER] Geöffnet: {port_name} @ {baud}.")
+            self.log_msg(f"[SER] Opened: {port_name} @ {baud}.")
 
             # CLIP-Setup leicht verzögert (manche Modems mögen eine kurze Pause)
             def _send_clip():
@@ -29026,6 +29566,7 @@ try:
         def on_new_connection(self):
             while self.server.hasPendingConnections():
                 sock = self.server.nextPendingConnection()
+                self.tcp_line_buf[sock] = ""
                 if not self.allow_multi_chk.isChecked() and any(
                     s.state() == s.ConnectedState for s in self.clients
                 ):
@@ -29037,7 +29578,7 @@ try:
                 sock.disconnected.connect(lambda s=sock: self.on_socket_disconnected(s))
                 sock.errorOccurred.connect(lambda _e, s=sock: self.on_socket_error(s))
                 self.clients.append(sock)
-
+                
                 peer = f"{sock.peerAddress().toString()}:{sock.peerPort()}"
                 self.log_msg(f"[TCP] Client verbunden: {peer}")
             self._refresh_clients_list()
@@ -29045,16 +29586,37 @@ try:
 
         def on_socket_ready_read(self, sock):
             data = bytes(sock.readAll())
-            if self.serial.isOpen():
-                n = self.serial.write(data)
-                self.serial.flush()
-            else:
-                n = 0
-            preview = data[:64].decode("utf-8", errors="replace").replace("\r", "\\r").replace("\n", "\\n")
-            more = "…" if len(data) > 64 else ""
-            self.log_msg(f"[TCP→SER] {len(data)} B  '{preview}{more}'  (geschrieben {n} B)")
 
+            # --- Linienweise parsen, Kommandos abfangen ---
+            text = data.decode("utf-8", errors="replace")
+            buf = self.tcp_line_buf.get(sock, "") + text
+            parts = re.split(r'[\r\n]+', buf)
+            if buf.endswith("\n") or buf.endswith("\r"):
+                lines, rest = parts[:-1], ""
+            else:
+                lines, rest = parts[:-1], parts[-1]
+            self.tcp_line_buf[sock] = rest
+
+            for line in lines:
+                l = line.strip()
+                if not l:
+                    continue
+                if l.startswith("##"):
+                    # selben Handler wie für serielle Befehle verwenden
+                    self._handle_serial_command(l[2:].strip())
+                    continue
+                # sonst normale Weiterleitung an COM:
+                if self.serial.isOpen():
+                    self.serial.write((l + "\r\n").encode("utf-8"))
+                    self.serial.flush()
+
+            # Optional: Rohdaten-Log
+            preview = text[:64].replace("\r","\\r").replace("\n","\\n")
+            more = "…" if len(text) > 64 else ""
+            self.log_msg(f"[TCP→SER] {len(data)} B  '{preview}{more}'")
+        
         def on_socket_disconnected(self, sock):
+            self.tcp_line_buf.pop(sock, None)
             peer = f"{sock.peerAddress().toString()}:{sock.peerPort()}"
             self.log_msg(f"[TCP] Client getrennt: {peer}")
             try:
