@@ -28460,18 +28460,18 @@ try:
     # Wenn dein Emulator RFC2217 (Telnet-Serial) statt COM anbietet, bräuchtest du eine
     # kleine TCP-Schicht.
     class ModemDialer(QWidget):
-        def __init__(self,parent=None):
+        def __init__(self,parent=None, name:str=""):
             super(ModemDialer, self).__init__(parent)
             #self.setWindowTitle("Qt5 Modem Dialer (PyQt5)")
             #self.resize(1200, 600)
             
-            self.setMinimumHeight(770)
-            self.setMinimumWidth(560)
+            self.setMinimumHeight(410)
+            self.setMinimumWidth(730)
             
             scroll = QScrollArea(self)
             scroll.setWidgetResizable(True)
-            scroll.setMinimumHeight(500)
-            scroll.setMinimumWidth(560)
+            scroll.setMinimumHeight(400)
+            scroll.setMinimumWidth(720)
             
             font = QFont("Arial", 10)
             
@@ -28480,7 +28480,15 @@ try:
             self.serial.errorOccurred.connect(self.on_serial_error)
 
             self.rx_buffer = ""
-
+            
+            # --- Title of Modem ---
+            self.modem_font = QFont("Consolas", 10)
+            self.modem_font.setBold(True)
+            
+            self.modem_name = QLabel(name)
+            self.modem_name.setFont(self.modem_font)
+            self.modem_name.setStyleSheet("background-color:#bbe2c1;")
+            
             # --- Top bar: Port + Baud + Steuerung ---
             self.port_combo = QComboBox()
             self.port_combo.setFont(font)
@@ -28519,23 +28527,23 @@ try:
             self.num_edit.setFont(font)
             self.num_edit.setPlaceholderText("Nummer / Ziel (z. B. 5551234)")
             
-            self.voice_chk = QCheckBox("Voice-Dial (Semikolon anhängen)")
+            self.voice_chk = QCheckBox(_str("Voice-Dial (add Semicolon)"))
             self.voice_chk.setFont(font)
             self.voice_chk.setChecked(True)
 
-            self.dial_btn = QPushButton("Wählen")
+            self.dial_btn = QPushButton(_str("Dial"))
             self.dial_btn.setFont(font)
             self.dial_btn.clicked.connect(self.cmd_dial)
             
-            self.hangup_btn = QPushButton("Auflegen")
+            self.hangup_btn = QPushButton(_str("Hang UP"))
             self.hangup_btn.setFont(font)
             self.hangup_btn.clicked.connect(lambda: self.send_cmd("ATH"))
             
-            self.answer_btn = QPushButton("Abheben")
+            self.answer_btn = QPushButton(_str("Reply"))
             self.answer_btn.setFont(font)
             self.answer_btn.clicked.connect(lambda: self.send_cmd("ATA"))
             
-            self.init_btn = QPushButton("Modem-Test (AT)")
+            self.init_btn = QPushButton("Modem-Test")
             self.init_btn.setFont(font)
             self.init_btn.clicked.connect(lambda: self.send_cmd("AT"))
 
@@ -28624,8 +28632,11 @@ try:
             grid.setColumnStretch(0, 0)
             grid.setColumnStretch(1, 1)
             
-            scroll.setWidget(root)
+            root_layout = QVBoxLayout()
+            root_layout.addWidget(self.modem_name)
+            root_layout.addWidget(root)
             
+            scroll.setLayout(root_layout)
             self.update_ui_state()
         
         # ---------- Serial Handling ----------
@@ -28646,7 +28657,9 @@ try:
             else:
                 port_name = self.port_combo.currentData()
                 if not port_name:
-                    QMessageBox.warning(self, "Kein Port", "Bitte zuerst einen seriellen Port auswählen.")
+                    QMessageBox.warning(self,
+                    _str("No open Port"),
+                    _str("Please select a Port"))
                     return
                 self.serial.setPortName(port_name)
                 try:
@@ -28660,8 +28673,9 @@ try:
                 self.serial.setFlowControl(QSerialPort.NoFlowControl)
 
                 if not self.serial.open(QIODevice.ReadWrite):
-                    QMessageBox.critical(self, "Fehler beim Öffnen",
-                                         f"Konnte {port_name} nicht öffnen:\n{self.serial.errorString()}")
+                    QMessageBox.critical(self,
+                    _str("Error during open Port"),
+                    _str("could not open port:") + f"\n{self.serial.errorString()}")
                     return
 
                 # Default Leitungen
@@ -28762,178 +28776,74 @@ try:
             self.rts_chk.setEnabled(True)
             self.set_status("offen" if is_open else "geschlossen")
     
-    # ---------------------------------------------------------------------------
-    # Beispiel: frei gestaltbares Cell-Widget
-    # ---------------------------------------------------------------------------
-    class CellWidget(QWidget):
-        def __init__(self, text: str = "", role: str = "default", parent=None):
-            super(CellWidget, self).__init__(parent)
-            self.role = role # z.B. unterschiedliche Gestaltung für Spalte 0 vs. Rest
-            
-            layout = QHBoxLayout(self)
-            layout.setContentsMargins(6, 3, 6, 3)
-            layout.setSpacing(6)
-            
-            if role == "server": # Spalte 0
-                self.pan = TcpSerialBridgeCLIP(self)
-                layout.addWidget(self.pan)
-            else: # Spalten 1..3
-                self.modem = ModemDialer(self)
-                layout.addWidget(self.modem)
-
-                # Beispiel-Stylesheet für das Widget selbst
-                #self.setStyleSheet("""\
-                #QWidget { background: transparent; }
-                #QLabel#leadingLabel { font-weight: bold; }
-                #QLineEdit { min-width: 120px; }
-                #QComboBox { min-width: 80px; }""")
-    
-    class ColorfulHeader(QHeaderView):
-        def __init__(self, orientation, parent=None):
-            super().__init__(orientation, parent)
-            # Für manuelles Zeichnen glatter Linien/Texte
-            self.setDefaultAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-            self.setSectionsMovable(True)
-            self.setStretchLastSection(True)
-            self.setSectionResizeMode(QHeaderView.Interactive)
-            
-        def paintSection(self, painter: QPainter, rect, logicalIndex: int):
-            if not rect.isValid():
-                return
-
-            model = self.model()
-            # Header-Daten aus dem Model lesen
-            text = str(model.headerData(logicalIndex, Qt.Horizontal, Qt.DisplayRole) or "")
-            brush = model.headerData(logicalIndex, Qt.Horizontal, Qt.BackgroundRole)
-            font  = model.headerData(logicalIndex, Qt.Horizontal, Qt.FontRole)
-
-            # Hintergrund malen (Farbe aus BackgroundRole oder Fallback)
-            painter.save()
-            if isinstance(brush, QBrush):
-                painter.fillRect(rect, brush)
-            else:
-                painter.fillRect(rect, self.palette().color(self.backgroundRole()))
-
-            # Rahmen/Trennlinie (dezent)
-            pen = QPen(self.palette().color(self.palette().Mid))
-            painter.setPen(pen)
-            painter.drawRect(rect.adjusted(0, 0, -1, -1))  # dünner Rahmen
-
-            # Text malen (Fettschrift wenn vorhanden)
-            if isinstance(font, QFont):
-                painter.setFont(font)
-            textRect = rect.adjusted(8, 0, -8, 0)
-            painter.setPen(self.palette().color(self.palette().ButtonText))
-            painter.drawText(textRect, Qt.AlignVCenter | Qt.AlignLeft, text)
-
-            # Sort-Indikator (falls aktiv)
-            if self.sortIndicatorSection() == logicalIndex and self.isSortIndicatorShown():
-                up = (self.sortIndicatorOrder() == Qt.AscendingOrder)
-                tri_w, tri_h = 10, 6
-                cx = rect.right() - 12
-                cy = rect.center().y()
-                if up:
-                    poly = QPolygon([QPoint(cx - tri_w//2, cy + tri_h//2),
-                                     QPoint(cx + tri_w//2, cy + tri_h//2),
-                                     QPoint(cx,            cy - tri_h//2)])
-                else:
-                    poly = QPolygon([QPoint(cx - tri_w//2, cy - tri_h//2),
-                                     QPoint(cx + tri_w//2, cy - tri_h//2),
-                                     QPoint(cx,            cy + tri_h//2)])
-                painter.setBrush(self.palette().color(self.palette().ButtonText))
-                painter.drawPolygon(poly)
-
-            painter.restore()
-    
+    def make_scroll_area1() -> QScrollArea:
+        content = QFrame()
+        content.setFrameShape(QFrame.StyledPanel)
+        content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        
+        servers = [
+            TcpSerialBridgeCLIP(content, "Foxy" ),
+            TcpSerialBridgeCLIP(content, "Trixy"),
+            TcpSerialBridgeCLIP(content, "Gaja" ),
+            TcpSerialBridgeCLIP(content, "Jonny"),
+            TcpSerialBridgeCLIP(content, "Luke" ),
+        ]
+        
+        v = QVBoxLayout(content)
+        for srv in servers:
+            v.addWidget(srv)
+            v.addStretch()
+        
+        sa = QScrollArea()
+        sa.setWidgetResizable(True)   # Inhalt wächst mit
+        sa.setWidget(content)
+        return sa
+    def make_scroll_area2() -> QScrollArea:
+        content = QFrame()
+        content.setFrameShape(QFrame.StyledPanel)
+        content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        
+        modems = []
+        
+        v = QVBoxLayout(content)
+        for m in range(1,10):
+            modem = ModemDialer(content, f"Modem: [ {m} ]")
+            modems.append(modem)
+            v.addWidget(modem)
+            v.addStretch()
+        
+        sa = QScrollArea()
+        sa.setWidgetResizable(True)   # Inhalt wächst mit
+        sa.setWidget(content)
+        return sa
+        
     class TcpSerialBridgeCLIPAndDialer(QWidget):
         def __init__(self,parent=None):
             super(TcpSerialBridgeCLIPAndDialer, self).__init__(parent)
-            self.setMinimumWidth(1600)
-            self.setMinimumHeight(580)
+            self.setMinimumWidth(1300)
+            self.setMinimumHeight(500)
             
-            # TableView
-            self.view = QTableView(self)
-            self.view.setStyleSheet("")
-            self.view.horizontalHeader().setStyleSheet("")
+            tab1_layout = QVBoxLayout(self)
             
-            h = ColorfulHeader(Qt.Horizontal, self.view)
-            self.view.setHorizontalHeader(h)
+            hsplitter = QSplitter(Qt.Horizontal)
+            hsplitter.setChildrenCollapsible(False)
             
-            # Model VOR setModel anlegen
-            self.model = QStandardItemModel(0, 4, self)
-            self.model.setHorizontalHeaderLabels([
-                "Server",
-                "Modem 1", "Modem 2", "Modem 3", "Modem 4", "Modem 5"])
+            hsplitter.addWidget(make_scroll_area1())
+            hsplitter.addWidget(make_scroll_area2())
             
-            header_font = QFont("Arial", 10)
-            header_font.setBold(True)
-            header_colors = [
-                QColor("#bbdebb"),  # server
-                QColor("#e8f1e9"),  # modem 1
-                QColor("#aff3e0"),  # modem 2
-                QColor("#13e5f5"),  # modem 3
-                QColor("#23e5f5"),  # modem 4
-                QColor("#f3e5f5"),  # modem 5
-            ]
-            for section, color in enumerate(header_colors):
-                self.model.setHeaderData(section, Qt.Horizontal, QBrush(color), Qt.BackgroundRole)
-                self.model.setHeaderData(section, Qt.Horizontal, header_font, Qt.FontRole)
+            vsplitter = QSplitter(Qt.Vertical)
+            vsplitter.setChildrenCollapsible(False)
             
-            self.view.setModel(self.model)
-            self.view.verticalHeader().setVisible(False)
+            vsplitter.addWidget(hsplitter)
+            vsplitter.addWidget(QPushButton("pusher 2"))
             
-            # 3) Spalten 1..3 verschiebbar, Spalte 0 fix
-            #h = self.view.horizontalHeader()
+            # Anfangsgrößen verteilen (optional)
+            hsplitter.setSizes([200, 300])
             
-            
-            # Optional: Auswahl-/Edit-Verhalten anpassen
-            self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
-            self.view.setEditTriggers(QAbstractItemView.NoEditTriggers)
-            self.view.setAlternatingRowColors(True)
-
-            # Demodaten
-            self._add_demo_rows(1)
-            self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-            self.view.resizeRowsToContents()
-            
-            self.view.setColumnWidth(0, 600)
-            self.view.setColumnWidth(1, 600)
-            self.view.setColumnWidth(2, 600)
-            self.view.setColumnWidth(3, 600)
-            self.view.setColumnWidth(4, 600)
-            self.view.setColumnWidth(5, 600)
-            
-            # Layout
-            root = QVBoxLayout(self)
-            root.addWidget(self.view)
-            
-            h.viewport().update()
-        
-        def _add_demo_rows(self, count: int):
-            current_rows = self.model.rowCount()
-            for r in range(count):
-                self.model.insertRow(current_rows + r, [
-                    QStandardItem(""),
-                    QStandardItem(""),
-                    QStandardItem(""),
-                    QStandardItem(""),
-                    QStandardItem(""),
-                    QStandardItem(""),
-                ])
-
-            # Für jede neue Zeile Widgets einsetzen
-            for row in range(current_rows, current_rows + count):
-                # Spalte 0: "leading" Widget (fixe Spalte)
-                idx0 = self.model.index(row, 0)
-                w0 = CellWidget(text="", role="server")
-                self.view.setIndexWidget(idx0, w0)
-
-                # Spalten 1..3: frei gestaltbare Widgets
-                for col in (1, 2, 3, 4, 5):
-                    idx = self.model.index(row, col)
-                    w = CellWidget(text="", role="modem")
-                    self.view.setIndexWidget(idx, w)
-        
+            #tab1_layout.addWidget(hsplitter)
+            tab1_layout.addWidget(vsplitter)
+            return
+    
     # Befehle vom COM-Port (Präfix ##)
     # Mit dieser Option kannst du z. B. per „Modem/COM-Konsole“ steuern:
     # ##BCAST Hallo -> sendet Hallo an alle Clients
@@ -28942,20 +28852,14 @@ try:
     # ##LIST -> schreibt Clientliste zurück auf COM
     # ##HEX 0 48656C6C6F → sendet Hex-Bytes an Client #0
     class TcpSerialBridgeCLIP(QWidget):
-        def __init__(self,parent=None):
+        def __init__(self,parent=None, server_name:str=""):
             super(TcpSerialBridgeCLIP, self).__init__(parent)
             #self.setWindowTitle("TCP <-> Serial Bridge (IP-Auswahl & Caller-ID)")
             #self.resize(560, 680)
-            self.setMinimumHeight(770)
-            self.setMinimumWidth(610)
+            self.setMinimumHeight(600)
+            self.setMinimumWidth(570)
             
-            scroll = QScrollArea(self)
-            scroll.setWidgetResizable(True)
-            scroll.setMinimumHeight(500)
-            scroll.setMinimumWidth(610)
-            
-            content = QWidget()
-            vbox = QVBoxLayout(content)
+            content = QWidget(self)
             
             self.tcp_line_buf = {}  # sock -> str
             
@@ -28976,6 +28880,14 @@ try:
             self.last_dt     = None
             
             font = QFont("Arial", 10)
+            
+            # ---- Server Title ----
+            server_lbl_font = QFont("Consolas", 12)
+            server_lbl_font.setBold(True)
+            
+            self.server_lbl = QLabel(f"Server: {server_name}")
+            self.server_lbl.setFont(server_lbl_font)
+            self.server_lbl.setStyleSheet("background-color:#bbe2c1;")
             
             # ---- UI: Top-Leiste Serial + TCP ----
             self.port_combo = QComboBox()
@@ -29033,6 +28945,7 @@ try:
 
             # Layout Top
             top1 = QHBoxLayout()
+            top1.setContentsMargins(0, 0, 0, 0)
             top1.addWidget(QLabel("COM:"))
             top1.addWidget(self.port_combo, 1)
             top1.addWidget(QLabel("Baud:"))
@@ -29041,6 +28954,7 @@ try:
             top1.addStretch(1)
 
             top2 = QHBoxLayout()
+            top2.setContentsMargins(0, 0, 0, 0)
             top2.addWidget(QLabel("Bind-IP:"))
             top2.addWidget(self.bind_combo, 2)
             top2.addWidget(QLabel("TCP-Port:"))
@@ -29048,6 +28962,7 @@ try:
             top2.addStretch(1)
 
             top3 = QVBoxLayout()
+            top3.setContentsMargins(0, 0, 0, 0)
             top3.addWidget(self.listen_btn)
             top3.addWidget(self.allow_multi_chk)
             top3.addWidget(self.clip_chk)
@@ -29070,6 +28985,7 @@ try:
             self.cid_time_lbl.setFont(font)
             
             cid_info = QVBoxLayout()
+            cid_info.setContentsMargins(0, 0, 0, 0)
             cid_info.addWidget(self.cid_number_lbl)
             cid_info.addWidget(self.cid_name_lbl)
             cid_info.addWidget(self.cid_time_lbl)
@@ -29094,6 +29010,7 @@ try:
             self.cli_send_all_btn.setFont(font)
 
             hl_cli = QHBoxLayout()
+            hl_cli.setContentsMargins(0, 0, 0, 0)
             hl_cli.addWidget(self.cli_send_btn)
             hl_cli.addWidget(self.cli_send_all_btn)
 
@@ -29109,6 +29026,7 @@ try:
             # ---- Root Layout ----
             root = QWidget()
             grid = QGridLayout(root)
+            grid.setContentsMargins(0, 0, 0, 0)
             grid.addLayout(top1,              0, 0, 1, 2)
             grid.addLayout(top2,              1, 0, 1, 2)
             grid.addLayout(top3,              2, 0, 1, 2)
@@ -29129,25 +29047,14 @@ try:
             self.ser_cmd_chk.setFont(font)
             top3.insertWidget(0, self.ser_cmd_chk)  # z. B. ganz links in der dritten Zeile
             
-            #dumlay = QVBoxLayout()
-            #dumlay.addWidget(root)
+            root_layout = QVBoxLayout()
+            root_layout.addWidget(self.server_lbl)
+            root_layout.addWidget(root)
             
-            #dummy = QWidget()
-            #dummy.setMinimumHeight(100)
-            #dumlay.addWidget(dummy)
-            
-            #self.scroll = QScrollArea()
-            #self.scroll.setContentsMargins(0,0,0,0)
-            #self.scroll.setWidgetResizable(True)
-            #self.scroll.setMinimumHeight(520)
-            #self.scroll.setMinimumWidth(500)
-            #self.scroll.setLayout(dumlay)
-            
-            vbox.addWidget(root)
-            scroll.setWidget(content)
-            
-            #self.setContentsMargins(0, 0, 0, 0)
-            #self.setLayout(page_layout)
+            self.setLayout(root_layout)
+
+            self.setLayout(root_layout)
+            self.layout().setContentsMargins(0, 0, 0, 0)
             
             self.update_ui()
 
