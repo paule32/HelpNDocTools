@@ -10909,14 +10909,22 @@ try:
     class CustomLineEdit(QLineEdit):
         def __init__(self, font, width=120, placeholdertext=""):
             super(CustomLineEdit, self).__init__()
-            self.setStyleSheet(_css("custom_line_edit"))
+            #self.setStyleSheet(_css("custom_line_edit"))
             #
             self.setPlaceholderText(placeholdertext)
-            self.setMaximumWidth(width)
+            self.setMinimumWidth(width)
             self.setMaximumWidth(width)
             #
             self.setFont(font)
-        
+            
+        def focusInEvent(self, e):
+            super().focusInEvent(e)
+            self.setStyleSheet("background: yellow;")
+            
+        def focusOutEvent(self, e):
+            super().focusOutEvent(e)
+            self.setStyleSheet("background: white;")
+    
     class myLineEdit(QLineEdit):
         def __init__(self, name="", name_object="", callback=None):
             super(myLineEdit, self).__init__()
@@ -21410,15 +21418,15 @@ try:
                 + "around the World.\n"
                 + "Used by tools like msgfmt - the Unix Tool for generationg .mo files.\n"))
             #
-            self.side_btn15 = myIconButton(self, 15, "Todo / Tasks", "Your todo's")
-            self.side_btn16 = myIconButton(self, 16, "Setup", "Setup your Project")
+            self.side_btn15 = myIconButton(self, 15, "Todo / Tasks", _str("Your todo's"))
+            self.side_btn16 = myIconButton(self, 16, "Setup", _str("Setup your Project"))
             self.side_btn17 = myIconButton(self, 17, "SSL Certs", "Setup SSL")
-            self.side_btn18 = myIconButton(self, 18, "GitHub.com", "Publish Project")
-            self.side_btn19 = myIconButton(self, 19, "Web Server", "Configure Web Server")
-            self.side_btn20 = myIconButton(self, 20, "MySQL", "Configure MySQL")
-            self.side_btn21 = myIconButton(self, 21, "Squid", "Configure Squid")
-            self.side_btn22 = myIconButton(self, 22, "Electro", "electronic simulations")
-            self.side_btn23 = myIconButton(self, 23, "C-64", "The most popular Commodore C-64\from int the 1980er")
+            self.side_btn18 = myIconButton(self, 18, "GitHub.com", _str("Publish Project"))
+            self.side_btn19 = myIconButton(self, 19, "Web Server", _str("Configure Web Server"))
+            self.side_btn20 = myIconButton(self, 20, "MySQL", _str("Configure MySQL"))
+            self.side_btn21 = myIconButton(self, 21, "Squid", _str("Configure Squid"))
+            self.side_btn22 = myIconButton(self, 22, "Electro", _str("electronic simulations"))
+            self.side_btn23 = myIconButton(self, 23, "C-64", _str("The most popular Commodore C-64\from int the 1980er"))
             self.side_btn24 = myIconButton(self, 24, _str("Settings")   , _str("Settings for this Application\n\n"))
             
             self.side_btn0.bordercolor = "lime"
@@ -21515,7 +21523,7 @@ try:
             #self.help_tabs.removeTab(4)
             #self.help_tabs.removeTab(3)
             #self.help_tabs.removeTab(2)
-            #self.help_tabs.removeTab(1)  äääääääääääääääääääääääääää
+            #self.help_tabs.removeTab(1)
             
             self.tab_html   = QWidget()
             
@@ -24813,6 +24821,7 @@ try:
             self.settings_tabs = ApplicationTabWidget([
                 _str("BIOS Settings"),
                 _str("Remote User"),
+                _str("Global Settings"),
                 _str("CHM Workshop")])
             #
             
@@ -24828,11 +24837,235 @@ try:
             self.tab1 = self.settings_tabs.getTab(0); self.tab1.setLayout(self.addSettingsBIOS())
             
             self.tab2 = self.settings_tabs.getTab(1); self.tab2.setLayout(self.addSettingsRemoteUser())
-            self.tab3 = self.settings_tabs.getTab(2); self.tab3.setLayout(self.addSettingsChmLayout())
+            self.tab3 = self.settings_tabs.getTab(2); self.tab3.setLayout(self.addSettingsGlobal())
+            self.tab4 = self.settings_tabs.getTab(3); self.tab4.setLayout(self.addSettingsChmLayout())
             
             self.main_layout.addWidget(self.settings_tabs)
             #self.settings_tabs_chm_widget.setLayout(vlay)
         
+        def addSettingsGlobal(self):
+            vlayout = QVBoxLayout()
+            
+            font_a  = QFont("Arial", 10)
+            font_b  = QFont("Consolas", 10)
+            font_b.setBold(True)
+            
+            prj_a   = _str("Project Directory")
+            prj_b   = f"{prj_a} for "
+            
+            self.lang_edits = [
+                "dBASE", "Pascal", "C", "Java", "LISP", "Locales"
+            ]
+            self.func_edits = [
+                [ self.set_edi_dbf_onpress, self.set_btn_dbf_onclick ],
+                [ self.set_edi_pas_onpress, self.set_btn_pas_onclick ],
+                [ self.set_edi_cpp_onpress, self.set_btn_cpp_onclick ],
+                [ self.set_edi_jav_onpress, self.set_btn_jav_onclick ],
+                [ self.set_edi_lsp_onpress, self.set_btn_lsp_onclick ],
+                [ self.set_edi_loc_onpress, self.set_btn_loc_onclick ],
+            ]
+            self.line_edits = []
+            
+            cfg = configparser.ConfigParser()
+            cfg.read(genv.v__app__config_ini, encoding="utf-8")
+                
+            if not cfg.has_section("setting_paths"):
+                cfg.add_section("setting_paths")
+                
+            n = 0
+            for edit in self.lang_edits:
+                lbl = QLabel(f"{edit} {prj_a}:")
+                lbl.setFont(font_a)
+                
+                edi = CustomLineEdit(font_b, 360, f"{prj_b} {edit}")
+                edi.setObjectName(f"settings_path_edit_{edit}")
+                edi.returnPressed.connect(self.func_edits[n][0])
+                
+                text = cfg.get(
+                    "setting_paths",
+                    f"settings_path_edit_{self.lang_edits[n]}",
+                    fallback="")
+                edi.setText(text)
+                self.line_edits.append(edi)
+                
+                btn = QPushButton("+")
+                btn.setMaximumWidth(38)
+                btn.clicked.connect(self.func_edits[n][1])
+                #
+                vbox = QVBoxLayout()
+                hbox = QHBoxLayout()
+                #
+                hbox.addWidget(edi, alignment=Qt.AlignLeft)
+                hbox.addWidget(btn, alignment=Qt.AlignLeft)
+                hbox.addStretch()
+                #
+                vbox.addWidget(lbl, alignment=Qt.AlignLeft)
+                vbox.addLayout(hbox)
+                vlayout.addLayout(vbox)
+                n = n + 1
+            
+            hbox = QHBoxLayout()
+            btn_apply = QPushButton(_str("Apply"))
+            btn_reset = QPushButton(_str("Reset All"))
+            
+            btn_apply.setMinimumWidth(74)
+            btn_apply.setMaximumWidth(74)
+            
+            btn_reset.setMinimumWidth(74)
+            btn_reset.setMaximumWidth(74)
+            
+            btn_apply.setFont(font_a)
+            btn_reset.setFont(font_a)
+            
+            btn_apply.clicked.connect(self.btn_settings_apply)
+            btn_reset.clicked.connect(self.btn_settings_reset)
+            
+            hbox.addWidget(btn_apply)
+            hbox.addWidget(btn_reset)
+            hbox.addStretch()
+            
+            vlayout.addLayout(hbox)
+            vlayout.addStretch()
+            
+            return vlayout
+        
+        def setChildFocus(self, num: int):
+            item = self.findChild(QLineEdit, f"settings_path_edit_{num}")
+            if item is not None:
+                item.setFocus()
+                
+        def setChildFolder(self, num: int):
+            dlg = QFileDialog(self,
+                _str("Select Project Directory"),
+                QDir.homePath())
+            dlg.setFileMode  (QFileDialog.Directory)
+            dlg.setOption    (QFileDialog.ShowDirsOnly, True)
+            dlg.setOption    (QFileDialog.DontUseNativeDialog, True)
+            dlg.setAcceptMode(QFileDialog.AcceptOpen)
+            
+            if dlg.exec_() == QDialog.Accepted:
+                name = dlg.selectedFiles()[0]
+                if not name:
+                    return
+                item = self.findChild(QLineEdit, f"settings_path_edit_{self.lang_edits[num]}")
+                if item is None:
+                    showError(""
+                    + _str("Error:") + "\n"
+                    + _str("can not find child: ")
+                    + self.lang_edits[num])
+                    return
+                text = item.text()
+                # check, if directory writeable
+                try:
+                    p = Path(name)
+                    if not p.exists():
+                        showError(_str("Directory not found."))
+                    t = name + "/temp.tmp"
+                    with open(t, "w") as f:
+                        f.write("\0")
+                        f.close()
+                    os.remove(t)
+                except FileNotFoundError as e:
+                    showError(f"{_str("A File operation Exception occured:")}\n{e}")
+                    item.setText(text)
+                    return
+                except PermissionError as e:
+                    showError(f"{_str("A File operation Exception occured (permission error):")}\n{e}")
+                    item.setText(text)
+                    return
+                except OSError as e:
+                    showError(f"{_str("A OS Error operation Exception occured:")}\n{e}")
+                    item.setText(text)
+                    return
+                except Exception as e:
+                    showError(f"{_str("A Exception occured:")}\n{e}")
+                    item.setText(text)
+                    return
+                
+                # all okay, set the path
+                if item is not None:
+                    item.setText(name)
+                    item.setFocus()
+                else:
+                    showError(_str("internal error - item not found"))
+                    
+        def set_edi_dbf_onpress(self): self.setChildFocus(1)
+        def set_edi_pas_onpress(self): self.setChildFocus(2)
+        def set_edi_cpp_onpress(self): self.setChildFocus(3)
+        def set_edi_jav_onpress(self): self.setChildFocus(4)
+        def set_edi_lsp_onpress(self): self.setChildFocus(5)
+        def set_edi_loc_onpress(self): self.setChildFocus(0)
+        
+        def btn_settings_apply(self):
+            have_errors = False
+            n = 0
+            for edit in self.lang_edits:
+                if not self.line_edits[n].text().strip():
+                    showInfo(_str(f"missing ({edit}) data."))
+                    have_errors = True
+                    break
+                if not Path(self.line_edits[n].text()).exists():
+                    showError(""
+                    + _str("Error:") + "\n"
+                    + _str("Directory for") + f" ({edit})"
+                    + _str("does not exists."))
+                    have_errors = True
+                    break
+                n = n + 1
+            if have_errors:
+                return
+            try:
+                cfg = configparser.ConfigParser()
+                cfg.read(genv.v__app__config_ini, encoding="utf-8")
+                
+                if not cfg.has_section("setting_paths"):
+                    cfg.add_section("setting_paths")
+                    
+                n = 0    
+                for edit in self.line_edits:
+                    cfg.set("setting_paths", edit.objectName(), edit.text())
+                    n = n + 1
+                    
+                with open(genv.v__app__config_ini, 'w', encoding="utf-8") as f:
+                    cfg.write(f)
+                showInfo(_str("config paths written."))
+                return
+            except configparser.NoSectionError as e:
+                showError(_str("Error:\nsomething went wrong during saving settings (no section)."))
+                return
+            except configparser.NoOptionError as e:
+                showError(_str("Error:\nsomething went wrong during saving settings (no option)."))
+                return
+            except configparser.DuplicateSectionError as e:
+                showError(_str((""
+                + "Error:\nsetting file logic error.\n"
+                + "You can try to fix this error by remove all multiple section's."
+                )))
+                return
+            except configparser.DuplicateOptionError as e:
+                showError(_str((""
+                + "Error:\nsetting file logic error.\n"
+                + "You can try to fix this error by remove all multiple option's."
+                )))
+                return
+            except Exception as e:
+                showError(""
+                + _str("Error: Exception") + "\n"
+                + f"{e}")
+                return
+        
+        def btn_settings_reset(self):
+            for edit in self.line_edits:
+                edit.setText("")
+            self.line_edits[0].setFocus()
+            
+        def set_btn_dbf_onclick(self): self.setChildFolder(0)
+        def set_btn_pas_onclick(self): self.setChildFolder(1)
+        def set_btn_cpp_onclick(self): self.setChildFolder(2)
+        def set_btn_jav_onclick(self): self.setChildFolder(3)
+        def set_btn_lsp_onclick(self): self.setChildFolder(4)
+        def set_btn_loc_onclick(self): self.setChildFolder(5)
+            
         def addSettingsRemoteUser(self):
             hlayout   = QHBoxLayout()
             font_1    = QFont("Arial", 11)
@@ -25657,15 +25890,27 @@ try:
             
             
             self.bios_color_buttons = []
-
+            
+            cfg = configparser.ConfigParser()
+            cfg.read(genv.v__app__config_ini, encoding="utf-8")
+            
+            sec1 = "setting_bios_vga_"
+            seca = sec1 + "color"
+            secb = sec1 + "console"
+            #
+            if not cfg.has_section(seca): cfg.add_section(seca)
+            if not cfg.has_section(secb): cfg.add_section(secb)
+                    
             for i, color in enumerate(DEFAULT_COLORS):
                 vlay = QVBoxLayout()
                 color_num = QLabel(str(i))
                 color_num.setFont(font)
                 
-                color_btn = BIOSColorButton(color, i)
-                color_btn.setFixedSize(30,30)
-                color_btn.clicked.connect(self.color_btn_clicked)
+                color_new = cfg.get(seca,
+                f"color_{i}",
+                fallback=color)
+                
+                color_btn = BIOSColorButton(str(color_new), i)
                 #
                 vlay.addWidget(color_num, alignment=Qt.AlignCenter)
                 vlay.addWidget(color_btn, alignment=Qt.AlignCenter)
@@ -25719,18 +25964,24 @@ try:
             
             console_default_values_hlayout = QHBoxLayout()
             console_default_values_vlayout_1 = QVBoxLayout()
-            console_default_values_label_1 = CustomLabel(font, _str("Default Columns:"), 100)
-            console_default_values_lspin_1 = CustomSpinBox(font, 1, 80, 80)
+            self.console_default_values_label_1 = CustomLabel(font, _str("Default Columns:"), 100)
+            self.console_default_values_lspin_1 = CustomSpinBox(font, 1, 80, 80)
             
             console_default_values_vlayout_2 = QVBoxLayout()
-            console_default_values_label_2 = CustomLabel(font, _str("Default Rows:"), 100)
-            console_default_values_lspin_2 = CustomSpinBox(font, 1, 25, 25)
+            self.console_default_values_label_2 = CustomLabel(font, _str("Default Rows:"), 100)
+            self.console_default_values_lspin_2 = CustomSpinBox(font, 1, 25, 25)
             
-            console_default_values_vlayout_1.addWidget(console_default_values_label_1)
-            console_default_values_vlayout_1.addWidget(console_default_values_lspin_1)
+            def_col = cfg.get("setting_bios_vga_console", "default_col", fallback="80")
+            def_row = cfg.get("setting_bios_vga_console", "default_row", fallback="25")
             #
-            console_default_values_vlayout_2.addWidget(console_default_values_label_2)
-            console_default_values_vlayout_2.addWidget(console_default_values_lspin_2)
+            self.console_default_values_label_1.setText(def_col)
+            self.console_default_values_label_2.setText(def_row)
+            
+            console_default_values_vlayout_1.addWidget(self.console_default_values_label_1)
+            console_default_values_vlayout_1.addWidget(self.console_default_values_lspin_1)
+            #
+            console_default_values_vlayout_2.addWidget(self.console_default_values_label_2)
+            console_default_values_vlayout_2.addWidget(self.console_default_values_lspin_2)
             
             console_default_values_hlayout.addLayout(console_default_values_vlayout_1)
             console_default_values_hlayout.addLayout(console_default_values_vlayout_2)
@@ -25766,8 +26017,8 @@ try:
             scroll_area.setWidget(scroll_content)
             bios_frame_layout.addWidget(scroll_area)
             ###
-            bios_default_btn_1 = CustomPushButton(font, _str("default")             , self.bios_btn_clicked)
-            bios_default_btn_2 = CustomPushButton(font, _str("Save Config Settings"), self.bios_btn_clicked)
+            bios_default_btn_1 = CustomPushButton(font, _str("default")             , self.bios_btn_def_clicked)
+            bios_default_btn_2 = CustomPushButton(font, _str("Save Config Settings"), self.bios_btn_sav_clicked)
             
             vlayout_bios_frame = QVBoxLayout()
             frame_list = [
@@ -25819,29 +26070,47 @@ try:
         def bios_btn_clicked_new(self):
             file_path = os.getcwd() + "/_internal/__cache__"
             self.bios_write_image(file_path)
+        
+        def bios_btn_def_clicked(self):
+            for i, color in enumerate(DEFAULT_COLORS):
+                btn = self.findChild(BIOSColorButton, f"color_{i}")
+                if btn is not None:
+                    btn.setStyleSheet(f"background-color: {color};")
+            return
+        
+        # ------------------------------------------------
+        # \brief save the color values for the console ...
+        # ------------------------------------------------
+        def bios_btn_sav_clicked(self):
+            cfg = configparser.ConfigParser()
+            cfg.read(genv.v__app__config_ini, encoding="utf-8")
             
+            sec1 = "setting_bios_vga_"
+            seca = sec1 + "color"
+            secb = sec1 + "console"
+            #
+            if not cfg.has_section(seca): cfg.add_section(seca)
+            if not cfg.has_section(secb): cfg.add_section(secb)
+            
+            for i in range(0,16):
+                btn = self.findChild(BIOSColorButton, f"color_{i}")
+                if btn is not None:
+                    cfg.set(seca,
+                    f"color_{i}",
+                    btn.palette().color(QPalette.Button).name())
+            
+            cfg.set(secb,"default_col", self.console_default_values_lspin_1.text())
+            cfg.set(secb,"default_row", self.console_default_values_lspin_2.text())
+            
+            with open(genv.v__app__config_ini, 'w', encoding="utf-8") as f:
+                cfg.write(f)
+            
+            showInfo("vga values written")
+
         def bios_btn_clicked(self):
             showInfo("button clicked")
             return
         
-        def color_btn_clicked(self):
-            i = -1
-            for btn in self.bios_color_buttons:
-                i = i+1
-                btn.setStyleSheet("QPushButton{background-color:" + str(DEFAULT_COLORS[i]) + ";border:0px;}")
-            i = -1
-            for btn in self.bios_color_buttons:
-                i = i+1
-                if btn == self.sender():
-                    btn.setStyleSheet("QPushButton{background-color:" + str(DEFAULT_COLORS[i]) + ";border:2px solid red;")
-                    
-            #genv.sender_object = self.sender()
-            #for i in range(1, 17):
-            #    btn = self.findChild(QPushButton, f"vga_color_btn{i}")
-            #    if btn:
-            #        btn.setStyleSheet("border: 1px solid black;")
-            #genv.sender_object.setStyleSheet("border: 3px solid red;")
-            
         def BIOS_list_item_clicked(self):
             QMessageBox.information(self, "Icon geklickt", "klicky")
         
@@ -26167,11 +26436,11 @@ try:
             
             self.countryList.itemDoubleClicked.connect(self.on_item_double_clicked)
             
-            for itemlistA in genv.v__app__cdn_flags:
-                if itemlistA[0] == "USA":
-                    for itemlistB in genv.v__app__cdn_flags:
-                        MyCountryProject(self, self.countryList, itemlistA, itemlistB)
-                    break
+            #for itemlistA in genv.v__app__cdn_flags:
+            #    if itemlistA[0] == "USA":
+            #        for itemlistB in genv.v__app__cdn_flags:
+            #            MyCountryProject(self, self.countryList, itemlistA, itemlistB)
+            #        break
 
             vlayout = QVBoxLayout()
             hlayout = QHBoxLayout()
@@ -26185,6 +26454,12 @@ try:
             groupvLayout     = QVBoxLayout()
             
             #
+            hbox = QHBoxLayout()
+            projects_listbox = QListWidget()
+            list_item = QListWidgetItem("sss")
+            projects_listbox.addItem(list_item)
+            hbox.addWidget(projects_listbox)
+            
             self.localeliste = [
                 [ QLabel(" Project-ID-Version:"),        QLineEdit(), self.e1_on_return_pressed, "1.0.0" ],
                 [ QLabel(" POT-Creation-Date:"),         QLineEdit(), self.e2_on_return_pressed, "2024-04-06 20:33+0200" ],
@@ -26195,20 +26470,25 @@ try:
                 [ QLabel(" Content-Type:"),              QLineEdit(), self.e7_on_return_pressed, "text/plain; charset=cp1252" ],
                 [ QLabel(" Content-Transfer-Encoding:"), QLineEdit(), self.e8_on_return_pressed, "8bit" ]
             ]
+            n = 1
             for item in self.localeliste:
                 item[0].setFont(font)
                 #
                 item[1].setPlaceholderText(item[3])
+                item[1].setMinimumWidth(300)
                 item[1].setFont(font2)
                 item[1].setStyleSheet(_(edit_css))
+                item[1].setObjectName(f"locales_editfield_{n}")
                 item[1].returnPressed.connect(item[2])
+                n = n + 1
                 #
                 groupvLayout.addWidget(item[0])
                 groupvLayout.addWidget(item[1])
             #
             groupvLayout.addStretch()
+            hbox.addLayout(groupvLayout)
             
-            container_widget.setLayout(groupvLayout)
+            container_widget.setLayout(hbox)
             scroll_area.setWidget(container_widget)
             
             group_layout = QVBoxLayout()
@@ -26218,59 +26498,6 @@ try:
             
             extensions = [".pro"]
             directory  = QDir.homePath() 
-            
-            self.modelLocales = QFileSystemModel()
-            self.modelLocales.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs | QDir.Files)
-            self.modelLocales.setRootPath(directory)
-            
-            self.proxyModelLocales = ExtensionFilterProxyModel(extensions)
-            self.proxyModelLocales.setSourceModel(self.modelLocales)
-            
-            # Create the drives tree
-            self.drives_treeLocales = QTreeWidget()
-            self.drives_treeLocales.setHeaderLabels([_str("Drive"), _str("Available Space"), _str("Total Size")])
-            self.drives_treeLocales.setMinimumHeight(120)
-            #self.drives_treeLocales.setMaximumWidth(380)
-            self.drives_treeLocales.header().setSectionResizeMode(QHeaderView.Interactive)
-            self.drives_treeLocales.itemClicked.connect(self.on_driveLocales_clicked)
-            self.drives_treeLocales.setStyleSheet("QHeaderView::section { background-color: lightgreen }")
-            
-            
-            self.treeLocales = QTreeView()
-            self.treeLocales.setModel(self.proxyModelLocales)
-            self.treeLocales.setRootIndex(self.proxyModelLocales.mapFromSource(self.modelLocales.index(directory)))
-            self.treeLocales.setMinimumHeight(200)
-            self.treeLocales.clicked.connect(self.on_treeLocales_double_clicked)
-            
-            
-            # Hide the "Size" and "Type" columns
-            self.treeLocales.setColumnHidden(1, True)  # Size
-            self.treeLocales.setColumnHidden(2, True)  # Type
-            
-            self.treeLocales.setColumnWidth(0, 250)
-            self.treeLocales.setAlternatingRowColors(True)
-            self.treeLocales.setSortingEnabled(True)
-            
-            self.treeLocales.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.treeLocales.customContextMenuRequested.connect(self.openContextMenuLocales)
-            
-            #projects = QListWidget
-            country_layout.addWidget(self.countryList)
-            country_layout.addWidget(self.drives_treeLocales)
-            country_layout.addWidget(self.treeLocales)
-            
-            container_widget0.setLayout(country_layout)
-            scroll_area0.setWidget(container_widget0)
-            
-            groupBox0 = QGroupBox("")
-            groupBox0.setMinimumWidth(360)
-            groupBox0_layout = QVBoxLayout()
-            groupBox0_layout.addWidget(scroll_area0)
-            
-            groupBox0.setLayout(groupBox0_layout)
-            
-            vlayout.addWidget(groupBox0)
-            #vlayout.addWidget(self.treeLocales)
             
             hlayout.addLayout(vlayout)
             hlayout.addWidget(groupBox)
@@ -26304,78 +26531,47 @@ try:
             
             self.locale_tabs_project_widget.setLayout(vlayout2)
             
-            self.load_drives()
             return
-        
-        def on_treeLocales_double_clicked(self, index):
-            indexes = self.treeLocales.selectedIndexes()
-            if indexes:
-                index = self.proxyModelLocales.mapToSource(indexes[0])
-                file_path = self.modelLocales.filePath(index)
-                file_full = file_path.replace("\\", "/")
-                
-                file_path, file_name = os.path.split(file_path)
-                
-                if os.path.isfile(file_full):
-                    if file_name.endswith(".pro"):
-                        with open(file_full, "rb") as file:
-                            header = file.read(3)
-                            if header == b"\x1f\x8b\x08":
-                                DebugPrint("file: " + file_name + " is packed.")
-                            else:
-                                DebugPrint("file: " + file_name + " is not packed.")
-                            file.close()
-                        #DebugPrint(self.localeliste[0][0].text())
-            return
-        
-        def load_drives(self):
-            drives = [drive for drive in QDir.drives()]
-            for drive in drives:
-                total_size, available_space = self.get_drive_info(drive.absolutePath())
-                item = QTreeWidgetItem([drive.absolutePath(), available_space, total_size])
-                self.drives_treeLocales.addTopLevelItem(item)
-        
-        def get_drive_info(self, drive):
-            try:
-                total, used, free = shutil.disk_usage(drive)
-                return self.format_size(total), self.format_size(free)
-            except Exception as e:
-                return "N/A", "N/A"
-        
-        def format_size(self, size):
-            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-                if size < 1024.0:
-                    return f"{size:.2f} {unit}"
-                size /= 1024.0
-        
-        def on_driveLocales_clicked(self, item):
-            drive_path = item.text(0)
-            self.treeLocales.setRootIndex(self.proxyModelLocales.mapFromSource(self.modelLocales.index(drive_path)))
-            return
-        
+            
         def e1_on_return_pressed(self):
-            self.e2Locales.setFocus()
+            item = self.findChild(QLineEdit, "locales_editfield_2")
+            if item is not None:
+                item.setFocus()
             return
         def e2_on_return_pressed(self):
-            self.e3Locales.setFocus()
+            item = self.findChild(QLineEdit, "locales_editfield_3")
+            if item is not None:
+                item.setFocus()
             return
         def e3_on_return_pressed(self):
-            self.e4Locales.setFocus()
+            item = self.findChild(QLineEdit, "locales_editfield_4")
+            if item is not None:
+                item.setFocus()
             return
         def e4_on_return_pressed(self):
-            self.e5Locales.setFocus()
+            item = self.findChild(QLineEdit, "locales_editfield_5")
+            if item is not None:
+                item.setFocus()
             return
         def e5_on_return_pressed(self):
-            self.e6Locales.setFocus()
+            item = self.findChild(QLineEdit, "locales_editfield_6")
+            if item is not None:
+                item.setFocus()
             return
         def e6_on_return_pressed(self):
-            self.e7Locales.setFocus()
+            item = self.findChild(QLineEdit, "locales_editfield_7")
+            if item is not None:
+                item.setFocus()
             return
         def e7_on_return_pressed(self):
-            self.e8Locales.setFocus()
+            item = self.findChild(QLineEdit, "locales_editfield_8")
+            if item is not None:
+                item.setFocus()
             return
         def e8_on_return_pressed(self):
-            self.e1Locales.setFocus()
+            item = self.findChild(QLineEdit, "locales_editfield_1")
+            if item is not None:
+                item.setFocus()
             return
             
         def openContextMenuLocales(self, position):
@@ -26790,8 +26986,9 @@ try:
     class BIOSColorButton(QPushButton):
         def __init__(self, color, index):
             super().__init__()
+            self.setObjectName(f"color_{index}")
             self.index = index
-            self.setFixedSize(60, 40)
+            self.setFixedSize(30,30)
             self.set_color(color)
         
         def set_color(self, color):
@@ -26800,11 +26997,27 @@ try:
             self.color = color
             self.setStyleSheet(f"background-color: {self.color.name()};")
         
-        def mouseDoubleClickEvent(self, event):
+        def mousePressEvent(self, event):
             if event.button() == Qt.LeftButton:
-                new_color = QColorDialog.getColor(self.color, self, "Farbe auswählen")
+                self.setStyleSheet(""
+                + "QColorDialog QPushButton,"
+                + "QDialogButtonBox QPushButton {background-color: palette(button)}")
+                new_color = QColorDialog.getColor(self.color, self, _str("Select Color"))
                 if new_color.isValid():
                     self.set_color(new_color)
+                    
+                    cfg = configparser.ConfigParser()
+                    cfg.read(genv.v__app__config_ini, encoding="utf-8")
+                        
+                    if not cfg.has_section("setting_bios_vga_color"):
+                        cfg.add_section("setting_bios_vga_color")
+                    
+                    cfg.set("setting_bios_vga_color", self.objectName(),
+                    new_color.name(QColor.NameFormat.HexArgb))
+                    
+                    with open(genv.v__app__config_ini, 'w', encoding="utf-8") as f:
+                        cfg.write(f)
+                    showInfo(_str("config color setting written."))
     
     # ------------------------------------------------------------------------
     # inform the user about the rules/license of this application script ...
@@ -28500,7 +28713,7 @@ try:
                 self.baud_combo.addItem(str(b))
             self.baud_combo.setCurrentText("9600")
 
-            self.open_btn = QPushButton("Öffnen")
+            self.open_btn = QPushButton(_str("Open"))
             self.open_btn.setFont(font)
             self.open_btn.clicked.connect(self.toggle_open)
             
@@ -28526,6 +28739,16 @@ try:
             self.num_edit = QLineEdit()
             self.num_edit.setFont(font)
             self.num_edit.setPlaceholderText("Nummer / Ziel (z. B. 5551234)")
+            
+            # --- Bridge-Hook Einstellungen ---
+            self.auto_hook_chk = QCheckBox("Nach erstem 'OK' automatisch zur Bridge verbinden")
+            self.auto_hook_chk.setChecked(True)
+            #
+            self.bridge_host_edit = QLineEdit("127.0.0.1")
+            self.bridge_port_spin = QSpinBox()
+            #
+            self.bridge_port_spin.setRange(1, 65535)
+            self.bridge_port_spin.setValue(5000)
             
             self.voice_chk = QCheckBox(_str("Voice-Dial (add Semicolon)"))
             self.voice_chk.setFont(font)
@@ -28568,6 +28791,11 @@ try:
             
             left.addWidget(dial_field_lbl)
             left.addWidget(self.num_edit)
+            #
+            left.addWidget(self.auto_hook_chk)
+            left.addWidget(self.bridge_host_edit)
+            left.addWidget(self.bridge_port_spin)
+            #
             left.addWidget(self.voice_chk)
             
             hl = QHBoxLayout()
@@ -28666,6 +28894,8 @@ try:
                     baud = int(self.baud_combo.currentText())
                 except ValueError:
                     baud = 9600
+                
+                self.serial.setPortName(port_name)
                 self.serial.setBaudRate(baud)
                 self.serial.setDataBits(QSerialPort.Data8)
                 self.serial.setParity(QSerialPort.NoParity)
@@ -28733,6 +28963,8 @@ try:
             n = self.serial.write(line)
             self.serial.flush()
             self.append_log(f">>> {cmd}\n")
+            if cmd == "ATD123":
+                self.open_bridge_console(True)
             if n <= 0:
                 self.append_log("[Warn] Nichts gesendet?\n")
 
@@ -28774,7 +29006,23 @@ try:
             self.cmd_edit.setEnabled(is_open)
             self.dtr_chk.setEnabled(True)
             self.rts_chk.setEnabled(True)
-            self.set_status("offen" if is_open else "geschlossen")
+            self.set_status(_str("open") if is_open else _str("closed"))
+        
+        # ---------- Bridge-Konsole ----------
+        def open_bridge_console(self, auto_connect=False):
+            host = self.bridge_host_edit.text().strip() or "127.0.0.1"
+            port = int(self.bridge_port_spin.value())
+            #if self.bridge_console is None:
+            self.bridge_console = BridgeConsole(self, host, port)
+            self.bridge_console.show()
+            self.bridge_console.raise_()
+            self.bridge_console.activateWindow()
+            # Host/Port in der Konsole auf aktuellen Wert bringen
+            self.bridge_console.host_edit.setText(host)
+            self.bridge_console.port_spin.setValue(port)
+            if auto_connect:
+                if self.bridge_console.sock.state() != QAbstractSocket.ConnectedState:
+                    self.bridge_console.toggle_connect()
     
     def make_scroll_area1() -> QScrollArea:
         content = QFrame()
@@ -28816,12 +29064,451 @@ try:
         sa.setWidgetResizable(True)   # Inhalt wächst mit
         sa.setWidget(content)
         return sa
+    
+    # ----------------------------------------------
+    # \brief SBS 2003 Logon-Dialog (Nachbau)
+    # ----------------------------------------------
+    class SbS2003Logon(QFrame):
+        accepted          = pyqtSignal(str, str, str)   # user, pwd, domain
+        cancelled         = pyqtSignal()
+        shutdownRequested = pyqtSignal()
+        
+        def __init__(self, parent=None):
+            super(SbS2003Logon, self).__init__(parent)
+            self.setWindowTitle("Log On to Windows")
+            self.setFrameShape (QFrame.Panel)
+            self.setFrameShadow(QFrame.Raised)
+            self.setObjectName("sbs2003Panel")
+            self.setFixedSize(460, 280)
+            #
+            self._drag_active = False
+            self._drag_offset = QPoint()
+            #
+            self._apply_classic_palette()
+            self._build_ui()
+            self._wire_events()
+            #
+            self.move(20, 20)
+            
+        # ---------- Dragging nur innerhalb des übergeordneten QFrame ----------
+        def mousePressEvent(self, e: QMouseEvent):
+            if e.button() == Qt.LeftButton:
+                self._drag_active = True
+                self._drag_offset = e.pos()
+                self.raise_()
+                e.accept()
+            else:
+                super().mousePressEvent(e)
+                
+        def mouseMoveEvent(self, e: QMouseEvent):
+            if self._drag_active and e.buttons() & Qt.LeftButton:
+                parent = self.parentWidget()
+                if not parent:
+                    return
+                # In Elternbereich einklemmen
+                #new_pos = self.mapToParent(e.pos() - self._drag_offset)
+                #max_x = parent.width() - self.width()
+                #max_y = parent.height() - self.height()
+                #new_x = max(0, min(new_pos.x(), max_x))
+                #new_y = max(0, min(new_pos.y(), max_y))
+                #self.move(new_x, new_y)
+                #e.accept()
+                
+                # Zielposition relativ zum Parent – ohne Begrenzung
+                new_pos = self.mapToParent(e.pos() - self._drag_offset)
+                self.move(new_pos)
+                e.accept()
+            else:
+                super().mouseMoveEvent(e)
+        
+        def mouseReleaseEvent(self, e: QMouseEvent):
+            if e.button() == Qt.LeftButton:
+                self._drag_active = False
+                # optionaler „Sicherungs“-Clamp nur beim Loslassen:
+                keep = 40  # mindestens 40px sichtbar lassen
+                parent = self.parentWidget()
+                if parent:
+                    x = max(-self.width () + keep, min(self.x(), parent.width () - keep))
+                    y = max(-self.height() + keep, min(self.y(), parent.height() - keep))
+                    self.move(x, y)
+                e.accept()
+            else:
+                super().mouseReleaseEvent(e)
+        
+        # ---------- UI ----------
+        def _build_ui(self):
+            # Gesamtlayout
+            root = QVBoxLayout(self)
+            root.setContentsMargins(10, 10, 10, 10)
+            root.setSpacing(8)
+            
+            # Header: Schlüssel-Icon + Titel
+            header = QHBoxLayout()
+            icon_lbl = QLabel()
+            icon = QIcon.fromTheme("dialog-password")
+            if icon.isNull():
+                # robuster Fallback, existiert in allen Styles
+                icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
+            icon_lbl.setPixmap(icon.pixmap(32, 32))
+            header.addWidget(icon_lbl, 0, Qt.AlignTop)
+            
+            title_lbl = QLabel("Log On to Windows")
+            title_lbl.setFont(self._font(bold=True, pt=11))
+            header.addWidget(title_lbl, 1, Qt.AlignVCenter)
+            header.addStretch()
+            root.addLayout(header)
+            
+            font = QFont("Arial", 10)
+            font.setBold(True)
+            
+            # Trennlinie
+            line = QFrame()
+            line.setFrameShape (QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            root.addWidget(line)
+            
+            # Felder – in einer klassischen Panel-Group
+            panel = QFrame()
+            panel.setFrameShape (QFrame.Panel)
+            panel.setFrameShadow(QFrame.Sunken)
+            panel_lyt = QGridLayout(panel)
+            panel_lyt.setContentsMargins(12, 12, 12, 12)
+            panel_lyt.setHorizontalSpacing(10)
+            panel_lyt.setVerticalSpacing(8)
+            
+            # Username
+            self.user_edit = QLineEdit()
+            self.user_edit.setPlaceholderText("User name")
+            self.user_edit.setMinimumWidth(260)
+            self.user_edit.setFont(font)
+            
+            panel_lyt.addWidget(self._label("User name:"), 0, 0)
+            panel_lyt.addWidget(self.user_edit, 0, 1, 1, 2)
+            
+            # Password
+            self.pass_edit = QLineEdit()
+            self.pass_edit.setEchoMode(QLineEdit.Password)
+            self.pass_edit.setFont(font)
+            
+            panel_lyt.addWidget(self._label("Password:"), 1, 0)
+            panel_lyt.addWidget(self.pass_edit, 1, 1, 1, 2)
+            
+            # Domain (per Options >> ein-/ausblendbar)
+            self.domain_label = self._label("Log on to:")
+            self.domain_combo = QComboBox()
+            self.domain_combo.setEditable(True)
+            self.domain_combo.addItems(["MYDOMAIN", "THIS-COMPUTER"])
+            
+            panel_lyt.addWidget(self.domain_label, 2, 0)
+            panel_lyt.addWidget(self.domain_combo, 2, 1, 1, 2)
+            
+            root.addWidget(panel)
+            
+            # Status/Hint-Zeile (klein)
+            self.hint_lbl = QLabel(
+                "Type your user name and password, then click OK."
+            )
+            self.hint_lbl.setFont(font)
+            root.addWidget(self.hint_lbl)
+            
+            # Buttons (rechts unten)
+            btn_row = QHBoxLayout()
+            self.options_btn  = QPushButton("Options >>")
+            self.shutdown_btn = QPushButton("Shut Down...")
+            btn_row.addWidget(self.options_btn)
+            btn_row.addStretch()
+            self.ok_btn = QPushButton("OK")
+            self.cancel_btn = QPushButton("Cancel")
+            btn_row.addWidget(self.shutdown_btn)
+            btn_row.addWidget(self.ok_btn)
+            btn_row.addWidget(self.cancel_btn)
+            root.addLayout(btn_row)
+            
+            # Anfangszustand: Domain-Zeile eingeklappt (wie im Original)
+            self._set_options_visible(False)
+            
+            # Default-Button/Focus
+            self.ok_btn.setDefault(True)
+            self.user_edit.setFocus()
+        
+        # ---------- Styling ----------
+        def _apply_classic_palette(self):
+            # Klassisches Win2000/2003-Grau
+            base_gray  = QColor(192, 192, 192)  # #C0C0C0
+            mid_gray   = QColor(234, 224, 234)
+            text_black = QtGui.QColor(0, 0, 0)
+            
+            pal = self.palette()
+            pal.setColor(QPalette.Window, base_gray)
+            pal.setColor(QPalette.Base, QColor(255, 255, 255))
+            pal.setColor(QPalette.AlternateBase, mid_gray)
+            pal.setColor(QPalette.Button, mid_gray)
+            pal.setColor(QPalette.ButtonText, text_black)
+            pal.setColor(QPalette.WindowText, text_black)
+            pal.setColor(QPalette.Text, text_black)
+            pal.setColor(QPalette.Highlight, QColor(10, 36, 106))  # klassisch blau
+            pal.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
+            self.setPalette(pal)
+            
+            # Globaler Font – Tahoma 8pt (klassisch)
+            QApplication.instance().setFont(self._font(pt=8))
+            
+            # Klassische 3D-Kanten via StyleSheet dezent unterstützen
+            self.setStyleSheet("""
+                #sbs2003Panel {
+                    background: rgb(192,192,192);
+                    border: 2px groove rgb(160,160,160);
+                    border-radius: 2px;
+                }
+                #sbs2003Panel QLabel { background: transparent; }
+                #sbs2003Panel QPushButton {
+                    min-width: 80px;
+                    background-color: rgb(230,220,210)
+                }
+                /* Innere Group-Fläche etwas heller (#E0E0E0) */
+                #innerGroup {
+                    background: rgb(224,224,224);
+                    border: 2px groove rgb(160,160,160);
+                }
+
+                QLineEdit, QComboBox {
+                    background: rgb(255,255,255);
+                    padding: 2px;
+                }
+            """)
+        
+        def _font(self, bold=False, pt=9):
+            f = QFont("Tahoma", pt)
+            f.setBold(bold)
+            return f
+        
+        def _label(self, text):
+            lbl = QLabel(text)
+            lbl.setFont(QFont("Arial", 10))
+            return lbl
+        
+        def _set_options_visible(self, visible: bool):
+            self.domain_label.setVisible(visible)
+            self.domain_combo.setVisible(visible)
+            self.options_btn.setText("Options <<" if visible else "Options >>")
+
+            # Dialoghöhe anpassen, damit es „echt“ wirkt
+            self.setFixedHeight(320 if visible else 280)
+        
+        # ---------- Verhalten ----------
+        def _wire_events(self):
+            self.cancel_btn.clicked.connect  (self._on_cancel)
+            self.ok_btn.clicked.connect      (self._on_ok)
+            self.shutdown_btn.clicked.connect(self._on_shutdown)
+            
+            # Enter/Escape wie im Original
+            self.user_edit.returnPressed.connect(self.ok_btn.click)
+            self.pass_edit.returnPressed.connect(self.ok_btn.click)
+        
+        def _toggle_options(self):
+            vis = not self.domain_combo.isVisible()
+            self._set_options_visible(vis)
+            
+        def _on_cancel(self):
+            self.cancelled.emit()
+            self.hide()
+            
+        def _on_ok(self):
+            # Hier würdest du echte Authentifizierung einbauen.
+            # Für die Demo zeigen wir nur die gesammelten Werte.
+            user = self.user_edit.text().strip()
+            pwd = self.pass_edit.text()
+            domain = self.domain_combo.currentText().strip() if self.domain_combo.isVisible() else "(default)"
+            if not user or not pwd:
+                QMessageBox.warning(
+                    self, "Logon Message",
+                    "Make sure your User name and Password are correct."
+                )
+                return
+            QMessageBox.information(
+                self, "Logon Message",
+                f"User: {user}\nDomain: {domain}\n(Password length: {len(pwd)})"
+            )
+            self.accepted.emit(user, pwd, domain)
+            self.hide()
+        
+        def _on_shutdown(self):
+            self.shutdownRequested.emit()
+            
+            choice = QMessageBox.question(
+                self, "Shutdown Windows",
+                "Do you want to shut down this computer?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if choice == QMessageBox.Yes:
+                # Demo: Nur Hinweis. (Kein echter Shutdown.)
+                QMessageBox.information(self,
+                "Shutdown",
+                "Shutting down (simuliert).")
+    
+    # -------------------------------------------------------------------
+    # Kleines TCP-Client-Konsolenfenster zur Bridge (lesen/schreiben).
+    # -------------------------------------------------------------------
+    class BridgeConsole(QDialog):
+        def __init__(self, parent=None, host="127.0.0.1", port=5000):
+            super().__init__(parent)
+            self.setWindowTitle(_str("TCP-Bridge Console"))
+            self.resize(720, 150)
+            
+            self.desktop = QFrame()
+            self.desktop.setFrameShape (QFrame.Panel )
+            self.desktop.setFrameShadow(QFrame.Sunken)
+            self.desktop.setStyleSheet("background-color: rgb(128,128,128);")
+            #
+            self.desktop.setMinimumWidth (800)
+            self.desktop.setMaximumWidth (800)
+            #
+            self.desktop.setMinimumHeight(2)
+            self.desktop.setMaximumHeight(2)
+            #
+            self.desktop.setEnabled(False)
+            self.desktop.setVisible(False)
+            
+            # UI
+            self.host_edit = QLineEdit(host)
+            self.port_spin = QSpinBox()
+            self.port_spin.setRange(1, 65535)
+            self.port_spin.setValue(int(port))
+            
+            self.connect_btn = QPushButton(_str("Connect"))
+            self.connect_btn.clicked.connect(self.toggle_connect)
+            
+            top = QHBoxLayout()
+            top.addWidget(QLabel("Host:"))
+            top.addWidget(self.host_edit, 1)
+            top.addWidget(QLabel("Port:"))
+            top.addWidget(self.port_spin)
+            top.addWidget(self.connect_btn)
+            top.addStretch()
+            
+            self.view = QPlainTextEdit()
+            self.view.setReadOnly(True)
+            #
+            self.view.setMinimumHeight(84)
+            self.view.setMaximumHeight(84)
+            
+            self.input = QLineEdit()
+            self.input.setPlaceholderText("Send Text (add \\r\\n for ENTER)")
+            self.input.setEnabled(False)
+            self.input.returnPressed.connect(self.send_line)
+            
+            self.send_btn = QPushButton(_str("Send"))
+            self.send_btn.setEnabled(False)
+            self.send_btn.clicked.connect(self.send_line)
+            
+            bottom = QHBoxLayout()
+            bottom.addWidget(self.input, 1)
+            bottom.addWidget(self.send_btn)
+            
+            self.root = QVBoxLayout(self)
+            self.root.addLayout(top)
+            self.root.addWidget(self.view, 1)
+            self.root.addWidget(self.desktop, 1)
+            self.root.addLayout(bottom)
+            self.root.addStretch()
+            
+            self.sock = QTcpSocket(self)
+            self.sock.readyRead.connect(self.on_ready_read)
+            self.sock.errorOccurred.connect(self.on_error)
+            self.sock.connected.connect   (lambda s=self.sock: self.on_sock_connected(s))
+            self.sock.disconnected.connect(lambda s=self.sock: self.on_sock_disconnected(s))
+            
+        def on_sock_connected(self, sock: QTcpSocket):
+            self.desktop.setMinimumHeight(600)
+            self.desktop.setMaximumHeight(600)
+            #
+            self.send_btn.setEnabled(True)
+            self.input   .setEnabled(True)
+            #
+            self.log(_str("[TCP] connected."))
+            #
+            self.logon = SbS2003Logon(self.desktop)
+            self.logon.accepted.connect(lambda u,p,d: print("OK:", u, d))
+            self.logon.cancelled.connect(lambda: print("Abgebrochen"))
+            self.logon.shutdownRequested.connect(lambda: print("Shutdown…"))
+            self.logon.show()
+        
+        def on_sock_disconnected(self, sock: QTcpSocket):
+            self.desktop.setMinimumHeight(2)
+            self.desktop.setMaximumHeight(2)
+            #
+            self.send_btn.setEnabled(False)
+            self.input   .setEnabled(False)
+            #
+            self.log(_str("[TCP] disconnected."))
+            self.root.setSizeConstraint(QLayout.SetMinimumSize)
+            
+        def log(self, msg: str):
+            self.view.moveCursor(self.view.textCursor().End)
+            self.view.insertPlainText(msg + "\n")
+            self.view.moveCursor(self.view.textCursor().End)
+        
+        def toggle_connect(self):
+            if self.sock.state() == QAbstractSocket.ConnectedState:
+                self.sock.close()
+                self.connect_btn.setText(_str("Connect"))
+                return
+            #
+            host = self.host_edit.text().strip() or "127.0.0.1"
+            port = int(self.port_spin.value())
+            #
+            self.log(f"[TCP] Verbinde zu {host}:{port} …")
+            self.sock.connectToHost(host, port)
+            self.connect_btn.setText(_("Close Connection"))
+            #
+            self.desktop.setVisible(True)
+            self.desktop.setEnabled(True)
+        
+        def on_ready_read(self):
+            self.desktop.setMinimumHeight(600)
+            self.desktop.setMaximumHeight(600)
+            #
+            self.send_btn.setEnabled(True)
+            self.input   .setEnabled(True)
+            #
+            data = bytes(self.sock.readAll())
+            # Zeige als Textvorschau (CR/LF sichtbar)
+            text = data.decode("utf-8", errors="replace").replace("\r", "\\r").replace("\n", "\\n\n")
+            if text == "##win320x200":
+                showInfo("window 320 x 200")
+            self.log(text)
+        
+        def on_error(self, _err):
+            self.log(f"[TCP][Error] {self.sock.errorString()}")
+            self.connect_btn.setText(_str("Connect"))
+            #
+            self.desktop.setMinimumHeight(2)
+            self.desktop.setMaximumHeight(2)
+            #
+            self.desktop.setEnabled(False)
+            self.desktop.setVisible(False)
+            #
+            self.send_btn.setEnabled(False)
+            self.input   .setEnabled(False)
+        
+        def send_line(self):
+            if self.sock.state() != QAbstractSocket.ConnectedState:
+                self.log(_str("[TCP] not connected."))
+                return
+            line = self.input.text()
+            if not line:
+                return
+            payload = (line + "\r\n").encode("utf-8")
+            self.sock.write(payload)
+            self.sock.flush()
+            self.log(f">>> {line}")
+            self.input.clear()
         
     class TcpSerialBridgeCLIPAndDialer(QWidget):
         def __init__(self,parent=None):
             super(TcpSerialBridgeCLIPAndDialer, self).__init__(parent)
             self.setMinimumWidth(1300)
-            self.setMinimumHeight(500)
+            self.setMinimumHeight(720)
             
             tab1_layout = QVBoxLayout(self)
             
@@ -28856,7 +29543,7 @@ try:
             super(TcpSerialBridgeCLIP, self).__init__(parent)
             #self.setWindowTitle("TCP <-> Serial Bridge (IP-Auswahl & Caller-ID)")
             #self.resize(560, 680)
-            self.setMinimumHeight(600)
+            self.setMinimumHeight(570)
             self.setMinimumWidth(570)
             
             content = QWidget(self)
@@ -28911,26 +29598,26 @@ try:
             self.clip_alt_chk = QCheckBox(_str("Alternative (AT#CID=1) extra"))
             self.clip_alt_chk.setFont(font)
             self.clip_alt_chk.setChecked(False)
-
+            
             self.bind_combo = QComboBox()
             self.bind_combo.setFont(font)
             self.populate_bind_addresses()
-
+            
             self.listen_port = QSpinBox()
             self.listen_port.setFont(font)
             self.listen_port.setRange(1, 65535)
             self.listen_port.setValue(5000)
-
+            
             self.listen_btn = QPushButton(_str("Listen TCP"))
             self.listen_btn.setMaximumWidth(120)
             self.listen_btn.setMinimumHeight(21)
             self.listen_btn.setFont(font)
             self.listen_btn.clicked.connect(self.toggle_listen)
-
+            
             self.allow_multi_chk = QCheckBox(_str("Multiple TCP-Clients"))
             self.allow_multi_chk.setFont(font)
             self.allow_multi_chk.setChecked(False)
-
+            
             self.status_lbl_1 = QLabel(_str("Status: Serial closed"))
             self.status_lbl_2 = QLabel(_str("TCP not running"))
             self.status_lbl_3 = QLabel(_str("Clients:") + " 0")
@@ -28942,7 +29629,7 @@ try:
             self.status_lbl_1.setStyleSheet("font-weight: 600;")
             self.status_lbl_2.setStyleSheet("font-weight: 600;")
             self.status_lbl_3.setStyleSheet("font-weight: 600;")
-
+            
             # Layout Top
             top1 = QHBoxLayout()
             top1.setContentsMargins(0, 0, 0, 0)
@@ -28952,7 +29639,7 @@ try:
             top1.addWidget(self.baud_combo)
             top1.addWidget(self.open_btn)
             top1.addStretch(1)
-
+            
             top2 = QHBoxLayout()
             top2.setContentsMargins(0, 0, 0, 0)
             top2.addWidget(QLabel("Bind-IP:"))
@@ -28960,7 +29647,7 @@ try:
             top2.addWidget(QLabel("TCP-Port:"))
             top2.addWidget(self.listen_port)
             top2.addStretch(1)
-
+            
             top3 = QVBoxLayout()
             top3.setContentsMargins(0, 0, 0, 0)
             top3.addWidget(self.listen_btn)
@@ -28971,7 +29658,8 @@ try:
             top3.addWidget(self.status_lbl_1)
             top3.addWidget(self.status_lbl_2)
             top3.addWidget(self.status_lbl_3)
-
+            top3.addStretch(1)
+            
             # ---- Caller-ID Anzeige ----
             cid_group = QGroupBox("Caller-ID")
             cid_group.setFont(font)
@@ -28989,16 +29677,19 @@ try:
             cid_info.addWidget(self.cid_number_lbl)
             cid_info.addWidget(self.cid_name_lbl)
             cid_info.addWidget(self.cid_time_lbl)
+            cid_info.addStretch()
             cid_group.setLayout(cid_info)
-
+            
             self.cid_history = QListWidget()
             self.cid_history.setFont(font)
+            self.cid_history.setMaximumHeight(100)
             self.cid_history.setSelectionMode(self.cid_history.NoSelection)
-
+            
             self.clients_list = QListWidget()
             self.clients_list.setFont(font)
+            self.clients_list.setMaximumHeight(100)
             self.clients_list.setSelectionMode(self.clients_list.SingleSelection)
-
+            
             self.cli_send_edit = QLineEdit()
             self.cli_send_edit.setFont(QFont("Consolas", 10))
             self.cli_send_edit.setPlaceholderText(_str("Message to Client(s) - press Enter to send"))
@@ -29008,31 +29699,32 @@ try:
             
             self.cli_send_all_btn = QPushButton(_str("Send to All"))
             self.cli_send_all_btn.setFont(font)
-
+            
             hl_cli = QHBoxLayout()
             hl_cli.setContentsMargins(0, 0, 0, 0)
             hl_cli.addWidget(self.cli_send_btn)
             hl_cli.addWidget(self.cli_send_all_btn)
-
+            
             self.cli_send_edit.returnPressed.connect(self._ui_send_to_selected)
             self.cli_send_btn.clicked.connect(self._ui_send_to_selected)
             self.cli_send_all_btn.clicked.connect(self._ui_send_to_all)
-
+            
             # ---- Log ----
             self.log = QPlainTextEdit()
             self.log.setReadOnly(True)
+            self.log.setMaximumHeight(110)
             self.log.setPlaceholderText(_str("Loggin-Output"))
-
+            
             # ---- Root Layout ----
             root = QWidget()
             grid = QGridLayout(root)
             grid.setContentsMargins(0, 0, 0, 0)
-            grid.addLayout(top1,              0, 0, 1, 2)
-            grid.addLayout(top2,              1, 0, 1, 2)
-            grid.addLayout(top3,              2, 0, 1, 2)
-            grid.addWidget(cid_group,         3, 0, 1, 1)
-            grid.addWidget(self.cid_history,  3, 1, 1, 1)
-            grid.addWidget(self.log,          4, 0, 1, 2)
+            grid.addLayout(top1,               0, 0, 1, 2)
+            grid.addLayout(top2,               1, 0, 1, 2)
+            grid.addLayout(top3,               2, 0, 1, 2)
+            grid.addWidget(cid_group,          3, 0, 1, 1)
+            grid.addWidget(self.cid_history,   3, 1, 1, 1)
+            grid.addWidget(self.log,           4, 0, 1, 2)
             grid.setRowStretch(4, 1)
             
             grid.addWidget(self.clients_list,  3, 0, 1, 1)       # links
@@ -29050,9 +29742,10 @@ try:
             root_layout = QVBoxLayout()
             root_layout.addWidget(self.server_lbl)
             root_layout.addWidget(root)
+            root_layout.addStretch()
             
             self.setLayout(root_layout)
-
+            
             self.setLayout(root_layout)
             self.layout().setContentsMargins(0, 0, 0, 0)
             
@@ -29147,14 +29840,14 @@ try:
                 baud = int(self.baud_combo.currentText())
             except ValueError:
                 baud = 115200
-
+            
             self.serial.setPortName(port_name)
             self.serial.setBaudRate(baud)
             self.serial.setDataBits(QSerialPort.Data8)
             self.serial.setParity(QSerialPort.NoParity)
             self.serial.setStopBits(QSerialPort.OneStop)
             self.serial.setFlowControl(QSerialPort.NoFlowControl)
-
+            
             if not self.serial.open(QIODevice.ReadWrite):
                 err = self.serial.error()
                 err_str = self.serial.errorString()
@@ -29162,9 +29855,9 @@ try:
                 f"could not open: {port_name}.\n\nError Code: {int(err)}\n{err_str}\n\n")
                 self.log_msg(f"[SER][OpenError] {port_name}: code={int(err)} msg='{err_str}'")
                 return
-
+            
             self.log_msg(f"[SER] Opened: {port_name} @ {baud}.")
-
+            
             # CLIP-Setup leicht verzögert (manche Modems mögen eine kurze Pause)
             def _send_clip():
                 if not self.serial.isOpen():
@@ -29175,7 +29868,7 @@ try:
                 if self.clip_alt_chk.isChecked():
                     self._send_serial(b"AT#CID=1\r")
                     self.log_msg("[SER] -> AT#CID=1")
-
+            
             QTimer.singleShot(1000, _send_clip)
             self.update_ui()
 
@@ -29183,7 +29876,7 @@ try:
             if self.serial.isOpen():
                 self.serial.write(data)
                 self.serial.flush()
-
+        
         def on_serial_error(self, err):
             if err == QSerialPort.NoError:
                 return
@@ -29196,19 +29889,19 @@ try:
             if not self.serial.isOpen():
                 return
             data = bytes(self.serial.readAll())
-
+            
             # Broadcast an TCP-Clients
             for sock in list(self.clients):
                 if sock.state() == sock.ConnectedState:
                     sock.write(data)
                     sock.flush()
-
+            
             # Text-Puffer zum Parsen (Caller-ID etc.)
             # Modem-Antworten sind typ. ASCII mit CR/LF
             text = data.decode("utf-8", errors="replace")
             self.line_accu += text
             self._parse_lines()
-
+            
             # Log Preview
             preview = text[:64].replace("\r", "\\r").replace("\n", "\\n")
             more = "…" if len(text) > 64 else ""
@@ -29219,7 +29912,7 @@ try:
             if not parts:
                 return
             cmd = parts[0].upper()
-
+            
             def write_back(msg: str):
                 self._send_serial((msg + "\r\n").encode("utf-8"))
 
@@ -29232,7 +29925,7 @@ try:
                         s.flush()
                 self.log_msg(f"[SER-CMD] BCAST {len(payload)} B -> {count} B gesendet")
                 write_back(f"OK BCAST {len(payload)}B")
-
+            
             elif cmd == "TO" and len(parts) >= 3:
                 try:
                     idx = int(parts[1])
@@ -29247,7 +29940,7 @@ try:
                     write_back(f"OK TO {idx} {n}B")
                 else:
                     write_back(f"ERR TO {idx} not connected")
-
+            
             elif cmd == "HEX" and len(parts) >= 3:
                 # ##HEX <idx> <hexstring>
                 idx = int(parts[1]) if parts[1].isdigit() else -1
@@ -29263,7 +29956,7 @@ try:
                     write_back(f"OK HEX {idx} {n}B")
                 else:
                     write_back(f"ERR HEX {idx} not connected")
-
+            
             elif cmd == "KICK" and len(parts) >= 2:
                 idx = int(parts[1]) if parts[1].isdigit() else -1
                 if 0 <= idx < len(self.clients):
@@ -29276,14 +29969,14 @@ try:
                         write_back(f"ERR KICK {idx} {e}")
                 else:
                     write_back(f"ERR KICK {idx} out of range")
-
+            
             elif cmd == "LIST":
                 for i, s in enumerate(self.clients):
                     state = "up" if s.state() == s.ConnectedState else "down"
                     peer = f"{s.peerAddress().toString()}:{s.peerPort()}"
                     write_back(f"CLIENT {i} {state} {peer}")
                 write_back("OK LIST")
-
+            
             else:
                 write_back("ERR unknown cmd")
 
@@ -29297,24 +29990,24 @@ try:
             else:
                 lines, rest = parts[:-1], parts[-1]
             self.line_accu = rest
-
+            
             for raw in lines:
                 line = raw.strip()
                 if not line:
                     continue
                 U = line.upper()
-
+                
                 # Statusindikationen (optional)
                 if U == "RING":
                     # Nächster Caller kann kommen
                     self._maybe_append_history_if_new_session()
                     continue
-
+                
                 # --- Server-Kommandos vom COM ---
                 if self.ser_cmd_chk.isChecked() and line.startswith("##"):
                     self._handle_serial_command(line[2:].strip())
                     continue
-                            
+                
                 # +CLIP: "49123...",145,"",0,"",0
                 m = re.match(r'^\+CLIP:\s*"([^"]+)"(.*)$', line, flags=re.IGNORECASE)
                 if m:
@@ -29322,7 +30015,7 @@ try:
                     name = self._extract_name_from_clip_tail(m.group(2))
                     self._set_caller(number, name, datetime.now())
                     continue
-
+                
                 # Bellcore/ETSI Key-Value
                 m = re.match(r'^\s*(DATE)\s*=\s*(\d+)\s*$', line, flags=re.IGNORECASE)
                 if m:
@@ -29345,7 +30038,7 @@ try:
                     ts = self._compose_dt_from_pending()
                     self._set_caller(self.last_number or "", name, ts)
                     continue
-
+                
                 # Manche Modems: "CALLER NUMBER: ..." / "CALLER NAME: ..."
                 m = re.match(r'^\s*CALLER\s+NUMBER\s*:\s*(.+)\s*$', line, flags=re.IGNORECASE)
                 if m:
@@ -29355,7 +30048,7 @@ try:
                 if m:
                     self._set_caller(self.last_number or "", m.group(1).strip(), datetime.now())
                     continue
-
+                
                 # Sonstige Zeilen ignorieren
 
         def _extract_name_from_clip_tail(self, tail: str) -> str:
@@ -29416,7 +30109,16 @@ try:
                 if s.state() == s.ConnectedState:
                     peer = f"{s.peerAddress().toString()}:{s.peerPort()}"
                     self.clients_list.addItem(f"#{i}  {peer}")
-
+        
+        def _dedup_clients_list(self):
+            seen = set()
+            for i in range(self.clients_list.count() - 1, -1, -1):  # rückwärts löschen
+                txt = self.clients_list.item(i).text()
+                if txt in seen:
+                    self.clients_list.takeItem(i)
+                else:
+                    seen.add(txt)
+                    
         def _ui_send_to_selected(self):
             text = self.cli_send_edit.text()
             if not text:
@@ -29429,7 +30131,7 @@ try:
             else:
                 self.log_msg("[UI] Kein Client ausgewählt/verbunden.")
             self.cli_send_edit.clear()
-
+        
         def _ui_send_to_all(self):
             text = self.cli_send_edit.text()
             if not text:
@@ -29441,25 +30143,27 @@ try:
                     s.flush()
             self.log_msg(f"[UI→TCP all] {total} B")
             self.cli_send_edit.clear()
-
+        
         # ---------- TCP ----------
         def toggle_listen(self):
             if self.server.isListening():
                 self._stop_listening()
                 return
-
+        
             ip = self.bind_combo.currentData()
             port = int(self.listen_port.value())
             addr = QHostAddress(ip) if ip not in ("0.0.0.0", "127.0.0.1") else (
                 QHostAddress.AnyIPv4 if ip == "0.0.0.0" else QHostAddress.LocalHost)
             if not self.server.listen(addr, port):
-                QMessageBox.critical(self, "TCP-Fehler",
-                                     f"Konnte {ip}:{port} nicht öffnen: {self.server.errorString()}")
+                QMessageBox.critical(
+                    self, _str("TCP-Error"),
+                    f"Konnte {ip}:{port} nicht öffnen: {self.server.errorString()}")
                 return
             self.log_msg(f"[TCP] Lauscht auf {ip}:{port}")
             self.update_ui()
-
+        
         def _stop_listening(self):
+            self._dedup_clients_list()
             for c in list(self.clients):
                 try:
                     c.close()
@@ -29469,8 +30173,9 @@ try:
             self.server.close()
             self.log_msg("[TCP] Lauschen gestoppt, Clients getrennt.")
             self.update_ui()
-
+        
         def on_new_connection(self):
+            self._dedup_clients_list()
             while self.server.hasPendingConnections():
                 sock = self.server.nextPendingConnection()
                 self.tcp_line_buf[sock] = ""
@@ -29493,7 +30198,7 @@ try:
 
         def on_socket_ready_read(self, sock):
             data = bytes(sock.readAll())
-
+            
             # --- Linienweise parsen, Kommandos abfangen ---
             text = data.decode("utf-8", errors="replace")
             buf = self.tcp_line_buf.get(sock, "") + text
@@ -29523,6 +30228,7 @@ try:
             self.log_msg(f"[TCP→SER] {len(data)} B  '{preview}{more}'")
         
         def on_socket_disconnected(self, sock):
+            self._dedup_clients_list()
             self.tcp_line_buf.pop(sock, None)
             peer = f"{sock.peerAddress().toString()}:{sock.peerPort()}"
             self.log_msg(f"[TCP] Client getrennt: {peer}")
@@ -29535,6 +30241,7 @@ try:
             self.update_ui()
 
         def on_socket_error(self, sock):
+            self._dedup_clients_list()
             self.log_msg(f"[TCP][Error] {sock.errorString()}")
 
         # ---------- Close Event ----------
@@ -29543,6 +30250,7 @@ try:
                 self._stop_listening()
                 if self.serial.isOpen():
                     self.serial.close()
+                self._dedup_clients_list()
             finally:
                 e.accept()
 
