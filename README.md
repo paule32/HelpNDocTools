@@ -19,7 +19,7 @@ Here are some out dated screen shoot on running the application:
 For the Commodore C-64 TrueType Font, visit: [C64Font](https://style64.org/release/c64-truetype-v1.2.1-style)
 
 Alpha Terminal Server Screen:
-![Preview](src/img/setup030.png)
+![Preview](src/img/screen030.png)
 
 Setup PowerShell Applet:
 ![Preview](src/img/setup002.png)
