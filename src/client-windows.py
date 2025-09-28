@@ -1500,6 +1500,11 @@ try:
             self.header_code = ""
             
             self.worker_thread = None
+            
+            # ------------------------------------------------------------------------
+            # Terminal Server desktop ...
+            # ------------------------------------------------------------------------
+            self.desktop_frame = None
 
             # ------------------------------------------------------------------------
             # constants, and varibales that are used multiple times ...
@@ -29065,6 +29070,483 @@ try:
         sa.setWidget(content)
         return sa
     
+    class Win98TitleBar(QFrame):
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            self.setObjectName("titleBar")
+            self.setFixedHeight(28)
+            # Kein Stylesheet-Hintergrund, wir malen selbst:
+            self.setStyleSheet("QFrame#titleBar { background: transparent; }")
+
+            # Farben (ggf. anpassen)
+            self.col_left   = QColor( 10,  80, 160)   # Start (links)
+            self.col_right  = QColor(240, 245, 255)   # Ende (rechts) – fast weiß
+            self.edge_light = QColor(255, 255, 255)   # 3D-Highlight
+            self.edge_dark  = QColor( 64,  64,  64)   # 3D-Shadow
+            self.bottom_sep = QColor( 40,  80, 140)   # Trennlinie unten
+
+            # Optional: inaktiv andere Farben
+            self.active = True
+
+        def setActive(self, on: bool):
+            self.active = on
+            self.update()
+
+        def paintEvent(self, ev):
+            p = QPainter(self)
+            p.setRenderHint(QPainter.Antialiasing, False)
+
+            r0 = self.rect()
+            if r0.isEmpty():
+                return
+
+            # --- Verlauf füllen (links → rechts) ---
+            grad = QLinearGradient(0, 0, r0.width(), 0)
+            if self.active:
+                start, end = self.col_left, self.col_right
+            else:
+                # dezentere, „inaktive“ Töne
+                start = self.col_left.darker(140)
+                end   = QColor(235, 235, 235)
+            grad.setColorAt(0.0, start)
+            grad.setColorAt(1.0, end)
+            p.fillRect(r0, grad)
+
+            # --- Win98-3D-Rahmen um die Titelleiste ---
+            # Außenrahmen: hell oben/links, dunkel unten/rechts (Bevel)
+            # Außenrechteck für Linien (−1, damit die Linie sichtbar bleibt)
+            r1 = r0.adjusted(0, 0, -1, -1)
+
+            # Oben + Links (hell)
+            p.setPen(QPen(self.edge_light))
+            p.drawLine(r1.topLeft(),    r1.topRight())
+            p.drawLine(r1.topLeft(),    r1.bottomLeft())
+
+            # Unten + Rechts (dunkel)
+            p.setPen(QPen(self.edge_dark))
+            p.drawLine(r1.bottomLeft(), r1.bottomRight())
+            p.drawLine(r1.topRight(),   r1.bottomRight())
+
+            # Optional: Dünne Trennlinie zur Client-Area
+            p.setPen(QPen(self.bottom_sep))
+            p.drawLine(r1.bottomLeft(), r1.bottomRight())
+        
+    class SBS2003_Window(QFrame):
+        def __init__(self, parent=None):
+            super(SBS2003_Window, self).__init__(parent)
+            
+            self._border_width = 2
+            self.setContentsMargins(4, 4, 4, 4)
+            
+            # --- Window state ---
+            self.setObjectName("frameBorder")
+            self.setStyleSheet(f"""
+            QFrame {{
+                background-color: blue;
+                border: {self._border_width}px solid rgb(60,60,60);
+                border-radius: 0px;
+            }}
+            """)
+            
+            # --- Window state ---
+            self._is_maximized_child = False
+            self._saved_geom_child = None
+            self._is_minimized_child = False
+            self._saved_client_visible = True
+            
+            # --- Drag state (aus vorher) ---
+            self._dragging = False
+            self._drag_offset = QPoint()
+            
+            # --- Resize: State & Settings ---
+            self._resize_margin = 7         # “Griff”-Breite an den Rändern
+            self._resize_dir = 0            # Bitmaske (siehe unten)
+            self._resizing = False
+            self._press_pos_global = QPoint()
+            self._press_geom = QRect()
+            
+            # für Hover-HitTest ohne gedrückte Maustaste
+            self.setMouseTracking(True)
+            
+            # --- Layout: Titlebar + Client-Area ---
+            root = QVBoxLayout(self)
+            root.setContentsMargins(0, 0, 0, 0)
+            root.setSpacing(0)
+            
+            # Title bar
+            self.title_bar = Win98TitleBar(self)
+            self.title_bar.setObjectName("titleBar")
+            self.title_bar.setFixedHeight(28)
+            self.title_bar.setMinimumWidth(self.width())
+            self.title_bar.setCursor(Qt.OpenHandCursor)
+            self.title_bar.setStyleSheet("QFrame{background-color:transparent;}")
+            
+            tlay = QHBoxLayout(self.title_bar)
+            tlay.setContentsMargins(8, 0, 4, 0)
+            tlay.setSpacing(6)
+            
+            self.title_text = QLabel(self.title_bar)
+            self.title_text.setFont(QFont("Arial", 10))
+            self.title_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            tlay.addWidget(self.title_text, 1)
+            
+            # Events der Titelleiste abfangen
+            self.title_bar.installEventFilter(self)
+            
+            # --- Titlebar Buttons ---
+            self.btn_min   = QPushButton(self.title_bar)
+            self.btn_max   = QPushButton(self.title_bar)
+            self.btn_close = QPushButton(self.title_bar)
+            
+            for b in (self.btn_min, self.btn_max, self.btn_close):
+                b.setFixedSize(22, 18)
+                b.setFlat(True)
+                b.setFocusPolicy(Qt.NoFocus)
+                b.installEventFilter(self)
+            
+            # Icons aus dem Style
+            self._icon_min   = self.style().standardIcon(QStyle.SP_TitleBarMinButton)
+            self._icon_max   = self.style().standardIcon(QStyle.SP_TitleBarMaxButton)
+            self._icon_norm  = self.style().standardIcon(QStyle.SP_TitleBarNormalButton)
+            self._icon_close = self.style().standardIcon(QStyle.SP_TitleBarCloseButton)
+            
+            self.btn_min  .setIcon(self._icon_min)
+            self.btn_max  .setIcon(self._icon_max)
+            self.btn_close.setIcon(self._icon_close)
+            
+            tlay.addWidget(self.btn_min, 0)
+            tlay.addWidget(self.btn_max, 0)
+            tlay.addWidget(self.btn_close, 0)
+            
+            root.addWidget(self.title_bar)
+            
+            # Client area
+            self.client_area = QFrame(self)
+            self.client_area.setStyleSheet("QWidget { background-color: rgb(201,125,125); }")
+            root.addWidget(self.client_area, 1)
+            
+            # Events
+            self.title_bar.installEventFilter(self)
+            self.btn_min  .clicked.connect(self._on_minimize_clicked)
+            self.btn_max  .clicked.connect(self._on_maximize_restore_clicked)
+            self.btn_close.clicked.connect(self._on_close_clicked)
+            
+        # ----- Resize: Bitmasken für Richtungen -----
+        LEFT, RIGHT, TOP, BOTTOM = 1, 2, 4, 8
+        
+        # Wandle globale Koordinate in Parent-Koordinaten (falls vorhanden) um.
+        def _mapToParentOrGlobal(self, pt_global: QPoint) -> QPoint:
+                return self.parent().mapFromGlobal(pt_global) if self.parent() else pt_global
+        
+        def setBorderColor(self, color: QColor):
+            self.setStyleSheet(
+                "QFrame#frameBorder{background-color:rgb(%d,%d,%d);}"
+                % (color.red(), color.green(), color.blue())
+            )
+            self.update()
+        
+        def setTitle(self, text: str):
+            self.title_text.setText(text)
+        
+        # ---------- Buttons ----------
+        def _on_minimize_clicked(self):
+            if self.parent():
+                # Child-Minimize: Inhalt einklappen
+                if not self._is_minimized_child:
+                    self._is_minimized_child = True
+                    self._saved_client_visible = self.client_area.isVisible()
+                    self.client_area.setVisible(False)
+                    self.setFixedHeight(self.title_bar.height())  # nur die Titelleiste
+                else:
+                    # Restore
+                    self._is_minimized_child = False
+                    self.client_area.setVisible(self._saved_client_visible)
+                    self.setFixedHeight(QWIDGETSIZE_MAX)  # Constraint entfernen
+                    self.adjustSize()
+            else:
+                # Top-Level-Minimize
+                self.setWindowState(self.windowState() | Qt.WindowMinimized)
+                
+        def _on_maximize_restore_clicked(self):
+            self._toggle_max_restore()
+        
+        def _on_close_clicked(self):
+            # Für MessageBox o.ä. kannst du hier reject()/accept() verdrahten; default: hide
+            self.hide()
+        
+        def _toggle_max_restore(self):
+            if self.parent():
+                # Child-Mode
+                if not self._is_maximized_child:
+                    # Maximieren innerhalb des Parents
+                    self._saved_geom_child = self.geometry()
+                    pr = self.parent().rect()
+                    self.setGeometry(pr)  # füllt Parent komplett
+                    self._is_maximized_child = True
+                    self.btn_max.setIcon(self._icon_norm)
+                else:
+                    # Wiederherstellen
+                    if self._saved_geom_child:
+                        self.setGeometry(self._saved_geom_child)
+                    self._is_maximized_child = False
+                    self.btn_max.setIcon(self._icon_max)
+            else:
+                # Top-Level
+                if not self.isMaximized():
+                    self.showMaximized()
+                    self.btn_max.setIcon(self._icon_norm)
+                else:
+                    self.showNormal()
+                    self.btn_max.setIcon(self._icon_max)
+                    
+        # ---------- Resize (wie zuvor, plus: deaktiviert wenn maximiert) ----------
+        def _hit_test(self, pos):
+            # Wenn maximiert: keine Griffe
+            if self._is_maximized_child or self.isMaximized():
+                return 0
+            
+            r = self.rect()
+            m = self._resize_margin
+            
+            dir_ = 0
+            if   pos.x() <= r.left  () + m: dir_ |= self.LEFT
+            elif pos.x() >= r.right () - m: dir_ |= self.RIGHT
+            if   pos.y() <= r.top   () + m: dir_ |= self.TOP
+            elif pos.y() >= r.bottom() - m: dir_ |= self.BOTTOM
+            
+            return dir_
+            
+        # ------------------------------------------------------------------------
+        # Ermittelt anhand der lokalen Position (pos, Widget-Koords) welche Griffe
+        # aktiv sind.
+        # Rückgabe: Bitmaske (LEFT|RIGHT|TOP|BOTTOM), Ecken ergeben Kombinationen.
+        # ------------------------------------------------------------------------
+        def _update_cursor(self, dir_):
+            if   dir_ in (self.LEFT  | self.TOP, self.RIGHT | self.BOTTOM): self.setCursor(Qt.SizeFDiagCursor)
+            elif dir_ in (self.RIGHT | self.TOP, self.LEFT  | self.BOTTOM): self.setCursor(Qt.SizeBDiagCursor)
+            elif dir_ in (self.LEFT  , self.RIGHT ): self.setCursor(Qt.SizeHorCursor)
+            elif dir_ in (self.TOP   , self.BOTTOM): self.setCursor(Qt.SizeVerCursor)
+            else:
+                self.unsetCursor()
+        
+        # ------------------------------------------------------------------------
+        # Child im Parent-Container: in der Z-Order nach vorne
+        # ------------------------------------------------------------------------
+        def _bring_to_front(self):
+            self.raise_()
+            self.setFocus(Qt.MouseFocusReason)
+
+            # Top-Level: auch aktivieren (falls minimiert → normalisieren)
+            if self.parent() is None:
+                if self.isMinimized():
+                    self.showNormal()
+                # Reihenfolge ist wichtig auf Windows:
+                self.raise_()
+                self.activateWindow()
+            
+        def _button_event_filter(self, obj, event):
+            if isinstance(obj, QPushButton):
+                if event.type() in (QEvent.Enter, QEvent.HoverMove):
+                    obj.setCursor(Qt.ArrowCursor)
+            return False  # nichts weiter blocken
+            
+        # ----- Maus-Events für Resize -----
+        def mousePressEvent(self, ev):
+            if ev.button() == Qt.LeftButton:
+                dir_ = self._hit_test(ev.pos())
+                if dir_ != 0:
+                    self._resizing = True
+                    self._resize_dir = dir_
+                    self._press_pos_global = ev.globalPos()
+                    self._press_geom = self.geometry()
+                    self._update_cursor(dir_)
+                    ev.accept()
+                    return
+            super().mousePressEvent(ev)
+        
+        def mouseMoveEvent(self, ev):
+            if self._resizing:
+                # -------------------------------------------------
+                # Delta in Parent- oder Global-Koords
+                # -------------------------------------------------
+                delta_global = ev.globalPos() - self._press_pos_global
+                dx, dy = delta_global.x(), delta_global.y()
+                
+                g = QRect(self._press_geom)
+                minw, minh = self.minimumWidth(), self.minimumHeight()
+                
+                # -------------------------------------------------
+                # Linke Seite
+                # -------------------------------------------------
+                if self._resize_dir & self.LEFT:
+                    new_x = g.x() + dx
+                    new_w = g.right() - new_x + 1
+                    if new_w < minw:
+                        new_x = g.right() - (minw - 1)
+                        new_w = minw
+                    g.setX(new_x)
+                    g.setWidth(new_w)
+                
+                # -------------------------------------------------
+                # Rechte Seite
+                # -------------------------------------------------
+                if self._resize_dir & self.RIGHT:
+                    new_w = g.width() + dx
+                    if new_w < minw:
+                        new_w = minw
+                    g.setWidth(new_w)
+                
+                # -------------------------------------------------
+                # Oben
+                # -------------------------------------------------
+                if self._resizing and (self._resize_dir & self.TOP):
+                    new_y = g.y() + dy
+                    new_h = g.bottom() - new_y + 1
+                    if new_h < minh:
+                        new_y = g.bottom() - (minh - 1)
+                        new_h = minh
+                    g.setY(new_y)
+                    g.setHeight(new_h)
+                
+                # -------------------------------------------------
+                # Unten
+                # -------------------------------------------------
+                if self._resize_dir & self.BOTTOM:
+                    new_h = g.height() + dy
+                    if new_h < minh:
+                        new_h = minh
+                    g.setHeight(new_h)
+                
+                # -------------------------------------------------
+                # In Parent-Koords anwenden, falls vorhanden
+                # -------------------------------------------------
+                if self.parent():
+                    top_left_global = self.mapToGlobal(QPoint(0, 0))
+                    target_top_left_global = QPoint(g.x(), g.y()) if not self.parent() else self.parent().mapToGlobal(g.topLeft())
+                    # g ist bereits in Parent-Koords, wenn _press_geom aus geometry() stammt (das ist Parent-bezogen)
+                    # Daher reicht:
+                    self.setGeometry(g)
+                else:
+                    self.setGeometry(g)
+                ev.accept()
+                return
+            else:
+                # -------------------------------------------------
+                # Hover: Cursor je nach Griff aktualisieren
+                # (aber nicht über Titelleiste erzwingen)
+                # -------------------------------------------------
+                dir_ = self._hit_test(ev.pos())
+                self._update_cursor(dir_)
+            
+            super().mouseMoveEvent(ev)
+        
+        def mouseReleaseEvent(self, ev):
+            if ev.button() == Qt.LeftButton and self._resizing:
+                self._resizing = False
+                self._resize_dir = 0
+                self.unsetCursor()
+                ev.accept()
+                return
+            super().mouseReleaseEvent(ev)
+        
+        # -------------------------------------------------
+        # Wenn nicht aktiv am Resizen → Cursor zurücksetzen
+        # -------------------------------------------------
+        def leaveEvent(self, ev):
+            if not self._resizing:
+                self.unsetCursor()
+            super().leaveEvent(ev)
+            
+        # ------------------------------------------
+        # Dragging-Logik über die Titelleiste
+        # ------------------------------------------
+        def eventFilter(self, obj, event):
+            if isinstance(obj, QPushButton):
+                if event.type() in (QEvent.Enter, QEvent.HoverMove):
+                    obj.setCursor(Qt.ArrowCursor)
+                    return False
+            if obj is self.title_bar:
+                if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+                    self._bring_to_front()
+                    self._dragging = True
+                    self.title_bar.setCursor(Qt.ClosedHandCursor)
+                    
+                    # ---------------------------------------------
+                    # Offset von Maus zur linken oberen Ecke dieses
+                    # Frames in Global-Koords
+                    # ---------------------------------------------
+                    self._drag_offset = event.globalPos() - self.mapToGlobal(QPoint(0, 0))
+                    return True
+                
+                elif event.type() == QEvent.MouseMove and self._dragging:
+                    # ---------------------------------------------------
+                    # Nicht ziehen, wenn maximiert (Top-Level oder Child)
+                    # ---------------------------------------------------
+                    if self._is_maximized_child or self.isMaximized():
+                        return True
+                        
+                    # ----------------------------------------------
+                    # neue globale Top-Left Position = Maus - Offset
+                    # ----------------------------------------------
+                    new_top_left_global = event.globalPos() - self._drag_offset
+                    if self.parent():
+                        # ---------------------------------------------
+                        # in Eltern-Koordinaten umrechnen, wenn wir ein
+                        # Child sind
+                        # ---------------------------------------------
+                        new_pos = self.parent().mapFromGlobal(new_top_left_global)
+                        self.move(new_pos)
+                    else:
+                        # ---------------------------------------------
+                        # Top-Level-Widget
+                        # ---------------------------------------------
+                        self.move(new_top_left_global)
+                    return True
+                    
+                elif event.type() == QEvent.MouseButtonDblClick and event.button() == Qt.LeftButton:
+                    self._toggle_max_restore()
+                    return True
+                    
+                elif event.type() in (QEvent.MouseButtonRelease, QEvent.Leave):
+                    self._dragging = False
+                    self.title_bar.setCursor(Qt.OpenHandCursor)
+                    return True
+            
+            return super().eventFilter(obj, event)
+            
+        def paintEvent(self, ev):
+            super().paintEvent(ev)
+            p = QPainter(self)
+            p.setRenderHint(QPainter.Antialiasing, False)
+
+            # Rahmenrechtecke
+            r0 = self.rect().adjusted(0, 0, -1, -1)       # äußerer Strich
+            r1 = r0.adjusted(1, 1, -1, -1)                # innerer Strich
+
+            # Farben im Stil Win2000/2003
+            outer = QColor(64, 64, 64)     # dunkel
+            inner = QColor(220, 220, 220)  # hell
+
+            p.setPen(outer); p.drawRect(r0)
+            p.setPen(inner); p.drawRect(r1)
+            
+    class SBS2003_MessageBox(SBS2003_Window):
+        def __init__(self, parent=None):
+            super(SBS2003_MessageBox, self).__init__(parent)
+            self.resize(320, 200)
+            self.move(30,30)
+            self.setBorderColor(QColor(100,100,200))
+            self.setTitle("Example")
+            self.show()
+        def setText(self, text: str):
+            pass
+        def setIcon(self, icon_type: int):
+            pass
+        def addButton(self, btn_type: int):
+            pass
+        def showModal(self, modal=False):
+            self.show()
+    
     # ----------------------------------------------
     # \brief SBS 2003 Logon-Dialog (Nachbau)
     # ----------------------------------------------
@@ -29083,6 +29565,8 @@ try:
             #
             self._drag_active = False
             self._drag_offset = QPoint()
+            #
+            self._options = False
             #
             self._apply_classic_palette()
             self._build_ui()
@@ -29144,7 +29628,11 @@ try:
             
             # Header: Schlüssel-Icon + Titel
             header = QHBoxLayout()
+            w = QFrame()
+            w.setStyleSheet("QWidget{background-color:rgb(201,125,125);}")
+            
             icon_lbl = QLabel()
+            icon_lbl.setStyleSheet("QLabel{background-color:rgb(201,125,125);}")
             icon = QIcon.fromTheme("dialog-password")
             if icon.isNull():
                 # robuster Fallback, existiert in allen Styles
@@ -29152,11 +29640,15 @@ try:
             icon_lbl.setPixmap(icon.pixmap(32, 32))
             header.addWidget(icon_lbl, 0, Qt.AlignTop)
             
-            title_lbl = QLabel("Log On to Windows")
+            title_lbl = QLabel()
+            title_lbl.setText(_str("Log On to Windows"))
             title_lbl.setFont(self._font(bold=True, pt=11))
+            title_lbl.setStyleSheet("QLabel{background-color:rgb(201,125,125);}")
+            
             header.addWidget(title_lbl, 1, Qt.AlignVCenter)
             header.addStretch()
-            root.addLayout(header)
+            w.setLayout(header)
+            root.addWidget(w)
             
             font = QFont("Arial", 10)
             font.setBold(True)
@@ -29169,20 +29661,25 @@ try:
             
             # Felder – in einer klassischen Panel-Group
             panel = QFrame()
+            panel.setStyleSheet("QFrame {background-color: rgb(112, 153, 112);}")
             panel.setFrameShape (QFrame.Panel)
             panel.setFrameShadow(QFrame.Sunken)
+            
             panel_lyt = QGridLayout(panel)
             panel_lyt.setContentsMargins(12, 12, 12, 12)
             panel_lyt.setHorizontalSpacing(10)
             panel_lyt.setVerticalSpacing(8)
             
             # Username
+            self.user_name = QLabel(_str("User Name:"))
+            self.user_name.setFont(font)
+            
             self.user_edit = QLineEdit()
-            self.user_edit.setPlaceholderText("User name")
+            self.user_edit.setPlaceholderText(_str("User name:"))
             self.user_edit.setMinimumWidth(260)
             self.user_edit.setFont(font)
             
-            panel_lyt.addWidget(self._label("User name:"), 0, 0)
+            panel_lyt.addWidget(self.user_name, 0, 0)
             panel_lyt.addWidget(self.user_edit, 0, 1, 1, 2)
             
             # Password
@@ -29190,12 +29687,18 @@ try:
             self.pass_edit.setEchoMode(QLineEdit.Password)
             self.pass_edit.setFont(font)
             
-            panel_lyt.addWidget(self._label("Password:"), 1, 0)
+            self.password_label = QLabel(_str("Password:"))
+            self.password_label.setFont(font)
+            
+            panel_lyt.addWidget(self.password_label, 1, 0)
             panel_lyt.addWidget(self.pass_edit, 1, 1, 1, 2)
             
             # Domain (per Options >> ein-/ausblendbar)
-            self.domain_label = self._label("Log on to:")
+            self.domain_label = QLabel(_str("Log on to:"))
+            self.domain_label.setFont(font)
+            
             self.domain_combo = QComboBox()
+            self.domain_combo.setFont(font)
             self.domain_combo.setEditable(True)
             self.domain_combo.addItems(["MYDOMAIN", "THIS-COMPUTER"])
             
@@ -29215,10 +29718,15 @@ try:
             btn_row = QHBoxLayout()
             self.options_btn  = QPushButton("Options >>")
             self.shutdown_btn = QPushButton("Shut Down...")
+            
+            self.options_btn.clicked.connect(self.options_btn_onclick)
+            
             btn_row.addWidget(self.options_btn)
             btn_row.addStretch()
+            
             self.ok_btn = QPushButton("OK")
             self.cancel_btn = QPushButton("Cancel")
+            
             btn_row.addWidget(self.shutdown_btn)
             btn_row.addWidget(self.ok_btn)
             btn_row.addWidget(self.cancel_btn)
@@ -29231,6 +29739,17 @@ try:
             self.ok_btn.setDefault(True)
             self.user_edit.setFocus()
         
+        # ---------------------------------------------
+        # \brief Domain Options Pushbutton click event
+        # ---------------------------------------------
+        def options_btn_onclick(self):
+            if not self._options:
+                self._options = True
+                self._set_options_visible(True)
+            else:
+                self._options = False
+                self._set_options_visible(False)
+                
         # ---------- Styling ----------
         def _apply_classic_palette(self):
             # Klassisches Win2000/2003-Grau
@@ -29320,10 +29839,14 @@ try:
             pwd = self.pass_edit.text()
             domain = self.domain_combo.currentText().strip() if self.domain_combo.isVisible() else "(default)"
             if not user or not pwd:
-                QMessageBox.warning(
-                    self, "Logon Message",
-                    "Make sure your User name and Password are correct."
-                )
+                msg = SBS2003_MessageBox(genv.desktop_frame)
+                msg.setWindowTitle(_str("Logon Message"))
+                msg.setText(_str("Make sure your User name and Password are correct."))
+                msg.setIcon(QMessageBox.Warning)
+                #msg.setStyleSheet(_css("msgbox_css"))
+                
+                btn_ok = msg.addButton(QMessageBox.Ok)
+                result = msg.showModal()
                 return
             QMessageBox.information(
                 self, "Logon Message",
@@ -29359,6 +29882,8 @@ try:
             self.desktop.setFrameShape (QFrame.Panel )
             self.desktop.setFrameShadow(QFrame.Sunken)
             self.desktop.setStyleSheet("background-color: rgb(128,128,128);")
+            
+            genv.desktop_frame = self.desktop
             #
             self.desktop.setMinimumWidth (800)
             self.desktop.setMaximumWidth (800)
@@ -29413,10 +29938,10 @@ try:
             self.root.addStretch()
             
             self.sock = QTcpSocket(self)
-            self.sock.readyRead.connect(self.on_ready_read)
+            self.sock.readyRead    .connect(self.on_ready_read)
             self.sock.errorOccurred.connect(self.on_error)
-            self.sock.connected.connect   (lambda s=self.sock: self.on_sock_connected(s))
-            self.sock.disconnected.connect(lambda s=self.sock: self.on_sock_disconnected(s))
+            self.sock.connected    .connect(lambda s=self.sock: self.on_sock_connected(s))
+            self.sock.disconnected .connect(lambda s=self.sock: self.on_sock_disconnected(s))
             
         def on_sock_connected(self, sock: QTcpSocket):
             self.desktop.setMinimumHeight(600)
@@ -30375,6 +30900,12 @@ try:
         sp.add_argument("--port", dest="port", type=int,
                         help=_str("listen on port n"))
     # ------------------------------------------------------------------------
+    def add_terminal_args(sp: argparse.ArgumentParser) -> None:
+        sp.add_argument("--client", dest="client", action="store_true",
+                        help=_str("start gui client."))
+        sp.add_argument("--server", dest="server", action="store_true",
+                        help=_str("start gui server."))
+    # ------------------------------------------------------------------------
     def add_infope_args(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--pe", dest="info_pe", metavar="FILE", type=Path,
                         help=_str("print informations of a pe file on the screen"))
@@ -30475,6 +31006,14 @@ try:
                 + "    python script.py gui --linux\n"
             ),
         )
+        p_terminal = sub.add_parser("term",
+            help   = _str("Open Terminal Server Window"),
+            formatter_class = RichHelp,
+            epilog          = textwrap.dedent(""
+                + _str("Example:") + "\n"
+                + "    python script.py terminal"
+            ),
+        )
         p_console = sub.add_parser(
             "console",
             help            = _str("Start Application in Console"),
@@ -30565,6 +31104,8 @@ try:
         add_docout_args(p_helpndoc)
         
         add_infope_args(p_info)
+        
+        add_terminal_args(p_terminal)
         
         add_application_args(p_gui)
         add_application_args(p_console)
@@ -30901,6 +31442,42 @@ try:
                 proc.stdout.close()
                 
     # ------------------------------------------------------------------------
+    class TerminalWindow(QDialog):
+        def __init__(self, parent=None):
+            super(TerminalWindow, self).__init__(parent)
+            term_dialer = ModemDialer(self)
+    
+    class TerminalServer(QDialog):
+        def __init__(self, parent=None):
+            super(TerminalServer, self).__init__(parent)
+            content = QFrame(self)
+            content.setFrameShape(QFrame.StyledPanel)
+            content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+            
+            frame = TcpSerialBridgeCLIP(content, "Foxy" )
+            
+            self.resize(frame.width(), frame.height())
+            
+            v = QVBoxLayout(content)
+            v.addWidget(frame)
+            v.addStretch()
+            
+    def handle_args_terminal(args):
+        server = args.server
+        client = args.client
+        
+        if client:
+            genv.v__app_object = QApplication(sys.argv)
+            term = TerminalWindow()
+            term.exec_()
+            sys.exit(0)
+        elif server:
+            genv.v__app_object = QApplication(sys.argv)
+            term = TerminalServer()
+            term.exec_()
+            sys.exit(0)
+    
+    # ------------------------------------------------------------------------
     def handle_args_basic(args):
         print("basic handler")
     # ------------------------------------------------------------------------
@@ -30943,6 +31520,7 @@ try:
         elif args.subcmd == "helpndoc": handle_args_helpndoc(args); return 0
         elif args.subcmd == "console" : handle_args_console (args); return 0
         elif args.subcmd == "gui"     : handle_args_gui     (args); return 0
+        elif args.subcmd == "term"    : handle_args_terminal(args); return 0
         elif args.subcmd == "info"    : handle_args_info    (args); return 0
         elif args.subcmd == "config"  : handle_args_config  (args); return 0
         elif args.subcmd == "project" : handle_args_project (args); return 0
