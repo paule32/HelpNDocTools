@@ -15,7 +15,7 @@ set BASEDIR=%cd%
 set VERSION=cpython-313
 
 set SRVAPP=server
-set CLTAPP=client-windows
+set CLTAPP=client
 
 echo Create Resource File...
 pyrcc5 resources.qrc -o resources_rc.py
