@@ -173,11 +173,11 @@ def ensure_package(
 # \brief check the requiere import modules ...
 # ---------------------------------------------------------------------------
 req_pack = [
-    "regex", "dbf", "polib", "requests", "datetime", "gmpy2", "webbrowser",
-    "locale", "io", "random", "ipapi", "string", "capstone", "pefile",
-    "httpx", "ctypes", "sqlite3", "configparser", "traceback", "bs4",
-    "PyQt5", "PyQt5.QtWebEngineWidgets",
-    "screeninfo", "pathlib", "timer",
+    "dbf", "polib", "requests", "datetime", "gmpy2", "webbrowser",
+    "locale", "io", "random", "ipapi", "string", "capstone",
+    "httpx", "ctypes", "sqlite3", "configparser", "traceback",
+    "PyQt5", "PyQt5.QtWebEngineWidgets", "pefile", "bs4",
+    "screeninfo", "pathlib", "timer", "regex",
     "marshal", "inspect", "logging", "rich", "string", "codecs",
 ]
 for p in req_pack:
@@ -30111,6 +30111,12 @@ try:
                 if self._resize_dir & self.LEFT:
                     new_x = g.x() + dx
                     new_w = g.right() - new_x + 1
+                    # ---------------------------------------------
+                    # title bar width not < 100 px
+                    # ---------------------------------------------
+                    if new_w <= 100:
+                        return
+                        
                     if new_w < minw:
                         new_x = g.right() - (minw - 1)
                         new_w = minw
@@ -30122,6 +30128,12 @@ try:
                 # -------------------------------------------------
                 if self._resize_dir & self.RIGHT:
                     new_w = g.width() + dx
+                    # ---------------------------------------------
+                    # title bar width not < 100 px
+                    # ---------------------------------------------
+                    if new_w <= 100:
+                        return
+                        
                     if new_w < minw:
                         new_w = minw
                     g.setWidth(new_w)
@@ -30132,6 +30144,11 @@ try:
                 if self._resizing and (self._resize_dir & self.TOP):
                     new_y = g.y() + dy
                     new_h = g.bottom() - new_y + 1
+                    # ---------------------------------------------
+                    # höhe vom title bar nicht kleiner als 33 px
+                    # ---------------------------------------------
+                    if new_h <= 33:
+                        return
                     if new_h < minh:
                         new_y = g.bottom() - (minh - 1)
                         new_h = minh
@@ -30214,7 +30231,7 @@ try:
                     # ---------------------------------------------------
                     if self._is_maximized_child or self.isMaximized():
                         return True
-                        
+                    
                     # ----------------------------------------------
                     # neue globale Top-Left Position = Maus - Offset
                     # ----------------------------------------------
@@ -30267,6 +30284,7 @@ try:
             self.move(30,30)
             self.setBorderColor(QColor(100,100,200))
             self.setTitle("Example")
+            self.setStyleSheet("color:yellow;")
             self.show()
         def setText(self, text: str):
             pass
@@ -32258,7 +32276,7 @@ try:
         parser.print_help()
         return 0
     # ------------------------------------------------------------------------
-    if __name__ == '__main__':
+    if __name__ == 'client':
         # The Python 3+ or 3.12+ is required.
         major = sys.version_info[0]
         minor = sys.version_info[1]
@@ -32269,7 +32287,7 @@ try:
         # Determine the path to the script and its name.
         script = os.path.abspath(sys.argv[0])
         script_path, script_name = os.path.split(script)
-        script_path = os.path.abspath(script_path)    
+        script_path = os.path.abspath(script_path)
         
         sys.exit(main())
     else:

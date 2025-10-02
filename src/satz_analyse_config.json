@@ -1,0 +1,46 @@
+{
+  "conjunctions": [
+    "und",
+    "oder",
+    "aber",
+    "denn",
+    "doch",
+    "sondern",
+    "weil",
+    "dass",
+    "sowie",
+    "bzw",
+    "beziehungsweise",
+    "sowohl",
+    "als",
+    "auch",
+    "weder",
+    "noch"
+  ],
+  "fixed_phrases": [
+    [
+      "\\bzu hause\\b",
+      "zu Hause"
+    ],
+    [
+      "\\bim allgemeinen\\b",
+      "im Allgemeinen"
+    ],
+    [
+      "\\bim voraus\\b",
+      "im Voraus"
+    ],
+    [
+      "\\bin ordnung\\b",
+      "in Ordnung"
+    ],
+    [
+      "\\bin gefahr\\b",
+      "in Gefahr"
+    ],
+    [
+      "\\bin frage\\b",
+      "in Frage"
+    ]
+  ]
+}

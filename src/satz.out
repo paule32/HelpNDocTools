@@ -1,0 +1,94 @@
+
+T:\a\HelpNDocTools\HelpNDocTools\src>python satz_analyse_de.py "ich gehe heute später nach hause" 
+{
+  "step1": {
+    "sentence": "ich gehe heute spõter nach hause",
+    "tokens": [
+      "ich",
+      "gehe",
+      "heute",
+      "sp",
+      "ter",
+      "nach",
+      "hause"
+    ],
+    "unknown": [
+      "ich",
+      "gehe",
+      "heute",
+      "sp",
+      "ter",
+      "nach",
+      "hause"
+    ],
+    "suggestions": {
+      "ich": [
+        "ida"
+      ],
+      "gehe": [
+        "gehen",
+        "geben",
+        "geier",
+        "gelb",
+        "geld"
+      ],
+      "heute": [
+        "hauke",
+        "heike",
+        "helge",
+        "herne"
+      ],
+      "sp": [
+        "spät"
+      ],
+      "ter": [
+        "tee",
+        "tür",
+        "tag",
+        "teuer",
+        "theo"
+      ],
+      "nach": [
+        "nah",
+        "nass",
+        "nico",
+        "noah"
+      ],
+      "hause": [
+        "hase",
+        "hauke",
+        "haus",
+        "halle",
+        "hans"
+      ]
+    },
+    "casing_warnings": [],
+    "notes": [
+      "Rechtschreibprüfung gegen Wörterbuch (case-insensitive).",
+      "Nomen-heuristik für Groß-/Kleinschreibung (außer am Satzanfang)."
+    ]
+  },
+  "step2": {
+    "original": "ich gehe heute spõter nach hause",
+    "normalized_suggestion": "Ich gehe heute spõter nach Hause.",
+    "issues": [
+      {
+        "type": "casing",
+        "pos": 0,
+        "msg": "Satzanfang klein geschrieben.",
+        "suggest": "Erstes Wort groß schreiben."
+      },
+      {
+        "type": "punctuation",
+        "msg": "Kein Satzzeichen am Ende.",
+        "suggest": "Punkt/Frage-/Ausrufezeichen setzen."
+      },
+      {
+        "type": "fixed_phrase",
+        "span": "nach hause",
+        "msg": "Feste Wendung „nach Hause“ groß schreiben.",
+        "suggest": "Hause groß."
+      }
+    ]
+  }
+}
