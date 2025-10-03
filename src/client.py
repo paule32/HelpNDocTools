@@ -5,18 +5,25 @@
 # ---------------------------------------------------------------------------
 from __future__  import annotations
 from dataclasses import dataclass, field, replace
-
+from datetime    import datetime
+from pathlib     import Path
 # ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
 global GUI_DEBUG           # set if gui debug !
 
 global os_name; os_name = ""
-global res_file
 global front_content_layout
 
+import os, sys
+
+BASEDIR   = os.path.dirname(os.path.abspath(__file__))
 GUI_DEBUG = True
-res_file  = "./_internal/resources_rc.pyc.gz"    # we use Python 3.13.3 !
+
+DICT_PATH   = "satz_de_woerterbuch.csv"
+CONFIG_PATH = "satz_analyse_config.json"
+
+sys.path.insert(0, BASEDIR)
 
 # ANSI-Konsolenfarben (Standard)
 DEFAULT_COLORS = [
@@ -38,22 +45,119 @@ MAGIC_NUMBERS = {
     # ggf. mehr hinzufügen
 }
 
+# ---------------------------------------------------------------------------
+# german Duden - Woerterbuch ....
+# ---------------------------------------------------------------------------
+DEFAULT_CSV = os.path.join(BASEDIR, "satz_de_woerterbuch.csv")
+
+SATZ_COLORS = {
+    "unknown": "#d32f2f",
+    "casing": "#f57c00",
+    "fixed_phrase": "#1976d2",
+    "verb_position": "#7b1fa2",
+    "double_negation": "#c2185b",
+    "conjunction_repeat": "#512da8",
+    "conjunction_repeat_spaced": "#9575cd",
+    "comma_hint": "#455a64",
+    "recognized": "#2e7d32",
+}
+# ---------------------------------------------------------------------------
+DEFAULT_CONFIG = {
+    "fixed_phrases": [
+        [r"\bzu hause\b", "zu Hause"],
+        [r"\bim allgemeinen\b", "im Allgemeinen"],
+        [r"\bim voraus\b", "im Voraus"],
+        [r"\bin ordnung\b", "in Ordnung"],
+        [r"\bin gefahr\b", "in Gefahr"],
+        [r"\bin frage\b", "in Frage"]
+    ],
+    "conjunctions": ["und","oder","aber","denn","doch","sondern","weil","dass","sowie","bzw","beziehungsweise","sowohl","als","auch","weder","noch"],
+    "negation_1": ["nicht","nie","niemals","nichts","niemand","nirgends","nirgendwo"],
+    "negation_2": ["kein","keine","keinen","keinem","keiner","keines","nichts","niemand","nirgends","nirgendwo"],
+    "verb_endings": ["e","st","t","en","te","ten","tet"],
+    "noun_plural_endings": ["e","en","er","n","s"],
+    "separable_prefixes": ["ab","an","auf","aus","bei","dar","ein","fest","fort","her","hin","los","mit","nach","vor","weg","zu","zurück","zusammen"]
+}
+
+# ---------------------------------------------------------------------------
 # Dictionary to store the mapping from object instances to variable names
+# ---------------------------------------------------------------------------
 instance_names = {}
 
 HTTP_PORT      = 8000
 HTTP_DIRECTORY = "./__pycache__/temp"
 
+# ---------------------------------------------------------------------------
+# goodies ...
+# ---------------------------------------------------------------------------
+PLAYER_NONE = 0
+PLAYER_A = 1  # Mensch (blau) standardmäßig
+PLAYER_B = 2  # KI (rot)
+
+DIRS = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1) if not (dx == 0 and dy == 0)]
+
+# -----------------------------
+# Spiel-Parameter
+# -----------------------------
+BOARD_STEPS = 40           # Felder auf dem Rundkurs
+HOME_PATH_LEN = 4          # Länge des Zielfelds je Farbe
+TOKENS_PER_PLAYER = 4
+RADIUS_OUTER = 240
+RADIUS_HOME = 120
+TOKEN_RADIUS = 12
+
+START_INDEX = {0: 0, 1: 10, 2: 20, 3: 30}
+SAFE_FIELDS = {0, 10, 20, 30}  # Startfelder sind sichere Felder
+
+HIGHSCORE_PATH = Path("sudoku_highscores.json")
+MAX_HIGHSCORES = 50
+
+# -------------------------- Konfiguration & Datenmodell --------------------------
+MIXER_DEFAULT_CONFIG = {
+    "ui": {
+        "active_color": "#22c55e",  # grün
+        "inactive_color": "#334155",  # slate-700
+        "separator_color": "#1f2937",  # grau
+        "led_on": "#10b981",  # teal/grün
+        "led_off": "#0b1220",
+    },
+    "effects": {
+        "list": ["drum", "clap", "tick"],
+        "colors": {
+            "drum": "#ef4444",
+            "clap": "#eab308",
+            "tick": "#3b82f6"
+        }
+    },
+    "channels": {
+        # Beispiel-Vorbelegung einzelner Kanäle
+        # "1": {"envelope": "linear", "effects": ["drum"], "sample": "samples/kick.wav"}
+    },
+    "envelopes": ["linear", "exponential", "s-curve"]
+}
+
+MIXER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+
+# ---------------------------------------------------------------------------
+# standard imports ...
+# ---------------------------------------------------------------------------
 import argparse, textwrap
 import datetime as dt
 import importlib
 import importlib.util # module check utils
 import subprocess
+import random
 import sys            # system specifies
 import os             # operating system stuff
 import uuid
 import site
+import pandas as pd
 import math
+# ---------------------------------------------------------------------------
+# diagram plot's ...
+# ---------------------------------------------------------------------------
+from matplotlib.figure                  import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 # ---------------------------------------------------------------------------
 # \brief os env setzen
 # ---------------------------------------------------------------------------
@@ -268,6 +372,16 @@ try:
     import marshal, inspect, logging, PyQt5, pathlib, rich, string
     import codecs, screeninfo
     
+    def in_bounds(x, y, n):
+        return 0 <= x < n and 0 <= y < n
+
+    def make_triangle_coords(n, size):
+        coords = []
+        for s in range(size):
+            for i in range(s + 1):
+                coords.append((i, s - i))
+        return coords
+
     # -----------------------------------------------------------------------
     # error output function
     # -----------------------------------------------------------------------
@@ -725,6 +839,7 @@ try:
     from PyQt5.QtWidgets            import *
     from PyQt5.QtCore               import *
     from PyQt5.QtGui                import *
+    from PyQt5.QtPrintSupport       import *
     from PyQt5.QtWebEngineWidgets   import *
     from PyQt5.QtNetwork            import *
     from PyQt5.QtWebChannel         import *
@@ -758,6 +873,23 @@ try:
     
     from tempfile   import mkdtemp, TemporaryDirectory
     from contextlib import redirect_stdout
+
+    # ------------------------------------------------------------------------
+    # global office-time goodies constant's - there because Qt5 imports ...
+    # ------------------------------------------------------------------------
+    PLAYER_COLORS = {
+        0: QColor(220, 50, 47),   # Rot
+        1: QColor(38, 139, 210),  # Blau
+        2: QColor(133, 153, 0),   # Grün
+        3: QColor(181, 137, 0),   # Gelb
+    }
+
+    PLAYER_NAMES = {
+        0: "Rot",
+        1: "Blau",
+        2: "Grün",
+        3: "Gelb",
+    }
 
     front_content_layout = QHBoxLayout()
     
@@ -815,7 +947,2162 @@ try:
                 return MAGIC_NUMBERS.get(magic, _str(msg))
             else:
                 return MAGIC_NUMBERS.get(magic, msg)
+
+    # ---------------------------------------------------------------------------
+    # office-time goodie ...
+    # ---------------------------------------------------------------------------
+    # Datenmodelle
+    # -----------------------------
+    @dataclass
+    class Token:
+        player: int
+        index_main: int = -1   # -1 = im Haus (Start), 0..39 = Rundkurs
+        index_home: int = -1   # 0..HOME_PATH_LEN-1 = im Zielweg, -1 sonst
+        item: Optional[QGraphicsEllipseItem] = None
+
+        def is_in_base(self) -> bool:
+            return self.index_main == -1 and self.index_home == -1
+
+        def is_on_main(self) -> bool:
+            return self.index_main >= 0 and self.index_home == -1
+
+        def is_in_home(self) -> bool:
+            return self.index_home >= 0
+
+    @dataclass
+    class PlayerState:
+        pid: int
+        tokens: List[Token] = field(default_factory=list)
+        
+        def all_home(self) -> bool:
+            return all(t.index_home == HOME_PATH_LEN - 1 for t in self.tokens)
+    
+    # -----------------------------
+    # Hilfsfunktionen Koordinaten
+    # -----------------------------
+    def polar_to_point(radius: float, angle_deg: float) -> QPointF:
+        from math import cos, sin, radians
+        a = radians(angle_deg)
+        return QPointF(radius * cos(a), radius * sin(a))
+
+
+    def board_position_to_point(step: int) -> QPointF:
+        # Verteile 40 Felder rund um den Kreis (0° rechts, gegen den Uhrzeigersinn)
+        angle_per_step = 360.0 / BOARD_STEPS
+        angle = -step * angle_per_step
+        return polar_to_point(RADIUS_OUTER, angle)
+
+
+    def base_spots(pid: int) -> List[QPointF]:
+        # Vier Parkplätze in der Ecke jeder Farbe
+        base_angles = {
+            0: 45,
+            1: 135,
+            2: 225,
+            3: 315,
+        }
+        center = polar_to_point(RADIUS_OUTER + 70, -base_angles[pid])
+        offs = [QPointF(-20, -20), QPointF(20, -20), QPointF(-20, 20), QPointF(20, 20)]
+        return [center + o for o in offs]
+
+
+    def home_position_to_point(pid: int, idx: int) -> QPointF:
+        # Ziellinie verläuft von Startfeld Richtung Zentrum
+        start_step = START_INDEX[pid]
+        start_pt = board_position_to_point(start_step)
+        center = QPointF(0, 0)
+        # linear interpolieren zwischen Startfeld und Zentrum
+        t = (idx + 1) / (HOME_PATH_LEN + 1)
+        return start_pt * (1 - t) + center * t
+
+    # -----------------------------
+    # Spiellogik
+    # -----------------------------
+    class Game:
+        def __init__(self, num_players: int = 4):
+            self.num_players = num_players
+            self.players: List[PlayerState] = [PlayerState(pid=i) for i in range(num_players)]
+            for p in self.players:
+                p.tokens = [Token(player=p.pid) for _ in range(TOKENS_PER_PLAYER)]
+            self.current_player = 0
+            self.die: Optional[int] = None
+            self.extra_turn = False
+
+        def reset_die(self):
+            self.die = None
+            self.extra_turn = False
+
+        def roll_die(self) -> int:
+            self.die = random.randint(1, 6)
+            return self.die
+
+        def start_square(self, pid: int) -> int:
+            return START_INDEX[pid]
+
+        def entry_square(self, pid: int) -> int:
+            return self.start_square(pid)
+
+        def main_to_player_relative(self, pid: int, main_idx: int) -> int:
+            # Distanz vom Startfeld dieses Spielers entlang des Rundkurses
+            if main_idx < 0:
+                return -1
+            s = self.start_square(pid)
+            d = (main_idx - s) % BOARD_STEPS
+            return d
+
+        def player_relative_to_main(self, pid: int, rel: int) -> int:
+            return (self.start_square(pid) + rel) % BOARD_STEPS
+
+        def can_enter_home(self, token: Token, steps: int) -> Tuple[bool, int]:
+            # Prüfe, ob Figur mit 'steps' in den Zielweg einbiegt
+            rel = self.main_to_player_relative(token.player, token.index_main)
+            if rel == -1:
+                return False, -1
+            target_rel = rel + steps
+            if target_rel <= BOARD_STEPS:
+                # Nur wenn wir exakt über START_INDEX + 40 hinaus in den Zielweg kommen
+                if target_rel > BOARD_STEPS:
+                    return False, -1
+                if target_rel == BOARD_STEPS:
+                    # genau auf Ziellinien-Eingang -> home index 0
+                    return True, 0
+                return False, -1
+            return False, -1
+
+        def occupied_on_main(self) -> Dict[int, List[Token]]:
+            occ: Dict[int, List[Token]] = {}
+            for p in self.players:
+                for t in p.tokens:
+                    if t.is_on_main():
+                        occ.setdefault(t.index_main, []).append(t)
+            return occ
+
+        def token_at_main(self, idx: int) -> List[Token]:
+            return self.occupied_on_main().get(idx, [])
+
+        def is_safe(self, idx: int) -> bool:
+            return idx in SAFE_FIELDS
+
+        def valid_moves(self, pid: int, die: int) -> List[Tuple[Token, str, int]]:
+            moves: List[Tuple[Token, str, int]] = []
+            ps = self.players[pid]
+            # 1) Aus dem Haus ziehen (nur bei 6)
+            if die == 6:
+                for t in ps.tokens:
+                    if t.is_in_base():
+                        entry = self.entry_square(pid)
+                        blockers = self.token_at_main(entry)
+                        if not blockers or (len(blockers) == 1 and blockers[0].player == pid):
+                            moves.append((t, "enter", entry))
+            # 2) Auf dem Rundkurs bewegen
+            for t in ps.tokens:
+                if t.is_on_main():
+                    rel = self.main_to_player_relative(pid, t.index_main)
+                    target_rel = rel + die
+                    # Einbiegen ins Ziel genau auf BOARD_STEPS
+                    if target_rel == BOARD_STEPS:
+                        moves.append((t, "to_home", 0))
+                    elif target_rel < BOARD_STEPS:
+                        target_main = self.player_relative_to_main(pid, target_rel)
+                        blockers = self.token_at_main(target_main)
+                        # Eigene Blockade von 2+ gleichen Figuren verhindern
+                        if not (len(blockers) >= 1 and blockers[0].player == pid and len(blockers) >= 2):
+                            moves.append((t, "move", target_main))
+            # 3) Im Ziel bewegen
+            for t in ps.tokens:
+                if t.is_in_home():
+                    target = t.index_home + die
+                    if target < HOME_PATH_LEN:
+                        moves.append((t, "home", target))
+            return moves
+
+        def apply_move(self, token: Token, kind: str, target: int) -> Tuple[bool, Optional[Token]]:
+            # Rückgabe: (extra_turn, geschlagener_Gegner)
+            beaten: Optional[Token] = None
+            if kind == "enter":
+                token.index_main = target
+                self.extra_turn = True  # 6 -> Extra-Zug
+                blockers = self.token_at_main(target)
+                for b in blockers:
+                    if b is not token and b.player != token.player and not self.is_safe(target):
+                        # schlagen
+                        b.index_main = -1
+                        b.index_home = -1
+                        beaten = b
+            elif kind == "move":
+                blockers = self.token_at_main(target)
+                token.index_main = target
+                for b in blockers:
+                    if b is not token and b.player != token.player and not self.is_safe(target):
+                        b.index_main = -1
+                        b.index_home = -1
+                        beaten = b
+                self.extra_turn = (self.die == 6)
+            elif kind == "to_home":
+                token.index_main = -1
+                token.index_home = 0
+                self.extra_turn = (self.die == 6)
+            elif kind == "home":
+                token.index_home = target
+                self.extra_turn = (self.die == 6)
+            else:
+                self.extra_turn = False
+            return self.extra_turn, beaten
+
+        def next_player(self):
+            if not self.extra_turn:
+                self.current_player = (self.current_player + 1) % self.num_players
+            self.reset_die()
+
+    # -----------------------------
+    # Rendering / UI
+    # -----------------------------
+    class TokenItem(QGraphicsEllipseItem):
+        def __init__(self, token: Token, color: QColor):
+            super().__init__(-TOKEN_RADIUS, -TOKEN_RADIUS, TOKEN_RADIUS*2, TOKEN_RADIUS*2)
+            self.setBrush(QBrush(color))
+            self.setPen(QPen(Qt.black, 1))
+            self.setZValue(2)
+            self.token = token
+            self.setFlag(QGraphicsEllipseItem.ItemIsSelectable, True)
+            self.setAcceptHoverEvents(True)
+
+        def hoverEnterEvent(self, event):
+            self.setPen(QPen(Qt.white, 2))
+            super().hoverEnterEvent(event)
+
+        def hoverLeaveEvent(self, event):
+            self.setPen(QPen(Qt.black, 1))
+            super().hoverLeaveEvent(event)
+
+
+    class BoardView(QGraphicsView):
+        def __init__(self, game: Game, move_callback):
+            super().__init__()
+            self.setRenderHint(QPainter.Antialiasing)
+            self.scene = QGraphicsScene(-350, -350, 700, 700)
+            self.setScene(self.scene)
+            self.game = game
+            self.move_callback = move_callback
+            self.field_items: Dict[int, QGraphicsEllipseItem] = {}
+            self.info_labels: List[QGraphicsSimpleTextItem] = []
+            self.highlighted: List[QGraphicsEllipseItem] = []
+            self.draw_board()
+            self.place_tokens()
+
+        def draw_board(self):
+            # Hintergrund
+            self.scene.addRect(-320, -320, 640, 640, QPen(Qt.NoPen), QBrush(QColor(245, 245, 245)))
+            # Rundkurs-Felder
+            for i in range(BOARD_STEPS):
+                p = board_position_to_point(i)
+                r = 16
+                item = self.scene.addEllipse(p.x()-r, p.y()-r, 2*r, 2*r, QPen(Qt.black, 1), QBrush(Qt.white))
+                if i in SAFE_FIELDS:
+                    # sichere Felder farbig markieren
+                    col = PLAYER_COLORS[(i // 10) % 4]
+                    item.setBrush(QBrush(col.lighter(150)))
+                self.field_items[i] = item
+            # Homes
+            for pid in range(self.game.num_players):
+                for j in range(HOME_PATH_LEN):
+                    hp = home_position_to_point(pid, j)
+                    r = 14
+                    self.scene.addEllipse(hp.x()-r, hp.y()-r, 2*r, 2*r, QPen(Qt.black, 1), QBrush(PLAYER_COLORS[pid].lighter(160)))
+            # Bases
+            for pid in range(self.game.num_players):
+                for bp in base_spots(pid):
+                    r = 14
+                    self.scene.addEllipse(bp.x()-r, bp.y()-r, 2*r, 2*r, QPen(Qt.black, 1), QBrush(PLAYER_COLORS[pid].lighter(180)))
+            # Zentrum + Label
+            c = self.scene.addEllipse(-40, -40, 80, 80, QPen(Qt.black, 1), QBrush(Qt.white))
+            txt = self.scene.addSimpleText("MÄDN")
+            txt.setPos(-22, -10)
+            txt.setZValue(1)
+
+        def place_tokens(self):
+            # Alle Figuren positionieren (je nach Status)
+            for p in self.game.players:
+                spots = base_spots(p.pid)
+                for idx, t in enumerate(p.tokens):
+                    if t.item is None:
+                        itm = TokenItem(t, PLAYER_COLORS[p.pid])
+                        t.item = itm
+                        self.scene.addItem(itm)
+                        itm.mousePressEvent = self._make_click_handler(t)
+                    if t.is_in_base():
+                        pos = spots[idx]
+                    elif t.is_on_main():
+                        pos = board_position_to_point(t.index_main)
+                    else:  # home
+                        pos = home_position_to_point(t.player, t.index_home)
+                    # leicht versetzen, wenn mehrere auf demselben Feld
+                    pos = self._offset_for_stack(pos, t)
+                    t.item.setPos(pos)
+
+        def _offset_for_stack(self, pos: QPointF, token: Token) -> QPointF:
+            # Schätze Stack-Größe auf diesem Feld
+            stack = []
+            if token.is_on_main():
+                stack = [t for p in self.game.players for t in p.tokens if t.is_on_main() and t.index_main == token.index_main]
+            return pos + QPointF(0, -6 * (stack.index(token) if token in stack else 0))
+
+        def _make_click_handler(self, token: Token):
+            def handler(event):
+                self.move_callback(token)
+                event.accept()
+            return handler
+
+        def clear_highlights(self):
+            for it in self.highlighted:
+                it.setPen(QPen(Qt.black, 1))
+            self.highlighted.clear()
+
+        def highlight_tokens(self, tokens: List[Token]):
+            self.clear_highlights()
+            for t in tokens:
+                if t.item:
+                    t.item.setPen(QPen(QColor(255, 255, 255), 3))
+                    self.highlighted.append(t.item)
+
+        def refresh(self):
+            self.place_tokens()
+
+    # --------------------------------------------
+    # Hauptfenster für Mensch ärgere Dich nicht !
+    # --------------------------------------------
+    class MADNMainWindow(QMainWindow):
+        def __init__(self, parent=None):
+            super(MADNMainWindow, self).__init__(parent)
+            self.setWindowTitle("Mensch ärgere dich nicht – PyQt5")
+            self.game = Game(num_players=4)
+
+            central = QWidget()
+            self.setCentralWidget(central)
+            root = QHBoxLayout(central)
+
+            # Board
+            self.board_view = BoardView(self.game, self.on_token_clicked)
+            root.addWidget(self.board_view, 3)
+
+            # Sidebar
+            side = QVBoxLayout()
+            root.addLayout(side, 1)
+
+            self.lbl_turn = QLabel()
+            self.lbl_die = QLabel("Würfel: –")
+            self.btn_roll = QPushButton("Würfeln")
+            self.btn_roll.clicked.connect(self.on_roll)
+
+            side.addWidget(self.lbl_turn)
+            side.addWidget(self.lbl_die)
+            side.addWidget(self.btn_roll)
+            side.addStretch(1)
             
+            self.show()
+            self.update_turn_label()
+            self.resize(980, 720)
+
+            # Initial zeichnen
+            self.board_view.refresh()
+
+        # ---- UI Helpers ----
+        def update_turn_label(self):
+            pid = self.game.current_player
+            self.lbl_turn.setText(f"Am Zug: {PLAYER_NAMES[pid]}")
+            col = PLAYER_COLORS[pid]
+            self.lbl_turn.setStyleSheet(f"font-weight: bold; color: rgb({col.red()}, {col.green()}, {col.blue()});")
+
+        def on_roll(self):
+            if self.game.die is not None:
+                return
+            d = self.game.roll_die()
+            self.lbl_die.setText(f"Würfel: {d}")
+            moves = self.game.valid_moves(self.game.current_player, d)
+            if not moves:
+                # Keine Züge -> Nächster Spieler
+                QMessageBox.information(self, "Kein Zug", "Keine gültigen Züge. Zug wird übersprungen.")
+                self.game.next_player()
+                self.lbl_die.setText("Würfel: –")
+                self.update_turn_label()
+                return
+            # Falls nur eine Option existiert, automatisch ziehen
+            # Eindeutig nach Objektidentität (Token ist nicht hashbar)
+            seen_ids = set()
+            tokens_with_moves = []
+            for t, _, _ in moves:
+                if id(t) not in seen_ids:
+                    seen_ids.add(id(t))
+                    tokens_with_moves.append(t)
+            self.board_view.highlight_tokens(tokens_with_moves)
+            if len(tokens_with_moves) == 1:
+                self.apply_best_for_token(tokens_with_moves[0], moves)
+
+        def token_moves(self, token: Token) -> List[Tuple[Token, str, int]]:
+            return [m for m in self.game.valid_moves(self.game.current_player, self.game.die or 0) if m[0] is token]
+
+        def apply_best_for_token(self, token: Token, all_moves: Optional[List[Tuple[Token, str, int]]] = None):
+            if all_moves is None:
+                all_moves = self.game.valid_moves(self.game.current_player, self.game.die or 0)
+            options = [m for m in all_moves if m[0] is token]
+            if not options:
+                return
+            # Simple Heuristik: priorisiere Schlagen > ins Ziel > aus dem Haus > normal
+            def score(m):
+                kind = m[1]
+                if kind == "move":
+                    target = m[2]
+                    enemy_here = [t for t in self.game.players for t in t.tokens if t.is_on_main() and t.index_main == target and t.player != token.player]
+                    return 3 if enemy_here else 1
+                return {"to_home": 4, "enter": 2, "home": 2}.get(kind, 0)
+            best = max(options, key=score)
+            self.execute_move(best)
+
+        def on_token_clicked(self, token: Token):
+            if self.game.die is None:
+                return
+            if token.player != self.game.current_player:
+                return
+            moves = self.token_moves(token)
+            if not moves:
+                return
+            if len(moves) == 1:
+                self.execute_move(moves[0])
+            else:
+                # Bei mehreren Optionen nimm unsere Heuristik
+                self.apply_best_for_token(token, all_moves=self.game.valid_moves(self.game.current_player, self.game.die or 0))
+
+        def execute_move(self, move: Tuple[Token, str, int]):
+            token, kind, target = move
+            extra, beaten = self.game.apply_move(token, kind, target)
+            self.board_view.clear_highlights()
+            self.board_view.refresh()
+
+            # Sieg prüfen
+            if self.game.players[token.player].all_home():
+                QMessageBox.information(self, "Spielende", f"{PLAYER_NAMES[token.player]} hat gewonnen!")
+                self.close()
+                return
+
+            # Nächster
+            self.game.next_player()
+            self.lbl_die.setText("Würfel: –")
+            self.update_turn_label()
+    
+    # ------------------ Sudoku-Logik und Solver ------------------
+    class Sudoku:
+        def __init__(self, seed=None):
+            if seed is not None:
+                random.seed(seed)
+            self.solution = [[0]*9 for _ in range(9)]
+            self.puzzle = [[0]*9 for _ in range(9)]
+
+        # Vollständiges Board generieren (Backtracking)
+        def generate_full(self):
+            self.solution = [[0]*9 for _ in range(9)]
+            nums = list(range(1, 10))
+
+            def valid(r, c, n, grid):
+                br, bc = (r//3)*3, (c//3)*3
+                if any(grid[r][x] == n for x in range(9)): return False
+                if any(grid[y][c] == n for y in range(9)): return False
+                for rr in range(br, br+3):
+                    for cc in range(bc, bc+3):
+                        if grid[rr][cc] == n:
+                            return False
+                return True
+
+            def backtrack(pos=0):
+                if pos == 81:
+                    return True
+                r, c = divmod(pos, 9)
+                if self.solution[r][c] != 0:
+                    return backtrack(pos+1)
+                random.shuffle(nums)
+                for n in nums:
+                    if valid(r, c, n, self.solution):
+                        self.solution[r][c] = n
+                        if backtrack(pos+1):
+                            return True
+                        self.solution[r][c] = 0
+                return False
+
+            # Beschleunigung: zufällige erste Zeile
+            base = list(range(1, 10))
+            random.shuffle(base)
+            self.solution[0] = base[:]
+            backtrack(1)
+
+        # Zählt Lösungen (bis max 2), um Eindeutigkeit zu prüfen
+        @staticmethod
+        def count_solutions(board, limit=2):
+            grid = [row[:] for row in board]
+            nums = list(range(1, 10))
+
+            # Finde nächstes leeres Feld (heuristik: mit min. Kandidaten)
+            def find_empty_with_fewest():
+                best = None
+                best_len = 10
+                best_cands = []
+                for r in range(9):
+                    for c in range(9):
+                        if grid[r][c] == 0:
+                            cands = []
+                            for n in nums:
+                                if Sudoku.is_valid_move(grid, r, c, n):
+                                    cands.append(n)
+                            if not cands:
+                                return (r, c, [])  # Sackgasse
+                            if len(cands) < best_len:
+                                best = (r, c)
+                                best_len = len(cands)
+                                best_cands = cands
+                                if best_len == 1:
+                                    return (r, c, best_cands)
+                if best is None:
+                    return None  # voll
+                return (*best, best_cands)
+
+            count = 0
+
+            def backtrack():
+                nonlocal count
+                if count >= limit:
+                    return
+                step = find_empty_with_fewest()
+                if step is None:
+                    count += 1
+                    return
+                r, c, cands = step
+                if not cands:
+                    return
+                # kleine Zufallsstreuung
+                random.shuffle(cands)
+                for n in cands:
+                    grid[r][c] = n
+                    backtrack()
+                    if count >= limit:
+                        grid[r][c] = 0
+                        return
+                    grid[r][c] = 0
+
+            backtrack()
+            return count
+
+        @staticmethod
+        def is_valid_move(board, r, c, n):
+            if n == 0:
+                return True
+            # Zeile/Spalte
+            for i in range(9):
+                if i != c and board[r][i] == n:
+                    return False
+                if i != r and board[i][c] == n:
+                    return False
+            # Block
+            br, bc = (r//3)*3, (c//3)*3
+            for rr in range(br, br+3):
+                for cc in range(bc, bc+3):
+                    if (rr, cc) != (r, c) and board[rr][cc] == n:
+                        return False
+            return True
+
+        @staticmethod
+        def is_complete_and_correct(board, solution):
+            return all(board[r][c] == solution[r][c] for r in range(9) for c in range(9))
+
+        def make_unique_puzzle(self, level):
+            """Generiert Puzzle mit **eindeutiger** Lösung. Level 1-100 steuert Anzahl der leeren Felder."""
+            self.generate_full()
+            full = [row[:] for row in self.solution]
+            grid = [row[:] for row in full]
+
+            # Zielanzahl "Löcher" aus Level ableiten (wie zuvor, aber nur grobe Zielgröße)
+            empty_min, empty_max = 35, 59  # 46..22 Hinweise
+            target_holes = int(empty_min + (empty_max - empty_min) * (level - 1) / 99.0)
+            target_holes = max(empty_min, min(empty_max, target_holes))
+
+            positions = [(r, c) for r in range(9) for c in range(9)]
+            random.shuffle(positions)
+
+            removed = 0
+            for (r, c) in positions:
+                if removed >= target_holes:
+                    break
+                if grid[r][c] == 0:
+                    continue
+
+                # Symmetrisches Entfernen (optional)
+                r2, c2 = 8 - r, 8 - c
+                saved1 = grid[r][c]
+                saved2 = grid[r2][c2]
+                grid[r][c] = 0
+                if (r2, c2) != (r, c):
+                    grid[r2][c2] = 0
+
+                # Prüfe Eindeutigkeit
+                sol_count = Sudoku.count_solutions(grid, limit=2)
+                if sol_count != 1:
+                    # Rückgängig machen
+                    grid[r][c] = saved1
+                    if (r2, c2) != (r, c):
+                        grid[r2][c2] = saved2
+                else:
+                    if (r2, c2) != (r, c):
+                        removed += 2
+                    else:
+                        removed += 1
+
+            # Falls wegen Eindeutigkeits-Constraint nicht genug Löcher möglich, akzeptieren wir weniger.
+            self.puzzle = grid
+
+
+    # ------------------ Highscore-Handling ------------------
+    def load_highscores(path=HIGHSCORE_PATH):
+        if not path.exists():
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+
+    def save_highscores(data, path=HIGHSCORE_PATH):
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            return False
+
+
+    # ------------------ GUI ------------------
+    class SudokuWindow(QWidget):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Sudoku (PyQt5) – Eindeutige Lösung, Undo/Redo, Hinweise & Highscore")
+            self.setMinimumSize(900, 620)
+
+            self.sudoku = Sudoku()
+            self.level = 1
+            self.selected = None  # (r, c)
+
+            self.board_btns = [[None]*9 for _ in range(9)]
+            self.current_board = [[0]*9 for _ in range(9)]
+            self.given_mask = [[False]*9 for _ in range(9)]
+
+            # Undo/Redo-Stacks: Einträge = (r, c, alt, neu)
+            self.undo_stack = []
+            self.redo_stack = []
+
+            # Timer / Stats
+            self.timer = QTimer(self)
+            self.timer.setInterval(1000)
+            self.timer.timeout.connect(self._tick)
+            self.elapsed_seconds = 0
+            self.hints_used = 0
+            self.game_active = False
+
+            self._build_ui()
+            self.new_game()
+
+        # ---------- UI-Aufbau ----------
+        def _build_ui(self):
+            ui_bold_font = QFont("Arial", 11, QFont.Bold)
+            
+            root = QHBoxLayout(self)
+            root.setContentsMargins(12, 12, 12, 12)
+            root.setSpacing(12)
+
+            # Linke Seitenleiste
+            side = QVBoxLayout()
+            side.setSpacing(8)
+
+            # Kopfzeile: Level, Neues Spiel
+            header = QHBoxLayout()
+            level_lbl = QLabel("Level:")
+            level_lbl.setFont(ui_bold_font)
+            header.addWidget(level_lbl)
+            
+            self.level_spin = QSpinBox()
+            self.level_spin.setRange(1, 100)
+            self.level_spin.setValue(1)
+            self.level_spin.setToolTip("1 = leicht, 100 = schwer")
+            self.level_spin.setFont(ui_bold_font)
+            self.level_spin.valueChanged.connect(lambda v: setattr(self, "level", v))
+            
+            new_btn = QPushButton("Neues Spiel")
+            new_btn.setFont(ui_bold_font)
+            new_btn.clicked.connect(self.new_game)
+            
+            header.addWidget(self.level_spin)
+            header.addWidget(new_btn)
+            header.addStretch(1)
+            side.addLayout(header)
+
+            # Timer / Info
+            info_row = QHBoxLayout()
+            self.time_lbl = QLabel("Zeit: 00:00"); self.time_lbl.setFont(ui_bold_font)
+            self.hint_lbl = QLabel("Hinweise: 0"); self.hint_lbl.setFont(ui_bold_font)
+            
+            info_row.addWidget(self.time_lbl)
+            info_row.addWidget(self.hint_lbl)
+            
+            info_row.addStretch(1)
+            side.addLayout(info_row)
+
+            # Linien
+            side.addWidget(self._hline())
+
+            # Zahlen-Pad (3x3 Grid)
+            zlbl = QLabel("Zahlen:")
+            zlbl.setFont(ui_bold_font)
+            side.addWidget(zlbl)
+            
+            self.num_buttons = []
+            num_grid = QGridLayout()
+            num_grid.setSpacing(6)
+            
+            for n in range(1, 10):
+                btn = QPushButton(str(n))
+                # Buttons sollen schön mitwachsen
+                btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                btn.setMinimumSize(40, 40)
+                btn.setFont(ui_bold_font)
+                btn.clicked.connect(lambda _, x=n: self._place_number(x))
+                self.num_buttons.append(btn)
+                r = (n - 1) // 3
+                c = (n - 1) % 3
+                num_grid.addWidget(btn, r, c)
+            
+            side.addLayout(num_grid)
+            
+            clear_btn = QPushButton("Löschen")
+            clear_btn.setMinimumHeight(34)
+            clear_btn.setFont(ui_bold_font)
+            clear_btn.clicked.connect(lambda: self._place_number(0))
+            side.addWidget(clear_btn)
+            
+            side.addSpacing(6)
+            side.addWidget(self._hline())
+
+            # Aktionen: Hinweis / Undo / Redo / Highscores
+            actions = QVBoxLayout()
+            hint_btn = QPushButton("Hinweis")
+            hint_btn.setFont(ui_bold_font)  
+            hint_btn.clicked.connect(self._hint)
+
+            undo_btn = QPushButton("Rückgängig")
+            undo_btn.setFont(ui_bold_font)  
+            undo_btn.clicked.connect(self._undo)
+
+            redo_btn = QPushButton("Wiederholen")
+            redo_btn.setFont(ui_bold_font)  
+            redo_btn.clicked.connect(self._redo)
+
+            highs_btn = QPushButton("Highscores anzeigen")
+            highs_btn.setFont(ui_bold_font)  
+            highs_btn.clicked.connect(self._show_highscores)
+
+            export_btn = QPushButton("Highscores exportieren…")
+            export_btn.setFont(ui_bold_font)  
+            export_btn.clicked.connect(self._export_highscores)
+
+            for w in (hint_btn, undo_btn, redo_btn, highs_btn, export_btn):
+                w.setFixedHeight(32)
+                actions.addWidget(w)
+
+            actions.addStretch(1)
+            side.addLayout(actions)
+
+            root.addLayout(side, 0)
+
+            # Spielfeld (rechts)
+            board_container = QVBoxLayout()
+            board_container.setSpacing(6)
+            title = QLabel("Spielfeld:")
+            title.setFont(ui_bold_font)
+            board_container.addWidget(title)
+
+            grid = QGridLayout()
+            grid.setSpacing(0)
+
+            font = QFont()
+            font.setPointSize(16)
+            font.setBold(True)
+
+            for r in range(9):
+                for c in range(9):
+                    btn = QPushButton("")
+                    btn.setCheckable(True)
+                    btn.setAutoExclusive(True)
+                    btn.setFont(font)
+                    btn.setFixedSize(56, 56)
+                    btn.clicked.connect(lambda _, rr=r, cc=c: self._select_cell(rr, cc))
+                    self._style_cell_border(btn, r, c)
+                    grid.addWidget(btn, r, c)
+                    self.board_btns[r][c] = btn
+
+            board_container.addLayout(grid)
+            board_container.addStretch(1)
+            root.addLayout(board_container, 1)
+
+        def _hline(self):
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            return line
+
+        def _style_cell_border(self, btn, r, c):
+            t = 3 if r % 3 == 0 else 1
+            b = 3 if r % 3 == 2 else 1
+            l = 3 if c % 3 == 0 else 1
+            rgt = 3 if c % 3 == 2 else 1
+            style = (
+                f"QPushButton {{"
+                f"  border-top: {t}px solid #333;"
+                f"  border-bottom: {b}px solid #333;"
+                f"  border-left: {l}px solid #333;"
+                f"  border-right: {rgt}px solid #333;"
+                f"  background: #fafafa;"
+                f"}}"
+                f"QPushButton:checked {{"
+                f"  background: #d7ebff;"
+                f"}}"
+            )
+            btn.setStyleSheet(style)
+
+        # ---------- Spielsteuerung ----------
+        def new_game(self):
+            self.sudoku.make_unique_puzzle(self.level)
+            self.current_board = [row[:] for row in self.sudoku.puzzle]
+            self.given_mask = [[self.sudoku.puzzle[r][c] != 0 for c in range(9)] for r in range(9)]
+            self.selected = None
+            self.undo_stack.clear()
+            self.redo_stack.clear()
+            self.hints_used = 0
+            self.elapsed_seconds = 0
+            self._update_status_labels()
+            self._refresh_board_ui()
+            self.game_active = False  # startet bei erster Eingabe
+            self.timer.stop()
+
+        def _refresh_board_ui(self):
+            for r in range(9):
+                for c in range(9):
+                    btn = self.board_btns[r][c]
+                    val = self.current_board[r][c]
+                    given = self.given_mask[r][c]
+                    btn.setChecked(False)
+                    btn.setText("" if val == 0 else str(val))
+                    if given:
+                        btn.setEnabled(False)
+                        self._style_cell_border(btn, r, c)
+                        btn.setStyleSheet(btn.styleSheet() + " QPushButton{ color:#111; background:#f0f0f0; } QPushButton:checked{ background:#d7ebff; }")
+                    else:
+                        btn.setEnabled(True)
+                        self._style_cell_border(btn, r, c)
+                        btn.setStyleSheet(btn.styleSheet() + " QPushButton{ color:#0a0a0a; } QPushButton:checked{ background:#d7ebff; }")
+            self._recolor_conflicts()
+
+        def _select_cell(self, r, c):
+            if not self.given_mask[r][c]:
+                self.selected = (r, c)
+            else:
+                self.selected = None
+
+        def _start_timer_if_needed(self):
+            if not self.game_active:
+                self.game_active = True
+                self.timer.start()
+
+        def _tick(self):
+            self.elapsed_seconds += 1
+            self._update_status_labels()
+
+        def _update_status_labels(self):
+            m, s = divmod(self.elapsed_seconds, 60)
+            self.time_lbl.setText(f"Zeit: {m:02d}:{s:02d}")
+            self.hint_lbl.setText(f"Hinweise: {self.hints_used}")
+
+        # ---------- Eingaben / Undo / Redo ----------
+        def _place_number(self, n):
+            if not self.selected:
+                return
+            r, c = self.selected
+            if self.given_mask[r][c]:
+                return
+            old = self.current_board[r][c]
+            if old == n:
+                return
+            self._start_timer_if_needed()
+            self.current_board[r][c] = n
+            self.board_btns[r][c].setText("" if n == 0 else str(n))
+            # Stack aktualisieren
+            self.undo_stack.append((r, c, old, n))
+            self.redo_stack.clear()
+            self._recolor_conflicts()
+            self._check_win()
+
+        def _undo(self):
+            if not self.undo_stack:
+                return
+            r, c, old, new = self.undo_stack.pop()
+            self.current_board[r][c] = old
+            self.board_btns[r][c].setText("" if old == 0 else str(old))
+            self.redo_stack.append((r, c, old, new))
+            self._recolor_conflicts()
+
+        def _redo(self):
+            if not self.redo_stack:
+                return
+            r, c, old, new = self.redo_stack.pop()
+            self.current_board[r][c] = new
+            self.board_btns[r][c].setText("" if new == 0 else str(new))
+            self.undo_stack.append((r, c, old, new))
+            self._recolor_conflicts()
+            self._check_win()
+
+        # ---------- Hinweise ----------
+        def _hint(self):
+            # Hinweis nur, wenn Zelle ausgewählt + nicht Vorgabe
+            if not self.selected:
+                QMessageBox.information(self, "Hinweis", "Bitte zuerst eine leere Zelle auswählen.")
+                return
+            r, c = self.selected
+            if self.given_mask[r][c]:
+                return
+            correct = self.sudoku.solution[r][c]
+            old = self.current_board[r][c]
+            if old == correct:
+                return
+            self._start_timer_if_needed()
+            self.current_board[r][c] = correct
+            self.board_btns[r][c].setText(str(correct))
+            self.hints_used += 1
+            self._update_status_labels()
+            # Undo/Redo registrieren
+            self.undo_stack.append((r, c, old, correct))
+            self.redo_stack.clear()
+            self._recolor_conflicts()
+            self._check_win()
+
+        # ---------- Darstellung Konflikte ----------
+        def _recolor_conflicts(self):
+            for r in range(9):
+                for c in range(9):
+                    btn = self.board_btns[r][c]
+                    val = self.current_board[r][c]
+                    given = self.given_mask[r][c]
+                    base = "#111" if given else "#0a0a0a"
+                    color = base
+                    if val != 0:
+                        saved = self.current_board[r][c]
+                        self.current_board[r][c] = 0
+                        ok = Sudoku.is_valid_move(self.current_board, r, c, saved)
+                        self.current_board[r][c] = saved
+                        if not ok:
+                            color = "#c01616"
+                    self._style_cell_border(btn, r, c)
+                    btn.setStyleSheet(btn.styleSheet() + f" QPushButton{{ color:{color}; }} QPushButton:checked{{ background:#d7ebff; }}")
+
+        # ---------- Siegprüfung / Scoring / Highscores ----------
+        def _check_win(self):
+            if all(self.current_board[r][c] != 0 for r in range(9) for c in range(9)):
+                if Sudoku.is_complete_and_correct(self.current_board, self.sudoku.solution):
+                    self.timer.stop()
+                    self.game_active = False
+                    score = self._compute_score(self.level, self.elapsed_seconds, self.hints_used)
+                    m, s = divmod(self.elapsed_seconds, 60)
+                    # Name erfragen
+                    name, ok = QInputDialog.getText(self, "Geschafft!", 
+                        f"Glückwunsch! Sudoku korrekt gelöst.\nZeit: {m:02d}:{s:02d}\nHinweise: {self.hints_used}\nPunkte: {score}\n\nDein Name für die Highscore-Liste?")
+                    if ok:
+                        self._store_highscore(name.strip() or "Anonym", score)
+                    else:
+                        # trotzdem speichern als "Anonym"
+                        self._store_highscore("Anonym", score)
+                    QMessageBox.information(self, "Ergebnis", f"Zeit: {m:02d}:{s:02d}\nHinweise: {self.hints_used}\nPunkte: {score}")
+                # sonst: voll aber falsch -> nichts, Konfliktfärbung zeigt Fehler
+
+        def _compute_score(self, level, seconds, hints):
+            # Beispiel-Formel:
+            # Basis wächst mit Level; Zeitabzug; starker Hinweisabzug
+            base = 800 + level * 25
+            time_penalty = int(seconds * 1.2)  # 1.2 Punkte je Sekunde
+            hint_penalty = hints * 150         # 150 Punkte je Hinweis
+            score = max(0, base - time_penalty - hint_penalty)
+            return score
+
+        def _store_highscore(self, name, score):
+            entry = {
+                "name": name,
+                "date": QDateTime.currentDateTime().toString(Qt.ISODate),
+                "level": int(self.level),
+                "seconds": int(self.elapsed_seconds),
+                "hints": int(self.hints_used),
+                "score": int(score)
+            }
+            data = load_highscores()
+            data.append(entry)
+            # Sortierung: zuerst Score absteigend, dann Zeit aufsteigend
+            data.sort(key=lambda e: (-e["score"], e["seconds"]))
+            # Kürzen
+            if len(data) > MAX_HIGHSCORES:
+                data = data[:MAX_HIGHSCORES]
+            ok = save_highscores(data)
+            if not ok:
+                QMessageBox.warning(self, "Fehler", f"Konnte Highscores nicht speichern: {HIGHSCORE_PATH}")
+
+        def _show_highscores(self):
+            data = load_highscores()
+            dlg = QDialog(self)
+            dlg.setWindowTitle("Highscores")
+            dlg.resize(600, 420)
+            layout = QVBoxLayout(dlg)
+
+            tbl = QTableWidget(dlg)
+            tbl.setColumnCount(6)
+            tbl.setHorizontalHeaderLabels(["Name", "Datum", "Level", "Zeit", "Hinweise", "Punkte"])
+            tbl.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            tbl.setRowCount(len(data))
+
+            for i, e in enumerate(data):
+                m, s = divmod(int(e.get("seconds", 0)), 60)
+                row = [
+                    e.get("name", ""),
+                    e.get("date", ""),
+                    str(e.get("level", "")),
+                    f"{m:02d}:{s:02d}",
+                    str(e.get("hints", 0)),
+                    str(e.get("score", 0)),
+                ]
+                for j, val in enumerate(row):
+                    item = QTableWidgetItem(val)
+                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                    tbl.setItem(i, j, item)
+
+            layout.addWidget(tbl)
+
+            # Buttons unten
+            btn_row = QHBoxLayout()
+            close_btn = QPushButton("Schließen")
+            close_btn.clicked.connect(dlg.accept)
+            btn_row.addStretch(1)
+            btn_row.addWidget(close_btn)
+            layout.addLayout(btn_row)
+
+            dlg.exec_()
+
+        def _export_highscores(self):
+            data = load_highscores()
+            if not data:
+                QMessageBox.information(self, "Export", "Keine Highscores vorhanden.")
+                return
+            fn, _ = QFileDialog.getSaveFileName(self, "Highscores exportieren", "highscores.json", "JSON (*.json)")
+            if not fn:
+                return
+            try:
+                with open(fn, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                QMessageBox.information(self, "Export", f"Highscores exportiert nach:\n{fn}")
+            except Exception as e:
+                QMessageBox.warning(self, "Export-Fehler", str(e))
+
+    class HalmaGameState(QObject):
+        state_changed = pyqtSignal()
+
+        def __init__(self, n=8, tri_size=4, parent=None):
+            super().__init__(parent)
+            self.n = n
+            self.tri_size = tri_size
+            self.camp_A = set(make_triangle_coords(n, tri_size))
+            self.camp_B = set((n - 1 - x, n - 1 - y) for (x, y) in self.camp_A)
+            self.board = [[PLAYER_NONE for _ in range(n)] for _ in range(n)]
+            for (x, y) in self.camp_A:
+                self.board[y][x] = PLAYER_A
+            for (x, y) in self.camp_B:
+                self.board[y][x] = PLAYER_B
+            self.to_move = PLAYER_A
+            self.selected = None
+            self.legal_targets = set()
+
+        # --- Board helpers ---
+        def piece_at(self, pos):
+            x, y = pos
+            return self.board[y][x]
+
+        def set_piece(self, pos, val):
+            x, y = pos
+            self.board[y][x] = val
+
+        def reset_selection(self):
+            self.selected = None
+            self.legal_targets = set()
+            self.state_changed.emit()
+
+        def is_win(self, player):
+            camp_target = self.camp_B if player == PLAYER_A else self.camp_A
+            for (x, y) in camp_target:
+                if self.board[y][x] != player:
+                    return False
+            return True
+
+        # --- Move generation ---
+        def simple_steps(self, pos):
+            x0, y0 = pos
+            res = set()
+            for dx, dy in DIRS:
+                x, y = x0 + dx, y0 + dy
+                if in_bounds(x, y, self.n) and self.board[y][x] == PLAYER_NONE:
+                    res.add((x, y))
+            return res
+
+        def jump_targets_from(self, start):
+            visited = set()
+            results = set()
+            def dfs(p):
+                visited.add(p)
+                x0, y0 = p
+                for dx, dy in DIRS:
+                    xm, ym = x0 + dx, y0 + dy
+                    x2, y2 = x0 + 2*dx, y0 + 2*dy
+                    if not in_bounds(x2, y2, self.n) or not in_bounds(xm, ym, self.n):
+                        continue
+                    if self.board[ym][xm] in (PLAYER_A, PLAYER_B) and self.board[y2][x2] == PLAYER_NONE:
+                        if (x2, y2) not in results:
+                            results.add((x2, y2))
+                        if (x2, y2) not in visited:
+                            dfs((x2, y2))
+            dfs(start)
+            results.discard(start)
+            return results
+
+        def compute_legal_targets(self, pos):
+            if self.piece_at(pos) != self.to_move:
+                return set()
+            return self.simple_steps(pos) | self.jump_targets_from(pos)
+
+        def all_moves_for(self, player):
+            """Liste aller legalen (src, dst)-Züge für 'player' im aktuellen Zustand."""
+            moves = []
+            save_to_move = self.to_move
+            self.to_move = player  # für compute_legal_targets
+            for y in range(self.n):
+                for x in range(self.n):
+                    if self.board[y][x] == player:
+                        src = (x, y)
+                        for dst in self.simple_steps(src) | self.jump_targets_from(src):
+                            moves.append((src, dst))
+            self.to_move = save_to_move
+            return moves
+
+        # --- Interaction ---
+        def try_select(self, pos):
+            if not in_bounds(pos[0], pos[1], self.n):
+                return
+            if self.piece_at(pos) == self.to_move:
+                self.selected = pos
+                self.legal_targets = self.compute_legal_targets(pos)
+                self.state_changed.emit()
+
+        def try_move(self, target):
+            if self.selected is None:
+                return False
+            if target not in self.legal_targets:
+                return False
+            src = self.selected
+            moving = self.piece_at(src)
+            self.set_piece(src, PLAYER_NONE)
+            self.set_piece(target, moving)
+            self.selected = None
+            self.legal_targets = set()
+            self.to_move = PLAYER_B if self.to_move == PLAYER_A else PLAYER_A
+            self.state_changed.emit()
+            return True
+
+        # --- Simulation (für KI) ---
+        def simulate_after(self, src, dst):
+            """Erzeuge einen simulierten Zustand nach (src->dst) ohne deepcopy/QObject-Pickling."""
+            # Neues HalmaGameState-Gerüst mit identischen Parametern
+            new_state = HalmaGameState(n=self.n, tri_size=self.tri_size)
+
+            # Aktuelles Board kopieren (flache Kopie pro Zeile reicht)
+            new_state.board = [row[:] for row in self.board]
+
+            # Zugrecht übernehmen
+            new_state.to_move = self.to_move
+
+            # Auswahl/Targets leeren (nicht relevant in der Simulation)
+            new_state.selected = None
+            new_state.legal_targets = set()
+
+            # Zug anwenden
+            moving = new_state.piece_at(src)
+            new_state.set_piece(src, PLAYER_NONE)
+            new_state.set_piece(dst, moving)
+
+            # Spielerwechsel
+            new_state.to_move = PLAYER_B if self.to_move == PLAYER_A else PLAYER_A
+
+            return new_state
+
+        # --- Heuristik ---
+        def camp_of(self, player):
+            return self.camp_A if player == PLAYER_A else self.camp_B
+
+        def target_camp_of(self, player):
+            return self.camp_B if player == PLAYER_A else self.camp_A
+
+        def manhattan(self, a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+        def naive_goal_pos(self, player):
+            """Ein fester Zielpunkt (Eckpunkt des Zielcamps) für grobe Distanz."""
+            return (self.n - 1, self.n - 1) if player == PLAYER_A else (0, 0)
+
+        def distance_sum_to_goal(self, player):
+            """Summe der Manhattan-Distanzen aller Steine zu einem Eckziel.
+            Schnell, grob, funktioniert vernünftig als greedy-Heuristik.
+            """
+            goal = self.naive_goal_pos(player)
+            total = 0
+            for y in range(self.n):
+                for x in range(self.n):
+                    if self.board[y][x] == player:
+                        total += self.manhattan((x, y), goal)
+            # Bonus für Steine, die schon im Zielcamp sind (kleiner machen ist besser)
+            in_target = sum(1 for (x, y) in self.target_camp_of(player) if self.board[y][x] == player)
+            return total - in_target * 0.5  # leichter Anreiz, das Camp zu füllen
+
+    class BoardWidget(QWidget):
+        square_clicked = pyqtSignal(tuple)   # (x, y)
+
+        def __init__(self, game: HalmaGameState, parent=None):
+            super().__init__(parent)
+            self.game = game
+            self.setMinimumSize(520, 520)
+            self.setMouseTracking(True)
+            self.hover_cell = None
+            self.game.state_changed.connect(self.update)
+
+        def sizeHint(self):
+            return QSize(560, 560)
+
+        def mouseMoveEvent(self, event: QMouseEvent):
+            cell = self._pos_to_cell(event.pos())
+            if cell != self.hover_cell:
+                self.hover_cell = cell
+                self.update()
+
+        def leaveEvent(self, _):
+            self.hover_cell = None
+            self.update()
+
+        def mousePressEvent(self, event: QMouseEvent):
+            if event.button() == Qt.LeftButton:
+                cell = self._pos_to_cell(event.pos())
+                if cell and in_bounds(cell[0], cell[1], self.game.n):
+                    self.square_clicked.emit(cell)
+
+        def _pos_to_cell(self, pos: QPoint):
+            n = self.game.n
+            w = self.width()
+            h = self.height()
+            size = min(w, h)
+            offx = (w - size) // 2
+            offy = (h - size) // 2
+            cell = size / n
+            x = int((pos.x() - offx) // cell)
+            y = int((pos.y() - offy) // cell)
+            if 0 <= x < n and 0 <= y < n:
+                return (x, y)
+            return None
+
+        def paintEvent(self, _):
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+
+            n = self.game.n
+            w = self.width()
+            h = self.height()
+            
+            size = min(w, h)
+            offx = (w - size) // 2
+            offy = (h - size) // 2
+            cell = size / n
+
+            painter.fillRect(self.rect(), QtGui.QColor("#2B2B2B"))
+
+            def draw_camp(coords, color):
+                brush = QBrush(QtGui.QColor(color))
+                for (x, y) in coords:
+                    painter.fillRect(QRectF(offx + x*cell, offy + y*cell, cell, cell), brush)
+
+            draw_camp(self.game.camp_A, "#334455")
+            draw_camp(self.game.camp_B, "#553333")
+
+            pen_grid = QPen(QColor("#888"))
+            pen_grid.setWidth(1)
+            painter.setPen(pen_grid)
+            for i in range(n + 1):
+                y = int(offy + i * cell)
+                painter.drawLine(int(offx), y, int(offx + size), y)
+                x = int(offx + i * cell)
+                painter.drawLine(x, int(offy), x, int(offy + size))
+
+            if self.game.selected:
+                painter.setBrush(QColor(70, 160, 90, 140))
+                painter.setPen(Qt.NoPen)
+                for (x, y) in self.game.legal_targets:
+                    r = QtCore.QRectF(offx + x*cell+cell*0.15, offy + y*cell+cell*0.15, cell*0.7, cell*0.7)
+                    painter.drawEllipse(r)
+
+            if self.hover_cell and in_bounds(self.hover_cell[0], self.hover_cell[1], n):
+                painter.setPen(QPen(QtGui.QColor("#DDD")))
+                painter.setBrush(Qt.NoBrush)
+                x, y = self.hover_cell
+                painter.drawRect(QRectF(offx + x*cell, offy + y*cell, cell, cell))
+
+            if self.game.selected:
+                painter.setPen(QPen(QColor("#FFD54F"), 3))
+                sx, sy = self.game.selected
+                painter.drawRect(QRectF(offx + sx*cell, offy + sy*cell, cell, cell))
+
+            for y in range(n):
+                for x in range(n):
+                    p = self.game.board[y][x]
+                    if p != PLAYER_NONE:
+                        if p == PLAYER_A:
+                            color = QColor("#4FC3F7")
+                            edge  = QColor("#01579B")
+                        else:
+                            color = QColor("#EF9A9A")
+                            edge  = QColor("#B71C1C")
+                        cx = offx + (x + 0.5)*cell
+                        cy = offy + (y + 0.5)*cell
+                        r = cell * 0.35
+                        painter.setBrush(QBrush(color))
+                        painter.setPen(QPen(edge, 2))
+                        painter.drawEllipse(QPointF(cx, cy), r, r)
+    
+    class HalmaMainWindow(QMainWindow):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Halma – PyQt5 + KI")
+            self.game = HalmaGameState(n=8, tri_size=4)
+            self.board = BoardWidget(self.game)
+            self.setCentralWidget(self.board)
+            
+            self.ai_enabled = False  # Togglebar steuert das
+            self.ai_player = PLAYER_B
+            
+            self.status = self.statusBar()
+            self._update_status()
+
+            self.board.square_clicked.connect(self.on_square_clicked)
+            self.game.state_changed.connect(self._update_status)
+            
+            self._make_toolbar()
+
+            self.resize(720, 760)
+            self.show()
+
+        def _make_toolbar(self):
+            tb = QToolBar("Aktionen")
+            self.addToolBar(tb)
+
+            new_act = QAction("Neu", self)
+            new_act.triggered.connect(self.new_game)
+            tb.addAction(new_act)
+
+            swap_act = QAction("Tausch Seiten", self)
+            swap_act.triggered.connect(self.swap_sides)
+            tb.addAction(swap_act)
+
+            rules_act = QAction("Regeln", self)
+            rules_act.triggered.connect(self.show_rules)
+            tb.addAction(rules_act)
+
+            tb.addSeparator()
+            self.ai_act = QAction("KI an/aus (Rot)", self)
+            self.ai_act.setCheckable(True)
+            self.ai_act.toggled.connect(self.toggle_ai)
+            tb.addAction(self.ai_act)
+
+            step_ai = QAction("KI-Zug jetzt", self)
+            step_ai.triggered.connect(self.ai_make_move)
+            tb.addAction(step_ai)
+
+        def new_game(self):
+            self.game = HalmaGameState(n=8, tri_size=4)
+            self.board.game = self.game
+            self.game.state_changed.connect(self.board.update)
+            self.game.state_changed.connect(self._update_status)
+            self.board.update()
+            self._update_status()
+
+        def swap_sides(self):
+            for y in range(self.game.n):
+                for x in range(self.game.n):
+                    p = self.game.board[y][x]
+                    if p == PLAYER_A:
+                        self.game.board[y][x] = PLAYER_B
+                    elif p == PLAYER_B:
+                        self.game.board[y][x] = PLAYER_A
+            self.game.to_move = PLAYER_A
+            self.game.reset_selection()
+
+        def show_rules(self):
+            QMessageBox.information(self, "Regeln", (
+                "Ziel: Bewege alle deine Steine ins gegenüberliegende Startdreieck.\n\n"
+                "Zugarten:\n"
+                "• Schritt: 1 Feld in eine der 8 Richtungen auf ein leeres Feld.\n"
+                "• Sprung: Über einen benachbarten Stein (egal welche Farbe) auf das direkt dahinter liegende freie Feld.\n"
+                "  Sprünge dürfen zu einer Kette kombiniert werden. Klicke dazu direkt das gewünschte Endfeld an –\n"
+                "  alle erreichbaren Endfelder einer Sprungkette werden grün markiert.\n\n"
+                "Spieler: Blau beginnt. Die optionale KI spielt Rot."
+            ))
+
+        def _update_status(self):
+            player = "Blau" if self.game.to_move == PLAYER_A else "Rot"
+            postfix = " (KI)" if self.ai_enabled and self.game.to_move == self.ai_player else ""
+            self.status.showMessage(f"Am Zug: {player}{postfix}")
+            if self.game.is_win(PLAYER_A):
+                QMessageBox.information(self, "Spielende", "Blau hat gewonnen!")
+                self.new_game()
+            elif self.game.is_win(PLAYER_B):
+                QMessageBox.information(self, "Spielende", "Rot hat gewonnen!")
+                self.new_game()
+
+        def on_square_clicked(self, cell):
+            if self.game.selected is None:
+                if self.game.piece_at(cell) == self.game.to_move:
+                    self.game.try_select(cell)
+                else:
+                    return
+            else:
+                if self.game.piece_at(cell) == self.game.to_move:
+                    self.game.try_select(cell)
+                    return
+                moved = self.game.try_move(cell)
+                if not moved:
+                    if self.game.piece_at(cell) != self.game.to_move:
+                        self.game.reset_selection()
+
+            # Wenn jetzt die KI dran ist und aktiviert wurde, Zug ausführen
+            if self.ai_enabled and self.game.to_move == self.ai_player:
+                QTimer.singleShot(200, self.ai_make_move)
+
+        def toggle_ai(self, checked):
+            self.ai_enabled = checked
+            # Wenn gerade die KI-Seite am Zug ist, sofort handeln
+            if self.ai_enabled and self.game.to_move == self.ai_player:
+                QTimer.singleShot(150, self.ai_make_move)
+
+        # ---------------- KI ----------------
+        def ai_make_move(self):
+            if not (self.ai_enabled and self.game.to_move == self.ai_player):
+                return
+
+            # Alle legalen Züge der KI
+            moves = self.game.all_moves_for(self.ai_player)
+            if not moves:
+                # Nichts möglich -> "passe"
+                self.game.to_move = PLAYER_A
+                self.game.state_changed.emit()
+                return
+
+            # Greedy-Auswahl: minimaler Heuristikwert im Nachzustand
+            best_score = float('inf')
+            best_moves = []
+            for (src, dst) in moves:
+                # Simulationszustand
+                sim = self.game.simulate_after(src, dst)
+                score = sim.distance_sum_to_goal(self.ai_player)
+
+                # leichte Bevorzugung von Sprüngen (schneller Fortschritt)
+                is_jump = max(abs(dst[0]-src[0]), abs(dst[1]-src[1])) == 2
+                if is_jump:
+                    score -= 0.25
+
+                if score < best_score - 1e-9:
+                    best_score = score
+                    best_moves = [(src, dst)]
+                elif abs(score - best_score) <= 1e-9:
+                    best_moves.append((src, dst))
+
+            # deterministische, aber simple Auswahl
+            src, dst = sorted(best_moves)[0]
+
+            # Auf dem echten Spiel ausführen (über try_move zur Validierung/Hervorhebung)
+            self.game.selected = src
+            self.game.legal_targets = self.game.simple_steps(src) | self.game.jump_targets_from(src)
+            if dst in self.game.legal_targets:
+                self.game.try_move(dst)
+            else:
+                # Fallback: sollte nicht passieren, aber zur Sicherheit
+                self.game.reset_selection()
+        # -------------- Ende KI -------------
+        
+        
+    def load_config(path: str = MIXER_CONFIG_PATH) -> dict:
+        if not os.path.exists(path):
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(MIXER_DEFAULT_CONFIG, f, indent=2, ensure_ascii=False)
+            return MIXER_DEFAULT_CONFIG.copy()
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    
+    def save_config(cfg: dict, path: str = CONFIG_PATH) -> None:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+    
+    @dataclass
+    class ChannelState:
+        index: int
+        volume: int = 50  # 0..100
+        envelope: str = "linear"
+        active_effects: List[str] = field(default_factory=list)
+        sample_path: Optional[str] = None
+        
+    # -------------------------- Equalizer Widget (LED-Matrix) --------------------------
+    class LEDMatrixEQ(QWidget):
+        def __init__(self, columns: int = 12, rows: int = 32, cfg: Optional[dict] = None, parent=None):
+            super().__init__(parent)
+            self.columns = columns
+            self.rows = rows
+            self.cfg = cfg or MIXER_DEFAULT_CONFIG
+            self.matrix = [[0.0 for _ in range(rows)] for _ in range(columns)]  # 0..1 Intensität
+            self.setMinimumHeight(200)
+            self.setMinimumWidth(120)
+            self._led_on = QColor(self.cfg["ui"].get("led_on", "#10b981"))
+            self._led_off = QColor(self.cfg["ui"].get("led_off", "#0b1220"))
+            self._grid_margin = 8
+            self._led_spacing = 2
+
+        def sizeHint(self) -> QSize:
+            return QSize(200, 240)
+
+        def set_column_levels(self, col: int, levels: List[float]):
+            if 0 <= col < self.columns and len(levels) == self.rows:
+                self.matrix[col] = [max(0.0, min(1.0, v)) for v in levels]
+                self.update()
+
+        def set_full_matrix(self, m: List[List[float]]):
+            if len(m) == self.columns and all(len(r) == self.rows for r in m):
+                self.matrix = [[max(0.0, min(1.0, v)) for v in col] for col in m]
+                self.update()
+
+        def paintEvent(self, event):
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+
+            w = self.width() - 2 * self._grid_margin
+            h = self.height() - 2 * self._grid_margin
+            col_w = w / self.columns
+            row_h = h / self.rows
+
+            for c in range(self.columns):
+                for r in range(self.rows):
+                    x = self._grid_margin + c * col_w + self._led_spacing
+                    y = self._grid_margin + (self.rows - 1 - r) * row_h + self._led_spacing
+                    rect = QRectF(x, y, col_w - 2 * self._led_spacing, row_h - 2 * self._led_spacing)
+                    val = self.matrix[c][r]
+                    color = QColor(self._led_off)
+                    if val > 0.02:
+                        color = QColor(self._led_on)
+                        color.setAlphaF(0.35 + 0.65 * float(val))
+                    painter.fillRect(rect, QBrush(color))
+
+            pen = QPen(QColor(0, 0, 0, 50))
+            pen.setWidthF(1.0)
+            painter.setPen(pen)
+            rect = QRectF(self.rect())
+            rect = rect.adjusted(0.5, 0.5, -0.5, -0.5)
+            painter.drawRect(rect)
+
+
+    # -------------------------- Kanal-Widget (Regler + Envelope + Effekte) --------------------------
+    class ChannelWidget(QWidget):
+        def __init__(self, state: ChannelState, cfg: dict, effects: List[str], parent=None):
+            super().__init__(parent)
+            self.state = state
+            self.cfg = cfg
+            self.effects = effects
+            self.effect_buttons: Dict[str, QToolButton] = {}
+
+            root = QVBoxLayout(self)
+            root.setContentsMargins(6, 6, 6, 6)
+            root.setSpacing(6)
+
+            title = QLabel(f"CH {state.index:02d}")
+            title.setAlignment(Qt.AlignHCenter)
+            title.setStyleSheet("font-weight:600; letter-spacing:0.5px;")
+            root.addWidget(title)
+
+            self.slider = QSlider(Qt.Vertical)
+            self.slider.setRange(0, 100)
+            self.slider.setValue(self.state.volume)
+            self.slider.setTickPosition(QSlider.TicksBothSides)
+            self.slider.setTickInterval(10)
+            self.slider.valueChanged.connect(self.on_volume_changed)
+            root.addWidget(self.slider, 1)
+
+            self.envelope = QComboBox()
+            self.envelope.addItems(self.cfg.get("envelopes", ["linear", "exponential", "s-curve"]))
+            if self.state.envelope in [self.envelope.itemText(i) for i in range(self.envelope.count())]:
+                self.envelope.setCurrentText(self.state.envelope)
+            self.envelope.currentTextChanged.connect(self.on_envelope_changed)
+            root.addWidget(self.envelope)
+
+            eff_box = QHBoxLayout()
+            eff_box.setSpacing(4)
+            for eff in self.effects:
+                btn = QToolButton()
+                btn.setText(eff)
+                btn.setCheckable(True)
+                btn.setChecked(eff in self.state.active_effects)
+                color = self.cfg["effects"]["colors"].get(eff, "#475569")
+                btn.setStyleSheet(self._btn_style(color, btn.isChecked()))
+                btn.toggled.connect(lambda checked, e=eff, b=btn: self.on_effect_toggled(e, b, checked))
+                btn.setToolButtonStyle(Qt.ToolButtonTextOnly)
+                self.effect_buttons[eff] = btn
+                eff_box.addWidget(btn)
+            root.addLayout(eff_box)
+
+            self.sample_btn = QPushButton("Sample…")
+            self.sample_btn.clicked.connect(self.choose_sample)
+            root.addWidget(self.sample_btn)
+
+            btn_row = QHBoxLayout()
+            self.mute_btn = QToolButton()
+            self.mute_btn.setText("Mute")
+            self.mute_btn.setCheckable(True)
+            self.mute_btn.toggled.connect(self.on_mute)
+            btn_row.addWidget(self.mute_btn)
+
+            self.solo_btn = QToolButton()
+            self.solo_btn.setText("Solo")
+            self.solo_btn.setCheckable(True)
+            self.solo_btn.toggled.connect(self.on_solo)
+            btn_row.addWidget(self.solo_btn)
+            root.addLayout(btn_row)
+
+        def _btn_style(self, base_color: str, active: bool) -> str:
+            if active:
+                return (
+                    f"QToolButton{{background:{base_color}; color:white; border:none; padding:4px 8px;"
+                    f"border-radius:6px; font-weight:600;}}"
+                )
+            else:
+                return (
+                    "QToolButton{background: #111827; color: #e5e7eb; border: 1px solid #1f2937;"
+                    "padding:4px 8px; border-radius:6px;}"
+                    "QToolButton:hover{background:#0b1220;}"
+                )
+
+        # --- Slots ---
+        def on_volume_changed(self, val: int):
+            self.state.volume = val
+            # TODO: Audio-Engine: Gain setzen
+
+        def on_envelope_changed(self, text: str):
+            self.state.envelope = text
+            # TODO: Audio-Engine: Hüllkurve binden
+
+        def on_effect_toggled(self, effect: str, btn: QToolButton, checked: bool):
+            color = self.cfg["effects"]["colors"].get(effect, "#475569")
+            btn.setStyleSheet(self._btn_style(color, checked))
+            if checked and effect not in self.state.active_effects:
+                self.state.active_effects.append(effect)
+            elif not checked and effect in self.state.active_effects:
+                self.state.active_effects.remove(effect)
+            # TODO: Audio-Engine: Effekt-Kette aktualisieren
+
+        def choose_sample(self):
+            path, _ = QFileDialog.getOpenFileName(self, "Sample auswählen", "", "Audio (*.wav *.mp3 *.flac)")
+            if path:
+                self.state.sample_path = path
+                # TODO: Sample in Player laden
+
+        def on_mute(self, checked: bool):
+            pass
+
+        def on_solo(self, checked: bool):
+            pass
+
+    # -------------------------- Timeline Widget (8 Spuren, Clips bewegbar) --------------------------
+    @dataclass
+    class TimelineClip:
+        track: int          # 0..7
+        start: float        # Sekunden
+        duration: float     # Sekunden
+        label: str
+        color: str = "#3b82f6"
+        sample_path: Optional[str] = None
+
+    class TimelineWidget(QWidget):
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            self.setMinimumHeight(260)
+            self.tracks = 8
+            self.sec_per_pixel = 0.02  # Zoom-Faktor (kleiner = weiter rausgezoomt)
+            self.pixels_per_sec = 1.0 / self.sec_per_pixel
+            self.max_time = 120.0  # Sekunden
+            self.track_height = 26
+            self.track_gap = 8
+            self.left_margin = 50  # Zeitlineal Beschriftung
+            self.top_margin = 24   # Lineal oben
+            self.bg_alt = QColor("#0e1624")
+            self.bg = QColor("#0b1220")
+            self.grid = QColor("#1f2937")
+            self.ruler_fg = QColor("#9ca3af")
+            self.selection_color = QColor(59, 130, 246, 60)
+            self.dragging = False
+            self.drag_offset = 0.0
+            self.selected: Optional[int] = None
+            self.clip_hover: Optional[int] = None
+            self.copy_buffer: List[TimelineClip] = []
+            self.clips: List[TimelineClip] = []
+            self.setMouseTracking(True)
+
+        def time_to_x(self, t: float) -> float:
+            return self.left_margin + t * self.pixels_per_sec
+
+        def x_to_time(self, x: float) -> float:
+            return max(0.0, (x - self.left_margin) * self.sec_per_pixel)
+
+        def add_clip(self, clip: TimelineClip):
+            self.clips.append(clip)
+            self.update()
+
+        def set_zoom(self, sec_per_pixel: float):
+            self.sec_per_pixel = max(0.002, min(0.2, sec_per_pixel))
+            self.pixels_per_sec = 1.0 / self.sec_per_pixel
+            self.update()
+
+        def paintEvent(self, event):
+            p = QPainter(self)
+            p.setRenderHint(QPainter.Antialiasing)
+            rect = self.rect()
+            p.fillRect(rect, self.bg)
+
+            for tr in range(self.tracks):
+                y = self.top_margin + tr * (self.track_height + self.track_gap)
+                h = self.track_height
+                if tr % 2 == 1:
+                    p.fillRect(QRectF(0, y, rect.width(), h), self.bg_alt)
+
+            p.setPen(self.grid)
+            for sec in range(int(self.max_time) + 1):
+                x = self.time_to_x(sec)
+                if x > rect.right():
+                    break
+                p.drawLine(int(x), self.top_margin, int(x), rect.bottom())
+
+            p.setPen(self.ruler_fg)
+            p.drawLine(self.left_margin, self.top_margin - 1, rect.right(), self.top_margin - 1)
+            for sec in range(int(self.max_time) + 1):
+                x = self.time_to_x(sec)
+                if x > rect.right():
+                    break
+                p.drawLine(int(x), 0, int(x), self.top_margin - 4)
+                if sec % 5 == 0:
+                    p.drawText(int(x) + 2, 14, f"{sec}s")
+
+            for idx, c in enumerate(self.clips):
+                y = self.top_margin + c.track * (self.track_height + self.track_gap) + 2
+                x = self.time_to_x(c.start)
+                w = max(12, c.duration * self.pixels_per_sec)
+                h = self.track_height - 4
+                r = QRectF(x, y, w, h)
+                col = QColor(c.color)
+                p.fillRect(r, col)
+                p.setPen(QColor(0, 0, 0, 120))
+                p.drawRect(r)
+                p.setPen(QColor("white"))
+                p.drawText(r.adjusted(4, 0, -4, 0), Qt.AlignVCenter | Qt.AlignLeft, c.label)
+                if self.selected == idx:
+                    p.fillRect(r, self.selection_color)
+
+        def clip_at(self, pos) -> Optional[int]:
+            for idx, c in enumerate(self.clips):
+                y = self.top_margin + c.track * (self.track_height + self.track_gap) + 2
+                x = self.time_to_x(c.start)
+                w = max(12, c.duration * self.pixels_per_sec)
+                h = self.track_height - 4
+                r = QRectF(x, y, w, h)
+                if r.contains(pos):
+                    return idx
+            return None
+
+        def mousePressEvent(self, e):
+            if e.button() == Qt.LeftButton:
+                idx = self.clip_at(e.pos())
+                if idx is not None:
+                    self.selected = idx
+                    c = self.clips[idx]
+                    self.dragging = True
+                    self.drag_offset = self.x_to_time(e.x()) - c.start
+                else:
+                    self.selected = None
+                self.update()
+            elif e.button() == Qt.RightButton:
+                self._open_context_menu(e)
+
+        def mouseMoveEvent(self, e):
+            if self.dragging and self.selected is not None:
+                c = self.clips[self.selected]
+                new_start = self.x_to_time(e.x()) - self.drag_offset
+                c.start = max(0.0, round(new_start, 3))
+                self.update()
+            else:
+                self.clip_hover = self.clip_at(e.pos())
+
+        def mouseReleaseEvent(self, e):
+            if e.button() == Qt.LeftButton:
+                self.dragging = False
+
+        def mouseDoubleClickEvent(self, e):
+            track = int(max(0, min(self.tracks - 1, (e.y() - self.top_margin) // (self.track_height + self.track_gap))))
+            start = self.x_to_time(e.x())
+            self._add_clip_dialog(track, start)
+
+        def _open_context_menu(self, e):
+            from PyQt5.QtWidgets import QMenu
+            menu = QMenu(self)
+            act_add = menu.addAction("Clip hinzufügen…")
+            act_dup = menu.addAction("Duplizieren")
+            act_cut = menu.addAction("Ausschneiden")
+            act_copy = menu.addAction("Kopieren")
+            act_paste = menu.addAction("Einfügen")
+            act_del = menu.addAction("Löschen")
+            chosen = menu.exec_(self.mapToGlobal(e.pos()))
+            if chosen == act_add:
+                track = int(max(0, min(self.tracks - 1, (e.y() - self.top_margin) // (self.track_height + self.track_gap))))
+                start = self.x_to_time(e.x())
+                self._add_clip_dialog(track, start)
+            elif chosen == act_dup:
+                self.duplicate_selected()
+            elif chosen == act_cut:
+                self.cut_selected()
+            elif chosen == act_copy:
+                self.copy_selected()
+            elif chosen == act_paste:
+                self.paste_at(self.x_to_time(e.x()))
+            elif chosen == act_del:
+                self.delete_selected()
+
+        def _add_clip_dialog(self, track: int, start: float):
+            path, _ = QFileDialog.getOpenFileName(self, "Sample wählen", "", "Audio (*.wav *.mp3 *.flac)")
+            if path:
+                label = os.path.basename(path)
+                color = "#22c55e"
+                self.add_clip(TimelineClip(track=track, start=start, duration=2.0, label=label, color=color, sample_path=path))
+
+        def copy_selected(self):
+            if self.selected is not None:
+                c = self.clips[self.selected]
+                self.copy_buffer = [TimelineClip(**c.__dict__)]
+
+        def cut_selected(self):
+            if self.selected is not None:
+                c = self.clips.pop(self.selected)
+                self.copy_buffer = [TimelineClip(**c.__dict__)]
+                self.selected = None
+                self.update()
+
+        def paste_at(self, t: float):
+            if not self.copy_buffer:
+                return
+            base = self.copy_buffer[0]
+            pasted = TimelineClip(track=base.track, start=t, duration=base.duration, label=base.label, color=base.color, sample_path=base.sample_path)
+            self.clips.append(pasted)
+            self.selected = len(self.clips) - 1
+            self.update()
+
+        def duplicate_selected(self):
+            if self.selected is not None:
+                c = self.clips[self.selected]
+                dup = TimelineClip(track=c.track, start=c.start + c.duration * 0.1, duration=c.duration, label=c.label, color=c.color, sample_path=c.sample_path)
+                self.clips.append(dup)
+                self.selected = len(self.clips) - 1
+                self.update()
+
+        def delete_selected(self):
+            if self.selected is not None:
+                self.clips.pop(self.selected)
+                self.selected = None
+                self.update()
+
+    # -------------------------- Hauptfenster --------------------------
+    class MixerMainWindow(QMainWindow):
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            self.setWindowTitle("PyQt5 Mixer (12ch)")
+            self.resize(1280, 800)
+            self.cfg = load_config()
+
+            # --- Menüleiste ---
+            menubar = self.menuBar()
+            menu_file = menubar.addMenu("&Datei")
+            menu_edit = menubar.addMenu("&Bearbeiten")
+            menubar.addMenu("&Ansicht")
+            menubar.addMenu("&Hilfe")
+
+            act_new = menu_file.addAction("Neu")
+            act_open = menu_file.addAction("Öffnen…")
+            act_save = menu_file.addAction("Speichern")
+            menu_file.addSeparator()
+            act_quit = menu_file.addAction("Beenden")
+            act_quit.triggered.connect(self.close)
+
+            act_cut = menu_edit.addAction("Ausschneiden")
+            act_copy = menu_edit.addAction("Kopieren")
+            act_paste = menu_edit.addAction("Einfügen")
+            act_dup = menu_edit.addAction("Duplizieren")
+            act_del = menu_edit.addAction("Löschen")
+            act_unselect = menu_edit.addAction("Auswahl aufheben")
+            self._pending_edit_actions = (act_cut, act_copy, act_paste, act_dup, act_del, act_unselect)
+
+            # Kanäle
+            self.effects = self.cfg.get("effects", {}).get("list", ["drum", "clap", "tick"])
+            self.channels: List[ChannelState] = []
+            for i in range(1, 13):
+                ch_cfg = self.cfg.get("channels", {}).get(str(i), {})
+                self.channels.append(
+                    ChannelState(
+                        index=i,
+                        volume=50,
+                        envelope=ch_cfg.get("envelope", "linear"),
+                        active_effects=list(ch_cfg.get("effects", [])),
+                        sample_path=ch_cfg.get("sample"),
+                    )
+                )
+
+            central = QWidget()
+            self.setCentralWidget(central)
+            root_h = QHBoxLayout(central)
+            root_h.setContentsMargins(8, 8, 8, 8)
+            root_h.setSpacing(8)
+
+            splitter = QSplitter(Qt.Horizontal)
+            root_h.addWidget(splitter)
+
+            # ---- Linke Seite: Master + Regler + EQ|Timeline (nebeneinander) ----
+            left_container = QWidget()
+            left_h = QHBoxLayout(left_container)
+            left_h.setContentsMargins(0, 0, 0, 0)
+            left_h.setSpacing(8)
+
+            # Master (fix 42px Breite)
+            master_group = QGroupBox("Master")
+            master_group.setMaximumWidth(42)
+            master_group.setMinimumWidth(42)
+            mg_lay = QVBoxLayout(master_group)
+            mg_lay.setContentsMargins(6, 12, 6, 12)
+            mg_lay.setSpacing(6)
+            self.master_slider = QSlider(Qt.Vertical)
+            self.master_slider.setRange(0, 100)
+            self.master_slider.setValue(80)
+            mg_lay.addWidget(self.master_slider)
+            left_h.addWidget(master_group)
+
+            # Trennlinie
+            sep_left = QFrame()
+            sep_left.setFrameShape(QFrame.VLine)
+            sep_left.setStyleSheet(f"color: {self.cfg['ui'].get('separator_color', '#1f2937')};")
+            left_h.addWidget(sep_left)
+
+            mixer_panel = QWidget()
+            grid = QGridLayout(mixer_panel)
+            grid.setSpacing(8)
+            grid.setContentsMargins(8, 8, 8, 8)
+
+            self.channel_widgets: List[ChannelWidget] = []
+            # Top row (0..5), bottom row (6..11)
+            for idx, ch in enumerate(self.channels):
+                col = idx % 6
+                row = 0 if idx < 6 else 2
+                cw = ChannelWidget(ch, self.cfg, self.effects)
+                self.channel_widgets.append(cw)
+                grid.addWidget(cw, row, col)
+
+            # Mittlere Zeile: EQ (links, max 200px) | Timeline (rechts, expand)
+            mid_row = QWidget()
+            mid_h = QHBoxLayout(mid_row)
+            mid_h.setContentsMargins(0, 0, 0, 0)
+            mid_h.setSpacing(8)
+
+            eq_group = QGroupBox("Equalizer 12 x 32")
+            eq_lay = QVBoxLayout(eq_group)
+            self.eq = LEDMatrixEQ(columns=12, rows=32, cfg=self.cfg)
+            # Maximale Breite auf 200 beschränken
+            self.eq.setMaximumWidth(200)
+            eq_group.setMaximumWidth(200)
+            # SizePolicy: Breite fix/Begrenzung, Höhe expandiert
+            eq_group.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+            self.eq.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+            eq_lay.addWidget(self.eq)
+            mid_h.addWidget(eq_group)
+
+            timeline_group = QGroupBox("Timeline – 8 Spuren")
+            tl_v = QVBoxLayout(timeline_group)
+            tl_toolbar = QHBoxLayout()
+            btn_zoom_out = QToolButton(); btn_zoom_out.setText("-")
+            btn_zoom_in  = QToolButton();  btn_zoom_in.setText("+")
+            tl_toolbar.addWidget(QLabel("Zoom"))
+            tl_toolbar.addWidget(btn_zoom_out)
+            tl_toolbar.addWidget(btn_zoom_in)
+            tl_toolbar.addStretch(1)
+            tl_v.addLayout(tl_toolbar)
+            
+            self.timeline = TimelineWidget()
+            self.timeline.setMinimumWidth(int(self.timeline.time_to_x(self.timeline.max_time) + 200))
+            sa = QScrollArea(); sa.setWidgetResizable(True); sa.setWidget(self.timeline)
+            tl_v.addWidget(sa, 1)
+
+            # Timeline expandiert horizontal
+            timeline_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            mid_h.addWidget(timeline_group, 1)
+
+            grid.addWidget(mid_row, 1, 0, 1, 6)
+
+            left_h.addWidget(mixer_panel, 1)
+            splitter.addWidget(left_container)
+            splitter.setStretchFactor(0, 3)
+
+            # ---- Rechte Seite: Effekte ----
+            right_panel = QWidget()
+            right_v = QVBoxLayout(right_panel)
+            right_v.setContentsMargins(8, 8, 8, 8)
+            right_v.setSpacing(6)
+
+            right_v.addWidget(QLabel("Effekte pro Kanal (Schnellauswahl)"))
+            scroll = QScrollArea(); scroll.setWidgetResizable(True)
+            inner = QWidget(); inner_v = QVBoxLayout(inner); inner_v.setSpacing(6)
+
+            for ch in self.channels:
+                roww = QWidget()
+                row_h = QHBoxLayout(roww); row_h.setContentsMargins(0, 0, 0, 0); row_h.setSpacing(6)
+                row_h.addWidget(QLabel(f"CH {ch.index:02d}"))
+                for eff in self.effects:
+                    btn = QPushButton(eff)
+                    btn.setCheckable(True)
+                    btn.setChecked(eff in ch.active_effects)
+                    color = self.cfg["effects"]["colors"].get(eff, "#475569")
+                    btn.setStyleSheet(self._pill_btn_style(color, btn.isChecked()))
+                    btn.toggled.connect(self._make_right_effect_handler(ch.index, eff))
+                    row_h.addWidget(btn)
+                inner_v.addWidget(roww)
+
+            inner_v.addStretch(1)
+            scroll.setWidget(inner)
+            right_v.addWidget(scroll, 1)
+
+            cfg_row = QHBoxLayout()
+            load_btn = QPushButton("Konfig laden"); cfg_row.addWidget(load_btn)
+            save_btn = QPushButton("Konfig speichern"); cfg_row.addWidget(save_btn)
+            load_btn.clicked.connect(self.reload_config)
+            save_btn.clicked.connect(self.persist_config)
+            right_v.addLayout(cfg_row)
+
+            splitter.addWidget(right_panel)
+            splitter.setStretchFactor(1, 2)
+
+            # Menü „Bearbeiten“ mit Timeline verknüpfen
+            act_cut, act_copy, act_paste, act_dup, act_del, act_unselect = self._pending_edit_actions
+            act_cut.triggered.connect(self.timeline.cut_selected)
+            act_copy.triggered.connect(self.timeline.copy_selected)
+            act_paste.triggered.connect(lambda: self.timeline.paste_at(0.0))
+            act_dup.triggered.connect(self.timeline.duplicate_selected)
+            act_del.triggered.connect(self.timeline.delete_selected)
+            act_unselect.triggered.connect(lambda: setattr(self.timeline, 'selected', None) | self.timeline.update())
+
+            # Demo-Animation für EQ
+            self.demo_timer = QTimer(self)
+            self.demo_timer.setInterval(60)
+            self.demo_timer.timeout.connect(self._demo_eq_step)
+            self.demo_timer.start()
+
+            self.apply_dark_palette()
+
+        # ----------------- UI Helpers -----------------
+        def _pill_btn_style(self, base_color: str, active: bool) -> str:
+            if active:
+                return (
+                    f"QPushButton{{background:{base_color}; color:white; border:none; padding:6px 10px;"
+                    f"border-radius:12px; font-weight:600;}}"
+                )
+            else:
+                return (
+                    "QPushButton{background: #0b1220; color: #e5e7eb; border: 1px solid #1f2937;"
+                    "padding:6px 10px; border-radius:12px;}"
+                    "QPushButton:hover{background:#111827;}"
+                )
+
+        def _make_right_effect_handler(self, ch_index: int, effect: str):
+            def handler(checked: bool):
+                chw = self.channel_widgets[ch_index - 1]
+                left_btn = chw.effect_buttons.get(effect)
+                if left_btn:
+                    left_btn.setChecked(checked)
+                color = self.cfg["effects"]["colors"].get(effect, "#475569")
+                sender = self.sender()
+                if isinstance(sender, QPushButton):
+                    sender.setStyleSheet(self._pill_btn_style(color, checked))
+            return handler
+
+        def apply_dark_palette(self):
+            self.setStyleSheet(
+                """
+                QWidget{background:#0b1220; color:#e5e7eb;}
+                QGroupBox{border:1px solid #1f2937; border-radius:10px; margin-top:16px;}
+                QGroupBox::title{subcontrol-origin: margin; left:10px; padding: 2px 4px;}
+                QLabel{color:#e5e7eb;}
+                QSlider::groove:vertical{background:#1f2937; width:8px; border-radius:4px;}
+                QSlider::handle:vertical{background:#22c55e; height:18px; margin:-4px; border-radius:6px;}
+                QSlider::sub-page:vertical{background:#16a34a; border-radius:4px;}
+                QFrame{color:#1f2937;}
+                QPushButton{font-weight:500;}
+                QToolTip{background:#111827; color:#e5e7eb; border:1px solid #1f2937;}
+                """
+            )
+
+        def _demo_eq_step(self):
+            import random
+            for c in range(12):
+                peak = random.randint(2, 28)
+                col = [0.0] * 32
+                for r in range(peak):
+                    val = max(0.0, 1.0 - (r / max(1, peak)))
+                    col[r] = val
+                self.eq.set_column_levels(c, col)
+
+        def reload_config(self):
+            try:
+                self.cfg = load_config()
+                QMessageBox.information(self, "Konfiguration", "config.json neu geladen.")
+            except Exception as e:
+                QMessageBox.critical(self, "Fehler", f"Konfiguration konnte nicht geladen werden: {e}")
+
+        def persist_config(self):
+            try:
+                ch_cfg: Dict[str, dict] = {}
+                for ch in self.channels:
+                    ch_cfg[str(ch.index)] = {
+                        "envelope": ch.envelope,
+                        "effects": ch.active_effects,
+                        "sample": ch.sample_path,
+                    }
+                self.cfg["channels"] = ch_cfg
+                save_config(self.cfg)
+                QMessageBox.information(self, "Konfiguration", "config.json gespeichert.")
+            except Exception as e:
+                QMessageBox.critical(self, "Fehler", f"Konfiguration konnte nicht gespeichert werden: {e}")
+    
+    # -------------------------------------------------------------
     def version_from_filename(filename):
         match = re.search(r'cpython-(\d+)', filename)
         if match:
@@ -2641,7 +4928,7 @@ try:
         genv.v__app__locales_meta_keybrd = genv.v__app__locales_meta + genv.v__app__meky_mo + genv.v__gnu_zip
         
         genv.v__app__locales_messages   += genv.v__app__name_mo + genv.v__gnu_zip
-        genv.v__app__locales_help       += genv.v__app__help_mo + ".zlib"
+        genv.v__app__locales_help       += genv.v__app__help_mo + genv.v__gnu_zip
         genv.v__app__locales_css        += genv.v__app__css__mo + genv.v__gnu_zip
         
         #genv.v__app__locales_meta_biospc += genv.v__app__mebi_mo + genv.v__gnu_zip
@@ -2881,7 +5168,7 @@ try:
         # ----------------------------------------------------------------------------
         def write_po_exports(exports, out_po: Path, use_hex: bool,
             project = "dll-exports", lang = ""):
-            now = dt.datetime.now().strftime("%Y-%m-%d %H:%M%z")
+            now = datetime.now().strftime("%Y-%m-%d %H:%M%z")
             
             # ------------------------------------------------------------------------
             # Sicherstellen, dass Ordinale als Strings kommen – Darstellung ent-
@@ -3128,7 +5415,7 @@ try:
             func_name: str,
             url      : str,
             html_text: str):
-            now    = dt.datetime.now().strftime("%Y-%m-%d %H:%M%z")
+            now    = datetime.datetime.now().strftime("%Y-%m-%d %H:%M%z")
             is_new = not po_path.exists() or po_path.stat().st_size == 0
             _ensure_dir(po_path.parent)
             with po_path.open("a", encoding="utf-8", newline="\n") as f:
@@ -4350,7 +6637,8 @@ try:
 
     class AssemblerLineNumberArea(QWidget):
         def __init__(self, editor):
-            super().__init__(editor)
+            super(AssemblerLineNumberArea, self).__init__(editor)
+            self.setFont(QFont("Consolas", 10))
             self.editor = editor
             self.marked_lines = set()
         
@@ -4410,6 +6698,7 @@ try:
     class CodeEditor(QPlainTextEdit):
         def __init__(self):
             super().__init__()
+            self.setFont(QFont("Consolas", 11))
             self.line_number_area = AssemblerLineNumberArea(self)
             
             self.updateRequest.connect(self.update_line_number_area)
@@ -4868,14 +7157,35 @@ try:
                 self.hex_view.setStyleSheet("QWidget{padding:0px;}")
                 self.hex_view.set_data(data)
                 
-                self.asm_view = AssemblerViewer()
+                self.asm_par = QWidget()
+                self.asm_lay = QVBoxLayout(self.asm_par)
+                self.asm_lbl = QLabel(_str("Assembly Source:"))
+                self.asm_edt = AssemblerViewer()
+                self.asm_edt.document().setDefaultFont(QFont("Consolas", 11))
+                
+                self.asm_lbl.setFont(QFont("Arial", 10))
+                self.asm_lay.addWidget(self.asm_lbl)
+                self.asm_lay.addWidget(self.asm_edt)
+                #
                 self.dbg_ctrl = DebugControls()
                 self.cpu_view = CPUView()
+                #
+                self.jit_par = QWidget()
+                self.jit_lay = QVBoxLayout(self.jit_par)
+                self.jit_lbl = QLabel("ASM-JIT C++")
+                self.jit_edt = CodeEditor()
+                self.jit_edt.document().setDefaultFont(QFont("Consolas", 11))
+                
+                self.jit_lbl.setFont(QFont("Arial", 10))
+                self.jit_lay.addWidget(self.jit_lbl)
+                self.jit_lay.addWidget(self.jit_edt)
                 
                 splitter.addWidget(self.hex_view)
-                splitter.addWidget(self.asm_view)
+                splitter.addWidget(self.asm_par )
                 splitter.addWidget(self.dbg_ctrl)
                 splitter.addWidget(self.cpu_view)
+                #
+                splitter.addWidget(self.jit_par )
                 
                 # ----------------------------------------------
                 # Layout zusammenfügen
@@ -14402,7 +16712,7 @@ try:
                     comment_length = end_index - start_index + len(end_comment)
                 self.setFormat(start_index, comment_length, self.multi_line_comment_format)
                 start_index = text.find(start_comment, start_index + comment_length)
-
+    
     class PrologSyntaxHighlighter(SourceCodeEditorBase):
         def __init__(self, document):
             super(PrologSyntaxHighlighter, self).__init__(document)
@@ -24713,17 +27023,750 @@ try:
                 self.python_tabs)
         
         # prolog
+        # -------------------------------------------------------------------------------------------    
+        # Satzanalyse DE (v5) – erweiterte Morphologie
+        # - Schritt 1: Rechtschreibung + Groß-/Kleinschreibung (Heuristik)
+        # - Schritt 2: Einfache Satzbauchecks (Satzanfang groß, Endzeichen, "nach Hause", Verb-2-Heuristik)
+        # - Schritt 3: Feste Wendungen (konfigurierbar)
+        # - Schritt 4: Satzbau-Heuristiken (Konjunktionsdopplungen, Kommahinweis, doppelte Negation)
+        # - Schritt 5: Flexions-Erkennung (Verbformen inkl. Partizip II & trennbare Verben;
+        #   Nomen-Plurale inkl. Umlaut-Heuristik & Sonderfälle)
+        # Optional: JSON-Konfigurationsdatei "satz_analyse_config.json" im selben Ordner.
+        # -------------------------------------------------------------------------------------------
         def handleProlog(self):
+            def load_config(path: str) -> Dict:
+                if os.path.exists(path):
+                    try:
+                        with open(path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                        cfg = DEFAULT_CONFIG.copy()
+                        for k,v in data.items():
+                            cfg[k] = v
+                        return cfg
+                    except Exception:
+                        return DEFAULT_CONFIG
+                return DEFAULT_CONFIG
+                
+            CFG = load_config(CONFIG_PATH)
+            # ---------- utils ----------
+            def tokenize(text: str) -> List[Tuple[str,int]]:
+                return [(m.group(0), m.start()) for m in re.finditer(r"[A-Za-zÄÖÜäöüß\-]+", text)]
+            
+            def levenshtein(a: str, b: str, max_dist: int = 2) -> int:
+                if a == b:
+                    return 0
+                la, lb = len(a), len(b)
+                if abs(la - lb) > max_dist:
+                    return max_dist + 1
+                if la > lb:
+                    a, b = b, a
+                    la, lb = lb, la
+                prev = list(range(lb + 1))
+                for i in range(1, la + 1):
+                    cur = [i] + [0]*lb
+                    ai = a[i-1]
+                    row_min = cur[0]
+                    for j in range(1, lb + 1):
+                        cost = 0 if ai == b[j-1] else 1
+                        cur[j] = min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + cost)
+                        if cur[j] < row_min:
+                            row_min = cur[j]
+                    if row_min > max_dist:
+                        return max_dist + 1
+                    prev = cur
+                return prev[-1]
+            
+            def build_vocab(df: pd.DataFrame):
+                vocab_all = set(w.casefold() for w in df["wort"].astype(str).tolist())
+                nouns = set(w.casefold() for w in df[df["kategorie"]=="Substantiv"]["wort"].astype(str).tolist())
+                male_names = set(w.casefold() for w in df[df["kategorie"]=="Männername"]["wort"].astype(str).tolist())
+                female_names = set(w.casefold() for w in df[df["kategorie"]=="Frauenname"]["wort"].astype(str).tolist())
+                names = male_names | female_names
+                cities = set(w.casefold() for w in df[df["kategorie"]=="Stadt"]["wort"].astype(str).tolist())
+                verbs = set(w.casefold() for w in df[df["kategorie"]=="Verb"]["wort"].astype(str).tolist())
+                adjs = set(w.casefold() for w in df[df["kategorie"]=="Adjektiv"]["wort"].astype(str).tolist())
+                colors = set(w.casefold() for w in df[df["kategorie"]=="Farbe"]["wort"].astype(str).tolist())
+                return {"all": vocab_all,"nouns": nouns,"names": names,"cities": cities,"verbs": verbs,"adjs": adjs,"colors": colors}
+            
+            def candidates(word: str, vocab_list):
+                w = word.casefold()
+                L = len(w)
+                pool = [v for v in vocab_list if abs(len(v) - L) <= 2 and (not w or v[:1] == w[:1])]
+                scored = []
+                for v in pool:
+                    d = levenshtein(w, v, max_dist=2)
+                    if d <= 2:
+                        scored.append((d, v))
+                scored.sort()
+                return [v for d,v in scored[:5]]
+            
+            # ---------- step1 ----------
+            def analyze_sentence_step1(sentence: str, vocab_or_df: Union[dict, pd.DataFrame]):
+                if isinstance(vocab_or_df, pd.DataFrame):
+                    vocab = build_vocab(vocab_or_df)
+                else:
+                    vocab = vocab_or_df
+                toks = tokenize(sentence)
+                report = {"sentence": sentence,"tokens": [t for t,_ in toks],"unknown": [],"suggestions": {},"casing_warnings": [],
+                          "notes": ["Rechtschreibprüfung gegen Wörterbuch (case-insensitive).","Nomen-Heuristik für Groß-/Klein (außer am Satzanfang)."]}
+                vocab_all = vocab["all"]; nouns = vocab["nouns"]; names = vocab["names"]; cities = vocab["cities"]
+                non_noun_categories = vocab["verbs"] | vocab["adjs"] | vocab["colors"]
+                for idx, (tok, pos) in enumerate(toks):
+                    t_cf = tok.casefold()
+                    known = t_cf in vocab_all
+                    if not known:
+                        report["unknown"].append(tok)
+                        cands = candidates(tok, list(vocab_all))
+                        if cands:
+                            report["suggestions"][tok] = cands
+                    if tok[:1].islower() and t_cf in nouns and idx != 0:
+                        report["casing_warnings"].append({"token": tok,"issue": "Nomen vermutlich klein geschrieben","suggest": tok[:1].upper() + tok[1:]})
+                    if idx != 0 and tok[:1].isupper():
+                        if (t_cf not in nouns) and (t_cf not in names) and (t_cf not in cities) and (t_cf in non_noun_categories):
+                            report["casing_warnings"].append({"token": tok,"issue": "Wort wirkt kein Substantiv/Eigenname","suggest": tok[:1].lower() + tok[1:]})
+                return report
+            
+            # ---------- step2 ----------
+            def is_probable_finite_verb(token: str) -> bool:
+                t = token.casefold()
+                return any(t.endswith(suf) for suf in CFG["verb_endings"])
+
+            def analyze_sentence_step2(sentence: str):
+                s = sentence.strip()
+                diagnostics = {"original": sentence,"normalized_suggestion": None,"issues": []}
+                if s and s[0].isalpha() and s[0].islower():
+                    diagnostics["issues"].append({"type":"casing","pos":0,"msg":"Satzanfang klein geschrieben.","suggest":"Erstes Wort groß schreiben."})
+                if not s.endswith((".", "!", "?")):
+                    diagnostics["issues"].append({"type":"punctuation","msg":"Kein Satzzeichen am Ende.","suggest":"Punkt/Frage-/Ausrufezeichen setzen."})
+                lower = s.casefold()
+                if "nach hause" in lower and "nach Hause" not in s:
+                    diagnostics["issues"].append({"type":"fixed_phrase","span":"nach hause","msg":"Feste Wendung „nach Hause“ groß schreiben.","suggest":"Hause groß."})
+                toks = [t for t,_ in tokenize(s)]
+                if toks:
+                    if len(toks) >= 2:
+                        second = toks[1]
+                        if not is_probable_finite_verb(second):
+                            diagnostics["issues"].append({"type":"verb_position","msg":"Vermutlich kein finites Verb in 2. Position (Heuristik).","info":"In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."})
+                    if not any(is_probable_finite_verb(t) for t in toks):
+                        diagnostics["issues"].append({"type":"verb_existence","msg":"Kein finites Verb erkannt (Heuristik)."})
+                suggestion = s
+                if suggestion:
+                    m = re.match(r"^([A-Za-zÄÖÜäöüß])", suggestion)
+                    if m and m.group(1).islower():
+                        suggestion = suggestion[0].upper() + suggestion[1:]
+                suggestion = re.sub(r"\\bnach hause\\b", "nach Hause", suggestion, flags=re.IGNORECASE)
+                if not suggestion.endswith((".", "!", "?")):
+                    suggestion = suggestion + "."
+                diagnostics["normalized_suggestion"] = suggestion
+                return diagnostics
+            
+            # ---------- step3 ----------
+            def analyze_sentence_step3_fixed(sentence: str):
+                s = sentence
+                issues = []
+                suggestion = s
+                for pat, repl in CFG["fixed_phrases"]:
+                    for m in re.finditer(pat, s, flags=re.IGNORECASE):
+                        span_text = m.group(0)
+                        if span_text != repl:
+                            issues.append({"type": "fixed_phrase","span": span_text,"msg": f'Feste Wendung „{repl}“ groß/korrekt schreiben.',"suggest": repl})
+                    suggestion = re.sub(pat, repl, suggestion, flags=re.IGNORECASE)
+                return {"original": sentence,"issues": issues,"normalized_suggestion": suggestion}
+            
+            # ---------- step4 ----------
+            def analyze_sentence_step4_syntax(sentence: str):
+                s = sentence
+                toks = [t.casefold() for t,_ in tokenize(s)]
+                issues = []
+                conj_set = set(CFG["conjunctions"])
+                for i in range(len(toks)-1):
+                    if toks[i] in conj_set:
+                        if toks[i+1] == toks[i]:
+                            issues.append({"type":"conjunction_repeat","tokens":[toks[i], toks[i+1]],"msg": f'Doppelte Konjunktion „{toks[i]} {toks[i+1]}“. Kürzen.'})
+                        if i+2 < len(toks) and toks[i+2] == toks[i]:
+                            issues.append({"type":"conjunction_repeat_spaced","tokens":[toks[i], toks[i+2]],"msg": f'Mögliche Dopplung der Konjunktion „{toks[i]} … {toks[i]}“. Prüfen.'})
+                count_und = toks.count("und"); count_oder = toks.count("oder")
+                if count_und >= 2 or count_oder >= 2:
+                    issues.append({"type":"comma_hint","msg":"Mehrfaches „und/oder“ – Kommasetzung prüfen (Aufzählung/Teilsätze?)."})
+                neg1 = set(CFG["negation_1"]); neg2 = set(CFG["negation_2"])
+                for i, t in enumerate(toks):
+                    if t in neg1:
+                        for j in range(i+1, min(i+7, len(toks))):
+                            if toks[j] in neg2:
+                                issues.append({"type":"double_negation","span":" ".join(toks[i:j+1]),"msg":"Mögliche doppelte Negation."})
+                                break
+                return {"original": sentence, "issues": issues}
+            
+            # ---------- step5 (morphology) ----------
+            DEUMLAUT = str.maketrans({"ä":"a","ö":"o","ü":"u","Ä":"A","Ö":"O","Ü":"U"})
+            
+            def deumlaut_once(s: str) -> str:
+                return s.translate(DEUMLAUT)
+            
+            def try_recognize_separable_participle(token_cf: str, vocab: Dict[str,set]):
+                # pattern: <prefix> + ge + <stem> + (t|en)  -> infinitive: <prefix><stem>en
+                for pref in sorted(CFG["separable_prefixes"], key=len, reverse=True):
+                    if token_cf.startswith(pref + "ge") and len(token_cf) > len(pref) + 3:
+                        core = token_cf[len(pref)+2:]  # after 'ge'
+                        if core.endswith("t"):
+                            base = pref + core[:-1] + "en"
+                        elif core.endswith("en"):
+                            base = pref + core
+                        else:
+                            continue
+                        if base in vocab["verbs"] or base in vocab["all"]:
+                            return base
+                return None
+            
+            def try_recognize_verb_form(token_cf: str, vocab: Dict[str, set]):
+                # regular endings
+                for suf in CFG["verb_endings"]:
+                    if token_cf.endswith(suf) and len(token_cf) > len(suf):
+                        base = token_cf[:-len(suf)] + "en"
+                        if base in vocab["verbs"] or base in vocab["all"]:
+                            return base
+                # participle II (ge...t / ge...en)
+                if token_cf.startswith("ge") and len(token_cf) > 4:
+                    if token_cf.endswith("t"):
+                        base = token_cf[2:-1] + "en"
+                        if base in vocab["verbs"] or base in vocab["all"]:
+                            return base
+                    if token_cf.endswith("en"):
+                        base = token_cf[2:]
+                        if base in vocab["verbs"] or base in vocab["all"]:
+                            return base
+                # separable prefixes: aufge-... -> auf...en
+                sep = try_recognize_separable_participle(token_cf, vocab)
+                if sep:
+                    return sep
+                return None
+            
+            def try_recognize_noun_plural(token: str, vocab: Dict[str, set]):
+                if not token or not token[0].isalpha():
+                    return None
+                t_cf = token.casefold()
+                # special irregulars
+                if t_cf.endswith("männer"):
+                    return "mann"
+                if t_cf.endswith("frauen"):
+                    return "frau"
+                if t_cf.endswith("kinder"):
+                    return "kind"
+                if t_cf.endswith("tümer"):
+                    return t_cf[:-4] + "tum"   # e.g., "Besitztümer" -> "Besitztum" (selten, aber heuristisch)
+                # -ien -> -ium
+                if t_cf.endswith("ien"):
+                    base = t_cf[:-3] + "ium"
+                    if base in vocab["nouns"] or base in vocab["all"]:
+                        return base
+                # generic suffixes with de-umlaut attempt on preceding vowel
+                for suf in CFG["noun_plural_endings"]:
+                    if t_cf.endswith(suf) and len(t_cf) > len(suf):
+                        base = t_cf[:-len(suf)]
+                        # try plain base
+                        if base in vocab["nouns"] or base in vocab["all"]:
+                            return base
+                        # try de-umlauted last vowel in base
+                        alt = deumlaut_once(base)
+                        if alt in vocab["nouns"] or alt in vocab["all"]:
+                            return alt
+                return None
+            
+            def analyze_sentence_step5_flex(sentence: str, vocab_or_df: Union[dict, pd.DataFrame]):
+                if isinstance(vocab_or_df, pd.DataFrame):
+                    vocab = build_vocab(vocab_or_df)
+                else:
+                    vocab = vocab_or_df
+                toks = [t for t,_ in tokenize(sentence)]
+                recognized = []
+                for tok in toks:
+                    t_cf = tok.casefold()
+                    if t_cf not in vocab["all"]:
+                        vbase = try_recognize_verb_form(t_cf, vocab)
+                        if vbase:
+                            recognized.append({"token": tok, "class":"Verbform", "base": vbase})
+                            continue
+                        nbase = try_recognize_noun_plural(tok, vocab)
+                        if nbase:
+                            recognized.append({"token": tok, "class":"Nomen (Plural)", "base": nbase})
+                            continue
+                return {"original": sentence, "recognized": recognized, "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."}
+            
+            def satz_main():
+                if len(sys.argv) < 2:
+                    print("Nutzung: python satz_analyse_de_v5.py \"Dein Satz hier\"")
+                    sys.exit(0)
+                sentence = sys.argv[1]
+                df = pd.read_csv(DICT_PATH)
+                vocab = build_vocab(df)
+                out = {
+                    "step1": analyze_sentence_step1(sentence, vocab),
+                    "step2": analyze_sentence_step2(sentence),
+                    "step3": analyze_sentence_step3_fixed(sentence),
+                    "step4": analyze_sentence_step4_syntax(sentence),
+                    "step5": analyze_sentence_step5_flex(sentence, vocab),
+                    "config_used": CFG
+                }
+                print(json.dumps(out, ensure_ascii=False, indent=2))
+            
+            def tokenize_positions(text: str):
+                return [(m.group(0), m.start(), m.end()) for m in re.finditer(r"[A-Za-zÄÖÜäöüß\-]+", text)]
+            
+            def html_escape(s: str) -> str:
+                return (s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+                          .replace('"',"&quot;").replace("'","&#39;"))
+            
+            def build_ranges(text: str, step1, step2, step3, step4, step5):
+                positions = tokenize_positions(text)
+                ranges = []  # (start, end, color, tooltip, cls)
+                # Unknowns
+                for uw in step1.get("unknown", []):
+                    key = uw.lower()
+                    for (tok, s, e) in positions:
+                        if tok.lower() == key:
+                            ranges.append((s, e, SATZ_COLORS["unknown"], f"Unbekannt: {uw}", "unknown"))
+                # Casing
+                for cw in step1.get("casing_warnings", []):
+                    tok = cw.get("token","")
+                    for (t, s, e) in positions:
+                        if t == tok:
+                            ranges.append((s, e, SATZ_COLORS["casing"], f"Casing: {tok} → {cw.get('suggest')}", "casing"))
+                # Step2 issues
+                for issue in step2.get("issues", []):
+                    if issue.get("type") == "verb_position":
+                        if len(positions) >= 2:
+                            s, e = positions[1][1], positions[1][2]
+                            ranges.append((s, e, SATZ_COLORS["verb_position"], "Verb-2-Heuristik: prüfen", "verb_position"))
+                    elif issue.get("type") == "casing":
+                        ranges.append((0, 1, SATZ_COLORS["casing"], "Satzanfang groß", "casing"))
+                    elif issue.get("type") == "fixed_phrase":
+                        for m in re.finditer(r"\bnach hause\b", text, flags=re.IGNORECASE):
+                            ranges.append((m.start(), m.end(), SATZ_COLORS["fixed_phrase"], "Feste Wendung: nach Hause", "fixed_phrase"))
+                            # Korrekte feste Wendungen auch markieren
+                            try:
+                                for pat, repl in CFG.get("fixed_phrases", []):
+                                    for m in re.finditer(r"\b" + re.escape(repl) + r"\b", text, flags=re.IGNORECASE):
+                                        ranges.append(
+                                            (m.start(), m.end() - m.start(), SATZ_COLORS["fixed_phrase"], f"Feste Wendung: {repl}")
+                                        )
+                            except Exception:
+                                pass
+                
+                # Step3 fixed phrases
+                for iss in step3.get("issues", []):
+                    span = iss.get("span","")
+                    if span:
+                        for m in re.finditer(re.escape(span), text, flags=re.IGNORECASE):
+                            ranges.append((m.start(), m.end(), SATZ_COLORS["fixed_phrase"], f"Feste Wendung: {iss.get('suggest')}", "fixed_phrase"))
+                            # Auch korrekt geschriebene feste Wendungen hervorheben (z. B. "zu Hause")
+                            try:
+                                for pat, repl in CFG.get("fixed_phrases", []):
+                                    for m in re.finditer(r"\b" + re.escape(repl) + r"\b", text, flags=re.IGNORECASE):
+                                        ranges.append(
+                                            (m.start(), m.end() - m.start(), SATZ_COLORS["fixed_phrase"], f"Feste Wendung: {repl}")
+                                        )
+                            except Exception:
+                                pass
+                
+                # Step4
+                for iss in step4.get("issues", []):
+                    t = iss.get("type")
+                    if t in ("conjunction_repeat","conjunction_repeat_spaced"):
+                        for m in re.finditer(r"\b(und|oder)\b", text, flags=re.IGNORECASE):
+                            ranges.append((m.start(), m.end(), SATZ_COLORS[t], "Mögliche Konjunktionsdopplung", t))
+                            break
+                    elif t == "double_negation":
+                        span = iss.get("span","")
+                        if span:
+                            for m in re.finditer(re.escape(span), text, flags=re.IGNORECASE):
+                                ranges.append((m.start(), m.end(), SATZ_COLORS["double_negation"], "Mögliche doppelte Negation", "double_negation"))
+                # Step5 recognized
+                for rec in step5.get("recognized", []):
+                    tok = rec.get("token",""); base = rec.get("base","")
+                    for (t, s, e) in positions:
+                        if t == tok:
+                            ranges.append((s, e, SATZ_COLORS["recognized"], f"{rec.get('class')}: Basis {base}", "recognized"))
+                ranges.sort(key=lambda x: (x[0], x[1]))
+                return ranges
+            
+            def normalize_ranges_4_5(ranges):
+                out = []
+                for r in ranges:
+                    if len(r) == 5:
+                        s, e, color, tip, cls = r
+                        out.append((int(s), int(e), str(color), str(tip), str(cls)))
+                    elif len(r) == 4:
+                        s, length, color, tip = r
+                        out.append((int(s), int(s) + int(length), str(color), str(tip), ""))
+                    else:
+                        # unbekanntes Format -> überspringen
+                        continue
+                # sortiert nach Startposition, stabil für überlappende Bereiche
+                out.sort(key=lambda x: (x[0], x[1]))
+                return out
+                
+            def ranges_to_html(text: str, ranges):
+                nr = normalize_ranges_4_5(ranges)
+                html_parts = []
+                last = 0
+                for (s, e, color, tip, cls) in nr:
+                    s = max(0, min(len(text), s))
+                    e = max(s, min(len(text), e))
+                    if s > last:
+                        html_parts.append(html_escape(text[last:s]))
+                    seg = text[s:e]
+                    cls_attr = f' class="{html_escape(cls)}"' if cls else ''
+                    html_parts.append(
+                        f'<span{cls_attr} title="{html_escape(tip)}" '
+                        f'style="background:{html_escape(color)}33;">{html_escape(seg)}</span>'
+                    )
+                    last = e
+                if last < len(text):
+                    html_parts.append(html_escape(text[last:]))
+                return ''.join(html_parts)
+            
+            def full_html_document(content_body: str, title: str, chart_path: str = None) -> str:
+                chart_html = ""
+                if chart_path and os.path.exists(chart_path):
+                    chart_html = '<h3>Übersicht</h3><p><img src="%s" alt="Chart" /></p>' % os.path.basename(chart_path)
+                css = (
+                    "body{font-family:Segoe UI, Helvetica, Arial, sans-serif; padding:20px; color:#222}"
+                    "h1,h2,h3{color:#333}"
+                    ".meta{color:#666; font-size:12px}"
+                    "pre{white-space:pre-wrap}"
+                    ".block{margin-bottom:28px; padding:12px; border:1px solid #eee; border-radius:8px; background:#fafafa}"
+                )
+                head = "<!doctype html><html><head><meta charset='utf-8'><title>%s</title><style>%s</style></head><body>" % (html_escape(title), css)
+                head += "<h1>%s</h1><div class='meta'>Erzeugt am %s</div>%s" % (html_escape(title), datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), chart_html)
+                return head + content_body + "</body></html>"
+            
+            class IssueChartStandalone(FigureCanvas):
+                def __init__(self):
+                    self.fig = Figure(figsize=(6, 3), dpi=120)
+                    super(IssueChartStandalone, self).__init__(self.fig)
+                    self.ax = self.fig.add_subplot(111)
+                
+                def make_chart(self, counts: dict, path: str):
+                    self.ax.clear()
+                    if counts:
+                        keys = list(counts.keys())
+                        vals = [counts[k] for k in keys]
+                        self.ax.bar(keys, vals)
+                        self.ax.set_ylabel("Anzahl")
+                        self.ax.set_xticklabels(keys, rotation=30, ha="right")
+                        self.ax.set_title("Issue-Übersicht")
+                    else:
+                        self.ax.set_title("Keine Issues")
+                    self.fig.tight_layout()
+                    self.fig.savefig(path, dpi=144, bbox_inches="tight")
+            
+            class IssueChart(FigureCanvas):
+                def __init__(self, parent=None):
+                    self.fig = Figure(figsize=(4, 2.6), dpi=100)
+                    super(IssueChart, self).__init__(self.fig)
+                    self.ax = self.fig.add_subplot(111)
+                    self.fig.tight_layout()
+
+                def update_counts(self, counts: dict):
+                    self.ax.clear()
+                    if not counts:
+                        self.ax.set_title("Keine Issues")
+                        self.draw()
+                        return
+                    
+                    keys = list(counts.keys())
+                    vals = [counts[k] for k in keys]
+                    
+                    x = range(len(keys))
+                    self.ax.bar(x, vals)
+                    self.ax.set_ylabel("Anzahl")
+                    self.ax.set_xticks(list(x))                               # <-- NEU
+                    self.ax.set_xticklabels(keys, rotation=30, ha="right")    # <-- Jetzt ok
+                    self.ax.set_title("Issue-Übersicht")
+                    self.fig.tight_layout()
+                    self.draw()
+                
+                def save_png(self, path: str):
+                    self.fig.savefig(path, dpi=144, bbox_inches="tight")
+                    
+            class Highlighter:
+                def __init__(self, text_edit: QTextEdit):
+                    self.text_edit = text_edit
+                
+                def highlight_ranges(self, ranges):
+                    doc = self.text_edit.document()
+                    cursor = QTextCursor(doc)
+                    
+                    for entry in ranges:
+                        # Normieren auf (start, length, color_hex, tooltip)
+                        if len(entry) == 5:
+                            start, end, color_hex, tooltip, _cls = entry
+                            length = max(0, end - start)
+                        elif len(entry) == 4:
+                            start, length, color_hex, tooltip = entry
+                        else:
+                            # Unbekanntes Format überspringen
+                            continue
+                        
+                        # Safety
+                        if length <= 0:
+                            continue
+                        
+                        # Anwenden
+                        cursor.setPosition(start)
+                        cursor.setPosition(start + length, QtGui.QTextCursor.KeepAnchor)
+                        
+                        fmt    = QTextCharFormat()
+                        qcolor = QColor(color_hex)
+                        
+                        fmt.setBackground(QBrush(qcolor.lighter(160)))
+                        fmt.setToolTip(tooltip)
+                        
+                        cursor.setCharFormat(fmt)
+                        
+            class PrologWindow(QWidget):
+                def __init__(self, parent=None):
+                    super(PrologWindow, self).__init__(parent)
+                    
+                    # --- 1) Dein inhaltliches Layout bauen ---
+                    content_layout = QVBoxLayout()
+                    content_layout.setSpacing(8)
+                    content_layout.setContentsMargins(12, 12, 12, 12)
+                    
+                    # Widgets
+                    self.inputEdit = QPlainTextEdit()
+                    self.inputEdit.setPlaceholderText("Gib hier deinen Text ein…")
+                    self.outputEdit = QTextEdit()
+                    self.outputEdit.setReadOnly(True)
+                    
+                    self.btnAnalyze    = QPushButton("Analysieren")
+                    self.btnLoadCSV    = QPushButton("Wörterbuch laden…")
+                    self.btnExportHtml = QPushButton("Export HTML…")
+                    self.btnExportPdf  = QPushButton("Export PDF…")
+                    self.btnBatch      = QPushButton("Batch-Analyse (CSV)…")
+                    
+                    lbl_text = "-- bitte wählen ---"
+                    if os.path.exists(DEFAULT_CSV):
+                        lbl_text = DEFAULT_CSV
+                    self.lblCSV = QLabel(f"Wörterbuch: {lbl_text}")
+                    
+                    self.chart = IssueChart()
+                    
+                    # Layouts
+                    left = QVBoxLayout()
+                    left.addWidget(QLabel("Eingabetext"))
+                    left.addWidget(self.inputEdit, 2)
+                    left_buttons = QHBoxLayout()
+                    left_buttons.addWidget(self.btnAnalyze)
+                    left_buttons.addWidget(self.btnLoadCSV)
+                    left.addLayout(left_buttons)
+                    left2 = QHBoxLayout()
+                    left2.addWidget(self.btnExportHtml)
+                    left2.addWidget(self.btnExportPdf)
+                    left.addLayout(left2)
+                    left.addWidget(self.btnBatch)
+                    left.addWidget(self.lblCSV)
+                    
+                    right = QVBoxLayout()
+                    right.addWidget(QLabel("Analyse & Hervorhebungen"))
+                    right.addWidget(self.outputEdit, 3)
+                    right.addWidget(QLabel("Diagramm"))
+                    right.addWidget(self.chart, 2)
+                    
+                    lay = QHBoxLayout(self)
+                    lay.addLayout(left, 1)
+                    lay.addLayout(right, 1)
+                    
+                    # State
+                    self.csv_path = DEFAULT_CSV if os.path.exists(DEFAULT_CSV) else None
+                    self.vocab = None
+                    if self.csv_path:
+                        try:
+                            df = pd.read_csv(self.csv_path)
+                            self.vocab = build_vocab(df)
+                        except Exception as e:
+                            QMessageBox.warning(self, "Warnung", f"Konnte CSV nicht laden:\n{e}")
+                    self.last_ranges = []
+                    self.last_counts = {}
+                    self.last_text = ""
+                    
+                    # Signals
+                    self.btnAnalyze.clicked.connect(self.analyze)
+                    self.btnLoadCSV.clicked.connect(self.pick_csv)
+                    self.btnExportHtml.clicked.connect(self.export_html_current)
+                    self.btnExportPdf.clicked.connect(self.export_pdf_current)
+                    self.btnBatch.clicked.connect(self.batch_analyze_csv)
+                    
+                    # --- 2) Container-Widget für das Layout ---
+                    container = QWidget()
+                    container.setLayout(content_layout)
+                    
+                    # --- 3) QScrollArea konfigurieren ---
+                    scroll = QScrollArea()
+                    scroll.setWidget(container)           # Wichtig!
+                    scroll.setWidgetResizable(True)       # Container streckt sich mit
+                    
+                    # --- 4) Hauptlayout des Fensters ---
+                    main_layout = QVBoxLayout(self)
+                    main_layout.addWidget(scroll)
+        
+                def pick_csv(self):
+                    path, _ = QFileDialog.getOpenFileName(self, "Wörterbuch CSV wählen", "", "CSV (*.csv)")
+                    if path:
+                        try:
+                            df = pd.read_csv(path)
+                            self.vocab = build_vocab(df)
+                            self.csv_path = path
+                            self.lblCSV.setText(f"Wörterbuch: {path}")
+                        except Exception as e:
+                            QMessageBox.critical(self, "Fehler", f"CSV konnte nicht geladen werden:\n{e}")
+                
+                def analyze(self):
+                    text = self.inputEdit.toPlainText()
+                    if not text.strip():
+                        self.outputEdit.setPlainText("Bitte Text eingeben.")
+                        return
+                    if self.vocab is None:
+                        self.outputEdit.setPlainText("Kein Wörterbuch geladen. Bitte CSV wählen.")
+                        return
+                    
+                    step1 = analyze_sentence_step1(text, self.vocab)
+                    step2 = analyze_sentence_step2(text)
+                    step3 = analyze_sentence_step3_fixed(text)
+                    step4 = analyze_sentence_step4_syntax(text)
+                    step5 = analyze_sentence_step5_flex(text, self.vocab)
+                    
+                    self.outputEdit.clear()
+                    self.outputEdit.setPlainText(text)
+                    
+                    ranges = build_ranges(text, step1, step2, step3, step4, step5)
+                    Highlighter(self.outputEdit).highlight_ranges(ranges)
+                    
+                    # counts for chart
+                    counts = {}
+                    counts["unknown"] = len(step1.get("unknown", []))
+                    counts["casing"] = len(step1.get("casing_warnings", []))
+                    for iss in step3.get("issues", []):
+                        counts["fixed"] = counts.get("fixed",0) + 1
+                    for iss in step4.get("issues", []):
+                        counts[iss["type"]] = counts.get(iss["type"], 0) + 1
+                    counts["recognized"] = len(step5.get("recognized", []))
+                    self.chart.update_counts(counts)
+                    
+                    # store for export
+                    self.last_ranges = ranges
+                    self.last_counts = counts
+                    self.last_text = text
+                
+                def export_html_current(self):
+                    if not self.last_text:
+                        QMessageBox.information(self, "Hinweis", "Bitte zuerst analysieren.")
+                        return
+                    path, _ = QFileDialog.getSaveFileName(self, "HTML exportieren", "analyse.html", "HTML (*.html)")
+                    if not path:
+                        return
+                    chart_png = os.path.splitext(path)[0] + "_chart.png"
+                    self.chart.save_png(chart_png)
+                    body = '<div class="block"><pre>%s</pre></div>' % (ranges_to_html(self.last_text, self.last_ranges))
+                    html = full_html_document(body, "Analyse – Einzeltext", chart_png)
+                    with open(path, "w", encoding="utf-8") as f:
+                        f.write(html)
+                    QMessageBox.information(self, "Export", f"HTML gespeichert:\n{path}")
+                
+                def export_pdf_current(self):
+                    if not self.last_text:
+                        QMessageBox.information(self, "Hinweis", "Bitte zuerst analysieren.")
+                        return
+                    path, _ = QFileDialog.getSaveFileName(self, "PDF exportieren", "analyse.pdf", "PDF (*.pdf)")
+                    if not path:
+                        return
+                    chart_png = os.path.splitext(path)[0] + "_chart.png"
+                    self.chart.save_png(chart_png)
+                    body = '<div class="block"><pre>%s</pre></div>' % (ranges_to_html(self.last_text, self.last_ranges))
+                    html = full_html_document(body, "Analyse – Einzeltext", chart_png)
+                    
+                    doc = QTextDocument()
+                    doc.setHtml(html)
+                    printer = QPrinter(QPrinter.HighResolution)
+                    printer.setOutputFormat(QPrinter.PdfFormat)
+                    printer.setOutputFileName(path)
+                    doc.print_(printer)
+                    QMessageBox.information(self, "Export", f"PDF gespeichert:\n{path}")
+                
+                def batch_analyze_csv(self):
+                    if self.vocab is None:
+                        QMessageBox.information(self, "Hinweis", "Bitte zuerst Wörterbuch laden.")
+                        return
+                    csv_path, _ = QFileDialog.getOpenFileName(self, "Batch-CSV wählen", "", "CSV (*.csv)")
+                    if not csv_path:
+                        return
+                    try:
+                        df = pd.read_csv(csv_path)
+                    except Exception as e:
+                        QMessageBox.critical(self, "Fehler", f"CSV konnte nicht geladen werden:\n{e}")
+                        return
+                    if "text" not in df.columns:
+                        QMessageBox.critical(self, "Fehler", "Spalte 'text' nicht gefunden.")
+                        return
+                    
+                    sections = []
+                    overall_counts = {}
+                    for idx, row in df.iterrows():
+                        text = str(row["text"]) if not pd.isna(row["text"]) else ""
+                        if not text.strip():
+                            continue
+                        step1 = analyze_sentence_step1(text, self.vocab)
+                        step2 = analyze_sentence_step2(text)
+                        step3 = analyze_sentence_step3_fixed(text)
+                        step4 = analyze_sentence_step4_syntax(text)
+                        step5 = analyze_sentence_step5_flex(text, self.vocab)
+                        ranges = build_ranges(text, step1, step2, step3, step4, step5)
+                        
+                        c = {"unknown": len(step1.get("unknown", [])),
+                             "casing": len(step1.get("casing_warnings", [])),
+                             "recognized": len(step5.get("recognized", []))}
+                        for iss in step3.get("issues", []):
+                            c["fixed"] = c.get("fixed",0) + 1
+                            overall_counts["fixed"] = overall_counts.get("fixed",0) + 1
+                        for iss in step4.get("issues", []):
+                            t = iss["type"]
+                            c[t] = c.get(t,0) + 1
+                            overall_counts[t] = overall_counts.get(t,0) + 1
+                        overall_counts["unknown"] = overall_counts.get("unknown",0) + c["unknown"]
+                        overall_counts["casing"] = overall_counts.get("casing",0) + c["casing"]
+                        overall_counts["recognized"] = overall_counts.get("recognized",0) + c["recognized"]
+                        
+                        body_html = ranges_to_html(text, ranges)
+                        sections.append('<div class="block"><h3>#%d</h3><pre>%s</pre></div>' % (idx+1, body_html))
+                    
+                    save_path, _ = QFileDialog.getSaveFileName(self, "Batch-Report speichern (HTML)", "batch_report.html", "HTML (*.html)")
+                    if not save_path:
+                        return
+                    chart_png = os.path.splitext(save_path)[0] + "_chart.png"
+                    IssueChartStandalone().make_chart(overall_counts, chart_png)
+                    doc_html = full_html_document("".join(sections), "Batch-Analyse", chart_png)
+                    with open(save_path, "w", encoding="utf-8") as f:
+                        f.write(doc_html)
+                    information(self, "Batch", "HTML-Report gespeichert:\n%s\n\nTipp: Zum PDF-Export HTML im Browser drucken oder den Einzel-PDF-Export nutzen." % save_path)
+            
             self.prolog_tabs = ApplicationTabWidget([
                 _str("Prolog Project"),
                 _str("Prolog Editor"),
                 _str("Prolog Designer")])
-            self.prolog_project  = ApplicationProjectPage(self, self.prolog_tabs.getTab(0), "prolog")
-            self.prolog_editors  = ApplicationEditorsPage(self, self.prolog_tabs.getTab(1), "prolog")
-            self.prolog_designer = ApplicationDesignPage(
-                self,
-                self.prolog_tabs.getTab(2),
-                self.prolog_tabs)
+            
+            self.prolog_tabs.setMinimumWidth(900)
+            tab1 = self.prolog_tabs.getTab(0)
+            prol = PrologWindow(tab1)
+            
+            #self.prolog_project  = ApplicationProjectPage(self, self.prolog_tabs.getTab(0), "prolog")
+            #self.prolog_editors  = ApplicationEditorsPage(self, self.prolog_tabs.getTab(1), "prolog")
+            #self.prolog_designer = ApplicationDesignPage(
+            #    self,
+            #    self.prolog_tabs.getTab(2),
+            #    self.prolog_tabs)
+                
+            #self.tab1 = self.prolog_tabs.getTab(1)
+            #prowin = PrologWindow(self.tab1)
         
         # fortran
         def handleFortran(self):
@@ -27924,57 +30967,62 @@ try:
             print("Klick erkannt:", topic)
             genv.actual_click_link = topic
             genv.decoded_text = ""
-            with open(genv.v__app__locales_help, "rb") as f:
-                compressed_data = f.read()
-                mo_data = zlib.decompress(compressed_data)
-                #
-                program_dir = os.path.dirname(os.path.abspath(__file__))
-                program_dir = (program_dir + "/temp/").replace("\\", "/")
-                program_lib = (program_dir + "lib")
-                program_css = (program_dir + "css")
-                program_jav = (program_dir + "js" )
-                #
-                os.makedirs(program_dir, exist_ok=True)
-                os.makedirs(program_lib, exist_ok=True)
-                os.makedirs(program_css, exist_ok=True)
-                os.makedirs(program_jav, exist_ok=True)
-                #
-                with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
-                    tmp.write(mo_data)
-                    tmp_path = tmp.name
-                    po = polib.mofile(tmp_path)
-                    index = False
-                    if topic.lower() == "index.html":
-                        index = True
-                        entry = po.find("index.html|TEXT")
+            showInfo(genv.v__app__locales_help)
+            file = QFile(genv.v__app__locales_help)
+            if not file.open(QIODevice.ReadOnly):
+                raise RuntimeError(f"could not open resource file: {genv.v__app__locales_help}\n{file.errorString()}")
+            compressed_data = file.readAll(); file.close()
+            mo_data = gzip.decompress(compressed_data)
+            #mo_data = zlib.decompress(compressed_data)
+            #
+            program_dir = os.path.dirname(os.path.abspath(__file__))
+            program_dir = (program_dir + "/temp/").replace("\\", "/")
+            program_lib = (program_dir + "lib")
+            program_css = (program_dir + "css")
+            program_jav = (program_dir + "js" )
+            #
+            os.makedirs(program_dir, exist_ok=True)
+            os.makedirs(program_lib, exist_ok=True)
+            os.makedirs(program_css, exist_ok=True)
+            os.makedirs(program_jav, exist_ok=True)
+            #
+            with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
+                tmp.write(mo_data)
+                tmp_path = tmp.name
+                po = polib.mofile(tmp_path)
+                index = False
+                if topic.lower() == "index.html":
+                    index = True
+                    entry = po.find("index.html|TEXT")
+                else:
+                    if topic.endswith(".htm"):
+                        entry = po.find(topic+"|TEXT")
                     else:
-                        if topic.endswith(".htm"):
-                            entry = po.find(topic+"|TEXT")
-                        else:
-                            entry = po.find(topic+"|BINARY")
-                    if not entry:
-                        parent.file_toc = "<b>no topics  available</b>"
-                        parent.browser_toc.setHtml(parent.file_toc)
-                    else:
-                        b64_string = entry.msgstr
-                        compressed_data = base64.b64decode(b64_string)
-                        decompressed_data = zlib.decompress(compressed_data)
-                        genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                        
-                        if index:
-                            genv.decoded_index_text = genv.decoded_text
+                        entry = po.find(topic+"|BINARY")
+                if not entry:
+                    parent.file_toc = "<b>no topics  available</b>"
+                    parent.browser_toc.setHtml(parent.file_toc)
+                else:
+                    b64_string = entry.msgstr
+                    compressed_data = base64.b64decode(b64_string)
+                    decompressed_data = zlib.decompress(compressed_data)
+                    genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                    
+                    if index:
+                        genv.decoded_index_text = genv.decoded_text
 
-                        assets = extract_assets_from_html(genv.decoded_text)
-                        #showInfo(str(assets))
-                        
-                        if not index:
-                            genv.help_content_code.dataContent.emit(genv.decoded_text)
-                        else:
-                            parent.browser_toc.setHtml(genv.decoded_index_text)
-                            #load(QUrl("http://localhost:8000/temp/index.html"))
-                
-                os.remove(tmp_path)
-                return genv.decoded_text
+                    assets = extract_assets_from_html(genv.decoded_text)
+                    #showInfo(str(assets))
+                    
+                    if not index:
+                        genv.help_content_code.dataContent.emit(genv.decoded_text)
+                    else:
+                        parent.browser_toc.setHtml(genv.decoded_index_text)
+                        #load(QUrl("http://localhost:8000/temp/index.html"))
+            
+            os.remove(tmp_path)
+            return genv.decoded_text
+            
         except FileNotFoundError as e:
             handle_exception(e, (_str("A File operation Exception occured:")))
             return ""
@@ -31647,6 +34695,8 @@ try:
                         
         sp.add_argument("--port", dest="port", type=int,
                         help=_str("listen on port n"))
+                        
+        sp.add_argument("--goodie", dest="goodie", type=int)
     # ------------------------------------------------------------------------
     def add_terminal_args(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--client", dest="client", action="store_true",
@@ -32236,6 +35286,25 @@ try:
         print("helpndoc handler")
     # ------------------------------------------------------------------------
     def handle_args_gui(args):
+        goodie = args.goodie
+        if goodie == 80279:
+            app = QApplication(sys.argv)
+            win = HalmaMainWindow()
+            sys.exit(app.exec_())
+        elif goodie == 70274:
+            app = QApplication(sys.argv)
+            win = MADNMainWindow()
+            sys.exit(app.exec_())
+        elif goodie == 190756:
+            app = QApplication(sys.argv)
+            win = SudokuWindow()
+            win.show()
+            sys.exit(app.exec_())
+        elif goodie == 150149:
+            app = QApplication(sys.argv)
+            win = MixerMainWindow()
+            win.show()
+            sys.exit(app.exec_())
         handleExceptionApplication(EntryPoint)
     # ------------------------------------------------------------------------
     def handle_args_console(args):
@@ -32258,7 +35327,7 @@ try:
         if not argv:
             parser.print_help()
             return 0
-        print("xxxx")
+        
         args = parser.parse_args(argv)
             
         if   args.subcmd == "pascal"  : handle_args_pascal  (args); return 0

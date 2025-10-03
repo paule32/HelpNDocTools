@@ -49,17 +49,17 @@ gzip -9 observer.mo
 copy observer.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_MESSAGES
 :: ----------------------------------
 
-::cd %BASEDIR%\locales\de_de\LC_HELP
-::rm -rf help.mo.gz
-::msgfmt -o help.mo help.po
-::gzip -9 help.mo
-::copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_HELP
+cd %BASEDIR%\locales\de_de\LC_HELP
+rm -rf help.mo.gz
+msgfmt -o help.mo help.po
+gzip -9 help.mo
+copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_HELP
 
-::cd %BASEDIR%\locales\en_us\LC_HELP
-::rm -rf help.mo.gz
-::msgfmt -o help.mo help.po
-::gzip -9 help.mo
-::copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP
+cd %BASEDIR%\locales\en_us\LC_HELP
+rm -rf help.mo.gz
+msgfmt -o help.mo out.po
+gzip -9 help.mo
+copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP
 :: ----------------------------------
 
 cd %BASEDIR%\locales\de_de\LC_STYLE

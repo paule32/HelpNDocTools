@@ -4,6 +4,9 @@
 #
 # Rechte: (c) 2025 by kallup non-profit software
 #         all rights reserved
+#
+# only for education, and for non-profit usage !!!
+# commercial use ist not allowed.
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -953,7 +956,7 @@ function initUI {
     # -----------------------------------------------------------------------
     # local image file
     # -----------------------------------------------------------------------
-    $localImagePath = "img\setup.png"  # <-- Pfad anpassen!
+    $localImagePath = "setup.png"  # <-- Pfad anpassen!
     if (Test-Path $localImagePath) {
         $setupImage.Image = [System.Drawing.Image]::FromFile($localImagePath)
     }   else {
