@@ -7,6 +7,8 @@ from __future__  import annotations
 from dataclasses import dataclass, field, replace
 from datetime    import datetime
 from pathlib     import Path
+
+import os, sys
 # ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
@@ -14,8 +16,6 @@ global GUI_DEBUG           # set if gui debug !
 
 global os_name; os_name = ""
 global front_content_layout
-
-import os, sys
 
 BASEDIR   = os.path.dirname(os.path.abspath(__file__))
 GUI_DEBUG = True
@@ -158,6 +158,13 @@ import math
 # ---------------------------------------------------------------------------
 from matplotlib.figure                  import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from fractions                          import Fraction
+
+import numpy as np
+import sympy as sp
+
+from   sympy.parsing.sympy_parser import parse_expr
+from   sympy                      import Eq
 # ---------------------------------------------------------------------------
 # \brief os env setzen
 # ---------------------------------------------------------------------------
@@ -27749,14 +27756,713 @@ try:
                         f.write(doc_html)
                     information(self, "Batch", "HTML-Report gespeichert:\n%s\n\nTipp: Zum PDF-Export HTML im Browser drucken oder den Einzel-PDF-Export nutzen." % save_path)
             
+            ## ---- math solver START ----
+            
+            # ---------------- Schritte-Protokoll ----------------
+            @dataclass
+            class Step:
+                action: str
+                detail: str
+                state: str  # menschenlesbar
+            
+            class StepRecorder:
+                def __init__(self):
+                    self.steps: List[Step] = []
+                
+                def add(self, action: str, detail: str, state_obj: Any):
+                    try:
+                        state = sp.pretty(state_obj)
+                    except Exception:
+                        state = str(state_obj)
+                    self.steps.append(Step(action, detail, state))
+                
+                def as_text(self) -> str:
+                    lines = []
+                    for i, s in enumerate(self.steps, 1):
+                        lines.append(f"[{i}] {s.action}: {s.detail}\n{s.state}")
+                    return "\n\n".join(lines)
+                
+                def clear(self):
+                    self.steps.clear()
+            
+            # ---------------- Algebraische Tools ----------------
+            class AlgebraTools:
+                def __init__(self, rec: StepRecorder):
+                    self.rec = rec
+                
+                def parse(self, expr_str: str) -> sp.Expr:
+                    expr = parse_expr(expr_str, evaluate=False)
+                    self.rec.add("Parser", f"Ausdruck geparst: {expr_str}", expr)
+                    return expr
+                
+                def expand_binomial(self, expr: Union[str, sp.Expr]) -> sp.Expr:
+                    expr = self.parse(expr) if isinstance(expr, str) else expr
+                    after = sp.expand(expr)
+                    self.rec.add("Binomische Formel / Expand", "Ausdruck expandiert", after)
+                    return after
+                
+                def factor(self, expr: Union[str, sp.Expr]) -> sp.Expr:
+                    expr = self.parse(expr) if isinstance(expr, str) else expr
+                    after = sp.factor(expr)
+                    self.rec.add("Faktorisierung", "Gemeinsame Faktoren/Polynome herausgezogen", after)
+                    return after
+                
+                def simplify_expr(self, expr: Union[str, sp.Expr]) -> sp.Expr:
+                    expr = self.parse(expr) if isinstance(expr, str) else expr
+                    after = sp.simplify(expr)
+                    self.rec.add("Vereinfachen", "Algebraische Vereinfachung", after)
+                    return after
+                
+                def log_rules(self, expr: Union[str, sp.Expr]) -> sp.Expr:
+                    expr = self.parse(expr) if isinstance(expr, str) else expr
+                    x = sp.logcombine(expr, force=True)
+                    self.rec.add("Log-Regeln", "log combine/split", x)
+                    return x
+                
+                def exp_rules(self, expr: Union[str, sp.Expr]) -> sp.Expr:
+                    expr = self.parse(expr) if isinstance(expr, str) else expr
+                    x = sp.powsimp(sp.expand(expr), force=True)
+                    self.rec.add("Exp-/Potenz-Regeln", "powsimp + expand", x)
+                    return x
+                
+                def sqrt_simplify(self, expr: Union[str, sp.Expr]) -> sp.Expr:
+                    expr = self.parse(expr) if isinstance(expr, str) else expr
+                    x = sp.sqrtdenest(sp.sqrtdenest(expr))
+                    x = sp.nsimplify(x)
+                    self.rec.add("Wurzel-Vereinfachung", "sqrtdenest + nsimplify", x)
+                    return x
+                
+                def binom_coeff(self, n: int, k: int) -> int:
+                    self.rec.add("Binomialkoeffizient", f"n={n}, k={k}", "C(n,k) = n!/(k!(n-k)!)")
+                    val = sp.binomial(n, k)
+                    self.rec.add("Berechnung", "SymPy binomial", val)
+                    return int(val)
+                
+                def gcd_steps(self, a: int, b: int) -> int:
+                    self.rec.add("GGT", f"Start a={a}, b={b}", f"ggt({a},{b})")
+                    x, y = abs(a), abs(b)
+                    while y != 0:
+                        q = x // y
+                        r = x % y
+                        self.rec.add("Euklid-Schritt", f"{x} = {q}*{y} + {r}", f"Rest={r}")
+                        x, y = y, r
+                    self.rec.add("Ergebnis", "GGT gefunden", x)
+                    return x
+                
+                def lcm_from_gcd(self, a: int, b: int) -> int:
+                    g = self.gcd_steps(a, b)
+                    l = abs(a*b) // g if g != 0 else 0
+                    self.rec.add("KGV", f"KGV = |a*b|/GGT = {abs(a*b)}/{g}", l)
+                    return l
+                
+                def percent_part(self, base: float, percent: float) -> float:
+                    res = base * percent / 100.0
+                    self.rec.add("Prozent", f"{percent}% von {base}", res)
+                    return res
+                
+                def percent_up(self, base: float, percent: float) -> float:
+                    res = base * (1 + percent/100.0)
+                    self.rec.add("Prozent-Aufschlag", f"+{percent}% auf {base}", res)
+                    return res
+                
+                def percent_down(self, base: float, percent: float) -> float:
+                    res = base * (1 - percent/100.0)
+                    self.rec.add("Prozent-Abschlag", f"-{percent}% von {base}", res)
+                    return res
+                
+                def dreisatz(self, a: float, b: float, c: float) -> float:
+                    self.rec.add("Dreisatz", f"{a} entspricht {b}; gesucht für {c}", "")
+                    x = (b / a) * c
+                    self.rec.add("Berechnung", "x = (b/a)*c", x)
+                    return x
+                
+                def dreisatz_zusammengesetzt(self, basis: float, faktoren: List[Tuple[float, float, str]]) -> float:
+                    """faktoren: Liste aus (alt, neu, typ) mit typ in {"pro", "anti"}
+                    pro: skaliere mit neu/alt; anti: skaliere mit alt/neu
+                    """
+                    val = basis
+                    self.rec.add("Zusammengesetzter Dreisatz", f"Startwert {basis}", val)
+                    for alt, neu, typ in faktoren:
+                        if typ == "pro":
+                            val = val * (neu / alt)
+                            self.rec.add("Skalierung (pro)", f"× (neu/alt) = {neu}/{alt}", val)
+                        else:
+                            val = val * (alt / neu)
+                            self.rec.add("Skalierung (anti)", f"× (alt/neu) = {alt}/{neu}", val)
+                    return val
+            
+            # ---------------- Gleichungen & LGS ----------------
+            class EquationSolver:
+                def __init__(self, rec: StepRecorder):
+                    self.rec = rec
+                
+                def solve_eq(self, left: Union[str, sp.Expr], right: Union[str, sp.Expr], var: str = "x"):
+                    x = sp.Symbol(var)
+                    L = parse_expr(left, evaluate=False) if isinstance(left, str) else left
+                    R = parse_expr(right, evaluate=False) if isinstance(right, str) else right
+                    self.rec.add("Gleichung", f"{left} = {right}", sp.Eq(L, R))
+                    expr = L - R
+                    self.rec.add("Normalform", "Alles auf eine Seite", expr)
+                    expr_simpl = sp.simplify(expr)
+                    if expr_simpl != expr:
+                        self.rec.add("Vereinfachen", "simplify", expr_simpl)
+                    sol = sp.solve(sp.Eq(expr_simpl, 0), x, dict=True)
+                    self.rec.add("Lösung", "solve()", sol)
+                    return sol
+            
+            class LinearSystemSolver:
+                def __init__(self, rec: StepRecorder):
+                    self.rec = rec
+                
+                @staticmethod
+                def _to_fraction_matrix(A: List[List[float]], b: List[float]):
+                    M = [[Fraction(a).limit_denominator() for a in row] for row in A]
+                    v = [Fraction(val).limit_denominator() for val in b]
+                    return M, v
+                
+                def solve(self, A: List[List[float]], b: List[float]) -> Dict[str, Any]:
+                    M, v = self._to_fraction_matrix(A, b)
+                    m, n = len(M), len(M[0])
+                    self.rec.add("LGS Start", f"{m} Gleichungen, {n} Unbekannte", f"A|b = {M}|{v}")
+                    
+                    row = 0
+                    pivots = []
+                    for col in range(n):
+                        pivot = None
+                        for r in range(row, m):
+                            if M[r][col] != 0:
+                                pivot = r
+                                break
+                        if pivot is None:
+                            continue
+                        if pivot != row:
+                            M[row], M[pivot] = M[pivot], M[row]
+                            v[row], v[pivot] = v[pivot], v[row]
+                            self.rec.add("Zeilen tauschen", f"R{row+1} <-> R{pivot+1}", f"{M}|{v}")
+                        
+                        fac = M[row][col]
+                        if fac != 1:
+                            M[row] = [x / fac for x in M[row]]
+                            v[row] = v[row] / fac
+                            self.rec.add("Pivotskalierung", f"R{row+1} := R{row+1}/{fac}", f"{M}|{v}")
+                        
+                        for r in range(m):
+                            if r == row:
+                                continue
+                            if M[r][col] != 0:
+                                fac = M[r][col]
+                                M[r] = [a - fac * b for a, b in zip(M[r], M[row])]
+                                v[r] = v[r] - fac * v[row]
+                                self.rec.add("Elimination", f"R{r+1} := R{r+1} - ({fac})*R{row+1}", f"{M}|{v}")
+                        
+                        pivots.append(col)
+                        row += 1
+                        if row == m:
+                            break
+                    
+                    for r in range(m):
+                        if all(M[r][c] == 0 for c in range(n)) and v[r] != 0:
+                            self.rec.add("Widerspruch", "0 = c ≠ 0", f"R{r+1}")
+                            return {"type": "none", "solution": None, "rref": (M, v)}
+                    
+                    if len(pivots) == n:
+                        sol = [Fraction(0) for _ in range(n)]
+                        for r, c in enumerate(pivots):
+                            sol[c] = v[r]
+                        self.rec.add("Lösungstyp", "eindeutig", sol)
+                        return {"type": "unique", "solution": [float(s) for s in sol], "rref": (M, v)}
+                    else:
+                        self.rec.add("Lösungstyp", "unendlich viele (Parameter)", f"Pivots: {pivots}")
+                        return {"type": "infinite", "solution": None, "rref": (M, v)}
+            
+            # ---------------- Matplotlib Canvas ----------------
+            class MplCanvas(FigureCanvas):
+                def __init__(self, parent=None, width=5, height=4, dpi=100):
+                    fig = Figure(figsize=(width, height), dpi=dpi)
+                    self.ax = fig.add_subplot(111)
+                    super().__init__(fig)
+                    self.setParent(parent)
+                
+                def clear(self):
+                    self.ax.clear()
+                    self.draw()
+            
+            # ---------------- Haupt-GUI ----------------
+            class SolverWindow(QWidget):
+                def __init__(self, parent=None):
+                    super(SolverWindow, self).__init__(parent)
+                    self.resize(940, 500)
+                    
+                    self.font = QFont("Consolas", 11)
+                    
+                    # --- 1) Dein inhaltliches Layout bauen ---
+                    content_layout = QVBoxLayout()
+                    content_layout.setSpacing(8)
+                    content_layout.setContentsMargins(10, 10, 10, 10)
+                    
+                    self.rec = StepRecorder()
+                    self.alg = AlgebraTools(self.rec)
+                    self.eq  = EquationSolver(self.rec)
+                    self.lgs = LinearSystemSolver(self.rec)
+                    
+                    tabs = QTabWidget()
+                    tabs.addTab(self._build_algebra_tab(), "Algebra")
+                    tabs.addTab(self._build_equation_tab(), "Gleichung")
+                    tabs.addTab(self._build_lgs_tab(), "LGS")
+                    tabs.addTab(self._build_plot_tab(), "Plot")
+                    
+                    # --- 2) Container-Widget für das Layout ---
+                    content_layout.addWidget(tabs)
+                    container = QWidget()
+                    container.setLayout(content_layout)
+                    
+                    # --- 3) QScrollArea konfigurieren ---
+                    scroll = QScrollArea()
+                    scroll.setMinimumWidth(900)
+                    scroll.setWidget(container)           # Wichtig!
+                    scroll.setWidgetResizable(True)       # Container streckt sich mit
+                    
+                    # --- 4) Hauptlayout des Fensters ---
+                    main_layout = QVBoxLayout(self)
+                    main_layout.addWidget(scroll)
+                
+                # ------- Hilfen -------
+                def show_steps(self, target: QTextEdit):
+                    target.setPlainText(self.rec.as_text())
+                
+                def error(self, msg: str):
+                    QMessageBox.critical(self, "Fehler", msg)
+                
+                # ------- Algebra-Tab -------
+                def _build_algebra_tab(self) -> QWidget:
+                    w = QWidget()
+                    layout = QVBoxLayout(w)
+                    
+                    expr_row = QHBoxLayout()
+                    cnk      = QHBoxLayout()
+                    kgv      = QHBoxLayout()
+                    perc     = QHBoxLayout()
+                    drei     = QHBoxLayout()
+                    
+                    expr_lbl = QLabel("Ausdruck:")
+                    expr_lbl.setMaximumWidth(120)
+                    expr_lbl.setFont(self.font)
+                    expr_row.addWidget(expr_lbl)
+                    
+                    self.algebra_expr = QLineEdit("(x+3)**2")
+                    self.algebra_expr.setFont(self.font)
+                    self.algebra_expr.setMinimumWidth(200)
+                    self.algebra_expr.setMaximumWidth(200)
+                    
+                    expr_row.addWidget(self.algebra_expr)
+                    
+                    self.algebra_op = QComboBox()
+                    self.algebra_op.setFont(self.font)
+                    self.algebra_op.addItems([
+                        "Expand (binomisch)",
+                        "Faktorisieren",
+                        "Vereinfachen",
+                        "Log-Regeln",
+                        "Exp-/Potenz-Regeln",
+                        "Wurzel vereinfachen",
+                    ])
+                    
+                    do_btn = QPushButton("Ausführen")
+                    do_btn.setFont(self.font)
+                    do_btn.setMaximumWidth(100)
+                    do_btn.clicked.connect(self.on_algebra_run)
+                    
+                    top = QHBoxLayout()
+                    top.addLayout(expr_row)
+                    top.addWidget(self.algebra_op)
+                    top.addWidget(do_btn)
+                    top.addStretch()
+                    
+                    self.steps_algebra = QTextEdit()
+                    self.steps_algebra.setMaximumWidth(750)
+                    self.steps_algebra.setFont(self.font)
+                    self.steps_algebra.setReadOnly(True)
+                    
+                    # Zahlentheorie/Prozent/Dreisatz (kleine Werkzeuge)
+                    small_tools = QVBoxLayout()
+                    
+                    self.math_combo_list = [
+                        [ "Ausdruck",               expr_row, self.math_calc_ausdruck],
+                        [ "Binomialkoeffizient",    cnk, self.math_calc_binc],
+                        
+                        [ "Größter gemeinsame Teiler / Kleinste gemeinsame vielfache", kgv, self.math_calc_kgv],
+                        
+                        [ "Prozent",                perc, self.math_calc_prozent],
+                        [ "Dreisatz",               drei, self.math_calc_dreisatz],
+                    ]
+
+                    self.math_1_combobox = QComboBox()
+                    self.math_1_combobox.setMaximumWidth(640)
+                    self.math_1_combobox.setFont(self.font)
+                    self.math_1_combobox.currentIndexChanged.connect(self.math_1_combobox_combo_index_changed)
+                    for item in self.math_combo_list:
+                        self.math_1_combobox.addItem(item[0])
+                    
+                    small_tools.addWidget(self.math_1_combobox)
+                    
+                    # Binomialkoeffizient
+                    self.n_spin = QSpinBox(); self.n_spin.setFont(self.font); self.n_spin.setRange(0, 200); self.n_spin.setValue(10)
+                    self.k_spin = QSpinBox(); self.k_spin.setFont(self.font); self.k_spin.setRange(0, 200); self.k_spin.setValue(3)
+                    
+                    self.n_spin.setMinimumWidth(100); self.n_spin.setMaximumWidth(100)
+                    self.k_spin.setMinimumWidth(100); self.k_spin.setMaximumWidth(100)
+                    
+                    binom_btn   = QPushButton("C(n,k)")
+                    binom_btn.setMinimumWidth(100)
+                    binom_btn.setMaximumWidth(100)
+                    binom_btn.setFont(self.font)
+                    binom_btn.clicked.connect(self.on_binom)
+                    
+                    lbn = QLabel("n:"); lbn.setMaximumWidth(32); lbn.setFont(self.font)
+                    lbk = QLabel("k:"); lbk.setMaximumWidth(32); lbk.setFont(self.font)
+
+                    cnk.addWidget(lbn); cnk.addWidget(self.n_spin)
+                    cnk.addWidget(lbk); cnk.addWidget(self.k_spin)
+                    cnk.addWidget(binom_btn)
+                    cnk.addStretch()
+                    
+                    small_tools.addLayout(cnk)
+                    
+                    # GGT/KGV
+                    self.ggt_a = QLineEdit("252")
+                    self.ggt_b = QLineEdit("105")
+                    self.ggt_a.setFont(self.font)
+                    self.ggt_b.setFont(self.font)
+                    
+                    ggt_btn    = QPushButton("GGT & KGV")
+                    ggt_btn.setFont(self.font)
+                    ggt_btn.clicked.connect(self.on_gcd_lcm)
+                    
+                    kga = QLabel("a:")
+                    kgb = QLabel("b:")
+                    
+                    kga.setFont(self.font)
+                    kgb.setFont(self.font)
+                    
+                    kgv.addWidget(kga); kgv.addWidget(self.ggt_a)
+                    kgv.addWidget(kgb); kgv.addWidget(self.ggt_b)
+                    kgv.addWidget(ggt_btn)
+                    kgv.addStretch()
+                    
+                    small_tools.addLayout(kgv)
+                    
+                    # Prozent
+                    self.percent_base  = QLineEdit("120"); self.percent_base.setFont(self.font)
+                    self.percent_val   = QLineEdit("15" ); self.percent_val .setFont(self.font)
+                    
+                    p_combo = QComboBox(); p_combo.addItems(["Anteil","Aufschlag","Abschlag"])
+                    p_combo.setFont(self.font)
+                    self.percent_combo = p_combo
+                    
+                    p_btn = QPushButton("Prozent rechnen"); p_btn.setFont(self.font)
+                    p_btn.clicked.connect(self.on_percent)
+                    
+                    plba = QLabel("Basis:"); plba.setFont(self.font)
+                    plbb = QLabel("%:"    ); plbb.setFont(self.font)
+                    
+                    perc.addWidget(plba); perc.addWidget(self.percent_base)
+                    perc.addWidget(plbb); perc.addWidget(self.percent_val )
+                    
+                    perc.addWidget(self.percent_combo)
+                    perc.addWidget(p_btn)
+                    perc.addStretch()
+                    
+                    small_tools.addLayout(perc)
+                    
+                    # Dreisatz
+                    self.ds_a = QLineEdit("4" ); self.ds_a.setFont(self.font)
+                    self.ds_b = QLineEdit("10"); self.ds_b.setFont(self.font)
+                    self.ds_c = QLineEdit("7" ); self.ds_c.setFont(self.font)
+                    
+                    ds_btn    = QPushButton("Dreisatz")
+                    ds_btn.setFont(self.font)
+                    ds_btn.clicked.connect(self.on_dreisatz)
+                    
+                    dslba = QLabel("a --> b:"); dslba.setFont(self.font)
+                    dslbb = QLabel("c:"      ); dslbb.setFont(self.font)
+                    
+                    drei.addWidget(dslba); drei.addWidget(self.ds_a); drei.addWidget(self.ds_b)
+                    drei.addWidget(dslbb); drei.addWidget(self.ds_c)
+                    drei.addWidget(ds_btn)
+                    drei.addStretch()
+                    
+                    small_tools.addLayout(drei)
+                    
+                    steps_lbl = QLabel("Schritte:")
+                    steps_lbl.setFont(self.font)
+                    
+                    layout.addLayout(small_tools)
+                    layout.addLayout(top)
+                    
+                    layout.addWidget(steps_lbl)
+                    layout.addWidget(self.steps_algebra)
+                    
+                    for item in self.math_combo_list:
+                        self.set_layout_visible(item[1], False)
+                    return w
+                
+                def set_layout_visible(self, layout, visible: bool):
+                    for i in range(layout.count()):
+                        item = layout.itemAt(i)
+                        w = item.widget()
+                        if w is not None:
+                            w.setVisible(visible)
+                        else:
+                            sub = item.layout()
+                            if sub is not None:
+                                set_layout_visible(sub, visible)
+                            # SpacerItems erzeugen sonst „Luft“ – ggf. entfernen:
+                            sp = item.spacerItem()
+                            if sp is not None and not visible:
+                                # Achtung: Entfernen verändert die Struktur
+                                layout.removeItem(sp)
+                
+                def math_1_combobox_combo_index_changed(self, index: int):
+                    text = self.math_1_combobox.itemText(index)
+                    for lay in self.math_combo_list:
+                        self.set_layout_visible(lay[1], False)
+                    self.math_combo_list[index][2](index)
+                    showInfo(text)
+                    
+                def math_calc_ausdruck(self, index):
+                    print("mathe ausdruck")
+                    self.set_layout_visible(self.math_combo_list[index][1], True)
+                    self.algebra_expr.setMinimumWidth(200)
+                    self.algebra_expr.setMaximumWidth(200)
+                    self.math_combo_list[index][1].addStretch()
+                    
+                def math_calc_binc(self, index):
+                    print("mathe bino")
+                    self.set_layout_visible(self.math_combo_list[index][1], True)
+                    self.math_combo_list[index][1].addStretch()
+                    
+                def math_calc_kgv(self, index):
+                    print("mathe kgv")
+                    self.set_layout_visible(self.math_combo_list[index][1], True)
+                    
+                def math_calc_prozent(self, index):
+                    print("mathe prozent")
+                    self.set_layout_visible(self.math_combo_list[index][1], True)
+                    
+                def math_calc_dreisatz(self, index):
+                    print("mathe dreisatz")
+                    self.set_layout_visible(self.math_combo_list[index][1], True)
+                    
+                def on_algebra_run(self):
+                    try:
+                        self.rec.clear()
+                        expr = self.algebra_expr.text().strip()
+                        op = self.algebra_op.currentText()
+                        if op.startswith("Expand"):
+                            res = self.alg.expand_binomial(expr)
+                        elif op.startswith("Faktorisieren"):
+                            res = self.alg.factor(expr)
+                        elif op.startswith("Vereinfachen"):
+                            res = self.alg.simplify_expr(expr)
+                        elif op.startswith("Log"):
+                            res = self.alg.log_rules(expr)
+                        elif op.startswith("Exp-/Potenz"):
+                            res = self.alg.exp_rules(expr)
+                        elif op.startswith("Wurzel"):
+                            res = self.alg.sqrt_simplify(expr)
+                        else:
+                            res = None
+                        self.rec.add("Ergebnis", op, res)
+                        self.show_steps(self.steps_algebra)
+                    except Exception as e:
+                        self.error(str(e))
+                
+                def on_binom(self):
+                    try:
+                        self.rec.clear()
+                        n, k = self.n_spin.value(), self.k_spin.value()
+                        val = self.alg.binom_coeff(n, k)
+                        self.rec.add("Ergebnis", "C(n,k)", val)
+                        self.show_steps(self.steps_algebra)
+                    except Exception as e:
+                        self.error(str(e))
+                
+                def on_gcd_lcm(self):
+                    try:
+                        self.rec.clear()
+                        a = int(self.ggt_a.text()); b = int(self.ggt_b.text())
+                        g = self.alg.gcd_steps(a, b)
+                        l = self.alg.lcm_from_gcd(a, b)
+                        self.rec.add("Zusammenfassung", "GGT & KGV", f"GGT={g}, KGV={l}")
+                        self.show_steps(self.steps_algebra)
+                    except Exception as e:
+                        self.error(str(e))
+                
+                def on_percent(self):
+                    try:
+                        self.rec.clear()
+                        base = float(self.percent_base.text()); p = float(self.percent_val.text())
+                        mode = self.percent_combo.currentText()
+                        if mode == "Anteil":
+                            v = self.alg.percent_part(base, p)
+                        elif mode == "Aufschlag":
+                            v = self.alg.percent_up(base, p)
+                        else:
+                            v = self.alg.percent_down(base, p)
+                        self.rec.add("Ergebnis", mode, v)
+                        self.show_steps(self.steps_algebra)
+                    except Exception as e:
+                        self.error(str(e))
+                
+                def on_dreisatz(self):
+                    try:
+                        self.rec.clear()
+                        a = float(self.ds_a.text()); b = float(self.ds_b.text()); c = float(self.ds_c.text())
+                        v = self.alg.dreisatz(a, b, c)
+                        self.rec.add("Ergebnis", "Dreisatz", v)
+                        self.show_steps(self.steps_algebra)
+                    except Exception as e:
+                        self.error(str(e))
+                
+                # ------- Gleichung-Tab -------
+                def _build_equation_tab(self) -> QWidget:
+                    w = QWidget()
+                    layout = QVBoxLayout(w)
+                    
+                    row = QHBoxLayout()
+                    self.eq_left = QLineEdit("2*x + 4")
+                    self.eq_right = QLineEdit("x - 5")
+                    var_row = QHBoxLayout()
+                    self.eq_var = QLineEdit("x"); self.eq_var.setFixedWidth(60)
+                    var_row.addWidget(QLabel("Variable:")); var_row.addWidget(self.eq_var)
+                    
+                    row.addWidget(QLabel("Linke Seite:")); row.addWidget(self.eq_left)
+                    row.addWidget(QLabel("Rechte Seite:")); row.addWidget(self.eq_right)
+                    row.addLayout(var_row)
+                    
+                    btn = QPushButton("Lösen")
+                    btn.clicked.connect(self.on_solve_eq)
+                    
+                    self.steps_eq = QTextEdit(); self.steps_eq.setReadOnly(True)
+                    
+                    layout.addLayout(row)
+                    layout.addWidget(btn)
+                    layout.addWidget(QLabel("Schritte:"))
+                    layout.addWidget(self.steps_eq)
+                    return w
+                
+                def on_solve_eq(self):
+                    try:
+                        self.rec.clear()
+                        L = self.eq_left.text().strip(); R = self.eq_right.text().strip(); v = self.eq_var.text().strip() or "x"
+                        sol = self.eq.solve_eq(L, R, v)
+                        self.rec.add("Lösung (zusammen)", f"{v}", sol)
+                        self.show_steps(self.steps_eq)
+                    except Exception as e:
+                        self.error(str(e))
+                
+                # ------- LGS-Tab -------
+                def _build_lgs_tab(self) -> QWidget:
+                    w = QWidget()
+                    layout = QVBoxLayout(w)
+                    
+                    form = QFormLayout()
+                    self.A_edit = QLineEdit("2,1; 1,-1")
+                    self.b_edit = QLineEdit("4; -1")
+                    form.addRow(QLabel("Matrix A (Zeilen durch ';', Werte durch ',')"), self.A_edit)
+                    form.addRow(QLabel("Vektor b (durch ';')"), self.b_edit)
+                    
+                    btn = QPushButton("Gauss-Jordan lösen")
+                    btn.clicked.connect(self.on_solve_lgs)
+                    
+                    self.steps_lgs = QTextEdit(); self.steps_lgs.setReadOnly(True)
+                    
+                    layout.addLayout(form)
+                    layout.addWidget(btn)
+                    layout.addWidget(QLabel("Schritte:"))
+                    layout.addWidget(self.steps_lgs)
+                    return w
+                
+                def parse_matrix(self, txt: str) -> List[List[float]]:
+                    rows = [r.strip() for r in txt.split(';') if r.strip()]
+                    M = []
+                    for r in rows:
+                        M.append([float(x.strip()) for x in r.split(',') if x.strip()])
+                    return M
+                
+                def parse_vector(self, txt: str) -> List[float]:
+                    return [float(x.strip()) for x in txt.split(';') if x.strip()]
+                
+                def on_solve_lgs(self):
+                    try:
+                        self.rec.clear()
+                        A = self.parse_matrix(self.A_edit.text())
+                        b = self.parse_vector(self.b_edit.text())
+                        if len(A) == 0 or len(A) != len(b):
+                            raise ValueError("Dimensionen passen nicht (Zeilen von A vs. Länge von b)")
+                        res = self.lgs.solve(A, b)
+                        self.rec.add("Ergebnis", res.get("type", ""), res.get("solution", ""))
+                        self.show_steps(self.steps_lgs)
+                    except Exception as e:
+                        self.error(str(e))
+                
+                # ------- Plot-Tab -------
+                def _build_plot_tab(self) -> QWidget:
+                    w = QWidget()
+                    layout = QVBoxLayout(w)
+                    
+                    row = QHBoxLayout()
+                    self.plot_exprs = QLineEdit("x**2-4, x-1")
+                    row.addWidget(QLabel("Funktionen f(x), getrennt durch ',' :"))
+                    row.addWidget(self.plot_exprs)
+                    
+                    xrow = QHBoxLayout()
+                    self.xmin = QLineEdit("-4"); self.xmax = QLineEdit("4")
+                    xrow.addWidget(QLabel("x min:")); xrow.addWidget(self.xmin)
+                    xrow.addWidget(QLabel("x max:")); xrow.addWidget(self.xmax)
+                    
+                    btn = QPushButton("Plotten")
+                    btn.clicked.connect(self.on_plot)
+                    
+                    self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+                    
+                    layout.addLayout(row)
+                    layout.addLayout(xrow)
+                    layout.addWidget(btn)
+                    layout.addWidget(self.canvas)
+                    return w
+                
+                def on_plot(self):
+                    try:
+                        self.canvas.clear()
+                        xs = np.linspace(float(self.xmin.text()), float(self.xmax.text()), 400)
+                        exprs = [e.strip() for e in self.plot_exprs.text().split(',') if e.strip()]
+                        x = sp.Symbol('x')
+                        for e in exprs:
+                            expr = parse_expr(e, evaluate=False)
+                            f = sp.lambdify(x, expr, 'numpy')
+                            ys = f(xs)
+                            self.canvas.ax.plot(xs, ys, label=str(expr))
+                        self.canvas.ax.grid(True)
+                        self.canvas.ax.set_xlabel('x'); self.canvas.ax.set_ylabel('y')
+                        self.canvas.ax.legend()
+                        self.canvas.draw()
+                    except Exception as e:
+                        self.error(str(e))
+            ## ---- math solver END ----
+            
             self.prolog_tabs = ApplicationTabWidget([
-                _str("Prolog Project"),
-                _str("Prolog Editor"),
+                _str("Prolog Satzbau"),
+                _str("Prolog Math-Solver"),
                 _str("Prolog Designer")])
             
             self.prolog_tabs.setMinimumWidth(900)
+            
             tab1 = self.prolog_tabs.getTab(0)
+            tab2 = self.prolog_tabs.getTab(1)
+            
             prol = PrologWindow(tab1)
+            solv = SolverWindow(tab2)
             
             #self.prolog_project  = ApplicationProjectPage(self, self.prolog_tabs.getTab(0), "prolog")
             #self.prolog_editors  = ApplicationEditorsPage(self, self.prolog_tabs.getTab(1), "prolog")
@@ -30885,62 +31591,64 @@ try:
         js_files = [script.get("src") for script in soup.find_all("script") if script.get("src")]
         try:
             #genv.decoded_text = ""
-            with open(genv.v__app__locales_help,"rb") as f:
-                compressed_data = f.read()
-                mo_data = zlib.decompress(compressed_data)
-                os.makedirs(program_dir,exist_ok=True)
-                with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
-                    tmp.write(mo_data)
-                    tmp_path = tmp.name
-                    po = polib.mofile(tmp_path)
-                    for js in js_files:
-                        if js.startswith("qrc:"):
-                            continue
-                        entry = po.find(js+"|TEXT")
-                        if not entry:
-                            showError(_str("internal js file not found."))
-                            return
-                        b64_string = entry.msgstr
-                        compressed_data = base64.b64decode(b64_string)
-                        decompressed_data = zlib.decompress(compressed_data)
-                        genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                        folder = os.path.dirname(program_dir+"/"+js).replace("\\","/")
-                        os.makedirs(folder,exist_ok=True)
-                        with open(program_dir+"/"+js,"w",encoding="utf-8") as f:
-                            f.write(genv.decoded_text)
-                            f.close()
-                    for css in css_files:
-                        if js.startswith("qrc:"):
-                            continue
-                        entry = po.find(css+"|TEXT")
-                        if not entry:
-                            showError(_str("internal css file: ") + css + _str(" not found."))
-                            return
-                        b64_string = entry.msgstr
-                        compressed_data = base64.b64decode(b64_string)
-                        decompressed_data = zlib.decompress(compressed_data)
-                        genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                        folder = os.path.dirname(program_dir+"/"+css).replace("\\","/")
-                        os.makedirs(folder,exist_ok=True)
-                        with open(program_dir+"/"+css,"w",encoding="utf-8") as f:
-                            f.write(genv.decoded_text)
-                            f.close()
-                    for img in images:
-                        if js.startswith("qrc:"):
-                            continue
-                        folder = os.path.dirname(program_dir).replace("\\","/")
-                        folder_a = folder + "/temp/lib"
-                        folder_b = folder + "/temp/"
-                        os.makedirs(folder,exist_ok=True)
-                        entry = po.find(img+"|BINARY")
-                        if not entry:
-                            showError(_str("internal image: ") + img + _str(" file not found."))
-                            return
-                        compressed_data = base64.b64decode(entry.msgstr)
-                        decompressed_data = zlib.decompress(compressed_data)
-                        with open(folder_b+img,"wb") as f:
-                            f.write(decompressed_data)
-                            f.close()
+            file = QFile(genv.v__app__locales_help)
+            if not file.open(QIODevice.ReadOnly):
+                raise RuntimeError(f"could not open resource file: {genv.v__app__locales_help}\n{file.errorString()}")
+            compressed_data = file.readAll(); file.close()
+            mo_data = gzip.decompress(compressed_data)
+            os.makedirs(program_dir,exist_ok=True)
+            with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
+                tmp.write(mo_data)
+                tmp_path = tmp.name
+                po = polib.mofile(tmp_path)
+                for js in js_files:
+                    if js.startswith("qrc:"):
+                        continue
+                    entry = po.find(js+"|TEXT")
+                    if not entry:
+                        showError(_str("internal js file not found."))
+                        return
+                    b64_string = entry.msgstr
+                    compressed_data = base64.b64decode(b64_string)
+                    decompressed_data = zlib.decompress(compressed_data)
+                    genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                    folder = os.path.dirname(program_dir+"/"+js).replace("\\","/")
+                    os.makedirs(folder,exist_ok=True)
+                    with open(program_dir+"/"+js,"w",encoding="utf-8") as f:
+                        f.write(genv.decoded_text)
+                        f.close()
+                for css in css_files:
+                    if js.startswith("qrc:"):
+                        continue
+                    entry = po.find(css+"|TEXT")
+                    if not entry:
+                        showError(_str("internal css file: ") + css + _str(" not found."))
+                        return
+                    b64_string = entry.msgstr
+                    compressed_data = base64.b64decode(b64_string)
+                    decompressed_data = zlib.decompress(compressed_data)
+                    genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                    folder = os.path.dirname(program_dir+"/"+css).replace("\\","/")
+                    os.makedirs(folder,exist_ok=True)
+                    with open(program_dir+"/"+css,"w",encoding="utf-8") as f:
+                        f.write(genv.decoded_text)
+                        f.close()
+                for img in images:
+                    if js.startswith("qrc:"):
+                        continue
+                    folder = os.path.dirname(program_dir).replace("\\","/")
+                    folder_a = folder + "/temp/lib"
+                    folder_b = folder + "/temp/"
+                    os.makedirs(folder,exist_ok=True)
+                    entry = po.find(img+"|BINARY")
+                    if not entry:
+                        showError(_str("internal image: ") + img + _str(" file not found."))
+                        return
+                    compressed_data = base64.b64decode(entry.msgstr)
+                    decompressed_data = zlib.decompress(compressed_data)
+                    with open(folder_b+img,"wb") as f:
+                        f.write(decompressed_data)
+                        f.close()
             return {
                 "images": images,
                 "css_files": css_files,
@@ -30992,8 +31700,9 @@ try:
                 po = polib.mofile(tmp_path)
                 index = False
                 if topic.lower() == "index.html":
+                    showInfo("index")
                     index = True
-                    entry = po.find("index.html|TEXT")
+                    entry = po.find("101Definition.htm|TEXT")
                 else:
                     if topic.endswith(".htm"):
                         entry = po.find(topic+"|TEXT")
