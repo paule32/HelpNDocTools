@@ -7,8 +7,16 @@ from __future__  import annotations
 from dataclasses import dataclass, field, replace
 from datetime    import datetime
 from pathlib     import Path
-
-import os, sys
+# ---------------------------------------------------------------------------
+import sys
+import os
+# ---------------------------------------------------------------------------
+# early environment settings ...
+# ---------------------------------------------------------------------------
+os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",""
+    + "--disable-gpu "
+    + "--disable-software-rasterizer")
+os.environ["QT_LOGGING_RULES"] = "qt.webengine.*=true"
 # ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
@@ -169,6 +177,12 @@ from   sympy                      import Eq
 # \brief os env setzen
 # ---------------------------------------------------------------------------
 os.environ["PATH"] = ".\\_internal" + os.pathsep + os.environ.get("PATH","")
+
+# ---------------------------------------------------------------------------
+# Pfad zum entpackten Bundle oder zum Projekt (beim Entwickeln)
+# ---------------------------------------------------------------------------
+def base_dir():
+    return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 
 # ---------------------------------------------------------------------------
 # \brief Sorgt dafür, dass (user-)site-packages auf sys.path sind.
@@ -843,16 +857,19 @@ try:
     # ------------------------------------------------------------------------
     # Qt5 gui framework
     # ------------------------------------------------------------------------
-    from PyQt5.QtWidgets            import *
     from PyQt5.QtCore               import *
     from PyQt5.QtGui                import *
+    from PyQt5.QtWidgets            import *
     from PyQt5.QtPrintSupport       import *
-    from PyQt5.QtWebEngineWidgets   import *
     from PyQt5.QtNetwork            import *
+    from PyQt5.QtWebEngineWidgets   import *
     from PyQt5.QtWebChannel         import *
     from PyQt5.QtSerialPort         import QSerialPort, QSerialPortInfo
     
+    from PyQt5 import QtWebEngineCore
     from PyQt5 import QtGui
+    
+    QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
     
     # ------------------------------------------------------------------------
     import resources_rc
@@ -880,6 +897,12 @@ try:
     
     from tempfile   import mkdtemp, TemporaryDirectory
     from contextlib import redirect_stdout
+    
+    # ------------------------------------------------------------------------
+    # global used variable constants ...
+    # ------------------------------------------------------------------------
+    assets_root = base_dir() / "src"
+    base_url    = QUrl.fromLocalFile(str(assets_root) + os.sep)
 
     # ------------------------------------------------------------------------
     # global office-time goodies constant's - there because Qt5 imports ...
@@ -24548,7 +24571,7 @@ try:
             self.help_tabs = QTabWidget()
             self.help_tabs.setStyleSheet(_css(genv.css_tabs))
             self.help_tabs.setMinimumWidth(800)
-            
+            #showInfo("helllll")
             # help
             self.help_layout = QHBoxLayout()
             
@@ -24759,12 +24782,14 @@ try:
             self.tab2_tree_model.dataChanged.connect(self.on_data_changed)
             self.tab2_tree_view.setModel(self.tab2_tree_model)
             
-            
+            #showInfo("11111")
             root_node = self.tab2_tree_model.invisibleRootItem()
             self.fold_icon = genv.v__app__internal__ + "/img/floppy-disk.png"
+            #showInfo("ddddd")
             
             self.tab2_tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
             self.tab2_tree_view.customContextMenuRequested.connect(self.open_context_topics_menu)
+            #showInfo("ddd     dd")
             
             self.tab2_pushbuttonAdd = QPushButton(_str("Add"))
             self.tab2_pushbuttonAdd.setMinimumHeight(32)
@@ -24799,7 +24824,7 @@ try:
             self.tab2_pushbuttonRemove    = QPushButton(_str("Delete"))
             self.tab2_pushbuttonRemove.setMinimumHeight(32)
             self.tab2_pushbuttonRemove.setStyleSheet(_css(genv.css_button_style))
-            
+            #showInfo("1212122121212 ddddd")
             top_array = [
                 self.tab2_pushbuttonAdd,
                 self.tab2_pushbuttonAddSub,
@@ -24878,7 +24903,7 @@ try:
             self.tab0_fold_edit1 = myLineEdit()
             self.tab0_fold_edit1.setMinimumWidth(274)
             self.tab0_fold_edit1.returnPressed.connect(self.tab0_fold_edit1_return)
-            
+            #showInfo("ddddd 33444343434")
             # default
             self.tab0_fold_push1 = OpenProjectButton(self, font)
             self.tab0_fold_userd = QDir.homePath()
@@ -24886,6 +24911,7 @@ try:
             
             # directory check:
             info = check_directory(self.tab0_fold_userd, deny_symlink=True)
+            #showInfo("dsadsadsadsasdasd asdsadddd")
             if not info["exists"]:
                 showError(""
                     + _str("Error:") + "\n"
@@ -24957,7 +24983,7 @@ try:
             
             donate = ClickableImage()
             button = GradientButton("Online Help", self)
-                    
+            #showInfo("ddddd  -----------------------")
             self.tab0_topB_vlayout.addWidget(donate)
             self.tab0_topB_vlayout.addWidget(button)
             #
@@ -25111,7 +25137,7 @@ try:
             self.list_blue_item3.setFlags(
             self.list_blue_item3.flags() & ~Qt.ItemIsSelectable)
             self.tab0_help_list2.addItem(self.list_blue_item3)
-            
+            #showInfo("ddd90890880890890099dd")
             liste = [
                 [_str("Empty Project")         , os.path.join("emptyproject" + genv.v__app__img_ext__) ],
                 [_str("Recipe")                , os.path.join("recipe"       + genv.v__app__img_ext__) ],
@@ -25353,40 +25379,80 @@ try:
             # ------------------
             # alles zusammen ...
             # ------------------
-            self.webView1 = QWebEngineView(self.tab_html)
-            self.profile1 = QWebEngineProfile("storage1", self.webView1)
-            self.page1    = QWebEnginePage(self.profile1, self.webView1)
+            print(self.tab_html)
+            #self.webView1 = QWebEngineView(genv.v__app_object) #self.tab_html)
+            profile    = QWebEngineProfile("storage1", genv.v__app_object) #self.webView1)
             
-            self.webView1.setPage(self.page1)
-            self.webView1.setHtml(_str(genv.html_content), baseUrl = QUrl.fromLocalFile('.'))
+            ##showInfo(">>>>>>>> ------- <<<<<<<   oooooooooooooooooooooooooooo ddddd")
             
-            self.tab5_top_layout.addWidget(self.webView1);            
+            base_store = pathlib.Path.home() / ".myapp" / "webengine" / "profile1"
+            base       = QUrl.fromLocalFile(str(Path(BASEDIR).resolve()) + os.sep)
+            html       = "<!doctype html><meta charset='utf-8'><h1>Hallo</h1>"
+            
+            (base_store / "cache"  ).mkdir(parents = True, exist_ok = True)
+            (base_store / "storage").mkdir(parents = True, exist_ok = True)
+            
+            profile.setCachePath(str(base_store / "cache"))
+            profile.setPersistentStoragePath(str(base_store / "storage"))
+            
+            page = QWebEnginePage(profile, genv.v__app_object)
+            view = QWebEngineView()
+            view.setPage(page)
+            
+            #showInfo("ooooooooo >>>>>>>> ------- <<<<<<<   oooooooooooooooooooooooooooo ddddd")
+            
+            #self.webView1.setPage(self.page1)
+            #self.webView1.loadFinished.connect(lambda ok: print("loadFinished:", ok))
+            #self.webView1.loadStarted.connect(lambda: print("loadStarted"))
+            #self.webView1.setHtml(str(html), base)
+            
+            #try:
+            #    #self.webView1.setPage(self.page1)
+            #    print("------------------------------------------")
+            #    print(self.webView1)
+            #    print(self.tab5_top_layout)
+            #    print(self.tab0_top_layout)
+            #    print(self.tab0_left_layout)
+            #    print(self.tab1_top_layout)
+            #    showInfo(str(_str(genv.html_content)))
+            #    #self.webView1.setHtml(_str(genv.html_content), QUrl.fromLocalFile(BASEDIR))
+            #showInfo("oooooooooooo1111 2222 3333 oooooooooooooooo ddddd")
+            #    self.tab5_top_layout.addWidget(self.webView1);            
             self.tab0_top_layout.addLayout(self.tab0_left_layout)
-            
+            #showInfo("oooo    ooooooooooooo  ooooooooooo ddddd")
             self.tab1_top_layout.addLayout(self.tab1_left_layout)
             self.tab1_top_layout.addLayout(self.tab1_middle_layout)
             self.tab1_top_layout.addLayout(self.tab1_right_layout)
-     
+            #except Exception as e:
+            #    showError(e)
+            #    return
+                
+            #showInfo("oooooooooooooooooooooooooooo ddddd")
             self.set_window_layout()
-            
+            #showInfo("ddd mm m m m mm m m m m m m m  dd")
             #return
             # Timer
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.updateCountdown)
-            
+            #showInfo("ddddd 444444444444447777777777777777 8888888888888")
             self.interval = 0
             self.currentTime = 0
             
         def set_window_layout(self):
-            
-            self.front_content_widget.setLayout(self.front_content_layout)
-            self.front_scroll_area   .setWidget(self.front_content_widget)
-            
-            splitter = QSplitter(Qt.Horizontal)
-            splitter.addWidget(self.front_scroll_area)
-            splitter.addWidget(genv.servers_scroll)
-            #
-            self.main_content_layout.addWidget(splitter)
+            #showInfo("ddddd -------- oooooo    11111")
+            try:
+                self.front_content_widget.setLayout(self.front_content_layout)
+                #showInfo("ddddd ------- uuuuuuuu    222222")
+                self.front_scroll_area   .setWidget(self.front_content_widget)
+                #showInfo("ddddd000oooooo oo oo")
+                splitter = QSplitter(Qt.Horizontal)
+                splitter.addWidget(self.front_scroll_area)
+                splitter.addWidget(genv.servers_scroll)
+                #
+                self.main_content_layout.addWidget(splitter)
+            except Exception as e:
+                showError(e)
+                return
             
             #self.main_content_layout.addWidget(self.front_scroll_area)
             #self.main_content_layout.addWidget(genv.servers_scroll)
@@ -25398,10 +25464,13 @@ try:
             self.main_layout.addWidget(self.title_bar)
             self.main_layout.addWidget(self.menu_bar)
             self.main_layout.addWidget(self.tool_bar)
+            #showInfo("aaaaaa")
             self.main_layout.addLayout(self.main_content_layout)
             self.main_layout.addWidget(self.status_bar)
+            #showInfo("nnnnnnnn")
             
             self.setLayout(self.main_layout)
+            #showInfo("mmmmxxxxxx")
             
         def radio_button_toggled(self):
             sender = self.sender()
@@ -28088,7 +28157,7 @@ try:
                     
                     self.math_combo_list = [
                         [ "Ausdruck",               expr_row, self.math_calc_ausdruck],
-                        [ "Binomialkoeffizient",    cnk, self.math_calc_binc],
+                        [ "Binomialkoeffizient",    cnk,      self.math_calc_binc],
                         
                         [ "Größter gemeinsame Teiler / Kleinste gemeinsame vielfache", kgv, self.math_calc_kgv],
                         
@@ -28202,8 +28271,11 @@ try:
                     layout.addWidget(steps_lbl)
                     layout.addWidget(self.steps_algebra)
                     
+                    #showInfo("1111")
                     for item in self.math_combo_list:
                         self.set_layout_visible(item[1], False)
+                    
+                    #showInfo("22222")
                     return w
                 
                 def set_layout_visible(self, layout, visible: bool):
@@ -36067,6 +36139,7 @@ try:
         script_path, script_name = os.path.split(script)
         script_path = os.path.abspath(script_path)
         
+        print("Hello from client")
         sys.exit(main())
     else:
         raise Exception(_str("no startup routine found."))
