@@ -29,6 +29,111 @@ from datetime import datetime
 ALLOWED_EXTS = {".html", ".htm", ".css", ".js", ".gif", ".png", ".jpg", ".jpeg"}
 index = []
 
+def rel_from_roots(file_path: Path, roots: list[Path]) -> str:
+    """
+    Liefert den relativen POSIX-Pfad von file_path zu einer der Roots.
+    Falls keine Root passt, wird der Dateiname verwendet.
+    Entfernt vorne einen evtl. vorhandenen '.files/'-Präfix.
+    """
+    rel = None
+    for root in roots:
+        try:
+            # Python 3.9+: is_relative_to existiert; für Kompatibilität try/except
+            rel_path = file_path.relative_to(root)
+            rel = rel_path
+            break
+        except ValueError:
+            continue
+
+    if rel is None:
+        # Wenn die Datei einzeln übergeben wurde und keine Root matched:
+        rel = file_path.name
+
+    # In POSIX-String wandeln
+    rel_str = rel.as_posix() if isinstance(rel, Path) else str(rel)
+
+    # führendes ".files/" entfernen
+    if rel_str.startswith(".files/"):
+        rel_str = rel_str[len(".files/"):]
+    return rel_str
+
+
+def build_roots(paths: Iterable[str]) -> list[Path]:
+    """
+    Baut die Root-Liste aus den vom Nutzer übergebenen Pfaden.
+    - Verzeichnisse: der Pfad selbst
+    - Dateien: deren Elternverzeichnis
+    """
+    roots: set[Path] = set()
+    for p in map(Path, paths):
+        if p.is_dir():
+            roots.add(p.resolve())
+        elif p.is_file():
+            roots.add(p.resolve().parent)
+    return sorted(roots)
+
+
+def write_catalog(files: list[Path], out_path: Path, roots: list[Path]) -> None:
+    total_original = total_compressed = total_base64 = 0
+    file_stats = []
+    for f in files:
+        raw_data = f.read_bytes()
+        orig_size = len(raw_data)
+        compressed_data = zlib.compress(raw_data, level=9)
+        compressed_size = len(compressed_data)
+        b64_data = base64.b64encode(compressed_data).decode("ascii")
+        base64_size = len(b64_data.encode("ascii"))
+
+        rel_str = rel_from_roots(f, roots)  # << NEU: relativer Pfad
+        file_stats.append((f, rel_str, orig_size, compressed_size, base64_size, b64_data))
+
+        total_original += orig_size
+        total_compressed += compressed_size
+        total_base64 += base64_size
+
+    max_name_len = max(len(name) for _, name, *_ in file_stats)
+    all_numbers = [orig_size       for *_, orig_size, _, _, _ in file_stats] + \
+                  [compressed_size for *_, _, compressed_size, _, _ in file_stats] + \
+                  [base64_size     for *_, _, _, base64_size, _ in file_stats] + \
+                  [total_original, total_compressed, total_base64]
+    max_number_len = max(len(f"{n:,}".replace(",", ".")) for n in all_numbers)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", encoding="utf-8", newline="\n") as out:
+        write_header(out)
+
+        for full_path, rel_name, orig_size, compressed_size, base64_size, b64_data in file_stats:
+            file_type = detect_type(full_path)
+            
+            # Zahlen hübsch
+            orig_str = f"{orig_size:,}".replace(",", ".")
+            comp_str = f"{compressed_size:,}".replace(",", ".")
+            b64_str  = f"{base64_size:,}".replace(",", ".")
+
+            print(
+                f"[INFO] {rel_name.ljust(max_name_len)} | "
+                f"Orig:   {orig_str.rjust(max_number_len)} B | "
+                f"Kompr.: {comp_str.rjust(max_number_len)} B | "
+                f"Base64: {b64_str.rjust(max_number_len)} B"
+            )
+
+            # << WICHTIG: msgid jetzt mit relativem Pfad!
+            out.write(f'# TYPE: {file_type}\n')
+            out.write(f'msgid "{rel_name}|{file_type}"\n')
+            out.write(f'msgstr "{b64_data}"\n\n')
+
+        # Gesamt-Benchmark
+        total_orig_str = f"{total_original:,}".replace(",", ".")
+        total_comp_str = f"{total_compressed:,}".replace(",", ".")
+        total_b64_str = f"{total_base64:,}".replace(",", ".")
+        
+        print("\n===== BENCHMARK GESAMT =====")
+        print(f"Original:    {total_orig_str.rjust(max_number_len)} Bytes")
+        print(f"Komprimiert: {total_comp_str.rjust(max_number_len)} Bytes")
+        print(f"Base64:      {total_b64_str.rjust(max_number_len)} Bytes")
+        print(f"Ersparnis:   {(1 - total_compressed / total_original) * 100:.2f}% (nach Kompression)")
+        print("=============================\n")
+
 def iter_input_files(paths: Iterable[str]) -> list[Path]:
     files: set[Path] = set()
     for p in map(Path, paths):
@@ -52,9 +157,11 @@ def compress_and_base64(data: bytes) -> tuple[str, int]:
     return base64.b64encode(compressed).decode("ascii"), len(compressed)
 
 def detect_type(file_path: Path) -> str:
-    mime_type, _ = mimetypes.guess_type(file_path.as_posix())
-    if mime_type and mime_type.startswith("text/"):
-        return "TEXT"
+    ext = str(file_path.as_posix())
+    if ext.endswith(".htm" )\
+    or ext.endswith(".html")\
+    or ext.endswith(".css" )\
+    or ext.endswith(".js"  ): return "TEXT"
     return "BINARY"
 
 def write_header(out) -> None:
@@ -77,70 +184,6 @@ def write_header(out) -> None:
     out.write(f'# TYPE: INDEX\n')
     out.write(f'msgid "index"\n')
     out.write(f'msgstr "{str(index)}"\n\n')
-
-def write_catalog(files: list[Path], out_path: Path) -> None:
-    total_original = total_compressed = total_base64 = 0
-    
-    # file_stats enthält jetzt den **vollen Pfad**:
-    file_stats = []
-    for f in files:
-        raw_data = f.read_bytes()
-        orig_size = len(raw_data)
-        compressed_data = zlib.compress(raw_data, level=9)
-        compressed_size = len(compressed_data)
-        b64_data = base64.b64encode(compressed_data).decode("ascii")
-        base64_size = len(b64_data.encode("ascii"))
-        file_stats.append((f, f.name, orig_size, compressed_size, base64_size, b64_data))
-        
-        total_original += orig_size
-        total_compressed += compressed_size
-        total_base64 += base64_size
-    
-    max_name_len = max(len(name) for _, name, *_ in file_stats)
-    # file_stats: (full_path, name, orig_size, compressed_size, base64_size, b64_data)
-    all_numbers = [orig_size       for _, _,       orig_size      , _, _, _ in file_stats] + \
-                  [compressed_size for _, _, _,    compressed_size, _,    _ in file_stats] + \
-                  [base64_size     for _, _, _, _, base64_size    ,       _ in file_stats] + \
-                  [total_original, total_compressed, total_base64]
-    max_number_len = max(len(f"{n:,}".replace(",", ".")) for n in all_numbers)
-    
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w", encoding="utf-8", newline="\n") as out:
-        write_header(out)
-        
-        for full_path, name, orig_size, compressed_size, base64_size, b64_data in file_stats:
-            file_type = detect_type(full_path)
-
-            # Zahlen mit Punkt-Trennzeichen
-            orig_str = f"{orig_size:,}".replace(",", ".")
-            comp_str = f"{compressed_size:,}".replace(",", ".")
-            b64_str = f"{base64_size:,}".replace(",", ".")
-            
-            # Tabellarische Ausgabe
-            print(
-                f"[INFO] {name.ljust(max_name_len)} | "
-                f"Orig:   {orig_str.rjust(max_number_len)} B | "
-                f"Kompr.: {comp_str.rjust(max_number_len)} B | "
-                f"Base64: {b64_str.rjust(max_number_len)} B"
-            )
-            
-            # PO-Katalog schreiben
-            out.write(f'# TYPE: {file_type}\n')
-            out.write(f'msgid "{name}|{file_type}"\n')
-            out.write(f'msgstr "{b64_data}"\n\n')
-    
-        # Gesamt-Benchmark
-        total_orig_str = f"{total_original:,}".replace(",", ".")
-        total_comp_str = f"{total_compressed:,}".replace(",", ".")
-        total_b64_str = f"{total_base64:,}".replace(",", ".")
-        
-        print("\n===== BENCHMARK GESAMT =====")
-        print(f"Original:    {total_orig_str.rjust(max_number_len)} Bytes")
-        print(f"Komprimiert: {total_comp_str.rjust(max_number_len)} Bytes")
-        print(f"Base64:      {total_b64_str.rjust(max_number_len)} Bytes")
-        print(f"Ersparnis:   {(1 - total_compressed / total_original) * 100:.2f}% (nach Kompression)")
-        print("=============================\n")
-
 
 def compile_po_to_mo(po_file: Path, mo_file: Path) -> None:
     """
@@ -209,25 +252,26 @@ def main():
     ap.add_argument("-o", "--output", required=True, help="Ausgabedatei.")
     args = ap.parse_args()
     
-    # alle Dateien in einen Verzeichnis:
-    relative_list = build_relative_file_list(args.paths)
-    for entry in relative_list:
-        index.append(entry)
-
+    # Roots aus Nutzereingaben bauen
+    roots = build_roots(args.paths)
+    
     files = iter_input_files(args.paths)
     if not files:
-        raise SystemExit("Keine passenden Dateien (.html/.htm/.css) gefunden.")
+        raise SystemExit("Keine passenden Dateien (.html/.htm/.css/.js/.gif/.png/.jpg/.jpeg) gefunden.")
     
-    # Katalog schreiben:
-    write_catalog(files, Path(args.output))
+    # Index mit RELATIVEN Pfaden aufbauen (ohne '.files/')
+    index.clear()
+    for f in files:
+        index.append([rel_from_roots(f, roots)])
     
-    # Katalog von .po nach .mo
-    po_file = Path(Path(args.output))
+    # Katalog schreiben (mit relativen msgid)
+    write_catalog(files, Path(args.output), roots)
+    
+    # .po -> .mo und Kompression
+    po_file = Path(args.output)
     mo_file = po_file.with_suffix(".mo")
     compile_po_to_mo(po_file, mo_file)
-    
-    # Nach write_catalog abgeschlossen
-    compress_catalog_file(str(mo_file), str(mo_file)+".zlib")
+    compress_catalog_file(str(mo_file), str(mo_file) + ".zlib")
 
 if __name__ == "__main__":
     main()

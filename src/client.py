@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, replace
 from datetime    import datetime
 from pathlib     import Path
 # ---------------------------------------------------------------------------
+import warnings
 import sys
 import os
 # ---------------------------------------------------------------------------
@@ -17,6 +18,22 @@ os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",""
     + "--disable-gpu "
     + "--disable-software-rasterizer")
 os.environ["QT_LOGGING_RULES"] = "qt.webengine.*=true"
+# ---------------------------------------------------------------------------
+# set "silent" filter mode for some harmful user warnings ...
+# ---------------------------------------------------------------------------
+# 1) Konkrete Meldung aus altgraph unterdrücken
+warnings.filterwarnings(
+    "ignore",
+    message  = r"pkg_resources is deprecated as an API\.",
+    category = UserWarning,
+    module   = r"altgraph.*",
+)
+# 2) Alle DeprecationWarnings aus numpy ausblenden
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    module=r"numpy(\.|$)",
+)
 # ---------------------------------------------------------------------------
 # global used application stuff. try to catch import exceptions ...
 # ---------------------------------------------------------------------------
@@ -3781,6 +3798,7 @@ try:
             
             self.v__gnu__mo           = ".mo"
             self.v__gnu_zip           = ".gz"
+            self.v__lib_zip           = ".zlib"
             
             self.v__app__css__mo      = self.v__app__mecs + self.v__gnu__mo
             
@@ -4958,7 +4976,7 @@ try:
         genv.v__app__locales_meta_keybrd = genv.v__app__locales_meta + genv.v__app__meky_mo + genv.v__gnu_zip
         
         genv.v__app__locales_messages   += genv.v__app__name_mo + genv.v__gnu_zip
-        genv.v__app__locales_help       += genv.v__app__help_mo + genv.v__gnu_zip
+        genv.v__app__locales_help       += genv.v__app__help_mo + genv.v__lib_zip
         genv.v__app__locales_css        += genv.v__app__css__mo + genv.v__gnu_zip
         
         #genv.v__app__locales_meta_biospc += genv.v__app__mebi_mo + genv.v__gnu_zip
@@ -16028,6 +16046,8 @@ try:
             self.parent.tab0_fold_edit1.clear()
             self.parent.tab0_fold_edit1.setText(file_path)
             
+            have_errors = False
+            error_str = ""
             try:
                 genv.v__app__config_ini = file_path
                 genv.v__app__config.read( file_path )
@@ -16043,67 +16063,92 @@ try:
                     return False
                     
             except FileNotFoundError as e:
+                have_errors = True
                 exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
                 tb = traceback.extract_tb(e.__traceback__)[-1]
                 
                 error_str = (f""
                 + exc_type.__name__ + ":\n"
-                + f"  Message   : Could not open file: {file_path}:\n"
-                + f"  Message   : {exc_value}\n"
-                + f"  File      : {tb.filename}\n"
-                + f"  Line      : {tb.lineno}\n"
+                + f"  {_str("Message")}  : {_str("Could not open file")}: {file_path}:\n"
+                + f"  {_str("Message")}  : {exc_value}\n"
+                + f"  {_str("File")}     : {tb.filename}\n"
+                + f"  {_str("Line")}     : {tb.lineno}\n"
                 + ("-" * 40)
                 )
                 
-                showError(error_str)
-                return
+                #showError(error_str)
+                #return
             except ValueError as e:
+                have_errors = True
                 exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
                 tb = traceback.extract_tb(e.__traceback__)[-1]
                 
                 error_str = (f""
                 + exc_type.__name__ + ":\n"
-                + f"  Message   : Could not get project type (default: doxygen):\n"
-                + f"  Message   : {exc_value}\n"
-                + f"  File      : {tb.filename}\n"
-                + f"  Line      : {tb.lineno}\n"
+                + f"  {_str("Message")} : {_str("Could not get project type")} (default: doxygen):\n"
+                + f"  {_str("Message")} : {exc_value}\n"
+                + f"  {_str("File")}    : {tb.filename}\n"
+                + f"  {_str("Line")}    : {tb.lineno}\n"
                 + ("-" * 40)
                 )
                 
-                showError(error_str)
+                #showError(error_str)
                 genv.doc_type = genv.DOC_FRAMEWORK_DOXYGEN
             
             except configparser.NoSectionError as e:
+                have_errors = True
                 exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
                 tb = traceback.extract_tb(e.__traceback__)[-1]
                 
                 error_str = (""
                 + exc_type.__name__ + ":\n"
-                + f"  Message   : NoSectionError: {e}:\n"
-                + f"  Message   : {exc_value}\n"
-                + f"  File      : {tb.filename}\n"
-                + f"  Line      : {tb.lineno}\n"
+                + f"  {_str("Message")} : NoSectionError: {e}:\n"
+                + f"  {_str("Message")} : {exc_value}\n"
+                + f"  {_str("File")}    : {tb.filename}\n"
+                + f"  {_str("Line")}    : {tb.lineno}\n"
                 + ("-" * 40)
                 )
                 
-                showError(error_str)
-                return
+                #showError(error_str)
+                #return
             except configparser.NoOptionError as e:
+                have_errors = True
                 exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
                 tb = traceback.extract_tb(e.__traceback__)[-1]
                 
                 error_str = (""
                 + exc_type.__name__ + ":\n"
-                + f"  Message   : NoOptionError: {e}:\n"
-                + f"  Message   : {exc_value}\n"
-                + f"  File      : {tb.filename}\n"
-                + f"  Line      : {tb.lineno}\n"
+                + f"  {_str("Message")} : NoOptionError: {e}:\n"
+                + f"  {_str("Message")} : {exc_value}\n"
+                + f"  {_str("File")}    : {tb.filename}\n"
+                + f"  {_str("Line")}    : {tb.lineno}\n"
                 + ("-" * 40)
                 )
                 
-                showError(error_str)
-                return
-            
+                #showError(error_str)
+                #return
+            if have_errors:
+                self.msg = MyMessageBox()
+                self.msg.resize(560,150)
+                self.msg.setWindowTitle(_str("Warning: Destructive Action"))
+                self.msg.setText(
+                    "The directory for the default file all ready exists.\n"
+                    "Config file does not fit in needs as a project file.\n"
+                    "\n"
+                    "Would you like remove it, and let the Computer to\n"
+                    "create a new default project file ?")
+                    
+                self.msg.setIcon(QStyle.SP_MessageBoxQuestion)
+                self.msg.setStyleSheet(_css("msgbox_css"))
+                
+                self.msg.addButton(_str("Yes"    ), self.on_doit_clicked, "")
+                self.msg.addButton(_str("No"     ), self.on_dont_clicked, "")
+                self.msg.addButton(_str("Abort"  ), self.on_exit_clicked, "")
+                self.msg.addButton(_str("Details"), self.on_deta_clicked, error_str)
+                
+                self.msg.setStyleSheet(_css("msgbox_css"))
+                result = self.msg.exec_()
+                
             if genv.doc_type == genv.DOC_FRAMEWORK_DOXYGEN:
                 genv.doc_framework = genv.DOC_FRAMEWORK_DOXYGEN
                 self.parent.trigger_mouse_press(genv.img_doxygen)
@@ -16115,7 +16160,17 @@ try:
                 showInfo(_str("Error: help framework not known."))
                 return False
             return True
-
+            
+        def on_doit_clicked(self):
+            self.msg.close()
+        def on_dont_clicked(self):
+            self.msg.close()
+        def on_exit_clicked(self):
+            self.msg.close()
+        def on_deta_clicked(self):
+            print("1111")
+            self.msg.on_detail_clicked()
+    
     class myExitDialog(QDialog):
         def __init__(self, title, parent=None):
             super(myExitDialog, self).__init__(parent)
@@ -24904,7 +24959,7 @@ try:
             self.tab0_fold_edit1.setMinimumWidth(274)
             self.tab0_fold_edit1.returnPressed.connect(self.tab0_fold_edit1_return)
             #showInfo("ddddd 33444343434")
-            # default
+            # default  äääääääää
             self.tab0_fold_push1 = OpenProjectButton(self, font)
             self.tab0_fold_userd = QDir.homePath()
             self.tab0_fold_userd = self.tab0_fold_userd.replace("\\",'/')
@@ -31645,35 +31700,52 @@ try:
     #                return False
     #        return super().acceptNavigationRequest(url, _type, isMainFrame)
     # ------------------------------------------------------------------------
-    
     def extract_assets_from_html(html_content):
         #
         program_dir = os.path.dirname(os.path.abspath(__file__)).replace("\\","/")
         program_dir = program_dir + "/temp"
         
+        showInfo("program_dir+\n" + program_dir+"/"+genv.actual_click_link)
         with open(program_dir+"/"+genv.actual_click_link,"w",encoding="utf-8") as f:
             f.write(html_content)
             f.close()
         
         soup      = BeautifulSoup(html_content, "html.parser")
-        images    = [img .get("src" ) for img  in soup.find_all("img") if img.get("src")]
-        css_files = [link.get("href") for link in soup.find_all("link", rel="stylesheet") if link.get("href")]
+        images    = [img   .get("src" ) for img    in soup.find_all("img"   )                   if img   .get("src" )]
+        css_files = [link  .get("href") for link   in soup.find_all("link"  , rel="stylesheet") if link  .get("href")]
+        a_hrefs   = [a     .get("href") for a      in soup.find_all("a"     , href=True)        if a     .get("href")]
+        js_files  = [script.get("src" ) for script in soup.find_all("script")                   if script.get("src" )]
         
-        # 3. JavaScript-Dateien (script src)
-        js_files = [script.get("src") for script in soup.find_all("script") if script.get("src")]
         try:
             #genv.decoded_text = ""
             file = QFile(genv.v__app__locales_help)
             if not file.open(QIODevice.ReadOnly):
                 raise RuntimeError(f"could not open resource file: {genv.v__app__locales_help}\n{file.errorString()}")
             compressed_data = file.readAll(); file.close()
-            mo_data = gzip.decompress(compressed_data)
+            mo_data = zlib.decompress(compressed_data)
             os.makedirs(program_dir,exist_ok=True)
             with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
                 tmp.write(mo_data)
                 tmp_path = tmp.name
                 po = polib.mofile(tmp_path)
+                for ah in a_hrefs:
+                    if ah.startswith("qrc:"):
+                        continue
+                    entry = po.find(ah+"|TEXT")
+                    if not entry:
+                        showError(_str("internal a href file not found."))
+                        return
+                    b64_string = entry.msgstr
+                    compressed_data = base64.b64decode(b64_string)
+                    decompressed_data = zlib.decompress(compressed_data)
+                    genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                    folder = os.path.dirname(program_dir+"/"+ah).replace("\\","/")
+                    os.makedirs(folder,exist_ok=True)
+                    with open(program_dir+"/"+ah,"w",encoding="utf-8") as f:
+                        f.write(genv.decoded_text)
+                        f.close()
                 for js in js_files:
+                    #showInfo("JS: " + str(js))
                     if js.startswith("qrc:"):
                         continue
                     entry = po.find(js+"|TEXT")
@@ -31690,6 +31762,7 @@ try:
                         f.write(genv.decoded_text)
                         f.close()
                 for css in css_files:
+                    #showInfo("CSS: " + str(css))
                     if js.startswith("qrc:"):
                         continue
                     entry = po.find(css+"|TEXT")
@@ -31706,25 +31779,25 @@ try:
                         f.write(genv.decoded_text)
                         f.close()
                 for img in images:
+                    #showInfo("IMG: " + str(img))
                     if js.startswith("qrc:"):
                         continue
-                    folder = os.path.dirname(program_dir).replace("\\","/")
-                    folder_a = folder + "/temp/lib"
-                    folder_b = folder + "/temp/"
-                    os.makedirs(folder,exist_ok=True)
                     entry = po.find(img+"|BINARY")
                     if not entry:
-                        showError(_str("internal image: ") + img + _str(" file not found."))
+                        showError(_str("internal image file: ") +img+ _str(" not found."))
                         return
-                    compressed_data = base64.b64decode(entry.msgstr)
+                    b64_data = entry.msgstr
+                    compressed_data = base64.b64decode(b64_data)
                     decompressed_data = zlib.decompress(compressed_data)
-                    with open(folder_b+img,"wb") as f:
+                    folder = os.path.dirname(program_dir+"/lib/"+img).replace("\\","/")
+                    os.makedirs(folder,exist_ok=True)
+                    with open(program_dir+"/lib/"+img,"wb") as f:
                         f.write(decompressed_data)
                         f.close()
             return {
-                "images": images,
+                "images"   : images,
                 "css_files": css_files,
-                "js_files": js_files
+                "js_files" : js_files
             }
         except FileNotFoundError as e:
             handle_exception(e, (_str("A File operation Exception occured:")))
@@ -31743,8 +31816,17 @@ try:
     # chm help window ...
     # ------------------------------------------------------------------------
     def preconfigHelp(parent=None, topic="index.html", container="") -> str:
+        print("Klick erkannt:", topic)
+        pre = [
+            "css/reset.css", "css/base.css", "css/hnd.css",
+            "css/ielte8.css",
+            "js/chmRelative.js"
+        ]
+        #prepareHelp("css/reset.css")
+        
+        prepareHelp(topic)
+    def prepareHelp(topic):
         try:
-            print("Klick erkannt:", topic)
             genv.actual_click_link = topic
             genv.decoded_text = ""
             showInfo(genv.v__app__locales_help)
@@ -31752,8 +31834,7 @@ try:
             if not file.open(QIODevice.ReadOnly):
                 raise RuntimeError(f"could not open resource file: {genv.v__app__locales_help}\n{file.errorString()}")
             compressed_data = file.readAll(); file.close()
-            mo_data = gzip.decompress(compressed_data)
-            #mo_data = zlib.decompress(compressed_data)
+            mo_data = zlib.decompress(compressed_data)
             #
             program_dir = os.path.dirname(os.path.abspath(__file__))
             program_dir = (program_dir + "/temp/").replace("\\", "/")
@@ -31771,37 +31852,94 @@ try:
                 tmp_path = tmp.name
                 po = polib.mofile(tmp_path)
                 index = False
-                if topic.lower() == "index.html":
+                if topic.lower() == "index.html"\
+                or topic.lower() == "index.htm":
                     showInfo("index")
                     index = True
-                    entry = po.find("101Definition.htm|TEXT")
-                else:
-                    if topic.endswith(".htm"):
-                        entry = po.find(topic+"|TEXT")
+                    entry = po.find("index.htm|TEXT")
+                    if not entry:
+                        showInfo("index nooot okkkk")
+                        entry = po.find("index.html|TEXT")
+                        if not entry:
+                            #showInfo("index oooooooooooooooo  okkkk")
+                            page_nok = "<b>no index.htm found."
+                            genv.help_content.browser_content.page().setHtml(page_nok)
+                        else:
+                            #showInfo("index okkkk  2222")
+                            b64_string = entry.msgstr
+                            compressed_data = base64.b64decode(b64_string)
+                            decompressed_data = zlib.decompress(compressed_data)
+                            genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                            genv.help_content.browser_toc.page().setHtml(genv.decoded_text)
+                            showInfo("index okkkk  0000")
                     else:
-                        entry = po.find(topic+"|BINARY")
-                if not entry:
-                    parent.file_toc = "<b>no topics  available</b>"
-                    parent.browser_toc.setHtml(parent.file_toc)
+                        #showInfo("index okkkk  11111")
+                        b64_string = entry.msgstr
+                        compressed_data = base64.b64decode(b64_string)
+                        decompressed_data = zlib.decompress(compressed_data)
+                        genv.decoded_text = decompressed_data.decode("utf-8-sig")
+                        genv.help_content.browser_toc.page().setHtml(page_nok)
+                        showInfo("index okkkk")
                 else:
-                    b64_string = entry.msgstr
-                    compressed_data = base64.b64decode(b64_string)
-                    decompressed_data = zlib.decompress(compressed_data)
-                    genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                    
-                    if index:
-                        genv.decoded_index_text = genv.decoded_text
-
-                    assets = extract_assets_from_html(genv.decoded_text)
-                    #showInfo(str(assets))
-                    
-                    if not index:
-                        genv.help_content_code.dataContent.emit(genv.decoded_text)
+                    if topic.endswith(".htm" )\
+                    or topic.endswith(".html")\
+                    or topic.endswith(".css" )\
+                    or topic.endswith(".js"  ):
+                        entry = po.find(topic + "|TEXT")
+                        if not entry:
+                            showInfo("texxxts mnnnnn okkkk")
+                            page_nok = f"<b>page not found: {topic}</b>"
+                            genv.help_content.browser_content.page().setHtml(page_nok)
+                        else:
+                            showInfo("texxxts okkkk")
+                            b64_string = entry.msgstr
+                            compressed_data = base64.b64decode(b64_string)
+                            decompressed_data = zlib.decompress(compressed_data)
+                            # --------------------------------------------------------
+                            # 1) BOM sicher entfernen (falls die Quelle aus Bytes kam)
+                            # --------------------------------------------------------
+                            html = decompressed_data
+                            if isinstance(html, (bytes, bytearray)):
+                                html = bytes(html).decode("utf-8-sig")
+                            else:
+                                # ----------------------------------------------------
+                                # falls schon str, evtl. führendes \ufeff abschneiden
+                                # ----------------------------------------------------
+                                html = html.lstrip("\ufeff")
+                            # --------------------------------------------------------
+                            # 2) Basis-URL setzen, damit relative Pfade funktionieren
+                            # --------------------------------------------------------
+                            base_dir = Path(program_dir)
+                            base_url = (str(base_dir.resolve()) + "\\" + (topic.replace("/", "\\")))
+                            
+                            extract_assets_from_html(html)
+                            
+                            with open(base_url, "w", encoding="utf-8") as file:
+                                file.write(html)
+                                file.close()
+                                
+                            #data_url = "data:text/html;charset=utf-8;base64," + base64.b64encode(html.encode("utf-8"))
+                            page     = genv.help_content.browser_content.page()
+                            
+                            if   topic.endswith(".htm" )\
+                            or   topic.endswith(".html"): page.setContent(QByteArray(html.encode("utf-8")), "text/html")
+                            elif topic.endswith(".css" ): page.setContent(QByteArray(html.encode("utf-8")), "text/css" )
+                            elif topic.endswith(".js"  ): page.setContent(QByteArray(html.encode("utf-8")), "text/js"  )
+                            
+                            #setHtml(html, base_url)
                     else:
-                        parent.browser_toc.setHtml(genv.decoded_index_text)
-                        #load(QUrl("http://localhost:8000/temp/index.html"))
-            
-            os.remove(tmp_path)
+                        entry = po.find(topic + "|BINARY")
+                        if not entry:
+                            page_nok = f"<b>binary not found: {topic}</b>"
+                            genv.help_content.browser_content.page().setHtml(page_nok)
+                        else:
+                            #showInfo("imageee okkkk")
+                            b64_string = entry.msgstr
+                            compressed_data = base64.b64decode(b64_string)
+                            decompressed_data = zlib.decompress(compressed_data)
+                            genv.help_content.browser_content.page().setHtml(decompressed_data)
+                            
+            #os.remove(tmp_path)
             return genv.decoded_text
             
         except FileNotFoundError as e:
@@ -31834,10 +31972,18 @@ try:
             self.textbox = QPlainTextEdit()
             self.textbox.setFont(QFont("Consolas", 10))
             
+            self.detbtn = QPushButton(_str("Details"))
+            self.detbtn.clicked.connect(self.on_detail_clicked)
+            self.detbox = QPlainTextEdit()
+            self.detbox.setFont(QFont("Consolas",10))
+            
             self.blayout = QVBoxLayout()
             self.vlayout = QVBoxLayout()
             self.hlayout = QHBoxLayout()
             
+            self.blayout.addWidget(self.detbtn)
+            self.vlayout.addWidget(self.detbox)
+
             self.hlayout.addWidget(self.iconlbl)
             self.hlayout.addWidget(self.textbox)
             self.hlayout.addLayout(self.blayout)
@@ -31849,17 +31995,33 @@ try:
         def setText(self, text):
             self.textbox.document().setPlainText(text)
         
-        def addButton(self, btn_text, callback):
-            btn = QPushButton(btn_text)
-            btn.clicked.connect(callback)
-            self.blayout.addWidget(btn)
-        
+        def addButton(self, btn_text, callback, text=""):
+            if len(text) > 0:
+                self.detbox.document().setPlainText(text)
+                self.detbox.setVisible(True)
+                self.detbtn.setVisible(True)
+                self.detbox.document().setPlainText(text)
+            else:
+                self.btn = QPushButton(btn_text)
+                self.btn.clicked.connect(callback)
+                self.detbox.setVisible(False)
+                self.detbtn.setVisible(False)
+                self.blayout.addWidget(self.btn)
+                
         def setIcon(self, icon_type):
             icon = QApplication.style().standardIcon(icon_type)
             pixmap = icon.pixmap(32,32)
             self.iconlbl.setPixmap(pixmap)
             self.iconlbl.show()
-            
+        
+        def on_detail_clicked(self):
+            if self.detbox.isVisible:
+                self.detbox.setVisible(False)
+                self.detbtn.setVisible(False)
+            else:
+                self.detbox.setVisible(True)
+                self.detbtn.setVisible(True)
+    
     class saveDeleteDirectoryTree(QObject):
         def __init__(self, tree, parent=None):
             super(saveDeleteDirectoryTree, self).__init__(parent)
