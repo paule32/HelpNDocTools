@@ -7,6 +7,7 @@ from __future__  import annotations
 from dataclasses import dataclass, field, replace
 from datetime    import datetime
 from pathlib     import Path
+from pprint      import pprint
 # ---------------------------------------------------------------------------
 import warnings
 import sys
@@ -864,6 +865,7 @@ try:
     from charset_normalizer import from_bytes
     from urllib.parse       import urlparse, parse_qs
     from bs4                import BeautifulSoup
+    from collections.abc    import Mapping
 
     # ------------------------------------------------------------------------
     # gnu multi precision version 2 (gmp2 for python)
@@ -4621,7 +4623,8 @@ try:
             super().end_headers()
     
     class HTTPServerThread(threading.Thread):
-        def __init__(self, port=8000, directory="./__pycache__/temp"):
+        #def __init__(self, port=8000, directory="./__pycache__/temp"):
+        def __init__(self, port=8000, directory="./temp"):
             super().__init__(daemon=True)
             self.port = port
             self.directory = directory
@@ -11659,7 +11662,357 @@ try:
                 "dec", "inc",
                 "mod", "div", "pow", "chr", "ord"
             ]
+            
+            # ---------------------------------------------------------------
+            ## f = Foo()
+            # f.add_import("MessageBox", "user32.dll")   # -> False (existiert schon)
+            # f.add_import("MessageBoxA", "USER32.DLL")  # -> True (case-insensitiv erkannt)
+            # f.add_import("MessageBoxA", "user32.dll")  # -> False (Duplikat)
+            # f.add_import("Beep", "Kernel32.dll")       # -> True
+            #
+            ## Liste bereinigen:
+            # f.dedupe_imports()
+            # ---------------------------------------------------------------
+            self.code_producer = {
+                "text": {
+                    "@prolog": "; dies ist ein Text",
+                    "@epilog": "; EOF - End of File"
+                },
+                "data": { },
+                "import": {
+                    "user32.dll": [
+                        { "f": "MessageBox" },
+                    ],
+                    "kernel32.dll": [
+                        { "f": "ExitProcess" }
+                    ]
+                }
+            }
+        # -------------------------------------------------------------------
+        # Normalisieren für Vergleich (case-insensitiv, None -> "")
+        # -------------------------------------------------------------------
+        def _import_key(self, func: str, lib: str | None) -> tuple[str, str]:
+            return (func.strip().lower(), (lib or "").strip().lower())
+            
+        # -------------------------------------------------------------------
+        # Fügt unter 'import' den Eintrag {dll: [{"f": func}, ...]} hinzu.
+        # - Legt die DLL-Liste an, falls es sie noch nicht gibt.
+        # - Verhindert Duplikate pro DLL (case-insensitiv).
+        # Rückgabe: True, wenn hinzugefügt; False, wenn schon vorhanden.
+        # -------------------------------------------------------------------
+        def add_import(self, dll: str, func: str) -> bool:
+            imports = self.code_producer.setdefault("import", {})
+            dll_key = next((k for k in imports.keys() if k.lower() == dll.lower()), dll)
+            
+            func_list = imports.setdefault(dll_key, [])
+            if any((e.get("f") or "").lower() == func.lower() for e in func_list):
+                return False
+            
+            func_list.append({"f": func})
+            return True
+        # -------------------------------------------------------------------
+        # Entfernt nachträglich Duplikate aus self.code_producer["import"].
+        # Behalt jeweils den ersten Eintrag.
+        # -------------------------------------------------------------------
+        def dedupe_imports(self, *, normalize_dll_case: bool = False) -> None:
+            imports = self.code_producer.setdefault("import", {})
+            if not isinstance(imports, dict):
+                raise TypeError("'import' muss ein Dict {dll: [ {f: <func>} ]} sein")
+            
+            canonical = {}  # dll_lower -> {"key": kept_key, "funcs": set(lower), "items": list(dicts)}
+            for dll_key, func_list in list(imports.items()):
+                if not isinstance(func_list, list):
+                    continue
+                dll_can = dll_key.lower()
+                bucket = canonical.setdefault(dll_can, {"key": dll_key, "funcs": set(), "items": []})
+                for e in func_list:
+                    if not isinstance(e, dict): 
+                        continue
+                    fname = (e.get("f") or "").strip()
+                    if not fname:
+                        continue
+                    fcan = fname.lower()
+                    if fcan in bucket["funcs"]:
+                        continue
+                    bucket["funcs"].add(fcan)
+                    bucket["items"].append({"f": fname})
+                # -------------------------------------------------------------------
+                # bevorzugte Schreibweise des DLL-Keys beibehalten (erste gewinnt)
+                # falls normalize_dll_case=True, wird später alles lower gesetzt
+                # -------------------------------------------------------------------
+            # neu aufbauen
+            new_imports = {}
+            for dll_can, data in canonical.items():
+                key = dll_can if normalize_dll_case else data["key"]
+                new_imports[key] = data["items"]
+            
+            self.code_producer["import"] = new_imports
+        # -------------------------------------------------------------------
+        # Aktualisiert self.code_producer['text'][key] je nach 'mode':
+        #  - "set":     überschreibt den Wert
+        #  - "append":  hängt am Ende an
+        #  - "prepend": fügt am Anfang ein
+        # -------------------------------------------------------------------
+        # 'value' kann str oder Iterable[str] sein. None wird als "" behandelt.
+        # Rückgabe: der neue Text.
+        # -------------------------------------------------------------------
+        ## f = Foo()
+        #
+        ## überschreiben
+        # f.update_text("@prolog", "; neuer Prolog", mode="set")
+        #
+        ## anhängen
+        # f.update_text("@prolog", "; weitere Zeile", mode="append")
+        #
+        ## am Anfang einfügen
+        # f.update_text("@prolog", "; Kopfzeile zuerst", mode="prepend")
+        #
+        ## mehrere Zeilen auf einmal
+        # f.update_text("@prolog", ["; A", "; B"], mode="append")
+        # -------------------------------------------------------------------
+        def update_text(
+            self,
+            key: str,
+            value: str | Iterable[str] | None,
+            *,
+            mode: Literal["set", "append", "prepend"] = "set",
+            sep: str = "\n",
+            smart: bool = True
+        ) -> str:
+            text = self.code_producer.setdefault("text", {})
+            
+            # --- SMART GUARD: Vertauschte Argumente erkennen ---
+            if smart and ("\n" in key or "\r" in key):
+                # sehr wahrscheinlich ist 'key' eigentlich der Text und 'value' der Key
+                if isinstance(value, str) and value and "\n" not in value and "\r" not in value:
+                    key, value = value, key  # tauschen
+            
+            # value normalisieren
+            if value is None:
+                chunk = ""
+            elif isinstance(value, (str, bytes)):
+                chunk = value.decode() if isinstance(value, bytes) else value
+            elif isinstance(value, Iterable):
+                chunk = sep.join(map(str, value))
+            else:
+                chunk = str(value)
+            
+            cur = text.get(key, "")
+            
+            if mode == "set":
+                new_val = chunk
+            elif mode == "append":
+                new_val = f"{cur}{sep}{chunk}" if cur and chunk else (cur or chunk)
+            elif mode == "prepend":
+                new_val = f"{chunk}{sep}{cur}" if cur and chunk else (cur or chunk)
+            else:
+                raise ValueError("mode muss 'set', 'append' oder 'prepend' sein")
+            
+            text[key] = new_val
+            return new_val
         
+        # -------------------------------------------------------------------
+        # rekursives Merge: dest <- src (src überschreibt).
+        # -------------------------------------------------------------------
+        def _deep_merge(self, dest: dict, src: dict) -> dict:
+            for k, v in src.items():
+                if isinstance(v, dict) and isinstance(dest.get(k), dict):
+                    self._deep_merge(dest[k], v)
+                else:
+                    dest[k] = v
+            return dest
+        # -------------------------------------------------------------------
+        ## Aktualisiert self.code_producer['data'][key].
+        #
+        # - mode='set'    : direkt setzen/überschreiben
+        # - mode='merge'  : dict-merge (deep=True für rekursiv)
+        # - mode='append' : bei list -> anhängen (value kann Einzelwert oder Iterable sein)
+        #                   bei str  -> Text anhängen (mit sep)
+        #                   wenn key nicht existiert -> value setzen
+        # - mode='prepend': wie append, aber vorn
+        # -------------------------------------------------------------------
+        # f = Foo()
+        #
+        ## 1) set
+        # f.update_data("version", 1)
+        # f.update_data("flags", {"opt": True})
+        #
+        ## 2) merge (shallow)
+        # f.update_data("flags", {"debug": False}, mode="merge")
+        ## 3) merge (deep)
+        # f.update_data("cfg", {"paths": {"bin": r"C:\bin"}}, mode="merge")
+        # f.update_data("cfg", {"paths": {"lib": r"C:\lib"}}, mode="merge", deep=True)
+        #
+        ## 4) append/prepend auf LISTEN
+        # f.update_data("files", ["a.obj"], mode="set")
+        # f.update_data("files", "b.obj", mode="append")             # -> ["a.obj","b.obj"]
+        # f.update_data("files", ["c.obj","d.obj"], mode="prepend")  # -> ["c.obj","d.obj","a.obj","b.obj"]
+        #
+        ## 5) append/prepend auf STRINGS
+        # f.update_data("note", "Erste Zeile", mode="set")
+        # f.update_data("note", "Zweite Zeile", mode="append")    # trennt mit \n
+        # f.update_data("note", ["Dritte", "Vierte"], mode="append")
+        #
+        ## 6) Fehlerfälle (bewusst)
+        # f.update_data("flags", {"x":1}, mode="append")  # -> TypeError: dict + append
+        # -------------------------------------------------------------------
+        def update_data(
+            self,
+            key: str,
+            value,
+            *,
+            mode: Literal["set", "merge", "append", "prepend"] = "set",
+            sep: str = "\n",
+            deep: bool = False,
+        ):
+            data = self.code_producer.setdefault("data", {})
+            cur = data.get(key, None)
+            
+            if mode == "set":
+                data[key] = value
+                return data[key]
+            
+            if mode == "merge":
+                if not isinstance(value, dict):
+                    raise TypeError("Für mode='merge' muss 'value' ein dict sein.")
+                if cur is None:
+                    data[key] = value.copy()
+                elif isinstance(cur, dict):
+                    data[key] = self._deep_merge(cur, value) if deep else (cur | value if hasattr(cur, "__or__") else {**cur, **value})
+                else:
+                    raise TypeError(f"Kann nicht in Typ {type(cur).__name__} mergen (erwarte dict).")
+                return data[key]
+            # ---------------------------------------------------------------
+            # append/prepend
+            # ---------------------------------------------------------------
+            if mode in ("append", "prepend"):
+                if cur is None:
+                    # -------------------------------------------------------
+                    # nichts da → einfach setzen
+                    # -------------------------------------------------------
+                    data[key] = value if not isinstance(value, bytes) else value.decode()
+                    return data[key]
+                
+                # -----------------------------------------------------------
+                # Listen-Fall
+                # -----------------------------------------------------------
+                if isinstance(cur, list):
+                    # value normalisieren zu Liste von Elementen
+                    if isinstance(value, list):
+                        items = value
+                    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes, dict)):
+                        items = list(value)
+                    else:
+                        items = [value]
+                    if mode == "append":
+                        cur.extend(items)
+                    else:
+                        data[key] = items + cur
+                    return data[key]
+                
+                # -----------------------------------------------------------
+                # String-Fall
+                # -----------------------------------------------------------
+                if isinstance(cur, (str, bytes)):
+                    cur_str = cur.decode() if isinstance(cur, bytes) else cur
+                    if isinstance(value, bytes):
+                        val_str = value.decode()
+                    elif isinstance(value, str):
+                        val_str = value
+                    elif isinstance(value, Iterable) and not isinstance(value, (dict,)):
+                        val_str = sep.join(map(str, value))
+                    else:
+                        val_str = str(value)
+                    
+                    if mode == "append":
+                        data[key] = f"{cur_str}{sep}{val_str}" if cur_str and val_str else (cur_str or val_str)
+                    else:  # prepend
+                        data[key] = f"{val_str}{sep}{cur_str}" if cur_str and val_str else (cur_str or val_str)
+                    return data[key]
+                # -----------------------------------------------------------
+                # Für dicts kein implizites append/prepend (das wäre unklar)
+                # -----------------------------------------------------------
+                if isinstance(cur, dict):
+                    raise TypeError("append/prepend auf dict ist nicht definiert. Nutze mode='merge'.")
+                # -----------------------------------------------------------
+                # Andere Typen (int/float/tuple/…) → nur erlauben,
+                # wenn leer/nicht vorhanden; sonst Fehler
+                # -----------------------------------------------------------
+                raise TypeError(f"append/prepend für Typ {type(cur).__name__} nicht unterstützt.")
+            raise ValueError("mode muss 'set', 'merge', 'append' oder 'prepend' sein")
+        
+        # ---------- Pretty (import, data, text) ----------
+        def _order_text(self, text: dict) -> dict:
+            if not isinstance(text, Mapping):
+                return text
+            # @prolog zuerst, @epilog zuletzt, Rest alphabetisch
+            keys = list(text.keys())
+            def rank(k: str) -> tuple[int, str]:
+                kl = k.lower()
+                if kl == "@prolog": return (0, "")
+                if kl == "@epilog": return (2, "")
+                return (1, kl)
+            ordered = {}
+            for k in sorted(keys, key=rank):
+                ordered[k] = text[k]
+            return ordered
+        
+        def _order_data_recursive(self, node):
+            # dict: rekursiv alphabetisch (case-insensitiv)
+            if isinstance(node, Mapping):
+                ordered = {}
+                for k in sorted(node.keys(), key=lambda s: str(s).lower()):
+                    ordered[k] = self._order_data_recursive(node[k])
+                return ordered
+            # listen/andere: so lassen
+            if isinstance(node, list):
+                return [self._order_data_recursive(v) for v in node]
+            return node
+        
+        def _order_imports(self, imp: dict) -> dict:
+            if not isinstance(imp, Mapping):
+                return imp
+            out = {}
+            # DLL-Keys case-insensitiv sortieren
+            for dll in sorted(imp.keys(), key=lambda s: s.lower()):
+                funclist = imp[dll]
+                if isinstance(funclist, list):
+                    # nur dicts mit Key "f" berücksichtigen; nach 'f' sortieren
+                    cleaned = [e for e in funclist if isinstance(e, Mapping) and "f" in e]
+                    cleaned.sort(key=lambda e: str(e.get("f", "")).lower())
+                    out[dll] = cleaned
+                else:
+                    out[dll] = funclist
+            return out
+        
+        def pretty_all(self, *, indent: int = 2) -> str:
+            """Gibt JSON mit geordnete(re)n 'text', 'data', 'import' zurück."""
+            cp = self.code_producer or {}
+            
+            ordered = {}
+            
+            # zuerst die drei Kernbereiche in gewünschter Reihenfolge
+            if "text" in cp:
+                ordered["text"] = self._order_text(cp["text"])
+            if "data" in cp:
+                ordered["data"] = self._order_data_recursive(cp["data"])
+            if "import" in cp:
+                ordered["import"] = self._order_imports(cp["import"])
+            
+            # sonstige Top-Level-Keys (falls vorhanden) hinten anhängen, alphabetisch
+            rest_keys = [k for k in cp.keys() if k not in ("text", "data", "import")]
+            for k in sorted(rest_keys, key=lambda s: str(s).lower()):
+                ordered[k] = cp[k]
+            
+            return json.dumps(ordered, ensure_ascii=False, indent=indent)
+
+        def print_pretty_all(self, **kwargs) -> None:
+            print(self.pretty_all(**kwargs))
+            
+        def print_quick_readable(self):
+            s = json.dumps(self.code_producer, ensure_ascii=False, indent=2)
+            print(s.replace("\\n", "\n"))  # Achtung: nicht mehr valides JSON!
+    
         def parse(self):
             genv.line_col = 1
             genv.line_row = 1
@@ -11966,6 +12319,46 @@ try:
                     if self.token_str.lower() == "begin":
                         genv.text_code += (genv.text_code_indent * " ")
                         self.begin_counter += 1
+                        dat_str = textwrap.dedent('db "Hello from NASM x64! a=%d, b=%lld", 10, 0')
+                        asm_str = textwrap.dedent("""
+                        ; --- Prolog ---
+                        push    rbp
+                        mov     rbp, rsp
+                        
+                        ; -------------------------------------------------------------------
+                        ; 64 Bytes reservieren:
+                        ;  - 32 B Shadow Space (Pflicht als Caller vor jedem call)
+                        ;  - 32 B "lokal" (hier ungenutzt, dient auch dem Alignment)
+                        ; Nach push rbp ist rsp 16-Byte aligned; 64 hält das Alignment.
+                        ; -------------------------------------------------------------------
+                        sub     rsp, 64
+                        
+                        ; --- Aufruf von printf(fmt, a, b) ---
+                        ; -------------------------------------------------------------------
+                        ; MS x64-ABI: RCX, RDX, R8, R9 = die ersten 4 Integer/Pointer-Args
+                        ; Für variadische Funktionen (printf): AL = Anzahl der XMM-Args -> 0
+                        ; -------------------------------------------------------------------
+                        lea     rcx, [rel fmtHello]    ; 1. Arg: Format-String
+                        mov     edx, 42                ; 2. Arg: int a
+                        mov     r8,  1234567890123     ; 3. Arg: long long b
+                        xor     eax, eax               ; AL=0 (keine FP/XMM-Args)
+                        call    printf                 ; Shadow Space liegt bei [rsp..rsp+31]
+                        
+                        ; --- Rückgabewert von main (int) ---
+                        xor     eax, eax               ; return 0
+                        
+                        ; --- Epilog ---
+                        add     rsp, 64
+                        pop     rbp
+                        ret
+                        """)
+                        
+                        self.update_data("fmtHello"  , dat_str, mode="set")
+                        self.update_text("PASCALMAIN", asm_str, mode="set")
+                        
+                        #print(self.pretty_all())
+                        self.print_quick_readable()
+                        
                         while True:
                             if self.program_reach_end:
                                 break
@@ -23949,10 +24342,7 @@ try:
                 if event.key() == Qt.Key_F1:
                     chm_path = genv.basedir + "/help/windows.chm"
                     chm_path = chm_path.replace("/", "\\")
-                    
-                    genv.help_dialog = HelpWindow(self,"index.html")
-                    genv.help_dialog.setAttribute(Qt.WA_DeleteOnClose, True)
-                
+                    preconfigHelp("Inhalt.htm")
                 elif event.key() == Qt.Key_Escape:
                     exitBox = myExitDialog(_str("Exit Dialog"))
                     exitBox.exec_()
@@ -31684,263 +32074,20 @@ try:
         DebugPrint("Thank's for using.")
         return
 
-    #class CustomWebEnginePage(QWebEnginePage):
-    #    def __init__(self, parent=None):
-    #        super().__init__(parent)
-    #        self.parent_view = None
-    #
-    #    def set_parent_view(self, parent_view):
-    #        self.parent_view = parent_view
-    #
-    #    def acceptNavigationRequest(self, url, _type, isMainFrame):
-    #        if _type == QWebEnginePage.NavigationTypeLinkClicked:
-    #            if self.parent_view:
-    #                # Link-Klick abfangen und an die zweite WebView weitergeben
-    #                self.parent_view.setUrl(url)
-    #                return False
-    #        return super().acceptNavigationRequest(url, _type, isMainFrame)
-    # ------------------------------------------------------------------------
-    def extract_assets_from_html(html_content):
-        #
-        program_dir = os.path.dirname(os.path.abspath(__file__)).replace("\\","/")
-        program_dir = program_dir + "/temp"
-        
-        showInfo("program_dir+\n" + program_dir+"/"+genv.actual_click_link)
-        with open(program_dir+"/"+genv.actual_click_link,"w",encoding="utf-8") as f:
-            f.write(html_content)
-            f.close()
-        
-        soup      = BeautifulSoup(html_content, "html.parser")
-        images    = [img   .get("src" ) for img    in soup.find_all("img"   )                   if img   .get("src" )]
-        css_files = [link  .get("href") for link   in soup.find_all("link"  , rel="stylesheet") if link  .get("href")]
-        a_hrefs   = [a     .get("href") for a      in soup.find_all("a"     , href=True)        if a     .get("href")]
-        js_files  = [script.get("src" ) for script in soup.find_all("script")                   if script.get("src" )]
-        
-        try:
-            #genv.decoded_text = ""
-            file = QFile(genv.v__app__locales_help)
-            if not file.open(QIODevice.ReadOnly):
-                raise RuntimeError(f"could not open resource file: {genv.v__app__locales_help}\n{file.errorString()}")
-            compressed_data = file.readAll(); file.close()
-            mo_data = zlib.decompress(compressed_data)
-            os.makedirs(program_dir,exist_ok=True)
-            with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
-                tmp.write(mo_data)
-                tmp_path = tmp.name
-                po = polib.mofile(tmp_path)
-                for ah in a_hrefs:
-                    if ah.startswith("qrc:"):
-                        continue
-                    entry = po.find(ah+"|TEXT")
-                    if not entry:
-                        showError(_str("internal a href file not found."))
-                        return
-                    b64_string = entry.msgstr
-                    compressed_data = base64.b64decode(b64_string)
-                    decompressed_data = zlib.decompress(compressed_data)
-                    genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                    folder = os.path.dirname(program_dir+"/"+ah).replace("\\","/")
-                    os.makedirs(folder,exist_ok=True)
-                    with open(program_dir+"/"+ah,"w",encoding="utf-8") as f:
-                        f.write(genv.decoded_text)
-                        f.close()
-                for js in js_files:
-                    #showInfo("JS: " + str(js))
-                    if js.startswith("qrc:"):
-                        continue
-                    entry = po.find(js+"|TEXT")
-                    if not entry:
-                        showError(_str("internal js file not found."))
-                        return
-                    b64_string = entry.msgstr
-                    compressed_data = base64.b64decode(b64_string)
-                    decompressed_data = zlib.decompress(compressed_data)
-                    genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                    folder = os.path.dirname(program_dir+"/"+js).replace("\\","/")
-                    os.makedirs(folder,exist_ok=True)
-                    with open(program_dir+"/"+js,"w",encoding="utf-8") as f:
-                        f.write(genv.decoded_text)
-                        f.close()
-                for css in css_files:
-                    #showInfo("CSS: " + str(css))
-                    if js.startswith("qrc:"):
-                        continue
-                    entry = po.find(css+"|TEXT")
-                    if not entry:
-                        showError(_str("internal css file: ") + css + _str(" not found."))
-                        return
-                    b64_string = entry.msgstr
-                    compressed_data = base64.b64decode(b64_string)
-                    decompressed_data = zlib.decompress(compressed_data)
-                    genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                    folder = os.path.dirname(program_dir+"/"+css).replace("\\","/")
-                    os.makedirs(folder,exist_ok=True)
-                    with open(program_dir+"/"+css,"w",encoding="utf-8") as f:
-                        f.write(genv.decoded_text)
-                        f.close()
-                for img in images:
-                    #showInfo("IMG: " + str(img))
-                    if js.startswith("qrc:"):
-                        continue
-                    entry = po.find(img+"|BINARY")
-                    if not entry:
-                        showError(_str("internal image file: ") +img+ _str(" not found."))
-                        return
-                    b64_data = entry.msgstr
-                    compressed_data = base64.b64decode(b64_data)
-                    decompressed_data = zlib.decompress(compressed_data)
-                    folder = os.path.dirname(program_dir+"/lib/"+img).replace("\\","/")
-                    os.makedirs(folder,exist_ok=True)
-                    with open(program_dir+"/lib/"+img,"wb") as f:
-                        f.write(decompressed_data)
-                        f.close()
-            return {
-                "images"   : images,
-                "css_files": css_files,
-                "js_files" : js_files
-            }
-        except FileNotFoundError as e:
-            handle_exception(e, (_str("A File operation Exception occured:")))
-            return ""
-        except PermissionError as e:
-            handle_exception(e, (_str("A File operation Exception occured (permission error):")))
-            return ""
-        except OSError as e:
-            handle_exception(e, (_str("A OS Error operation Exception occured:")))
-            return ""
-        except Exception as e:
-            handle_exception(e, (_str("A Exception occured:")))
-            return ""
-    
     # ------------------------------------------------------------------------
     # chm help window ...
     # ------------------------------------------------------------------------
-    def preconfigHelp(parent=None, topic="index.html", container="") -> str:
+    def preconfigHelp(topic="index.html") -> str:
         print("Klick erkannt:", topic)
-        pre = [
-            "css/reset.css", "css/base.css", "css/hnd.css",
-            "css/ielte8.css",
-            "js/chmRelative.js"
-        ]
-        #prepareHelp("css/reset.css")
-        
-        prepareHelp(topic)
-    def prepareHelp(topic):
         try:
             genv.actual_click_link = topic
-            genv.decoded_text = ""
-            showInfo(genv.v__app__locales_help)
-            file = QFile(genv.v__app__locales_help)
-            if not file.open(QIODevice.ReadOnly):
-                raise RuntimeError(f"could not open resource file: {genv.v__app__locales_help}\n{file.errorString()}")
-            compressed_data = file.readAll(); file.close()
-            mo_data = zlib.decompress(compressed_data)
-            #
-            program_dir = os.path.dirname(os.path.abspath(__file__))
-            program_dir = (program_dir + "/temp/").replace("\\", "/")
-            program_lib = (program_dir + "lib")
-            program_css = (program_dir + "css")
-            program_jav = (program_dir + "js" )
-            #
-            os.makedirs(program_dir, exist_ok=True)
-            os.makedirs(program_lib, exist_ok=True)
-            os.makedirs(program_css, exist_ok=True)
-            os.makedirs(program_jav, exist_ok=True)
-            #
-            with tempfile.NamedTemporaryFile(delete=False,dir=program_dir,suffix=".mooo") as tmp:
-                tmp.write(mo_data)
-                tmp_path = tmp.name
-                po = polib.mofile(tmp_path)
-                index = False
-                if topic.lower() == "index.html"\
-                or topic.lower() == "index.htm":
-                    showInfo("index")
-                    index = True
-                    entry = po.find("index.htm|TEXT")
-                    if not entry:
-                        showInfo("index nooot okkkk")
-                        entry = po.find("index.html|TEXT")
-                        if not entry:
-                            #showInfo("index oooooooooooooooo  okkkk")
-                            page_nok = "<b>no index.htm found."
-                            genv.help_content.browser_content.page().setHtml(page_nok)
-                        else:
-                            #showInfo("index okkkk  2222")
-                            b64_string = entry.msgstr
-                            compressed_data = base64.b64decode(b64_string)
-                            decompressed_data = zlib.decompress(compressed_data)
-                            genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                            genv.help_content.browser_toc.page().setHtml(genv.decoded_text)
-                            showInfo("index okkkk  0000")
-                    else:
-                        #showInfo("index okkkk  11111")
-                        b64_string = entry.msgstr
-                        compressed_data = base64.b64decode(b64_string)
-                        decompressed_data = zlib.decompress(compressed_data)
-                        genv.decoded_text = decompressed_data.decode("utf-8-sig")
-                        genv.help_content.browser_toc.page().setHtml(page_nok)
-                        showInfo("index okkkk")
-                else:
-                    if topic.endswith(".htm" )\
-                    or topic.endswith(".html")\
-                    or topic.endswith(".css" )\
-                    or topic.endswith(".js"  ):
-                        entry = po.find(topic + "|TEXT")
-                        if not entry:
-                            showInfo("texxxts mnnnnn okkkk")
-                            page_nok = f"<b>page not found: {topic}</b>"
-                            genv.help_content.browser_content.page().setHtml(page_nok)
-                        else:
-                            showInfo("texxxts okkkk")
-                            b64_string = entry.msgstr
-                            compressed_data = base64.b64decode(b64_string)
-                            decompressed_data = zlib.decompress(compressed_data)
-                            # --------------------------------------------------------
-                            # 1) BOM sicher entfernen (falls die Quelle aus Bytes kam)
-                            # --------------------------------------------------------
-                            html = decompressed_data
-                            if isinstance(html, (bytes, bytearray)):
-                                html = bytes(html).decode("utf-8-sig")
-                            else:
-                                # ----------------------------------------------------
-                                # falls schon str, evtl. führendes \ufeff abschneiden
-                                # ----------------------------------------------------
-                                html = html.lstrip("\ufeff")
-                            # --------------------------------------------------------
-                            # 2) Basis-URL setzen, damit relative Pfade funktionieren
-                            # --------------------------------------------------------
-                            base_dir = Path(program_dir)
-                            base_url = (str(base_dir.resolve()) + "\\" + (topic.replace("/", "\\")))
-                            
-                            extract_assets_from_html(html)
-                            
-                            with open(base_url, "w", encoding="utf-8") as file:
-                                file.write(html)
-                                file.close()
-                                
-                            #data_url = "data:text/html;charset=utf-8;base64," + base64.b64encode(html.encode("utf-8"))
-                            page     = genv.help_content.browser_content.page()
-                            
-                            if   topic.endswith(".htm" )\
-                            or   topic.endswith(".html"): page.setContent(QByteArray(html.encode("utf-8")), "text/html")
-                            elif topic.endswith(".css" ): page.setContent(QByteArray(html.encode("utf-8")), "text/css" )
-                            elif topic.endswith(".js"  ): page.setContent(QByteArray(html.encode("utf-8")), "text/js"  )
-                            
-                            #setHtml(html, base_url)
-                    else:
-                        entry = po.find(topic + "|BINARY")
-                        if not entry:
-                            page_nok = f"<b>binary not found: {topic}</b>"
-                            genv.help_content.browser_content.page().setHtml(page_nok)
-                        else:
-                            #showInfo("imageee okkkk")
-                            b64_string = entry.msgstr
-                            compressed_data = base64.b64decode(b64_string)
-                            decompressed_data = zlib.decompress(compressed_data)
-                            genv.help_content.browser_content.page().setHtml(decompressed_data)
-                            
-            #os.remove(tmp_path)
-            return genv.decoded_text
+            program_dir  = os.path.dirname(os.path.abspath(__file__))
+            chm = program_dir + "/doc/FreePascalDark.chm"
+            toc = "Inhalt.htm"
+            if not os.path.exists(chm):
+                showError(f"Error: {chm} not found.")
+                return
+            subprocess.run([r"c:\windows\hh.exe", f"mk:@MSITStore:{chm}::/{toc}"], check=True)
             
         except FileNotFoundError as e:
             handle_exception(e, (_str("A File operation Exception occured:")))
@@ -32099,28 +32246,6 @@ try:
                 
                 result = self.msg.exec_()
     
-    # Python-Objekt für JavaScript
-    class JsBridge(QObject):
-        dataContent = pyqtSignal(str)
-        
-        @pyqtSlot(str)
-        def nodeClicked(self, href):
-            genv.help_content_code = self
-            # delete old data informations
-            tree = os.path.dirname(os.path.abspath(__file__))
-            tree += "/temp"
-            #showInfo(tree)
-            with open(tree+"/index.html","w",encoding="utf-8") as f:
-                f.write(genv.decoded_index_text)
-                f.close()
-            #saveDeleteDirectoryTree(tree)
-            html = "http://localhost:8000/temp/"+href
-            # refresh sata
-            preconfigHelp(genv.help_content,href)
-            genv.help_content.browser_content.page().load(QUrl(html))
-            genv.help_content.browser_toc.page().setHtml(genv.decoded_index_text)
-            #load(QUrl("http://localhost:8000/temp/index.html"))
-    
     class LinkInterceptPage(QWebEnginePage):
         def acceptNavigationRequest(self, url, nav_type, is_main_frame):
             if nav_type == QWebEnginePage.NavigationTypeLinkClicked:
@@ -32129,174 +32254,6 @@ try:
                 return False
             return super().acceptNavigationRequest(url, nav_type, is_main_frame)
     
-    class HelpWindow(QMainWindow):
-        def __init__(self, parent=None, topic="", anchor="#"):
-            super(HelpWindow, self).__init__(parent)
-            
-            # Splitter erstellen
-            #splitter = QSplitter(Qt.Horizontal)
-            
-            self.hide()
-            self.setContentsMargins(0,0,0,0)
-            self.setStyleSheet("background-color:gray;")
-            self.setWindowTitle(_str("Help Dialog"))
-            self.setGeometry(100, 100, 720, 600)
-            
-            # Hauptlayout des Dialogs
-            layout = QVBoxLayout()
-            layout.setContentsMargins(1,0,0,1)
-            
-            # Navigation Panel erstellen
-            navigation_container = QVBoxLayout()
-            navigation_widget = QWidget()
-            navigation_layout = QHBoxLayout()
-            #
-            navigation_widget.setMaximumHeight(56)
-            navigation_widget.setContentsMargins(1,1,1,1)
-            
-            # Buttons: Home, Prev, Next
-            self.home_button = QPushButton(_str("Home"))
-            self.prev_button = QPushButton(_str("Prev"))
-            self.next_button = QPushButton(_str("Next"))
-            
-            self.home_button.setMinimumHeight(40)
-            self.prev_button.setMinimumHeight(40)
-            self.next_button.setMinimumHeight(40)
-            
-            self.home_button.setCursor(Qt.PointingHandCursor)
-            self.prev_button.setCursor(Qt.PointingHandCursor)
-            self.next_button.setCursor(Qt.PointingHandCursor)
-            
-            font = QFont("Arial", 12)
-            #
-            self.home_button.setFont(font)
-            self.prev_button.setFont(font)
-            self.next_button.setFont(font)
-            
-            self.home_button.clicked.connect(self.home_click)
-            self.prev_button.clicked.connect(self.prev_click)
-            self.next_button.clicked.connect(self.next_click)
-            
-            navigation_widget.setStyleSheet("background-color:lightgray;")
-            navigation_layout.setAlignment(Qt.AlignTop)
-            
-            # Buttons dem Layout hinzufügen
-            navigation_layout.addWidget(self.home_button)
-            navigation_layout.addWidget(self.prev_button)
-            navigation_layout.addWidget(self.next_button)
-            
-            # Setze das Layout für das Navigations-Widget
-            navigation_widget.setLayout(navigation_layout)
-            
-            #container_widget = QWidget()
-            layout1 = QHBoxLayout()
-            #layout1.setContentsMargins(0,0,0,0)
-            
-            # linker Bereich - TOC
-            self.browser_toc     = QWebEngineView()
-            self.browser_content = QWebEngineView()
-            
-            self.browser_toc.setMaximumWidth(320)
-            # WebChannel für JS-Kommunikation
-            self.channel = QWebChannel()
-            self.bridge  = JsBridge()
-            self.channel.registerObject("bridge", self.bridge)
-            self.browser_toc.page().setWebChannel(self.channel)
-            
-            genv.help_content = self
-            
-            # Splitter erstellen (horizontal)
-            self.splitter = QSplitter(Qt.Horizontal)
-            self.splitter.addWidget(self.browser_toc)
-            self.splitter.addWidget(self.browser_content)
-            
-            layout.addWidget(navigation_widget)
-            layout.addWidget(self.splitter)
-            
-            preconfigHelp(self, "index.html")
-            
-            # Schließen-Button
-            button_widget = QWidget()
-            button_layout = QHBoxLayout()
-            
-            button_widget.setMaximumHeight(84)
-            
-            # PNG-Grafik
-            image_label = QLabel()
-            image_label.setMinimumHeight(64)
-            image_label.setMaximumHeight(64)
-            image_label.setMaximumWidth (64)
-            
-            image_label.setStyleSheet(_css("HelpWindow_image"))
-            
-            
-            # Text "Made with Python"
-            text_label = QLabel(_str("Made with Python\n(c) 2024 by paule32"))
-            text_label.setStyleSheet(_css("HelpWindow_text"))
-            
-            # Zum Button-Layout hinzufügen
-            button_layout.addWidget(image_label)
-            button_layout.addWidget(text_label)
-            button_layout.setAlignment(Qt.AlignVCenter)
-            
-            button_widget.setLayout(button_layout)
-            layout.addWidget(button_widget)
-            
-            #if not genv.window_login == None:
-            #genv.window_login.setStyleSheet(genv.saved_style)
-            
-            container = QWidget()
-            container.setContentsMargins(0,0,0,0)
-            container.setLayout(layout)
-            
-            self.setCentralWidget(container)
-            self.browser_toc.show()
-            self.browser_content.show()
-            self.show()
-        
-        def on_url_changed(self, url):
-            parsed = urlparse(url.toString())
-            params = parse_qs(parsed.query)
-            print("Basis:", parsed.scheme + "://" + parsed.netloc + parsed.path)
-            print("Parameter:", params)
-        
-        def home_click(self):
-            pass
-        
-        def next_click(self):
-            pass
-        
-        def prev_click(self):
-            pass
-            
-        def keyPressEvent(self, event):
-            if event.key() == Qt.Key_Escape:
-                self.close()
-        
-        def closeEvent(self, event):
-            #if not genv.window_login == None:
-            #    genv.window_login.setStyleSheet(genv.saved_style)
-            if not self.browser_toc == None:
-                self.browser_toc.deleteLater()
-            event.accept()
-        
-        def on_close(self):
-            self.close()
-        
-        def paintEvent(self, event):
-            # Zeichnet einen Rahmen um das Hauptfenster
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.Antialiasing)
-            
-            pen = QPen(Qt.green)  # Grün
-            pen.setWidth(5)  # Rahmenbreite
-            painter.setPen(pen)
-            
-            # Rechteck für den Rahmen definieren
-            rect = self.rect()
-            rect = rect.adjusted(2, 2, -2, -2)  # Den Rahmen leicht nach innen verschieben
-            painter.drawRect(rect)
-
     class CustomWindow(QWidget):
         def __init__(self, parent=None):
             super(CustomWindow, self).__init__(parent)
