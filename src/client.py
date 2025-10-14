@@ -11941,6 +11941,130 @@ try:
                 raise TypeError(f"append/prepend für Typ {type(cur).__name__} nicht unterstützt.")
             raise ValueError("mode muss 'set', 'merge', 'append' oder 'prepend' sein")
         
+        def _norm_nl(self, s: str) -> str:
+            if not s:
+                return ""
+            # immer mit genau einem Zeilenumbruch enden
+            return s.rstrip("\r\n") + "\n"
+
+        # -------------------------------------------------------------------
+        # Für data-Einträge tolerant sein:
+        # - Bevorzugt: label = k (gültiger Bezeichner), def = str(v)
+        # - Fallback (vertauscht): wenn k nach ASM-Directive aussieht und v ein Bezeichner ist,
+        #   dann label = v, def = k
+        # -------------------------------------------------------------------
+        def _guess_label_and_def(self, k: str, v):
+            IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+            v_str = "" if v is None else str(v)
+            k_is_ident = bool(IDENT_RE.match(k))
+            v_is_ident = bool(IDENT_RE.match(v_str))
+            looks_like_directive = any(tok in k.lower() for tok in (
+                " db ",
+                " dq ",
+                " dd ",
+                " dw ",
+                " resb", " resq", " resd", " resw",
+                "\n"
+            ))
+
+            if k_is_ident:
+                return k, v_str
+            if looks_like_directive and v_is_ident:
+                # vertauschtes Paar
+                return v_str, k
+            # sonst: nimm k als Label wie es ist (notfalls säubern) und v als Definition
+            fallback_label = re.sub(r"\W+", "_", k).strip("_") or "data_item"
+            return fallback_label, v_str
+
+        def write_asm(self, filepath: str | Path, *, sort: bool = True) -> Path:
+            cp      = self.code_producer   or {}
+            text    = cp.get("text",   {}) or {}
+            data    = cp.get("data",   {}) or {}
+            imports = cp.get("import", {}) or {}
+
+            lines: list[str] = []
+            lines.append("; --- generated from code_producer ---")
+            lines.append("default rel")
+            lines.append("")
+            
+            dirpath = os.path.dirname(filepath) or "."  # falls nur Dateiname ohne Ordner
+            os.makedirs(dirpath, exist_ok=True)         # nur Verzeichnis anlegen
+
+            # ---------- optionaler Prolog ----------
+            prolog = text.get("@prolog")
+            if isinstance(prolog, str) and prolog.strip():
+                lines.append("; --- prolog ---")
+                lines.append(self._norm_nl(prolog).rstrip("\n"))
+                lines.append("")
+
+            # ---------- IMPORTS ----------
+            if isinstance(imports, dict) and imports:
+                lines.append("; --- imports ---")
+                dll_keys = sorted(imports.keys(), key=str.lower) if sort else list(imports.keys())
+                for dll in dll_keys:
+                    funclist = imports.get(dll) or []
+                    # sortiere nach Funktionsname
+                    if sort:
+                        funclist = sorted(
+                            [e for e in funclist if isinstance(e, dict) and "f" in e],
+                            key=lambda e: str(e.get("f", "")).lower()
+                        )
+                    for e in funclist:
+                        fn = e.get("f")
+                        if not fn:
+                            continue
+                        lines.append(f"extern {fn}    ; from {dll}")
+                lines.append("")
+
+            # ---------- DATA ----------
+            lines.append("section .data")
+            if isinstance(data, dict) and data:
+                data_items = data.items()
+                if sort:
+                    data_items = sorted(data_items, key=lambda kv: str(kv[0]).lower())
+                for k, v in data_items:
+                    label, definition = self._guess_label_and_def(str(k), v)
+                    definition = definition.strip()
+                    if not definition:
+                        continue
+                    # Label + Definition
+                    lines.append(f"{label}: {definition}")
+            lines.append("")
+
+            # ---------- TEXT (Funktionen) ----------
+            lines.append("section .text")
+            # alle Funktions-Labels (ohne @-Schlüssel)
+            func_items = [(k, v) for k, v in text.items() if not str(k).startswith("@")]
+            if sort:
+                func_items.sort(key=lambda kv: str(kv[0]).lower())
+
+            for label, body in func_items:
+                if not body:
+                    continue
+                lines.append(f"{label}:")
+                lines.append(self._norm_nl(str(body)).rstrip("\n"))
+                lines.append("")
+
+            # ---------- optionaler Epilog ----------
+            epilog = text.get("@epilog")
+            if isinstance(epilog, str) and epilog.strip():
+                lines.append("; --- epilog ---")
+                lines.append(self._norm_nl(epilog).rstrip("\n"))
+                lines.append("")
+
+            # schreiben
+            try:
+                path = Path(filepath)
+                path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+                return path
+                
+            except PermissionError as e:
+                showError(_str("no permissions to create directory"))
+                return False
+            except Exception as e:
+                showError(_str(f"unexpected error occured:\n{e}"))
+                return False
+        
         # ---------- Pretty (import, data, text) ----------
         def _order_text(self, text: dict) -> dict:
             if not isinstance(text, Mapping):
@@ -12356,8 +12480,8 @@ try:
                         self.update_data("fmtHello"  , dat_str, mode="set")
                         self.update_text("PASCALMAIN", asm_str, mode="set")
                         
-                        #print(self.pretty_all())
                         self.print_quick_readable()
+                        self.write_asm("./temp/asm/code.asm")
                         
                         while True:
                             if self.program_reach_end:
@@ -35918,7 +36042,8 @@ try:
             "usefunc.inc","windows.inc","winfunc.inc"
         ]
         
-        tmp  = str(Path.cwd()).replace("\\","/") + "/temp/"
+        tmp  = str(Path.cwd()).replace("\\","/") + "/temp/asm/"
+        
         if not Path(tmp).exists():
             p = Path(tmp)
             p.mkdir(parents=True, exist_ok=True)
@@ -35935,174 +36060,153 @@ try:
                 with open(tmp + src, "w", encoding="utf-8") as f:
                     f.write(s_data)
                     f.close()
-        
-        with TemporaryDirectory(dir=tmp) as td:
-            try:
-                code64 = str(tmp) + "/code64.asm"
-                with open(code64, "w", encoding="utf-8") as f:
-                    text = textwrap.dedent(""
-                    + "_start:" + "\n"
-                    + "mov rbp,rsp" + "\n"
-                    + "and rsp,-16" + "\n"
-                    + "sub rsp,32" + "\n"
-                    + "ShowMessageW msgW,capW" + "\n"
-                    + "GETLASTERROR jnz,.ok" + "\n"
-                    + "GetLastError" + "\n"
-                    + "ShowMessageA errA,capW" + "\n"
-                    + ".ok:" + "\n"
-                    + "AddShadow 80+48+16" + "\n"
-                    + "lea rdi,[rsp+16]" + "\n"
-                    + "lea rsi,[rdi+80]" + "\n"
-                    + "Zero ecx" + "\n"
-                    + "CALL_IAT GetModuleHandleW" + "\n"
-                    + "mov r12,rax" + "\n"
-                    + "LoadCursorW IDC_ARROW" + "\n"
-                    + "mov r14,rax" + "\n"
-                    + "mov ecx,5" + "\n"
-                    + "CALL_IAT GetSysColorBrush" + "\n"
-                    + "mov [rdi+48], rax" + "\n"
-                    + "xor rax,rax" + "\n"
-                    + "mov dword [rdi+0],80" + "\n"
-                    + "mov dword [rdi+4],0" + "\n"
-                    + "lea rax,[rel WndProc]" + "\n"
-                    + "mov [rdi+8],rax" + "\n"
-                    + "mov dword [rdi+16],0" + "\n"
-                    + "mov dword [rdi+20],0" + "\n"
-                    + "mov qword [rdi+24],r12" + "\n"
-                    + "mov qword [rdi+32],0" + "\n"
-                    + "mov qword [rdi+40],r14" + "\n"
-                    + "mov qword [rdi+48],r15" + "\n"
-                    + "mov qword [rdi+56],0" + "\n"
-                    + "lea rax,[rel winclassW]" + "\n"
-                    + "mov qword [rdi+64],rax" + "\n"
-                    + "mov qword [rdi+72],0" + "\n"
-                    + "mov rcx,rdi" + "\n"
-                    + "CALL_IAT RegisterClassExW" + "\n"
-                    + "GETLASTERROR jnz,.class_ok" + "\n"
-                    + "ShowMessageW  errmsgW,titleW" + "\n"
-                    + "sub rsp,40" + "\n"
-                    + "jmp .exit" + "\n"
-                    + ".class_ok:" + "\n"
-                    + "Zero ecx" + "\n"
-                    + "lea rdx,[rel winclassW]" + "\n"
-                    + "lea r8,[rel titleW]" + "\n"
-                    + "mov r9d,WS_OVERLAPPEDWINDOW" + "\n"
-                    + "mov dword [rsp+32],CW_USEDEFAULT" + "\n"
-                    + "mov dword [rsp+40],CW_USEDEFAULT" + "\n"
-                    + "mov dword [rsp+48],800" + "\n"
-                    + "mov dword [rsp+56],600" + "\n"
-                    + "mov qword [rsp+64],0" + "\n"
-                    + "mov qword [rsp+72],0" + "\n"
-                    + "mov qword [rsp+80],r12" + "\n"
-                    + "mov qword [rsp+88],0" + "\n"
-                    + "CALL_IAT CreateWindowExW" + "\n"
-                    + "GETLASTERROR jz, .exit" + "\n"
-                    + "mov r13,rax" + "\n"
-                    + "ShowWindow r13,SW_SHOWDEFAULT" + "\n"
-                    + "UpdateWindow r13" + "\n"
-                    + ".msg_loop:" + "\n"
-                    + "GetMessageW" + "\n"
-                    + "GETLASTERROR jle, .exit" + "\n"
-                    + "TranslateMessage" + "\n"
-                    + "DispatchMessageW" + "\n"
-                    + "jmp .msg_loop" + "\n"
-                    + ".exit:" + "\n"
-                    + "ExitProcess 0" + "\n"
-                    + "resolve_by_ordinal:" + "\n"
-                    + "nop" + "\n"
-                    + "AddShadow 40" + "\n"
-                    + "lea rcx,[rel dll_win32_user32]" + "\n"
-                    + "CALL_IAT LoadLibraryA" + "\n"
-                    + "mov r12,rax" + "\n"
-                    + "mov rcx,r12" + "\n"
-                    + "mov edx,0x00E8" + "\n"
-                    + "CALL_IAT GetProcAddress" + "\n"
-                    + "mov rbx,rax" + "\n"
-                    + "DelShadow 40" + "\n"
-                    + "Return" + "\n"
-                    + "nop" + "\n"
-                    + "winclassW: WSTR 'NasmWndClass'" + "\n"
-                    + "titleW: WSTR 'NASM PE64 GUI without Linker'" + "\n"
-                    + "errmsgW: WSTR 'RegisterClassExW failed'" + "\n"
-                    )
-                    f.write(text)
-                    f.flush()
-                    os.fsync(f.fileno())
-                    f.close()
-                    
-                data64 = str(tmp) + "/data64.asm"
-                with open(data64, "w", encoding="utf-8") as f:
-                    text = textwrap.dedent(""
-                    + "times (DATA_RAW_PTR-($-$$)) db 0" + "\n"
-                    + "data_start:" + "\n"
-                    + "errA: db 'MessageBoxW failed',0" + "\n"
-                    + "capA: db 'User32',0" + "\n"
-                    + "msgW: WSTR 'Hello World'" + "\n"
-                    + "capW: WSTR 'Pure NASM PE-64'" + "\n"
-                    + "data_end:" + "\n"
-                    + "times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0"+"\n"
-                    )
-                    f.write(text)
-                    f.flush()
-                    os.fsync(f.fileno())
-                    f.close()
-                    
-                winproc = str(tmp) + "/winproc.asm"
-                with open(winproc, "w", encoding="utf-8") as f:
-                    text = textwrap.dedent(""
-                    + "WndProc:" + "\n"
-                    + "AddShadow" + "\n"
-                    + "MESSAGE WM_CLOSE,wm_close" + "\n"
-                    + "MESSAGE WM_ERASEBKGND,wm_erasebkgnd" + "\n"
-                    + "DefWindowProcW" + "\n"
-                    + "DelShadow" + "\n"
-                    + "jmp [rax]" + "\n"
-                    + ".wm_erasebkgnd:" + "\n"
-                    + "AddShadow 48" + "\n"
-                    + "mov [rsp+32],rcx" + "\n"
-                    + "mov [rsp+40],r8" + "\n"
-                    + "lea rdx,[rsp+16]" + "\n"
-                    + "mov rcx,[rsp+32]" + "\n"
-                    + "CALL_IAT GetClientRect" + "\n"
-                    + "mov rcx,[rsp+32]" + "\n"
-                    + "mov rdx,GCLP_HBRBACKGROUND" + "\n"
-                    + "CALL_IAT GetClassLongPtrW" + "\n"
-                    + "mov rcx,[rsp+40]" + "\n"
-                    + "lea rdx,[rsp+16]" + "\n"
-                    + "mov r8,rax" + "\n"
-                    + "CALL_IAT FillRect" + "\n"
-                    + "Return 1" + "\n"
-                    + "DelShadow 48" + "\n"
-                    + "DelShadow" + "\n"
-                    + "ret" + "\n"
-                    + ".wm_close:" + "\n"
-                    + "Zero ecx" + "\n"
-                    + "CALL_IAT PostQuitMessage" + "\n"
-                    + "DelShadow" + "\n"
-                    + "Zero eax" + "\n"
-                    + "ret" + "\n"
-                    )
-                    f.write(text)
-                    f.flush()
-                    os.fsync(f.fileno())
-                    f.close()
-            except OSError as e:
-                raise RuntimeError(""
-                + _str("Error:") + "\n"
-                + _str("temporary directory is not writable."))
+        print("--> " + tmp)
+        tmp_path = Path(tmp)
+        try:
+            (tmp_path / "code64.asm").write_text(textwrap.dedent(""
+                + "_start:" + "\n"
+                + "mov rbp,rsp" + "\n"
+                + "and rsp,-16" + "\n"
+                + "sub rsp,32" + "\n"
+                + "ShowMessageW msgW,capW" + "\n"
+                + "GETLASTERROR jnz,.ok" + "\n"
+                + "GetLastError" + "\n"
+                + "ShowMessageA errA,capW" + "\n"
+                + ".ok:" + "\n"
+                + "AddShadow 80+48+16" + "\n"
+                + "lea rdi,[rsp+16]" + "\n"
+                + "lea rsi,[rdi+80]" + "\n"
+                + "Zero ecx" + "\n"
+                + "CALL_IAT GetModuleHandleW" + "\n"
+                + "mov r12,rax" + "\n"
+                + "LoadCursorW IDC_ARROW" + "\n"
+                + "mov r14,rax" + "\n"
+                + "mov ecx,5" + "\n"
+                + "CALL_IAT GetSysColorBrush" + "\n"
+                + "mov [rdi+48], rax" + "\n"
+                + "xor rax,rax" + "\n"
+                + "mov dword [rdi+0],80" + "\n"
+                + "mov dword [rdi+4],0" + "\n"
+                + "lea rax,[rel WndProc]" + "\n"
+                + "mov [rdi+8],rax" + "\n"
+                + "mov dword [rdi+16],0" + "\n"
+                + "mov dword [rdi+20],0" + "\n"
+                + "mov qword [rdi+24],r12" + "\n"
+                + "mov qword [rdi+32],0" + "\n"
+                + "mov qword [rdi+40],r14" + "\n"
+                + "mov qword [rdi+48],r15" + "\n"
+                + "mov qword [rdi+56],0" + "\n"
+                + "lea rax,[rel winclassW]" + "\n"
+                + "mov qword [rdi+64],rax" + "\n"
+                + "mov qword [rdi+72],0" + "\n"
+                + "mov rcx,rdi" + "\n"
+                + "CALL_IAT RegisterClassExW" + "\n"
+                + "GETLASTERROR jnz,.class_ok" + "\n"
+                + "ShowMessageW  errmsgW,titleW" + "\n"
+                + "sub rsp,40" + "\n"
+                + "jmp .exit" + "\n"
+                + ".class_ok:" + "\n"
+                + "Zero ecx" + "\n"
+                + "lea rdx,[rel winclassW]" + "\n"
+                + "lea r8,[rel titleW]" + "\n"
+                + "mov r9d,WS_OVERLAPPEDWINDOW" + "\n"
+                + "mov dword [rsp+32],CW_USEDEFAULT" + "\n"
+                + "mov dword [rsp+40],CW_USEDEFAULT" + "\n"
+                + "mov dword [rsp+48],800" + "\n"
+                + "mov dword [rsp+56],600" + "\n"
+                + "mov qword [rsp+64],0" + "\n"
+                + "mov qword [rsp+72],0" + "\n"
+                + "mov qword [rsp+80],r12" + "\n"
+                + "mov qword [rsp+88],0" + "\n"
+                + "CALL_IAT CreateWindowExW" + "\n"
+                + "GETLASTERROR jz, .exit" + "\n"
+                + "mov r13,rax" + "\n"
+                + "ShowWindow r13,SW_SHOWDEFAULT" + "\n"
+                + "UpdateWindow r13" + "\n"
+                + ".msg_loop:" + "\n"
+                + "GetMessageW" + "\n"
+                + "GETLASTERROR jle, .exit" + "\n"
+                + "TranslateMessage" + "\n"
+                + "DispatchMessageW" + "\n"
+                + "jmp .msg_loop" + "\n"
+                + ".exit:" + "\n"
+                + "ExitProcess 0" + "\n"
+                + "resolve_by_ordinal:" + "\n"
+                + "nop" + "\n"
+                + "AddShadow 40" + "\n"
+                + "lea rcx,[rel dll_win32_user32]" + "\n"
+                + "CALL_IAT LoadLibraryA" + "\n"
+                + "mov r12,rax" + "\n"
+                + "mov rcx,r12" + "\n"
+                + "mov edx,0x00E8" + "\n"
+                + "CALL_IAT GetProcAddress" + "\n"
+                + "mov rbx,rax" + "\n"
+                + "DelShadow 40" + "\n"
+                + "Return" + "\n"
+                + "nop" + "\n"
+                + "winclassW: WSTR 'NasmWndClass'" + "\n"
+                + "titleW: WSTR 'NASM PE64 GUI without Linker'" + "\n"
+                + "errmsgW: WSTR 'RegisterClassExW failed'" + "\n"
+                ))
+                
+            (tmp_path / "data64.asm").write_text(textwrap.dedent(""
+                + "times (DATA_RAW_PTR-($-$$)) db 0" + "\n"
+                + "data_start:" + "\n"
+                + "errA: db 'MessageBoxW failed',0" + "\n"
+                + "capA: db 'User32',0" + "\n"
+                + "msgW: WSTR 'Hello World'" + "\n"
+                + "capW: WSTR 'Pure NASM PE-64'" + "\n"
+                + "data_end:" + "\n"
+                + "times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0"+"\n"))
+                
+            (tmp_path / "winproc.asm").write_text(textwrap.dedent(""
+                + "WndProc:" + "\n"
+                + "AddShadow" + "\n"
+                + "MESSAGE WM_CLOSE,wm_close" + "\n"
+                + "MESSAGE WM_ERASEBKGND,wm_erasebkgnd" + "\n"
+                + "DefWindowProcW" + "\n"
+                + "DelShadow" + "\n"
+                + "jmp [rax]" + "\n"
+                + ".wm_erasebkgnd:" + "\n"
+                + "AddShadow 48" + "\n"
+                + "mov [rsp+32],rcx" + "\n"
+                + "mov [rsp+40],r8" + "\n"
+                + "lea rdx,[rsp+16]" + "\n"
+                + "mov rcx,[rsp+32]" + "\n"
+                + "CALL_IAT GetClientRect" + "\n"
+                + "mov rcx,[rsp+32]" + "\n"
+                + "mov rdx,GCLP_HBRBACKGROUND" + "\n"
+                + "CALL_IAT GetClassLongPtrW" + "\n"
+                + "mov rcx,[rsp+40]" + "\n"
+                + "lea rdx,[rsp+16]" + "\n"
+                + "mov r8,rax" + "\n"
+                + "CALL_IAT FillRect" + "\n"
+                + "Return 1" + "\n"
+                + "DelShadow 48" + "\n"
+                + "DelShadow" + "\n"
+                + "ret" + "\n"
+                + ".wm_close:" + "\n"
+                + "Zero ecx" + "\n"
+                + "CALL_IAT PostQuitMessage" + "\n"
+                + "DelShadow" + "\n"
+                + "Zero eax" + "\n"
+                + "ret" + "\n"))
+        except OSError as e:
+            raise RuntimeError(""
+            + _str("Error:") + "\n"
+            + _str("temporary directory is not writeable."))
                 
         # ---------------------------------------
         # live output streamen, non-blocking
         # ---------------------------------------
-        tmp = Path(tmp)
-        exe = tmp / "nasm.exe"
-        asm = tmp / "start.asm"
-        out = tmp / "start.exe"
+        exe = tmp_path / "nasm.exe"
+        asm = tmp_path / "start.asm"
+        out = tmp_path / "start.exe"
         
-        if not exe.exists():
-            raise FileNotFoundError(f"{exe} not found.")
-        if not asm.exists():
-            raise FileNotFoundError(f"{exe} not found.")
+        #if not str(exe.exists():
+        #    raise FileNotFoundError(f"{exe} not found.")
+        #if not asm.exists():
+        #    raise FileNotFoundError(f"{exe} not found.")
         
         cmd = [str(exe),"-f","bin", str(asm),"-o",str(out)]
         exe_asm = f"{tmp}nasm.exe -fbin {tmp}start.exe {tmp}start.asm"
@@ -36121,10 +36225,10 @@ try:
             file_name = "tmp.tmp"
             try:
                 for p in sources:
-                    file_name = tmp / p
+                    file_name = tmp + p
                     os.remove(file_name)
-                os.remove(tmp / "code64.asm" )
-                os.remove(tmp / "winproc.asm")
+                os.remove(tmp + "code64.asm" )
+                os.remove(tmp + "winproc.asm")
                 if ret > 0:
                     print(f"FAILED: Exit-Code {ret}:")
                 else:
