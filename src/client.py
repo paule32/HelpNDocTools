@@ -138,6 +138,34 @@ SAFE_FIELDS = {0, 10, 20, 30}  # Startfelder sind sichere Felder
 HIGHSCORE_PATH = Path("sudoku_highscores.json")
 MAX_HIGHSCORES = 50
 
+FLAGS_ORDER = "NZCIDV"
+# ===================== PETSCII mapping =====================
+SPECIALS = {0x5E: '↑', 0x5F: '←', 0x7E: 'π'}
+GRAPHICS = {
+    0x60:'◆',0x61:'▒',0x62:'⎺',0x63:'⎻',0x64:'─',0x65:'⎼',0x66:'⎽',0x67:'▔',
+    0x68:'┐',0x69:'┌',0x6A:'└',0x6B:'┘',0x6C:'┼',0x6D:'┤',0x6E:'┴',0x6F:'┬',
+    0x70:'├',0x71:'─',0x72:'│',0x73:'█',0x74:'▄',0x75:'▌',0x76:'▐',0x77:'▀',
+    0x78:'◥',0x79:'◤',0x7A:'◣',0x7B:'◢',0x7C:'◻',0x7D:'◼',
+    0xA0:' ',0xA1:'◆',0xA2:'▒',0xA3:'⎺',0xA4:'⎻',0xA5:'─',0xA6:'⎼',0xA7:'⎽',
+    0xA8:'▔',0xA9:'┐',0xAA:'┌',0xAB:'└',0xAC:'┘',0xAD:'┼',0xAE:'┤',0xAF:'┴',
+    0xB0:'┬',0xB1:'├',0xB2:'─',0xB3:'│',0xB4:'█',0xB5:'▄',0xB6:'▌',0xB7:'▐',
+    0xB8:'▀',0xB9:'◥',0xBA:'◤',0xBB:'◣',0xBC:'◢',0xBD:'◻',0xBE:'◼',0xBF:'★',
+    0xC0:'◆',0xC1:'▒',0xC2:'⎺',0xC3:'⎻',0xC4:'─',0xC5:'⎼',0xC6:'⎽',0xC7:'▔',
+    0xC8:'┐',0xC9:'┌',0xCA:'└',0xCB:'┘',0xCC:'┼',0xCD:'┤',0xCE:'┴',0xCF:'┬',
+    0xD0:'├',0xD1:'─',0xD2:'│',0xD3:'█',0xD4:'▄',0xD5:'▌',0xD6:'▐',0xD7:'▀',
+    0xD8:'◥',0xD9:'◤',0xDA:'◣',0xDB:'◢',0xDC:'◻',0xDD:'◼',0xDE:'✚',0xDF:'⚑',
+}
+# ===================== GUI (trimmed) =====================
+SAMPLE = r""" ; demo comment
+        LDX #$00
+loop:   LDA msg,X
+        BEQ done
+        JSR $FFD2
+        INX
+        BNE loop
+done:   RTS
+msg:    .text "HELLO, C64!", 0, $0A, "OK", 0
+"""
 # -------------------------- Konfiguration & Datenmodell --------------------------
 MIXER_DEFAULT_CONFIG = {
     "ui": {
@@ -891,6 +919,7 @@ try:
     from charset_normalizer import from_bytes
     from urllib.parse       import urlparse, parse_qs
     from bs4                import BeautifulSoup
+    from collections        import deque
     from collections.abc    import Mapping
 
     # ------------------------------------------------------------------------
@@ -1022,6 +1051,132 @@ try:
                 return MAGIC_NUMBERS.get(magic, _str(msg))
             else:
                 return MAGIC_NUMBERS.get(magic, msg)
+
+    @dataclass(frozen=True)
+    class ModeInfo:
+        opcode: int
+        size: int
+        cycles: int
+        flags: str
+        page_cross_penalty: int = 0
+        illegal: bool = False
+        comment: str = ""
+
+    @dataclass(frozen=True)
+    class OpInfo:
+        mnem: str
+        mode: str
+        size: int
+        cycles: int
+        flags: str
+        page_cross_penalty: int = 0
+        illegal: bool = False
+        comment: str = ""
+    # ---------------------------------------------------------------------
+    # Loader/Indexer for 6510 opcode spec.
+    # Use from_json() to initialize from a JSON file that matches the
+    # provided schema.
+    # ---------------------------------------------------------------------
+    class C6510Spec:
+        def __init__(self, mnemonics: Dict[str, Dict[str, ModeInfo]], opcode_table: List[Optional[OpInfo]]):
+            self.mnemonics = mnemonics
+            self.opcode_table = opcode_table
+
+        @staticmethod
+        def from_json(path: str = "6510_with_illegal_flags.json") -> "C6510Spec":
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"Spec JSON not found: {path}")
+            with open(path, "r", encoding="utf-8") as f:
+                spec = json.load(f)
+            mnemonics: Dict[str, Dict[str, ModeInfo]] = {}
+            for mnem, modes in spec["mnemonics"].items():
+                mm: Dict[str, ModeInfo] = {}
+                for mode, v in modes.items():
+                    mm[mode] = ModeInfo(
+                        opcode=int(v["opcode"], 16),
+                        size=int(v["bytes"]),
+                        cycles=int(v["cycles"]),
+                        flags=v.get("flags", "-" * len(FLAGS_ORDER)),
+                        page_cross_penalty=int(v.get("page_cross_penalty", 0)),
+                        illegal=bool(v.get("illegal", False)),
+                        comment=v.get("comment", ""),
+                    )
+                mnemonics[mnem] = mm
+
+            opcode_table: List[Optional[OpInfo]] = [None] * 256
+            for k, v in spec["opcodes"].items():
+                op = int(k, 16)
+                opcode_table[op] = OpInfo(
+                    mnem=v["mnem"],
+                    mode=v["mode"],
+                    size=int(v["bytes"]),
+                    cycles=int(v["cycles"]),
+                    flags=v.get("flags", "-" * len(FLAGS_ORDER)),
+                    page_cross_penalty=int(v.get("page_cross_penalty", 0)),
+                    illegal=bool(v.get("illegal", False)),
+                    comment=v.get("comment", ""),
+                )
+            return C6510Spec(mnemonics, opcode_table)
+
+        # ---------- Query APIs ----------
+        def get_opcode(self, mnem: str, mode: str) -> int:
+            """Return opcode byte for (mnemonic, addressing mode). Raises KeyError if not present."""
+            return self.mnemonics[mnem][mode].opcode
+
+        def get_mode_info(self, mnem: str, mode: str) -> ModeInfo:
+            return self.mnemonics[mnem][mode]
+
+        def get_info_by_opcode(self, opcode: int) -> OpInfo:
+            oi = self.opcode_table[opcode]
+            if oi is None:
+                raise KeyError(f"Opcode 0x{opcode:02X} not defined in spec")
+            return oi
+
+        # ---------- Helpers ----------
+        # ---------------------------------------------------------------------------
+        ## Compute relative branch offset for 6502 (signed 8-bit), given:
+        # - pc: address of branch opcode byte
+        # - target: destination address
+        # Returns the encoded 8-bit offset (0..255). Raises ValueError if
+        # out of range.
+        # ---------------------------------------------------------------------------
+        @staticmethod
+        def rel_branch_offset(pc: int, target: int) -> int:
+            off = target - (pc + 2)
+            if off < -128 or off > 127:
+                raise ValueError(f"Branch out of range: {off} (pc=0x{pc:04X}, target=0x{target:04X})")
+            return off & 0xFF
+
+        # ---------------------------------------------------------------------------
+        # True if addr and addr+index are in different 256-byte pages.
+        # Useful for adding 'page_cross_penalty' cycle when addressing abs,X / abs,Y / (zp),Y etc.
+        # ---------------------------------------------------------------------------
+        @staticmethod
+        def crosses_page(addr: int, index: int) -> bool:
+            return ((addr & 0xFF00) != ((addr + index) & 0xFF00))
+
+        # ---- Tiny CLI for quick inspection ----
+        def c64_demo():
+            import argparse
+            p = argparse.ArgumentParser(description="Quick 6510 opcode queries")
+            p.add_argument("--json", default="6510_with_illegal_flags.json", help="Path to spec JSON")
+            p.add_argument("--mnem", help="Mnemonic to lookup")
+            p.add_argument("--mode", help="Addressing mode to lookup")
+            p.add_argument("--opcode", type=lambda x: int(x, 0), help="Opcode byte (e.g. 0xA9)")
+            args = p.parse_args()
+
+            spec = C6510Spec.from_json(args.json)
+            if args.mnem and args.mode:
+                op = spec.get_opcode(args.mnem.upper(), args.mode)
+                mi = spec.get_mode_info(args.mnem.upper(), args.mode)
+                print(f"{args.mnem.upper()} {args.mode}: opcode=0x{op:02X} size={mi.size} cycles={mi.cycles} flags={mi.flags} illegal={mi.illegal}")
+                if mi.comment:
+                    print(f"  comment: {mi.comment}")
+            if args.opcode is not None:
+                oi = spec.get_info_by_opcode(args.opcode)
+                print(f"0x{args.opcode:02X}: {oi.mnem} {oi.mode} size={oi.size} cycles={oi.cycles} flags={oi.flags} illegal={oi.illegal}")
+                if oi.comment:
+                    print(f"  comment: {oi.comment}")
 
     # ---------------------------------------------------------------------------
     # office-time goodie ...
@@ -3775,7 +3930,7 @@ try:
     # ------------------------------------------------------------------------------
     def showException(text):
         try:
-            check_qt_isinit()
+            #check_qt_isinit()
             showMessage(text, 3)
             return True
         except RuntimeError as e:
@@ -4616,6 +4771,354 @@ try:
     # ---------------------------------------------------------------------------
     global genv
     genv = globalEnv()
+    
+    # ===================== Helpers =====================
+    def split_args(operand: str) -> List[str]:
+        """Split a comma-separated operand list, honoring quoted strings."""
+        if operand is None or operand.strip() == "":
+            return []
+        s = operand
+        out = []
+        buf = []
+        in_str = False
+        i = 0
+        while i < len(s):
+            c = s[i]
+            if c == '"':
+                in_str = not in_str
+                buf.append(c)
+                i += 1
+                continue
+            if c == ',' and not in_str:
+                part = "".join(buf).strip()
+                if part:
+                    out.append(part)
+                buf = []
+                i += 1
+                continue
+            buf.append(c); i += 1
+        part = "".join(buf).strip()
+        if part:
+            out.append(part)
+        return out
+    
+    def petscii_text_char(b: int, bank: str = "upper_graphics") -> str:
+        b &= 0xFF
+        if 0x20 <= b <= 0x7E:
+            if b in SPECIALS: return SPECIALS[b]
+            ch = chr(b)
+            if bank == "upper_graphics":
+                if 'a' <= ch <= 'z': ch = ch.upper()
+            if ch in "{}[]`": return '·'
+            return ch
+        if b in GRAPHICS: return GRAPHICS[b]
+        if b in (0x00,0xA0): return ' '
+        return '·'
+    
+    def hexdump_rows(data: bytes, base_addr: int = 0x0000, bank: str = "upper_graphics") -> List[str]:
+        rows = []
+        for i in range(0, len(data), 8):
+            chunk = data[i:i+8]
+            
+            left  = " ".join(f"{b:02X}" for b in chunk[:4]).ljust(11)
+            right = " ".join(f"{b:02X}" for b in chunk[4:8]).ljust(11)
+            
+            txt   = "" .join(petscii_text_char(b, bank) for b in chunk)
+            rows.append(f"{(base_addr+i):04X}  {left} | {right}  {txt}")
+        return rows
+    
+    # ===================== Assembler =====================
+    @dataclass
+    class AsmLine:
+        label   : Optional[str]
+        mnemonic: Optional[str]
+        operand : Optional[str]
+        raw     : str
+        lineno  : int
+    
+    class MiniAssembler:
+        def __init__(self, spec: C6510Spec):
+            self.spec = spec
+            self.org = 0x1000; self.pc = self.org; self.symbols: Dict[str,int] = {}
+        
+        def parse(self, text: str) -> List[AsmLine]:
+            lines: List[AsmLine] = []
+            for lineno, rawline in enumerate(text.splitlines(), start=1):
+                line = rawline.split(";",1)[0].rstrip()
+                if not line.strip(): continue
+                label=None; mnemonic=None; operand=None
+                if ":" in line:
+                    before, after = line.split(":",1)
+                    if before.strip(): label = before.strip()
+                    line = after.strip()
+                if line:
+                    parts = line.split(None,1)
+                    mnemonic = parts[0].upper()
+                    operand = parts[1].strip() if len(parts)>1 else None
+                lines.append(AsmLine(label,mnemonic,operand,rawline,lineno))
+            return lines
+        
+        def eval_expr(self, expr: str) -> int:
+            expr = expr.strip()
+            m = re.fullmatch(r"'(.)'", expr)
+            
+            if m: return ord(m.group(1))
+            
+            if expr.startswith("$"): return int(expr[1:],16)
+            if expr.startswith("%"): return int(expr[1:],2)
+            if expr.isdigit(): return int(expr,10)
+            
+            if expr in self.symbols: return self.symbols[expr]
+            
+            raise ValueError(f"Unbekannter Ausdruck/Label: {expr}")
+        
+        def detect_mode_and_operand_bytes(self,
+            mnem   : str,
+            operand: Optional[str],
+            pc     : int) -> Tuple[str,List[int]]:
+            if operand is None:
+                return "imp", []
+            op = operand.strip()
+            if op.upper() == "A":
+                return "acc", []
+            if op.startswith("#"):
+                v = self.eval_expr(op[1:])&0xFF
+                return "imm", [v]
+            if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*,\s*X\s*\)", op):
+                inner = op[1:-1].replace(" ","")
+                addr  = self.eval_expr(inner.split(",")[0])
+                return "indx", [addr & 0xFF]
+            if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*\)\s*,\s*Y", op):
+                inner = op.split(")")[0][1:]
+                addr  = self.eval_expr(inner)
+                return "indy", [addr & 0xFF]
+            if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*\)", op):
+                addr = self.eval_expr(op[1:-1])
+                return "ind", [addr & 0xFF, (addr >> 8) & 0xFF]
+            m = re.fullmatch(r"(.+)\s*,\s*X", op, re.IGNORECASE)
+            if m:
+                val=self.eval_expr(m.group(1)); 
+                if val <= 0xFF:
+                    return ("zpx", [val & 0xFF])
+                else:
+                    return ("absx", [val & 0xFF, (val >> 8) & 0xFF])
+            m = re.fullmatch(r"(.+)\s*,\s*Y", op, re.IGNORECASE)
+            if m:
+                val = self.eval_expr(m.group(1))
+                if val <= 0xFF:
+                    return ("zpy", [val & 0xFF])
+                else:
+                    return ("absy", [val & 0xFF, (val >> 8) & 0xFF])
+            val=self.eval_expr(op)
+            if val <= 0xFF:
+                return ("zp",[val&0xFF])
+            else:
+                return ("abs",[val & 0xFF, (val >> 8) & 0xFF])
+        
+        def assemble(self, text: str) -> Tuple[bytes,int,List[str]]:
+            listing: List[str] = []
+            lines = self.parse(text)
+            self.pc = self.org; self.symbols.clear()
+            
+            # pass 1
+            for ln in lines:
+                if ln.label:
+                    if ln.label in self.symbols:
+                        raise ValueError(f"Label doppelt definiert: {ln.label} (Zeile {ln.lineno})")
+                    self.symbols[ln.label] = self.pc
+                if not ln.mnemonic:
+                    continue
+                mnem = ln.mnemonic.upper()
+                if mnem == ".ORG":
+                    if not ln.operand:
+                        raise ValueError(f".text/.org erwartet Argument(e) (Zeile {ln.lineno})")
+                    self.org = self.eval_expr(ln.operand)
+                    self.pc  = self.org
+                    continue
+                if mnem in (".BYTE",".BYT",".TEXT",".ASC"):
+                    parts = split_args(ln.operand or "")
+                    for p in parts:
+                        p = p.strip()
+                        if p.startswith('"') and p.endswith('"'):
+                            s = bytes(p[1:-1], "latin1", "replace")
+                            self.pc += len(s)
+                        else:
+                            self.pc += 1  # one byte
+                    continue
+                if mnem == ".WORD":
+                    parts = split_args(ln.operand or "")
+                    self.pc += 2*len(parts); continue
+                
+                if mnem in {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}:
+                    self.pc += 2; continue
+                try:
+                    mode, ob = self.detect_mode_and_operand_bytes(mnem, ln.operand, self.pc)
+                    _ = self.spec.get_opcode(mnem, mode); self.pc += 1+len(ob)
+                except Exception:
+                    self.pc += 3
+            
+            # pass 2
+            self.pc = self.org; out = bytearray()
+            for ln in lines:
+                if not ln.mnemonic: continue
+                mnem = ln.mnemonic.upper()
+                if mnem == ".ORG":
+                    self.org = self.eval_expr(ln.operand); self.pc = self.org; out = bytearray(); continue
+                if mnem in (".BYTE",".BYT",".TEXT",".ASC"):
+                    parts = split_args(ln.operand or "")
+                    for p in parts:
+                        p = p.strip()
+                        if p.startswith('"') and p.endswith('"'):
+                            s = bytes(p[1:-1], "latin1", "replace"); out.extend(s); self.pc += len(s)
+                        else:
+                            v = self.eval_expr(p) & 0xFF; out.append(v); self.pc += 1
+                    continue
+                if mnem == ".WORD":
+                    parts = split_args(ln.operand or "")
+                    for p in parts:
+                        v = self.eval_expr(p) & 0xFFFF; out.extend([v & 0xFF, (v>>8)&0xFF]); self.pc += 2
+                    continue
+                if mnem in {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}:
+                    opcode = self.spec.get_opcode(mnem, "rel"); target = self.eval_expr(ln.operand)
+                    off = C6510Spec.rel_branch_offset(self.pc, target); out.extend([opcode, off]); self.pc += 2; continue
+                mode, ob = self.detect_mode_and_operand_bytes(mnem, ln.operand, self.pc)
+                opcode = self.spec.get_opcode(mnem, mode); out.append(opcode); out.extend(ob); self.pc += 1 + len(ob)
+            return bytes(out), self.org, listing
+    
+    # ===================== PRG writers =====================
+    def build_prg_raw(payload: bytes, load_addr: int) -> bytes:
+        prg = bytearray([load_addr & 0xFF, (load_addr >> 8) & 0xFF]); prg.extend(payload); return bytes(prg)
+    
+    def build_prg_with_basic_autostart(payload: bytes, start_addr: int) -> bytes:
+        LOAD_BASIC = 0x0801
+        sysline = bytes([0x9E]) + b" " + str(start_addr).encode("ascii") + b"\x00"
+        next_addr = LOAD_BASIC + 2 + 2 + len(sysline)
+        basic = bytes([next_addr & 0xFF, next_addr >> 8, 10, 0]) + sysline + b"\x00\x00"
+        prg = bytearray()
+        prg.extend([LOAD_BASIC & 0xFF, LOAD_BASIC >> 8])
+        prg.extend(basic)
+        prg.extend([start_addr & 0xFF, start_addr >> 8])
+        prg.extend(payload)
+        return bytes(prg)
+    
+    class C64AssemblerMainWindow(QWidget):
+        def __init__(self, parent=None):
+            super(C64AssemblerMainWindow, self).__init__(parent)
+            self.setContentsMargins(0, 0, 0, 0)
+            self.resize(840, 800)
+            
+            self.spec = C6510Spec.from_json("6510_with_illegal_flags.json")
+            self.assembler = MiniAssembler(self.spec)
+            
+            self.editor = QPlainTextEdit()
+            self.editor.setPlainText(SAMPLE)
+            self.editor.setLineWrapMode(QPlainTextEdit.NoWrap)
+            
+            font = QFont("C64 Pro Mono"); 
+            if font.family() != "C64 Pro Mono":
+                font = QFont("Consolas")
+                font.setStyleHint(QFont.Monospace)
+            font.setPointSize(12); self.editor.setFont(font)
+            
+            self.hexview = QPlainTextEdit()
+            self.hexview.setReadOnly(True)
+            self.hexview.setLineWrapMode(QPlainTextEdit.NoWrap)
+            self.hexview.setFont(font)
+            
+            self.btn_compile   = QPushButton("Compile")
+            self.btn_save_prg  = QPushButton("PRG speichern")
+            self.autostart_chk = QCheckBox("BASIC-Autostart")
+            self.autostart_chk.setChecked(True)
+            
+            self.btn_compile.clicked.connect(self.compile_source)
+            self.btn_save_prg.clicked.connect(self.save_prg)
+            
+            self.org_combo = QComboBox()
+            self.org_combo.addItems(["$0801 (BASIC)","$1000","$2000","$4000","$6000","$C000"])
+            self.org_combo.setEditable(True)
+            self.org_combo.setCurrentText("$1000")
+            
+            self.override_org = QCheckBox("Startadresse erzwingen")
+            self.override_org.setChecked(True)
+            
+            self.bank_combo = QComboBox()
+            self.bank_combo.addItems(["Upper/Graphics","Lower/Upper"])
+            
+            topbar = QHBoxLayout()
+            topbar.addWidget(QLabel("Start:"))
+            topbar.addWidget(self.org_combo)
+            topbar.addWidget(self.override_org)
+            
+            topbar.addSpacing(12)
+            topbar.addWidget(self.autostart_chk)
+            
+            topbar.addSpacing(12)
+            topbar.addWidget(QLabel("PETSCII:"))
+            topbar.addWidget(self.bank_combo)
+            
+            topbar.addStretch(1)
+            topbar.addWidget(self.btn_compile)
+            topbar.addWidget(self.btn_save_prg)
+            
+            splitter = QSplitter()
+            splitter.setOrientation(Qt.Vertical)
+            splitter.addWidget(self.editor)
+            splitter.addWidget(self.hexview)
+            #splitter.setSizes([580,700])
+            
+            central = QWidget()
+            v = QVBoxLayout(central)
+            v.addLayout(topbar)
+            v.addWidget(splitter)
+            
+            lay = self.layout()
+            if lay is None:
+                lay = QVBoxLayout(self)
+            lay.addWidget(central)
+            
+            #self.setCentralWidget(central)
+            
+            self._last_prg     = None
+            self._last_payload = None
+            self._last_org     = None
+            
+            self.compile_source()
+        
+        def parse_org_combo(self) -> int:
+            text = self.org_combo.currentText().split()[0]
+            if text.startswith("$"):
+                return int(text[1:],16)
+            if text.isdigit(): return int(text)
+            return 0x1000
+        
+        def compile_source(self):
+            try:
+                if self.override_org.isChecked():
+                    self.assembler.org = self.parse_org_combo()
+                payload, org, _ = self.assembler.assemble(self.editor.toPlainText())
+                if self.autostart_chk.isChecked():
+                    prg = build_prg_with_basic_autostart(payload, start_addr=org); load_addr=0x0801; body=prg[2:]
+                else:
+                    prg = build_prg_raw(payload, load_addr=org); load_addr=org; body=prg[2:]
+                bank = "upper_graphics" if self.bank_combo.currentIndex() == 0 else "lower_upper"
+                rows = hexdump_rows(body, base_addr=load_addr, bank=bank)
+                header = "ADDR  00 01 02 03 | 04 05 06 07  TEXT\n" + "-"*60
+                self.hexview.setPlainText(header + "\n" + "\n".join(rows))
+                self._last_prg = prg
+                self._last_payload=payload; self._last_org = org
+                showInfo(f"Compiled: {len(payload)} bytes @ ${org:04X}")
+                #self.statusBar().showMessage(f"Compiled: {len(payload)} bytes @ ${org:04X}", 5000)
+            except Exception as e:
+                QMessageBox.critical(self, "Fehler", str(e))
+        
+        def save_prg(self):
+            if not self._last_prg:
+                QMessageBox.information(self, "Hinweis", "Erst kompilieren (Compile)."); return
+            path, _ = QFileDialog.getSaveFileName(self, "PRG speichern", "program.prg", "C64 PRG (*.prg);;Alle Dateien (*)")
+            if not path: return
+            with open(path, "wb") as f: f.write(self._last_prg)
+            showInfo(f"PRG gespeichert: {path}")
+            #self.statusBar().showMessage(f"PRG gespeichert: {path}", 5000)
     
     # ------------------------------------------------------------------------
     # resource data like pictures or icons ...
@@ -22399,6 +22902,7 @@ try:
             
             self.editor_counter = 0
             self.editor_objects = [None]
+            self.editor_name    = text
             self.tabs_editor    = None
             
             try:
@@ -22450,7 +22954,6 @@ try:
                 genv.editor_check = QCheckBox("Use old Syntax")
                 genv.editor_check.setFont(QFont("Arial", 10))
                 self.tabs_editor_vlayout.addWidget(genv.editor_check)
-                
                 self.tabs_translate = EditorTranslate()
                 
                 hlayout = QHBoxLayout()
@@ -29119,17 +29622,19 @@ try:
             ## ---- math solver END ----
             
             self.prolog_tabs = ApplicationTabWidget([
-                _str("Prolog Satzbau"),
-                _str("Prolog Math-Solver"),
-                _str("Prolog Designer")])
+                _str("Satzbau"),
+                _str("Math-Solver"),
+                _str("Translator")])
             
             self.prolog_tabs.setMinimumWidth(900)
             
             tab1 = self.prolog_tabs.getTab(0)
             tab2 = self.prolog_tabs.getTab(1)
+            tab3 = self.prolog_tabs.getTab(2)
             
             prol = PrologWindow(tab1)
             solv = SolverWindow(tab2)
+            tran = TransLatorMainWindow(tab3)
             
             #self.prolog_project  = ApplicationProjectPage(self, self.prolog_tabs.getTab(0), "prolog")
             #self.prolog_editors  = ApplicationEditorsPage(self, self.prolog_tabs.getTab(1), "prolog")
@@ -31807,6 +32312,7 @@ try:
         def handleCommodoreC64(self):
             self.c64_tabs = QTabWidget()
             self.c64_tabs.setStyleSheet(_css(genv.css_tabs))
+            self.c64_tabs.setContentsMargins(0,0,0,0)
             self.c64_tabs.hide()
             
             
@@ -31821,9 +32327,11 @@ try:
             self.c64_tabs.addTab(self.c64_tabs_designs_widget, _str("C-64 Designer"))
             ####
             self.c64_project = ApplicationProjectPage(self, self.c64_tabs_project_widget, "c64")
-            self.c64_editors = ApplicationEditorsPage(self, self.c64_tabs_basic___widget, "c64")
-            ####
+            #self.c64_editors = ApplicationEditorsPage(self, self.c64_tabs_basic___widget, "c64")
             
+            self.c64_tabs_basic___widget.setContentsMargins(0, 0, 0, 0)
+            self.c64_editors = C64AssemblerMainWindow(self.c64_tabs_basic___widget)
+            ####
             #self.c64_tabs_editors_widget.setMinimumWidth(1050)
             
             
@@ -35121,27 +35629,27 @@ try:
             self.layout().setContentsMargins(0, 0, 0, 0)
             
             self.update_ui()
-
+        
         # ---------- Helpers / UI ----------
         def log_msg(self, text: str):
             self.log.moveCursor(self.log.textCursor().End)
             self.log.insertPlainText(text + "\n")
             self.log.moveCursor(self.log.textCursor().End)
-
+        
         def update_ui(self):
             ser_open = self.serial.isOpen()
             listening = self.server.isListening()
-
+            
             self.open_btn.setText("COM schließen" if ser_open else _str("Open COM"))
             self.port_combo.setEnabled(not ser_open)
             self.baud_combo.setEnabled(not ser_open)
             self.clip_chk.setEnabled(not ser_open)
             self.clip_alt_chk.setEnabled(not ser_open)
-
+            
             self.listen_btn.setText("TCP stoppen" if listening else _str("Listen TCP"))
             self.bind_combo.setEnabled(not listening)
             self.listen_port.setEnabled(not listening)
-
+            
             client_count = len(self.clients)
             ser_state = _str("open") if ser_open else _str("closed")
             if listening:
@@ -35149,11 +35657,11 @@ try:
                 tcp_state = f"lauscht auf {addr_text}:{self.listen_port.value()}"
             else:
                 tcp_state = _str("not running.")
-
+            
             self.status_lbl_1.setText(f"Status: Serial {ser_state}")
             self.status_lbl_2.setText(f"TCP {tcp_state}")
             self.status_lbl_3.setText(f"Clients: {client_count}")
-
+        
         def refresh_ports(self):
             self.port_combo.clear()
             for p in QSerialPortInfo.availablePorts():
@@ -35161,7 +35669,7 @@ try:
                 self.port_combo.addItem(label, p.portName())
             if self.port_combo.count() == 0:
                 self.port_combo.addItem(_str("(no Ports found)"), "")
-
+        
         def populate_bind_addresses(self):
             self.bind_combo.clear()
             # Standardoptionen
@@ -35182,7 +35690,7 @@ try:
                     seen.add(s)
                     name = iface.humanReadableName() or "Interface"
                     self.bind_combo.addItem(f"{name} ({s})", s)
-
+        
         # ---------- Serial ----------
         def toggle_serial(self):
             if self.serial.isOpen():
@@ -35190,14 +35698,14 @@ try:
                 self.log_msg(_str("[SER] Port closed."))
                 self.update_ui()
                 return
-
+            
             port_name = self.port_combo.currentData()
             if not port_name:
                 QMessageBox.warning(self,
                 _str("No open COM-Port"),
                 _str("Please select a vaild COM-Port."))
                 return
-
+            
             # (Optional) Busy-Check, falls Qt-Build das unterstützt
             try:
                 info = next((p for p in QSerialPortInfo.availablePorts() if p.portName() == port_name), None)
@@ -35205,7 +35713,7 @@ try:
                     self.log_msg(f"[SER] Note: {port_name} is busy - access denied.")
             except Exception:
                 pass
-
+            
             # Grundeinstellungen
             try:
                 baud = int(self.baud_combo.currentText())
@@ -35242,7 +35750,7 @@ try:
             
             QTimer.singleShot(1000, _send_clip)
             self.update_ui()
-
+        
         def _send_serial(self, data: bytes):
             if self.serial.isOpen():
                 self.serial.write(data)
@@ -35255,7 +35763,7 @@ try:
             if self.serial.isOpen():
                 self.serial.close()
             self.update_ui()
-
+        
         def on_serial_ready_read(self):
             if not self.serial.isOpen():
                 return
@@ -35277,7 +35785,7 @@ try:
             preview = text[:64].replace("\r", "\\r").replace("\n", "\\n")
             more = "…" if len(text) > 64 else ""
             self.log_msg(f"[SER→TCP] {len(data)} B  '{preview}{more}'")
-
+        
         def _handle_serial_command(self, cmdline: str):
             parts = cmdline.split()
             if not parts:
@@ -35286,7 +35794,7 @@ try:
             
             def write_back(msg: str):
                 self._send_serial((msg + "\r\n").encode("utf-8"))
-
+            
             if cmd == "BCAST":
                 payload = cmdline[len("BCAST"):].lstrip()
                 count = 0
@@ -35350,7 +35858,7 @@ try:
             
             else:
                 write_back("ERR unknown cmd")
-
+        
         # --- Zeilen parser ---
         def _parse_lines(self):
             # Aufsplitten in volle Zeilen; Rest stehen lassen
@@ -35421,7 +35929,7 @@ try:
                     continue
                 
                 # Sonstige Zeilen ignorieren
-
+        
         def _extract_name_from_clip_tail(self, tail: str) -> str:
             # In manchen Implementierungen steht der Name in weiteren Feldern in Anführungszeichen.
             # Wir suchen das nächste "..."-Segment (ohne Gewähr).
@@ -35432,7 +35940,7 @@ try:
                 # oft: "+CLIP: "num",..., "name", ..."
                 return q[1].strip()
             return ""
-
+        
         def _compose_dt_from_pending(self):
             # Pending DATE/TIME (z. B. DATE=0914, TIME=1203) -> heutiges Jahr
             d = getattr(self, "_pending_date", None)
@@ -35451,29 +35959,29 @@ try:
             except Exception:
                 pass
             return now
-
+        
         def _maybe_append_history_if_new_session(self):
             # Bei neuem RING ggf. vorherigen Eintrag finalisieren (hier: nichts zu tun)
             pass
-
+        
         def _set_caller(self, number: str, name: str, when: datetime):
             if number:
                 self.last_number = number
             if name:
                 self.last_name = name
             self.last_dt = when or datetime.now()
-
+            
             # UI aktualisieren
             self.cid_number_lbl.setText(f"Nummer: {self.last_number or '–'}")
             self.cid_name_lbl.setText(f"Name: {self.last_name or '–'}")
             ts = self.last_dt.strftime("%Y-%m-%d %H:%M")
             self.cid_time_lbl.setText(f"Zeit: {ts}")
-
+            
             # Verlauf ergänzen (kompakte Zeile)
             item = QListWidgetItem(f"[{ts}] {self.last_number or '–'}  {('— '+self.last_name) if self.last_name else ''}")
             self.cid_history.addItem(item)
             self.cid_history.scrollToBottom()
-
+        
         def _refresh_clients_list(self):
             self.clients_list.clear()
             for i, s in enumerate(self.clients):
@@ -35520,7 +36028,7 @@ try:
             if self.server.isListening():
                 self._stop_listening()
                 return
-        
+            
             ip = self.bind_combo.currentData()
             port = int(self.listen_port.value())
             addr = QHostAddress(ip) if ip not in ("0.0.0.0", "127.0.0.1") else (
@@ -35556,7 +36064,7 @@ try:
                     self.log_msg("[TCP] Neuer Client abgewiesen (bereits ein Client verbunden).")
                     sock.close()
                     continue
-
+                
                 sock.readyRead.connect(lambda s=sock: self.on_socket_ready_read(s))
                 sock.disconnected.connect(lambda s=sock: self.on_socket_disconnected(s))
                 sock.errorOccurred.connect(lambda _e, s=sock: self.on_socket_error(s))
@@ -35566,7 +36074,7 @@ try:
                 self.log_msg(f"[TCP] Client verbunden: {peer}")
             self._refresh_clients_list()
             self.update_ui()
-
+        
         def on_socket_ready_read(self, sock):
             data = bytes(sock.readAll())
             
@@ -35579,7 +36087,7 @@ try:
             else:
                 lines, rest = parts[:-1], parts[-1]
             self.tcp_line_buf[sock] = rest
-
+            
             for line in lines:
                 l = line.strip()
                 if not l:
@@ -35592,7 +36100,7 @@ try:
                 if self.serial.isOpen():
                     self.serial.write((l + "\r\n").encode("utf-8"))
                     self.serial.flush()
-
+            
             # Optional: Rohdaten-Log
             preview = text[:64].replace("\r","\\r").replace("\n","\\n")
             more = "…" if len(text) > 64 else ""
@@ -35610,11 +36118,11 @@ try:
             sock.deleteLater()
             self._refresh_clients_list()
             self.update_ui()
-
+        
         def on_socket_error(self, sock):
             self._dedup_clients_list()
             self.log_msg(f"[TCP][Error] {sock.errorString()}")
-
+        
         # ---------- Close Event ----------
         def closeEvent(self, e):
             try:
@@ -35624,190 +36132,785 @@ try:
                 self._dedup_clients_list()
             finally:
                 e.accept()
-
-    class TranslatorKidding(QObject):
-        # ---------- DB-Teil ----------
-        def norm(txt: str) -> str:
-            return unicodedata.normalize("NFC", txt).strip().lower()
-
-        def term_hash64(lang: str, text: str) -> int:
-            n = norm(text)
-            h = hashlib.sha256((lang + "\0" + n).encode("utf-8")).digest()
-            # WICHTIG: als signed int64 interpretieren → passt in SQLite INTEGER
-            return int.from_bytes(h[:8], "big", signed=True)
-
-        def to_hex64(x: int) -> str:
-            return f"{(x & ((1 << 64) - 1)):016x}"
-
-        @dataclass
-        class Term:
-            term_id: int
-            lang: str
-            text: str
-            norm_text: str
-
-        class TranslatorDB:
-            def __init__(self):
-                self.conn: Optional[sqlite3.Connection] = None
-                self.path: Optional[str] = None
-
-            def connect(self, path: str, create_if_missing: bool = True):
-                # wenn laden ohne Erstellen, Datei muss existieren
-                if not create_if_missing and not os.path.exists(path):
-                    raise FileNotFoundError(f"Datei nicht gefunden: {path}")
-
-                init_needed = (not os.path.exists(path)) and create_if_missing
-                self.conn = sqlite3.connect(path)
-                self.conn.execute("PRAGMA foreign_keys=ON;")
-                # Schema sicherstellen (bei Neu ebenso wie bei vorhandenen DBs)
-                if init_needed:
-                    self.conn.executescript(SCHEMA)
-                else:
-                    self.conn.executescript(SCHEMA)
-                    
-                cols = {row[1] for row in self.conn.execute("PRAGMA table_info(translations)")}
-                need_alter = []
-                if "number" not in cols:
-                    need_alter.append("ALTER TABLE translations ADD COLUMN number TEXT CHECK (number IN ('Singular','Plural'))")
-                for cname in ("is_noun","is_adj","is_verb","is_fem","is_mask"):
-                    if cname not in cols:
-                        need_alter.append(f"ALTER TABLE translations ADD COLUMN {cname} INTEGER DEFAULT 0")
-                for sql in need_alter:
-                    self.conn.execute(sql)
                 
-                self.conn.commit()
-                self.path = path
+    # ---------- GUI ----------
+    LANG_CHOICES = ["DEU", "ENU", "FRE"]  # German, English, French (de/en/fr)
+    LANG_PLACEHOLDER = {
+            "DEU": "Text auf Deutsch hier eintippen …",
+            "ENU": "Text auf Englisch hier eintippen …",
+            "FRE": "Texte en français ici …",
+    }
+    # ---------- DB-Teil ----------
+    def normDB(txt: str) -> str:
+        return unicodedata.normalize("NFC", txt).strip().lower()
+    
+    def term_hash64DB(lang: str, text: str) -> int:
+        n = normDB(text)
+        h = hashlib.sha256((lang + "\0" + n).encode("utf-8")).digest()
+        # WICHTIG: als signed int64 interpretieren → passt in SQLite INTEGER
+        return int.from_bytes(h[:8], "big", signed=True)
+    
+    def to_hex64DB(x: int) -> str:
+        return f"{(x & ((1 << 64) - 1)):016x}"
+    
+    @dataclass
+    class TermDB:
+        term_id: int
+        lang: str
+        text: str
+        norm_text: str
+
+    class TransLatorMainWindow(QWidget):
+        def _update_quick_placeholder(self):
+            lang = self.src_combo.currentText()
+            self.quick_input.setPlaceholderText(
+                LANG_PLACEHOLDER.get(
+                lang, "Text hier eintippen …"))
+                
+        def _word_under_cursor(self) -> str:
+            cursor = self.src_edit.textCursor()
+            if cursor.hasSelection():
+                text = cursor.selectedText()
+            else:
+                cursor.select(QTextCursor.WordUnderCursor)
+                text = cursor.selectedText()
+            # Nur alphanumerische Wörter (bindestrich/apostroph optional)
+            text = text.strip()
+            if not text:
+                return ""
+            # optional: exakt wie der Tokenizer
+            if not re.match(r"^[\w'-]+$", text, re.UNICODE):
+                return ""
+            return text
+        
+        def _labeled_panel(self, label_text: str, inner_widget: QWidget) -> QWidget:
+            w = QWidget()
+            v = QVBoxLayout(w)
+            v.setContentsMargins(0, 0, 0, 0)
+            v.addWidget(QLabel(label_text))
+            v.addWidget(inner_widget)
+            return w
+        
+        def __init__(self, parent: QWidget = None):
+            super(TransLatorMainWindow, self).__init__(parent)
+            #self.setWindowTitle("Hash-Translator (Qt5)")
+            #self.resize(1100, 700)
             
-            def close(self):
-                if self.conn:
-                    self.conn.close()
-                    self.conn = None
-                    self.path = None
-                
-            def ensure(self):
-                if self.conn is None:
-                    raise RuntimeError("Keine Datenbank geladen.")
-
-            def upsert_term(self, lang: str, text: str) -> int:
-                self.ensure()
-                nid = term_hash64(lang, text)
+            self.db = TranslatorDB()
+            
+            # Undo/Redo für Zieltext (10 Schritte)
+            self.undo_stack: deque[str] = deque(maxlen=10)
+            self.redo_stack: deque[str] = deque(maxlen=10)
+            self._baseline_target: str = ""  # für Reset
+            
+            # --- Layout: Splitter links Tabelle | rechts Formular/Edits ---
+            splitter = QSplitter(Qt.Horizontal, self)
+            left = QWidget(self)
+            right = QWidget(self)
+            splitter.addWidget(left)
+            splitter.addWidget(right)
+            splitter.setStretchFactor(0, 1)
+            splitter.setStretchFactor(1, 2)
+            
+            lay = self.layout()
+            if lay is None:
+                lay = QVBoxLayout(self)
+            lay.addWidget(splitter)
+            #self.setCentralWidget(splitter)
+            
+            # Linke Tabelle
+            left_layout = QVBoxLayout(left)
+            self.table = QTableWidget(0, 3, left)
+            self.table.setHorizontalHeaderLabels(["Hash", "Source", "Target"])
+            self.table.horizontalHeader().setStretchLastSection(True)
+            self.table.setSelectionBehavior(QTableWidget.SelectRows)
+            self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+            left_layout.addWidget(self.table)
+            
+            self.del_btn = QPushButton("Löschen")
+            left_layout.addWidget(self.del_btn)
+            self.del_btn.clicked.connect(self.on_delete_selected)
+            
+            # Rechte Seite: Form + Edits + Buttons
+            right_layout = QVBoxLayout(right)
+            
+            # Formular oben
+            form = QFormLayout()
+            self.src_combo = QComboBox(); self.src_combo.addItems(LANG_CHOICES)
+            self.dst_combo = QComboBox(); self.dst_combo.addItems(LANG_CHOICES); self.dst_combo.setCurrentIndex(1)
+            form.addRow(QLabel("Quelle:"), self.src_combo)
+            form.addRow(QLabel("Ziel:"), self.dst_combo)
+            
+            path_row = QHBoxLayout()
+            self.db_path = QLineEdit()
+            self.db_path.setPlaceholderText("Pfad zur Wörterbuch-DB (SQLite) …")
+            browse_btn = QPushButton("…")
+            load_btn = QPushButton("Laden")
+            new_btn = QPushButton("Neu anlegen")
+            path_row.addWidget(self.db_path, 1)
+            path_row.addWidget(browse_btn)
+            path_row.addWidget(load_btn)
+            path_row.addWidget(new_btn)
+            form.addRow(QLabel("Wörterbuch:"), path_row)
+            right_layout.addLayout(form)
+            
+            # Quell- und Zieltext
+            mono = QFont("DejaVu Sans Mono"); mono.setPointSize(10)
+            
+            self.src_edit = QTextEdit()
+            self.src_edit.setPlaceholderText("Quelltext hier eingeben …")
+            self.src_edit.setFont(mono)
+            self.src_edit.setWordWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
+            
+            self.tgt_edit = QTextEdit()
+            self.tgt_edit.setPlaceholderText("Übersetzter Text (editierbar) …")
+            self.tgt_edit.setFont(mono)
+            self.tgt_edit.setWordWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
+            
+            # Panels mit Labeln
+            src_panel = self._labeled_panel("Quelltext (oben):", self.src_edit)
+            tgt_panel = self._labeled_panel("Übersetzter Text (unten):", self.tgt_edit)
+            
+            # VERTIKAL-SPLITTER für die zwei Eingabeboxen
+            self.edits_splitter = QSplitter(Qt.Vertical)
+            self.edits_splitter.addWidget(src_panel)
+            self.edits_splitter.addWidget(tgt_panel)
+            self.edits_splitter.setStretchFactor(0, 1)
+            self.edits_splitter.setStretchFactor(1, 1)
+            
+            # Vorschlags-StringGrid rechts
+            self.sugg_table = QTableWidget(0, 3, self)
+            self.sugg_table.setHorizontalHeaderLabels(["Quelle", "Vorschlag", "Conf"])
+            self.sugg_table.horizontalHeader().setStretchLastSection(True)
+            self.sugg_table.setSelectionBehavior(QTableWidget.SelectRows)
+            self.sugg_table.setEditTriggers(QTableWidget.NoEditTriggers)
+            self.sugg_table.setMinimumWidth(320)
+            
+            sugg_panel = QWidget()
+            sugg_layout = QVBoxLayout(sugg_panel)
+            sugg_layout.setContentsMargins(0, 0, 0, 0)
+            sugg_layout.addWidget(QLabel("Vorschläge (Wort unter Cursor)"))
+            sugg_layout.addWidget(self.sugg_table, 1)
+            
+            # HORIZONTAL-SPLITTER: links Edits, rechts Vorschläge
+            self.right_splitter = QSplitter(Qt.Horizontal)
+            self.right_splitter.addWidget(self.edits_splitter)
+            self.right_splitter.addWidget(sugg_panel)
+            self.right_splitter.setStretchFactor(0, 3)
+            self.right_splitter.setStretchFactor(1, 2)
+            
+            # In das rechte Haupt-Layout einsetzen
+            right_layout.addWidget(self.right_splitter, 1)
+            
+            # Buttons unter dem Zieltext
+            vlayout = QVBoxLayout()
+            btn_row = QHBoxLayout()
+            self.reset_btn = QPushButton("Reset")
+            self.undo_btn  = QPushButton("Undo (10)")
+            self.redo_btn  = QPushButton("Redo (10)")
+            self.save_btn  = QPushButton("Speichern")
+            
+            btn_row.addWidget(self.reset_btn)
+            btn_row.addWidget(self.undo_btn )
+            btn_row.addWidget(self.redo_btn )
+            btn_row.addStretch(1)
+            
+            self.save_btn.setMaximumWidth(120)
+            
+            vlayout.addLayout(btn_row)
+            
+            chk_row = QHBoxLayout()
+            self.number_combo = QComboBox()
+            self.number_combo.addItems(["", "Singular", "Plural"])  # "" = nicht gesetzt/egal
+            self.chk_noun = QCheckBox("Substantiv")
+            self.chk_adj  = QCheckBox("Adjektiv")
+            self.chk_verb = QCheckBox("Verb")
+            self.chk_fem  = QCheckBox("feminin")
+            self.chk_mask = QCheckBox("maskulin")
+            
+            vlayout.addWidget(self.save_btn)
+            
+            chk_row.addWidget(QLabel("Wortart:"))
+            chk_row.addWidget(self.number_combo)
+            chk_row.addWidget(self.chk_noun)
+            chk_row.addWidget(self.chk_adj )
+            chk_row.addWidget(self.chk_verb)
+            chk_row.addWidget(self.chk_fem )
+            chk_row.addWidget(self.chk_mask)
+            chk_row.addStretch(1)
+            
+            vlayout.addLayout(chk_row)
+            right_layout.addLayout(vlayout)
+            
+            # Untere Schnell-Übersetzung
+            sep = QFrame(); sep.setFrameShape(QFrame.HLine); sep.setFrameShadow(QFrame.Sunken)
+            right_layout.addWidget(sep)
+            
+            quick_row = QHBoxLayout()
+            self.quick_input = QLineEdit()
+            self.quick_input.setPlaceholderText("Vokabeln/Sätze hier eintippen …")
+            self.quick_btn = QPushButton("Translate")
+            self.quick_btn.setMaximumWidth(140)
+            quick_row.addWidget(self.quick_input, 1)
+            
+            right_layout.addLayout(quick_row)
+            right_layout.addWidget(self.quick_btn)
+            
+            # --- Signals ---
+            browse_btn.clicked.connect(self.on_browse)
+            load_btn.clicked.connect(self.on_load)
+            new_btn.clicked.connect(self.on_new)
+            self.save_btn.clicked.connect(self.on_save)
+            self.reset_btn.clicked.connect(self.on_reset)
+            self.undo_btn.clicked.connect(self.on_undo)
+            self.redo_btn.clicked.connect(self.on_redo)
+            self.quick_btn.clicked.connect(self.on_quick_translate)
+            self.table.itemSelectionChanged.connect(self.on_table_select)
+            self.src_combo.currentIndexChanged.connect(self.refresh_table)
+            self.dst_combo.currentIndexChanged.connect(self.refresh_table)
+            self.src_edit.textChanged.connect(self.on_source_changed)
+            self.tgt_edit.textChanged.connect(self.on_target_changed_user)
+            self.src_edit.cursorPositionChanged.connect(self.on_source_cursor_changed)
+            self.sugg_table.itemDoubleClicked.connect(self.on_suggestion_double_clicked)
+            
+            # Initial-States
+            self.update_buttons_enabled(False)
+            
+            self._update_quick_placeholder()
+            self.src_combo.currentIndexChanged.connect(self._update_quick_placeholder)
+            
+            self.number_combo.currentIndexChanged.connect(self.on_attrs_changed)
+            for w in (
+                self.chk_noun ,
+                self.chk_adj  ,
+                self.chk_verb ,
+                self.chk_fem  ,
+                self.chk_mask):
+                w.toggled.connect(self.on_attrs_changed)
+        
+        def on_attrs_changed(self):
+            if not self.db.conn:
+                return
+            # wir brauchen aktuelle src/dst-Texte aus den Edits
+            src_text = self.src_edit.toPlainText().strip()
+            dst_text = self.tgt_edit.toPlainText().strip()
+            if not src_text or not dst_text:
+                return
+            src_lang = self.src_combo.currentText()
+            dst_lang = self.dst_combo.currentText()
+            number = self.number_combo.currentText() or None
+            self.db.add_translation(
+                src_lang, src_text, dst_lang, dst_text,
+                confidence=1.0, source="gui",
+                number  = number,
+                is_noun = self.chk_noun.isChecked(),
+                is_adj  = self.chk_adj .isChecked(),
+                is_verb = self.chk_verb.isChecked(),
+                is_fem  = self.chk_fem .isChecked(),
+                is_mask = self.chk_mask.isChecked()
+            )
+            # Tabelle ggf. aktualisieren, falls du später Spalten für Merkmale anzeigst
+            # self.refresh_table()
+            
+        def on_delete_selected(self):
+            if not self.db.conn:
+                return
+            rows = self.table.selectionModel().selectedRows()
+            if not rows:
+                QMessageBox.information(self, "Hinweis", "Bitte eine oder mehrere Zeilen wählen.")
+                return
+            
+            src_lang = self.src_combo.currentText()
+            dst_lang = self.dst_combo.currentText()
+            count = 0
+            
+            for idx in rows:
+                r = idx.row()
+                src_text = self.table.item(r, 1).text()
+                dst_text = self.table.item(r, 2).text()
                 try:
-                    self.conn.execute(
-                        "INSERT INTO terms(term_id, lang, text, norm_text) VALUES (?, ?, ?, ?)",
-                        (nid, lang, text, norm(text)),
-                    )
-                    self.conn.commit()
-                except sqlite3.IntegrityError:
-                    pass  # existiert bereits
-                return nid
-
-            def get_term_text(self, term_id: int) -> Optional[Term]:
-                self.ensure()
-                cur = self.conn.execute("SELECT term_id, lang, text, norm_text FROM terms WHERE term_id=?", (term_id,))
-                row = cur.fetchone()
-                if not row: return None
-                return Term(*row)
-
-            def get_or_create_term(self, lang: str, text: str) -> Term:
-                tid = self.upsert_term(lang, text)
-                t = self.get_term_text(tid)
-                assert t is not None
-                return t
-
-            def add_translation(self, src_lang: str, src_text: str, dst_lang: str, dst_text: str,
-                confidence: float = 1.0, source: Optional[str] = None,
-                number: Optional[str] = None,
-                is_noun: int = 0, is_adj: int = 0, is_verb: int = 0,
-                is_fem: int = 0, is_mask: int = 0):
-                self.ensure()
-                s_id = self.upsert_term(src_lang, src_text)
-                t_id = self.upsert_term(dst_lang, dst_text)
-                self.conn.execute(
-                    """INSERT OR REPLACE INTO translations
-                       (src_term_id, tgt_term_id, confidence, source, number,
-                        is_noun, is_adj, is_verb, is_fem, is_mask)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (s_id, t_id, confidence, source, number,
-                     int(is_noun), int(is_adj), int(is_verb), int(is_fem), int(is_mask))
-                )
-                self.conn.commit()
-                return s_id, t_id
-
-            def get_translation_meta(self, src_lang: str, src_text: str, dst_lang: str, dst_text: str):
-                self.ensure()
-                s_id = self.upsert_term(src_lang, src_text)
-                t_id = self.upsert_term(dst_lang, dst_text)
-                cur = self.conn.execute(
-                    """SELECT number, is_noun, is_adj, is_verb, is_fem, is_mask
-                       FROM translations WHERE src_term_id=? AND tgt_term_id=?""",
-                    (s_id, t_id)
-                )
-                return cur.fetchone()  # Tuple or None
+                    self.db.delete_translation(src_lang, src_text, dst_lang, dst_text)
+                    count += 1
+                except Exception as e:
+                    QMessageBox.warning(self,
+                    "Löschen fehlgeschlagen",
+                    f"{src_text} → {dst_text}: {e}")
+            # optional aufräumen & refresh
+            try:
+                self.db.cleanup_orphan_terms()
+            finally:
+                self.refresh_table()
+                self.statusBar().showMessage(f"{count} Eintrag/Einträge gelöscht.", 3000)
+        
+        def on_source_cursor_changed(self):
+            if not self.db.conn:
+                self.sugg_table.setRowCount(0); return
+            src_word = self._word_under_cursor()
+            if not src_word:
+                self.sugg_table.setRowCount(0); return
             
-            def best_translation(self, src_lang: str, src_text: str, dst_lang: str) -> Optional[str]:
-                """Gibt die beste Zieltext-Variante zurück (oder None)."""
-                self.ensure()
-                s_id = self.upsert_term(src_lang, src_text)  # sorgt für konsistente ID
-                cur = self.conn.execute("""
-                    SELECT t.text, tr.confidence
-                    FROM translations tr
-                    JOIN terms t ON t.term_id = tr.tgt_term_id
-                    WHERE tr.src_term_id=? AND t.lang=?
-                    ORDER BY tr.confidence DESC
-                    LIMIT 1
-                """, (s_id, dst_lang))
-                row = cur.fetchone()
-                return row[0] if row else None
-
-            def fetch_pairs(self, src_lang: str, dst_lang: str) -> List[Tuple[int, str, str]]:
-                """Liste aller (hash, src, dst) für die aktuelle Sprachrichtung."""
-                self.ensure()
-                cur = self.conn.execute("""
-                    SELECT s.term_id, s.text AS src_text, t.text AS dst_text
-                    FROM translations tr
-                    JOIN terms s ON s.term_id = tr.src_term_id
-                    JOIN terms t ON t.term_id = tr.tgt_term_id
-                    WHERE s.lang=? AND t.lang=?
-                    ORDER BY s.norm_text ASC
-                """, (src_lang, dst_lang))
-                return [(row[0], row[1], row[2]) for row in cur.fetchall()]
-
-            def candidates(self, src_lang: str, src_text: str, dst_lang: str, limit: int = 100):
-                """Alle Ziel-Kandidaten für ein Quell-Wort/-Phrase, absteigend nach confidence."""
-                self.ensure()
-                s_id = self.upsert_term(src_lang, src_text)
-                cur = self.conn.execute("""
-                    SELECT t.text, tr.confidence, IFNULL(tr.source, '')
-                    FROM translations tr
-                    JOIN terms t ON t.term_id = tr.tgt_term_id
-                    WHERE tr.src_term_id=? AND t.lang=?
-                    ORDER BY tr.confidence DESC
-                    LIMIT ?
-                """, (s_id, dst_lang, limit))
-                return cur.fetchall()  # List[Tuple[str,float,str]]
+            src_lang = self.src_combo.currentText()
+            dst_lang = self.dst_combo.currentText()
+            if src_lang == dst_lang:
+                self.sugg_table.setRowCount(0); return
+            
+            rows = self.db.candidates(src_lang, src_word, dst_lang, limit=100)
+            
+            # Tabelle füllen
+            self.sugg_table.setRowCount(len(rows))
+            for r, (tgt_text, conf, source) in enumerate(rows):
+                self.sugg_table.setItem(r, 0, QTableWidgetItem(src_word))
+                self.sugg_table.setItem(r, 1, QTableWidgetItem(tgt_text))
+                self.sugg_table.setItem(r, 2, QTableWidgetItem(f"{conf:.2f}"))
+        
+        def on_suggestion_double_clicked(self, item):
+            r = item.row()
+            if r < 0:
+                return
+            tgt = self.sugg_table.item(r, 1).text() if self.sugg_table.item(r, 1) else ""
+            if not tgt:
+                return
+            
+            # In der unteren Edit-Box an Cursorposition einfügen oder Auswahl ersetzen
+            cursor = self.tgt_edit.textCursor()
+            # falls noch keine Position gesetzt, ans Ende
+            if not cursor:
+                self.tgt_edit.moveCursor(QTextCursor.End)
+                cursor = self.tgt_edit.textCursor()
+            
+            # Undo/Redo sauber behandeln
+            prev = self.tgt_edit.toPlainText()
+            cursor.insertText(tgt)
+            self._last_tgt_text = self.tgt_edit.toPlainText()
+            if prev != self._last_tgt_text:
+                self.undo_stack.append(prev)
+                if len(self.undo_stack) > self.undo_stack.maxlen:
+                    self.undo_stack.popleft()
+                self.redo_stack.clear()
+        
+        # ---------- Button-/UI-Handler ----------
+        def update_buttons_enabled(self, has_db: bool):
+            self.save_btn.setEnabled(has_db)
+            self.reset_btn.setEnabled(has_db)
+            self.undo_btn.setEnabled(has_db)
+            self.redo_btn.setEnabled(has_db)
+            self.quick_btn.setEnabled(has_db)
+        
+        def on_browse(self):
+            path, _ = QFileDialog.getSaveFileName(self,
+            "Wörterbuch-Datei wählen/erstellen", "",
+            "SQLite DB (*.db *.sqlite);;Alle Dateien (*)")
+            if path:
+                self.db_path.setText(path)
+        
+        def on_load(self):
+            # Open-Dialog, unabhängig vom Pfadfeld
+            start_dir = os.path.dirname(self.db.path) if getattr(self.db, "path", None) else ""
+            path, _ = QFileDialog.getOpenFileName(
+                self, "Wörterbuch laden", start_dir,
+                "SQLite DB (*.db *.sqlite);;Alle Dateien (*)"
+            )
+            if not path:
+                return
+            try:
+                # echte „laden“-Semantik: nicht neu anlegen
+                # (optional) vorherige Verbindung schließen
+                if self.db.conn:
+                    self.db.close()
+                self.db.connect(path, create_if_missing=False)
+                self.db_path.setText(path)  # Feld nur zur Anzeige aktualisieren
+                self.update_buttons_enabled(True)
+                self.refresh_table()
+                self.statusBar().showMessage(f"Geladen: {path}", 5000)
+            except FileNotFoundError as e:
+                QMessageBox.warning(self, "Datei nicht gefunden", str(e))
+            except Exception as e:
+                QMessageBox.critical(self, "Fehler beim Laden", str(e))
+        
+        def on_new(self):
+            start_dir = os.path.dirname(self.db.path) if getattr(self.db, "path", None) else ""
+            path, _ = QFileDialog.getSaveFileName(
+                self, "Neue Wörterbuch-DB anlegen", start_dir,
+                "SQLite DB (*.db *.sqlite);;Alle Dateien (*)"
+            )
+            if not path:
+                return
+            try:
+                if os.path.exists(path):
+                    r = QMessageBox.question(
+                        self, "Überschreiben?",
+                        "Datei existiert bereits. Neu initialisieren (Schema prüfen/setzen)?",
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                    )
+                    if r != QMessageBox.Yes:
+                        return
+                if self.db.conn:
+                    self.db.close()
+                self.db.connect(path, create_if_missing=True)
+                self.db_path.setText(path)
+                self.update_buttons_enabled(True)
+                self.refresh_table()
+                self.statusBar().showMessage(f"Neu/Initialisiert: {path}", 5000)
+            except Exception as e:
+                QMessageBox.critical(self, "Fehler", str(e))
                 
-            def delete_translation(self, src_lang: str, src_text: str, dst_lang: str, dst_text: str):
-                self.ensure()
-                s_id = self.upsert_term(src_lang, src_text)
-                t_id = self.upsert_term(dst_lang, dst_text)
+        def on_save(self):
+            if not self.db.conn:
+                QMessageBox.warning(self, "Hinweis", "Kein Wörterbuch geladen.")
+                return
+                
+            src_lang = self.src_combo.currentText()
+            dst_lang = self.dst_combo.currentText()
+            
+            src_text = self.src_edit.toPlainText().strip()
+            dst_text = self.tgt_edit.toPlainText().strip()
+            
+            if not src_text:
+                QMessageBox.information(self, "Hinweis", "Quelltext ist leer.")
+                return
+            if src_lang == dst_lang:
+                QMessageBox.information(self, "Hinweis", "Quelle und Ziel sind identisch.")
+                return
+            
+            number  = self.number_combo.currentText() or None
+            is_noun = self.chk_noun.isChecked()
+            is_adj  = self.chk_adj.isChecked()
+            is_verb = self.chk_verb.isChecked()
+            is_fem  = self.chk_fem.isChecked()
+            is_mask = self.chk_mask.isChecked()
+            
+            try:
+                self.db.add_translation(
+                    src_lang, src_text, dst_lang, dst_text,
+                    confidence=1.0, source="gui",
+                    number=number,
+                    is_noun=is_noun, is_adj=is_adj, is_verb=is_verb,
+                    is_fem=is_fem, is_mask=is_mask
+                )
+                self._baseline_target = dst_text
+                self.undo_stack.clear()
+                self.redo_stack.clear()
+                self.refresh_table()
+                self.statusBar().showMessage("Gespeichert.", 3000)
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Fehler beim Speichern", str(e))
+        
+        def on_reset(self):
+            self.set_target_text(self._baseline_target)
+            self.undo_stack.clear()
+            self.redo_stack.clear()
+        
+        def on_undo(self):
+            if not self.undo_stack:
+                return
+            cur = self.tgt_edit.toPlainText()
+            last = self.undo_stack.pop()
+            self.redo_stack.append(cur)
+            self.set_target_text(last)
+        
+        def on_redo(self):
+            if not self.redo_stack:
+                return
+            cur = self.tgt_edit.toPlainText()
+            nxt = self.redo_stack.pop()
+            self.undo_stack.append(cur)
+            self.set_target_text(nxt)
+        
+        def on_quick_translate(self):
+            if not self.db.conn:
+                QMessageBox.information(self, "Hinweis", "Bitte zuerst ein Wörterbuch laden/anlegen.")
+                return
+            
+            src = self.quick_input.text()
+            if not src.strip():
+                return
+            
+            src_lang = self.src_combo.currentText()
+            dst_lang = self.dst_combo.currentText()
+            if src_lang == dst_lang:
+                QMessageBox.information(self, "Hinweis", "Quelle und Ziel sind identisch.")
+                return
+            
+            exact = self.db.best_translation(src_lang, src.strip(), dst_lang)
+            translated = exact if exact is not None else translate_string_simple(self.db, src_lang, dst_lang, src)
+            
+            self._baseline_target = translated or ""
+            self.set_target_text(self._baseline_target)
+            self.undo_stack.clear()
+            self.redo_stack.clear()
+            
+        def on_table_select(self):
+            rows = self.table.selectionModel().selectedRows()
+            if not rows: return
+            r = rows[0].row()
+            src_text = self.table.item(r, 1).text()
+            dst_text = self.table.item(r, 2).text()
+            self.set_source_text(src_text)
+            self._baseline_target = dst_text
+            self.set_target_text(dst_text)
+            self.undo_stack.clear()
+            self.redo_stack.clear()
+            
+            src_lang = self.src_combo.currentText()
+            dst_lang = self.dst_combo.currentText()
+            meta = self.db.get_translation_meta(src_lang, src_text, dst_lang, dst_text)
+            if meta:
+                number, is_noun, is_adj, is_verb, is_fem, is_mask = meta
+                # Anzahl
+                idx = self.number_combo.findText(number or "", Qt.MatchFixedString)
+                self.number_combo.setCurrentIndex(idx if idx >= 0 else 0)
+                # Checks
+                self.chk_noun.setChecked(bool(is_noun))
+                self.chk_adj.setChecked (bool(is_adj ))
+                self.chk_verb.setChecked(bool(is_verb))
+                self.chk_fem.setChecked (bool(is_fem ))
+                self.chk_mask.setChecked(bool(is_mask))
+            else:
+                self.number_combo.setCurrentIndex(0)
+                for w in (self.chk_noun, self.chk_adj, self.chk_verb, self.chk_fem, self.chk_mask):
+                    w.setChecked(False)
+        
+        def on_source_changed(self):
+            # Nur arbeiten, wenn DB aktiv und oben tatsächlich Inhalt steht
+            if not self.db.conn:
+                return
+            txt = self.src_edit.toPlainText()
+            if not txt.strip():
+                return
+            
+            src_lang = self.src_combo.currentText()
+            dst_lang = self.dst_combo.currentText()
+            if src_lang == dst_lang:
+                return
+            
+            # Satzgenaue Übersetzung versuchen:
+            best = self.db.best_translation(src_lang, txt.strip(), dst_lang)
+            suggestion = best if best else translate_string_simple(self.db, src_lang, dst_lang, txt)
+            
+            # Zieltext nur dann überschreiben, wenn User ihn noch nicht verändert hat
+            if self.tgt_edit.toPlainText().strip() == self._baseline_target:
+                self._baseline_target = suggestion or ""
+                self.set_target_text(self._baseline_target)
+                self.undo_stack.clear()
+                self.redo_stack.clear()
+        
+        def on_target_changed_user(self):
+            """Wenn User den Zieltext ändert: in Undo-Stack aufnehmen."""
+            # Diese Methode wird auch von set_target_text ausgelöst – dort temporär blockieren
+            if getattr(self, "_block_target_change", False):
+                return
+            # Push current state to undo stack, clear redo
+            cur = self.tgt_edit.toPlainText()
+            # Nur sinnvoll pushen, wenn Änderung nicht identisch zur letzten ist
+            if not self.undo_stack or self.undo_stack[-1] != cur:
+                # Wir wollen den Zustand VOR der Änderung speichern – dafür bräuchten wir das vorige.
+                # Vereinfachung: wir merken uns einfach den vorherigen Text in einem Attribut.
+                # Um das sauber zu machen, halten wir uns den letzten Text.
+                prev = getattr(self, "_last_tgt_text", self._baseline_target)
+                if prev != cur:
+                    self.undo_stack.append(prev)
+                    if len(self.undo_stack) > self.undo_stack.maxlen:
+                        self.undo_stack.popleft()
+                    self.redo_stack.clear()
+            self._last_tgt_text = cur
+        
+        # ---------- Utility ----------
+        def set_source_text(self, text: str):
+            self.src_edit.blockSignals(True)
+            self.src_edit.setPlainText(text)
+            self.src_edit.blockSignals(False)
+        
+        def set_target_text(self, text: str):
+            self._block_target_change = True
+            self.tgt_edit.blockSignals(True)
+            self.tgt_edit.setPlainText(text)
+            self.tgt_edit.blockSignals(False)
+            self._block_target_change = False
+            self._last_tgt_text = text
+        
+        def refresh_table(self):
+            if not self.db.conn:
+                self.table.setRowCount(0)
+                return
+            src_lang = self.src_combo.currentText()
+            dst_lang = self.dst_combo.currentText()
+            try:
+                rows = self.db.fetch_pairs(src_lang, dst_lang)
+            except Exception as e:
+                QMessageBox.critical(self, "DB-Fehler", str(e))
+                return
+            self.table.setRowCount(len(rows))
+            for r, (hid, s, t) in enumerate(rows):
+                self.table.setItem(r, 0, QTableWidgetItem(to_hex64DB(hid)))
+                self.table.setItem(r, 1, QTableWidgetItem(s))
+                self.table.setItem(r, 2, QTableWidgetItem(t))
+            if rows:
+                self.table.selectRow(0)
+            else:
+                self.table.clearSelection()
+                
+    class TranslatorDB:
+        def __init__(self, parent: QWidget = None):
+            self.conn: Optional[sqlite3.Connection] = None
+            self.path: Optional[str] = None
+        
+        def connect(self, path: str, create_if_missing: bool = True):
+            # wenn laden ohne Erstellen, Datei muss existieren
+            if not create_if_missing and not os.path.exists(path):
+                raise FileNotFoundError(f"Datei nicht gefunden: {path}")
+            
+            init_needed = (not os.path.exists(path)) and create_if_missing
+            self.conn = sqlite3.connect(path)
+            self.conn.execute("PRAGMA foreign_keys=ON;")
+            # Schema sicherstellen (bei Neu ebenso wie bei vorhandenen DBs)
+            if init_needed:
+                self.conn.executescript(SCHEMA)
+            else:
+                self.conn.executescript(SCHEMA)
+                
+            cols = {row[1] for row in self.conn.execute("PRAGMA table_info(translations)")}
+            need_alter = []
+            if "number" not in cols:
+                need_alter.append("ALTER TABLE translations ADD COLUMN number TEXT CHECK (number IN ('Singular','Plural'))")
+            for cname in ("is_noun","is_adj","is_verb","is_fem","is_mask"):
+                if cname not in cols:
+                    need_alter.append(f"ALTER TABLE translations ADD COLUMN {cname} INTEGER DEFAULT 0")
+            for sql in need_alter:
+                self.conn.execute(sql)
+            
+            self.conn.commit()
+            self.path = path
+        
+        def close(self):
+            if self.conn:
+                self.conn.close()
+                self.conn = None
+                self.path = None
+            
+        def ensure(self):
+            if self.conn is None:
+                raise RuntimeError("Keine Datenbank geladen.")
+        
+        def upsert_term(self, lang: str, text: str) -> int:
+            self.ensure()
+            nid = term_hash64DB(lang, text)
+            try:
                 self.conn.execute(
-                    "DELETE FROM translations WHERE src_term_id=? AND tgt_term_id=?",
-                    (s_id, t_id)
+                    "INSERT INTO terms(term_id, lang, text, norm_text) VALUES (?, ?, ?, ?)",
+                    (nid, lang, text, norm(text)),
                 )
                 self.conn.commit()
-
-            def cleanup_orphan_terms(self):
-                self.ensure()
-                self.conn.execute("""
-                    DELETE FROM terms
-                    WHERE term_id NOT IN (SELECT src_term_id FROM translations)
-                      AND term_id NOT IN (SELECT tgt_term_id FROM translations)
-                """)
-                self.conn.commit()
+            except sqlite3.IntegrityError:
+                pass  # existiert bereits
+            return nid
+        
+        def get_term_text(self, term_id: int) -> Optional[Term]:
+            self.ensure()
+            cur = self.conn.execute("SELECT term_id, lang, text, norm_text FROM terms WHERE term_id=?", (term_id,))
+            row = cur.fetchone()
+            if not row: return None
+            return TermDB(*row)
+        
+        def get_or_create_term(self, lang: str, text: str) -> TermDB:
+            tid = self.upsert_term(lang, text)
+            t = self.get_term_text(tid)
+            assert t is not None
+            return t
+        
+        def add_translation(self, src_lang: str, src_text: str, dst_lang: str, dst_text: str,
+            confidence: float = 1.0, source: Optional[str] = None,
+            number: Optional[str] = None,
+            is_noun: int = 0, is_adj: int = 0, is_verb: int = 0,
+            is_fem: int = 0, is_mask: int = 0):
+            self.ensure()
+            s_id = self.upsert_term(src_lang, src_text)
+            t_id = self.upsert_term(dst_lang, dst_text)
+            self.conn.execute(
+                """INSERT OR REPLACE INTO translations
+                   (src_term_id, tgt_term_id, confidence, source, number,
+                    is_noun, is_adj, is_verb, is_fem, is_mask)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (s_id, t_id, confidence, source, number,
+                 int(is_noun), int(is_adj), int(is_verb), int(is_fem), int(is_mask))
+            )
+            self.conn.commit()
+            return s_id, t_id
+        
+        def get_translation_meta(self, src_lang: str, src_text: str, dst_lang: str, dst_text: str):
+            self.ensure()
+            s_id = self.upsert_term(src_lang, src_text)
+            t_id = self.upsert_term(dst_lang, dst_text)
+            cur = self.conn.execute(
+                """SELECT number, is_noun, is_adj, is_verb, is_fem, is_mask
+                   FROM translations WHERE src_term_id=? AND tgt_term_id=?""",
+                (s_id, t_id)
+            )
+            return cur.fetchone()  # Tuple or None
+        
+        def best_translation(self, src_lang: str, src_text: str, dst_lang: str) -> Optional[str]:
+            """Gibt die beste Zieltext-Variante zurück (oder None)."""
+            self.ensure()
+            s_id = self.upsert_term(src_lang, src_text)  # sorgt für konsistente ID
+            cur = self.conn.execute("""
+                SELECT t.text, tr.confidence
+                FROM translations tr
+                JOIN terms t ON t.term_id = tr.tgt_term_id
+                WHERE tr.src_term_id=? AND t.lang=?
+                ORDER BY tr.confidence DESC
+                LIMIT 1
+            """, (s_id, dst_lang))
+            row = cur.fetchone()
+            return row[0] if row else None
+        
+        def fetch_pairs(self, src_lang: str, dst_lang: str) -> List[Tuple[int, str, str]]:
+            """Liste aller (hash, src, dst) für die aktuelle Sprachrichtung."""
+            self.ensure()
+            cur = self.conn.execute("""
+                SELECT s.term_id, s.text AS src_text, t.text AS dst_text
+                FROM translations tr
+                JOIN terms s ON s.term_id = tr.src_term_id
+                JOIN terms t ON t.term_id = tr.tgt_term_id
+                WHERE s.lang=? AND t.lang=?
+                ORDER BY s.norm_text ASC
+            """, (src_lang, dst_lang))
+            return [(row[0], row[1], row[2]) for row in cur.fetchall()]
+        
+        def candidates(self, src_lang: str, src_text: str, dst_lang: str, limit: int = 100):
+            """Alle Ziel-Kandidaten für ein Quell-Wort/-Phrase, absteigend nach confidence."""
+            self.ensure()
+            s_id = self.upsert_term(src_lang, src_text)
+            cur = self.conn.execute("""
+                SELECT t.text, tr.confidence, IFNULL(tr.source, '')
+                FROM translations tr
+                JOIN terms t ON t.term_id = tr.tgt_term_id
+                WHERE tr.src_term_id=? AND t.lang=?
+                ORDER BY tr.confidence DESC
+                LIMIT ?
+            """, (s_id, dst_lang, limit))
+            return cur.fetchall()  # List[Tuple[str,float,str]]
+            
+        def delete_translation(self, src_lang: str, src_text: str, dst_lang: str, dst_text: str):
+            self.ensure()
+            s_id = self.upsert_term(src_lang, src_text)
+            t_id = self.upsert_term(dst_lang, dst_text)
+            self.conn.execute(
+                "DELETE FROM translations WHERE src_term_id=? AND tgt_term_id=?",
+                (s_id, t_id)
+            )
+            self.conn.commit()
+        
+        def cleanup_orphan_terms(self):
+            self.ensure()
+            self.conn.execute("""
+                DELETE FROM terms
+                WHERE term_id NOT IN (SELECT src_term_id FROM translations)
+                  AND term_id NOT IN (SELECT tgt_term_id FROM translations)
+            """)
+            self.conn.commit()            
                 
         # ---------- Hilfsfunktionen Übersetzung (einfaches Token-Mapping) ----------
         TOKEN_RE = re.compile(r"\s+|[\w'-]+|[^\w\s]", re.UNICODE)
-
         # ---------------------------------------------------------------------------
         # Sehr einfache tokenbasierte Übersetzung:
         # - Splittet in Wörter, Whitespaces und Satzzeichen
@@ -35821,7 +36924,7 @@ try:
                 if src_word.istitle(): return dst_word[:1].upper() + dst_word[1:]
                 if src_word.isupper(): return dst_word.upper()
                 return dst_word
-
+            
             tokens = TOKEN_RE.findall(text)
             out = []
             for tok in tokens:
@@ -35833,598 +36936,6 @@ try:
                 out.append(preserve_case(tok, best if best else tok))
             return "".join(out)
             
-        # ---------- GUI ----------
-        LANG_CHOICES = ["DEU", "ENU", "FRE"]  # German, English, French (de/en/fr)
-        LANG_PLACEHOLDER = {
-                "DEU": "Text auf Deutsch hier eintippen …",
-                "ENU": "Text auf Englisch hier eintippen …",
-                "FRE": "Texte en français ici …",
-            }
-        class MainWindow(QWidget):
-            def _update_quick_placeholder(self):
-                lang = self.src_combo.currentText()
-                self.quick_input.setPlaceholderText(
-                    LANG_PLACEHOLDER.get(
-                    lang, "Text hier eintippen …"))
-                    
-            def _word_under_cursor(self) -> str:
-                cursor = self.src_edit.textCursor()
-                if cursor.hasSelection():
-                    text = cursor.selectedText()
-                else:
-                    cursor.select(QTextCursor.WordUnderCursor)
-                    text = cursor.selectedText()
-                # Nur alphanumerische Wörter (bindestrich/apostroph optional)
-                text = text.strip()
-                if not text:
-                    return ""
-                # optional: exakt wie der Tokenizer
-                if not re.match(r"^[\w'-]+$", text, re.UNICODE):
-                    return ""
-                return text
-            
-            def _labeled_panel(self, label_text: str, inner_widget: QWidget) -> QWidget:
-                w = QWidget()
-                v = QVBoxLayout(w)
-                v.setContentsMargins(0, 0, 0, 0)
-                v.addWidget(QLabel(label_text))
-                v.addWidget(inner_widget)
-                return w
-            
-            def __init__(self):
-                super().__init__()
-                #self.setWindowTitle("Hash-Translator (Qt5)")
-                #self.resize(1100, 700)
-
-                self.db = TranslatorDB()
-
-                # Undo/Redo für Zieltext (10 Schritte)
-                self.undo_stack: deque[str] = deque(maxlen=10)
-                self.redo_stack: deque[str] = deque(maxlen=10)
-                self._baseline_target: str = ""  # für Reset
-
-                # --- Layout: Splitter links Tabelle | rechts Formular/Edits ---
-                splitter = QSplitter(Qt.Horizontal, self)
-                left = QWidget(self)
-                right = QWidget(self)
-                splitter.addWidget(left)
-                splitter.addWidget(right)
-                splitter.setStretchFactor(0, 1)
-                splitter.setStretchFactor(1, 2)
-                self.setCentralWidget(splitter)
-
-                # Linke Tabelle
-                left_layout = QVBoxLayout(left)
-                self.table = QTableWidget(0, 3, left)
-                self.table.setHorizontalHeaderLabels(["Hash", "Source", "Target"])
-                self.table.horizontalHeader().setStretchLastSection(True)
-                self.table.setSelectionBehavior(QTableWidget.SelectRows)
-                self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-                left_layout.addWidget(self.table)
-
-                self.del_btn = QPushButton("Löschen")
-                left_layout.addWidget(self.del_btn)
-                self.del_btn.clicked.connect(self.on_delete_selected)
-
-                # Rechte Seite: Form + Edits + Buttons
-                right_layout = QVBoxLayout(right)
-
-                # Formular oben
-                form = QFormLayout()
-                self.src_combo = QComboBox(); self.src_combo.addItems(LANG_CHOICES)
-                self.dst_combo = QComboBox(); self.dst_combo.addItems(LANG_CHOICES); self.dst_combo.setCurrentIndex(1)
-                form.addRow(QLabel("Quelle:"), self.src_combo)
-                form.addRow(QLabel("Ziel:"), self.dst_combo)
-
-                path_row = QHBoxLayout()
-                self.db_path = QLineEdit()
-                self.db_path.setPlaceholderText("Pfad zur Wörterbuch-DB (SQLite) …")
-                browse_btn = QPushButton("…")
-                load_btn = QPushButton("Laden")
-                new_btn = QPushButton("Neu anlegen")
-                path_row.addWidget(self.db_path, 1)
-                path_row.addWidget(browse_btn)
-                path_row.addWidget(load_btn)
-                path_row.addWidget(new_btn)
-                form.addRow(QLabel("Wörterbuch:"), path_row)
-                right_layout.addLayout(form)
-
-                # Quell- und Zieltext
-                mono = QFont("DejaVu Sans Mono"); mono.setPointSize(10)
-
-                self.src_edit = QTextEdit()
-                self.src_edit.setPlaceholderText("Quelltext hier eingeben …")
-                self.src_edit.setFont(mono)
-                self.src_edit.setWordWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
-
-                self.tgt_edit = QTextEdit()
-                self.tgt_edit.setPlaceholderText("Übersetzter Text (editierbar) …")
-                self.tgt_edit.setFont(mono)
-                self.tgt_edit.setWordWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
-
-                # Panels mit Labeln
-                src_panel = self._labeled_panel("Quelltext (oben):", self.src_edit)
-                tgt_panel = self._labeled_panel("Übersetzter Text (unten):", self.tgt_edit)
-
-                # VERTIKAL-SPLITTER für die zwei Eingabeboxen
-                self.edits_splitter = QSplitter(Qt.Vertical)
-                self.edits_splitter.addWidget(src_panel)
-                self.edits_splitter.addWidget(tgt_panel)
-                self.edits_splitter.setStretchFactor(0, 1)
-                self.edits_splitter.setStretchFactor(1, 1)
-
-                # Vorschlags-StringGrid rechts
-                self.sugg_table = QTableWidget(0, 3, self)
-                self.sugg_table.setHorizontalHeaderLabels(["Quelle", "Vorschlag", "Conf"])
-                self.sugg_table.horizontalHeader().setStretchLastSection(True)
-                self.sugg_table.setSelectionBehavior(QTableWidget.SelectRows)
-                self.sugg_table.setEditTriggers(QTableWidget.NoEditTriggers)
-                self.sugg_table.setMinimumWidth(320)
-
-                sugg_panel = QWidget()
-                sugg_layout = QVBoxLayout(sugg_panel)
-                sugg_layout.setContentsMargins(0, 0, 0, 0)
-                sugg_layout.addWidget(QLabel("Vorschläge (Wort unter Cursor)"))
-                sugg_layout.addWidget(self.sugg_table, 1)
-
-                # HORIZONTAL-SPLITTER: links Edits, rechts Vorschläge
-                self.right_splitter = QSplitter(Qt.Horizontal)
-                self.right_splitter.addWidget(self.edits_splitter)
-                self.right_splitter.addWidget(sugg_panel)
-                self.right_splitter.setStretchFactor(0, 3)
-                self.right_splitter.setStretchFactor(1, 2)
-
-                # In das rechte Haupt-Layout einsetzen
-                right_layout.addWidget(self.right_splitter, 1)
-
-                # Buttons unter dem Zieltext
-                vlayout = QVBoxLayout()
-                btn_row = QHBoxLayout()
-                self.reset_btn = QPushButton("Reset")
-                self.undo_btn  = QPushButton("Undo (10)")
-                self.redo_btn  = QPushButton("Redo (10)")
-                self.save_btn  = QPushButton("Speichern")
-                
-                btn_row.addWidget(self.reset_btn)
-                btn_row.addWidget(self.undo_btn )
-                btn_row.addWidget(self.redo_btn )
-                btn_row.addStretch(1)
-                
-                self.save_btn.setMaximumWidth(120)
-                
-                vlayout.addLayout(btn_row)
-                
-                chk_row = QHBoxLayout()
-                self.number_combo = QComboBox()
-                self.number_combo.addItems(["", "Singular", "Plural"])  # "" = nicht gesetzt/egal
-                self.chk_noun = QCheckBox("Substantiv")
-                self.chk_adj  = QCheckBox("Adjektiv")
-                self.chk_verb = QCheckBox("Verb")
-                self.chk_fem  = QCheckBox("feminin")
-                self.chk_mask = QCheckBox("maskulin")
-
-                vlayout.addWidget(self.save_btn)
-                
-                chk_row.addWidget(QLabel("Wortart:"))
-                chk_row.addWidget(self.number_combo)
-                chk_row.addWidget(self.chk_noun)
-                chk_row.addWidget(self.chk_adj )
-                chk_row.addWidget(self.chk_verb)
-                chk_row.addWidget(self.chk_fem )
-                chk_row.addWidget(self.chk_mask)
-                chk_row.addStretch(1)
-                
-                vlayout.addLayout(chk_row)
-                right_layout.addLayout(vlayout)
-
-                # Untere Schnell-Übersetzung
-                sep = QFrame(); sep.setFrameShape(QFrame.HLine); sep.setFrameShadow(QFrame.Sunken)
-                right_layout.addWidget(sep)
-
-                quick_row = QHBoxLayout()
-                self.quick_input = QLineEdit()
-                self.quick_input.setPlaceholderText("Vokabeln/Sätze hier eintippen …")
-                self.quick_btn = QPushButton("Translate")
-                self.quick_btn.setMaximumWidth(140)
-                quick_row.addWidget(self.quick_input, 1)
-                
-                right_layout.addLayout(quick_row)
-                right_layout.addWidget(self.quick_btn)
-
-                # --- Signals ---
-                browse_btn.clicked.connect(self.on_browse)
-                load_btn.clicked.connect(self.on_load)
-                new_btn.clicked.connect(self.on_new)
-                self.save_btn.clicked.connect(self.on_save)
-                self.reset_btn.clicked.connect(self.on_reset)
-                self.undo_btn.clicked.connect(self.on_undo)
-                self.redo_btn.clicked.connect(self.on_redo)
-                self.quick_btn.clicked.connect(self.on_quick_translate)
-                self.table.itemSelectionChanged.connect(self.on_table_select)
-                self.src_combo.currentIndexChanged.connect(self.refresh_table)
-                self.dst_combo.currentIndexChanged.connect(self.refresh_table)
-                self.src_edit.textChanged.connect(self.on_source_changed)
-                self.tgt_edit.textChanged.connect(self.on_target_changed_user)
-                self.src_edit.cursorPositionChanged.connect(self.on_source_cursor_changed)
-                self.sugg_table.itemDoubleClicked.connect(self.on_suggestion_double_clicked)
-                
-                # Initial-States
-                self.update_buttons_enabled(False)
-                
-                self._update_quick_placeholder()
-                self.src_combo.currentIndexChanged.connect(self._update_quick_placeholder)
-                
-                self.number_combo.currentIndexChanged.connect(self.on_attrs_changed)
-                for w in (
-                    self.chk_noun ,
-                    self.chk_adj  ,
-                    self.chk_verb ,
-                    self.chk_fem  ,
-                    self.chk_mask):
-                    w.toggled.connect(self.on_attrs_changed)
-
-            def on_attrs_changed(self):
-                if not self.db.conn:
-                    return
-                # wir brauchen aktuelle src/dst-Texte aus den Edits
-                src_text = self.src_edit.toPlainText().strip()
-                dst_text = self.tgt_edit.toPlainText().strip()
-                if not src_text or not dst_text:
-                    return
-                src_lang = self.src_combo.currentText()
-                dst_lang = self.dst_combo.currentText()
-                number = self.number_combo.currentText() or None
-                self.db.add_translation(
-                    src_lang, src_text, dst_lang, dst_text,
-                    confidence=1.0, source="gui",
-                    number  = number,
-                    is_noun = self.chk_noun.isChecked(),
-                    is_adj  = self.chk_adj .isChecked(),
-                    is_verb = self.chk_verb.isChecked(),
-                    is_fem  = self.chk_fem .isChecked(),
-                    is_mask = self.chk_mask.isChecked()
-                )
-                # Tabelle ggf. aktualisieren, falls du später Spalten für Merkmale anzeigst
-                # self.refresh_table()
-                
-            def on_delete_selected(self):
-                if not self.db.conn:
-                    return
-                rows = self.table.selectionModel().selectedRows()
-                if not rows:
-                    QMessageBox.information(self, "Hinweis", "Bitte eine oder mehrere Zeilen wählen.")
-                    return
-
-                src_lang = self.src_combo.currentText()
-                dst_lang = self.dst_combo.currentText()
-                count = 0
-
-                for idx in rows:
-                    r = idx.row()
-                    src_text = self.table.item(r, 1).text()
-                    dst_text = self.table.item(r, 2).text()
-                    try:
-                        self.db.delete_translation(src_lang, src_text, dst_lang, dst_text)
-                        count += 1
-                    except Exception as e:
-                        QMessageBox.warning(self,
-                        "Löschen fehlgeschlagen",
-                        f"{src_text} → {dst_text}: {e}")
-                # optional aufräumen & refresh
-                try:
-                    self.db.cleanup_orphan_terms()
-                finally:
-                    self.refresh_table()
-                    self.statusBar().showMessage(f"{count} Eintrag/Einträge gelöscht.", 3000)
-
-            def on_source_cursor_changed(self):
-                if not self.db.conn:
-                    self.sugg_table.setRowCount(0); return
-                src_word = self._word_under_cursor()
-                if not src_word:
-                    self.sugg_table.setRowCount(0); return
-
-                src_lang = self.src_combo.currentText()
-                dst_lang = self.dst_combo.currentText()
-                if src_lang == dst_lang:
-                    self.sugg_table.setRowCount(0); return
-
-                rows = self.db.candidates(src_lang, src_word, dst_lang, limit=100)
-
-                # Tabelle füllen
-                self.sugg_table.setRowCount(len(rows))
-                for r, (tgt_text, conf, source) in enumerate(rows):
-                    self.sugg_table.setItem(r, 0, QTableWidgetItem(src_word))
-                    self.sugg_table.setItem(r, 1, QTableWidgetItem(tgt_text))
-                    self.sugg_table.setItem(r, 2, QTableWidgetItem(f"{conf:.2f}"))
-            
-            def on_suggestion_double_clicked(self, item):
-                r = item.row()
-                if r < 0:
-                    return
-                tgt = self.sugg_table.item(r, 1).text() if self.sugg_table.item(r, 1) else ""
-                if not tgt:
-                    return
-
-                # In der unteren Edit-Box an Cursorposition einfügen oder Auswahl ersetzen
-                cursor = self.tgt_edit.textCursor()
-                # falls noch keine Position gesetzt, ans Ende
-                if not cursor:
-                    self.tgt_edit.moveCursor(QTextCursor.End)
-                    cursor = self.tgt_edit.textCursor()
-
-                # Undo/Redo sauber behandeln
-                prev = self.tgt_edit.toPlainText()
-                cursor.insertText(tgt)
-                self._last_tgt_text = self.tgt_edit.toPlainText()
-                if prev != self._last_tgt_text:
-                    self.undo_stack.append(prev)
-                    if len(self.undo_stack) > self.undo_stack.maxlen:
-                        self.undo_stack.popleft()
-                    self.redo_stack.clear()
-            
-            # ---------- Button-/UI-Handler ----------
-            def update_buttons_enabled(self, has_db: bool):
-                self.save_btn.setEnabled(has_db)
-                self.reset_btn.setEnabled(has_db)
-                self.undo_btn.setEnabled(has_db)
-                self.redo_btn.setEnabled(has_db)
-                self.quick_btn.setEnabled(has_db)
-
-            def on_browse(self):
-                path, _ = QFileDialog.getSaveFileName(self,
-                "Wörterbuch-Datei wählen/erstellen", "",
-                "SQLite DB (*.db *.sqlite);;Alle Dateien (*)")
-                if path:
-                    self.db_path.setText(path)
-
-            def on_load(self):
-                # Open-Dialog, unabhängig vom Pfadfeld
-                start_dir = os.path.dirname(self.db.path) if getattr(self.db, "path", None) else ""
-                path, _ = QFileDialog.getOpenFileName(
-                    self, "Wörterbuch laden", start_dir,
-                    "SQLite DB (*.db *.sqlite);;Alle Dateien (*)"
-                )
-                if not path:
-                    return
-                try:
-                    # echte „laden“-Semantik: nicht neu anlegen
-                    # (optional) vorherige Verbindung schließen
-                    if self.db.conn:
-                        self.db.close()
-                    self.db.connect(path, create_if_missing=False)
-                    self.db_path.setText(path)  # Feld nur zur Anzeige aktualisieren
-                    self.update_buttons_enabled(True)
-                    self.refresh_table()
-                    self.statusBar().showMessage(f"Geladen: {path}", 5000)
-                except FileNotFoundError as e:
-                    QMessageBox.warning(self, "Datei nicht gefunden", str(e))
-                except Exception as e:
-                    QMessageBox.critical(self, "Fehler beim Laden", str(e))
-
-            def on_new(self):
-                start_dir = os.path.dirname(self.db.path) if getattr(self.db, "path", None) else ""
-                path, _ = QFileDialog.getSaveFileName(
-                    self, "Neue Wörterbuch-DB anlegen", start_dir,
-                    "SQLite DB (*.db *.sqlite);;Alle Dateien (*)"
-                )
-                if not path:
-                    return
-                try:
-                    if os.path.exists(path):
-                        r = QMessageBox.question(
-                            self, "Überschreiben?",
-                            "Datei existiert bereits. Neu initialisieren (Schema prüfen/setzen)?",
-                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-                        )
-                        if r != QMessageBox.Yes:
-                            return
-                    if self.db.conn:
-                        self.db.close()
-                    self.db.connect(path, create_if_missing=True)
-                    self.db_path.setText(path)
-                    self.update_buttons_enabled(True)
-                    self.refresh_table()
-                    self.statusBar().showMessage(f"Neu/Initialisiert: {path}", 5000)
-                except Exception as e:
-                    QMessageBox.critical(self, "Fehler", str(e))
-                    
-            def on_save(self):
-                if not self.db.conn:
-                    QMessageBox.warning(self, "Hinweis", "Kein Wörterbuch geladen.")
-                    return
-                    
-                src_lang = self.src_combo.currentText()
-                dst_lang = self.dst_combo.currentText()
-                
-                src_text = self.src_edit.toPlainText().strip()
-                dst_text = self.tgt_edit.toPlainText().strip()
-                
-                if not src_text:
-                    QMessageBox.information(self, "Hinweis", "Quelltext ist leer.")
-                    return
-                if src_lang == dst_lang:
-                    QMessageBox.information(self, "Hinweis", "Quelle und Ziel sind identisch.")
-                    return
-                
-                number  = self.number_combo.currentText() or None
-                is_noun = self.chk_noun.isChecked()
-                is_adj  = self.chk_adj.isChecked()
-                is_verb = self.chk_verb.isChecked()
-                is_fem  = self.chk_fem.isChecked()
-                is_mask = self.chk_mask.isChecked()
-                
-                try:
-                    self.db.add_translation(
-                        src_lang, src_text, dst_lang, dst_text,
-                        confidence=1.0, source="gui",
-                        number=number,
-                        is_noun=is_noun, is_adj=is_adj, is_verb=is_verb,
-                        is_fem=is_fem, is_mask=is_mask
-                    )
-                    self._baseline_target = dst_text
-                    self.undo_stack.clear()
-                    self.redo_stack.clear()
-                    self.refresh_table()
-                    self.statusBar().showMessage("Gespeichert.", 3000)
-                    
-                except Exception as e:
-                    QMessageBox.critical(self, "Fehler beim Speichern", str(e))
-
-            def on_reset(self):
-                self.set_target_text(self._baseline_target)
-                self.undo_stack.clear()
-                self.redo_stack.clear()
-
-            def on_undo(self):
-                if not self.undo_stack:
-                    return
-                cur = self.tgt_edit.toPlainText()
-                last = self.undo_stack.pop()
-                self.redo_stack.append(cur)
-                self.set_target_text(last)
-
-            def on_redo(self):
-                if not self.redo_stack:
-                    return
-                cur = self.tgt_edit.toPlainText()
-                nxt = self.redo_stack.pop()
-                self.undo_stack.append(cur)
-                self.set_target_text(nxt)
-
-            def on_quick_translate(self):
-                if not self.db.conn:
-                    QMessageBox.information(self, "Hinweis", "Bitte zuerst ein Wörterbuch laden/anlegen.")
-                    return
-
-                src = self.quick_input.text()
-                if not src.strip():
-                    return
-
-                src_lang = self.src_combo.currentText()
-                dst_lang = self.dst_combo.currentText()
-                if src_lang == dst_lang:
-                    QMessageBox.information(self, "Hinweis", "Quelle und Ziel sind identisch.")
-                    return
-
-                exact = self.db.best_translation(src_lang, src.strip(), dst_lang)
-                translated = exact if exact is not None else translate_string_simple(self.db, src_lang, dst_lang, src)
-
-                self._baseline_target = translated or ""
-                self.set_target_text(self._baseline_target)
-                self.undo_stack.clear()
-                self.redo_stack.clear()
-                
-            def on_table_select(self):
-                rows = self.table.selectionModel().selectedRows()
-                if not rows: return
-                r = rows[0].row()
-                src_text = self.table.item(r, 1).text()
-                dst_text = self.table.item(r, 2).text()
-                self.set_source_text(src_text)
-                self._baseline_target = dst_text
-                self.set_target_text(dst_text)
-                self.undo_stack.clear()
-                self.redo_stack.clear()
-                
-                src_lang = self.src_combo.currentText()
-                dst_lang = self.dst_combo.currentText()
-                meta = self.db.get_translation_meta(src_lang, src_text, dst_lang, dst_text)
-                if meta:
-                    number, is_noun, is_adj, is_verb, is_fem, is_mask = meta
-                    # Anzahl
-                    idx = self.number_combo.findText(number or "", Qt.MatchFixedString)
-                    self.number_combo.setCurrentIndex(idx if idx >= 0 else 0)
-                    # Checks
-                    self.chk_noun.setChecked(bool(is_noun))
-                    self.chk_adj.setChecked (bool(is_adj ))
-                    self.chk_verb.setChecked(bool(is_verb))
-                    self.chk_fem.setChecked (bool(is_fem ))
-                    self.chk_mask.setChecked(bool(is_mask))
-                else:
-                    self.number_combo.setCurrentIndex(0)
-                    for w in (self.chk_noun, self.chk_adj, self.chk_verb, self.chk_fem, self.chk_mask):
-                        w.setChecked(False)
-
-            def on_source_changed(self):
-                # Nur arbeiten, wenn DB aktiv und oben tatsächlich Inhalt steht
-                if not self.db.conn:
-                    return
-                txt = self.src_edit.toPlainText()
-                if not txt.strip():
-                    return
-
-                src_lang = self.src_combo.currentText()
-                dst_lang = self.dst_combo.currentText()
-                if src_lang == dst_lang:
-                    return
-
-                # Satzgenaue Übersetzung versuchen:
-                best = self.db.best_translation(src_lang, txt.strip(), dst_lang)
-                suggestion = best if best else translate_string_simple(self.db, src_lang, dst_lang, txt)
-
-                # Zieltext nur dann überschreiben, wenn User ihn noch nicht verändert hat
-                if self.tgt_edit.toPlainText().strip() == self._baseline_target:
-                    self._baseline_target = suggestion or ""
-                    self.set_target_text(self._baseline_target)
-                    self.undo_stack.clear()
-                    self.redo_stack.clear()
-            
-            def on_target_changed_user(self):
-                """Wenn User den Zieltext ändert: in Undo-Stack aufnehmen."""
-                # Diese Methode wird auch von set_target_text ausgelöst – dort temporär blockieren
-                if getattr(self, "_block_target_change", False):
-                    return
-                # Push current state to undo stack, clear redo
-                cur = self.tgt_edit.toPlainText()
-                # Nur sinnvoll pushen, wenn Änderung nicht identisch zur letzten ist
-                if not self.undo_stack or self.undo_stack[-1] != cur:
-                    # Wir wollen den Zustand VOR der Änderung speichern – dafür bräuchten wir das vorige.
-                    # Vereinfachung: wir merken uns einfach den vorherigen Text in einem Attribut.
-                    # Um das sauber zu machen, halten wir uns den letzten Text.
-                    prev = getattr(self, "_last_tgt_text", self._baseline_target)
-                    if prev != cur:
-                        self.undo_stack.append(prev)
-                        if len(self.undo_stack) > self.undo_stack.maxlen:
-                            self.undo_stack.popleft()
-                        self.redo_stack.clear()
-                self._last_tgt_text = cur
-
-            # ---------- Utility ----------
-            def set_source_text(self, text: str):
-                self.src_edit.blockSignals(True)
-                self.src_edit.setPlainText(text)
-                self.src_edit.blockSignals(False)
-
-            def set_target_text(self, text: str):
-                self._block_target_change = True
-                self.tgt_edit.blockSignals(True)
-                self.tgt_edit.setPlainText(text)
-                self.tgt_edit.blockSignals(False)
-                self._block_target_change = False
-                self._last_tgt_text = text
-
-            def refresh_table(self):
-                if not self.db.conn:
-                    self.table.setRowCount(0)
-                    return
-                src_lang = self.src_combo.currentText()
-                dst_lang = self.dst_combo.currentText()
-                try:
-                    rows = self.db.fetch_pairs(src_lang, dst_lang)
-                except Exception as e:
-                    QMessageBox.critical(self, "DB-Fehler", str(e))
-                    return
-                self.table.setRowCount(len(rows))
-                for r, (hid, s, t) in enumerate(rows):
-                    self.table.setItem(r, 0, QTableWidgetItem(to_hex64(hid)))
-                    self.table.setItem(r, 1, QTableWidgetItem(s))
-                    self.table.setItem(r, 2, QTableWidgetItem(t))
-                if rows:
-                    self.table.selectRow(0)
-                else:
-                    self.table.clearSelection()
-    
     def analyze_pe(file_path):
         try:
             # PE-Datei öffnen

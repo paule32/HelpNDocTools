@@ -1,0 +1,4058 @@
+{
+  "meta": {
+    "cpu": "6510",
+    "illegal_opcodes_included": true,
+    "flags_order": "NZCIDV"
+  },
+  "mnemonics": {
+    "BRK": {
+      "imp": {
+        "opcode": "0x00",
+        "bytes": 1,
+        "cycles": 7,
+        "flags": "---I--",
+        "comment": "Force break; vector at $FFFE; sets I"
+      }
+    },
+    "RTI": {
+      "imp": {
+        "opcode": "0x40",
+        "bytes": 1,
+        "cycles": 6,
+        "flags": "NZCIDV",
+        "comment": "Return from interrupt; pull P then PC"
+      }
+    },
+    "RTS": {
+      "imp": {
+        "opcode": "0x60",
+        "bytes": 1,
+        "cycles": 6,
+        "flags": "------",
+        "comment": "Return from subroutine; pull PC"
+      }
+    },
+    "NOP": {
+      "imp": {
+        "opcode": "0xFA",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "------",
+        "illegal": true,
+        "comment": "Unofficial 1-byte NOP"
+      },
+      "imm": {
+        "opcode": "0x89",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "illegal": true,
+        "comment": "Unofficial 2-byte NOP (reads imm)"
+      },
+      "zp": {
+        "opcode": "0x64",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "------",
+        "illegal": true,
+        "comment": "Unofficial 2-byte NOP (reads zp)"
+      },
+      "zpx": {
+        "opcode": "0xF4",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "------",
+        "illegal": true,
+        "comment": "Unofficial 2-byte NOP (reads zp,X)"
+      },
+      "abs": {
+        "opcode": "0x0C",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "------",
+        "illegal": true,
+        "comment": "Unofficial 3-byte NOP (reads abs)"
+      },
+      "absx": {
+        "opcode": "0xFC",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "------",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "Unofficial 3-byte NOP (reads abs,X)"
+      }
+    },
+    "JMP": {
+      "abs": {
+        "opcode": "0x4C",
+        "bytes": 3,
+        "cycles": 3,
+        "flags": "------",
+        "comment": "Jump absolute"
+      },
+      "ind": {
+        "opcode": "0x6C",
+        "bytes": 3,
+        "cycles": 5,
+        "flags": "------",
+        "comment": "Jump indirect (6502 page-wrap bug)"
+      }
+    },
+    "JSR": {
+      "abs": {
+        "opcode": "0x20",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "------",
+        "comment": "Jump to subroutine"
+      }
+    },
+    "BIT": {
+      "zp": {
+        "opcode": "0x24",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZ---V",
+        "comment": "Test bits (sets N=M7,V=M6,Z=(A&M)==0)"
+      },
+      "abs": {
+        "opcode": "0x2C",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ---V",
+        "comment": "Test bits absolute"
+      }
+    },
+    "CLC": {
+      "imp": {
+        "opcode": "0x18",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "--C---",
+        "comment": "Clear carry"
+      }
+    },
+    "SEC": {
+      "imp": {
+        "opcode": "0x38",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "--C---",
+        "comment": "Set carry"
+      }
+    },
+    "CLI": {
+      "imp": {
+        "opcode": "0x58",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "---I--",
+        "comment": "Clear interrupt disable"
+      }
+    },
+    "SEI": {
+      "imp": {
+        "opcode": "0x78",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "---I--",
+        "comment": "Set interrupt disable"
+      }
+    },
+    "CLV": {
+      "imp": {
+        "opcode": "0xB8",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "-----V",
+        "comment": "Clear overflow"
+      }
+    },
+    "CLD": {
+      "imp": {
+        "opcode": "0xD8",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "----D-",
+        "comment": "Clear decimal"
+      }
+    },
+    "SED": {
+      "imp": {
+        "opcode": "0xF8",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "----D-",
+        "comment": "Set decimal"
+      }
+    },
+    "TAX": {
+      "imp": {
+        "opcode": "0xAA",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "A→X"
+      }
+    },
+    "TXA": {
+      "imp": {
+        "opcode": "0x8A",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "X→A"
+      }
+    },
+    "TAY": {
+      "imp": {
+        "opcode": "0xA8",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "A→Y"
+      }
+    },
+    "TYA": {
+      "imp": {
+        "opcode": "0x98",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "Y→A"
+      }
+    },
+    "TSX": {
+      "imp": {
+        "opcode": "0xBA",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "S→X"
+      }
+    },
+    "TXS": {
+      "imp": {
+        "opcode": "0x9A",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "X→S"
+      }
+    },
+    "PHA": {
+      "imp": {
+        "opcode": "0x48",
+        "bytes": 1,
+        "cycles": 3,
+        "flags": "------",
+        "comment": "Push A"
+      }
+    },
+    "PHP": {
+      "imp": {
+        "opcode": "0x08",
+        "bytes": 1,
+        "cycles": 3,
+        "flags": "------",
+        "comment": "Push P"
+      }
+    },
+    "PLA": {
+      "imp": {
+        "opcode": "0x68",
+        "bytes": 1,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "Pull A"
+      }
+    },
+    "PLP": {
+      "imp": {
+        "opcode": "0x28",
+        "bytes": 1,
+        "cycles": 4,
+        "flags": "NZCIDV",
+        "comment": "Pull P"
+      }
+    },
+    "BPL": {
+      "rel": {
+        "opcode": "0x10",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "Branch relative",
+        "branch_taken_penalty": 1,
+        "page_cross_penalty": 1
+      }
+    },
+    "BMI": {
+      "rel": {
+        "opcode": "0x30",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "Branch relative",
+        "branch_taken_penalty": 1,
+        "page_cross_penalty": 1
+      }
+    },
+    "BVC": {
+      "rel": {
+        "opcode": "0x50",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "Branch relative",
+        "branch_taken_penalty": 1,
+        "page_cross_penalty": 1
+      }
+    },
+    "BVS": {
+      "rel": {
+        "opcode": "0x70",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "Branch relative",
+        "branch_taken_penalty": 1,
+        "page_cross_penalty": 1
+      }
+    },
+    "BCC": {
+      "rel": {
+        "opcode": "0x90",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "Branch relative",
+        "branch_taken_penalty": 1,
+        "page_cross_penalty": 1
+      }
+    },
+    "BCS": {
+      "rel": {
+        "opcode": "0xB0",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "Branch relative",
+        "branch_taken_penalty": 1,
+        "page_cross_penalty": 1
+      }
+    },
+    "BNE": {
+      "rel": {
+        "opcode": "0xD0",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "Branch relative",
+        "branch_taken_penalty": 1,
+        "page_cross_penalty": 1
+      }
+    },
+    "BEQ": {
+      "rel": {
+        "opcode": "0xF0",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "------",
+        "comment": "Branch relative",
+        "branch_taken_penalty": 1,
+        "page_cross_penalty": 1
+      }
+    },
+    "LDA": {
+      "imm": {
+        "opcode": "0xA9",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "Load A immediate"
+      },
+      "zp": {
+        "opcode": "0xA5",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZ----",
+        "comment": "Load A zeropage"
+      },
+      "zpx": {
+        "opcode": "0xB5",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "Load A zeropage,X"
+      },
+      "abs": {
+        "opcode": "0xAD",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "Load A absolute"
+      },
+      "absx": {
+        "opcode": "0xBD",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "Load A absolute,X"
+      },
+      "absy": {
+        "opcode": "0xB9",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "Load A absolute,Y"
+      },
+      "indx": {
+        "opcode": "0xA1",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZ----",
+        "comment": "Load A (zp,X)"
+      },
+      "indy": {
+        "opcode": "0xB1",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "Load A (zp),Y"
+      }
+    },
+    "LDX": {
+      "imm": {
+        "opcode": "0xA2",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "Load X immediate"
+      },
+      "zp": {
+        "opcode": "0xA6",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZ----",
+        "comment": "Load X zeropage"
+      },
+      "zpy": {
+        "opcode": "0xB6",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "Load X zeropage,Y"
+      },
+      "abs": {
+        "opcode": "0xAE",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "Load X absolute"
+      },
+      "absy": {
+        "opcode": "0xBE",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "Load X absolute,Y"
+      }
+    },
+    "LDY": {
+      "imm": {
+        "opcode": "0xA0",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "Load Y immediate"
+      },
+      "zp": {
+        "opcode": "0xA4",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZ----",
+        "comment": "Load Y zeropage"
+      },
+      "zpx": {
+        "opcode": "0xB4",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "Load Y zeropage,X"
+      },
+      "abs": {
+        "opcode": "0xAC",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "Load Y absolute"
+      },
+      "absx": {
+        "opcode": "0xBC",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "Load Y absolute,X"
+      }
+    },
+    "STA": {
+      "zp": {
+        "opcode": "0x85",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "------",
+        "comment": "Store A zeropage"
+      },
+      "zpx": {
+        "opcode": "0x95",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "------",
+        "comment": "Store A zeropage,X"
+      },
+      "abs": {
+        "opcode": "0x8D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "------",
+        "comment": "Store A absolute"
+      },
+      "absx": {
+        "opcode": "0x9D",
+        "bytes": 3,
+        "cycles": 5,
+        "flags": "------",
+        "comment": "Store A absolute,X"
+      },
+      "absy": {
+        "opcode": "0x99",
+        "bytes": 3,
+        "cycles": 5,
+        "flags": "------",
+        "comment": "Store A absolute,Y"
+      },
+      "indx": {
+        "opcode": "0x81",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "------",
+        "comment": "Store A (zp,X)"
+      },
+      "indy": {
+        "opcode": "0x91",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "------",
+        "comment": "Store A (zp),Y"
+      }
+    },
+    "STX": {
+      "zp": {
+        "opcode": "0x86",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "------",
+        "comment": "Store X zeropage"
+      },
+      "zpy": {
+        "opcode": "0x96",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "------",
+        "comment": "Store X zeropage,Y"
+      },
+      "abs": {
+        "opcode": "0x8E",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "------",
+        "comment": "Store X absolute"
+      }
+    },
+    "STY": {
+      "zp": {
+        "opcode": "0x84",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "------",
+        "comment": "Store Y zeropage"
+      },
+      "zpx": {
+        "opcode": "0x94",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "------",
+        "comment": "Store Y zeropage,X"
+      },
+      "abs": {
+        "opcode": "0x8C",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "------",
+        "comment": "Store Y absolute"
+      }
+    },
+    "ADC": {
+      "imm": {
+        "opcode": "0x69",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC--V",
+        "comment": "Add with carry immediate"
+      },
+      "zp": {
+        "opcode": "0x65",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZC--V",
+        "comment": "Add with carry zeropage"
+      },
+      "zpx": {
+        "opcode": "0x75",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZC--V",
+        "comment": "Add with carry zeropage,X"
+      },
+      "abs": {
+        "opcode": "0x6D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC--V",
+        "comment": "Add with carry absolute"
+      },
+      "absx": {
+        "opcode": "0x7D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "comment": "Add with carry absolute,X"
+      },
+      "absy": {
+        "opcode": "0x79",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "comment": "Add with carry absolute,Y"
+      },
+      "indx": {
+        "opcode": "0x61",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC--V",
+        "comment": "Add with carry (zp,X)"
+      },
+      "indy": {
+        "opcode": "0x71",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "comment": "Add with carry (zp),Y"
+      }
+    },
+    "SBC": {
+      "imm": {
+        "opcode": "0xE9",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC--V",
+        "comment": "Subtract with borrow immediate"
+      },
+      "zp": {
+        "opcode": "0xE5",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZC--V",
+        "comment": "Subtract with borrow zeropage"
+      },
+      "zpx": {
+        "opcode": "0xF5",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZC--V",
+        "comment": "Subtract with borrow zeropage,X"
+      },
+      "abs": {
+        "opcode": "0xED",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC--V",
+        "comment": "Subtract with borrow absolute"
+      },
+      "absx": {
+        "opcode": "0xFD",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "comment": "Subtract with borrow absolute,X"
+      },
+      "absy": {
+        "opcode": "0xF9",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "comment": "Subtract with borrow absolute,Y"
+      },
+      "indx": {
+        "opcode": "0xE1",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC--V",
+        "comment": "Subtract with borrow (zp,X)"
+      },
+      "indy": {
+        "opcode": "0xF1",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "comment": "Subtract with borrow (zp),Y"
+      }
+    },
+    "AND": {
+      "imm": {
+        "opcode": "0x29",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "AND immediate"
+      },
+      "zp": {
+        "opcode": "0x25",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZ----",
+        "comment": "AND zeropage"
+      },
+      "zpx": {
+        "opcode": "0x35",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "AND zeropage,X"
+      },
+      "abs": {
+        "opcode": "0x2D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "AND absolute"
+      },
+      "absx": {
+        "opcode": "0x3D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "AND absolute,X"
+      },
+      "absy": {
+        "opcode": "0x39",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "AND absolute,Y"
+      },
+      "indx": {
+        "opcode": "0x21",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZ----",
+        "comment": "AND (zp,X)"
+      },
+      "indy": {
+        "opcode": "0x31",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "AND (zp),Y"
+      }
+    },
+    "ORA": {
+      "imm": {
+        "opcode": "0x09",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "ORA immediate"
+      },
+      "zp": {
+        "opcode": "0x05",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZ----",
+        "comment": "ORA zeropage"
+      },
+      "zpx": {
+        "opcode": "0x15",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "ORA zeropage,X"
+      },
+      "abs": {
+        "opcode": "0x0D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "ORA absolute"
+      },
+      "absx": {
+        "opcode": "0x1D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "ORA absolute,X"
+      },
+      "absy": {
+        "opcode": "0x19",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "ORA absolute,Y"
+      },
+      "indx": {
+        "opcode": "0x01",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZ----",
+        "comment": "ORA (zp,X)"
+      },
+      "indy": {
+        "opcode": "0x11",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "ORA (zp),Y"
+      }
+    },
+    "EOR": {
+      "imm": {
+        "opcode": "0x49",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "EOR immediate"
+      },
+      "zp": {
+        "opcode": "0x45",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZ----",
+        "comment": "EOR zeropage"
+      },
+      "zpx": {
+        "opcode": "0x55",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "EOR zeropage,X"
+      },
+      "abs": {
+        "opcode": "0x4D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "comment": "EOR absolute"
+      },
+      "absx": {
+        "opcode": "0x5D",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "EOR absolute,X"
+      },
+      "absy": {
+        "opcode": "0x59",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "EOR absolute,Y"
+      },
+      "indx": {
+        "opcode": "0x41",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZ----",
+        "comment": "EOR (zp,X)"
+      },
+      "indy": {
+        "opcode": "0x51",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "comment": "EOR (zp),Y"
+      }
+    },
+    "CMP": {
+      "imm": {
+        "opcode": "0xC9",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC---",
+        "comment": "Compare A immediate"
+      },
+      "zp": {
+        "opcode": "0xC5",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZC---",
+        "comment": "Compare A zeropage"
+      },
+      "zpx": {
+        "opcode": "0xD5",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZC---",
+        "comment": "Compare A zeropage,X"
+      },
+      "abs": {
+        "opcode": "0xCD",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC---",
+        "comment": "Compare A absolute"
+      },
+      "absx": {
+        "opcode": "0xDD",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "comment": "Compare A absolute,X"
+      },
+      "absy": {
+        "opcode": "0xD9",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "comment": "Compare A absolute,Y"
+      },
+      "indx": {
+        "opcode": "0xC1",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Compare A (zp,X)"
+      },
+      "indy": {
+        "opcode": "0xD1",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "comment": "Compare A (zp),Y"
+      }
+    },
+    "CPX": {
+      "imm": {
+        "opcode": "0xE0",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC---",
+        "comment": "Compare X immediate"
+      },
+      "zp": {
+        "opcode": "0xE4",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZC---",
+        "comment": "Compare X zeropage"
+      },
+      "abs": {
+        "opcode": "0xEC",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC---",
+        "comment": "Compare X absolute"
+      }
+    },
+    "CPY": {
+      "imm": {
+        "opcode": "0xC0",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC---",
+        "comment": "Compare Y immediate"
+      },
+      "zp": {
+        "opcode": "0xC4",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZC---",
+        "comment": "Compare Y zeropage"
+      },
+      "abs": {
+        "opcode": "0xCC",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZC---",
+        "comment": "Compare Y absolute"
+      }
+    },
+    "INC": {
+      "zp": {
+        "opcode": "0xE6",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZ----",
+        "comment": "Increment memory"
+      },
+      "zpx": {
+        "opcode": "0xF6",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZ----",
+        "comment": "Increment memory"
+      },
+      "abs": {
+        "opcode": "0xEE",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZ----",
+        "comment": "Increment memory"
+      },
+      "absx": {
+        "opcode": "0xFE",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZ----",
+        "comment": "Increment memory"
+      }
+    },
+    "INX": {
+      "imp": {
+        "opcode": "0xE8",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "Increment X"
+      }
+    },
+    "INY": {
+      "imp": {
+        "opcode": "0xC8",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "Increment Y"
+      }
+    },
+    "DEC": {
+      "zp": {
+        "opcode": "0xC6",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZ----",
+        "comment": "Decrement memory"
+      },
+      "zpx": {
+        "opcode": "0xD6",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZ----",
+        "comment": "Decrement memory"
+      },
+      "abs": {
+        "opcode": "0xCE",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZ----",
+        "comment": "Decrement memory"
+      },
+      "absx": {
+        "opcode": "0xDE",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZ----",
+        "comment": "Decrement memory"
+      }
+    },
+    "DEX": {
+      "imp": {
+        "opcode": "0xCA",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "Decrement X"
+      }
+    },
+    "DEY": {
+      "imp": {
+        "opcode": "0x88",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZ----",
+        "comment": "Decrement Y"
+      }
+    },
+    "ASL": {
+      "acc": {
+        "opcode": "0x0A",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZC---",
+        "comment": "Arithmetic shift left A"
+      },
+      "zp": {
+        "opcode": "0x06",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "comment": "Arithmetic shift left mem"
+      },
+      "zpx": {
+        "opcode": "0x16",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Arithmetic shift left mem,X"
+      },
+      "abs": {
+        "opcode": "0x0E",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Arithmetic shift left abs"
+      },
+      "absx": {
+        "opcode": "0x1E",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "comment": "Arithmetic shift left abs,X"
+      }
+    },
+    "LSR": {
+      "acc": {
+        "opcode": "0x4A",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZC---",
+        "comment": "Logical shift right A"
+      },
+      "zp": {
+        "opcode": "0x46",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "comment": "Logical shift right mem"
+      },
+      "zpx": {
+        "opcode": "0x56",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Logical shift right mem,X"
+      },
+      "abs": {
+        "opcode": "0x4E",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Logical shift right abs"
+      },
+      "absx": {
+        "opcode": "0x5E",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "comment": "Logical shift right abs,X"
+      }
+    },
+    "ROL": {
+      "acc": {
+        "opcode": "0x2A",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZC---",
+        "comment": "Rotate left A"
+      },
+      "zp": {
+        "opcode": "0x26",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "comment": "Rotate left mem"
+      },
+      "zpx": {
+        "opcode": "0x36",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Rotate left mem,X"
+      },
+      "abs": {
+        "opcode": "0x2E",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Rotate left abs"
+      },
+      "absx": {
+        "opcode": "0x3E",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "comment": "Rotate left abs,X"
+      }
+    },
+    "ROR": {
+      "acc": {
+        "opcode": "0x6A",
+        "bytes": 1,
+        "cycles": 2,
+        "flags": "NZC---",
+        "comment": "Rotate right A"
+      },
+      "zp": {
+        "opcode": "0x66",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "comment": "Rotate right mem"
+      },
+      "zpx": {
+        "opcode": "0x76",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Rotate right mem,X"
+      },
+      "abs": {
+        "opcode": "0x6E",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC---",
+        "comment": "Rotate right abs"
+      },
+      "absx": {
+        "opcode": "0x7E",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "comment": "Rotate right abs,X"
+      }
+    },
+    "SLO": {
+      "indx": {
+        "opcode": "0x03",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "SLO (ASL mem, ORA A)"
+      },
+      "zp": {
+        "opcode": "0x07",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "SLO (ASL mem, ORA A)"
+      },
+      "abs": {
+        "opcode": "0x0F",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "SLO (ASL mem, ORA A)"
+      },
+      "indy": {
+        "opcode": "0x13",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "SLO (ASL mem, ORA A)"
+      },
+      "zpx": {
+        "opcode": "0x17",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "SLO (ASL mem, ORA A)"
+      },
+      "absy": {
+        "opcode": "0x1B",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "SLO (ASL mem, ORA A)"
+      },
+      "absx": {
+        "opcode": "0x1F",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "SLO (ASL mem, ORA A)"
+      }
+    },
+    "RLA": {
+      "indx": {
+        "opcode": "0x23",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "RLA (ROL mem, AND A)"
+      },
+      "zp": {
+        "opcode": "0x27",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "RLA (ROL mem, AND A)"
+      },
+      "abs": {
+        "opcode": "0x2F",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "RLA (ROL mem, AND A)"
+      },
+      "indy": {
+        "opcode": "0x33",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "RLA (ROL mem, AND A)"
+      },
+      "zpx": {
+        "opcode": "0x37",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "RLA (ROL mem, AND A)"
+      },
+      "absy": {
+        "opcode": "0x3B",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "RLA (ROL mem, AND A)"
+      },
+      "absx": {
+        "opcode": "0x3F",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "RLA (ROL mem, AND A)"
+      }
+    },
+    "SRE": {
+      "indx": {
+        "opcode": "0x43",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "SRE (LSR mem, EOR A)"
+      },
+      "zp": {
+        "opcode": "0x47",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "SRE (LSR mem, EOR A)"
+      },
+      "abs": {
+        "opcode": "0x4F",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "SRE (LSR mem, EOR A)"
+      },
+      "indy": {
+        "opcode": "0x53",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "SRE (LSR mem, EOR A)"
+      },
+      "zpx": {
+        "opcode": "0x57",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "SRE (LSR mem, EOR A)"
+      },
+      "absy": {
+        "opcode": "0x5B",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "SRE (LSR mem, EOR A)"
+      },
+      "absx": {
+        "opcode": "0x5F",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "SRE (LSR mem, EOR A)"
+      }
+    },
+    "RRA": {
+      "indx": {
+        "opcode": "0x63",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "RRA (ROR mem, ADC A)"
+      },
+      "zp": {
+        "opcode": "0x67",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "RRA (ROR mem, ADC A)"
+      },
+      "abs": {
+        "opcode": "0x6F",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "RRA (ROR mem, ADC A)"
+      },
+      "indy": {
+        "opcode": "0x73",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "RRA (ROR mem, ADC A)"
+      },
+      "zpx": {
+        "opcode": "0x77",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "RRA (ROR mem, ADC A)"
+      },
+      "absy": {
+        "opcode": "0x7B",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "RRA (ROR mem, ADC A)"
+      },
+      "absx": {
+        "opcode": "0x7F",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "RRA (ROR mem, ADC A)"
+      }
+    },
+    "SAX": {
+      "zp": {
+        "opcode": "0x87",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "------",
+        "illegal": true,
+        "comment": "SAX (A&X → mem)"
+      },
+      "zpy": {
+        "opcode": "0x97",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "------",
+        "illegal": true,
+        "comment": "SAX (A&X → mem)"
+      },
+      "abs": {
+        "opcode": "0x8F",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "------",
+        "illegal": true,
+        "comment": "SAX (A&X → mem)"
+      },
+      "indx": {
+        "opcode": "0x83",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "------",
+        "illegal": true,
+        "comment": "SAX (A&X → mem)"
+      }
+    },
+    "LAX": {
+      "zp": {
+        "opcode": "0xA7",
+        "bytes": 2,
+        "cycles": 3,
+        "flags": "NZ----",
+        "illegal": true,
+        "comment": "LAX (load A,X)"
+      },
+      "zpy": {
+        "opcode": "0xB7",
+        "bytes": 2,
+        "cycles": 4,
+        "flags": "NZ----",
+        "illegal": true,
+        "comment": "LAX (load A,X)"
+      },
+      "abs": {
+        "opcode": "0xAF",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "illegal": true,
+        "comment": "LAX (load A,X)"
+      },
+      "indx": {
+        "opcode": "0xA3",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZ----",
+        "illegal": true,
+        "comment": "LAX (load A,X)"
+      },
+      "indy": {
+        "opcode": "0xB3",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "LAX (load A,X)"
+      },
+      "absy": {
+        "opcode": "0xBF",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "LAX (load A,X)"
+      }
+    },
+    "DCP": {
+      "zp": {
+        "opcode": "0xC7",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "DCP (DEC mem, CMP A)"
+      },
+      "zpx": {
+        "opcode": "0xD7",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "DCP (DEC mem, CMP A)"
+      },
+      "abs": {
+        "opcode": "0xCF",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "DCP (DEC mem, CMP A)"
+      },
+      "absy": {
+        "opcode": "0xDB",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "DCP (DEC mem, CMP A)"
+      },
+      "absx": {
+        "opcode": "0xDF",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "DCP (DEC mem, CMP A)"
+      },
+      "indx": {
+        "opcode": "0xC3",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "DCP (DEC mem, CMP A)"
+      },
+      "indy": {
+        "opcode": "0xD3",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC---",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "DCP (DEC mem, CMP A)"
+      }
+    },
+    "ISC": {
+      "zp": {
+        "opcode": "0xE7",
+        "bytes": 2,
+        "cycles": 5,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "ISC (INC mem, SBC A)"
+      },
+      "zpx": {
+        "opcode": "0xF7",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "ISC (INC mem, SBC A)"
+      },
+      "abs": {
+        "opcode": "0xEF",
+        "bytes": 3,
+        "cycles": 6,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "ISC (INC mem, SBC A)"
+      },
+      "absy": {
+        "opcode": "0xFB",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "ISC (INC mem, SBC A)"
+      },
+      "absx": {
+        "opcode": "0xFF",
+        "bytes": 3,
+        "cycles": 7,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "ISC (INC mem, SBC A)"
+      },
+      "indx": {
+        "opcode": "0xE3",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "ISC (INC mem, SBC A)"
+      },
+      "indy": {
+        "opcode": "0xF3",
+        "bytes": 2,
+        "cycles": 8,
+        "flags": "NZC--V",
+        "page_cross_penalty": 1,
+        "illegal": true,
+        "comment": "ISC (INC mem, SBC A)"
+      }
+    },
+    "AXS": {
+      "imm": {
+        "opcode": "0xCB",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "AXS/SBX: X := (A & X) - imm"
+      }
+    },
+    "ANC": {
+      "imm": {
+        "opcode": "0x0B",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "ANC: A:=A&imm; C:=bit7(A)"
+      },
+      "imm2": {
+        "opcode": "0x2B",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "ANC (variant): A:=A&imm; C:=bit7(A)"
+      }
+    },
+    "ALR": {
+      "imm": {
+        "opcode": "0x4B",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC---",
+        "illegal": true,
+        "comment": "ALR/ASR: A:=(A&imm)>>1"
+      }
+    },
+    "ARR": {
+      "imm": {
+        "opcode": "0x6B",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZC--V",
+        "illegal": true,
+        "comment": "ARR: AND imm, then ROR A; V from bit6^bit5"
+      }
+    },
+    "XAA": {
+      "imm": {
+        "opcode": "0x8B",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZ----",
+        "illegal": true,
+        "comment": "XAA/ANE (unstable): A := (A|const) & X & imm"
+      }
+    },
+    "LXA": {
+      "imm": {
+        "opcode": "0xAB",
+        "bytes": 2,
+        "cycles": 2,
+        "flags": "NZ----",
+        "illegal": true,
+        "comment": "LXA/OAL (unstable): A,X := A&imm"
+      }
+    },
+    "LAS": {
+      "absy": {
+        "opcode": "0xBB",
+        "bytes": 3,
+        "cycles": 4,
+        "flags": "NZ----",
+        "illegal": true,
+        "comment": "LAS: A,X,S := mem & S"
+      }
+    },
+    "TAS": {
+      "absy": {
+        "opcode": "0x9B",
+        "bytes": 3,
+        "cycles": 5,
+        "flags": "------",
+        "illegal": true,
+        "comment": "TAS/SHS: mem := A&X&(hi+1); S := A&X"
+      }
+    },
+    "AHX": {
+      "absy": {
+        "opcode": "0x9F",
+        "bytes": 3,
+        "cycles": 5,
+        "flags": "------",
+        "illegal": true,
+        "comment": "AHX/SHA abs,Y (unstable timing)"
+      },
+      "indy": {
+        "opcode": "0x93",
+        "bytes": 2,
+        "cycles": 6,
+        "flags": "------",
+        "illegal": true,
+        "comment": "AHX/SHA (zp),Y (unstable timing)"
+      }
+    },
+    "SHX": {
+      "absy": {
+        "opcode": "0x9E",
+        "bytes": 3,
+        "cycles": 5,
+        "flags": "------",
+        "illegal": true,
+        "comment": "SHX/SXA abs,Y (unstable timing)"
+      }
+    },
+    "SHY": {
+      "absx": {
+        "opcode": "0x9C",
+        "bytes": 3,
+        "cycles": 5,
+        "flags": "------",
+        "illegal": true,
+        "comment": "SHY/SYA abs,X (unstable timing)"
+      }
+    },
+    "KIL": {
+      "imp": {
+        "opcode": "0xF2",
+        "bytes": 1,
+        "cycles": 0,
+        "flags": "------",
+        "illegal": true,
+        "comment": "KIL/JAM: halt CPU"
+      }
+    }
+  },
+  "opcodes": {
+    "0x00": {
+      "mnem": "BRK",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 7,
+      "flags": "---I--",
+      "comment": "Force break; vector at $FFFE; sets I"
+    },
+    "0x40": {
+      "mnem": "RTI",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 6,
+      "flags": "NZCIDV",
+      "comment": "Return from interrupt; pull P then PC"
+    },
+    "0x60": {
+      "mnem": "RTS",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 6,
+      "flags": "------",
+      "comment": "Return from subroutine; pull PC"
+    },
+    "0xEA": {
+      "mnem": "NOP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "No operation"
+    },
+    "0x4C": {
+      "mnem": "JMP",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 3,
+      "flags": "------",
+      "comment": "Jump absolute"
+    },
+    "0x6C": {
+      "mnem": "JMP",
+      "mode": "ind",
+      "bytes": 3,
+      "cycles": 5,
+      "flags": "------",
+      "comment": "Jump indirect (6502 page-wrap bug)"
+    },
+    "0x20": {
+      "mnem": "JSR",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "------",
+      "comment": "Jump to subroutine"
+    },
+    "0x24": {
+      "mnem": "BIT",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZ---V",
+      "comment": "Test bits (sets N=M7,V=M6,Z=(A&M)==0)"
+    },
+    "0x2C": {
+      "mnem": "BIT",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ---V",
+      "comment": "Test bits absolute"
+    },
+    "0x18": {
+      "mnem": "CLC",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "--C---",
+      "comment": "Clear carry"
+    },
+    "0x38": {
+      "mnem": "SEC",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "--C---",
+      "comment": "Set carry"
+    },
+    "0x58": {
+      "mnem": "CLI",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "---I--",
+      "comment": "Clear interrupt disable"
+    },
+    "0x78": {
+      "mnem": "SEI",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "---I--",
+      "comment": "Set interrupt disable"
+    },
+    "0xB8": {
+      "mnem": "CLV",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "-----V",
+      "comment": "Clear overflow"
+    },
+    "0xD8": {
+      "mnem": "CLD",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "----D-",
+      "comment": "Clear decimal"
+    },
+    "0xF8": {
+      "mnem": "SED",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "----D-",
+      "comment": "Set decimal"
+    },
+    "0xAA": {
+      "mnem": "TAX",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "A→X"
+    },
+    "0x8A": {
+      "mnem": "TXA",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "X→A"
+    },
+    "0xA8": {
+      "mnem": "TAY",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "A→Y"
+    },
+    "0x98": {
+      "mnem": "TYA",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "Y→A"
+    },
+    "0xBA": {
+      "mnem": "TSX",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "S→X"
+    },
+    "0x9A": {
+      "mnem": "TXS",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "X→S"
+    },
+    "0x48": {
+      "mnem": "PHA",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 3,
+      "flags": "------",
+      "comment": "Push A"
+    },
+    "0x08": {
+      "mnem": "PHP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 3,
+      "flags": "------",
+      "comment": "Push P"
+    },
+    "0x68": {
+      "mnem": "PLA",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "Pull A"
+    },
+    "0x28": {
+      "mnem": "PLP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 4,
+      "flags": "NZCIDV",
+      "comment": "Pull P"
+    },
+    "0x10": {
+      "mnem": "BPL",
+      "mode": "rel",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "Branch relative",
+      "branch_taken_penalty": 1,
+      "page_cross_penalty": 1
+    },
+    "0x30": {
+      "mnem": "BMI",
+      "mode": "rel",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "Branch relative",
+      "branch_taken_penalty": 1,
+      "page_cross_penalty": 1
+    },
+    "0x50": {
+      "mnem": "BVC",
+      "mode": "rel",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "Branch relative",
+      "branch_taken_penalty": 1,
+      "page_cross_penalty": 1
+    },
+    "0x70": {
+      "mnem": "BVS",
+      "mode": "rel",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "Branch relative",
+      "branch_taken_penalty": 1,
+      "page_cross_penalty": 1
+    },
+    "0x90": {
+      "mnem": "BCC",
+      "mode": "rel",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "Branch relative",
+      "branch_taken_penalty": 1,
+      "page_cross_penalty": 1
+    },
+    "0xB0": {
+      "mnem": "BCS",
+      "mode": "rel",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "Branch relative",
+      "branch_taken_penalty": 1,
+      "page_cross_penalty": 1
+    },
+    "0xD0": {
+      "mnem": "BNE",
+      "mode": "rel",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "Branch relative",
+      "branch_taken_penalty": 1,
+      "page_cross_penalty": 1
+    },
+    "0xF0": {
+      "mnem": "BEQ",
+      "mode": "rel",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "comment": "Branch relative",
+      "branch_taken_penalty": 1,
+      "page_cross_penalty": 1
+    },
+    "0xA9": {
+      "mnem": "LDA",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "Load A immediate"
+    },
+    "0xA5": {
+      "mnem": "LDA",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZ----",
+      "comment": "Load A zeropage"
+    },
+    "0xB5": {
+      "mnem": "LDA",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "Load A zeropage,X"
+    },
+    "0xAD": {
+      "mnem": "LDA",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "Load A absolute"
+    },
+    "0xBD": {
+      "mnem": "LDA",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "Load A absolute,X"
+    },
+    "0xB9": {
+      "mnem": "LDA",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "Load A absolute,Y"
+    },
+    "0xA1": {
+      "mnem": "LDA",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZ----",
+      "comment": "Load A (zp,X)"
+    },
+    "0xB1": {
+      "mnem": "LDA",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "Load A (zp),Y"
+    },
+    "0xA2": {
+      "mnem": "LDX",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "Load X immediate"
+    },
+    "0xA6": {
+      "mnem": "LDX",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZ----",
+      "comment": "Load X zeropage"
+    },
+    "0xB6": {
+      "mnem": "LDX",
+      "mode": "zpy",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "Load X zeropage,Y"
+    },
+    "0xAE": {
+      "mnem": "LDX",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "Load X absolute"
+    },
+    "0xBE": {
+      "mnem": "LDX",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "Load X absolute,Y"
+    },
+    "0xA0": {
+      "mnem": "LDY",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "Load Y immediate"
+    },
+    "0xA4": {
+      "mnem": "LDY",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZ----",
+      "comment": "Load Y zeropage"
+    },
+    "0xB4": {
+      "mnem": "LDY",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "Load Y zeropage,X"
+    },
+    "0xAC": {
+      "mnem": "LDY",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "Load Y absolute"
+    },
+    "0xBC": {
+      "mnem": "LDY",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "Load Y absolute,X"
+    },
+    "0x85": {
+      "mnem": "STA",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "------",
+      "comment": "Store A zeropage"
+    },
+    "0x95": {
+      "mnem": "STA",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "comment": "Store A zeropage,X"
+    },
+    "0x8D": {
+      "mnem": "STA",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "comment": "Store A absolute"
+    },
+    "0x9D": {
+      "mnem": "STA",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 5,
+      "flags": "------",
+      "comment": "Store A absolute,X"
+    },
+    "0x99": {
+      "mnem": "STA",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 5,
+      "flags": "------",
+      "comment": "Store A absolute,Y"
+    },
+    "0x81": {
+      "mnem": "STA",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "------",
+      "comment": "Store A (zp,X)"
+    },
+    "0x91": {
+      "mnem": "STA",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "------",
+      "comment": "Store A (zp),Y"
+    },
+    "0x86": {
+      "mnem": "STX",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "------",
+      "comment": "Store X zeropage"
+    },
+    "0x96": {
+      "mnem": "STX",
+      "mode": "zpy",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "comment": "Store X zeropage,Y"
+    },
+    "0x8E": {
+      "mnem": "STX",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "comment": "Store X absolute"
+    },
+    "0x84": {
+      "mnem": "STY",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "------",
+      "comment": "Store Y zeropage"
+    },
+    "0x94": {
+      "mnem": "STY",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "comment": "Store Y zeropage,X"
+    },
+    "0x8C": {
+      "mnem": "STY",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "comment": "Store Y absolute"
+    },
+    "0x69": {
+      "mnem": "ADC",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC--V",
+      "comment": "Add with carry immediate"
+    },
+    "0x65": {
+      "mnem": "ADC",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZC--V",
+      "comment": "Add with carry zeropage"
+    },
+    "0x75": {
+      "mnem": "ADC",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZC--V",
+      "comment": "Add with carry zeropage,X"
+    },
+    "0x6D": {
+      "mnem": "ADC",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC--V",
+      "comment": "Add with carry absolute"
+    },
+    "0x7D": {
+      "mnem": "ADC",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "comment": "Add with carry absolute,X"
+    },
+    "0x79": {
+      "mnem": "ADC",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "comment": "Add with carry absolute,Y"
+    },
+    "0x61": {
+      "mnem": "ADC",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC--V",
+      "comment": "Add with carry (zp,X)"
+    },
+    "0x71": {
+      "mnem": "ADC",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "comment": "Add with carry (zp),Y"
+    },
+    "0xE9": {
+      "mnem": "SBC",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC--V",
+      "comment": "Subtract with borrow immediate"
+    },
+    "0xE5": {
+      "mnem": "SBC",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZC--V",
+      "comment": "Subtract with borrow zeropage"
+    },
+    "0xF5": {
+      "mnem": "SBC",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZC--V",
+      "comment": "Subtract with borrow zeropage,X"
+    },
+    "0xED": {
+      "mnem": "SBC",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC--V",
+      "comment": "Subtract with borrow absolute"
+    },
+    "0xFD": {
+      "mnem": "SBC",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "comment": "Subtract with borrow absolute,X"
+    },
+    "0xF9": {
+      "mnem": "SBC",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "comment": "Subtract with borrow absolute,Y"
+    },
+    "0xE1": {
+      "mnem": "SBC",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC--V",
+      "comment": "Subtract with borrow (zp,X)"
+    },
+    "0xF1": {
+      "mnem": "SBC",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "comment": "Subtract with borrow (zp),Y"
+    },
+    "0x29": {
+      "mnem": "AND",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "AND immediate"
+    },
+    "0x25": {
+      "mnem": "AND",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZ----",
+      "comment": "AND zeropage"
+    },
+    "0x35": {
+      "mnem": "AND",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "AND zeropage,X"
+    },
+    "0x2D": {
+      "mnem": "AND",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "AND absolute"
+    },
+    "0x3D": {
+      "mnem": "AND",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "AND absolute,X"
+    },
+    "0x39": {
+      "mnem": "AND",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "AND absolute,Y"
+    },
+    "0x21": {
+      "mnem": "AND",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZ----",
+      "comment": "AND (zp,X)"
+    },
+    "0x31": {
+      "mnem": "AND",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "AND (zp),Y"
+    },
+    "0x09": {
+      "mnem": "ORA",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "ORA immediate"
+    },
+    "0x05": {
+      "mnem": "ORA",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZ----",
+      "comment": "ORA zeropage"
+    },
+    "0x15": {
+      "mnem": "ORA",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "ORA zeropage,X"
+    },
+    "0x0D": {
+      "mnem": "ORA",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "ORA absolute"
+    },
+    "0x1D": {
+      "mnem": "ORA",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "ORA absolute,X"
+    },
+    "0x19": {
+      "mnem": "ORA",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "ORA absolute,Y"
+    },
+    "0x01": {
+      "mnem": "ORA",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZ----",
+      "comment": "ORA (zp,X)"
+    },
+    "0x11": {
+      "mnem": "ORA",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "ORA (zp),Y"
+    },
+    "0x49": {
+      "mnem": "EOR",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "EOR immediate"
+    },
+    "0x45": {
+      "mnem": "EOR",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZ----",
+      "comment": "EOR zeropage"
+    },
+    "0x55": {
+      "mnem": "EOR",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "EOR zeropage,X"
+    },
+    "0x4D": {
+      "mnem": "EOR",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "comment": "EOR absolute"
+    },
+    "0x5D": {
+      "mnem": "EOR",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "EOR absolute,X"
+    },
+    "0x59": {
+      "mnem": "EOR",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "EOR absolute,Y"
+    },
+    "0x41": {
+      "mnem": "EOR",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZ----",
+      "comment": "EOR (zp,X)"
+    },
+    "0x51": {
+      "mnem": "EOR",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "comment": "EOR (zp),Y"
+    },
+    "0xC9": {
+      "mnem": "CMP",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC---",
+      "comment": "Compare A immediate"
+    },
+    "0xC5": {
+      "mnem": "CMP",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZC---",
+      "comment": "Compare A zeropage"
+    },
+    "0xD5": {
+      "mnem": "CMP",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZC---",
+      "comment": "Compare A zeropage,X"
+    },
+    "0xCD": {
+      "mnem": "CMP",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC---",
+      "comment": "Compare A absolute"
+    },
+    "0xDD": {
+      "mnem": "CMP",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "comment": "Compare A absolute,X"
+    },
+    "0xD9": {
+      "mnem": "CMP",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "comment": "Compare A absolute,Y"
+    },
+    "0xC1": {
+      "mnem": "CMP",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Compare A (zp,X)"
+    },
+    "0xD1": {
+      "mnem": "CMP",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "comment": "Compare A (zp),Y"
+    },
+    "0xE0": {
+      "mnem": "CPX",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC---",
+      "comment": "Compare X immediate"
+    },
+    "0xE4": {
+      "mnem": "CPX",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZC---",
+      "comment": "Compare X zeropage"
+    },
+    "0xEC": {
+      "mnem": "CPX",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC---",
+      "comment": "Compare X absolute"
+    },
+    "0xC0": {
+      "mnem": "CPY",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC---",
+      "comment": "Compare Y immediate"
+    },
+    "0xC4": {
+      "mnem": "CPY",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZC---",
+      "comment": "Compare Y zeropage"
+    },
+    "0xCC": {
+      "mnem": "CPY",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZC---",
+      "comment": "Compare Y absolute"
+    },
+    "0xE6": {
+      "mnem": "INC",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZ----",
+      "comment": "Increment memory"
+    },
+    "0xF6": {
+      "mnem": "INC",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZ----",
+      "comment": "Increment memory"
+    },
+    "0xEE": {
+      "mnem": "INC",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZ----",
+      "comment": "Increment memory"
+    },
+    "0xFE": {
+      "mnem": "INC",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZ----",
+      "comment": "Increment memory"
+    },
+    "0xE8": {
+      "mnem": "INX",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "Increment X"
+    },
+    "0xC8": {
+      "mnem": "INY",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "Increment Y"
+    },
+    "0xC6": {
+      "mnem": "DEC",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZ----",
+      "comment": "Decrement memory"
+    },
+    "0xD6": {
+      "mnem": "DEC",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZ----",
+      "comment": "Decrement memory"
+    },
+    "0xCE": {
+      "mnem": "DEC",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZ----",
+      "comment": "Decrement memory"
+    },
+    "0xDE": {
+      "mnem": "DEC",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZ----",
+      "comment": "Decrement memory"
+    },
+    "0xCA": {
+      "mnem": "DEX",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "Decrement X"
+    },
+    "0x88": {
+      "mnem": "DEY",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZ----",
+      "comment": "Decrement Y"
+    },
+    "0x0A": {
+      "mnem": "ASL",
+      "mode": "acc",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZC---",
+      "comment": "Arithmetic shift left A"
+    },
+    "0x06": {
+      "mnem": "ASL",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "comment": "Arithmetic shift left mem"
+    },
+    "0x16": {
+      "mnem": "ASL",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Arithmetic shift left mem,X"
+    },
+    "0x0E": {
+      "mnem": "ASL",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Arithmetic shift left abs"
+    },
+    "0x1E": {
+      "mnem": "ASL",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "comment": "Arithmetic shift left abs,X"
+    },
+    "0x4A": {
+      "mnem": "LSR",
+      "mode": "acc",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZC---",
+      "comment": "Logical shift right A"
+    },
+    "0x46": {
+      "mnem": "LSR",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "comment": "Logical shift right mem"
+    },
+    "0x56": {
+      "mnem": "LSR",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Logical shift right mem,X"
+    },
+    "0x4E": {
+      "mnem": "LSR",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Logical shift right abs"
+    },
+    "0x5E": {
+      "mnem": "LSR",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "comment": "Logical shift right abs,X"
+    },
+    "0x2A": {
+      "mnem": "ROL",
+      "mode": "acc",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZC---",
+      "comment": "Rotate left A"
+    },
+    "0x26": {
+      "mnem": "ROL",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "comment": "Rotate left mem"
+    },
+    "0x36": {
+      "mnem": "ROL",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Rotate left mem,X"
+    },
+    "0x2E": {
+      "mnem": "ROL",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Rotate left abs"
+    },
+    "0x3E": {
+      "mnem": "ROL",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "comment": "Rotate left abs,X"
+    },
+    "0x6A": {
+      "mnem": "ROR",
+      "mode": "acc",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "NZC---",
+      "comment": "Rotate right A"
+    },
+    "0x66": {
+      "mnem": "ROR",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "comment": "Rotate right mem"
+    },
+    "0x76": {
+      "mnem": "ROR",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Rotate right mem,X"
+    },
+    "0x6E": {
+      "mnem": "ROR",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC---",
+      "comment": "Rotate right abs"
+    },
+    "0x7E": {
+      "mnem": "ROR",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "comment": "Rotate right abs,X"
+    },
+    "0x03": {
+      "mnem": "SLO",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "SLO (ASL mem, ORA A)"
+    },
+    "0x07": {
+      "mnem": "SLO",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "SLO (ASL mem, ORA A)"
+    },
+    "0x0F": {
+      "mnem": "SLO",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "SLO (ASL mem, ORA A)"
+    },
+    "0x13": {
+      "mnem": "SLO",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "SLO (ASL mem, ORA A)"
+    },
+    "0x17": {
+      "mnem": "SLO",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "SLO (ASL mem, ORA A)"
+    },
+    "0x1B": {
+      "mnem": "SLO",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "SLO (ASL mem, ORA A)"
+    },
+    "0x1F": {
+      "mnem": "SLO",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "SLO (ASL mem, ORA A)"
+    },
+    "0x23": {
+      "mnem": "RLA",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "RLA (ROL mem, AND A)"
+    },
+    "0x27": {
+      "mnem": "RLA",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "RLA (ROL mem, AND A)"
+    },
+    "0x2F": {
+      "mnem": "RLA",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "RLA (ROL mem, AND A)"
+    },
+    "0x33": {
+      "mnem": "RLA",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "RLA (ROL mem, AND A)"
+    },
+    "0x37": {
+      "mnem": "RLA",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "RLA (ROL mem, AND A)"
+    },
+    "0x3B": {
+      "mnem": "RLA",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "RLA (ROL mem, AND A)"
+    },
+    "0x3F": {
+      "mnem": "RLA",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "RLA (ROL mem, AND A)"
+    },
+    "0x43": {
+      "mnem": "SRE",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "SRE (LSR mem, EOR A)"
+    },
+    "0x47": {
+      "mnem": "SRE",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "SRE (LSR mem, EOR A)"
+    },
+    "0x4F": {
+      "mnem": "SRE",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "SRE (LSR mem, EOR A)"
+    },
+    "0x53": {
+      "mnem": "SRE",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "SRE (LSR mem, EOR A)"
+    },
+    "0x57": {
+      "mnem": "SRE",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "SRE (LSR mem, EOR A)"
+    },
+    "0x5B": {
+      "mnem": "SRE",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "SRE (LSR mem, EOR A)"
+    },
+    "0x5F": {
+      "mnem": "SRE",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "SRE (LSR mem, EOR A)"
+    },
+    "0x63": {
+      "mnem": "RRA",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "RRA (ROR mem, ADC A)"
+    },
+    "0x67": {
+      "mnem": "RRA",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "RRA (ROR mem, ADC A)"
+    },
+    "0x6F": {
+      "mnem": "RRA",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "RRA (ROR mem, ADC A)"
+    },
+    "0x73": {
+      "mnem": "RRA",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "RRA (ROR mem, ADC A)"
+    },
+    "0x77": {
+      "mnem": "RRA",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "RRA (ROR mem, ADC A)"
+    },
+    "0x7B": {
+      "mnem": "RRA",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "RRA (ROR mem, ADC A)"
+    },
+    "0x7F": {
+      "mnem": "RRA",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "RRA (ROR mem, ADC A)"
+    },
+    "0x87": {
+      "mnem": "SAX",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "------",
+      "illegal": true,
+      "comment": "SAX (A&X → mem)"
+    },
+    "0x97": {
+      "mnem": "SAX",
+      "mode": "zpy",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "SAX (A&X → mem)"
+    },
+    "0x8F": {
+      "mnem": "SAX",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "SAX (A&X → mem)"
+    },
+    "0x83": {
+      "mnem": "SAX",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "------",
+      "illegal": true,
+      "comment": "SAX (A&X → mem)"
+    },
+    "0xA7": {
+      "mnem": "LAX",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "NZ----",
+      "illegal": true,
+      "comment": "LAX (load A,X)"
+    },
+    "0xB7": {
+      "mnem": "LAX",
+      "mode": "zpy",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "NZ----",
+      "illegal": true,
+      "comment": "LAX (load A,X)"
+    },
+    "0xAF": {
+      "mnem": "LAX",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "illegal": true,
+      "comment": "LAX (load A,X)"
+    },
+    "0xA3": {
+      "mnem": "LAX",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZ----",
+      "illegal": true,
+      "comment": "LAX (load A,X)"
+    },
+    "0xB3": {
+      "mnem": "LAX",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "LAX (load A,X)"
+    },
+    "0xBF": {
+      "mnem": "LAX",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "LAX (load A,X)"
+    },
+    "0xC7": {
+      "mnem": "DCP",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "DCP (DEC mem, CMP A)"
+    },
+    "0xD7": {
+      "mnem": "DCP",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "DCP (DEC mem, CMP A)"
+    },
+    "0xCF": {
+      "mnem": "DCP",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "DCP (DEC mem, CMP A)"
+    },
+    "0xDB": {
+      "mnem": "DCP",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "DCP (DEC mem, CMP A)"
+    },
+    "0xDF": {
+      "mnem": "DCP",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "DCP (DEC mem, CMP A)"
+    },
+    "0xC3": {
+      "mnem": "DCP",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "DCP (DEC mem, CMP A)"
+    },
+    "0xD3": {
+      "mnem": "DCP",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC---",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "DCP (DEC mem, CMP A)"
+    },
+    "0xE7": {
+      "mnem": "ISC",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 5,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "ISC (INC mem, SBC A)"
+    },
+    "0xF7": {
+      "mnem": "ISC",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "ISC (INC mem, SBC A)"
+    },
+    "0xEF": {
+      "mnem": "ISC",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 6,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "ISC (INC mem, SBC A)"
+    },
+    "0xFB": {
+      "mnem": "ISC",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "ISC (INC mem, SBC A)"
+    },
+    "0xFF": {
+      "mnem": "ISC",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 7,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "ISC (INC mem, SBC A)"
+    },
+    "0xE3": {
+      "mnem": "ISC",
+      "mode": "indx",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "ISC (INC mem, SBC A)"
+    },
+    "0xF3": {
+      "mnem": "ISC",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 8,
+      "flags": "NZC--V",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "ISC (INC mem, SBC A)"
+    },
+    "0xCB": {
+      "mnem": "AXS",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "AXS/SBX: X := (A & X) - imm"
+    },
+    "0x0B": {
+      "mnem": "ANC",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "ANC: A:=A&imm; C:=bit7(A)"
+    },
+    "0x2B": {
+      "mnem": "ANC",
+      "mode": "imm2",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "ANC (variant): A:=A&imm; C:=bit7(A)"
+    },
+    "0x4B": {
+      "mnem": "ALR",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC---",
+      "illegal": true,
+      "comment": "ALR/ASR: A:=(A&imm)>>1"
+    },
+    "0x6B": {
+      "mnem": "ARR",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZC--V",
+      "illegal": true,
+      "comment": "ARR: AND imm, then ROR A; V from bit6^bit5"
+    },
+    "0x8B": {
+      "mnem": "XAA",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZ----",
+      "illegal": true,
+      "comment": "XAA/ANE (unstable): A := (A|const) & X & imm"
+    },
+    "0xAB": {
+      "mnem": "LXA",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "NZ----",
+      "illegal": true,
+      "comment": "LXA/OAL (unstable): A,X := A&imm"
+    },
+    "0xBB": {
+      "mnem": "LAS",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "NZ----",
+      "illegal": true,
+      "comment": "LAS: A,X,S := mem & S"
+    },
+    "0x9B": {
+      "mnem": "TAS",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 5,
+      "flags": "------",
+      "illegal": true,
+      "comment": "TAS/SHS: mem := A&X&(hi+1); S := A&X"
+    },
+    "0x9F": {
+      "mnem": "AHX",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 5,
+      "flags": "------",
+      "illegal": true,
+      "comment": "AHX/SHA abs,Y (unstable timing)"
+    },
+    "0x93": {
+      "mnem": "AHX",
+      "mode": "indy",
+      "bytes": 2,
+      "cycles": 6,
+      "flags": "------",
+      "illegal": true,
+      "comment": "AHX/SHA (zp),Y (unstable timing)"
+    },
+    "0x9E": {
+      "mnem": "SHX",
+      "mode": "absy",
+      "bytes": 3,
+      "cycles": 5,
+      "flags": "------",
+      "illegal": true,
+      "comment": "SHX/SXA abs,Y (unstable timing)"
+    },
+    "0x9C": {
+      "mnem": "SHY",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 5,
+      "flags": "------",
+      "illegal": true,
+      "comment": "SHY/SYA abs,X (unstable timing)"
+    },
+    "0x1A": {
+      "mnem": "NOP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 1-byte NOP"
+    },
+    "0x3A": {
+      "mnem": "NOP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 1-byte NOP"
+    },
+    "0x5A": {
+      "mnem": "NOP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 1-byte NOP"
+    },
+    "0x7A": {
+      "mnem": "NOP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 1-byte NOP"
+    },
+    "0xDA": {
+      "mnem": "NOP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 1-byte NOP"
+    },
+    "0xFA": {
+      "mnem": "NOP",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 1-byte NOP"
+    },
+    "0x80": {
+      "mnem": "NOP",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads imm)"
+    },
+    "0x82": {
+      "mnem": "NOP",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads imm)"
+    },
+    "0xC2": {
+      "mnem": "NOP",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads imm)"
+    },
+    "0xE2": {
+      "mnem": "NOP",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads imm)"
+    },
+    "0x89": {
+      "mnem": "NOP",
+      "mode": "imm",
+      "bytes": 2,
+      "cycles": 2,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads imm)"
+    },
+    "0x04": {
+      "mnem": "NOP",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp)"
+    },
+    "0x44": {
+      "mnem": "NOP",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp)"
+    },
+    "0x64": {
+      "mnem": "NOP",
+      "mode": "zp",
+      "bytes": 2,
+      "cycles": 3,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp)"
+    },
+    "0x14": {
+      "mnem": "NOP",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp,X)"
+    },
+    "0x34": {
+      "mnem": "NOP",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp,X)"
+    },
+    "0x54": {
+      "mnem": "NOP",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp,X)"
+    },
+    "0x74": {
+      "mnem": "NOP",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp,X)"
+    },
+    "0xD4": {
+      "mnem": "NOP",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp,X)"
+    },
+    "0xF4": {
+      "mnem": "NOP",
+      "mode": "zpx",
+      "bytes": 2,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 2-byte NOP (reads zp,X)"
+    },
+    "0x0C": {
+      "mnem": "NOP",
+      "mode": "abs",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "illegal": true,
+      "comment": "Unofficial 3-byte NOP (reads abs)"
+    },
+    "0x1C": {
+      "mnem": "NOP",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "Unofficial 3-byte NOP (reads abs,X)"
+    },
+    "0x3C": {
+      "mnem": "NOP",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "Unofficial 3-byte NOP (reads abs,X)"
+    },
+    "0x5C": {
+      "mnem": "NOP",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "Unofficial 3-byte NOP (reads abs,X)"
+    },
+    "0x7C": {
+      "mnem": "NOP",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "Unofficial 3-byte NOP (reads abs,X)"
+    },
+    "0xDC": {
+      "mnem": "NOP",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "Unofficial 3-byte NOP (reads abs,X)"
+    },
+    "0xFC": {
+      "mnem": "NOP",
+      "mode": "absx",
+      "bytes": 3,
+      "cycles": 4,
+      "flags": "------",
+      "page_cross_penalty": 1,
+      "illegal": true,
+      "comment": "Unofficial 3-byte NOP (reads abs,X)"
+    },
+    "0x02": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0x12": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0x22": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0x32": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0x42": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0x52": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0x62": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0x72": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0x92": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0xB2": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0xD2": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    },
+    "0xF2": {
+      "mnem": "KIL",
+      "mode": "imp",
+      "bytes": 1,
+      "cycles": 0,
+      "flags": "------",
+      "illegal": true,
+      "comment": "KIL/JAM: halt CPU"
+    }
+  }
+}
