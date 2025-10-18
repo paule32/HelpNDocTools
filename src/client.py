@@ -159,9 +159,10 @@ GRAPHICS = {
 SAMPLE = r""" ; demo comment
         LDX #$00
 loop:   LDA msg,X
-        BEQ done
+        ; BEQ done
         JSR $FFD2
         INX
+        CPX #$14
         BNE loop
 done:   RTS
 msg:    .text "HELLO, C64!", 0, $0A, "OK", 0
@@ -4814,19 +4815,35 @@ try:
         if b in GRAPHICS: return GRAPHICS[b]
         if b in (0x00,0xA0): return ' '
         return '·'
-    
-    def hexdump_rows(data: bytes, base_addr: int = 0x0000, bank: str = "upper_graphics") -> List[str]:
+        
+    def petscii_char(byte: int, mode: str = "upper"):
+        b = byte & 0xFF
+        if 0x20 <= b <= 0x7E:
+            ch = chr(b)
+            if mode == "upper":
+                if 'a' <= ch <= 'z':
+                    ch = ch.upper()
+                if ch in "{}[]`":
+                    ch = "·"
+            return ch
+        if b in (0xA0, 0x00):
+            return " "
+        return "·"
+
+    def hexdump_rows(data: bytes, base_addr: int = 0x0000, view_mode: str = "petscii") -> List[str]:
         rows = []
         for i in range(0, len(data), 8):
             chunk = data[i:i+8]
-            
-            left  = " ".join(f"{b:02X}" for b in chunk[:4]).ljust(11)
+            left = " ".join(f"{b:02X}" for b in chunk[:4]).ljust(11)
             right = " ".join(f"{b:02X}" for b in chunk[4:8]).ljust(11)
-            
-            txt   = "" .join(petscii_text_char(b, bank) for b in chunk)
-            rows.append(f"{(base_addr+i):04X}  {left} | {right}  {txt}")
+            if view_mode == "petscii":
+                ascii_part = "".join(petscii_char(b, "upper") for b in chunk)
+            else:
+                ascii_part = "".join(chr(b) if 32 <= b <= 126 else "." for b in chunk)
+            addr = base_addr + i
+            rows.append(f"{addr:04X}  {left} | {right}  {ascii_part}")
         return rows
-    
+
     # ===================== Assembler =====================
     @dataclass
     class AsmLine:
@@ -4835,26 +4852,37 @@ try:
         operand : Optional[str]
         raw     : str
         lineno  : int
+        
+    ALIASES = {
+        "BNZ": "BNE",   # Branch if Not Zero -> BNE (Z=0)
+        "BZ":  "BEQ",   # Branch if Zero     -> BEQ (Z=1)
+    }
     
     class MiniAssembler:
         def __init__(self, spec: C6510Spec):
             self.spec = spec
-            self.org = 0x1000; self.pc = self.org; self.symbols: Dict[str,int] = {}
+            self.org  = 0x1000
+            self.pc   = self.org
+            self.symbols: Dict[str,int] = {}
         
         def parse(self, text: str) -> List[AsmLine]:
             lines: List[AsmLine] = []
             for lineno, rawline in enumerate(text.splitlines(), start=1):
                 line = rawline.split(";",1)[0].rstrip()
-                if not line.strip(): continue
-                label=None; mnemonic=None; operand=None
+                if not line.strip():
+                    continue
+                label    = None
+                mnemonic = None
+                operand  = None
                 if ":" in line:
                     before, after = line.split(":",1)
-                    if before.strip(): label = before.strip()
+                    if before.strip():
+                        label = before.strip()
                     line = after.strip()
                 if line:
-                    parts = line.split(None,1)
+                    parts    = line.split(None,1)
                     mnemonic = parts[0].upper()
-                    operand = parts[1].strip() if len(parts)>1 else None
+                    operand  = parts[1].strip() if len(parts)>1 else None
                 lines.append(AsmLine(label,mnemonic,operand,rawline,lineno))
             return lines
         
@@ -4917,72 +4945,149 @@ try:
         
         def assemble(self, text: str) -> Tuple[bytes,int,List[str]]:
             listing: List[str] = []
-            lines = self.parse(text)
-            self.pc = self.org; self.symbols.clear()
             
-            # pass 1
+            lines   = self.parse(text)
+            self.pc = self.org
+            
+            self.symbols.clear()
+            
+            BRANCHES = {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}
+            
+            # -------- Pass 1: Labels sammeln & Größe vorwärts bestimmen --------
+            self.pc = self.org
+            self.symbols.clear()
+
+            # kleine Helfer: .TEXT/.ASC/.BYTE Argumentliste (Strings + Ausdrücke)
+            def _split_args(operand: str|None):
+                if not operand: return []
+                s = operand
+                out, buf, in_str = [], [], False
+                i = 0
+                while i < len(s):
+                    c = s[i]
+                    if c == '"':
+                        in_str = not in_str
+                        buf.append(c)
+                        i += 1
+                        continue
+                    if c == ',' and not in_str:
+                        part = "".join(buf).strip()
+                        if part: out.append(part)
+                        buf = []
+                        i += 1
+                        continue
+                    buf.append(c); i += 1
+                part = "".join(buf).strip()
+                if part: out.append(part)
+                return out
+
             for ln in lines:
+                # Label-Adresse setzen
                 if ln.label:
                     if ln.label in self.symbols:
                         raise ValueError(f"Label doppelt definiert: {ln.label} (Zeile {ln.lineno})")
                     self.symbols[ln.label] = self.pc
+
                 if not ln.mnemonic:
                     continue
-                mnem = ln.mnemonic.upper()
+
+                mnem = ALIASES.get(ln.mnemonic.upper(), ln.mnemonic.upper())
+
+                # Direktiven
                 if mnem == ".ORG":
                     if not ln.operand:
-                        raise ValueError(f".text/.org erwartet Argument(e) (Zeile {ln.lineno})")
+                        raise ValueError(f".org ohne Adresse (Zeile {ln.lineno})")
                     self.org = self.eval_expr(ln.operand)
-                    self.pc  = self.org
+                    self.pc = self.org
                     continue
-                if mnem in (".BYTE",".BYT",".TEXT",".ASC"):
-                    parts = split_args(ln.operand or "")
+
+                if mnem in (".BYTE", ".BYT", ".TEXT", ".ASC"):
+                    parts = _split_args(ln.operand)
                     for p in parts:
-                        p = p.strip()
                         if p.startswith('"') and p.endswith('"'):
                             s = bytes(p[1:-1], "latin1", "replace")
                             self.pc += len(s)
                         else:
-                            self.pc += 1  # one byte
+                            self.pc += 1
                     continue
+
                 if mnem == ".WORD":
-                    parts = split_args(ln.operand or "")
-                    self.pc += 2*len(parts); continue
-                
-                if mnem in {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}:
-                    self.pc += 2; continue
+                    parts = _split_args(ln.operand)
+                    self.pc += 2 * len(parts)
+                    continue
+
+                # Instruktionen
+                if mnem in BRANCHES:
+                    self.pc += 2  # opcode + rel8
+                    continue
+
+                # Adressierungsmodus bestimmen -> Größe addieren
                 try:
                     mode, ob = self.detect_mode_and_operand_bytes(mnem, ln.operand, self.pc)
-                    _ = self.spec.get_opcode(mnem, mode); self.pc += 1+len(ob)
+                    _ = self.spec.get_opcode(mnem, mode)  # Validierung
+                    self.pc += 1 + len(ob)
                 except Exception:
+                    # konservativ: 3 Bytes annehmen (schlägt bei Forward-Labels nicht fehl)
                     self.pc += 3
-            
-            # pass 2
-            self.pc = self.org; out = bytearray()
+
+            # -------- Pass 2: Bytes ausgeben --------
+            self.pc = self.org
+            out = bytearray()
+
             for ln in lines:
-                if not ln.mnemonic: continue
-                mnem = ln.mnemonic.upper()
+                if not ln.mnemonic:
+                    continue
+
+                mnem_in = ln.mnemonic.upper()
+                mnem = ALIASES.get(mnem_in, mnem_in)
+
                 if mnem == ".ORG":
-                    self.org = self.eval_expr(ln.operand); self.pc = self.org; out = bytearray(); continue
-                if mnem in (".BYTE",".BYT",".TEXT",".ASC"):
-                    parts = split_args(ln.operand or "")
+                    self.org = self.eval_expr(ln.operand)
+                    self.pc = self.org
+                    out = bytearray()
+                    continue
+
+                if mnem in (".BYTE", ".BYT", ".TEXT", ".ASC"):
+                    parts = _split_args(ln.operand)
                     for p in parts:
-                        p = p.strip()
                         if p.startswith('"') and p.endswith('"'):
-                            s = bytes(p[1:-1], "latin1", "replace"); out.extend(s); self.pc += len(s)
+                            s = bytes(p[1:-1], "latin1", "replace")
+                            out.extend(s)
+                            self.pc += len(s)
                         else:
-                            v = self.eval_expr(p) & 0xFF; out.append(v); self.pc += 1
+                            v = self.eval_expr(p) & 0xFF
+                            out.append(v)
+                            self.pc += 1
                     continue
+
                 if mnem == ".WORD":
-                    parts = split_args(ln.operand or "")
+                    parts = _split_args(ln.operand)
                     for p in parts:
-                        v = self.eval_expr(p) & 0xFFFF; out.extend([v & 0xFF, (v>>8)&0xFF]); self.pc += 2
+                        v = self.eval_expr(p) & 0xFFFF
+                        out.extend([v & 0xFF, (v >> 8) & 0xFF])  # little endian
+                        self.pc += 2
                     continue
-                if mnem in {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}:
-                    opcode = self.spec.get_opcode(mnem, "rel"); target = self.eval_expr(ln.operand)
-                    off = C6510Spec.rel_branch_offset(self.pc, target); out.extend([opcode, off]); self.pc += 2; continue
+
+                if mnem in BRANCHES:
+                    opcode = self.spec.get_opcode(mnem, "rel")
+                    target = self.eval_expr(ln.operand)
+                    off = C6510Spec.rel_branch_offset(self.pc, target)
+                    out.extend([opcode, off])
+                    listing.append(f"{self.pc:04X}: {opcode:02X} {off:02X}    {mnem} {ln.operand or ''}")
+                    self.pc += 2
+                    continue
+
+                # normaler Opcode
                 mode, ob = self.detect_mode_and_operand_bytes(mnem, ln.operand, self.pc)
-                opcode = self.spec.get_opcode(mnem, mode); out.append(opcode); out.extend(ob); self.pc += 1 + len(ob)
+                opcode = self.spec.get_opcode(mnem, mode)
+                out.append(opcode)
+                out.extend(ob)
+                listing.append(
+                    f"{self.pc:04X}: " + " ".join(f"{b:02X}" for b in [opcode] + ob) +
+                    f"    {mnem} {ln.operand or ''}"
+                )
+                self.pc += 1 + len(ob)
+
             return bytes(out), self.org, listing
     
     # ===================== PRG writers =====================
@@ -5005,10 +5110,14 @@ try:
         def __init__(self, parent=None):
             super(C64AssemblerMainWindow, self).__init__(parent)
             self.setContentsMargins(0, 0, 0, 0)
-            self.resize(840, 800)
+            self.resize(845, 800)
             
             self.spec = C6510Spec.from_json("6510_with_illegal_flags.json")
             self.assembler = MiniAssembler(self.spec)
+            
+            # persistent temp dir for PRG to keep file alive while VICE loads it
+            self._persist_tmp = tempfile.TemporaryDirectory()
+            self._persist_prg_path = os.path.join(self._persist_tmp.name, "program_autostart.prg")
             
             self.editor = QPlainTextEdit()
             self.editor.setPlainText(SAMPLE)
@@ -5027,11 +5136,13 @@ try:
             
             self.btn_compile   = QPushButton("Compile")
             self.btn_save_prg  = QPushButton("PRG speichern")
-            self.autostart_chk = QCheckBox("BASIC-Autostart")
+            self.btn_runr_prg  = QPushButton("PRG Start")
+            self.autostart_chk = QCheckBox  ("BASIC-Autostart")
             self.autostart_chk.setChecked(True)
             
-            self.btn_compile.clicked.connect(self.compile_source)
+            self.btn_compile .clicked.connect(self.compile_source)
             self.btn_save_prg.clicked.connect(self.save_prg)
+            self.btn_runr_prg.clicked.connect(self.runr_prg)
             
             self.org_combo = QComboBox()
             self.org_combo.addItems(["$0801 (BASIC)","$1000","$2000","$4000","$6000","$C000"])
@@ -5045,7 +5156,7 @@ try:
             self.bank_combo.addItems(["Upper/Graphics","Lower/Upper"])
             
             topbar = QHBoxLayout()
-            topbar.addWidget(QLabel("Start:"))
+            topbar.addWidget(QLabel("Start @:"))
             topbar.addWidget(self.org_combo)
             topbar.addWidget(self.override_org)
             
@@ -5059,6 +5170,7 @@ try:
             topbar.addStretch(1)
             topbar.addWidget(self.btn_compile)
             topbar.addWidget(self.btn_save_prg)
+            topbar.addWidget(self.btn_runr_prg)
             
             splitter = QSplitter()
             splitter.setOrientation(Qt.Vertical)
@@ -5097,26 +5209,71 @@ try:
                     self.assembler.org = self.parse_org_combo()
                 payload, org, _ = self.assembler.assemble(self.editor.toPlainText())
                 if self.autostart_chk.isChecked():
-                    prg = build_prg_with_basic_autostart(payload, start_addr=org); load_addr=0x0801; body=prg[2:]
+                    prg       = build_prg_with_basic_autostart(payload, start_addr=org)
+                    load_addr = 0x0801
+                    body      = prg[2:]
                 else:
-                    prg = build_prg_raw(payload, load_addr=org); load_addr=org; body=prg[2:]
-                bank = "upper_graphics" if self.bank_combo.currentIndex() == 0 else "lower_upper"
-                rows = hexdump_rows(body, base_addr=load_addr, bank=bank)
+                    prg       = build_prg_raw(payload, load_addr = org)
+                    load_addr = org
+                    body      = prg[2:]
+                #bank = "upper_graphics" if self.bank_combo.currentIndex() == 0 else "lower_upper"
+                #rows  = hexdump_rows(body, base_addr=load_addr, view_mode="petscii" if self.view_combo.currentIndex()==0 else "ascii")
+                rows   = hexdump_rows(body, base_addr=load_addr, view_mode="petscii")
                 header = "ADDR  00 01 02 03 | 04 05 06 07  TEXT\n" + "-"*60
                 self.hexview.setPlainText(header + "\n" + "\n".join(rows))
-                self._last_prg = prg
-                self._last_payload=payload; self._last_org = org
+                self._last_prg     = prg
+                self._last_payload = payload
+                self._last_org     = org
+                
+                # write persistent file for VICE autostart
+                with open(self._persist_prg_path, "wb") as f:
+                    f.write(self._last_prg)
+                
+                mode = "Autostart" if self.autostart_chk.isChecked() else "RAW"
                 showInfo(f"Compiled: {len(payload)} bytes @ ${org:04X}")
                 #self.statusBar().showMessage(f"Compiled: {len(payload)} bytes @ ${org:04X}", 5000)
             except Exception as e:
                 QMessageBox.critical(self, "Fehler", str(e))
         
+        def runr_prg(self):
+            if not self._last_prg:
+                self.compile_source()
+                if not self._last_prg:
+                    return
+            # find VICE (x64sc preferred)
+            vice = shutil.which("x64sc") \
+            or shutil.which("x64"      ) \
+            or shutil.which("x64sc.exe") \
+            or shutil.which("x64.exe"  )
+            if vice is None:
+                QMessageBox.information(self,
+                "VICE benötigt",
+                "Bitte VICE-Executable (x64sc/x64) auswählen.")
+                vice, _ = QFileDialog.getOpenFileName(self,
+                "VICE auswählen", "",
+                "Executable (*)")
+                if not vice: return
+                
+            prg_path = self._persist_prg_path
+            try:
+                subprocess.Popen([vice, "-autostart", prg_path])
+                #self.statusBar().showMessage("VICE gestartet (Autostart).", 5000)
+            except Exception as e:
+                QMessageBox.critical(self, "VICE-Start fehlgeschlagen", str(e))
+        
         def save_prg(self):
             if not self._last_prg:
-                QMessageBox.information(self, "Hinweis", "Erst kompilieren (Compile)."); return
-            path, _ = QFileDialog.getSaveFileName(self, "PRG speichern", "program.prg", "C64 PRG (*.prg);;Alle Dateien (*)")
-            if not path: return
-            with open(path, "wb") as f: f.write(self._last_prg)
+                QMessageBox.information(self,
+                "Hinweis", "Erst kompilieren (Compile).")
+                return
+            path, _ = QFileDialog.getSaveFileName(self,
+                "PRG speichern",
+                "program.prg",
+                "C64 PRG (*.prg);;Alle Dateien (*)")
+            if not path:
+                return
+            with open(path, "wb") as f:
+                f.write(self._last_prg)
             showInfo(f"PRG gespeichert: {path}")
             #self.statusBar().showMessage(f"PRG gespeichert: {path}", 5000)
     
