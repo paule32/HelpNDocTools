@@ -1,7 +1,7 @@
 
 # coding: utf-8
 import sys, re
-import subprocess, shlex
+import subprocess, shlex, json
 import html as htmlmod
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Optional, Set
@@ -29,6 +29,34 @@ class AsmLine:
 ALIASES = {"BNZ": "BNE", "BZ": "BEQ", ".BYT": ".BYTE", ".ASC": ".TEXT", "DB": ".BYTE", "DW": ".WORD"}
 BRANCHES = {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}
 
+def _try_cp_to_char(val):
+    # akzeptiert "0x2190", "U+2190", "8592", 8592 oder "←"
+    if isinstance(val, str):
+        s = val.strip()
+        if s.startswith(("0x","0X")):
+            return chr(int(s, 16))
+        if s.upper().startswith("U+"):
+            return chr(int(s[2:], 16))
+        if len(s) == 1:
+            return s
+        return chr(int(s, 10))
+    if isinstance(val, int):
+        return chr(val)
+    return None
+
+def _load_f2_map(path):
+    m = {}
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    for key, rec in data.items():
+        # Schlüssel "0x00XX" → Byte (0..255)
+        b = int(key, 16) & 0xFF
+        if isinstance(rec, dict) and "f2" in rec:
+            ch = _try_cp_to_char(rec["f2"])
+            if ch:
+                m[b] = ch
+    return m
+    
 class AsmHighlighter(QSyntaxHighlighter):
     def __init__(self, parent):
         super().__init__(parent)
@@ -424,14 +452,16 @@ class MainWindow(QMainWindow):
             print("font exec: ", e)
         
         self._glyph_set = set()
-        try:
-            # Pfad ggf. anpassen
-            with open("c64_pro_mono_full.json", "r", encoding="utf-8") as f:
-                cmap = json.load(f)  # {"0020": {"hex": "...", "unicode": "U+0020", "glyph": "..."}}
-            self._glyph_set = {int(k, 16) for k in cmap.keys()}
-        except Exception:
-            # Fallback: ASCII-Bereich
-            self._glyph_set = set(range(0x20, 0x7F))
+        self._f2_map = {}  # byte (0..255) -> Unicode-Zeichen (1-char)
+        self._f2_map = _load_f2_map("c64_pro_mono_full.json")
+        #try:
+        #    # Pfad ggf. anpassen
+        #    with open("c64_pro_mono_full.json", "r", encoding="utf-8") as f:
+        #        cmap = json.load(f)  # {"0020": {"hex": "...", "unicode": "U+0020", "glyph": "..."}}
+        #    self._glyph_set = {int(k, 16) for k in cmap.keys()}
+        #except Exception:
+        #    # Fallback: ASCII-Bereich
+        #    self._glyph_set = set(range(0x20, 0x7F))
         
         self._c64_overrides = {0x5E: "↑", 0x5F: "←", 0x7E: "π"}
             
@@ -634,20 +664,15 @@ class MainWindow(QMainWindow):
 
     def _glyph_for_byte(self, b: int) -> str:
         b &= 0xFF
-        # C64-Overrides zuerst
-        if hasattr(self, "_c64_overrides") and b in self._c64_overrides:
-            return self._c64_overrides[b]
-        
-        # Direkte 1:1-Abbildung für druckbare Bytes:
+        # 1) Vorrang: f2-Mapping aus JSON
+        if b in self._f2_map:
+            return self._f2_map[b]
+        # 2) sonst direktes Unicode (mit optionalem Uppercase-Look)
         if b >= 0x20:
             ch = chr(b)
-            # C64-Uppercase-Optik (optional):
             if 'a' <= ch <= 'z':
                 ch = ch.upper()
-            # NICHTS weiter filtern: £ (0xA3) muss hier durch!
             return ch
-            
-        # Nicht darstellbar => Platzhalter
         return '·'
         
     def _refresh_hex_main(self, base_addr: int, data: bytes):
