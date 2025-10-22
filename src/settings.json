@@ -1,0 +1,17 @@
+{
+  "paths": {
+    "c1541": "F:/C-64/bin/c1541.exe",
+    "x64sc": "F:/C-64/bin/x64sc.exe"
+  },
+  "output": {
+    "build_dir": "T:/a/HelpNDocTools/HelpNDocTools/src/c64Build",
+    "disk_name": "HELLODISK,01",
+    "prg_name": "HELLO",
+    "prg_file": "program.prg",
+    "d64_file": "program.d64"
+  },
+  "project": {
+    "variant": "A",
+    "code_load": 2049
+  }
+}
