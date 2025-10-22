@@ -56,10 +56,9 @@ gzip -9 help.mo
 copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\de_de\LC_HELP
 
 cd %BASEDIR%\locales\en_us\LC_HELP
-rm -rf help.mo.gz
-msgfmt -o help.mo out.po
-gzip -9 help.mo
-copy help.mo.gz %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP
+rm -rf help.mo.zlib
+python encodehelp.py -o help.po files files/css files/img files/js files/lib
+copy help.mo.zlib %BASEDIR%\__pycache__\_internal\locales\en_us\LC_HELP
 :: ----------------------------------
 
 cd %BASEDIR%\locales\de_de\LC_STYLE
@@ -121,7 +120,7 @@ cd %BASEDIR%
 pyrcc5 resources.qrc -o resources_rc.py
 python -m compileall    resources_rc.py
 
-python -m compileall  client-windows.py
+python -m compileall    client.py
 
 exit
 python -m compileall TObject.py

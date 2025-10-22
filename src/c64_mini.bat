@@ -2,3 +2,5 @@
 c1541 -format "HELLODISK,01" d64 program.d64 ^
   -attach program.d64 ^
   -write program.prg "HELLO"
+
+x64sc.exe -autostart "program.prg"
