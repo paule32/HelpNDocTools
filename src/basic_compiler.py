@@ -51,6 +51,63 @@ def parse_lines(src: str) -> List[BasicLine]:
         lines.append(BasicLine(num, text))
     return lines
 
+def split_csv_respecting_quotes(s: str) -> List[str]:
+    parts=[]; buf=[]; ins=False
+    for ch in s:
+        if ch=='"':
+            ins = not ins
+            buf.append(ch)
+            continue
+        if ch==',' and not ins:
+            parts.append("".join(buf).strip()); buf=[]
+            continue
+        buf.append(ch)
+    if buf:
+        parts.append("".join(buf).strip())
+    return parts
+
+def lower_cmp_to_flags(c: Cmp) -> List[str]:
+    """
+    Liefert Code, der die Flags so setzt, dass BEQ/BNE/BCS/BCC/BMI/BPL genutzt werden können.
+    Strategie: A := a; TMP := A; A := b; dann CMP TMP.
+    Danach gilt:
+      =  → BEQ
+      <> → BNE
+      <  → BCC (unsigned)  nachdem 'CMP TMP' (A-b) → Carry=0 wenn A<TMP
+      >= → BCS
+      >  → BHI (gibt's nicht) → BCC ist <, also '>' ist '>= && <>' → wir machen BCS + BNE
+      <= → BCS negiert → '<=' ist '< || =' → wir nutzen BCC || BEQ
+    Achtung: Wir arbeiten erstmal **unsigned** (0..255).
+    """
+    code = []
+    code += lower_expr_to_asm(c.a)     # A=a
+    code += ["    STA TMP"]            # TMP=a
+    code += lower_expr_to_asm(c.b)     # A=b
+    code += ["    CMP TMP"]            # vergleiche b ? a
+    return code
+
+def branch_for_cmp(op: str, target_label: str) -> List[str]:
+    if op == "=":
+        return [f"    BEQ {target_label}"]
+    if op == "<>":
+        return [f"    BNE {target_label}"]
+    if op == "<":
+        return [f"    BCC {target_label}"]   # A<b → Carry=0
+    if op == ">=":
+        return [f"    BCS {target_label}"]   # A>=b → Carry=1
+    if op == ">":
+        # (A>b) ist (A>=b) und (A!=b)
+        return [f"    BCS {target_label}_GE",
+                f"    JMP {target_label}_SKIP",
+                f"{target_label}_GE:",
+                f"    BNE {target_label}",
+                f"{target_label}_SKIP:"]
+    if op == "<=":
+        # (A<=b) ist (A<b) oder (A=b)
+        return [f"    BCC {target_label}",
+                f"    BEQ {target_label}"]
+    return [f"    ; TODO unknown cmp {op}"]
+
 # --- Ausdruck sehr simpel: nur Ganzzahlen + einstellige Variablen + () + + - * / ---
 class Expr:
     pass
@@ -63,6 +120,12 @@ class Bin(Expr): op:str; a:Expr; b:Expr
 @dataclass
 class Par(Expr): x:Expr
 
+@dataclass
+class Cmp(Expr):
+    op: str  # one of "=", "<>", "<", "<=", ">", ">="
+    a: Expr
+    b: Expr
+
 class ExprParser:
     def __init__(self, tokens): self.toks=list(tokens); self.i=0
     def peek(self): return self.toks[self.i] if self.i<len(self.toks) else (None,None)
@@ -71,7 +134,15 @@ class ExprParser:
         if t[0] is None: raise SyntaxError("Unerwartetes Ende")
         if (k and t[0]!=k) or (v and t[1]!=v): raise SyntaxError(f"Erwartet {k or v}, fand {t}")
         self.i+=1; return t
-    def parse_expr(self): return self.parse_add()
+    def parse_cmp(self):
+        x = self.parse_add()
+        k,v = self.peek()
+        if k=="OP" and v in ("=", "<>", "<", "<=", ">", ">="):
+            self.eat("OP", v)
+            y = self.parse_add()
+            return Cmp(v, x, y)
+        return x
+    def parse_expr(self): return self.parse_cmp()
     def parse_add(self):
         x=self.parse_mul()
         while True:
@@ -186,10 +257,20 @@ def compile_basic_to_asm(source: str) -> Tuple[str, Dict[int,str]]:
         ".ORG $1000",
         "TMP = $FB",
         "MUL_B = $FC",
+        "U16L = $FD",
+        "U16H = $FE",
+        "",
+        "; init READ pointer",
+        "    LDA #00h",
+        "    STA READ_IDX",
+        f"    LDA #{0:02X}h",  # READ_CNT setzen wir später via Label – hier Platzhalter
+        "    STA READ_CNT",
         "",
         "start:"
     ]
-
+    
+    data_items: List[int] = []
+    
     for ln in lines:
         text = ln.text.strip()
         # REM
@@ -199,12 +280,88 @@ def compile_basic_to_asm(source: str) -> Tuple[str, Dict[int,str]]:
 
         # IF <expr> THEN <line>
         m = re.match(r"(?i)^IF\s+(.+?)\s+THEN\s+(\d+)$", text)
+        # IF <expr> THEN <line>
+        m = re.match(r"(?i)^IF\s+(.+?)\s+THEN\s+(\d+)$", text)
         if m:
             cond = m.group(1).strip(); dest = int(m.group(2))
             asm += [f"{label_for[ln.num]}:"]
-            asm += lower_expr_to_asm(parse_expr(cond))
-            asm += ["    CMP #00h", f"    BEQ {label_for.get(dest, f'L{dest}')}",]
+            cexpr = ExprParser(tokenize(cond)).parse_expr()
+            if isinstance(cexpr, Cmp):
+                asm += lower_cmp_to_flags(cexpr)
+                asm += branch_for_cmp(cexpr.op, label_for.get(dest, f"L{dest}"))
+            else:
+                # Nicht-Vergleich: „wahr“ wenn A != 0
+                asm += lower_expr_to_asm(cexpr)
+                asm += [f"    CMP #00h", f"    BNE {label_for.get(dest, f'L{dest}')}",]
             continue
+        
+        # INPUT  ["prompt";] A
+        m = re.match(r'(?i)^INPUT\s+(?:(\"[^\"]*\")\s*;\s*)?([A-Za-z])$', text)
+        if m:
+            prompt = m.group(1)  # oder None
+            var = m.group(2).upper()
+            zp  = zp_addr_for_var(var)
+
+            asm += [f"{label_for[ln.num]}:"]
+            if prompt:
+                label = f"STR_{abs(hash(prompt)) & 0xFFFF:04X}"
+                # prompt ausgeben:
+                asm += [f"    LDY #00h",
+                        f"{label}:",
+                        f"    LDA {label}_DATA,Y",
+                        f"    BEQ {label}_END",
+                        f"    JSR {KERN_CHROUT}",
+                        f"    INY",
+                        f"    BNE {label}",
+                        f"{label}_END:",
+                        f"{label}_DATA:",
+                        f"    .BYTE " + ",".join(f"{ord(c)}" for c in prompt.strip('"')) + ",0"]
+            asm += ["    JSR read_uint8",
+                    f"    STA ${zp:02X}"]
+            continue
+
+        # DATA a,b,"txt",...
+        m = re.match(r"(?i)^DATA\s+(.+)$", text)
+        if m:
+            raw_items = split_csv_respecting_quotes(m.group(1))
+            for itm in raw_items:
+                itm = itm.strip()
+                if not itm:
+                    continue
+                if itm.startswith('"') and itm.endswith('"'):
+                    # Strings → als Folge von Bytes + 0 in die Tabelle (eine Option).
+                    # Für "READ A" brauchen wir Zahlen; Strings heben wir uns auf.
+                    # Du kannst hier statt dessen alle Zeichen anhängen:
+                    for ch in itm.strip('"'):
+                        data_items.append(ord(ch) & 0xFF)
+                    data_items.append(0)
+                else:
+                    # Zahl, auch $.., %.. via int(...,0)
+                    try:
+                        v = int(itm, 0)
+                    except Exception:
+                        # notfalls 0
+                        v = 0
+                    data_items.append(v & 0xFF)
+            # Keine Ausgabe – reine Definition
+            continue
+
+        # READ A
+        m = re.match(r"(?i)^READ\s+([A-Za-z])$", text)
+        if m:
+            var = m.group(1).upper()
+            zp  = zp_addr_for_var(var)
+            asm += [f"{label_for[ln.num]}:",
+                    "    JSR data_read_u8",
+                    f"    STA ${zp:02X}"]
+            continue
+
+        # RESTORE
+        if re.match(r"(?i)^RESTORE$", text):
+            asm += [f"{label_for[ln.num]}:", "    JSR data_restore"]
+            continue
+
+        # GOSUB n / RETURN sind schon vorhanden – wir ergänzen später einen echten Sub-Stack
 
         # GOTO n
         m = re.match(r"(?i)^GOTO\s+(\d+)$", text)
@@ -296,4 +453,16 @@ def compile_basic_to_asm(source: str) -> Tuple[str, Dict[int,str]]:
         asm += [f"{label_for[ln.num]}:", f"    ; TODO: Nicht unterstützt: {text}"]
 
     asm += ["", "    RTS"]
+    
+    asm += ["", "; --- DATA TABLE ---"]
+    asm += [f"READ_CNT_INIT = {len(data_items)}"]
+    asm += [f"    LDA #<READ_CNT_INIT",  # optional: du kannst READ_CNT direkt setzen
+            f"    ; (READ_CNT wird ggf. anders initialisiert – siehe unten)"]
+    asm += [ "LABEL_DATA_BYTES:" ]
+    if data_items:
+        asm += [ "    .BYTE " + ",".join(str(b) for b in data_items) ]
+    else:
+        asm += [ "    .BYTE 0" ]
+    asm += [ "LABEL_DATA_END:" ]
+    
     return "\n".join(asm), label_for

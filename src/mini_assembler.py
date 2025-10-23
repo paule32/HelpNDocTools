@@ -7,8 +7,8 @@ from c6510_spec import C6510Spec
 
 ALIASES = {
     "BNZ":"BNE","BZ":"BEQ",".BYT":".BYTE",".ASC":".TEXT","DB":".BYTE","DW":".WORD",
-    "*":".ORG",      # <— NEU: * wird als .ORG behandelt
-    "ORG":".ORG",    # <— NEU: ORG ohne Punkt erlauben
+    "*":".ORG","ORG":".ORG",
+    "EQU":".EQU","SET":".SET"
 }
 
 BRANCHES = {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}
@@ -155,18 +155,23 @@ class MiniAssembler:
         for ln in lines:
             if not ln.mnemonic: continue
             mnem = ALIASES.get(ln.mnemonic.upper(), ln.mnemonic.upper())
+            # Guard: "NAME = expr" als .EQU behandeln
+            if (ln.operand and ln.operand.lstrip().startswith("=")
+                and re.fullmatch(r"[A-Za-z_]\w*", mnem)):
+                mnem = ".EQU"
+                op_equ = ln.operand.lstrip()[1:].strip()
+            else:
+                op_equ = ln.operand
             # Pass 2 (in assemble, wo mnem == ".ORG"):
             if mnem == ".ORG":
                 if not self.ignore_org:
-                    op = (ln.operand or "").strip()
-                    if op.startswith("="):      # <— NEU
-                        op = op[1:].strip()
-                    self.org = self.eval_expr(op)
-                    self.pc  = self.org
-                    out = bytearray()
+                    if not op_equ: raise ValueError(".org ohne Adresse (Z{})".format(ln.lineno))
+                    self.org = self.eval_expr(op_equ); self.pc = self.org
                 continue
             if mnem in (".EQU",".SET"):
-                self.symbols[ln.label] = self.eval_expr(ln.operand)&0xFFFF; continue
+                if not ln.label or not op_equ: raise ValueError(f"{mnem} braucht Label+Wert (Z{ln.lineno})")
+                self.symbols[ln.label] = self.eval_expr(op_equ) & 0xFFFF
+                continue
             if mnem in (".BYTE",".BYT",".TEXT",".ASC"):
                 start_pc = self.pc; bytes_here=[]
                 for p in self._split_args(ln.operand):

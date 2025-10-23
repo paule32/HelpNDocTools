@@ -20,8 +20,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._init_toolbar()
         self._init_menu()
         
+        self.act_rtpre_load.triggered .connect(self.load_runtime_pre )
+        self.act_rtpre_save.triggered .connect(self.save_runtime_pre )
+        self.act_rtpost_load.triggered.connect(self.load_runtime_post)
+        self.act_rtpost_save.triggered.connect(self.save_runtime_post)
+        
         # Sets für Breakpoints
-        self._bp_asm = set()
+        self._bp_asm   = set()
         self._bp_basic = set()
         
         # Mapping: srcline (1-based, aus Assembler.rows) -> (start_pos, length) im Listing-Dokument
@@ -31,6 +36,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.asm_hl      = AsmHighlighter(self.asm_editor.document())
         self.asm_out_hl  = AsmHighlighter(self.asm_out_editor.document())
+        self.asm_hl_pre  = AsmHighlighter(self.runtime_pre_editor.document())
+        self.asm_hl_post = AsmHighlighter(self.runtime_post_editor.document())
 
         self.spec = C6510Spec.from_json("6510_with_illegal_flags.json")
         self.assembler = MiniAssembler(self.spec)
@@ -42,10 +49,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _apply_c64_font(self):
         for fam in ("C64 Pro Mono", "C64 Pro", "C64-Pro-Mono"):
-            f = QtGui.QFont(fam, 8)
-            if QtGui.QFontInfo(f).family().lower().startswith("c64"):
-                for w in (self.hex_view, self.listings_view, self.basic_editor,
-                          self.asm_editor, self.asm_out_editor):
+            f = QtGui.QFont(fam, 12)
+            if "c64" in QtGui.QFontInfo(f).family().lower():
+                for w in (self.basic_editor, self.asm_editor, self.asm_out_editor,
+                          self.runtime_pre_editor, self.runtime_post_editor,
+                          self.hex_view, self.listings_view):
                     w.setFont(f)
                 return
         # fallback
@@ -67,7 +75,18 @@ class MainWindow(QtWidgets.QMainWindow):
             if 'a' <= ch <= 'z': ch = ch.upper()
             return ch
         return '·'
-
+        
+    def _compose_final_asm(self) -> str:
+        # Reihenfolge: Runtime (vor) + erzeugter ASM + Runtime (nach)
+        pre  = self.runtime_pre_editor.toPlainText().rstrip()
+        gen  = self.asm_out_editor.toPlainText().rstrip()
+        post = self.runtime_post_editor.toPlainText().rstrip()
+        parts = []
+        if pre:  parts += ["; === RUNTIME PRE ===", pre]
+        if gen:  parts += ["; === GENERATED ASM ===", gen]
+        if post: parts += ["; === RUNTIME POST ===", post]
+        return "\n".join(parts) + "\n"
+        
     def _refresh_hex_main(self, base_addr: int, data: bytes):
         lines = []
         lines.append("ADDR  00 01 02 03 | 04 05 06 07  TEXT(8)")
@@ -98,7 +117,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def _init_ui(self):
         central = QtWidgets.QWidget()
         root_vbox = QtWidgets.QVBoxLayout(central)
-        root_vbox.setContentsMargins(6,6,6,6)
 
         # --- linker Bereich: vertikaler Splitter mit HexView (oben) + ListingsView (unten) ---
         self.left_split = QtWidgets.QSplitter(QtCore.Qt.Vertical)
@@ -120,44 +138,82 @@ class MainWindow(QtWidgets.QMainWindow):
         # --- rechter Bereich: Tabs mit Code-Editoren (mit Gutter + gelbe Current-Line) ---
         self.tabs = QtWidgets.QTabWidget()
 
-        # Tab "Assembler"
+        # Tab "Assembler" (unverändert)
         asm_tab = QtWidgets.QWidget()
         asm_layout = QtWidgets.QVBoxLayout(asm_tab)
         self.asm_editor = CodeEditor()
-        self.asm_editor.setPlaceholderText("ASM-Source …")
         asm_layout.addWidget(self.asm_editor)
         self.tabs.addTab(asm_tab, "Assembler")
 
-        # Tab "BASIC → ASM"
+        # Tab "BASIC → ASM" (NEU: unten QTabWidget mit 3 Reitern)
         bas_tab = QtWidgets.QWidget()
         bas_layout = QtWidgets.QVBoxLayout(bas_tab)
 
-        # oberer BASIC-Editor mit Gutter
+        # oberer BASIC-Editor
         self.basic_editor = CodeEditor()
         self.basic_editor.setPlaceholderText('BASIC hier eingeben… (z. B. 10 PRINT "HI")')
 
-        # unterer ASM-Output (editierbar, ebenfalls mit Gutter)
+        # unten: Container mit Tabs
+        bottom_container = QtWidgets.QWidget()
+        bottom_v = QtWidgets.QVBoxLayout(bottom_container)
+        bottom_v.setContentsMargins(0, 0, 0, 0)
+
+        self.bottom_tabs = QtWidgets.QTabWidget()
+
+        # Tab 1: ASM-Output (nur Editor, keine Toolbar)
+        tab1 = QtWidgets.QWidget()
+        t1_layout = QtWidgets.QVBoxLayout(tab1)
         self.asm_out_editor = CodeEditor()
-        self.asm_out_editor.setPlaceholderText("ASM-Output …")
+        self.asm_out_editor.setPlaceholderText("Erzeugter Assembler-Code …")
+        t1_layout.addWidget(self.asm_out_editor)
+        self.bottom_tabs.addTab(tab1, "Assembler-Code")
 
-        self.asm_editor.breakpointToggled.connect(lambda line, active: self._on_bp_toggled("asm", line, active))
-        self.basic_editor.breakpointToggled.connect(lambda line, active: self._on_bp_toggled("basic", line, active))
+        # Tab 2: Runtime (vor BASIC) + Toolbar
+        tab2 = QtWidgets.QWidget()
+        t2_layout = QtWidgets.QVBoxLayout(tab2)
+        self.tb_runtime_pre = QtWidgets.QToolBar("Runtime (vor BASIC)")
+        self.act_rtpre_load = self.tb_runtime_pre.addAction("Load")
+        self.act_rtpre_save = self.tb_runtime_pre.addAction("Save")
+        t2_layout.addWidget(self.tb_runtime_pre)
 
+        self.runtime_pre_editor = CodeEditor()
+        self.runtime_pre_editor.setPlaceholderText("Runtime-Code (wird OBERHALB des BASIC-ASM eingefügt) …")
+        t2_layout.addWidget(self.runtime_pre_editor)
+
+        self.bottom_tabs.addTab(tab2, "Runtime ↑ (vor BASIC)")
+
+        # Tab 3: Runtime (nach BASIC) + Toolbar
+        tab3 = QtWidgets.QWidget()
+        t3_layout = QtWidgets.QVBoxLayout(tab3)
+        self.tb_runtime_post = QtWidgets.QToolBar("Runtime (nach BASIC)")
+        self.act_rtpost_load = self.tb_runtime_post.addAction("Load")
+        self.act_rtpost_save = self.tb_runtime_post.addAction("Save")
+        t3_layout.addWidget(self.tb_runtime_post)
+
+        self.runtime_post_editor = CodeEditor()
+        self.runtime_post_editor.setPlaceholderText("Runtime-Code (wird UNTERHALB des BASIC-ASM eingefügt) …")
+        t3_layout.addWidget(self.runtime_post_editor)
+
+        self.bottom_tabs.addTab(tab3, "Runtime ↓ (nach BASIC)")
+
+        bottom_v.addWidget(self.bottom_tabs)
+
+        # vertikaler Splitter: oben BASIC, unten Tabs (ASM-Output + Runtime)
         vertical_split = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         vertical_split.addWidget(self.basic_editor)
-        vertical_split.addWidget(self.asm_out_editor)
+        vertical_split.addWidget(bottom_container)
         vertical_split.setStretchFactor(0, 1)
         vertical_split.setStretchFactor(1, 1)
 
         bas_layout.addWidget(vertical_split)
         self.tabs.addTab(bas_tab, "BASIC → ASM")
 
-        # --- horizontaler Splitter: links (Hex+Listings) | rechts (Tabs) ---
+        # horizontaler Splitter: links (Hex+Listing) | rechts (Tabs)
         self.main_split = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.main_split.addWidget(self.left_split)
         self.main_split.addWidget(self.tabs)
-        self.main_split.setStretchFactor(0, 0)  # linke Spalte schmaler
-        self.main_split.setStretchFactor(1, 1)  # rechter Bereich dominant
+        self.main_split.setStretchFactor(0, 0)
+        self.main_split.setStretchFactor(1, 1)
 
         root_vbox.addWidget(self.main_split)
         self.setCentralWidget(central)
@@ -280,6 +336,68 @@ class MainWindow(QtWidgets.QMainWindow):
             with open(path, "w", encoding="utf-8") as f:
                 f.write(self.asm_editor.toPlainText())
 
+    def load_runtime_pre(self):
+        s = self.settings
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        self, "Runtime (vor BASIC) laden",
+        s.runtime_pre_file(), "ASM (*.asm);;All (*.*)")
+        if path:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                self.runtime_pre_editor.setPlainText(f.read())
+
+    def save_runtime_pre(self):
+        s = self.settings
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Runtime (vor BASIC) speichern",
+            s.runtime_pre_file(),
+            "ASM (*.asm);;All (*.*)"
+        )
+        if not path:
+            return
+        # Overwrite-Dialog manuell
+        if os.path.exists(path):
+            ret = QtWidgets.QMessageBox.question(
+                self, "Überschreiben?",
+                f"Datei existiert bereits:\n{path}\n\nÜberschreiben?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                QtWidgets.QMessageBox.No
+            )
+            if ret != QtWidgets.QMessageBox.Yes:
+                return
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(self.runtime_pre_editor.toPlainText())
+
+    def load_runtime_post(self):
+        s = self.settings
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        self, "Runtime (nach BASIC) laden",
+        s.runtime_post_file(), "ASM (*.asm);;All (*.*)")
+        if path:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                self.runtime_post_editor.setPlainText(f.read())
+
+    def save_runtime_post(self):
+        s = self.settings
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Runtime (nach BASIC) speichern",
+            s.runtime_pre_file(),
+            "ASM (*.asm);;All (*.*)"
+        )
+        if not path:
+            return
+        # Overwrite-Dialog manuell
+        if os.path.exists(path):
+            ret = QtWidgets.QMessageBox.question(
+                self, "Überschreiben?",
+                f"Datei existiert bereits:\n{path}\n\nÜberschreiben?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                QtWidgets.QMessageBox.No
+            )
+            if ret != QtWidgets.QMessageBox.Yes:
+                return
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(self.runtime_post_editor.toPlainText())
+    
     # --- BASIC→ASM Compiler-Callback (Platzhalter) ---
     def compile_basic_cb(self):
         """
@@ -315,7 +433,8 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def assemble_cb(self):
         # Quelle: nehme ASM aus ASM-Output (falls vorhanden), sonst aus ASM-Editor
-        asm_text = self.asm_out_editor.toPlainText() or self.asm_editor.toPlainText()
+        #asm_text = self.asm_out_editor.toPlainText() or self.asm_editor.toPlainText()
+        asm_text = self._compose_final_asm()
         # .org erzwingen? (falls du im UI ein Toggle hast)
         # self.assembler.ignore_org = True/False
         # self.assembler.org = gewünschter Start (bei „Variante A“ später egal)
