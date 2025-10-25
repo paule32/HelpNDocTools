@@ -8,10 +8,12 @@ from dataclasses import dataclass, field, replace
 from datetime    import datetime
 from pathlib     import Path
 from pprint      import pprint
+from copy        import deepcopy
 # ---------------------------------------------------------------------------
 import warnings
-import sys
-import os
+import sys, os
+import re
+import argparse, textwrap
 # ---------------------------------------------------------------------------
 # early environment settings ...
 # ---------------------------------------------------------------------------
@@ -159,14 +161,14 @@ GRAPHICS = {
 SAMPLE = r""" ; demo comment
         LDX #$00
 loop:   LDA msg,X
-        ; BEQ done
+        BEQ done
         JSR $FFD2
         INX
-        CPX #$14
         BNE loop
 done:   RTS
 msg:    .text "HELLO, C64!", 0, $0A, "OK", 0
 """
+FLAGS_ORDER = "NZCIDV"
 # -------------------------- Konfiguration & Datenmodell --------------------------
 MIXER_DEFAULT_CONFIG = {
     "ui": {
@@ -193,6 +195,64 @@ MIXER_DEFAULT_CONFIG = {
 
 MIXER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
+# -------------------------- Konfiguration & Datenmodell --------------------------
+LOAD_ADDR = 0x0801  # BASIC-Start in Variante A
+
+ALIASES = {
+    "BNZ":"BNE","BZ":"BEQ",".BYT":".BYTE",".ASC":".TEXT","DB":".BYTE","DW":".WORD",
+    "*":".ORG","ORG":".ORG",
+    "EQU":".EQU","SET":".SET"
+}
+
+BRANCHES = {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}
+
+# --- Ziel-Register/Zero-Page-Konzept ---
+# Variablen A..Z → Zero-Page $02..$1B (anpassbar)
+ZP_BASE = 0x02
+def zp_addr_for_var(name: str) -> int:
+    name = name.strip().upper()
+    if len(name) != 1 or not ('A' <= name <= 'Z'):
+        raise ValueError(f"Nur Einzelbuchstaben A..Z als Variable unterstützt (got {name})")
+    return ZP_BASE + (ord(name) - ord('A'))
+
+# --- KERNAL ---
+KERN_CHROUT = "$FFD2"
+
+@dataclass
+class BasicLine:
+    num: int
+    text: str
+
+TOKEN_SPEC = [
+    ("NUM",   r"\d+"),
+    ("ID",    r"[A-Za-z][A-Za-z0-9]*"),
+    ("STR",   r"\"[^\"]*\""),
+    ("OP",    r"<=|>=|<>|[=+\-*/(),:]"),
+    ("WS",    r"[ \t]+"),
+]
+TOK_RE = re.compile("|".join(f"(?P<{n}>{p})" for n,p in TOKEN_SPEC))
+
+DEFAULT_SETTINGS = {
+"paths": {
+        "c1541": "C:/Program Files/WinVICE/c1541.exe",
+        "x64sc": "C:/Program Files/WinVICE/x64sc.exe"
+    },
+    "output": {
+        "build_dir": "./build",
+        "disk_name": "HELLODISK,01",
+        "prg_name": "HELLO",
+        "prg_file": "program.prg",
+        "d64_file": "program.d64",
+        "runtime_pre_file" : "runtime_pre.asm",
+        "runtime_post_file": "runtime_post.asm"
+    },
+    "project": {
+        "variant": "A",         # "A" = ein Segment (BASIC @ $0801 + Code direkt dahinter)
+        "code_load": 0x0801     # nur relevant für Variante A
+    }
+}
+
+# -------------------------- Konfiguration & Datenmodell --------------------------
 SCHEMA = """
 PRAGMA journal_mode=WAL;
 CREATE TABLE IF NOT EXISTS terms(
@@ -222,7 +282,6 @@ CREATE INDEX IF NOT EXISTS idx_terms_lang_norm ON terms(lang, norm_text);
 # ---------------------------------------------------------------------------
 # standard imports ...
 # ---------------------------------------------------------------------------
-import argparse, textwrap
 import datetime as dt
 import importlib
 import importlib.util # module check utils
@@ -610,11 +669,11 @@ try:
         try:
             from PyQt5.QtGui import QtGui, QtCore
             if hasattr(QtGui, "QFontDatabase"):
-                font_id = QtGui.QFontDatabase.addApplicationFont(font_path)
+                font_id = QFontDatabase.addApplicationFont(font_path)
                 if font_id == -1:
                     print("Error: could not load font.")
                     return None
-                font_families = QtGui.QFontDatabase.applicationFontFamilies(font_id)
+                font_families = QFontDatabase.applicationFontFamilies(font_id)
                 if font_families:
                     return font_families[0]
             else:
@@ -737,12 +796,12 @@ try:
         try:
             from PyQt5 import QtGui, QtCore
             if hasattr(QtGui, "QFontDatabase"):
-                font_id = QtGui.QFontDatabase.addApplicationFont(font_path)
+                font_id = QFontDatabase.addApplicationFont(font_path)
                 if font_id == -1:
                     raise RuntimeError(""
                     + "Error: could not load font.\n" + font_path)
                     return None
-                families = QtGui.QFontDatabase.applicationFontFamilies(font_id)
+                families = QFontDatabase.applicationFontFamilies(font_id)
                 if families:
                     DebugPrint("SUCCESSFUL: font installed: " + font_path)
                 else:
@@ -1073,12 +1132,12 @@ try:
         page_cross_penalty: int = 0
         illegal: bool = False
         comment: str = ""
-    # ---------------------------------------------------------------------
-    # Loader/Indexer for 6510 opcode spec.
-    # Use from_json() to initialize from a JSON file that matches the
-    # provided schema.
-    # ---------------------------------------------------------------------
+
     class C6510Spec:
+        """
+        Loader/Indexer for 6510 opcode spec.
+        Use from_json() to initialize from a JSON file that matches the provided schema.
+        """
         def __init__(self, mnemonics: Dict[str, Dict[str, ModeInfo]], opcode_table: List[Optional[OpInfo]]):
             self.mnemonics = mnemonics
             self.opcode_table = opcode_table
@@ -1134,28 +1193,27 @@ try:
             return oi
 
         # ---------- Helpers ----------
-        # ---------------------------------------------------------------------------
-        ## Compute relative branch offset for 6502 (signed 8-bit), given:
-        # - pc: address of branch opcode byte
-        # - target: destination address
-        # Returns the encoded 8-bit offset (0..255). Raises ValueError if
-        # out of range.
-        # ---------------------------------------------------------------------------
         @staticmethod
         def rel_branch_offset(pc: int, target: int) -> int:
+            """
+            Compute relative branch offset for 6502 (signed 8-bit), given:
+            - pc: address of branch opcode byte
+            - target: destination address
+            Returns the encoded 8-bit offset (0..255). Raises ValueError if out of range.
+            """
             off = target - (pc + 2)
             if off < -128 or off > 127:
                 raise ValueError(f"Branch out of range: {off} (pc=0x{pc:04X}, target=0x{target:04X})")
             return off & 0xFF
 
-        # ---------------------------------------------------------------------------
-        # True if addr and addr+index are in different 256-byte pages.
-        # Useful for adding 'page_cross_penalty' cycle when addressing abs,X / abs,Y / (zp),Y etc.
-        # ---------------------------------------------------------------------------
         @staticmethod
         def crosses_page(addr: int, index: int) -> bool:
+            """
+            True if addr and addr+index are in different 256-byte pages.
+            Useful for adding 'page_cross_penalty' cycle when addressing abs,X / abs,Y / (zp),Y etc.
+            """
             return ((addr & 0xFF00) != ((addr + index) & 0xFF00))
-
+        
         # ---- Tiny CLI for quick inspection ----
         def c64_demo():
             import argparse
@@ -2463,10 +2521,10 @@ try:
             offy = (h - size) // 2
             cell = size / n
 
-            painter.fillRect(self.rect(), QtGui.QColor("#2B2B2B"))
+            painter.fillRect(self.rect(), QColor("#2B2B2B"))
 
             def draw_camp(coords, color):
-                brush = QBrush(QtGui.QColor(color))
+                brush = QBrush(QColor(color))
                 for (x, y) in coords:
                     painter.fillRect(QRectF(offx + x*cell, offy + y*cell, cell, cell), brush)
 
@@ -2486,11 +2544,11 @@ try:
                 painter.setBrush(QColor(70, 160, 90, 140))
                 painter.setPen(Qt.NoPen)
                 for (x, y) in self.game.legal_targets:
-                    r = QtCore.QRectF(offx + x*cell+cell*0.15, offy + y*cell+cell*0.15, cell*0.7, cell*0.7)
+                    r = QRectF(offx + x*cell+cell*0.15, offy + y*cell+cell*0.15, cell*0.7, cell*0.7)
                     painter.drawEllipse(r)
 
             if self.hover_cell and in_bounds(self.hover_cell[0], self.hover_cell[1], n):
-                painter.setPen(QPen(QtGui.QColor("#DDD")))
+                painter.setPen(QPen(QColor("#DDD")))
                 painter.setBrush(Qt.NoBrush)
                 x, y = self.hover_cell
                 painter.drawRect(QRectF(offx + x*cell, offy + y*cell, cell, cell))
@@ -4802,7 +4860,7 @@ try:
         if part:
             out.append(part)
         return out
-    
+
     def petscii_text_char(b: int, bank: str = "upper_graphics") -> str:
         b &= 0xFF
         if 0x20 <= b <= 0x7E:
@@ -4815,33 +4873,15 @@ try:
         if b in GRAPHICS: return GRAPHICS[b]
         if b in (0x00,0xA0): return ' '
         return '·'
-        
-    def petscii_char(byte: int, mode: str = "upper"):
-        b = byte & 0xFF
-        if 0x20 <= b <= 0x7E:
-            ch = chr(b)
-            if mode == "upper":
-                if 'a' <= ch <= 'z':
-                    ch = ch.upper()
-                if ch in "{}[]`":
-                    ch = "·"
-            return ch
-        if b in (0xA0, 0x00):
-            return " "
-        return "·"
 
-    def hexdump_rows(data: bytes, base_addr: int = 0x0000, view_mode: str = "petscii") -> List[str]:
+    def hexdump_rows(data: bytes, base_addr: int = 0x0000, bank: str = "upper_graphics") -> List[str]:
         rows = []
         for i in range(0, len(data), 8):
             chunk = data[i:i+8]
             left = " ".join(f"{b:02X}" for b in chunk[:4]).ljust(11)
             right = " ".join(f"{b:02X}" for b in chunk[4:8]).ljust(11)
-            if view_mode == "petscii":
-                ascii_part = "".join(petscii_char(b, "upper") for b in chunk)
-            else:
-                ascii_part = "".join(chr(b) if 32 <= b <= 126 else "." for b in chunk)
-            addr = base_addr + i
-            rows.append(f"{addr:04X}  {left} | {right}  {ascii_part}")
+            txt = "".join(petscii_text_char(b, bank) for b in chunk)
+            rows.append(f"{(base_addr+i):04X}  {left} | {right}  {txt}")
         return rows
 
     # ===================== Assembler =====================
@@ -4852,430 +4892,1888 @@ try:
         operand : Optional[str]
         raw     : str
         lineno  : int
-        
-    ALIASES = {
-        "BNZ": "BNE",   # Branch if Not Zero -> BNE (Z=0)
-        "BZ":  "BEQ",   # Branch if Zero     -> BEQ (Z=1)
-    }
-    
+
+    @dataclass
+    class AsmLine:
+        label: Optional[str]; mnemonic: Optional[str]; operand: Optional[str]; raw: str; lineno: int
+
     class MiniAssembler:
         def __init__(self, spec: C6510Spec):
             self.spec = spec
-            self.org  = 0x1000
-            self.pc   = self.org
+            self.org = 0x1000
+            self.pc = self.org
             self.symbols: Dict[str,int] = {}
-        
+            self.rows: List[Tuple[str, List[int], str, int]] = []  # (addr, bytes, text, srcline)
+            self.ignore_org: bool = False
+
         def parse(self, text: str) -> List[AsmLine]:
             lines: List[AsmLine] = []
             for lineno, rawline in enumerate(text.splitlines(), start=1):
                 line = rawline.split(";",1)[0].rstrip()
-                if not line.strip():
-                    continue
-                label    = None
-                mnemonic = None
-                operand  = None
+                if not line.strip(): continue
+                label=None; mnemonic=None; operand=None
                 if ":" in line:
                     before, after = line.split(":",1)
-                    if before.strip():
-                        label = before.strip()
+                    if before.strip(): label = before.strip()
                     line = after.strip()
                 if line:
-                    parts    = line.split(None,1)
+                    parts = line.split(None,1)
                     mnemonic = parts[0].upper()
-                    operand  = parts[1].strip() if len(parts)>1 else None
+                    operand = parts[1].strip() if len(parts)>1 else None
                 lines.append(AsmLine(label,mnemonic,operand,rawline,lineno))
             return lines
-        
+
+        def _split_args(self, operand: Optional[str]) -> List[str]:
+            if not operand: return []
+            s = operand; out=[]; buf=[]; in_str=False; i=0
+            while i<len(s):
+                c=s[i]
+                if c=='"':
+                    in_str=not in_str; buf.append(c); i+=1; continue
+                if c==',' and not in_str:
+                    part="".join(buf).strip()
+                    if part: out.append(part)
+                    buf=[]; i+=1; continue
+                buf.append(c); i+=1
+            part="".join(buf).strip()
+            if part: out.append(part)
+            return out
+
         def eval_expr(self, expr: str) -> int:
-            expr = expr.strip()
-            m = re.fullmatch(r"'(.)'", expr)
-            
+            expr=expr.strip()
+            m=re.fullmatch(r"'(.)'",expr)
             if m: return ord(m.group(1))
-            
             if expr.startswith("$"): return int(expr[1:],16)
             if expr.startswith("%"): return int(expr[1:],2)
             if expr.isdigit(): return int(expr,10)
-            
             if expr in self.symbols: return self.symbols[expr]
-            
+            m=re.fullmatch(r"(.+)\s*([+-])\s*(.+)",expr)
+            if m:
+                a=self.eval_expr(m.group(1)); b=self.eval_expr(m.group(3))
+                return (a+b)&0xFFFF if m.group(2)== '+' else (a-b)&0xFFFF
             raise ValueError(f"Unbekannter Ausdruck/Label: {expr}")
-        
-        def detect_mode_and_operand_bytes(self,
-            mnem   : str,
-            operand: Optional[str],
-            pc     : int) -> Tuple[str,List[int]]:
-            if operand is None:
-                return "imp", []
+
+        def _try_eval(self, expr: str):
+            try: return self.eval_expr(expr)
+            except Exception: return None
+
+        def detect_mode_and_operand_bytes(self, mnem: str, operand: Optional[str], pc: int):
+            if operand is None or operand.strip()=="": return "imp", []
             op = operand.strip()
-            if op.upper() == "A":
-                return "acc", []
-            if op.startswith("#"):
-                v = self.eval_expr(op[1:])&0xFF
-                return "imm", [v]
-            if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*,\s*X\s*\)", op):
-                inner = op[1:-1].replace(" ","")
-                addr  = self.eval_expr(inner.split(",")[0])
-                return "indx", [addr & 0xFF]
-            if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*\)\s*,\s*Y", op):
-                inner = op.split(")")[0][1:]
-                addr  = self.eval_expr(inner)
-                return "indy", [addr & 0xFF]
-            if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*\)", op):
-                addr = self.eval_expr(op[1:-1])
-                return "ind", [addr & 0xFF, (addr >> 8) & 0xFF]
-            m = re.fullmatch(r"(.+)\s*,\s*X", op, re.IGNORECASE)
+            if op.upper() == "A": return "acc", []
+            if op.startswith("#"): v=self.eval_expr(op[1:])&0xFF; return "imm",[v]
+            if re.fullmatch(r"\(\s*[^)]+\s*,\s*X\s*\)", op, flags=re.IGNORECASE):
+                inner=op[1:-1]; lhs=inner.split(",")[0]; v=self._try_eval(lhs); return "indx", [0xFF & (v or 0)]
+            if re.fullmatch(r"\(\s*[^)]+\s*\)\s*,\s*Y", op, flags=re.IGNORECASE):
+                inner=op.split(")")[0][1:]; v=self._try_eval(inner); return "indy", [0xFF & (v or 0)]
+            if re.fullmatch(r"\(\s*[^)]+\s*\)", op):
+                v=self._try_eval(op[1:-1]); vv = v or 0; return "ind", [vv&0xFF,(vv>>8)&0xFF]
+            m = re.fullmatch(r"(.+)\s*,\s*([XY])", op, re.IGNORECASE)
             if m:
-                val=self.eval_expr(m.group(1)); 
-                if val <= 0xFF:
-                    return ("zpx", [val & 0xFF])
-                else:
-                    return ("absx", [val & 0xFF, (val >> 8) & 0xFF])
-            m = re.fullmatch(r"(.+)\s*,\s*Y", op, re.IGNORECASE)
-            if m:
-                val = self.eval_expr(m.group(1))
-                if val <= 0xFF:
-                    return ("zpy", [val & 0xFF])
-                else:
-                    return ("absy", [val & 0xFF, (val >> 8) & 0xFF])
-            val=self.eval_expr(op)
-            if val <= 0xFF:
-                return ("zp",[val&0xFF])
-            else:
-                return ("abs",[val & 0xFF, (val >> 8) & 0xFF])
-        
-        def assemble(self, text: str) -> Tuple[bytes,int,List[str]]:
+                val=self._try_eval(m.group(1)); idx=m.group(2).upper()
+                if val is not None and val<=0xFF:
+                    return ("zpx",[val&0xFF]) if idx=="X" else ("zpy",[val&0xFF])
+                vv=val or 0
+                return ("absx",[vv&0xFF,(vv>>8)&0xFF]) if idx=="X" else ("absy",[vv&0xFF,(vv>>8)&0xFF])
+            val=self._try_eval(op)
+            if val is not None and val<=0xFF: return "zp",[val&0xFF]
+            vv=val or 0
+            return "abs",[vv&0xFF,(vv>>8)&0xFF]
+
+        @staticmethod
+        def rel_branch_offset(pc: int, target: int) -> int:
+            diff = (target - (pc + 2)) & 0xFFFF
+            if diff & 0x8000: diff = -((~diff + 1) & 0xFFFF)
+            if diff < -128 or diff > 127: raise ValueError("Branch außerhalb Reichweite")
+            return diff & 0xFF
+
+        def assemble(self, text: str):
             listing: List[str] = []
-            
-            lines   = self.parse(text)
-            self.pc = self.org
-            
-            self.symbols.clear()
-            
-            BRANCHES = {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}
-            
-            # -------- Pass 1: Labels sammeln & Größe vorwärts bestimmen --------
-            self.pc = self.org
-            self.symbols.clear()
+            lines = self.parse(text)
+            self.rows.clear()
 
-            # kleine Helfer: .TEXT/.ASC/.BYTE Argumentliste (Strings + Ausdrücke)
-            def _split_args(operand: str|None):
-                if not operand: return []
-                s = operand
-                out, buf, in_str = [], [], False
-                i = 0
-                while i < len(s):
-                    c = s[i]
-                    if c == '"':
-                        in_str = not in_str
-                        buf.append(c)
-                        i += 1
-                        continue
-                    if c == ',' and not in_str:
-                        part = "".join(buf).strip()
-                        if part: out.append(part)
-                        buf = []
-                        i += 1
-                        continue
-                    buf.append(c); i += 1
-                part = "".join(buf).strip()
-                if part: out.append(part)
-                return out
-
+            # Pass 1: Adressen/Größen
+            self.pc = self.org; self.symbols.clear()
             for ln in lines:
-                # Label-Adresse setzen
                 if ln.label:
-                    if ln.label in self.symbols:
-                        raise ValueError(f"Label doppelt definiert: {ln.label} (Zeile {ln.lineno})")
-                    self.symbols[ln.label] = self.pc
-
-                if not ln.mnemonic:
-                    continue
-
+                    if ln.label in self.symbols: raise ValueError(f"Label doppelt: {ln.label} (Z{ln.lineno})")
+                    self.symbols[ln.label]=self.pc
+                if not ln.mnemonic: continue
                 mnem = ALIASES.get(ln.mnemonic.upper(), ln.mnemonic.upper())
-
-                # Direktiven
+                # Pass 1 (in assemble, wo mnem == ".ORG"):
                 if mnem == ".ORG":
-                    if not ln.operand:
-                        raise ValueError(f".org ohne Adresse (Zeile {ln.lineno})")
-                    self.org = self.eval_expr(ln.operand)
-                    self.pc = self.org
+                    if not self.ignore_org:
+                        if not ln.operand:
+                            raise ValueError(".org ohne Adresse (Z{})".format(ln.lineno))
+                        op = ln.operand.strip()
+                        if op.startswith("="):      # <— NEU: * = $1000 / .org = $1000
+                            op = op[1:].strip()
+                        self.org = self.eval_expr(op)
+                        self.pc = self.org
                     continue
-
-                if mnem in (".BYTE", ".BYT", ".TEXT", ".ASC"):
-                    parts = _split_args(ln.operand)
-                    for p in parts:
-                        if p.startswith('"') and p.endswith('"'):
-                            s = bytes(p[1:-1], "latin1", "replace")
-                            self.pc += len(s)
-                        else:
-                            self.pc += 1
+                if mnem in (".EQU",".SET"):
+                    if not ln.label or not ln.operand: raise ValueError(f"{mnem} braucht Label+Wert (Z{ln.lineno})")
+                    self.symbols[ln.label] = self.eval_expr(ln.operand)&0xFFFF; continue
+                if mnem in (".BYTE",".BYT",".TEXT",".ASC"):
+                    for p in self._split_args(ln.operand):
+                        if p.startswith('"') and p.endswith('"'): self.pc += len(p[1:-1])
+                        else: self.pc += 1
                     continue
-
                 if mnem == ".WORD":
-                    parts = _split_args(ln.operand)
-                    self.pc += 2 * len(parts)
-                    continue
-
-                # Instruktionen
-                if mnem in BRANCHES:
-                    self.pc += 2  # opcode + rel8
-                    continue
-
-                # Adressierungsmodus bestimmen -> Größe addieren
+                    self.pc += 2*len(self._split_args(ln.operand)); continue
+                if mnem in {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}:
+                    self.pc += 2; continue
                 try:
                     mode, ob = self.detect_mode_and_operand_bytes(mnem, ln.operand, self.pc)
-                    _ = self.spec.get_opcode(mnem, mode)  # Validierung
-                    self.pc += 1 + len(ob)
+                    _ = self.spec.get_opcode(mnem, mode)
+                    self.pc += 1+len(ob)
                 except Exception:
-                    # konservativ: 3 Bytes annehmen (schlägt bei Forward-Labels nicht fehl)
-                    self.pc += 3
+                    self.pc += 3   # worst case
 
-            # -------- Pass 2: Bytes ausgeben --------
-            self.pc = self.org
-            out = bytearray()
-
+            # Pass 2: Bytes erzeugen
+            self.pc = self.org; out = bytearray()
             for ln in lines:
-                if not ln.mnemonic:
-                    continue
-
-                mnem_in = ln.mnemonic.upper()
-                mnem = ALIASES.get(mnem_in, mnem_in)
-
+                if not ln.mnemonic: continue
+                mnem = ALIASES.get(ln.mnemonic.upper(), ln.mnemonic.upper())
+                # Guard: "NAME = expr" als .EQU behandeln
+                if (ln.operand and ln.operand.lstrip().startswith("=")
+                    and re.fullmatch(r"[A-Za-z_]\w*", mnem)):
+                    mnem = ".EQU"
+                    op_equ = ln.operand.lstrip()[1:].strip()
+                else:
+                    op_equ = ln.operand
+                # Pass 2 (in assemble, wo mnem == ".ORG"):
                 if mnem == ".ORG":
-                    self.org = self.eval_expr(ln.operand)
-                    self.pc = self.org
-                    out = bytearray()
+                    if not self.ignore_org:
+                        if not op_equ: raise ValueError(".org ohne Adresse (Z{})".format(ln.lineno))
+                        self.org = self.eval_expr(op_equ); self.pc = self.org
                     continue
-
-                if mnem in (".BYTE", ".BYT", ".TEXT", ".ASC"):
-                    parts = _split_args(ln.operand)
-                    for p in parts:
+                if mnem in (".EQU",".SET"):
+                    if not ln.label or not op_equ: raise ValueError(f"{mnem} braucht Label+Wert (Z{ln.lineno})")
+                    self.symbols[ln.label] = self.eval_expr(op_equ) & 0xFFFF
+                    continue
+                if mnem in (".BYTE",".BYT",".TEXT",".ASC"):
+                    start_pc = self.pc; bytes_here=[]
+                    for p in self._split_args(ln.operand):
                         if p.startswith('"') and p.endswith('"'):
-                            s = bytes(p[1:-1], "latin1", "replace")
-                            out.extend(s)
-                            self.pc += len(s)
+                            s=bytes(p[1:-1],"latin1","replace"); out.extend(s); bytes_here.extend(list(s)); self.pc += len(s)
                         else:
-                            v = self.eval_expr(p) & 0xFF
-                            out.append(v)
-                            self.pc += 1
+                            v=self.eval_expr(p)&0xFF; out.append(v); bytes_here.append(v); self.pc += 1
+                    listing.append(f"{start_pc:04X}: " + " ".join(f"{b:02X}" for b in bytes_here) + f"    {mnem} {ln.operand or ''}")
+                    self.rows.append((f"{start_pc:04X}", bytes_here, f"{mnem} {ln.operand or ''}".strip(), ln.lineno))
                     continue
-
                 if mnem == ".WORD":
-                    parts = _split_args(ln.operand)
-                    for p in parts:
-                        v = self.eval_expr(p) & 0xFFFF
-                        out.extend([v & 0xFF, (v >> 8) & 0xFF])  # little endian
-                        self.pc += 2
+                    start_pc = self.pc; bytes_here=[]
+                    for p in self._split_args(ln.operand):
+                        v=self.eval_expr(p)&0xFFFF; out.extend([v & 0xFF,(v>>8)&0xFF]); bytes_here.extend([v & 0xFF,(v>>8)&0xFF]); self.pc += 2
+                    listing.append(f"{start_pc:04X}: " + " ".join(f"{b:02X}" for b in bytes_here) + f"    {mnem} {ln.operand or ''}")
+                    self.rows.append((f"{start_pc:04X}", bytes_here, f"{mnem} {ln.operand or ''}".strip(), ln.lineno))
                     continue
-
                 if mnem in BRANCHES:
-                    opcode = self.spec.get_opcode(mnem, "rel")
+                    opcode = self.spec.get_opcode(mnem,"rel")
                     target = self.eval_expr(ln.operand)
-                    off = C6510Spec.rel_branch_offset(self.pc, target)
+                    off = MiniAssembler.rel_branch_offset(self.pc, target)
                     out.extend([opcode, off])
-                    listing.append(f"{self.pc:04X}: {opcode:02X} {off:02X}    {mnem} {ln.operand or ''}")
+                    listing.append(f"{self.pc:04X}: {opcode:02X} {off:02X}    {mnem} ${target:04X}")
+                    self.rows.append((f"{self.pc:04X}", [opcode, off], f"{mnem} ${target:04X}", ln.lineno))
                     self.pc += 2
                     continue
-
-                # normaler Opcode
                 mode, ob = self.detect_mode_and_operand_bytes(mnem, ln.operand, self.pc)
                 opcode = self.spec.get_opcode(mnem, mode)
-                out.append(opcode)
-                out.extend(ob)
-                listing.append(
-                    f"{self.pc:04X}: " + " ".join(f"{b:02X}" for b in [opcode] + ob) +
-                    f"    {mnem} {ln.operand or ''}"
-                )
-                self.pc += 1 + len(ob)
+                out.append(opcode); out.extend(ob)
+                listing.append(f"{self.pc:04X}: " + " ".join(f"{b:02X}" for b in [opcode]+ob) + f"    {mnem} {ln.operand or ''}")
+                self.rows.append((f"{self.pc:04X}", [opcode]+ob, f"{mnem} {ln.operand or ''}".strip(), ln.lineno))
+                self.pc += 1+len(ob)
 
             return bytes(out), self.org, listing
-    
-    # ===================== PRG writers =====================
-    def build_prg_raw(payload: bytes, load_addr: int) -> bytes:
-        prg = bytearray([load_addr & 0xFF, (load_addr >> 8) & 0xFF]); prg.extend(payload); return bytes(prg)
-    
-    def build_prg_with_basic_autostart(payload: bytes, start_addr: int) -> bytes:
+
+    def build_prg_with_basic_autostart(payload: bytes) -> bytes:
         LOAD_BASIC = 0x0801
-        sysline = bytes([0x9E]) + b" " + str(start_addr).encode("ascii") + b"\x00"
+        code_start = LOAD_BASIC
+        while True:
+            dec = str(code_start).encode("ascii")
+            sysline = bytes([0x9E]) + b" " + dec + b"\x00"
+            next_addr = LOAD_BASIC + 2 + 2 + len(sysline)
+            new_code_start = next_addr + 2
+            if new_code_start == code_start:
+                break
+            code_start = new_code_start
+        # BASIC-Zeile + Ende
+        dec = str(code_start).encode("ascii")
+        sysline = bytes([0x9E]) + b" " + dec + b"\x00"
         next_addr = LOAD_BASIC + 2 + 2 + len(sysline)
-        basic = bytes([next_addr & 0xFF, next_addr >> 8, 10, 0]) + sysline + b"\x00\x00"
-        prg = bytearray()
-        prg.extend([LOAD_BASIC & 0xFF, LOAD_BASIC >> 8])
-        prg.extend(basic)
-        prg.extend([start_addr & 0xFF, start_addr >> 8])
-        prg.extend(payload)
+        basic = bytearray([next_addr & 0xFF, next_addr >> 8, 10, 0])
+        basic += sysline + b"\x00\x00"
+        prg = bytearray([LOAD_BASIC & 0xFF, LOAD_BASIC >> 8])
+        prg += basic + payload
         return bytes(prg)
+
+    def _is_printable_ascii(b: int) -> bool:
+        # C64-Pro-Font stellt ASCII dar; wir mappen 32..126 als "druckbar"
+        return 32 <= b <= 126
+
+    def format_dual_hex(data: bytes, base_addr: int = 0x0000) -> str:
+        """
+        Dual-Hex (8 Bytes/Zeile): 'AAAA: HH HH HH HH HH HH HH HH  ASCII....'
+        Mit Mittenspace zwischen den 4er-Gruppen.
+        """
+        lines = []
+        for i in range(0, len(data), 8):
+            chunk = data[i:i+8]
+            addr = base_addr + i
+
+            left4  = " ".join(f"{b:02X}" for b in chunk[:4])
+            right4 = " ".join(f"{b:02X}" for b in chunk[4:8])
+            if len(chunk) < 4:
+                left4 += " " * (3 * (4 - len(chunk)))  # aufbreiten
+                right4 = ""
+            elif len(chunk) < 8:
+                right_count = len(chunk) - 4
+                right4 += " " * (3 * (4 - max(0, right_count)))
+
+            hex_part = f"{left4} {right4}".rstrip()
+
+            ascii_part = "".join(chr(b) if _is_printable_ascii(b) else "." for b in chunk)
+
+            lines.append(f"{addr:04X}: {hex_part:<23}  {ascii_part}")
+        return "\n".join(lines)
+
+
+    # ---------- Mini-Disassembler (teilweise Abdeckung, erweiterbar) ----------
+
+    # (mnemonic, size, kind)
+    # kind steuert Adress-/Operandendarstellung (abs, imm, zp, rel, imp, abx, aby, zpx, zpy, indx, indy)
+    OPC = {
+        0xA9: ("LDA", 2, "imm"), 0xA5: ("LDA", 2, "zp"),  0xAD: ("LDA", 3, "abs"),
+        0xB5: ("LDA", 2, "zpx"), 0xBD: ("LDA", 3, "abx"), 0xB9: ("LDA", 3, "aby"),
+        0xA1: ("LDA", 2, "indx"),0xB1: ("LDA", 2, "indy"),
+
+        0xA2: ("LDX", 2, "imm"), 0xA6: ("LDX", 2, "zp"),  0xAE: ("LDX", 3, "abs"),
+        0xB6: ("LDX", 2, "zpy"), 0xBE: ("LDX", 3, "aby"),
+
+        0xA0: ("LDY", 2, "imm"), 0xA4: ("LDY", 2, "zp"),  0xAC: ("LDY", 3, "abs"),
+        0xB4: ("LDY", 2, "zpx"), 0xBC: ("LDY", 3, "abx"),
+
+        0x85: ("STA", 2, "zp"),  0x8D: ("STA", 3, "abs"), 0x95: ("STA", 2, "zpx"),
+        0x9D: ("STA", 3, "abx"), 0x99: ("STA", 3, "aby"), 0x81: ("STA", 2, "indx"),
+        0x91: ("STA", 2, "indy"),
+
+        0x69: ("ADC", 2, "imm"), 0x65: ("ADC", 2, "zp"),  0x6D: ("ADC", 3, "abs"),
+        0xE9: ("SBC", 2, "imm"), 0xE5: ("SBC", 2, "zp"),  0xED: ("SBC", 3, "abs"),
+
+        0x29: ("AND", 2, "imm"), 0x09: ("ORA", 2, "imm"), 0x49: ("EOR", 2, "imm"),
+
+        0x4C: ("JMP", 3, "abs"), 0x6C: ("JMP", 3, "ind"),
+        0x20: ("JSR", 3, "abs"), 0x60: ("RTS", 1, "imp"), 0x00: ("BRK", 1, "imp"),
+
+        0xD0: ("BNE", 2, "rel"), 0xF0: ("BEQ", 2, "rel"), 0x90: ("BCC", 2, "rel"),
+        0xB0: ("BCS", 2, "rel"), 0x10: ("BPL", 2, "rel"), 0x30: ("BMI", 2, "rel"),
+
+        0x18: ("CLC", 1, "imp"), 0x38: ("SEC", 1, "imp"),
+        0xE8: ("INX", 1, "imp"), 0xCA: ("DEX", 1, "imp"),
+        0xC8: ("INY", 1, "imp"), 0x88: ("DEY", 1, "imp"),
+
+        0xEA: ("NOP", 1, "imp"),
+    }
+
+    def _word(lo: int, hi: int) -> int:
+        return lo | (hi << 8)
+
+    def _fmt_operand(kind: str, pc: int, b: bytes) -> str:
+        if kind == "imm":
+            return f"#{b[0]:02X}h"
+        if kind == "zp":
+            return f"{b[0]:02X}h"
+        if kind == "zpx":
+            return f"{b[0]:02X}h,X"
+        if kind == "zpy":
+            return f"{b[0]:02X}h,Y"
+        if kind == "abs":
+            return f"${_word(b[0], b[1]):04X}"
+        if kind == "abx":
+            return f"${_word(b[0], b[1]):04X},X"
+        if kind == "aby":
+            return f"${_word(b[0], b[1]):04X},Y"
+        if kind == "ind":
+            return f"(${_word(b[0], b[1]):04X})"
+        if kind == "indx":
+            return f"({b[0]:02X}h,X)"
+        if kind == "indy":
+            return f"({b[0]:02X}h),Y"
+        if kind == "rel":
+            off = b[0] if b[0] < 0x80 else b[0] - 0x100
+            target = (pc + 2 + off) & 0xFFFF
+            return f"${target:04X}"
+        if kind == "imp":
+            return ""
+        return "??"
+
+    def disassemble_listing(data: bytes, base_addr: int = 0x0000) -> str:
+        """
+        Gibt Zeilen: 'AAAA: BB BB [...]  MNEMONIC [OPERAND]'
+        Bytes pro Zeile = Instruktionslänge (1..3). Unbekannt → '.byte $HH'
+        """
+        i = 0
+        out = []
+        while i < len(data):
+            addr = (base_addr + i) & 0xFFFF
+            op = data[i]
+            if op in OPC:
+                mnem, size, kind = OPC[op]
+                inst = data[i:i+size]
+                # Bytes formatieren (genau size, Lücke auffüllen für Spalten-Ausrichtung)
+                bytes_txt = " ".join(f"{b:02X}" for b in inst)
+                pad = " " * (11 - len(bytes_txt))  # 11 = max "HH HH HH"
+                operand = _fmt_operand(kind, addr, inst[1:])
+                sp = " " if operand else ""
+                out.append(f"{addr:04X}: {bytes_txt}{pad}  {mnem}{sp}{operand}")
+                i += size
+            else:
+                # unbekannt: ein Byte ausgeben
+                bytes_txt = f"{op:02X}"
+                pad = " " * (11 - len(bytes_txt))
+                out.append(f"{addr:04X}: {bytes_txt}{pad}  .byte ${op:02X}")
+                i += 1
+        return "\n".join(out)
+
+    def _le16(x: int) -> bytes:
+        return bytes((x & 0xFF, (x >> 8) & 0xFF))
+
+    def build_basic_sys_stub(code_start: int, line_number: int = 10) -> bytes:
+        """
+        Baut ein einzeiliges BASIC-Programm:
+          10 SYS <code_start>
+        Rückgabe: reiner BASIC-Inhalt (ohne PRG-Header-Zweibyte-Ladeadresse).
+        """
+        # Inhalt: [TOKEN_SYS=0x9E] " " Ziffern ... 0x00 (Zeilenende)
+        text = f" SYS {code_start}"  # führendes Leerzeichen ist ok/üblich
+        content = bytes([0x9E]) + text.encode("ascii") + b"\x00"
+
+        # Link zur nächsten Zeile berechnen: LOAD_ADDR + (Zeilenkopf + Inhalt)
+        # Zeilenformat: [link_lo, link_hi, line_lo, line_hi, <content>, 0x00]
+        body_len = 2 + 2 + len(content)  # link + line + content
+        next_addr = LOAD_ADDR + body_len
+
+        line = bytearray()
+        line += _le16(next_addr)
+        line += _le16(line_number)
+        line += content
+
+        # Programmende: Null-Link (0x0000)
+        end = b"\x00\x00"
+        return bytes(line) + end
+
+    def build_single_segment_prg(assembled_code: bytes) -> bytes:
+        """
+        Erzeugt ein .prg mit:
+          - BASIC @ $0801: 10 SYS <code_start>
+          - Code direkt dahinter (gleiche Ladeadresse $0801)
+        Achtung: PRG-Header (2 Bytes Ladeadresse) nur EINMAL vorne!
+        """
+        basic = build_basic_sys_stub(code_start=0)  # Platzhalter; wir berechnen gleich neu
+        # Erstmal nur BASIC bauen, um Länge zu kennen:
+        basic_len = len(basic)
+        code_start = LOAD_ADDR + basic_len  # reale Startadresse des Codes im RAM
+
+        # BASIC erneut, jetzt mit korrekter SYS-Zahl:
+        basic = build_basic_sys_stub(code_start=code_start)
+
+        # Endgültig:
+        prg = bytearray()
+        prg += _le16(LOAD_ADDR)   # PRG-Header (Ladeadresse)
+        prg += basic
+        prg += assembled_code     # Code liegt direkt dahinter
+        return bytes(prg), code_start
+
+    def tokenize(s: str):
+        pos=0
+        while pos < len(s):
+            m = TOK_RE.match(s, pos)
+            if not m: raise SyntaxError(f"Tokenfehler bei: {s[pos:pos+16]!r}")
+            kind = m.lastgroup; val = m.group()
+            pos = m.end()
+            if kind == "WS": continue
+            yield (kind, val)
+
+    def parse_lines(src: str) -> List[BasicLine]:
+        lines=[]
+        for raw in src.splitlines():
+            raw = raw.strip()
+            if not raw: continue
+            m = re.match(r"^(\d+)\s+(.*)$", raw)
+            if not m: raise SyntaxError(f"Zeilennummer fehlt: {raw}")
+            num = int(m.group(1)); text = m.group(2).strip()
+            lines.append(BasicLine(num, text))
+        return lines
+
+    def split_csv_respecting_quotes(s: str) -> List[str]:
+        parts=[]; buf=[]; ins=False
+        for ch in s:
+            if ch=='"':
+                ins = not ins
+                buf.append(ch)
+                continue
+            if ch==',' and not ins:
+                parts.append("".join(buf).strip()); buf=[]
+                continue
+            buf.append(ch)
+        if buf:
+            parts.append("".join(buf).strip())
+        return parts
+
+    def lower_cmp_to_flags(c: Cmp) -> List[str]:
+        """
+        Liefert Code, der die Flags so setzt, dass BEQ/BNE/BCS/BCC/BMI/BPL genutzt werden können.
+        Strategie: A := a; TMP := A; A := b; dann CMP TMP.
+        Danach gilt:
+          =  → BEQ
+          <> → BNE
+          <  → BCC (unsigned)  nachdem 'CMP TMP' (A-b) → Carry=0 wenn A<TMP
+          >= → BCS
+          >  → BHI (gibt's nicht) → BCC ist <, also '>' ist '>= && <>' → wir machen BCS + BNE
+          <= → BCS negiert → '<=' ist '< || =' → wir nutzen BCC || BEQ
+        Achtung: Wir arbeiten erstmal **unsigned** (0..255).
+        """
+        code = []
+        code += lower_expr_to_asm(c.a)     # A=a
+        code += ["    STA TMP"]            # TMP=a
+        code += lower_expr_to_asm(c.b)     # A=b
+        code += ["    CMP TMP"]            # vergleiche b ? a
+        return code
+
+    def branch_for_cmp(op: str, target_label: str) -> List[str]:
+        if op == "=":
+            return [f"    BEQ {target_label}"]
+        if op == "<>":
+            return [f"    BNE {target_label}"]
+        if op == "<":
+            return [f"    BCC {target_label}"]   # A<b → Carry=0
+        if op == ">=":
+            return [f"    BCS {target_label}"]   # A>=b → Carry=1
+        if op == ">":
+            # (A>b) ist (A>=b) und (A!=b)
+            return [f"    BCS {target_label}_GE",
+                    f"    JMP {target_label}_SKIP",
+                    f"{target_label}_GE:",
+                    f"    BNE {target_label}",
+                    f"{target_label}_SKIP:"]
+        if op == "<=":
+            # (A<=b) ist (A<b) oder (A=b)
+            return [f"    BCC {target_label}",
+                    f"    BEQ {target_label}"]
+        return [f"    ; TODO unknown cmp {op}"]
+
+    # --- Ausdruck sehr simpel: nur Ganzzahlen + einstellige Variablen + () + + - * / ---
+    class Expr:
+        pass
+    @dataclass
+    class Num(Expr): v:int
+    @dataclass
+    class Var(Expr): name:str
+    @dataclass
+    class Bin(Expr): op:str; a:Expr; b:Expr
+    @dataclass
+    class Par(Expr): x:Expr
+
+    @dataclass
+    class Cmp(Expr):
+        op: str  # one of "=", "<>", "<", "<=", ">", ">="
+        a: Expr
+        b: Expr
+
+    class ExprParser:
+        def __init__(self, tokens): self.toks=list(tokens); self.i=0
+        def peek(self): return self.toks[self.i] if self.i<len(self.toks) else (None,None)
+        def eat(self,k=None,v=None):
+            t=self.peek()
+            if t[0] is None: raise SyntaxError("Unerwartetes Ende")
+            if (k and t[0]!=k) or (v and t[1]!=v): raise SyntaxError(f"Erwartet {k or v}, fand {t}")
+            self.i+=1; return t
+        def parse_cmp(self):
+            x = self.parse_add()
+            k,v = self.peek()
+            if k=="OP" and v in ("=", "<>", "<", "<=", ">", ">="):
+                self.eat("OP", v)
+                y = self.parse_add()
+                return Cmp(v, x, y)
+            return x
+        def parse_expr(self): return self.parse_cmp()
+        def parse_add(self):
+            x=self.parse_mul()
+            while True:
+                k,v=self.peek()
+                if v in ("+","-"):
+                    self.eat("OP",v); y=self.parse_mul(); x=Bin(v,x,y)
+                else: break
+            return x
+        def parse_mul(self):
+            x=self.parse_atom()
+            while True:
+                k,v=self.peek()
+                if v in ("*","/"):
+                    self.eat("OP",v); y=self.parse_atom(); x=Bin(v,x,y)
+                else: break
+            return x
+        def parse_atom(self):
+            k,v=self.peek()
+            if k=="NUM": self.eat("NUM"); return Num(int(v))
+            if k=="ID" and len(v)==1: self.eat("ID"); return Var(v.upper())
+            if v=="(": self.eat("OP","("); x=self.parse_expr(); self.eat("OP",")"); return Par(x)
+            raise SyntaxError(f"Unerwartetes Token in Ausdruck: {k,v}")
+
+    # --- Lowering: Ausdrücke → Akkumulator (8-Bit), sehr simpel (kein Overflow-Handling) ---
+    def lower_expr_to_asm(e: Expr) -> List[str]:
+        if isinstance(e, Num):
+            return [f"    LDA #{e.v & 0xFF:02X}h"]
+        if isinstance(e, Var):
+            zp = zp_addr_for_var(e.name)
+            return [f"    LDA ${zp:02X}"]
+        if isinstance(e, Par):
+            return lower_expr_to_asm(e.x)
+        if isinstance(e, Bin):
+            code = []
+            code += lower_expr_to_asm(e.a)         # A := a
+            code += ["    STA TMP"]                # TMP := A  (TMP definieren wir in Runtime)
+            code += lower_expr_to_asm(e.b)         # A := b
+            if e.op == "+": code += ["    CLC", "    ADC TMP"]
+            elif e.op == "-": code += ["    SEC", "    SBC TMP"]
+            elif e.op == "*":
+                # naive 8-Bit-Mul: A=b, TMP=a → result in A (nur low byte)
+                code += [
+                    "    STA MUL_B",
+                    "    LDA #00h",
+                    "    LDX MUL_B",
+                    "mul_lp:",
+                    "    BEQ mul_done",
+                    "    CLC",
+                    "    ADC TMP",
+                    "    DEX",
+                    "    BNE mul_lp",
+                    "mul_done:"
+                ]
+            elif e.op == "/":
+                code += [
+                    "    TAX",              # X = b
+                    "    LDA TMP",          # A = a
+                    "    LSR A",            # (sehr grob: A/=2 solange X>1) – Platzhalter
+                    "    ; TODO: echte Division"
+                ]
+            else:
+                code += ["    ; TODO: Operator " + e.op]
+            return code
+        raise TypeError(e)
+
+    # --- Statement-Lowering ---
+    def lower_print(args: List[str]) -> List[str]:
+        out=[]
+        for a in args:
+            a=a.strip()
+            if a.upper().startswith('CHR$(') and a.endswith(')'):
+                inner = a[5:-1]
+                v = int(inner) if inner.isdigit() else 13
+                out += [f"    LDA #{v & 0xFF:02X}h", f"    JSR {KERN_CHROUT}"]
+            elif a.startswith('"') and a.endswith('"'):
+                label = f"STR_{abs(hash(a)) & 0xFFFF:04X}"
+                out += [f"    LDY #00h",
+                        f"{label}:",
+                        f"    LDA {label}_DATA,Y",
+                        f"    BEQ {label}_END",
+                        f"    JSR {KERN_CHROUT}",
+                        f"    INY",
+                        f"    BNE {label}",
+                        f"{label}_END:"]
+                out += [f"{label}_DATA:",
+                        f"    .BYTE " + ",".join(f"{ord(c)}" for c in a.strip('"')) + ",0"]
+            elif a == "":  # leeres Feld (z. B. aufeinanderfolgende Kommas)
+                pass
+            else:
+                # Zahl/Var → Ausdruck nach A, dann rudimentär als Ziffern ausgeben (TODO)
+                out += ["    ; PRINT expr (TODO: Zahl/Var schön ausgeben)"]
+                out += lower_expr_to_asm(parse_expr(a))
+                out += [f"    JSR {KERN_CHROUT}"]
+        return out
+
+    def parse_expr(s: str) -> Expr:
+        return ExprParser(tokenize(s)).parse_expr()
+
+    def compile_basic_to_asm(source: str) -> Tuple[str, Dict[int,str]]:
+        """
+        Rückgabe:
+          asm_text: str
+          label_map: Mapping BASIC-Liniennummer -> ASM-Label
+        """
+        lines = parse_lines(source)
+        # Label pro BASIC-Zeile
+        label_for: Dict[int,str] = {ln.num: f"L{ln.num}" for ln in lines}
+
+        asm: List[str] = []
+        asm += [
+            "; --- BASIC→ASM ---",
+            ".ORG $1000",
+            "TMP = $FB",
+            "MUL_B = $FC",
+            "U16L = $FD",
+            "U16H = $FE",
+            "",
+            "; init READ pointer",
+            "    LDA #00h",
+            "    STA READ_IDX",
+            f"    LDA #{0:02X}h",  # READ_CNT setzen wir später via Label – hier Platzhalter
+            "    STA READ_CNT",
+            "",
+            "start:"
+        ]
+        
+        data_items: List[int] = []
+        
+        for ln in lines:
+            text = ln.text.strip()
+            # REM
+            if text.upper().startswith("REM"):
+                asm += [f"{label_for[ln.num]}: ; {text[3:].strip()}"]
+                continue
+
+            # IF <expr> THEN <line>
+            m = re.match(r"(?i)^IF\s+(.+?)\s+THEN\s+(\d+)$", text)
+            # IF <expr> THEN <line>
+            m = re.match(r"(?i)^IF\s+(.+?)\s+THEN\s+(\d+)$", text)
+            if m:
+                cond = m.group(1).strip(); dest = int(m.group(2))
+                asm += [f"{label_for[ln.num]}:"]
+                cexpr = ExprParser(tokenize(cond)).parse_expr()
+                if isinstance(cexpr, Cmp):
+                    asm += lower_cmp_to_flags(cexpr)
+                    asm += branch_for_cmp(cexpr.op, label_for.get(dest, f"L{dest}"))
+                else:
+                    # Nicht-Vergleich: „wahr“ wenn A != 0
+                    asm += lower_expr_to_asm(cexpr)
+                    asm += [f"    CMP #00h", f"    BNE {label_for.get(dest, f'L{dest}')}",]
+                continue
+            
+            # INPUT  ["prompt";] A
+            m = re.match(r'(?i)^INPUT\s+(?:(\"[^\"]*\")\s*;\s*)?([A-Za-z])$', text)
+            if m:
+                prompt = m.group(1)  # oder None
+                var = m.group(2).upper()
+                zp  = zp_addr_for_var(var)
+
+                asm += [f"{label_for[ln.num]}:"]
+                if prompt:
+                    label = f"STR_{abs(hash(prompt)) & 0xFFFF:04X}"
+                    # prompt ausgeben:
+                    asm += [f"    LDY #00h",
+                            f"{label}:",
+                            f"    LDA {label}_DATA,Y",
+                            f"    BEQ {label}_END",
+                            f"    JSR {KERN_CHROUT}",
+                            f"    INY",
+                            f"    BNE {label}",
+                            f"{label}_END:",
+                            f"{label}_DATA:",
+                            f"    .BYTE " + ",".join(f"{ord(c)}" for c in prompt.strip('"')) + ",0"]
+                asm += ["    JSR read_uint8",
+                        f"    STA ${zp:02X}"]
+                continue
+
+            # DATA a,b,"txt",...
+            m = re.match(r"(?i)^DATA\s+(.+)$", text)
+            if m:
+                raw_items = split_csv_respecting_quotes(m.group(1))
+                for itm in raw_items:
+                    itm = itm.strip()
+                    if not itm:
+                        continue
+                    if itm.startswith('"') and itm.endswith('"'):
+                        # Strings → als Folge von Bytes + 0 in die Tabelle (eine Option).
+                        # Für "READ A" brauchen wir Zahlen; Strings heben wir uns auf.
+                        # Du kannst hier statt dessen alle Zeichen anhängen:
+                        for ch in itm.strip('"'):
+                            data_items.append(ord(ch) & 0xFF)
+                        data_items.append(0)
+                    else:
+                        # Zahl, auch $.., %.. via int(...,0)
+                        try:
+                            v = int(itm, 0)
+                        except Exception:
+                            # notfalls 0
+                            v = 0
+                        data_items.append(v & 0xFF)
+                # Keine Ausgabe – reine Definition
+                continue
+
+            # READ A
+            m = re.match(r"(?i)^READ\s+([A-Za-z])$", text)
+            if m:
+                var = m.group(1).upper()
+                zp  = zp_addr_for_var(var)
+                asm += [f"{label_for[ln.num]}:",
+                        "    JSR data_read_u8",
+                        f"    STA ${zp:02X}"]
+                continue
+
+            # RESTORE
+            if re.match(r"(?i)^RESTORE$", text):
+                asm += [f"{label_for[ln.num]}:", "    JSR data_restore"]
+                continue
+
+            # GOSUB n / RETURN sind schon vorhanden – wir ergänzen später einen echten Sub-Stack
+
+            # GOTO n
+            m = re.match(r"(?i)^GOTO\s+(\d+)$", text)
+            if m:
+                dest=int(m.group(1))
+                asm += [f"{label_for[ln.num]}:", f"    JMP {label_for.get(dest, f'L{dest}')}",]
+                continue
+
+            # GOSUB n / RETURN
+            m = re.match(r"(?i)^GOSUB\s+(\d+)$", text)
+            if m:
+                dest=int(m.group(1))
+                asm += [f"{label_for[ln.num]}:", f"    JSR {label_for.get(dest, f'L{dest}')}",]
+                continue
+            if re.match(r"(?i)^RETURN$", text):
+                asm += [f"{label_for[ln.num]}:", "    RTS"]; continue
+
+            # SYS addr
+            m = re.match(r"(?i)^SYS\s+(.+)$", text)
+            if m:
+                addr = m.group(1).strip()
+                asm += [f"{label_for[ln.num]}:", f"    JSR ${int(addr):04X}" if addr.isdigit() else f"    JSR {addr}"]
+                continue
+
+            # POKE a, v
+            m = re.match(r"(?i)^POKE\s+(.+?)\s*,\s*(.+)$", text)
+            if m:
+                a = parse_expr(m.group(1)); v = parse_expr(m.group(2))
+                asm += [f"{label_for[ln.num]}:"]
+                asm += lower_expr_to_asm(v)    # A = value
+                # Adresse (nur absolut 16-Bit für jetzt)
+                asm += ["    ; POKE addr, A"]
+                # naive: wenn Konstante → direkt
+                if isinstance(a, Num):
+                    asm += [f"    STA ${a.v & 0xFFFF:04X}"]
+                else:
+                    asm += ["    ; TODO: POKE (expr-Addr)"]
+                continue
+
+            # LET X = expr   /   X = expr
+            m = re.match(r"(?i)^(?:LET\s+)?([A-Za-z])\s*=\s*(.+)$", text)
+            if m:
+                var = m.group(1).upper(); expr = parse_expr(m.group(2))
+                zp = zp_addr_for_var(var)
+                asm += [f"{label_for[ln.num]}:"]
+                asm += lower_expr_to_asm(expr)
+                asm += [f"    STA ${zp:02X}"]
+                continue
+
+            # PRINT a[,b,...]
+            m = re.match(r"(?i)^PRINT\s*(.*)$", text)
+            if m:
+                tail = m.group(1).strip()
+                # Split an Kommas außerhalb von Strings
+                parts=[]; buf=[]; ins=False
+                for ch in tail:
+                    if ch=='"': ins=not ins; buf.append(ch); continue
+                    if ch==',' and not ins: parts.append("".join(buf).strip()); buf=[]; continue
+                    buf.append(ch)
+                if buf: parts.append("".join(buf).strip())
+                asm += [f"{label_for[ln.num]}:"]
+                asm += lower_print(parts)
+                continue
+
+            # FOR i = from TO to [STEP s]
+            m = re.match(r"(?i)^FOR\s+([A-Za-z])\s*=\s*(.+?)\s+TO\s+(.+?)(?:\s+STEP\s+(.+))?$", text)
+            if m:
+                v=m.group(1).upper(); vaddr=zp_addr_for_var(v)
+                lo=parse_expr(m.group(2)); hi=parse_expr(m.group(3))
+                step=parse_expr(m.group(4)) if m.group(4) else Num(1)
+                loop_lbl=f"FOR_{ln.num}"
+                end_lbl=f"NEXT_{ln.num}"
+                asm += [f"{label_for[ln.num]}:"]
+                asm += lower_expr_to_asm(lo); asm += [f"    STA ${vaddr:02X}"]
+                # test
+                asm += [f"{loop_lbl}:"]
+                asm += lower_expr_to_asm(Var(v)); asm += ["    CMP #00h ; TODO: richtige Grenze"]
+                asm += [f"    BEQ {end_lbl}"]
+                # body: läuft einfach weiter (bis NEXT)
+                continue
+
+            if re.match(r"(?i)^NEXT(\s+[A-Za-z])?$", text):
+                # sehr grob: v++ ; springe zu loop_lbl
+                # In wirklichkeit bräuchten wir Stack/Loop-Kette – für den Start ok
+                asm += [f"{label_for[ln.num]}:", "    ; TODO: FOR/NEXT Verknüpfung herstellen", "    RTS"]
+                continue
+
+            # Fallback
+            asm += [f"{label_for[ln.num]}:", f"    ; TODO: Nicht unterstützt: {text}"]
+
+        asm += ["", "    RTS"]
+        
+        asm += ["", "; --- DATA TABLE ---"]
+        asm += [f"READ_CNT_INIT = {len(data_items)}"]
+        asm += [f"    LDA #<READ_CNT_INIT",  # optional: du kannst READ_CNT direkt setzen
+                f"    ; (READ_CNT wird ggf. anders initialisiert – siehe unten)"]
+        asm += [ "LABEL_DATA_BYTES:" ]
+        if data_items:
+            asm += [ "    .BYTE " + ",".join(str(b) for b in data_items) ]
+        else:
+            asm += [ "    .BYTE 0" ]
+        asm += [ "LABEL_DATA_END:" ]
+        
+        return "\n".join(asm), label_for
+
+    def load_settings(path: Union[str, Path] = "settings.json"):
+        # 1) Falsche Aufrufe früh erkennen
+        if isinstance(path, type):
+            raise TypeError(
+                f"load_settings(path): Erwartet String/Path, bekam Typ {path!r}. "
+                "Vermutlich eine Klasse/Typ statt eines Pfades übergeben."
+            )
+
+        # 2) In Path normalisieren
+        path = Path(path)
+
+        # 3) Neu anlegen, falls nicht vorhanden
+        if not path.exists():
+            data = deepcopy(DEFAULT_SETTINGS)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            return data
+
+        # 4) Laden
+        text = path.read_text(encoding="utf-8")
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            # Zur Not: reset auf Defaults (oder raise, wenn du es lieber hart willst)
+            raise ValueError(f"{path} ist keine gültige JSON: {e}") from e
+
+        # 5) Defaults tief mergen (robuste Variante)
+        changed = _deep_merge_defaults(data, DEFAULT_SETTINGS)
+        if changed:
+            path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+        return data
+
+    def _deep_merge_defaults(dst, src):
+        """Robuster Deep-Merge: ergänzt fehlende Keys aus src in dst."""
+        if not isinstance(src, dict):
+            return False
+        if not isinstance(dst, dict):
+            # Aufrufer ersetzt den ganzen Zweig – hier nur „Änderung“ signalisieren
+            return True
+        changed = False
+        for k, v in src.items():
+            if k not in dst:
+                dst[k] = deepcopy(v)
+                changed = True
+            else:
+                if isinstance(v, dict):
+                    if not isinstance(dst[k], dict):
+                        dst[k] = deepcopy(v)
+                        changed = True
+                    else:
+                        if _deep_merge_defaults(dst[k], v):
+                            changed = True
+        return changed
     
-    class C64AssemblerMainWindow(QWidget):
+    @dataclass
+    class C64Settings:
+        data: dict
+        path: str
+
+        def save(self):
+            with open(self.path, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, indent=2)
+
+        def runtime_pre_file(self) -> str:
+            name = self.data.get("output", {}).get("runtime_pre_file", "runtime_pre.asm")
+            return os.path.join(self.build_dir(), name)
+
+        def runtime_post_file(self) -> str:
+            name = self.data.get("output", {}).get("runtime_post_file", "runtime_post.asm")
+            return os.path.join(self.build_dir(), name)
+
+        # Convenience getters
+        def c1541(self) -> str: return self.data["paths"]["c1541"]
+        def x64sc(self) -> str: return self.data["paths"]["x64sc"]
+        
+        def build_dir(self) -> str: return self.data["output"]["build_dir"]
+        def disk_name(self) -> str: return self.data["output"]["disk_name"]
+        def prg_name (self) -> str: return self.data["output"]["prg_name"]
+        def prg_file (self) -> str: return os.path.join(self.build_dir(), self.data["output"]["prg_file"])
+        def d64_file (self) -> str: return os.path.join(self.build_dir(), self.data["output"]["d64_file"])
+
+    class C64SettingsDialog(QDialog):
+        def ensure_build_dir(s: Settings):
+            os.makedirs(s.build_dir(), exist_ok=True)
+
+        def write_prg_file(path: str, data: bytes):
+            with open(path, "wb") as f:
+                f.write(data)
+
+        def make_d64_and_run(s: Settings) -> tuple[int, str]:
+            """
+            Baut ein frisches D64 via c1541 und startet VICE mit -autostart.
+            Rückgabe: (returncode, cmdline_string)
+            """
+            c1541 = s.c1541()
+            x64sc = s.x64sc()
+            d64   = s.d64_file()
+            prg   = s.prg_file()
+            disk  = s.disk_name()
+            name  = s.prg_name()
+
+            # sanity
+            for p in (c1541, x64sc):
+                if not shutil.which(p) and not os.path.isfile(p):
+                    raise FileNotFoundError(f"Tool nicht gefunden: {p}")
+
+            # Alte D64 löschen
+            if os.path.exists(d64):
+                os.remove(d64)
+
+            # D64 formatieren & PRG schreiben
+            cmd1 = [c1541, "-format", disk, "d64", d64]
+            cmd2 = [c1541, "-attach", d64, "-write", prg, f"{name},p"]
+
+            r1 = subprocess.run(cmd1, capture_output=True, text=True)
+            if r1.returncode != 0:
+                raise RuntimeError(f"c1541 format Fehler:\n{r1.stdout}\n{r1.stderr}")
+
+            r2 = subprocess.run(cmd2, capture_output=True, text=True)
+            if r2.returncode != 0:
+                raise RuntimeError(f"c1541 write Fehler:\n{r2.stdout}\n{r2.stderr}")
+
+            # VICE starten
+            cmd3 = [x64sc, "-autostart", d64]
+            r3 = subprocess.Popen(cmd3)  # nicht blockieren
+            return (0, " ".join(cmd3))
+
+        def __init__(self, settings: Settings, parent=None):
+            super().__init__(parent)
+            self.setWindowTitle("Einstellungen")
+            self.settings = settings
+            self._build_ui()
+            self._load_values()
+
+        def _build_ui(self):
+            form = QFormLayout()
+
+            # Felder
+            self.ed_c1541 = QLineEdit()
+            self.btn_c1541 = QPushButton("Durchsuchen…")
+            self.btn_c1541.clicked.connect(self._choose_c1541)
+            row1 = self._row(self.ed_c1541, self.btn_c1541)
+            form.addRow("c1541:", row1)
+
+            self.ed_x64sc = QLineEdit()
+            self.btn_x64sc = QPushButton("Durchsuchen…")
+            self.btn_x64sc.clicked.connect(self._choose_x64sc)
+            row2 = self._row(self.ed_x64sc, self.btn_x64sc)
+            form.addRow("x64sc:", row2)
+
+            self.ed_build = QLineEdit()
+            self.btn_build = QPushButton("Durchsuchen…")
+            self.btn_build.clicked.connect(self._choose_build_dir)
+            row3 = self._row(self.ed_build, self.btn_build)
+            form.addRow("Build-Ordner:", row3)
+
+            self.ed_disk_name = QLineEdit()
+            form.addRow("Disk-Name:", self.ed_disk_name)
+
+            self.ed_prg_name = QLineEdit()
+            form.addRow("PRG-Name (Directory):", self.ed_prg_name)
+
+            self.ed_prg_file = QLineEdit()
+            form.addRow("PRG-Datei (Dateiname):", self.ed_prg_file)
+
+            self.ed_d64_file = QLineEdit()
+            form.addRow("D64-Datei (Dateiname):", self.ed_d64_file)
+
+            # Buttons
+            btn_box = QDialogButtonBox(
+                QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            btn_box.accepted.connect(self._accept)
+            btn_box.rejected.connect(self.reject)
+
+            lay = QVBoxLayout(self)
+            lay.addLayout(form)
+            lay.addWidget(btn_box)
+
+        def _row(self, widget, btn):
+            w = QWidget()
+            h = QHBoxLayout(w)
+            h.setContentsMargins(0,0,0,0)
+            h.addWidget(widget)
+            h.addWidget(btn)
+            return w
+
+        def _load_values(self):
+            d = self.settings.data
+            self.ed_c1541    .setText(d["paths" ]["c1541"]    )
+            self.ed_x64sc    .setText(d["paths" ]["x64sc"]    )
+            self.ed_build    .setText(d["output"]["build_dir"])
+            self.ed_disk_name.setText(d["output"]["disk_name"])
+            self.ed_prg_name .setText(d["output"]["prg_name"] )
+            self.ed_prg_file .setText(d["output"]["prg_file"] )
+            self.ed_d64_file .setText(d["output"]["d64_file"] )
+
+        # --- Browser ---
+        def _choose_c1541(self):
+            path, _ = QFileDialog.getOpenFileName(self, "c1541 auswählen", "", "Programme (*)")
+            if path: self.ed_c1541.setText(path)
+
+        def _choose_x64sc(self):
+            path, _ = QFileDialog.getOpenFileName(self, "x64sc auswählen", "", "Programme (*)")
+            if path: self.ed_x64sc.setText(path)
+
+        def _choose_build_dir(self):
+            path = QFileDialog.getExistingDirectory(self, "Build-Ordner wählen", "")
+            if path: self.ed_build.setText(path)
+
+        # --- Validierung & Speichern ---
+        def _accept(self):
+            c1541 = self.ed_c1541.text().strip()
+            x64sc = self.ed_x64sc.text().strip()
+            build = self.ed_build.text().strip()
+
+            errors = []
+            if not (c1541 and os.path.isfile(c1541)): errors.append("c1541: Datei nicht gefunden.")
+            if not (x64sc and os.path.isfile(x64sc)): errors.append("x64sc: Datei nicht gefunden.")
+            if not build: errors.append("Build-Ordner: darf nicht leer sein.")
+            if build and not os.path.isdir(build):
+                try:
+                    os.makedirs(build, exist_ok=True)
+                except Exception as e:
+                    errors.append(f"Build-Ordner: {e}")
+
+            if errors:
+                QMessageBox.warning(self, "Eingabefehler", "\n".join(errors))
+                return
+
+            d = self.settings.data
+            d["paths"]["c1541"] = c1541
+            d["paths"]["x64sc"] = x64sc
+            d["output"]["build_dir"] = build
+            d["output"]["disk_name"] = self.ed_disk_name.text().strip() or d["output"]["disk_name"]
+            d["output"]["prg_name"] = self.ed_prg_name.text().strip() or d["output"]["prg_name"]
+            d["output"]["prg_file"] = self.ed_prg_file.text().strip() or d["output"]["prg_file"]
+            d["output"]["d64_file"] = self.ed_d64_file.text().strip() or d["output"]["d64_file"]
+
+            self.settings.save()
+            self.accept()
+
+    class C64LineNumberArea(QWidget):
+        def __init__(self, editor):
+            super(C64LineNumberArea, self).__init__(editor)
+            self.codeEditor = editor
+
+        def sizeHint(self):
+            return QSize(self.codeEditor.lineNumberAreaWidth(), 0)
+
+        def mousePressEvent(self, event):
+            # Gutter-Klick → Breakpoint toggeln
+            y = event.pos().y()
+            self.codeEditor.toggleBreakpointAtY(y)
+            super().mousePressEvent(event)
+
+        def paintEvent(self, event):
+            self.codeEditor.lineNumberAreaPaintEvent(event)
+
+    class GhostPlaceholderMixin:
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._ghost_ph_text = ""
+            self._ghost_ph_color = QColor(128, 128, 128)  # grau
+            # Repaints triggern, wenn sich Text/Geometrie ändert
+            if hasattr(self, "textChanged"):
+                self.textChanged.connect(self.viewport().update)
+            self.viewport().installEventFilter(self)
+
+        def setGhostPlaceholder(self, text: str, color: QColor = None):
+            self._ghost_ph_text = text or ""
+            if color is not None:
+                self._ghost_ph_color = color
+            self.viewport().update()
+
+        def eventFilter(self, obj, ev):
+            if obj is self.viewport() and ev.type() in (
+                QEvent.Resize, QEvent.UpdateRequest
+            ):
+                self.viewport().update()
+            return super().eventFilter(obj, ev)
+
+        def _ghost_left_margin_px(self) -> int:
+            """Linker Innenabstand – berücksichtigt Gutter bei CodeEditor."""
+            # CodeEditor hat lineNumberAreaWidth(); QTextEdit/QPlainTextEdit nicht.
+            if hasattr(self, "lineNumberAreaWidth"):
+                try:
+                    return int(self.lineNumberAreaWidth()) + 6
+                except Exception:
+                    pass
+            return 6
+
+        def paintEvent(self, e):
+            # Normal zeichnen lassen
+            super().paintEvent(e)
+            # Placeholder-Kriterien: leerer Text und kein HTML im Dokument
+            try:
+                is_empty = (self.toPlainText() == "")
+            except Exception:
+                # QTextEdit mit HTML: wenn leer, gibt toPlainText() auch "" zurück
+                is_empty = True
+
+            if not is_empty or not self._ghost_ph_text:
+                return
+
+            # Text zeichnen
+            p = QPainter(self.viewport())
+            p.setPen(self._ghost_ph_color)
+            r = self.viewport().rect().adjusted(self._ghost_left_margin_px(), 4, -8, -4)
+
+            # Wörter umbrechen (TextWordWrap), links oben ausrichten
+            opt = QTextOption()
+            opt.setWrapMode(QTextOption.WordWrap)
+            opt.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+
+            # Multi-Zeilen robust zeichnen
+            layout = QTextLayout(self._ghost_ph_text, self.font())
+            layout.setTextOption(opt)
+            layout.beginLayout()
+            y = r.top()
+            while True:
+                line = layout.createLine()
+                if not line.isValid():
+                    break
+                line.setLineWidth(r.width())
+                line.setPosition(QPointF(r.left(), y))
+                y += line.height()
+            layout.endLayout()
+            layout.draw(p, QPoint(0, 0))
+            p.end()
+            
+    class C64CodeEditor(GhostPlaceholderMixin, QPlainTextEdit):
+        breakpointToggled = pyqtSignal(int, bool)  # (line1based, active)
+
+        def __init__(self, parent=None, editor_name=""):
+            super(C64CodeEditor, self).__init__(parent)
+            self.editor_name = editor_name
+            self._lineNumberArea = C64LineNumberArea(self)
+            self.breakpoints = set()  # 1-basierte Zeilennummern
+
+            # Signale
+            self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
+            self.updateRequest.connect(self.updateLineNumberArea)
+            self.cursorPositionChanged.connect(self.highlightCurrentLine)
+
+            self.updateLineNumberAreaWidth(0)
+            self.highlightCurrentLine()
+
+            # Monospace fallback – dein C64-Pro wird später gesetzt
+            mono = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+            self.setFont(mono)
+
+        # ---------- Gutter-Breite inkl. Marker-Spalte ----------
+        def lineNumberAreaWidth(self):
+            digits = len(str(max(1, self.blockCount())))
+            charw  = self.fontMetrics().width('9')
+            marker = 14  # Platz für roten Punkt
+            padding = 8
+            return marker + digits * charw + padding
+
+        def updateLineNumberAreaWidth(self, _):
+            self.setViewportMargins(self.lineNumberAreaWidth(), 0, 0, 0)
+
+        def updateLineNumberArea(self, rect, dy):
+            if dy:
+                self._lineNumberArea.scroll(0, dy)
+            else:
+                self._lineNumberArea.update(0, rect.y(), self._lineNumberArea.width(), rect.height())
+            if rect.contains(self.viewport().rect()):
+                self.updateLineNumberAreaWidth(0)
+
+        def resizeEvent(self, event):
+            super().resizeEvent(event)
+            cr = self.contentsRect()
+            self._lineNumberArea.setGeometry(QRect(cr.left(), cr.top(), self.lineNumberAreaWidth(), cr.height()))
+
+        # ---------- Marker + Nummern zeichnen ----------
+        def lineNumberAreaPaintEvent(self, event):
+            painter = QPainter(self._lineNumberArea)
+            painter.fillRect(event.rect(), self.palette().window().color().darker(102))
+
+            block = self.firstVisibleBlock()
+            blockNumber = block.blockNumber()
+            top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
+            bottom = top + int(self.blockBoundingRect(block).height())
+            lh = self.fontMetrics().height()
+
+            # Marker-Spalte links
+            marker_x = 3
+            text_right = self._lineNumberArea.width() - 4
+
+            while block.isValid() and top <= event.rect().bottom():
+                if block.isVisible() and bottom >= event.rect().top():
+                    line1 = blockNumber + 1
+
+                    # roter Punkt, wenn Breakpoint
+                    if line1 in self.breakpoints:
+                        r = QRect(marker_x, top + (lh//2 - 4), 8, 8)
+                        painter.setBrush(QBrush(Qt.red))
+                        painter.setPen(Qt.red)
+                        painter.drawEllipse(r)
+                    else:
+                        # dezenter leerer Kreis (optional)
+                        pass
+
+                    # Zeilennummer
+                    painter.setPen(self.palette().text().color())
+                    painter.drawText(0, top, text_right, lh, Qt.AlignRight, str(line1))
+
+                block = block.next()
+                top = bottom
+                bottom = top + int(self.blockBoundingRect(block).height())
+                blockNumber += 1
+
+        # ---------- aktuelle Zeile gelb ----------
+        def highlightCurrentLine(self):
+            if self.isReadOnly():
+                self.setExtraSelections([])
+                return
+            sel = QTextEdit.ExtraSelection()
+            color = QColor(Qt.yellow).lighter(160)
+            sel.format.setBackground(color)
+            sel.format.setProperty(QTextFormat.FullWidthSelection, True)
+            sel.cursor = self.textCursor()
+            sel.cursor.clearSelection()
+            self.setExtraSelections([sel])
+
+        # ---------- Gutter-Klick-Helfer ----------
+        def _lineFromY(self, y: int) -> int:
+            # 1-basierte Zeilennummer am Gutter-Y ermitteln
+            block = self.firstVisibleBlock()
+            top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
+            bottom = top + int(self.blockBoundingRect(block).height())
+            line = block.blockNumber() + 1
+            while block.isValid() and top <= y:
+                if y < bottom:
+                    return line
+                block = block.next()
+                top = bottom
+                bottom = top + int(self.blockBoundingRect(block).height())
+                line += 1
+            return max(1, min(line, self.blockCount()))
+
+        def toggleBreakpointAtY(self, y: int):
+            line1 = self._lineFromY(y)
+            active = False
+            if line1 in self.breakpoints:
+                self.breakpoints.remove(line1)
+                active = False
+            else:
+                self.breakpoints.add(line1)
+                active = True
+            self._lineNumberArea.update()
+            self.breakpointToggled.emit(line1, active)
+
+    class AsmHighlighter(QSyntaxHighlighter):
+        def __init__(self, parent_document: QTextDocument):
+            super().__init__(parent_document)
+
+            # ----- Farben & Formate -----
+            self.fmt_comment = QTextCharFormat()
+            self.fmt_comment.setForeground(QColor(0, 170, 0))  # dunkelgrün
+
+            self.fmt_mnemonic = QTextCharFormat()
+            self.fmt_mnemonic.setForeground(QColor(0, 90, 200))  # blau
+            self.fmt_mnemonic.setFontWeight(QFont.Bold)
+
+            self.fmt_number = QTextCharFormat()
+            self.fmt_number.setForeground(QColor(200, 120, 0))  # orange
+
+            self.fmt_label_def = QTextCharFormat()
+            self.fmt_label_def.setForeground(QColor(80, 140, 255))  # helles Blau
+
+            self.fmt_label_ref = QTextCharFormat()
+            self.fmt_label_ref.setForeground(QColor(80, 140, 255))  # gleich wie def.
+
+            # ----- Regexe (QRegularExpression) -----
+            # 1) Kommentar: ab erstem ';' bis Zeilenende
+            self.rx_comment = QRegularExpression(r";.*$",
+                QRegularExpression.CaseInsensitiveOption |
+                QRegularExpression.MultilineOption)
+
+            # 2) Label-Definition am Zeilenanfang:   label:
+            self.rx_label_def = QRegularExpression(
+                r"^(?P<lbl>[A-Za-z_]\w*)\s*:",
+                QRegularExpression.MultilineOption
+            )
+
+            # 3) Mnemonic: nach optionalem Label + Leerraum am Zeilenanfang
+            #    .BYTE/.WORD etc. ODER 2–4 Buchstaben (LDA, JSR, BEQ, NOP, …)
+            self.rx_mnemonic = QRegularExpression(
+                r"^(?:[A-Za-z_]\w*\s*:)?\s*(?P<m>\.[A-Za-z]+|[A-Za-z]{2,4})\b",
+                QRegularExpression.CaseInsensitiveOption |
+                QRegularExpression.MultilineOption
+            )
+
+            # 4) Zahlen/Adressen: $HH.., %.., #$.., #10, nackte Dezimalzahlen
+            self.rx_numbers = [
+                QRegularExpression(r"#\s*\$[0-9A-Fa-f]+"),      # #$0F
+                QRegularExpression(r"#\s*\d+"),                 # #10
+                QRegularExpression(r"\$[0-9A-Fa-f]+"),          # $C000
+                QRegularExpression(r"%[01]+"),                  # %1010
+                QRegularExpression(r"\b\d+\b"),                 # 1234
+                QRegularExpression(r"'[^']'"),                  # 'A'
+            ]
+
+            # 5) Label-Referenzen in Operanden (ein Wort, das nicht Zahl/Prefix ist)
+            #    Achtung: sehr simpel gehalten; gute Trefferquote in typischem 6502-ASM
+            self.rx_label_ref = QRegularExpression(
+                r"\b(?!A\b)(?!X\b)(?!Y\b)(?![0-9]+\b)(?!\$[0-9A-Fa-f]+)(?!%[01]+)"
+                r"[A-Za-z_]\w+\b"
+            )
+
+        def highlightBlock(self, text: str):
+            # Reihenfolge: erst Label-Def, Mnemonic, Zahlen/Label-Ref, zuletzt Kommentar (überdeckt alles dahinter)
+            # Label-Def
+            it = self.rx_label_def.globalMatch(text)
+            while it.hasNext():
+                m = it.next()
+                self.setFormat(m.capturedStart("lbl"), m.capturedLength("lbl"), self.fmt_label_def)
+
+            # Mnemonic
+            m = self.rx_mnemonic.match(text)
+            if m.hasMatch():
+                start = m.capturedStart("m")
+                length = m.capturedLength("m")
+                self.setFormat(start, length, self.fmt_mnemonic)
+
+            # Zahlen/Adressen
+            for rx in self.rx_numbers:
+                it = rx.globalMatch(text)
+                while it.hasNext():
+                    mm = it.next()
+                    self.setFormat(mm.capturedStart(), mm.capturedLength(), self.fmt_number)
+
+            # Label-Referenzen (einfach; Kommentar wird danach drüber gemalt)
+            it = self.rx_label_ref.globalMatch(text)
+            while it.hasNext():
+                mm = it.next()
+                self.setFormat(mm.capturedStart(), mm.capturedLength(), self.fmt_label_ref)
+
+            # Kommentar (zum Schluss, damit er „dominiert“)
+            it = self.rx_comment.globalMatch(text)
+            while it.hasNext():
+                mm = it.next()
+                self.setFormat(mm.capturedStart(), mm.capturedLength(), self.fmt_comment)
+        
+    class C64AssemblerMainWindow(QScrollArea):
         def __init__(self, parent=None):
             super(C64AssemblerMainWindow, self).__init__(parent)
-            self.setContentsMargins(0, 0, 0, 0)
-            self.resize(845, 800)
+            self.setMinimumHeight(parent.height()-150)
+            self.setMinimumWidth (parent.width()-150)
+            self.setWidgetResizable(True)
+            self.settings = load_settings()
             
+            self._init_ui()
+            self._init_toolbar()
+            self._init_menu()
+            
+            self.act_rtpre_load.triggered .connect(self.load_runtime_pre )
+            self.act_rtpre_save.triggered .connect(self.save_runtime_pre )
+            self.act_rtpost_load.triggered.connect(self.load_runtime_post)
+            self.act_rtpost_save.triggered.connect(self.save_runtime_post)
+            
+            # Sets für Breakpoints
+            self._bp_asm   = set()
+            self._bp_basic = set()
+            
+            # Mapping: srcline (1-based, aus Assembler.rows) -> (start_pos, length) im Listing-Dokument
+            self._listing_pos_by_srcline = {}
+            # Welcher Editor lieferte das aktuelle Listing?
+            self._last_listing_source = "asm"  # oder "basic"
+
+            self.asm_hl      = AsmHighlighter(self.asm_editor.document())
+            self.asm_out_hl  = AsmHighlighter(self.asm_out_editor.document())
+            self.asm_hl_pre  = AsmHighlighter(self.runtime_pre_editor.document())
+            self.asm_hl_post = AsmHighlighter(self.runtime_post_editor.document())
+
             self.spec = C6510Spec.from_json("6510_with_illegal_flags.json")
             self.assembler = MiniAssembler(self.spec)
             
-            # persistent temp dir for PRG to keep file alive while VICE loads it
-            self._persist_tmp = tempfile.TemporaryDirectory()
-            self._persist_prg_path = os.path.join(self._persist_tmp.name, "program_autostart.prg")
-            
-            self.editor = QPlainTextEdit()
-            self.editor.setPlainText(SAMPLE)
-            self.editor.setLineWrapMode(QPlainTextEdit.NoWrap)
-            
-            font = QFont("C64 Pro Mono"); 
-            if font.family() != "C64 Pro Mono":
-                font = QFont("Consolas")
-                font.setStyleHint(QFont.Monospace)
-            font.setPointSize(12); self.editor.setFont(font)
-            
-            self.hexview = QPlainTextEdit()
-            self.hexview.setReadOnly(True)
-            self.hexview.setLineWrapMode(QPlainTextEdit.NoWrap)
-            self.hexview.setFont(font)
-            
-            self.btn_compile   = QPushButton("Compile")
-            self.btn_save_prg  = QPushButton("PRG speichern")
-            self.btn_runr_prg  = QPushButton("PRG Start")
-            self.autostart_chk = QCheckBox  ("BASIC-Autostart")
-            self.autostart_chk.setChecked(True)
-            
-            self.btn_compile .clicked.connect(self.compile_source)
-            self.btn_save_prg.clicked.connect(self.save_prg)
-            self.btn_runr_prg.clicked.connect(self.runr_prg)
-            
-            self.org_combo = QComboBox()
-            self.org_combo.addItems(["$0801 (BASIC)","$1000","$2000","$4000","$6000","$C000"])
-            self.org_combo.setEditable(True)
-            self.org_combo.setCurrentText("$1000")
-            
-            self.override_org = QCheckBox("Startadresse erzwingen")
-            self.override_org.setChecked(True)
-            
-            self.bank_combo = QComboBox()
-            self.bank_combo.addItems(["Upper/Graphics","Lower/Upper"])
-            
-            topbar = QHBoxLayout()
-            topbar.addWidget(QLabel("Start @:"))
-            topbar.addWidget(self.org_combo)
-            topbar.addWidget(self.override_org)
-            
-            topbar.addSpacing(12)
-            topbar.addWidget(self.autostart_chk)
-            
-            topbar.addSpacing(12)
-            topbar.addWidget(QLabel("PETSCII:"))
-            topbar.addWidget(self.bank_combo)
-            
-            topbar.addStretch(1)
-            topbar.addWidget(self.btn_compile)
-            topbar.addWidget(self.btn_save_prg)
-            topbar.addWidget(self.btn_runr_prg)
-            
-            splitter = QSplitter()
-            splitter.setOrientation(Qt.Vertical)
-            splitter.addWidget(self.editor)
-            splitter.addWidget(self.hexview)
-            #splitter.setSizes([580,700])
-            
-            central = QWidget()
-            v = QVBoxLayout(central)
-            v.addLayout(topbar)
-            v.addWidget(splitter)
-            
-            lay = self.layout()
-            if lay is None:
-                lay = QVBoxLayout(self)
-            lay.addWidget(central)
-            
-            #self.setCentralWidget(central)
-            
-            self._last_prg     = None
             self._last_payload = None
-            self._last_org     = None
+            self._last_rows = []
             
-            self.compile_source()
-        
-        def parse_org_combo(self) -> int:
-            text = self.org_combo.currentText().split()[0]
-            if text.startswith("$"):
-                return int(text[1:],16)
-            if text.isdigit(): return int(text)
-            return 0x1000
-        
-        def compile_source(self):
-            try:
-                if self.override_org.isChecked():
-                    self.assembler.org = self.parse_org_combo()
-                payload, org, _ = self.assembler.assemble(self.editor.toPlainText())
-                if self.autostart_chk.isChecked():
-                    prg       = build_prg_with_basic_autostart(payload, start_addr=org)
-                    load_addr = 0x0801
-                    body      = prg[2:]
-                else:
-                    prg       = build_prg_raw(payload, load_addr = org)
-                    load_addr = org
-                    body      = prg[2:]
-                #bank = "upper_graphics" if self.bank_combo.currentIndex() == 0 else "lower_upper"
-                #rows  = hexdump_rows(body, base_addr=load_addr, view_mode="petscii" if self.view_combo.currentIndex()==0 else "ascii")
-                rows   = hexdump_rows(body, base_addr=load_addr, view_mode="petscii")
-                header = "ADDR  00 01 02 03 | 04 05 06 07  TEXT\n" + "-"*60
-                self.hexview.setPlainText(header + "\n" + "\n".join(rows))
-                self._last_prg     = prg
-                self._last_payload = payload
-                self._last_org     = org
-                
-                # write persistent file for VICE autostart
-                with open(self._persist_prg_path, "wb") as f:
-                    f.write(self._last_prg)
-                
-                mode = "Autostart" if self.autostart_chk.isChecked() else "RAW"
-                showInfo(f"Compiled: {len(payload)} bytes @ ${org:04X}")
-                #self.statusBar().showMessage(f"Compiled: {len(payload)} bytes @ ${org:04X}", 5000)
-            except Exception as e:
-                QMessageBox.critical(self, "Fehler", str(e))
-        
-        def runr_prg(self):
-            if not self._last_prg:
-                self.compile_source()
-                if not self._last_prg:
+            self._apply_c64_font()
+
+        def _apply_c64_font(self):
+            for fam in ("C64 Pro Mono", "C64 Pro", "C64-Pro-Mono"):
+                f = QFont(fam, 12)
+                if "c64" in QFontInfo(f).family().lower():
+                    for w in (self.basic_editor, self.asm_editor, self.asm_out_editor,
+                              self.runtime_pre_editor, self.runtime_post_editor,
+                              self.hex_view, self.listings_view):
+                        w.setFont(f)
                     return
-            # find VICE (x64sc preferred)
-            vice = shutil.which("x64sc") \
-            or shutil.which("x64"      ) \
-            or shutil.which("x64sc.exe") \
-            or shutil.which("x64.exe"  )
-            if vice is None:
-                QMessageBox.information(self,
-                "VICE benötigt",
-                "Bitte VICE-Executable (x64sc/x64) auswählen.")
-                vice, _ = QFileDialog.getOpenFileName(self,
-                "VICE auswählen", "",
-                "Executable (*)")
-                if not vice: return
+            # fallback
+            mono = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+            mono.setPointSize(8)
+            for w in (self.hex_view, self.listings_view, self.basic_editor,
+                      self.asm_editor, self.asm_out_editor):
+                w.setFont(mono)
                 
-            prg_path = self._persist_prg_path
-            try:
-                subprocess.Popen([vice, "-autostart", prg_path])
-                #self.statusBar().showMessage("VICE gestartet (Autostart).", 5000)
-            except Exception as e:
-                QMessageBox.critical(self, "VICE-Start fehlgeschlagen", str(e))
+        def _html_pre(self, inner: str) -> str:
+            fam = self.hex_view.font().family().replace("'", "\\'")
+            size_pt = self.hex_view.font().pointSize() or 8
+            return f"<pre style=\"font-family:'{fam}', monospace;font-size:{size_pt}pt;margin:0;\">{inner}</pre>"
+
+        def _glyph_for_byte(self, b: int) -> str:
+            b &= 0xFF
+            if b >= 0x20:
+                ch = chr(b)
+                if 'a' <= ch <= 'z': ch = ch.upper()
+                return ch
+            return '·'
+            
+        def _compose_final_asm(self) -> str:
+            # Reihenfolge: Runtime (vor) + erzeugter ASM + Runtime (nach)
+            pre  = self.runtime_pre_editor.toPlainText().rstrip()
+            gen  = self.asm_out_editor.toPlainText().rstrip()
+            post = self.runtime_post_editor.toPlainText().rstrip()
+            parts = []
+            if pre:  parts += ["; === RUNTIME PRE ===", pre]
+            if gen:  parts += ["; === GENERATED ASM ===", gen]
+            if post: parts += ["; === RUNTIME POST ===", post]
+            return "\n".join(parts) + "\n"
+            
+        def _refresh_hex_main(self, base_addr: int, data: bytes):
+            lines = []
+            lines.append("ADDR  00 01 02 03 | 04 05 06 07  TEXT(8)")
+            lines.append("-"*64)
+            for i in range(0, len(data), 8):
+                chunk = data[i:i+8]
+                left  = " ".join(f"{b:02X}" for b in chunk[:4]).ljust(11)
+                right = " ".join(f"{b:02X}" for b in chunk[4:8]).ljust(11)
+                txt_raw = "".join(self._glyph_for_byte(b) for b in chunk)[:8].ljust(8)
+                txt = htmlmod.escape(txt_raw)
+                addr = base_addr + i
+                lines.append(f"{addr:04X}  {left} | {right}  {txt}")
+            self.hex_view.setHtml(self._html_pre("\n".join(lines)))
+
+        def _resolve_operand_numeric(self, operand_str: str) -> str:
+            # gleiche Logik wie im Upload, kurzgefasst:
+            if not operand_str: return ""
+            return operand_str  # (optional schönformatieren – kann später identisch wie in deiner Datei ergänzt werden)
+
+        def _refresh_hex_instr(self, rows):
+            lines = ["<b>ADDR  BYTES(max4)    MNEMONIC</b>", "-"*60]
+            for addr_str, bytes_list, mnemonic_str, _src_line in rows:
+                bytes_tokens = " ".join(f"{b:02X}" for b in bytes_list[:4]).ljust(11)
+                line = f"{int(addr_str,16):04X}  {bytes_tokens}  {mnemonic_str}"
+                lines.append(line)
+            self.listings_view.setHtml(self._html_pre("\n".join(lines)))
+
+        def _init_ui(self):
+            central = QWidget()
+            root_vbox = QVBoxLayout(central)
+
+            self.central = QWidget(self)
+                        
+            self.layout = QVBoxLayout(self.central)
+            self.layout.setAlignment(Qt.AlignTop)
+            
+            self.central.setLayout(self.layout)
+            self.setWidget(self.central)
+            
+            # --- linker Bereich: vertikaler Splitter mit HexView (oben) + ListingsView (unten) ---
+            self.left_split = QSplitter(Qt.Vertical)
+            self.hex_view = QTextEdit()
+            self.hex_view.setReadOnly(True)
+            self.hex_view.setLineWrapMode(QTextEdit.NoWrap)
+            self.hex_view.setPlaceholderText("HexView …")
+            
+            self.listings_view = QTextEdit()
+            self.listings_view.setReadOnly(True)
+            self.listings_view.setLineWrapMode(QTextEdit.NoWrap)
+            self.listings_view.setPlaceholderText("ListingsView …")
+
+            self.left_split.addWidget(self.hex_view)
+            self.left_split.addWidget(self.listings_view)
+            self.left_split.setStretchFactor(0, 1)
+            self.left_split.setStretchFactor(1, 1)
+
+            # --- rechter Bereich: Tabs mit Code-Editoren (mit Gutter + gelbe Current-Line) ---
+            self.tabs = QTabWidget()
+
+            # Tab "Assembler" (unverändert)
+            asm_tab = QWidget()
+            asm_layout = QVBoxLayout(asm_tab)
+            self.asm_editor = C64CodeEditor()
+            asm_layout.addWidget(self.asm_editor)
+            self.tabs.addTab(asm_tab, "Assembler")
+
+            # Tab "BASIC → ASM" (NEU: unten QTabWidget mit 3 Reitern)
+            bas_tab = QWidget()
+            bas_layout = QVBoxLayout(bas_tab)
+
+            # oberer BASIC-Editor
+            self.basic_editor = C64CodeEditor()
+            self.basic_editor.setGhostPlaceholder('BASIC hier eingeben… (z. B. 10 PRINT "HI")')
+
+            # unten: Container mit Tabs
+            bottom_container = QWidget()
+            bottom_v = QVBoxLayout(bottom_container)
+            bottom_v.setContentsMargins(0, 0, 0, 0)
+
+            self.bottom_tabs = QTabWidget()
+
+            # Tab 1: ASM-Output (nur Editor, keine Toolbar)
+            tab1 = QWidget()
+            t1_layout = QVBoxLayout(tab1)
+            self.asm_out_editor = C64CodeEditor()
+            self.asm_out_editor.setGhostPlaceholder("Erzeugter Assembler-Code …")
+            t1_layout.addWidget(self.asm_out_editor)
+            self.bottom_tabs.addTab(tab1, "Assembler-Code")
+
+            # Tab 2: Runtime (vor BASIC) + Toolbar
+            tab2 = QWidget()
+            t2_layout = QVBoxLayout(tab2)
+            self.tb_runtime_pre = QToolBar("Runtime (vor BASIC)")
+            self.act_rtpre_load = self.tb_runtime_pre.addAction("Load")
+            self.act_rtpre_save = self.tb_runtime_pre.addAction("Save")
+            t2_layout.addWidget(self.tb_runtime_pre)
+
+            self.runtime_pre_editor = C64CodeEditor()
+            self.runtime_pre_editor.setGhostPlaceholder("Runtime-Code (wird OBERHALB des BASIC-ASM eingefügt) …")
+            t2_layout.addWidget(self.runtime_pre_editor)
+
+            self.bottom_tabs.addTab(tab2, "Runtime ↑ (vor BASIC)")
+
+            # Tab 3: Runtime (nach BASIC) + Toolbar
+            tab3 = QWidget()
+            t3_layout = QVBoxLayout(tab3)
+            self.tb_runtime_post = QToolBar("Runtime (nach BASIC)")
+            self.act_rtpost_load = self.tb_runtime_post.addAction("Load")
+            self.act_rtpost_save = self.tb_runtime_post.addAction("Save")
+            t3_layout.addWidget(self.tb_runtime_post)
+
+            self.runtime_post_editor = C64CodeEditor()
+            self.runtime_post_editor.setGhostPlaceholder("Runtime-Code (wird UNTERHALB des BASIC-ASM eingefügt) …")
+            t3_layout.addWidget(self.runtime_post_editor)
+
+            self.bottom_tabs.addTab(tab3, "Runtime ↓ (nach BASIC)")
+
+            bottom_v.addWidget(self.bottom_tabs)
+
+            # vertikaler Splitter: oben BASIC, unten Tabs (ASM-Output + Runtime)
+            vertical_split = QSplitter(Qt.Vertical)
+            vertical_split.addWidget(self.basic_editor)
+            vertical_split.addWidget(bottom_container)
+            vertical_split.setStretchFactor(0, 1)
+            vertical_split.setStretchFactor(1, 1)
+
+            bas_layout.addWidget(vertical_split)
+            self.tabs.addTab(bas_tab, "BASIC → ASM")
+
+            # horizontaler Splitter: links (Hex+Listing) | rechts (Tabs)
+            self.main_split = QSplitter(Qt.Horizontal)
+            self.main_split.addWidget(self.left_split)
+            self.main_split.addWidget(self.tabs)
+            self.main_split.setStretchFactor(0, 0)
+            self.main_split.setStretchFactor(1, 1)
+
+            root_vbox.addWidget(self.main_split)
+            self.layout.addWidget(central)
         
-        def save_prg(self):
-            if not self._last_prg:
-                QMessageBox.information(self,
-                "Hinweis", "Erst kompilieren (Compile).")
-                return
-            path, _ = QFileDialog.getSaveFileName(self,
-                "PRG speichern",
-                "program.prg",
-                "C64 PRG (*.prg);;Alle Dateien (*)")
+        def _on_bp_toggled(self, source_kind: str, line: int, active: bool):
+            s = self._bp_asm if source_kind == "asm" else self._bp_basic
+            if active: s.add(line)
+            else: s.discard(line)
+            # Listing nur highlighten, wenn es vom selben Source kommt
+            if self._last_listing_source == source_kind:
+                self._apply_listing_highlights()
+
+        def _apply_listing_highlights(self):
+            # Erzeugt ExtraSelections für alle aktiven BP des aktuellen Sources
+            doc = self.listings_view.document()
+            sels = []
+
+            active_set = self._bp_asm if self._last_listing_source == "asm" else self._bp_basic
+            for srcline in active_set:
+                if srcline in self._listing_pos_by_srcline:
+                    start, length = self._listing_pos_by_srcline[srcline]
+                    cursor = QTextCursor(str(doc))
+                    cursor.setPosition(start)
+                    cursor.setPosition(start + length, QTextCursor.KeepAnchor)
+
+                    sel = QTextEdit.ExtraSelection()
+                    sel.cursor = cursor
+                    sel.format.setBackground(QColor("#d62626"))  # rot
+                    sel.format.setForeground(QBrush(Qt.white))
+                    sels.append(sel)
+
+            # Bestehende andere Selections (z. B. Current-Line) im ListingView sind egal → wir setzen nur hier
+            self.listings_view.setExtraSelections(sels)
+
+        def _set_listing_text_with_map(self, listing_lines_with_srcline):
+            """
+            listing_lines_with_srcline: Iterable von Tupeln:
+              (text_line: str, srcline: int | None)
+            """
+            # Wir verwenden PLAIN TEXT im QTextEdit für stabiles Position-Highlighting
+            # (kein HTML, keine <b>-Header). Einen Header geben wir als erste Textzeile.
+            header = "ADDR  BYTES(max3)   MNEMONIC"
+            lines = [header]
+            self._listing_pos_by_srcline.clear()
+
+            # Compute offsets
+            # Jeder Zeile endet mit '\n'
+            offset = len(header) + 1
+            buf = [header]
+
+            for text, src_line in listing_lines_with_srcline:
+                buf.append(text)
+                if src_line is not None:
+                    self._listing_pos_by_srcline[src_line] = (offset, len(text))
+                offset += len(text) + 1  # + '\n'
+
+            full_text = "\n".join(buf)
+            self.listings_view.setPlainText(full_text)
+            
+            # Nach dem Setzen: Highlights gemäß aktiven Breakpoints anwenden
+            self._apply_listing_highlights()
+            self._apply_c64_font()
+
+        def _init_menu(self):
+            pass
+            #bar = self.menuBar()
+            #m_file = bar.addMenu("&Datei")
+            #m_file.addAction(self.actLoad)
+            #m_file.addAction(self.actSave)
+
+            #m_proj = bar.addMenu("&Projekt")
+            #m_proj.addAction(self.actCompileBasic)
+            #m_proj.addAction(self.actAssemble)
+            #m_proj.addAction(self.actExportD64)
+            #m_proj.addAction(self.actRunVice)
+
+            #m_edit = bar.addMenu("&Einstellungen")
+            #self.actSettings = m_edit.addAction("Settings…")
+            #self.actSettings.triggered.connect(self.open_settings_dialog)
+            
+        def _init_toolbar(self):
+            pass
+            #tb = QToolBar("Main")
+            #tb.setIconSize(QSize(16, 16))
+            #self.addToolBar(Qt.TopToolBarArea, tb)
+
+            # Buttons ohne Icons
+            #self.actLoad   = tb.addAction("Load")
+            #self.actSave   = tb.addAction("Save")
+            #tb.addSeparator()
+            #self.actCompileBasic = tb.addAction("Compile BASIC→ASM")
+            #self.actAssemble     = tb.addAction("Assemble")
+            #tb.addSeparator()
+            #self.actExportD64    = tb.addAction("Export D64")
+            #self.actRunVice      = tb.addAction("Run in VICE")
+            
+            #self.actSettingsTB = self.addToolBar("Config").addAction("Settings…")
+            #self.actSettingsTB.triggered.connect(self.open_settings_dialog)
+
+            # Callbacks
+            #self.actLoad.triggered.connect(self.load_cb)
+            #self.actSave.triggered.connect(self.save_cb)
+            #self.actCompileBasic.triggered.connect(self.compile_basic_cb)
+            #self.actAssemble.triggered.connect(self.assemble_cb)
+            #self.actExportD64.triggered.connect(self.export_d64_cb)
+            #self.actRunVice.triggered.connect(self.run_vice_cb)
+
+        def open_settings_dialog(self):
+            dlg = SettingsDialog(self.settings, self)
+            dlg.exec_()
+            
+        # --- Datei-IO (minimal) ---
+        def load_cb(self):
+            path, _ = QFileDialog.getOpenFileName(self, "Load ASM", "", "ASM (*.asm);;All (*.*)")
+            if path:
+                with open(path, "r", encoding="utf-8") as f:
+                    self.asm_editor.setPlainText(f.read())
+                self._apply_c64_font()
+        def save_cb(self):
+            path, _ = QFileDialog.getSaveFileName(self, "Save ASM", "", "ASM (*.asm);;All (*.*)")
+            if path:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(self.asm_editor.toPlainText())
+
+        def load_runtime_pre(self):
+            s = self.settings
+            path, _ = QFileDialog.getOpenFileName(
+            self, "Runtime (vor BASIC) laden",
+            s.runtime_pre_file(), "ASM (*.asm);;All (*.*)")
+            if path:
+                with open(path, "r", encoding="utf-8", errors="replace") as f:
+                    self.runtime_pre_editor.setPlainText(f.read())
+
+        def save_runtime_pre(self):
+            s = self.settings
+            path, _ = QFileDialog.getSaveFileName(
+                self, "Runtime (vor BASIC) speichern",
+                s.runtime_pre_file(),
+                "ASM (*.asm);;All (*.*)"
+            )
             if not path:
                 return
-            with open(path, "wb") as f:
-                f.write(self._last_prg)
-            showInfo(f"PRG gespeichert: {path}")
-            #self.statusBar().showMessage(f"PRG gespeichert: {path}", 5000)
+            # Overwrite-Dialog manuell
+            if os.path.exists(path):
+                ret = QMessageBox.question(
+                    self, "Überschreiben?",
+                    f"Datei existiert bereits:\n{path}\n\nÜberschreiben?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                if ret != QMessageBox.Yes:
+                    return
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(self.runtime_pre_editor.toPlainText())
+
+        def load_runtime_post(self):
+            s = self.settings
+            path, _ = QFileDialog.getOpenFileName(
+            self, "Runtime (nach BASIC) laden",
+            s.runtime_post_file(), "ASM (*.asm);;All (*.*)")
+            if path:
+                with open(path, "r", encoding="utf-8", errors="replace") as f:
+                    self.runtime_post_editor.setPlainText(f.read())
+
+        def save_runtime_post(self):
+            s = self.settings
+            path, _ = QFileDialog.getSaveFileName(
+                self, "Runtime (nach BASIC) speichern",
+                s.runtime_pre_file(),
+                "ASM (*.asm);;All (*.*)"
+            )
+            if not path:
+                return
+            # Overwrite-Dialog manuell
+            if os.path.exists(path):
+                ret = QMessageBox.question(
+                    self, "Überschreiben?",
+                    f"Datei existiert bereits:\n{path}\n\nÜberschreiben?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                if ret != QMessageBox.Yes:
+                    return
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(self.runtime_post_editor.toPlainText())
+        
+        # --- BASIC→ASM Compiler-Callback (Platzhalter) ---
+        def compile_basic_cb(self):
+            """
+            Hier rufst du deinen BASIC→ASM-Mini-Compiler auf.
+            Erwartet: asm_output:str
+            Optional: du kannst auch direkt 'self.asm_editor' befüllen, wenn du möchtest.
+            """
+            src = self.basic_editor.toPlainText()
+            asm_text, lblmap = compile_basic_to_asm(src)
+            self.asm_out_editor.setPlainText(asm_text)
+            # optional: merken, dass Listing aus BASIC stammt
+            self._last_listing_source = "asm"  # bleibt „asm“, da wir ASM-Text erzeugen
+            
+            #basic_src = self.basic_editor.toPlainText()
+            # TODO: DEIN Compiler
+            #asm_output = self._mock_basic_to_asm(basic_src)
+            #self.asm_out_editor.setPlainText(asm_output)
+            self._apply_c64_font()
+
+        def _mock_basic_to_asm(self, basic_src: str) -> str:
+            # Minimal-Dummy: generiert ein kleines RTS-Programm
+            return "; generated from BASIC (mock)\n* = $0000\n  rts\n"
+
+        # self.assembler.rows: List[ (addr_str, bytes_list, mnemonic_str, srcline) ]
+        def _rows_to_listing_lines(self, rows):
+            # Baue die Zeilen im Format: "AAAA: BB BB BB  MNEMONIC ..."
+            out = []
+            for addr_str, bytes_list, mnemonic_str, srcline in rows:
+                bytes_txt = " ".join(f"{b:02X}" for b in bytes_list[:3]).ljust(8)  # max3 für Spaltenbild
+                line_txt = f"{int(addr_str,16):04X}: {bytes_txt}  {mnemonic_str}"
+                out.append((line_txt, srcline))
+            return out
+        
+        def assemble_cb(self):
+            # Quelle: nehme ASM aus ASM-Output (falls vorhanden), sonst aus ASM-Editor
+            #asm_text = self.asm_out_editor.toPlainText() or self.asm_editor.toPlainText()
+            asm_text = self._compose_final_asm()
+            # .org erzwingen? (falls du im UI ein Toggle hast)
+            # self.assembler.ignore_org = True/False
+            # self.assembler.org = gewünschter Start (bei „Variante A“ später egal)
+            payload, org, listing_lines = self.assembler.assemble(asm_text)
+            self._last_payload = payload
+            self._last_rows = self.assembler.rows
+            self._last_listing_source = "asm"  # <— wichtig
+
+            # Anzeige: Code-Start = BASIC-Stub-Ende (wird beim PRG-Build bestimmt)
+            # Hier fürs Listing/Hex erstmal org oder 0x0801 anzeigen:
+            #code_start_for_view = org  # oder 0x0801, je nach Wunsch
+            #self._refresh_hex_main(code_start_for_view, payload)
+            #self._refresh_hex_instr(self._last_rows)
+            
+            # Hex links (wie gehabt)
+            self._refresh_hex_main(org, payload)
+            # Listing unten: aus rows → Text + Mapping
+            lines_with_src = self._rows_to_listing_lines(self._last_rows)
+            self._set_listing_text_with_map(lines_with_src)
+            
+            self._apply_c64_font()
+
+        # --- Export D64 (Variante A) ---
+        def export_d64_cb(self):
+            try:
+                assembled = getattr(self, "_last_payload", None)
+                if not assembled:
+                    QMessageBox.warning(self, "Export", "Bitte erst 'Assemble' ausführen.")
+                    return
+                    
+                prg = build_prg_with_basic_autostart(assembled)
+                write_prg_file(self.settings.prg_file(), prg)  # aus deinem runner/settings
+                
+                QMessageBox.information(self, "Export",
+                        f"PRG geschrieben: {s.prg_file()}\nSYS {code_start} (Variante A)")
+            
+            except Exception as e:
+                QMessageBox.critical(self, "Export Fehler", str(e))
+                
+            # Für die Anzeige kann man jetzt die **echte** Code-Startadresse nehmen,
+            # wenn du sie nach dem PRG-Build messen willst; hier belassen wir es simpel.
+
+        def _mock_assemble(self, asm_text: str) -> bytes:
+            # Dummy: 3 Bytes RTS ($60)
+            return bytes([0x60])
+
+        # --- Run in VICE (baut D64 davor) ---
+        def run_vice_cb(self):
+            try:
+                s = self.settings
+                ensure_build_dir(s)
+                assembled = getattr(self, "_last_bytes", None)
+                if not assembled:
+                    QMessageBox.warning(self, "Run", "Bitte erst 'Assemble' ausführen.")
+                    return
+
+                prg, code_start = build_single_segment_prg(assembled)
+                write_prg_file(s.prg_file(), prg)
+
+                rc, cmdline = make_d64_and_run(s)
+                if rc == 0:
+                    QMessageBox.information(
+                        self, "VICE gestartet",
+                        f"D64: {s.d64_file()}\nSYS {code_start}\n\n{cmdline}"
+                    )
+            except Exception as e:
+                QMessageBox.critical(self, "Run Fehler", str(e))
+
     
     # ------------------------------------------------------------------------
     # resource data like pictures or icons ...
@@ -15591,7 +17089,7 @@ try:
             
             self.font_a.setFamily(font_primary)
             print("aa ----- aaa")
-            font_id = QtGui.QFontDatabase.addApplicationFont(self.font_a.family())
+            font_id = QFontDatabase.addApplicationFont(self.font_a.family())
             print("aaaaa    ------ vvvvvv")
             if font_id != -1:
                 self.font_a.setFamily(font_primary)
@@ -19464,7 +20962,7 @@ try:
         
         def load_c64_font(self):
             print("aaaaa")
-            font_id = QtGui.QFontDatabase.addApplicationFont(":/_internal/locales/de_de/LC_FONT/C64_Pro-STYLE.ttf")
+            font_id = QFontDatabase.addApplicationFont(":/_internal/locales/de_de/LC_FONT/C64_Pro-STYLE.ttf")
             print("bbbbb")
             if font_id == -1:
                 DebugPrint("Fehler beim Laden des C64 Pro Fonts.")
@@ -23111,6 +24609,7 @@ try:
                 genv.editor_check = QCheckBox("Use old Syntax")
                 genv.editor_check.setFont(QFont("Arial", 10))
                 self.tabs_editor_vlayout.addWidget(genv.editor_check)
+                
                 self.tabs_translate = EditorTranslate()
                 
                 hlayout = QHBoxLayout()
@@ -28845,7 +30344,7 @@ try:
                         
                         # Anwenden
                         cursor.setPosition(start)
-                        cursor.setPosition(start + length, QtGui.QTextCursor.KeepAnchor)
+                        cursor.setPosition(start + length, QTextCursor.KeepAnchor)
                         
                         fmt    = QTextCharFormat()
                         qcolor = QColor(color_hex)
@@ -31740,7 +33239,7 @@ try:
             
             # Feste Fonts ermitteln
             print("a aa a")
-            font_db = QtGui.QFontDatabase()
+            font_db = QFontDatabase()
             print("b bb b")
             fixed_fonts = [f for f in font_db.families() if font_db.isFixedPitch(f)]
             console_font_frame_combo.addItems(sorted(fixed_fonts))
@@ -32441,7 +33940,6 @@ try:
             DebugPrint(f"Deleting file: {file_path}")
             # Hier können Sie den Code hinzufügen, um die Datei zu löschen
         
-        
         def btnOpenLocales_clicked(self):
             DebugPrint("open locales")
             return
@@ -32469,9 +33967,7 @@ try:
         def handleCommodoreC64(self):
             self.c64_tabs = QTabWidget()
             self.c64_tabs.setStyleSheet(_css(genv.css_tabs))
-            self.c64_tabs.setContentsMargins(0,0,0,0)
             self.c64_tabs.hide()
-            
             
             self.c64_tabs_project_widget = QWidget()
             self.c64_tabs_basic___widget = QWidget()
@@ -32483,15 +33979,12 @@ try:
             self.c64_tabs.addTab(self.c64_tabs_editors_widget, _str("C-64 Editor (Sceen)"))
             self.c64_tabs.addTab(self.c64_tabs_designs_widget, _str("C-64 Designer"))
             ####
-            self.c64_project = ApplicationProjectPage(self, self.c64_tabs_project_widget, "c64")
-            #self.c64_editors = ApplicationEditorsPage(self, self.c64_tabs_basic___widget, "c64")
+            self.c64_tabs_basic___widget.setMinimumWidth(1170)
+            self.c64_tabs_basic___widget.setMinimumHeight(800)
             
-            self.c64_tabs_basic___widget.setContentsMargins(0, 0, 0, 0)
+            self.c64_project = ApplicationProjectPage(self, self.c64_tabs_project_widget, "c64")
             self.c64_editors = C64AssemblerMainWindow(self.c64_tabs_basic___widget)
             ####
-            #self.c64_tabs_editors_widget.setMinimumWidth(1050)
-            
-            
             
             clayout = QVBoxLayout()
             hlayout = QHBoxLayout()
@@ -35266,7 +36759,7 @@ try:
             # Klassisches Win2000/2003-Grau
             base_gray  = QColor(192, 192, 192)  # #C0C0C0
             mid_gray   = QColor(234, 224, 234)
-            text_black = QtGui.QColor(0, 0, 0)
+            text_black = QColor(0, 0, 0)
             
             pal = self.palette()
             pal.setColor(QPalette.Window, base_gray)
