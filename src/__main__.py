@@ -270,6 +270,7 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     
     # Optional: Bildpfad aus ENV oder fester Pfad
+    os.environ["SPLASH_IMAGE"] = "./logo.png"
     image_path = os.environ.get("SPLASH_IMAGE", None)
     
     splash = SplashWindow(image_path=image_path)
