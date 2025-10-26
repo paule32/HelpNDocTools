@@ -45,8 +45,9 @@ global GUI_DEBUG           # set if gui debug !
 global os_name; os_name = ""
 global front_content_layout
 
-BASEDIR   = os.path.dirname(os.path.abspath(__file__))
-GUI_DEBUG = True
+BASEDIR    = os.path.dirname(os.path.abspath(__file__))
+GUI_DEBUG  = True
+DEBUG_MODE = True
 
 DICT_PATH   = "satz_de_woerterbuch.csv"
 CONFIG_PATH = "satz_analyse_config.json"
@@ -479,6 +480,12 @@ DOCS_HREF_RE = re.compile(
 #    del os.environ['PYTHONPATH']
 
 sys.path.append('.')
+
+# ----------------------------------------------------------------------
+# \brief print splash screen commando onto stdout (console) ...
+# ----------------------------------------------------------------------
+def EmitSplash(msg: str):
+    print(f"SPLASH {msg}", flush=True)
 
 # ----------------------------------------------------------------------
 # \brief This function definition is a helper to save storage resources.
@@ -1144,22 +1151,52 @@ try:
 
         @staticmethod
         def from_json(path: str = "6510_with_illegal_flags.json") -> "C6510Spec":
+            found = False
+            res   = ""
             if not os.path.exists(path):
-                raise FileNotFoundError(f"Spec JSON not found: {path}")
-            with open(path, "r", encoding="utf-8") as f:
-                spec = json.load(f)
+                res = load_qt_resource(":/6510_with_illegal_flags.json")
+                if res:
+                    found = True
+                if not found:
+                    raise FileNotFoundError(f"Spec JSON not found: {path}")
+            
+            if res and found:
+                try:
+                    spec = json.loads(res)
+                except json.JSONDecodeError as e:
+                    msg = _str("JSON-Error at position")
+                    showError(f"{msg}: {e.pos}\n{e.msg}")
+                    return
+                except Exception as e:
+                    msg = _str("common exception in class: C6510Spec")
+                    showError(f"{msg}\n{e}")
+                    return
+                    
+            elif os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        spec = json.load(f)
+                except json.JSONDecodeError as e:
+                    msg = _str("JSON-Error at position")
+                    showError(f"{msg}: {e.pos}\n{e.msg}")
+                    return
+                except Exception as e:
+                    msg = _str("Common exception in class: C6510Spec")
+                    showError(f"{msg}\n{e}")
+                    return
+                    
             mnemonics: Dict[str, Dict[str, ModeInfo]] = {}
             for mnem, modes in spec["mnemonics"].items():
                 mm: Dict[str, ModeInfo] = {}
                 for mode, v in modes.items():
                     mm[mode] = ModeInfo(
-                        opcode=int(v["opcode"], 16),
-                        size=int(v["bytes"]),
-                        cycles=int(v["cycles"]),
-                        flags=v.get("flags", "-" * len(FLAGS_ORDER)),
+                        opcode  = int(v["opcode"], 16),
+                        size    = int(v["bytes"]),
+                        cycles  = int(v["cycles"]),
+                        flags   = v.get("flags", "-" * len(FLAGS_ORDER)),
                         page_cross_penalty=int(v.get("page_cross_penalty", 0)),
-                        illegal=bool(v.get("illegal", False)),
-                        comment=v.get("comment", ""),
+                        illegal = bool(v.get("illegal", False)),
+                        comment = v.get("comment", ""),
                     )
                 mnemonics[mnem] = mm
 
@@ -3701,7 +3738,7 @@ try:
             if os.path.basename(sys.executable).lower() == "pythonw.exe":
                 return False
             return True
-        if ctype.windll.kernel32.GetConsoleWindow() != 0:
+        if ctypes.windll.kernel32.GetConsoleWindow() != 0:
             return True
         return False
     
@@ -11988,106 +12025,76 @@ try:
         # -----------------------------------------------------------------------
         class ScopedStrings:
             def __init__(self) -> None:
-                self._scopes: Dict[str, Dict[str, Entry]] = {}    # # scope -> { value -> Entry }
+                self._scopes: Dict[str, Dict[str, Entry]] = {}    # scope -> { value -> Entry }
                 self._hash_to_entry: Dict[str, Entry] = {}        # md5 -> Entry
-            
+
             # -----------------------------------------------------------------------
-            # \brief MD5 über "scope:value" -> garantiert Eindeutigkeit über Scopes
-            #        hinweg
+            # MD5 über "scope:value" -> Eindeutigkeit über Scopes hinweg
             # -----------------------------------------------------------------------
             @staticmethod
-            def _md5_for(self, scope: str, value: str) -> str:
+            def _md5_for(scope: str, value: str) -> str:
                 h = hashlib.md5()
                 h.update(f"{scope}:{value}".encode("utf-8"))
                 return h.hexdigest()
-                
-            # -----------------------------------------------------------------------
-            # \brief Versucht, 'value' in 'scope' hinzuzufügen.
-            #
-            # \return (True , md5)  falls hinzugefügt wurde
-            # \return (False, None) falls 'value' bereits als Substring eines besteh-
-            #          enden Scoped-Strings in diesem Scope vorhanden ist
-            # -----------------------------------------------------------------------
+
             def add(self,
-                scope  : str,
-                value  : str, *,
-                kind   : str,
-                subtype: Optional[str] = None,
-                meta   : Optional[Dict[str, Any]] = None,
-                update_if_exists: bool = False ) -> Tuple[bool, Optional[str]]:
-                
-                # -------------------------------------------------------------------
-                # \brief Prüfen: existiert value bereits als Substring eines vorhand-
-                #        enen Eintrags?
-                # -------------------------------------------------------------------
+                    scope  : str,
+                    value  : str, *,
+                    kind   : str,
+                    subtype: Optional[str] = None,
+                    meta   : Optional[Dict[str, Any]] = None,
+                    update_if_exists: bool = False) -> Tuple[bool, Optional[str]]:
+
                 if kind not in ALLOWED_KINDS:
                     raise ValueError(f"'kind' must be one of {sorted(ALLOWED_KINDS)}.")
-                
+
                 bucket = self._scopes.setdefault(scope, {})
                 existing = bucket.get(value)
-                
+
                 if existing is not None and not update_if_exists:
                     return False, None
-                
+
                 md5 = self._md5_for(scope, value)
                 entry = Entry(
-                    scope   = scope  ,
-                    value   = value  ,
-                    kind    = kind   ,
+                    scope   = scope,
+                    value   = value,
+                    kind    = kind,
                     subtype = subtype,
-                    md5     = md5    ,
-                    meta    = meta or {})
-                
-                # -------------------------------------------------------------------
-                # Hinzufügen + MD5-Zuordnung
-                # einfügen oder aktualisieren
-                # -------------------------------------------------------------------
+                    md5     = md5,
+                    meta    = meta or {}
+                )
                 bucket[value] = entry
                 self._hash_to_entry[md5] = entry
-                
                 return True, md5
-            
+
             # ---------- Funktionen/Prozeduren: AST anhängen & nutzen ----------
-            # Erzeuge/ermittle einen Funktions- bzw. Prozedur-Entry mit leeren
-            # AST-Block.
-            # ------------------------------------------------------------------
             def ensure_routine(self, scope: str, name: str, *, is_function: bool = True) -> Entry:
                 kind = KIND_FUNCTION if is_function else KIND_PROCEDURE
                 bucket = self._scopes.setdefault(scope, {})
                 e = bucket.get(name)
                 md5 = self._md5_for(scope, name)
-                
+
                 if e is None:
                     meta = {"signatures": [], "ast": Block([])}
                     e = Entry(scope=scope, value=name, kind=kind, subtype=None, md5=md5, meta=meta)
                     bucket[name] = e
                     self._hash_to_entry[md5] = e
                     return e
-                
-                # ------------------------------------------------------------------
-                # existiert bereits: stelle sicher, dass 'ast' vorhanden ist
-                # ------------------------------------------------------------------
+
                 meta = dict(e.meta)
                 if "ast" not in meta or not isinstance(meta["ast"], Block):
                     meta["ast"] = Block([])
-                    
-                # ------------------------------------------------------------------
-                # Falls es eigentlich eine Prozedur war/ist, überschreiben wir den
-                # Kind-Typ nur, wenn es Sinn macht; hier belassen wir ihn, ändern
-                # also NICHT automatisch.
-                # ------------------------------------------------------------------
+
                 new_e = replace(e, meta=meta)
                 bucket[name] = new_e
                 self._hash_to_entry[md5] = new_e
                 return new_e
-            
+
             def routine_ast(self, scope: str, name: str) -> Block:
-                """Hole (oder erzeuge) den AST-Block einer Routine."""
-                e = self.ensure_routine(scope, name, is_function=True)  # Art ist hier sekundär
+                e = self.ensure_routine(scope, name, is_function=True)
                 return e.meta["ast"]
-            
+
             def set_routine_ast(self, scope: str, name: str, block: Block, *, is_function: Optional[bool] = None) -> None:
-                """Setze den AST-Block für eine Routine."""
                 bucket = self._scopes.setdefault(scope, {})
                 md5 = self._md5_for(scope, name)
                 e = bucket.get(name)
@@ -12101,14 +12108,11 @@ try:
                     new_e = replace(e, meta=meta)
                 bucket[name] = new_e
                 self._hash_to_entry[md5] = new_e
-            
-            # ------------------------------------------------------------------
-            # Mini-Hilfen zum Anhängen einzelner Statements:
-            # ------------------------------------------------------------------
+
             def routine_append_print(self, scope: str, name: str, expr_text: str) -> None:
                 blk = self.routine_ast(scope, name)
                 blk.stmts.append(Print(expr_text))
-            
+
             def routine_append_if(self, scope: str, name: str, condition: str,
                                   then_block: Optional[Block] = None,
                                   else_block: Optional[Block] = None) -> None:
@@ -12116,14 +12120,7 @@ try:
                 blk.stmts.append(If(condition=condition,
                                     then_block=then_block or Block([]),
                                     else_block=else_block))
-            
-            # ---------- Ausführung --------------------------------------------
-            # Führt den AST einer Routine aus.
-            #    - env: Variablen-/Funktionsumgebung (Python-Werte/Callables),
-            #      die für Ausdrücke nutzbar sind.
-            #
-            #    Rückgabe: Gesammelte Ausgaben (PRINT).
-            # ------------------------------------------------------------------
+
             def run_routine(self, scope: str, name: str, env: Optional[Dict[str, Any]] = None) -> List[str]:
                 entry = self._scopes.get(scope, {}).get(name)
                 if not entry or "ast" not in entry.meta or not isinstance(entry.meta["ast"], Block):
@@ -12131,15 +12128,7 @@ try:
                 outputs: List[str] = []
                 _exec_block(entry.meta["ast"], env or {}, outputs)
                 return outputs
-        
-            # -----------------------------------------------------------------------
-            # \brief Legt (oder aktualisiert) einen Funktions-Entry unter 'func_name'
-            #        im Scope an.
-            #        'signature' ist z. B.:
-            #        '()', '(1 + 2 * 3)', '("text")', '(x, y=2, **kw)'.
-            #
-            #        Mehrere Signaturen werden dedupliziert gesammelt.
-            # -----------------------------------------------------------------------
+
             def _upsert_function(self, scope: str, func_name: str, signature: str) -> None:
                 bucket = self._scopes.setdefault(scope, {})
                 md5 = self._md5_for(scope, func_name)
@@ -12150,120 +12139,66 @@ try:
                     bucket[func_name] = entry
                     self._hash_to_entry[md5] = entry
                     return
-                    
-                # -----------------------------------------------------------------------
-                # already a function? if not, we don't override kind, but still can attach
-                # signatures bucketed
-                # -----------------------------------------------------------------------
+
                 if existing.kind == KIND_FUNCTION:
                     sigs = list(dict.fromkeys([*existing.meta.get("signatures", []), signature]))
                     new_entry = replace(existing, meta={**existing.meta, "signatures": sigs})
                     bucket[func_name] = new_entry
                     self._hash_to_entry[md5] = new_entry
                 else:
-                    # -----------------------------------------------------------------------
-                    # Ein anderer Kind-Typ belegt diesen Namen – wir hängen Signaturen
-                    # non-invasiv in meta an.
-                    # -----------------------------------------------------------------------
                     sigs = list(dict.fromkeys([*existing.meta.get("function_signatures", []), signature]))
                     new_entry = replace(existing, meta={**existing.meta, "function_signatures": sigs})
                     bucket[func_name] = new_entry
                     self._hash_to_entry[md5] = new_entry
-            
-            # -----------------------------------------------------------------------
-            # \brief Nimmt eine Zuweisung wie 'foo = expr' auf und speichert sie als
-            #        kind='expression'.
-            #
-            #    Erfasst:
-            #      - lhs (Variablenname)
-            #      - rhs_text (Originaltext rechts vom '=')
-            #      - calls: Liste von Funktionsaufrufen [{name: str, args: [str, ...]}]
-            #    Optional:
-            #      - index_functions=True: Für jede gefundene Funktion wird ein eigener
-            #        Entry kind='function' (value = Funktionsname) angelegt/aktualisiert
-            #        und die Signatur gesammelt.
-            #        
-            #    Rückgabe: (True, md5) wenn neu, sonst (False, None) bei exaktem Duplikat.
-            # -----------------------------------------------------------------------
+
             def add_expression(self, scope: str, assignment: str, *, index_functions: bool = True) -> Tuple[bool, Optional[str]]:
                 lhs, rhs_text, calls = _parse_assignment(assignment)
-
-                # -----------------------------------------------------------------------
-                # Normalisierte value-ID des Ausdrucks:
-                # -----------------------------------------------------------------------
                 value_key = f"{lhs} = {rhs_text}" if rhs_text is not None else assignment.strip()
-                meta = {
-                    "lhs": lhs,
-                    "rhs_text": rhs_text,
-                    "calls": calls,  # [{name: 'func', args: ['1 + 2 * 3', 'y=2', '**kw']}]
-                }
+                meta = {"lhs": lhs, "rhs_text": rhs_text, "calls": calls}
                 ok, md5 = self.add(scope, value_key, kind=KIND_EXPRESSION, meta=meta)
                 if ok and index_functions and calls:
-                    # -----------------------------------------------------------------------
-                    # Für jede gefundene Funktion eine Signatur formen und indexieren
-                    # -----------------------------------------------------------------------
                     for c in calls:
                         name = c.get("name") or "<call>"
                         args = c.get("args", [])
                         signature = "(" + ", ".join(args) + ")"
                         self._upsert_function(scope, name, signature)
                 return ok, md5
-            
-            # -----------------------------------------------------------------------
-            # \brief True, wenn 'value' in diesem Scope bereits als Substring
-            #        vorkommt.
-            # -----------------------------------------------------------------------
+
             def contains(self, scope: str, value: str) -> bool:
                 return value in self._scopes.get(scope, {})
-            
-            # -----------------------------------------------------------------------
-            # \brief Hole den Eintrag zu (scope, value), sonst None.
-            # -----------------------------------------------------------------------
-            def get(self, scope: str, value: str): # -> Optional[Entry]:
+
+            def get(self, scope: str, value: str):  # -> Optional[Entry]
                 return self._scopes.get(scope, {}).get(value)
-        
+
             # -----------------------------------------------------------------------
-            # \brief Liefert (scope, string) zu einem MD5 oder None, wenn unbekannt.
+            # MD5 -> (scope, value)
             # -----------------------------------------------------------------------
             def resolve(self, md5_hash: str) -> Optional[Tuple[str, str]]:
-                return self._hash_to_value.get(md5_hash)
-            
-            # -----------------------------------------------------------------------
-            # \brief Alle Strings eines Scopes (in Einfügereihenfolge).
-            # -----------------------------------------------------------------------
-            def values(self, scope: str, *, kind: Optional[str] = None): # -> Iterable[Entry]:
+                e = self._hash_to_entry.get(md5_hash)
+                return (e.scope, e.value) if e is not None else None
+
+            def values(self, scope: str, *, kind: Optional[str] = None):
                 entries = self._scopes.get(scope, {}).values()
                 if kind is None:
                     return list(entries)
                 if kind not in ALLOWED_KINDS:
                     raise ValueError(f"'kind' must be one of {sorted(ALLOWED_KINDS)}.")
                 return [e for e in entries if e.kind == kind]
-            
-            # -----------------------------------------------------------------------
-            # \brief Alle Scopes und Hash-Mappings löschen.
-            # -----------------------------------------------------------------------
+
             def clear(self) -> None:
                 self._scopes.clear()
-                self._hash_to_value.clear()
-            
-            # -----------------------------------------------------------------------
-            # \brief Nur einen Scope leeren (inkl. zugehöriger MD5-Einträge).
-            # -----------------------------------------------------------------------
+                self._hash_to_entry.clear()
+
             def clear_scope(self, scope: str) -> None:
                 if scope not in self._scopes:
                     return
-                # Scope-Einträge entfernen
-                self._scopes.pop(scope, None)
-                # Hash-Tabelle bereinigen
-                self._hash_to_value = {
-                    h: (sc, val) for h, (sc, val) in self._hash_to_value.items()
-                    if sc != scope
-                }
-            
-            # -----------------------------------------------------------------------
-            # \brief Entfernt einen exakten String aus einem Scope.
-            #        Rückgabe: True wenn entfernt.
-            # -----------------------------------------------------------------------
+                # Scope entfernen
+                removed = self._scopes.pop(scope)
+                # Zugehörige Hashes entfernen
+                to_delete = [self._md5_for(scope, val) for val in removed.keys()]
+                for h in to_delete:
+                    self._hash_to_entry.pop(h, None)
+
             def remove(self, scope: str, value: str) -> bool:
                 bucket = self._scopes.get(scope)
                 if not bucket or value not in bucket:
@@ -12487,6 +12422,686 @@ try:
         def __del__(self):
             print("destructor")
         
+        # ---------------------------------------------------------------
+        ## f = Foo()
+        # f.add_import("MessageBox", "user32.dll")   # -> False (existiert schon)
+        # f.add_import("MessageBoxA", "USER32.DLL")  # -> True (case-insensitiv erkannt)
+        # f.add_import("MessageBoxA", "user32.dll")  # -> False (Duplikat)
+        # f.add_import("Beep", "Kernel32.dll")       # -> True
+        #
+        ## Liste bereinigen:
+        # f.dedupe_imports()
+        # ---------------------------------------------------------------
+        
+        # -------------------------------------------------------------------
+        ## Aktualisiert self.code_producer['data'][key].
+        #
+        # - mode='set'    : direkt setzen/überschreiben
+        # - mode='merge'  : dict-merge (deep=True für rekursiv)
+        # - mode='append' : bei list -> anhängen (value kann Einzelwert oder Iterable sein)
+        #                   bei str  -> Text anhängen (mit sep)
+        #                   wenn key nicht existiert -> value setzen
+        # - mode='prepend': wie append, aber vorn
+        # -------------------------------------------------------------------
+        # f = Foo()
+        #
+        ## 1) set
+        # f.update_data("version", 1)
+        # f.update_data("flags", {"opt": True})
+        #
+        ## 2) merge (shallow)
+        # f.update_data("flags", {"debug": False}, mode="merge")
+        ## 3) merge (deep)
+        # f.update_data("cfg", {"paths": {"bin": r"C:\bin"}}, mode="merge")
+        # f.update_data("cfg", {"paths": {"lib": r"C:\lib"}}, mode="merge", deep=True)
+        #
+        ## 4) append/prepend auf LISTEN
+        # f.update_data("files", ["a.obj"], mode="set")
+        # f.update_data("files", "b.obj", mode="append")             # -> ["a.obj","b.obj"]
+        # f.update_data("files", ["c.obj","d.obj"], mode="prepend")  # -> ["c.obj","d.obj","a.obj","b.obj"]
+        #
+        ## 5) append/prepend auf STRINGS
+        # f.update_data("note", "Erste Zeile", mode="set")
+        # f.update_data("note", "Zweite Zeile", mode="append")    # trennt mit \n
+        # f.update_data("note", ["Dritte", "Vierte"], mode="append")
+        #
+        ## 6) Fehlerfälle (bewusst)
+        # f.update_data("flags", {"x":1}, mode="append")  # -> TypeError: dict + append
+        # -------------------------------------------------------------------
+        def update_data(
+            self,
+            key: str,
+            value,
+            *,
+            mode: Literal["set", "merge", "append", "prepend"] = "set",
+            sep: str = "\n",
+            deep: bool = False):
+            data = self.code_producer.setdefault("data", {})
+            cur = data.get(key, None)
+            
+            if mode == "set":
+                data[key] = value
+                return data[key]
+            
+            if mode == "merge":
+                if not isinstance(value, dict):
+                    raise TypeError("Für mode='merge' muss 'value' ein dict sein.")
+                if cur is None:
+                    data[key] = value.copy()
+                elif isinstance(cur, dict):
+                    data[key] = self._deep_merge(cur, value) if deep else (cur | value if hasattr(cur, "__or__") else {**cur, **value})
+                else:
+                    raise TypeError(f"Kann nicht in Typ {type(cur).__name__} mergen (erwarte dict).")
+                return data[key]
+            # ---------------------------------------------------------------
+            # append/prepend
+            # ---------------------------------------------------------------
+            if mode in ("append", "prepend"):
+                if cur is None:
+                    # -------------------------------------------------------
+                    # nichts da → einfach setzen
+                    # -------------------------------------------------------
+                    data[key] = value if not isinstance(value, bytes) else value.decode()
+                    return data[key]
+                
+                # -----------------------------------------------------------
+                # Listen-Fall
+                # -----------------------------------------------------------
+                if isinstance(cur, list):
+                    # value normalisieren zu Liste von Elementen
+                    if isinstance(value, list):
+                        items = value
+                    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes, dict)):
+                        items = list(value)
+                    else:
+                        items = [value]
+                    if mode == "append":
+                        cur.extend(items)
+                    else:
+                        data[key] = items + cur
+                    return data[key]
+                
+                # -----------------------------------------------------------
+                # String-Fall
+                # -----------------------------------------------------------
+                if isinstance(cur, (str, bytes)):
+                    cur_str = cur.decode() if isinstance(cur, bytes) else cur
+                    if isinstance(value, bytes):
+                        val_str = value.decode()
+                    elif isinstance(value, str):
+                        val_str = value
+                    elif isinstance(value, Iterable) and not isinstance(value, (dict,)):
+                        val_str = sep.join(map(str, value))
+                    else:
+                        val_str = str(value)
+                    
+                    if mode == "append":
+                        data[key] = f"{cur_str}{sep}{val_str}" if cur_str and val_str else (cur_str or val_str)
+                    else:  # prepend
+                        data[key] = f"{val_str}{sep}{cur_str}" if cur_str and val_str else (cur_str or val_str)
+                    return data[key]
+                # -----------------------------------------------------------
+                # Für dicts kein implizites append/prepend (das wäre unklar)
+                # -----------------------------------------------------------
+                if isinstance(cur, dict):
+                    raise TypeError("append/prepend auf dict ist nicht definiert. Nutze mode='merge'.")
+                # -----------------------------------------------------------
+                # Andere Typen (int/float/tuple/…) → nur erlauben,
+                # wenn leer/nicht vorhanden; sonst Fehler
+                # -----------------------------------------------------------
+                raise TypeError(f"append/prepend für Typ {type(cur).__name__} nicht unterstützt.")
+            raise ValueError("mode muss 'set', 'merge', 'append' oder 'prepend' sein")
+        
+        def _norm_nl(self, s: str) -> str:
+            if not s:
+                return ""
+            # immer mit genau einem Zeilenumbruch enden
+            return s.rstrip("\r\n") + "\n"
+
+        # -------------------------------------------------------------------
+        # Für data-Einträge tolerant sein:
+        # - Bevorzugt: label = k (gültiger Bezeichner), def = str(v)
+        # - Fallback (vertauscht): wenn k nach ASM-Directive aussieht und v ein Bezeichner ist,
+        #   dann label = v, def = k
+        # -------------------------------------------------------------------
+        def _guess_label_and_def(self, k: str, v):
+            IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+            v_str = "" if v is None else str(v)
+            k_is_ident = bool(IDENT_RE.match(k))
+            v_is_ident = bool(IDENT_RE.match(v_str))
+            looks_like_directive = any(tok in k.lower() for tok in (
+                " db ",
+                " dq ",
+                " dd ",
+                " dw ",
+                " resb", " resq", " resd", " resw",
+                "\n"
+            ))
+
+            if k_is_ident:
+                return k, v_str
+            if looks_like_directive and v_is_ident:
+                # vertauschtes Paar
+                return v_str, k
+            # sonst: nimm k als Label wie es ist (notfalls säubern) und v als Definition
+            fallback_label = re.sub(r"\W+", "_", k).strip("_") or "data_item"
+            return fallback_label, v_str
+
+        def write_asm(self, filepath: str | Path, *, sort: bool = True) -> Path:
+            cp      = self.code_producer   or {}
+            text    = cp.get("text",   {}) or {}
+            data    = cp.get("data",   {}) or {}
+            imports = cp.get("import", {}) or {}
+
+            lines: list[str] = []
+            lines.append("; --- generated from code_producer ---")
+            lines.append("default rel")
+            lines.append("")
+            
+            dirpath = os.path.dirname(filepath) or "."  # falls nur Dateiname ohne Ordner
+            os.makedirs(dirpath, exist_ok=True)         # nur Verzeichnis anlegen
+
+            # ---------- optionaler Prolog ----------
+            prolog = text.get("@prolog")
+            if isinstance(prolog, str) and prolog.strip():
+                lines.append("; --- prolog ---")
+                lines.append(self._norm_nl(prolog).rstrip("\n"))
+                lines.append("")
+
+            # ---------- IMPORTS ----------
+            if isinstance(imports, dict) and imports:
+                lines.append("; --- imports ---")
+                dll_keys = sorted(imports.keys(), key=str.lower) if sort else list(imports.keys())
+                for dll in dll_keys:
+                    funclist = imports.get(dll) or []
+                    # sortiere nach Funktionsname
+                    if sort:
+                        funclist = sorted(
+                            [e for e in funclist if isinstance(e, dict) and "f" in e],
+                            key=lambda e: str(e.get("f", "")).lower()
+                        )
+                    for e in funclist:
+                        fn = e.get("f")
+                        if not fn:
+                            continue
+                        lines.append(f"extern {fn}    ; from {dll}")
+                lines.append("")
+
+            # ---------- DATA ----------
+            lines.append("section .data")
+            if isinstance(data, dict) and data:
+                data_items = data.items()
+                if sort:
+                    data_items = sorted(data_items, key=lambda kv: str(kv[0]).lower())
+                for k, v in data_items:
+                    label, definition = self._guess_label_and_def(str(k), v)
+                    definition = definition.strip()
+                    if not definition:
+                        continue
+                    # Label + Definition
+                    lines.append(f"{label}: {definition}")
+            lines.append("")
+
+            # ---------- TEXT (Funktionen) ----------
+            lines.append("section .text")
+            # alle Funktions-Labels (ohne @-Schlüssel)
+            func_items = [(k, v) for k, v in text.items() if not str(k).startswith("@")]
+            if sort:
+                func_items.sort(key=lambda kv: str(kv[0]).lower())
+
+            for label, body in func_items:
+                if not body:
+                    continue
+                lines.append(f"{label}:")
+                lines.append(self._norm_nl(str(body)).rstrip("\n"))
+                lines.append("")
+
+            # ---------- optionaler Epilog ----------
+            epilog = text.get("@epilog")
+            if isinstance(epilog, str) and epilog.strip():
+                lines.append("; --- epilog ---")
+                lines.append(self._norm_nl(epilog).rstrip("\n"))
+                lines.append("")
+
+            # schreiben
+            try:
+                path = Path(filepath)
+                path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+                
+                nasm_exe = shutil.which("nasm")\
+                or shutil.which("nasm.exe")\
+                or shutil.which(bin_nasm)
+                if not nasm_exe:
+                    showError(""
+                    + _str("Error:") + "\n"
+                    + _str("nasm.exe could not be found per PATH"))
+                    return
+                # optional
+                try:
+                    msg  = subprocess.check_output([nasm_exe, "-v"], text = True).strip()
+                    showInfo(msg)
+                except Exception:
+                    msg = (""
+                    + _str("Error:") + "\n"
+                    + _str("nasm.exe found, but could not execute."))
+                    showError(msg)
+                    return
+                
+                sources = [
+                    "basexx.inc","code16.asm","code32.asm","data16.inc",
+                    "data64.asm","doshdr.inc","winhdr.inc","nasm.exe",
+                    "exports_kernel32.inc","exports_user32.inc",
+                    "imports.inc","locales.deu","locales.enu",
+                    "macros.inc","precalc.asm","start.asm","stdlib.inc",
+                    "usefunc.inc","windows.inc","winfunc.inc"
+                ]
+                
+                tmp  = str(Path.cwd()).replace("\\","/") + "/temp/asm/"
+                
+                if not Path(tmp).exists():
+                    p = Path(tmp)
+                    p.mkdir(parents=True, exist_ok=True)
+                    
+                for src in sources:
+                    z_file = src + ".gz"
+                    b_data = load_qt_resource(":/_internal/shared/nasm/" + z_file)
+                    if src == "nasm.exe":
+                        with open(tmp + src, "wb") as f:
+                            f.write(b_data)
+                            f.close()
+                    else:
+                        s_data = b_data.decode("utf-8")
+                        with open(tmp + src, "w", encoding="utf-8") as f:
+                            f.write(s_data)
+                            f.close()
+                print("--> " + tmp)
+                tmp_path = Path(tmp)
+                try:
+                    (tmp_path / "code64.asm").write_text(textwrap.dedent(""
+                        + "_start:" + "\n"
+                        + "mov rbp,rsp" + "\n"
+                        + "and rsp,-16" + "\n"
+                        + "sub rsp,32" + "\n"
+                        + "ShowMessageW msgW,capW" + "\n"
+                        + "GETLASTERROR jnz,.ok" + "\n"
+                        + "GetLastError" + "\n"
+                        + "ShowMessageA errA,capW" + "\n"
+                        + ".ok:" + "\n"
+                        + "AddShadow 80+48+16" + "\n"
+                        + "lea rdi,[rsp+16]" + "\n"
+                        + "lea rsi,[rdi+80]" + "\n"
+                        + "Zero ecx" + "\n"
+                        + "CALL_IAT GetModuleHandleW" + "\n"
+                        + "mov r12,rax" + "\n"
+                        + "LoadCursorW IDC_ARROW" + "\n"
+                        + "mov r14,rax" + "\n"
+                        + "mov ecx,5" + "\n"
+                        + "CALL_IAT GetSysColorBrush" + "\n"
+                        + "mov [rdi+48], rax" + "\n"
+                        + "xor rax,rax" + "\n"
+                        + "mov dword [rdi+0],80" + "\n"
+                        + "mov dword [rdi+4],0" + "\n"
+                        + "lea rax,[rel WndProc]" + "\n"
+                        + "mov [rdi+8],rax" + "\n"
+                        + "mov dword [rdi+16],0" + "\n"
+                        + "mov dword [rdi+20],0" + "\n"
+                        + "mov qword [rdi+24],r12" + "\n"
+                        + "mov qword [rdi+32],0" + "\n"
+                        + "mov qword [rdi+40],r14" + "\n"
+                        + "mov qword [rdi+48],r15" + "\n"
+                        + "mov qword [rdi+56],0" + "\n"
+                        + "lea rax,[rel winclassW]" + "\n"
+                        + "mov qword [rdi+64],rax" + "\n"
+                        + "mov qword [rdi+72],0" + "\n"
+                        + "mov rcx,rdi" + "\n"
+                        + "CALL_IAT RegisterClassExW" + "\n"
+                        + "GETLASTERROR jnz,.class_ok" + "\n"
+                        + "ShowMessageW  errmsgW,titleW" + "\n"
+                        + "sub rsp,40" + "\n"
+                        + "jmp .exit" + "\n"
+                        + ".class_ok:" + "\n"
+                        + "Zero ecx" + "\n"
+                        + "lea rdx,[rel winclassW]" + "\n"
+                        + "lea r8,[rel titleW]" + "\n"
+                        + "mov r9d,WS_OVERLAPPEDWINDOW" + "\n"
+                        + "mov dword [rsp+32],CW_USEDEFAULT" + "\n"
+                        + "mov dword [rsp+40],CW_USEDEFAULT" + "\n"
+                        + "mov dword [rsp+48],800" + "\n"
+                        + "mov dword [rsp+56],600" + "\n"
+                        + "mov qword [rsp+64],0" + "\n"
+                        + "mov qword [rsp+72],0" + "\n"
+                        + "mov qword [rsp+80],r12" + "\n"
+                        + "mov qword [rsp+88],0" + "\n"
+                        + "CALL_IAT CreateWindowExW" + "\n"
+                        + "GETLASTERROR jz, .exit" + "\n"
+                        + "mov r13,rax" + "\n"
+                        + "ShowWindow r13,SW_SHOWDEFAULT" + "\n"
+                        + "UpdateWindow r13" + "\n"
+                        + ".msg_loop:" + "\n"
+                        + "GetMessageW" + "\n"
+                        + "GETLASTERROR jle, .exit" + "\n"
+                        + "TranslateMessage" + "\n"
+                        + "DispatchMessageW" + "\n"
+                        + "jmp .msg_loop" + "\n"
+                        + ".exit:" + "\n"
+                        + "ExitProcess 0" + "\n"
+                        + "resolve_by_ordinal:" + "\n"
+                        + "nop" + "\n"
+                        + "AddShadow 40" + "\n"
+                        + "lea rcx,[rel dll_win32_user32]" + "\n"
+                        + "CALL_IAT LoadLibraryA" + "\n"
+                        + "mov r12,rax" + "\n"
+                        + "mov rcx,r12" + "\n"
+                        + "mov edx,0x00E8" + "\n"
+                        + "CALL_IAT GetProcAddress" + "\n"
+                        + "mov rbx,rax" + "\n"
+                        + "DelShadow 40" + "\n"
+                        + "Return" + "\n"
+                        + "nop" + "\n"
+                        + "winclassW: WSTR 'NasmWndClass'" + "\n"
+                        + "titleW: WSTR 'NASM PE64 GUI without Linker'" + "\n"
+                        + "errmsgW: WSTR 'RegisterClassExW failed'" + "\n"
+                        ))
+                        
+                    (tmp_path / "data64.asm").write_text(textwrap.dedent(""
+                        + "times (DATA_RAW_PTR-($-$$)) db 0" + "\n"
+                        + "data_start:" + "\n"
+                        + "errA: db 'MessageBoxW failed',0" + "\n"
+                        + "capA: db 'User32',0" + "\n"
+                        + "msgW: WSTR 'Hello World'" + "\n"
+                        + "capW: WSTR 'Pure NASM PE-64'" + "\n"
+                        + "data_end:" + "\n"
+                        + "times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0"+"\n"))
+                        
+                    (tmp_path / "winproc.asm").write_text(textwrap.dedent(""
+                        + "WndProc:" + "\n"
+                        + "AddShadow" + "\n"
+                        + "MESSAGE WM_CLOSE,wm_close" + "\n"
+                        + "MESSAGE WM_ERASEBKGND,wm_erasebkgnd" + "\n"
+                        + "DefWindowProcW" + "\n"
+                        + "DelShadow" + "\n"
+                        + "jmp [rax]" + "\n"
+                        + ".wm_erasebkgnd:" + "\n"
+                        + "AddShadow 48" + "\n"
+                        + "mov [rsp+32],rcx" + "\n"
+                        + "mov [rsp+40],r8" + "\n"
+                        + "lea rdx,[rsp+16]" + "\n"
+                        + "mov rcx,[rsp+32]" + "\n"
+                        + "CALL_IAT GetClientRect" + "\n"
+                        + "mov rcx,[rsp+32]" + "\n"
+                        + "mov rdx,GCLP_HBRBACKGROUND" + "\n"
+                        + "CALL_IAT GetClassLongPtrW" + "\n"
+                        + "mov rcx,[rsp+40]" + "\n"
+                        + "lea rdx,[rsp+16]" + "\n"
+                        + "mov r8,rax" + "\n"
+                        + "CALL_IAT FillRect" + "\n"
+                        + "Return 1" + "\n"
+                        + "DelShadow 48" + "\n"
+                        + "DelShadow" + "\n"
+                        + "ret" + "\n"
+                        + ".wm_close:" + "\n"
+                        + "Zero ecx" + "\n"
+                        + "CALL_IAT PostQuitMessage" + "\n"
+                        + "DelShadow" + "\n"
+                        + "Zero eax" + "\n"
+                        + "ret" + "\n"))
+                except OSError as e:
+                    raise RuntimeError(""
+                    + _str("Error:") + "\n"
+                    + _str("temporary directory is not writeable."))
+                        
+                # ---------------------------------------
+                # live output streamen, non-blocking
+                # ---------------------------------------
+                exe = tmp_path / "nasm.exe"
+                asm = tmp_path / "start.asm"
+                out = tmp_path / "start.exe"
+                
+                #if not str(exe.exists():
+                #    raise FileNotFoundError(f"{exe} not found.")
+                #if not asm.exists():
+                #    raise FileNotFoundError(f"{exe} not found.")
+                
+                cmd = [str(exe),"-f","bin", str(asm),"-o",str(out)]
+                exe_asm = f"{tmp}nasm.exe -fbin {tmp}start.exe {tmp}start.asm"
+                print("start assembler...")
+                proc = subprocess.Popen(
+                    cmd,
+                    cwd     = str(tmp),
+                    stdout  = subprocess.PIPE,
+                    stderr  = subprocess.STDOUT,
+                    text    = True,
+                    bufsize = 1)
+                try:
+                    for line in proc.stdout:
+                        sys.stdout.write(line)
+                    ret = proc.wait()
+                    file_name = "tmp.tmp"
+                    if DEBUG_MODE == False:
+                        try:
+                            for p in sources:
+                                file_name = tmp + p
+                                os.remove(file_name)
+                            os.remove(tmp + "code64.asm" )
+                            os.remove(tmp + "winproc.asm")
+                            if ret > 0:
+                                showError(f"FAILED: Exit-Code {ret}:")
+                                if proc.stdout:
+                                    proc.stdout.close()
+                                return
+                            else:
+                                showInfo(_str("SUCCESS."))
+                        except FileNotFoundError as e:
+                            showError(f"file does not exists: {file_name}")
+                            return
+                        except PermissionError as e:
+                            showError(_str("access denied: no permissions."))
+                            return
+                        except OSError as e:
+                            showError(f"OSError ({e.errno}): {w.strerror}")
+                            return
+                finally:
+                    if proc.stdout:
+                        proc.stdout.close()
+                return path
+            except PermissionError as e:
+                showError(_str("no permissions to create directory"))
+                return False
+            except Exception as e:
+                showError(_str(f"unexpected error occured:\n{e}"))
+                return False
+        
+        # ---------- Pretty (import, data, text) ----------
+        def _order_text(self, text: dict) -> dict:
+            if not isinstance(text, Mapping):
+                return text
+            # @prolog zuerst, @epilog zuletzt, Rest alphabetisch
+            keys = list(text.keys())
+            def rank(k: str) -> tuple[int, str]:
+                kl = k.lower()
+                if kl == "@prolog": return (0, "")
+                if kl == "@epilog": return (2, "")
+                return (1, kl)
+            ordered = {}
+            for k in sorted(keys, key=rank):
+                ordered[k] = text[k]
+            return ordered
+        
+        def _order_data_recursive(self, node):
+            # dict: rekursiv alphabetisch (case-insensitiv)
+            if isinstance(node, Mapping):
+                ordered = {}
+                for k in sorted(node.keys(), key=lambda s: str(s).lower()):
+                    ordered[k] = self._order_data_recursive(node[k])
+                return ordered
+            # listen/andere: so lassen
+            if isinstance(node, list):
+                return [self._order_data_recursive(v) for v in node]
+            return node
+        
+        def _order_imports(self, imp: dict) -> dict:
+            if not isinstance(imp, Mapping):
+                return imp
+            out = {}
+            # DLL-Keys case-insensitiv sortieren
+            for dll in sorted(imp.keys(), key=lambda s: s.lower()):
+                funclist = imp[dll]
+                if isinstance(funclist, list):
+                    # nur dicts mit Key "f" berücksichtigen; nach 'f' sortieren
+                    cleaned = [e for e in funclist if isinstance(e, Mapping) and "f" in e]
+                    cleaned.sort(key=lambda e: str(e.get("f", "")).lower())
+                    out[dll] = cleaned
+                else:
+                    out[dll] = funclist
+            return out
+        
+        def pretty_all(self, *, indent: int = 2) -> str:
+            """Gibt JSON mit geordnete(re)n 'text', 'data', 'import' zurück."""
+            cp = self.code_producer or {}
+            
+            ordered = {}
+            
+            # zuerst die drei Kernbereiche in gewünschter Reihenfolge
+            if "text" in cp:
+                ordered["text"] = self._order_text(cp["text"])
+            if "data" in cp:
+                ordered["data"] = self._order_data_recursive(cp["data"])
+            if "import" in cp:
+                ordered["import"] = self._order_imports(cp["import"])
+            
+            # sonstige Top-Level-Keys (falls vorhanden) hinten anhängen, alphabetisch
+            rest_keys = [k for k in cp.keys() if k not in ("text", "data", "import")]
+            for k in sorted(rest_keys, key=lambda s: str(s).lower()):
+                ordered[k] = cp[k]
+            
+            return json.dumps(ordered, ensure_ascii=False, indent=indent)
+
+        def print_pretty_all(self, **kwargs) -> None:
+            print(self.pretty_all(**kwargs))
+            
+        def print_quick_readable(self):
+            s = json.dumps(self.code_producer, ensure_ascii=False, indent=2)
+            print(s.replace("\\n", "\n"))  # Achtung: nicht mehr valides JSON!
+            
+        # -------------------------------------------------------------------
+        # Normalisieren für Vergleich (case-insensitiv, None -> "")
+        # -------------------------------------------------------------------
+        def _import_key(self, func: str, lib: str | None) -> tuple[str, str]:
+            return (func.strip().lower(), (lib or "").strip().lower())
+            
+        # -------------------------------------------------------------------
+        # Fügt unter 'import' den Eintrag {dll: [{"f": func}, ...]} hinzu.
+        # - Legt die DLL-Liste an, falls es sie noch nicht gibt.
+        # - Verhindert Duplikate pro DLL (case-insensitiv).
+        # Rückgabe: True, wenn hinzugefügt; False, wenn schon vorhanden.
+        # -------------------------------------------------------------------
+        def add_import(self, dll: str, func: str) -> bool:
+            imports = self.code_producer.setdefault("import", {})
+            dll_key = next((k for k in imports.keys() if k.lower() == dll.lower()), dll)
+            
+            func_list = imports.setdefault(dll_key, [])
+            if any((e.get("f") or "").lower() == func.lower() for e in func_list):
+                return False
+            
+            func_list.append({"f": func})
+            return True
+        # -------------------------------------------------------------------
+        # Entfernt nachträglich Duplikate aus self.code_producer["import"].
+        # Behalt jeweils den ersten Eintrag.
+        # -------------------------------------------------------------------
+        def dedupe_imports(self, *, normalize_dll_case: bool = False) -> None:
+            imports = self.code_producer.setdefault("import", {})
+            if not isinstance(imports, dict):
+                raise TypeError("'import' muss ein Dict {dll: [ {f: <func>} ]} sein")
+            
+            canonical = {}  # dll_lower -> {"key": kept_key, "funcs": set(lower), "items": list(dicts)}
+            for dll_key, func_list in list(imports.items()):
+                if not isinstance(func_list, list):
+                    continue
+                dll_can = dll_key.lower()
+                bucket = canonical.setdefault(dll_can, {"key": dll_key, "funcs": set(), "items": []})
+                for e in func_list:
+                    if not isinstance(e, dict): 
+                        continue
+                    fname = (e.get("f") or "").strip()
+                    if not fname:
+                        continue
+                    fcan = fname.lower()
+                    if fcan in bucket["funcs"]:
+                        continue
+                    bucket["funcs"].add(fcan)
+                    bucket["items"].append({"f": fname})
+                # -------------------------------------------------------------------
+                # bevorzugte Schreibweise des DLL-Keys beibehalten (erste gewinnt)
+                # falls normalize_dll_case=True, wird später alles lower gesetzt
+                # -------------------------------------------------------------------
+            # neu aufbauen
+            new_imports = {}
+            for dll_can, data in canonical.items():
+                key = dll_can if normalize_dll_case else data["key"]
+                new_imports[key] = data["items"]
+            
+            self.code_producer["import"] = new_imports
+        # -------------------------------------------------------------------
+        # Aktualisiert self.code_producer['text'][key] je nach 'mode':
+        #  - "set":     überschreibt den Wert
+        #  - "append":  hängt am Ende an
+        #  - "prepend": fügt am Anfang ein
+        # -------------------------------------------------------------------
+        # 'value' kann str oder Iterable[str] sein. None wird als "" behandelt.
+        # Rückgabe: der neue Text.
+        # -------------------------------------------------------------------
+        ## f = Foo()
+        #
+        ## überschreiben
+        # f.update_text("@prolog", "; neuer Prolog", mode="set")
+        #
+        ## anhängen
+        # f.update_text("@prolog", "; weitere Zeile", mode="append")
+        #
+        ## am Anfang einfügen
+        # f.update_text("@prolog", "; Kopfzeile zuerst", mode="prepend")
+        #
+        ## mehrere Zeilen auf einmal
+        # f.update_text("@prolog", ["; A", "; B"], mode="append")
+        # -------------------------------------------------------------------
+        def update_text(
+            self,
+            key: str,
+            value: str | Iterable[str] | None,
+            *,
+            mode: Literal["set", "append", "prepend"] = "set",
+            sep: str = "\n",
+            smart: bool = True) -> str:
+            text = self.code_producer.setdefault("text", {})
+            
+            # --- SMART GUARD: Vertauschte Argumente erkennen ---
+            if smart and ("\n" in key or "\r" in key):
+                # sehr wahrscheinlich ist 'key' eigentlich der Text und 'value' der Key
+                if isinstance(value, str) and value and "\n" not in value and "\r" not in value:
+                    key, value = value, key  # tauschen
+            
+            # value normalisieren
+            if value is None:
+                chunk = ""
+            elif isinstance(value, (str, bytes)):
+                chunk = value.decode() if isinstance(value, bytes) else value
+            elif isinstance(value, Iterable):
+                chunk = sep.join(map(str, value))
+            else:
+                chunk = str(value)
+            
+            cur = text.get(key, "")
+            
+            if   mode == "set":     new_val = chunk
+            elif mode == "append":  new_val = f"{cur}{sep}{chunk}" if cur and chunk else (cur or chunk)
+            elif mode == "prepend": new_val = f"{chunk}{sep}{cur}" if cur and chunk else (cur or chunk)
+            else:
+                raise ValueError("mode muss 'set', 'append' oder 'prepend' sein")
+            
+            text[key] = new_val
+            return new_val
+            
         # -----------------------------------------------------------------------
         # \brief this is the ctor for class "interpreter_base".
         # -----------------------------------------------------------------------
@@ -12504,16 +13119,17 @@ try:
             genv.open_paren = 0
             genv.text_paren = ""
             
-            genv.code_code = """
-    import os
-    import sys
-    import time
-    import datetime
+            genv.code_code = textwrap.dedent("""
+            import os
+            import sys
+            import time
+            import datetime
 
-    import builtins
-    print = builtins.print
+            import builtins
+            print = builtins.print
 
-    """
+            """)
+            
             genv.temp_code = ""
             genv.text_code = ""
 
@@ -13316,6 +13932,7 @@ try:
                                     break
                             continue
                         elif genv.char_curr == '/':
+                            showInfo("c++ comment")
                             while True:
                                 self.getChar()
                                 if genv.char_curr == '\r':
@@ -13450,6 +14067,21 @@ try:
         def __init__(self, file_name):
             super(interpreter_dBase, self).__init__(file_name)
             
+            self.code_producer = {
+                "text": {
+                    "@prolog": "; dies ist ein Text",
+                    "@epilog": "; EOF - End of File"
+                },
+                "data": { },
+                "import": {
+                    "user32.dll": [
+                        { "f": "MessageBox" },
+                    ],
+                    "kernel32.dll": [
+                        { "f": "ExitProcess" }
+                    ]
+                }
+            }
             # ----------------------------------------------
             # textual color values in RGB format ...
             # ----------------------------------------------
@@ -13497,7 +14129,48 @@ try:
                     genv.char_prev = genv.char_curr
                     genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
                     
-                    if genv.char_curr == genv.TOKEN_IDENT:
+                    if genv.char_curr == '?':
+                        dat_str = textwrap.dedent('db "Hello from NASM x64! a=%d, b=%lld", 10, 0')
+                        asm_str = textwrap.dedent("""
+                        ; --- Prolog ---
+                        push    rbp
+                        mov     rbp, rsp
+                        
+                        ; -------------------------------------------------------------------
+                        ; 64 Bytes reservieren:
+                        ;  - 32 B Shadow Space (Pflicht als Caller vor jedem call)
+                        ;  - 32 B "lokal" (hier ungenutzt, dient auch dem Alignment)
+                        ; Nach push rbp ist rsp 16-Byte aligned; 64 hält das Alignment.
+                        ; -------------------------------------------------------------------
+                        sub     rsp, 64
+                        
+                        ; --- Aufruf von printf(fmt, a, b) ---
+                        ; -------------------------------------------------------------------
+                        ; MS x64-ABI: RCX, RDX, R8, R9 = die ersten 4 Integer/Pointer-Args
+                        ; Für variadische Funktionen (printf): AL = Anzahl der XMM-Args -> 0
+                        ; -------------------------------------------------------------------
+                        lea     rcx, [rel fmtHello]    ; 1. Arg: Format-String
+                        mov     edx, 42                ; 2. Arg: int a
+                        mov     r8,  1234567890123     ; 3. Arg: long long b
+                        xor     eax, eax               ; AL=0 (keine FP/XMM-Args)
+                        call    printf                 ; Shadow Space liegt bei [rsp..rsp+31]
+                        
+                        ; --- Rückgabewert von main (int) ---
+                        xor     eax, eax               ; return 0
+                        
+                        ; --- Epilog ---
+                        add     rsp, 64
+                        pop     rbp
+                        ret
+                        """)
+                        
+                        self.update_data("fmtHello"  , dat_str, mode="set")
+                        self.update_text("PASCALMAIN", asm_str, mode="set")
+                        
+                        self.print_quick_readable()
+                        self.write_asm("./temp/asm/code.asm")
+                        continue
+                    elif genv.char_curr == genv.TOKEN_IDENT:
                         tok = self.token_str.lower()
                         if tok == "procedure":
                             genv.text_code += "def "
@@ -13811,6 +14484,8 @@ try:
                                                             continue
                                                         else:
                                                             raise ParserSyntaxError(_str("ENDCLASS expected."))
+                                                    else:
+                                                        raise ParserSyntaxError(_str("ident expected"))
                                                 else:
                                                     raise ParserSyntaxError(_str("keyword expecred."))
                                             else:
@@ -13846,155 +14521,6 @@ try:
                 "dec", "inc",
                 "mod", "div", "pow", "chr", "ord"
             ]
-            
-            # ---------------------------------------------------------------
-            ## f = Foo()
-            # f.add_import("MessageBox", "user32.dll")   # -> False (existiert schon)
-            # f.add_import("MessageBoxA", "USER32.DLL")  # -> True (case-insensitiv erkannt)
-            # f.add_import("MessageBoxA", "user32.dll")  # -> False (Duplikat)
-            # f.add_import("Beep", "Kernel32.dll")       # -> True
-            #
-            ## Liste bereinigen:
-            # f.dedupe_imports()
-            # ---------------------------------------------------------------
-            self.code_producer = {
-                "text": {
-                    "@prolog": "; dies ist ein Text",
-                    "@epilog": "; EOF - End of File"
-                },
-                "data": { },
-                "import": {
-                    "user32.dll": [
-                        { "f": "MessageBox" },
-                    ],
-                    "kernel32.dll": [
-                        { "f": "ExitProcess" }
-                    ]
-                }
-            }
-        # -------------------------------------------------------------------
-        # Normalisieren für Vergleich (case-insensitiv, None -> "")
-        # -------------------------------------------------------------------
-        def _import_key(self, func: str, lib: str | None) -> tuple[str, str]:
-            return (func.strip().lower(), (lib or "").strip().lower())
-            
-        # -------------------------------------------------------------------
-        # Fügt unter 'import' den Eintrag {dll: [{"f": func}, ...]} hinzu.
-        # - Legt die DLL-Liste an, falls es sie noch nicht gibt.
-        # - Verhindert Duplikate pro DLL (case-insensitiv).
-        # Rückgabe: True, wenn hinzugefügt; False, wenn schon vorhanden.
-        # -------------------------------------------------------------------
-        def add_import(self, dll: str, func: str) -> bool:
-            imports = self.code_producer.setdefault("import", {})
-            dll_key = next((k for k in imports.keys() if k.lower() == dll.lower()), dll)
-            
-            func_list = imports.setdefault(dll_key, [])
-            if any((e.get("f") or "").lower() == func.lower() for e in func_list):
-                return False
-            
-            func_list.append({"f": func})
-            return True
-        # -------------------------------------------------------------------
-        # Entfernt nachträglich Duplikate aus self.code_producer["import"].
-        # Behalt jeweils den ersten Eintrag.
-        # -------------------------------------------------------------------
-        def dedupe_imports(self, *, normalize_dll_case: bool = False) -> None:
-            imports = self.code_producer.setdefault("import", {})
-            if not isinstance(imports, dict):
-                raise TypeError("'import' muss ein Dict {dll: [ {f: <func>} ]} sein")
-            
-            canonical = {}  # dll_lower -> {"key": kept_key, "funcs": set(lower), "items": list(dicts)}
-            for dll_key, func_list in list(imports.items()):
-                if not isinstance(func_list, list):
-                    continue
-                dll_can = dll_key.lower()
-                bucket = canonical.setdefault(dll_can, {"key": dll_key, "funcs": set(), "items": []})
-                for e in func_list:
-                    if not isinstance(e, dict): 
-                        continue
-                    fname = (e.get("f") or "").strip()
-                    if not fname:
-                        continue
-                    fcan = fname.lower()
-                    if fcan in bucket["funcs"]:
-                        continue
-                    bucket["funcs"].add(fcan)
-                    bucket["items"].append({"f": fname})
-                # -------------------------------------------------------------------
-                # bevorzugte Schreibweise des DLL-Keys beibehalten (erste gewinnt)
-                # falls normalize_dll_case=True, wird später alles lower gesetzt
-                # -------------------------------------------------------------------
-            # neu aufbauen
-            new_imports = {}
-            for dll_can, data in canonical.items():
-                key = dll_can if normalize_dll_case else data["key"]
-                new_imports[key] = data["items"]
-            
-            self.code_producer["import"] = new_imports
-        # -------------------------------------------------------------------
-        # Aktualisiert self.code_producer['text'][key] je nach 'mode':
-        #  - "set":     überschreibt den Wert
-        #  - "append":  hängt am Ende an
-        #  - "prepend": fügt am Anfang ein
-        # -------------------------------------------------------------------
-        # 'value' kann str oder Iterable[str] sein. None wird als "" behandelt.
-        # Rückgabe: der neue Text.
-        # -------------------------------------------------------------------
-        ## f = Foo()
-        #
-        ## überschreiben
-        # f.update_text("@prolog", "; neuer Prolog", mode="set")
-        #
-        ## anhängen
-        # f.update_text("@prolog", "; weitere Zeile", mode="append")
-        #
-        ## am Anfang einfügen
-        # f.update_text("@prolog", "; Kopfzeile zuerst", mode="prepend")
-        #
-        ## mehrere Zeilen auf einmal
-        # f.update_text("@prolog", ["; A", "; B"], mode="append")
-        # -------------------------------------------------------------------
-        def update_text(
-            self,
-            key: str,
-            value: str | Iterable[str] | None,
-            *,
-            mode: Literal["set", "append", "prepend"] = "set",
-            sep: str = "\n",
-            smart: bool = True
-        ) -> str:
-            text = self.code_producer.setdefault("text", {})
-            
-            # --- SMART GUARD: Vertauschte Argumente erkennen ---
-            if smart and ("\n" in key or "\r" in key):
-                # sehr wahrscheinlich ist 'key' eigentlich der Text und 'value' der Key
-                if isinstance(value, str) and value and "\n" not in value and "\r" not in value:
-                    key, value = value, key  # tauschen
-            
-            # value normalisieren
-            if value is None:
-                chunk = ""
-            elif isinstance(value, (str, bytes)):
-                chunk = value.decode() if isinstance(value, bytes) else value
-            elif isinstance(value, Iterable):
-                chunk = sep.join(map(str, value))
-            else:
-                chunk = str(value)
-            
-            cur = text.get(key, "")
-            
-            if mode == "set":
-                new_val = chunk
-            elif mode == "append":
-                new_val = f"{cur}{sep}{chunk}" if cur and chunk else (cur or chunk)
-            elif mode == "prepend":
-                new_val = f"{chunk}{sep}{cur}" if cur and chunk else (cur or chunk)
-            else:
-                raise ValueError("mode muss 'set', 'append' oder 'prepend' sein")
-            
-            text[key] = new_val
-            return new_val
-        
         # -------------------------------------------------------------------
         # rekursives Merge: dest <- src (src überschreibt).
         # -------------------------------------------------------------------
@@ -14005,321 +14531,6 @@ try:
                 else:
                     dest[k] = v
             return dest
-        # -------------------------------------------------------------------
-        ## Aktualisiert self.code_producer['data'][key].
-        #
-        # - mode='set'    : direkt setzen/überschreiben
-        # - mode='merge'  : dict-merge (deep=True für rekursiv)
-        # - mode='append' : bei list -> anhängen (value kann Einzelwert oder Iterable sein)
-        #                   bei str  -> Text anhängen (mit sep)
-        #                   wenn key nicht existiert -> value setzen
-        # - mode='prepend': wie append, aber vorn
-        # -------------------------------------------------------------------
-        # f = Foo()
-        #
-        ## 1) set
-        # f.update_data("version", 1)
-        # f.update_data("flags", {"opt": True})
-        #
-        ## 2) merge (shallow)
-        # f.update_data("flags", {"debug": False}, mode="merge")
-        ## 3) merge (deep)
-        # f.update_data("cfg", {"paths": {"bin": r"C:\bin"}}, mode="merge")
-        # f.update_data("cfg", {"paths": {"lib": r"C:\lib"}}, mode="merge", deep=True)
-        #
-        ## 4) append/prepend auf LISTEN
-        # f.update_data("files", ["a.obj"], mode="set")
-        # f.update_data("files", "b.obj", mode="append")             # -> ["a.obj","b.obj"]
-        # f.update_data("files", ["c.obj","d.obj"], mode="prepend")  # -> ["c.obj","d.obj","a.obj","b.obj"]
-        #
-        ## 5) append/prepend auf STRINGS
-        # f.update_data("note", "Erste Zeile", mode="set")
-        # f.update_data("note", "Zweite Zeile", mode="append")    # trennt mit \n
-        # f.update_data("note", ["Dritte", "Vierte"], mode="append")
-        #
-        ## 6) Fehlerfälle (bewusst)
-        # f.update_data("flags", {"x":1}, mode="append")  # -> TypeError: dict + append
-        # -------------------------------------------------------------------
-        def update_data(
-            self,
-            key: str,
-            value,
-            *,
-            mode: Literal["set", "merge", "append", "prepend"] = "set",
-            sep: str = "\n",
-            deep: bool = False,
-        ):
-            data = self.code_producer.setdefault("data", {})
-            cur = data.get(key, None)
-            
-            if mode == "set":
-                data[key] = value
-                return data[key]
-            
-            if mode == "merge":
-                if not isinstance(value, dict):
-                    raise TypeError("Für mode='merge' muss 'value' ein dict sein.")
-                if cur is None:
-                    data[key] = value.copy()
-                elif isinstance(cur, dict):
-                    data[key] = self._deep_merge(cur, value) if deep else (cur | value if hasattr(cur, "__or__") else {**cur, **value})
-                else:
-                    raise TypeError(f"Kann nicht in Typ {type(cur).__name__} mergen (erwarte dict).")
-                return data[key]
-            # ---------------------------------------------------------------
-            # append/prepend
-            # ---------------------------------------------------------------
-            if mode in ("append", "prepend"):
-                if cur is None:
-                    # -------------------------------------------------------
-                    # nichts da → einfach setzen
-                    # -------------------------------------------------------
-                    data[key] = value if not isinstance(value, bytes) else value.decode()
-                    return data[key]
-                
-                # -----------------------------------------------------------
-                # Listen-Fall
-                # -----------------------------------------------------------
-                if isinstance(cur, list):
-                    # value normalisieren zu Liste von Elementen
-                    if isinstance(value, list):
-                        items = value
-                    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes, dict)):
-                        items = list(value)
-                    else:
-                        items = [value]
-                    if mode == "append":
-                        cur.extend(items)
-                    else:
-                        data[key] = items + cur
-                    return data[key]
-                
-                # -----------------------------------------------------------
-                # String-Fall
-                # -----------------------------------------------------------
-                if isinstance(cur, (str, bytes)):
-                    cur_str = cur.decode() if isinstance(cur, bytes) else cur
-                    if isinstance(value, bytes):
-                        val_str = value.decode()
-                    elif isinstance(value, str):
-                        val_str = value
-                    elif isinstance(value, Iterable) and not isinstance(value, (dict,)):
-                        val_str = sep.join(map(str, value))
-                    else:
-                        val_str = str(value)
-                    
-                    if mode == "append":
-                        data[key] = f"{cur_str}{sep}{val_str}" if cur_str and val_str else (cur_str or val_str)
-                    else:  # prepend
-                        data[key] = f"{val_str}{sep}{cur_str}" if cur_str and val_str else (cur_str or val_str)
-                    return data[key]
-                # -----------------------------------------------------------
-                # Für dicts kein implizites append/prepend (das wäre unklar)
-                # -----------------------------------------------------------
-                if isinstance(cur, dict):
-                    raise TypeError("append/prepend auf dict ist nicht definiert. Nutze mode='merge'.")
-                # -----------------------------------------------------------
-                # Andere Typen (int/float/tuple/…) → nur erlauben,
-                # wenn leer/nicht vorhanden; sonst Fehler
-                # -----------------------------------------------------------
-                raise TypeError(f"append/prepend für Typ {type(cur).__name__} nicht unterstützt.")
-            raise ValueError("mode muss 'set', 'merge', 'append' oder 'prepend' sein")
-        
-        def _norm_nl(self, s: str) -> str:
-            if not s:
-                return ""
-            # immer mit genau einem Zeilenumbruch enden
-            return s.rstrip("\r\n") + "\n"
-
-        # -------------------------------------------------------------------
-        # Für data-Einträge tolerant sein:
-        # - Bevorzugt: label = k (gültiger Bezeichner), def = str(v)
-        # - Fallback (vertauscht): wenn k nach ASM-Directive aussieht und v ein Bezeichner ist,
-        #   dann label = v, def = k
-        # -------------------------------------------------------------------
-        def _guess_label_and_def(self, k: str, v):
-            IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-            v_str = "" if v is None else str(v)
-            k_is_ident = bool(IDENT_RE.match(k))
-            v_is_ident = bool(IDENT_RE.match(v_str))
-            looks_like_directive = any(tok in k.lower() for tok in (
-                " db ",
-                " dq ",
-                " dd ",
-                " dw ",
-                " resb", " resq", " resd", " resw",
-                "\n"
-            ))
-
-            if k_is_ident:
-                return k, v_str
-            if looks_like_directive and v_is_ident:
-                # vertauschtes Paar
-                return v_str, k
-            # sonst: nimm k als Label wie es ist (notfalls säubern) und v als Definition
-            fallback_label = re.sub(r"\W+", "_", k).strip("_") or "data_item"
-            return fallback_label, v_str
-
-        def write_asm(self, filepath: str | Path, *, sort: bool = True) -> Path:
-            cp      = self.code_producer   or {}
-            text    = cp.get("text",   {}) or {}
-            data    = cp.get("data",   {}) or {}
-            imports = cp.get("import", {}) or {}
-
-            lines: list[str] = []
-            lines.append("; --- generated from code_producer ---")
-            lines.append("default rel")
-            lines.append("")
-            
-            dirpath = os.path.dirname(filepath) or "."  # falls nur Dateiname ohne Ordner
-            os.makedirs(dirpath, exist_ok=True)         # nur Verzeichnis anlegen
-
-            # ---------- optionaler Prolog ----------
-            prolog = text.get("@prolog")
-            if isinstance(prolog, str) and prolog.strip():
-                lines.append("; --- prolog ---")
-                lines.append(self._norm_nl(prolog).rstrip("\n"))
-                lines.append("")
-
-            # ---------- IMPORTS ----------
-            if isinstance(imports, dict) and imports:
-                lines.append("; --- imports ---")
-                dll_keys = sorted(imports.keys(), key=str.lower) if sort else list(imports.keys())
-                for dll in dll_keys:
-                    funclist = imports.get(dll) or []
-                    # sortiere nach Funktionsname
-                    if sort:
-                        funclist = sorted(
-                            [e for e in funclist if isinstance(e, dict) and "f" in e],
-                            key=lambda e: str(e.get("f", "")).lower()
-                        )
-                    for e in funclist:
-                        fn = e.get("f")
-                        if not fn:
-                            continue
-                        lines.append(f"extern {fn}    ; from {dll}")
-                lines.append("")
-
-            # ---------- DATA ----------
-            lines.append("section .data")
-            if isinstance(data, dict) and data:
-                data_items = data.items()
-                if sort:
-                    data_items = sorted(data_items, key=lambda kv: str(kv[0]).lower())
-                for k, v in data_items:
-                    label, definition = self._guess_label_and_def(str(k), v)
-                    definition = definition.strip()
-                    if not definition:
-                        continue
-                    # Label + Definition
-                    lines.append(f"{label}: {definition}")
-            lines.append("")
-
-            # ---------- TEXT (Funktionen) ----------
-            lines.append("section .text")
-            # alle Funktions-Labels (ohne @-Schlüssel)
-            func_items = [(k, v) for k, v in text.items() if not str(k).startswith("@")]
-            if sort:
-                func_items.sort(key=lambda kv: str(kv[0]).lower())
-
-            for label, body in func_items:
-                if not body:
-                    continue
-                lines.append(f"{label}:")
-                lines.append(self._norm_nl(str(body)).rstrip("\n"))
-                lines.append("")
-
-            # ---------- optionaler Epilog ----------
-            epilog = text.get("@epilog")
-            if isinstance(epilog, str) and epilog.strip():
-                lines.append("; --- epilog ---")
-                lines.append(self._norm_nl(epilog).rstrip("\n"))
-                lines.append("")
-
-            # schreiben
-            try:
-                path = Path(filepath)
-                path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-                return path
-                
-            except PermissionError as e:
-                showError(_str("no permissions to create directory"))
-                return False
-            except Exception as e:
-                showError(_str(f"unexpected error occured:\n{e}"))
-                return False
-        
-        # ---------- Pretty (import, data, text) ----------
-        def _order_text(self, text: dict) -> dict:
-            if not isinstance(text, Mapping):
-                return text
-            # @prolog zuerst, @epilog zuletzt, Rest alphabetisch
-            keys = list(text.keys())
-            def rank(k: str) -> tuple[int, str]:
-                kl = k.lower()
-                if kl == "@prolog": return (0, "")
-                if kl == "@epilog": return (2, "")
-                return (1, kl)
-            ordered = {}
-            for k in sorted(keys, key=rank):
-                ordered[k] = text[k]
-            return ordered
-        
-        def _order_data_recursive(self, node):
-            # dict: rekursiv alphabetisch (case-insensitiv)
-            if isinstance(node, Mapping):
-                ordered = {}
-                for k in sorted(node.keys(), key=lambda s: str(s).lower()):
-                    ordered[k] = self._order_data_recursive(node[k])
-                return ordered
-            # listen/andere: so lassen
-            if isinstance(node, list):
-                return [self._order_data_recursive(v) for v in node]
-            return node
-        
-        def _order_imports(self, imp: dict) -> dict:
-            if not isinstance(imp, Mapping):
-                return imp
-            out = {}
-            # DLL-Keys case-insensitiv sortieren
-            for dll in sorted(imp.keys(), key=lambda s: s.lower()):
-                funclist = imp[dll]
-                if isinstance(funclist, list):
-                    # nur dicts mit Key "f" berücksichtigen; nach 'f' sortieren
-                    cleaned = [e for e in funclist if isinstance(e, Mapping) and "f" in e]
-                    cleaned.sort(key=lambda e: str(e.get("f", "")).lower())
-                    out[dll] = cleaned
-                else:
-                    out[dll] = funclist
-            return out
-        
-        def pretty_all(self, *, indent: int = 2) -> str:
-            """Gibt JSON mit geordnete(re)n 'text', 'data', 'import' zurück."""
-            cp = self.code_producer or {}
-            
-            ordered = {}
-            
-            # zuerst die drei Kernbereiche in gewünschter Reihenfolge
-            if "text" in cp:
-                ordered["text"] = self._order_text(cp["text"])
-            if "data" in cp:
-                ordered["data"] = self._order_data_recursive(cp["data"])
-            if "import" in cp:
-                ordered["import"] = self._order_imports(cp["import"])
-            
-            # sonstige Top-Level-Keys (falls vorhanden) hinten anhängen, alphabetisch
-            rest_keys = [k for k in cp.keys() if k not in ("text", "data", "import")]
-            for k in sorted(rest_keys, key=lambda s: str(s).lower()):
-                ordered[k] = cp[k]
-            
-            return json.dumps(ordered, ensure_ascii=False, indent=indent)
-
-        def print_pretty_all(self, **kwargs) -> None:
-            print(self.pretty_all(**kwargs))
-            
-        def print_quick_readable(self):
-            s = json.dumps(self.code_producer, ensure_ascii=False, indent=2)
-            print(s.replace("\\n", "\n"))  # Achtung: nicht mehr valides JSON!
     
         def parse(self):
             genv.line_col = 1
@@ -18877,6 +19088,8 @@ try:
             super(myExitDialog, self).__init__(parent)
             
             self.parent = parent
+            self.result = 0
+            
             self.setWindowTitle(title)
             
             font = QFont(genv.v__app__font, 10)
@@ -18890,8 +19103,8 @@ try:
             self.prevButton = QPushButton(_str("&Cancel"))
             self.exitButton = QPushButton(_str("&Exit"))
             
-            self.helpButton.setDefault(True)
-            self.prevButton.setDefault(True)
+            self.helpButton.setDefault(False)
+            self.prevButton.setDefault(False)
             self.exitButton.setDefault(True)
             
             self.vlayout.addWidget(self.helpButton)
@@ -18933,19 +19146,8 @@ try:
             self.close()
             return
         def exit_click(self):
-            DebugPrint("exit")
-            if not genv.worker_thread == None:
-                genv.worker_thread.stop()
-                
-            #self.disconnectEvents()
-            genv.v__app_win.write_config_part()
-            
-            # clean up ./temp
-            tree = os.path.dirname(os.path.abspath(__file__))
-            tree += "/temp"
-            saveDeleteDirectoryTree(tree)
-            
-            sys.exit(0)
+            self.result = 3
+            self.close()
 
     class myMoveButton(QPushButton):
         def __init__(self, text, parent=None):
@@ -26597,6 +26799,12 @@ try:
                     self.c64_tabs,
                     self.settings_tabs
                 ]
+                
+                # ------------------------
+                # hide the splash
+                # ------------------------
+                EmitSplash("HIDE")
+                
             except AttributeError as e:
                 exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
                 tb = traceback.extract_tb(e.__traceback__)[-1]
@@ -26655,6 +26863,17 @@ try:
                 elif event.key() == Qt.Key_Escape:
                     exitBox = myExitDialog(_str("Exit Dialog"))
                     exitBox.exec_()
+                    if exitBox.result == 3:
+                        EmitSplash("SHOW")
+                        if not genv.worker_thread == None:
+                            genv.worker_thread.stop()
+                        genv.v__app_win.write_config_part()
+                        
+                        # clean up ./temp
+                        tree = os.path.dirname(os.path.abspath(__file__))
+                        tree += "/temp"
+                        #saveDeleteDirectoryTree(tree)
+                        sys.exit(0)
                 elif event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
                     if self.worker_hasFocus == True:
                         # c64
@@ -39335,16 +39554,71 @@ try:
             
         parser.print_help()
         return 0
+    
     # ------------------------------------------------------------------------
-    if __name__ == 'client':
+    def clear_screen():
+        if platform.system() == "Windows":
+            os.system("cls")
+        else:
+            os.system("clear")
+    # ------------------------------------------------------------------------
+    if __name__ == '__main__':
+        # ----------------------------------------------
         # The Python 3+ or 3.12+ is required.
+        # ----------------------------------------------
         major = sys.version_info[0]
         minor = sys.version_info[1]
         if (major < 3 and minor < 12):
-            DebugPrint("Python 3.12+ are required for the script")
+            print("Python 3.12+ are required for the script")
             sys.exit(1)
+        # ----------------------------------------------
+        # we don't allow start-uo without splash screen
+        # as water mark ...
+        # ----------------------------------------------
+        env = os.environ.copy()
+        raw = os.environ.get("BJKID", "")
+        if not raw:
+            EmitSplash("TEXT Application Error")
+            EmitSplash("DONE")
+            sys.exit(1)
+        # ----------------------------------------------
+        # Match nur, wenn der gesamte String aus \xHH
+        # (mit optionalen Spaces) besteht ...
+        # ----------------------------------------------
+        pattern = r'(?:(?:\\x[0-9A-Fa-f]{2})\s*)+'
+        if re.fullmatch(pattern, raw):
+            hexstr = re.sub(r'(?:\\x)|\s+', '', raw)
+            try:
+                lat = bytes.fromhex(hexstr)
+            except ValueError:
+                EmitSplash("SHOW")
+                EmitSplash("PROGRESS 40")
+                EmitSplash("DONE")
+                
+                clear_screen()
+                sys.exit(1)
             
+            if lat != b"\x08\x02\x79":
+                EmitSplash("SHOW")
+                EmitSplash("TEXT could not start application.")
+                EmitSplash("PROGRESS 10")
+                EmitSplash("DONE")
+                
+                clear_screen()
+                sys.exit(2)
+        else:
+            EmitSplash("SHOW")
+            EmitSplash("TEXT could not start application.")
+            time.sleep(2)
+            EmitSplash("PROGRESS 100")
+            EmitSplash("DONE")
+            
+            clear_screen()
+            sys.exit(1)
+                
+        # ----------------------------------------------
         # Determine the path to the script and its name.
+        # ----------------------------------------------
         script = os.path.abspath(sys.argv[0])
         script_path, script_name = os.path.split(script)
         script_path = os.path.abspath(script_path)
