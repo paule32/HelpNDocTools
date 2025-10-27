@@ -14130,6 +14130,41 @@ try:
                     genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
                     
                     if genv.char_curr == '?':
+                        genv.char_prev = genv.char_curr
+                        genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
+                        
+                        found_a = 0
+                        if  genv.char_curr == '[':
+                            found_a = 1
+                        elif genv.char_curr == "'":
+                            found_a = 2
+                        elif genv.char_curr == '"':
+                            found_a = 3
+                        
+                        if found < 1:
+                            raise ParserSyntaxError(_str("string qoute error"))
+                        
+                        q_string = []
+                        while True:
+                            self.getChar()
+                            if genv.char_curr == ']' and found_a == 1:
+                                break
+                            if genv.char_curr == "'" and found_a == 2:
+                                break
+                            if genv.char_curr == '"' and found_a == 3:
+                                break
+                            if genv.char_curr == '\r':
+                                self.getChar()
+                                if not genv.char_curr == '\n':
+                                    showError(_str("line end error."))
+                                    return
+                                q_string.append(r'\n')
+                                continue
+                            if genv.char_curr == '\n':
+                                q_string.append(r'\n')
+                                continue
+                            q_string.append(genv.char_curr)
+                            
                         dat_str = textwrap.dedent('db "Hello from NASM x64! a=%d, b=%lld", 10, 0')
                         asm_str = textwrap.dedent("""
                         ; --- Prolog ---
@@ -39623,7 +39658,6 @@ try:
         script_path, script_name = os.path.split(script)
         script_path = os.path.abspath(script_path)
         
-        print("Hello from client")
         sys.exit(main())
     else:
         raise Exception(_str("no startup routine found."))
