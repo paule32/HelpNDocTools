@@ -659,9 +659,9 @@
 			var tmp = $('<span></span>');
 			for(var i=0; i<tabs.length; i++){
 				var p = tabs[i];
-				tmp.html(p.panel('options').title);
+				tmp.text(p.panel('options').title);
 				var title = tmp.text();
-				tmp.html(which);
+				tmp.text(which);
 				which = tmp.text();
 				if (title == which){
 					tab = p;
