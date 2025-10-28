@@ -6,6 +6,11 @@
  * Licensed under the freeware license: http://www.jeasyui.com/license_freeware.php
  * To use it on other terms please contact us: info@jeasyui.com
  *
+ * SECURITY WARNING:
+ * Do not pass user-supplied or unsanitized input as parent/container/selector arguments
+ * to EasyUI plugin methods (such as _outerWidth, _outerHeight, _size etc.).
+ * These values must be DOM elements or selector strings that DO NOT start with '<'.
+ * Passing untrusted HTML can result in Cross-Site Scripting (XSS).
  */
 (function($){
 $.easyui={indexOfArray:function(a,o,id){
@@ -231,8 +236,13 @@ _21(this,_1e,_1f);
 }
 }else{
 return this.each(function(){
-_1f=_1f||$(this).parent();
-$.extend(_1e,_20(this,_1f,_1e.fit)||{});
+// Harden _1f against unsafe HTML being interpreted by jQuery
+if (typeof _1f === "string" && _1f.trim().charAt(0) === "<") {
+    // Unsafe: do not allow raw HTML selectors as parent argument
+    throw new Error("Unsafe selector string passed to _size: must not begin with '<'.");
+}
+_1f = _1f || $(this).parent();
+$.extend(_1e, _20(this, _1f, _1e.fit)||{});
 var r1=_22(this,"width",_1f,_1e);
 var r2=_22(this,"height",_1f,_1e);
 if(r1||r2){
