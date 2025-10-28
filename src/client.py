@@ -13119,6 +13119,8 @@ try:
             genv.open_paren = 0
             genv.text_paren = ""
             
+            self.skip_eof  = True
+            
             genv.code_code = textwrap.dedent("""
             import os
             import sys
@@ -13318,14 +13320,17 @@ try:
                 if not self.program_reach_end or genv.have_errors:
                     if genv.actual_parser == genv.dbase_parser:
                         if genv.have_errors:
-                            raise ParserReachEOFError(self.PARSER_ERROR(genv.have_errors))
+                            if not self.skip_eof: raise ParserSyntaxError  (_str("string terminator not found."))
+                            else:                 raise ParserReachEOFError(self.PARSER_ERROR(genv.have_errors))
                         else:
-                            raise ParserReachEOF(_str("dBASE ends without errors."))
+                            if not self.skip_eof: raise ParserSyntaxError  (_str("string 22terminator not found."))
+                            else:                 raise ParserReachEOF(_str("dBASE ends without errors."))
                     elif genv.actual_parser == genv.pascal_parser:
                         if genv.have_errors:
                             raise ParserReachEOFError(_str("PROGRAM without END."))
                         else:
-                            raise ParserReachEOFError(_str("Pascal ends without errors."))
+                            if not self.skip_eof: raise ParserSyntaxError  (_str("string terminator not found."))
+                            else:                 raise ParserReachEOFError(_str("Pascal ends without errors."))
                 else:
                     raise ParserReachEOF(_str("no more data 1"))
             else:
@@ -14114,6 +14119,228 @@ try:
             
             global textertext
             textertext = 'dBase DOS Shell Version 1.0.0\n(c) 2025 by Jens Kallup - paule32.'
+            
+            # ---------- Reguläre Ausdrücke (volle Übereinstimmung) ----------
+
+            # 1) Vollständiges String-Literal:
+            #    - "…", '…' (mit Escapes, auch leer, auch über Zeilen)
+            #    - wörtlich: \"…\"
+            self.RE_STRING = re.compile(
+                r'''
+                ^(?:
+                     "(?:\\.|[^"\\])*"          # "...": doppelte Quotes, Escapes erlaubt, auch leer
+                   | '(?:\\.|[^'\\])*'          # '...': einfache Quotes, Escapes erlaubt, auch leer
+                   | \\"(?:\\.|[^"\\])*\\"      # \"...\": wörtlich backslash-escaptes Quote an beiden Enden
+                )$
+                ''', re.VERBOSE | re.DOTALL
+            )
+
+            # 2) Bracket-Form:
+            #    - [ <unquoted> ]      (alles außer ], auch leer; Tabs/Newlines ok)
+            #    - [ "…"(geschlossen) ]
+            #    - [ '…'(geschlossen) ]
+            #    - [ "… ]               (Sonderfall: führendes ", kein schließendes " nötig, aber ] MUSS kommen)
+            self.RE_BRACKET = re.compile(
+                r'''
+                ^
+                \[
+                  \s*                          # Whitespace (inkl. \t, \n) vor Inhalt erlaubt
+                  (?:
+                      "(?:\\.|[^"\\])*"        # korrekt geschlossenes Doppel -Quote, Escapes erlaubt (auch leer)
+                    | '(?:\\.|[^'\\])*'        # korrekt geschlossenes Einfach-Quote, Escapes erlaubt (auch leer)
+                    | "(?:\\.|[^\]])*          # Sonderfall: führendes ", endet erst bei ]
+                    | [^\]]*                   # unquoted (auch leer)
+                  )
+                  \s*                          # Whitespace nach Inhalt erlaubt
+                \]
+                $
+                ''', re.VERBOSE | re.DOTALL
+            )
+
+        # ---------- Hilfsfunktionen zur gezielten Fehlerdiagnose ----------
+
+        def _find_closing_quote(self, s: str, start: int, quote: str) -> int:
+            """
+            Sucht das schließende Quote für s[start] == quote, beachtet Escapes.
+            Gibt Index der schließenden Quote zurück oder -1, wenn nicht vorhanden.
+            """
+            i = start + 1
+            n = len(s)
+            while i < n:
+                c = s[i]
+                if c == '\\':
+                    i += 2  # Escape überspringen (z. B. \" \\ \n)
+                    continue
+                if c == quote:
+                    return i
+                i += 1
+            return -1
+
+        def _first_nonspace(self, s: str, start: int = 0) -> int:
+            i = start
+            while i < len(s) and s[i].isspace():
+                i += 1
+            return i
+
+        # ---------- Validator mit Fehlerausgabe ----------
+
+        def validate_token(self, s: str) -> bool:
+            """
+            Prüft s streng gegen:
+              - RE_STRING   (reines Stringliteral)
+              - RE_BRACKET  ([ ... ]-Form
+            Gibt True bei gültig zurück.
+            Wirft ValueError mit präziser Meldung bei Terminator-Problemen.
+            """
+
+            # 1) Gültig?
+            if self.RE_STRING.match(s) or self.RE_BRACKET.match(s):
+                return True
+
+            # 2) Spezifische, hilfreiche Fehlerdiagnosen:
+
+            if not s:
+                raise ValueError("Leerer Eingabestring ist ungültig (erwarte Stringliteral oder [ … ]).")
+
+            # a) Fällt als Stringliteral an, aber unvollständig?
+            if s[0] == '"':
+                end = self._find_closing_quote(s, 0, '"')
+                if end == -1:
+                    raise ValueError('Unterminierter String: öffnendes " ohne schließendes ".')
+                # Sonst ist etwas anderes falsch (z. B. zusätzlicher Müll danach)
+                raise ValueError("Ungültiges Stringliteral: zusätzlicher Inhalt außerhalb der abschließenden \".")
+            if s[0] == "'":
+                end = self._find_closing_quote(s, 0, "'")
+                if end == -1:
+                    raise ValueError("Unterminierter String: öffnendes ' ohne schließendes '.")
+                raise ValueError("Ungültiges Stringliteral: zusätzlicher Inhalt außerhalb des abschließenden '.")
+
+            # b) Wörtlich \"…\" begonnen?
+            if s.startswith('\\"'):
+                # Suche schließendes \"
+                i = 2
+                n = len(s)
+                while i < n:
+                    if s[i] == '\\':
+                        i += 2
+                        continue
+                    if s[i] == '"' and i+1 < n and s[i-1] == '\\':  # bereits durch obige Logik abgedeckt
+                        i += 1
+                        continue
+                    if i+1 < n and s[i] == '\\' and s[i+1] == '"':  # \"
+                        closing_at = i+1
+                        # closing sequence ist bei Index i,i+1; danach darf nichts folgen
+                        if closing_at+1 != n-0:
+                            # Es folgt noch Inhalt; also kein exakter Treffer
+                            break
+                        return True  # eigentlich gültig – hier würde RE_STRING schon gegriffen haben
+                    i += 1
+                raise ValueError('Unterminiertes Muster: beginnt mit \\" aber kein abschließendes \\" gefunden.')
+
+            # c) Bracket-Form?
+            if s[0] == '[':
+                # Muss ein schließendes ] geben
+                if ']' not in s:
+                    raise ValueError("Unterminierter Block: öffnendes '[' ohne schließendes ']'.")
+                # Es gibt zwar ein ']', aber RE_BRACKET matcht nicht -> genauer schauen
+                # Innenraum untersuchen
+                inner_start = self._first_nonspace(s, 1)
+                # Nächstes Zeichen innen?
+                if inner_start < len(s) and s[inner_start] in ("'", '"'):
+                    qc = s[inner_start]
+                    end = self._find_closing_quote(s, inner_start, qc)
+                    if qc == '"':
+                        # Zwei Fälle sind erlaubt:
+                        # - Korrekt geschlossenes "…"
+                        # - Sonderfall "… ] (kein schließendes ")
+                        # Wenn es bis zum ersten ] kein schließendes " gibt, ist das OK,
+                        # solange ein ']' existiert (das haben wir oben geprüft).
+                        if end != -1:
+                            # Es gab ein schließendes " -> dann muss danach (nur Whitespace und) ] kommen.
+                            tail = s[end+1:]
+                            # Erlaube Whitespace vor dem finalen ]
+                            tail = tail.rstrip()
+                            if not tail.endswith(']'):
+                                raise ValueError("Ungültig in [ … ]: nach geschlossenem \"…\" muss direkt das abschließende ']' folgen (abgesehen von Whitespace).")
+                        else:
+                            # Sonderfall aktiv – dann prüfen, ob überhaupt ein ']' kommt (oben schon geprüft)
+                            pass
+                    else:
+                        # qc == "'": hier ist ein korrektes Schließen Pflicht
+                        if end == -1:
+                            raise ValueError("Unterminierter String in [ … ]: öffnendes ' ohne schließendes '.")
+                # Wenn wir hier sind, ist es irgendein anderes Strukturproblem (z. B. Zeichen nach dem finalen ])
+                raise ValueError("Ungültiges [ … ]-Muster: Form nicht strikt eingehalten (überflüssige Zeichen oder falsche Struktur).")
+
+            # d) Beginnt gar nicht mit erlaubtem Delimiter
+            raise ValueError("Ungültiger Anfang: erwarte Stringliteral (\"…\", '…', \\\"…\\\") oder Klammerform [ … ].")
+
+        def eval_string(self, a_string: list) -> list:
+            genv.char_prev = genv.char_curr
+            genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
+            found_a : int  = 0
+            if  genv.char_curr == '[':
+                #a_string.append(genv.char_curr)
+                found_a = 1
+            elif genv.char_curr == "'":
+                a_string.append(genv.char_curr)
+                found_a = 2
+            elif genv.char_curr == '"':
+                #a_string.append(genv.char_curr)
+                showInfo("===>>> " + str(a_string))
+                self.skip_eof = False
+                found_a = 3
+            else:
+                raise ParserSyntaxError(_str("unkown sign found."))
+            if found_a < 1:
+                raise ParserSyntaxError(_str("string qoute error"))
+            while True:
+                self.getChar()
+                if genv.char_curr == ']' and found_a == 1:
+                    break
+                elif genv.char_curr == "'" and found_a == 2:
+                    break
+                elif genv.char_curr == '"' and found_a == 3:
+                    break
+                elif genv.char_curr == '\r':
+                    self.getChar()
+                    if not genv.char_curr == '\n':
+                        showError(_str("line end error."))
+                        return
+                    a_string.append(r'\n')
+                    continue
+                elif genv.char_curr == '\n':
+                    a_string.append(r'\n')
+                    continue
+                else:
+                    a_string.append(genv.char_curr)
+                    continue
+            try:
+                a_temp = ''.join(a_string)
+                a_temp = '"' + a_temp + '"'
+                showInfo(a_temp)
+                self.validate_token(a_temp)
+                
+                self.skip_eof  = True
+                genv.char_prev = genv.char_curr
+                genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
+                
+                if genv.char_curr == '+':
+                    showInfo("gugu")
+                    self.skip_eof = True
+                    b_string = []
+                    b_string = b_string.append(self.eval_string(a_string))
+                    showInfo("oo> \n" + str(b_string))
+                    return b_string
+                else:
+                    showInfo("111111111")
+                    self.ungetChar(1)
+                    self.skip_eof = False
+                    a_temp2 = ''.join(a_string)[1:-1]
+                    showInfo("pppp>\n" + a_temp2)
+                    return a_string
+            except ValueError as e:
+                raise ParserSyntaxError(_str("Error: unterminated string found.") + "\n" + str(a_string) + "\n" + f"{e}")
         
         def parse(self):
             genv.line_col = 1
@@ -14128,44 +14355,41 @@ try:
                 while True:
                     genv.char_prev = genv.char_curr
                     genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
-                    
+                    a_string = ""
                     if genv.char_curr == '?':
-                        genv.char_prev = genv.char_curr
-                        genv.char_curr = self.skip_white_spaces(genv.dbase_parser)
-                        
-                        found_a = 0
-                        if  genv.char_curr == '[':
-                            found_a = 1
-                        elif genv.char_curr == "'":
-                            found_a = 2
-                        elif genv.char_curr == '"':
-                            found_a = 3
-                        
-                        if found < 1:
-                            raise ParserSyntaxError(_str("string qoute error"))
-                        
-                        q_string = []
-                        while True:
+                        try:
+                            genv.char_prev = genv.char_curr
+                            self.skip_eof  = False
                             self.getChar()
-                            if genv.char_curr == ']' and found_a == 1:
-                                break
-                            if genv.char_curr == "'" and found_a == 2:
-                                break
-                            if genv.char_curr == '"' and found_a == 3:
-                                break
-                            if genv.char_curr == '\r':
-                                self.getChar()
-                                if not genv.char_curr == '\n':
-                                    showError(_str("line end error."))
-                                    return
-                                q_string.append(r'\n')
-                                continue
-                            if genv.char_curr == '\n':
-                                q_string.append(r'\n')
-                                continue
-                            q_string.append(genv.char_curr)
-                            
-                        dat_str = textwrap.dedent('db "Hello from NASM x64! a=%d, b=%lld", 10, 0')
+                            single_print: bool = True
+                            found_a : int  = 0
+                            a_string: list = []
+                            if genv.char_curr == '?':
+                                a_string = self.eval_string(a_string)
+                            elif  genv.char_curr == '[':
+                                self.ungetChar(1)
+                                a_string = self.eval_string(a_string)
+                                self.skip_eof = True
+                                found_a = 1
+                            elif genv.char_curr == "'":
+                                self.ungetChar(1)
+                                a_string = self.eval_string(a_string)
+                                a_string = ''.join(a_string)[1:-1]
+                                a_string = list(a_string)
+                                showInfo("=o==>\n" + str(a_string))
+                                self.skip_eof = True
+                                found_a = 2
+                            elif genv.char_curr == '"':
+                                self.ungetChar(1)
+                                a_string = self.eval_string(a_string)
+                                self.skip_eof = True
+                                found_a = 3
+                            else:
+                                raise ParserSyntaxError(_str("unkown sign found."))
+                        except Exception as e:
+                            showInfo(f"{e}")
+                        
+                        dat_str = textwrap.dedent(f"db '{''.join(a_string)}', 10, 0")
                         asm_str = textwrap.dedent("""
                         ; --- Prolog ---
                         push    rbp
@@ -14185,8 +14409,6 @@ try:
                         ; Für variadische Funktionen (printf): AL = Anzahl der XMM-Args -> 0
                         ; -------------------------------------------------------------------
                         lea     rcx, [rel fmtHello]    ; 1. Arg: Format-String
-                        mov     edx, 42                ; 2. Arg: int a
-                        mov     r8,  1234567890123     ; 3. Arg: long long b
                         xor     eax, eax               ; AL=0 (keine FP/XMM-Args)
                         call    printf                 ; Shadow Space liegt bei [rsp..rsp+31]
                         
@@ -39309,6 +39531,8 @@ try:
                 + "mov rbp,rsp" + "\n"
                 + "and rsp,-16" + "\n"
                 + "sub rsp,32" + "\n"
+                + "lea rax, [rel PASCALMAIN]\n"
+                + "call rax\n"
                 + "ShowMessageW msgW,capW" + "\n"
                 + "GETLASTERROR jnz,.ok" + "\n"
                 + "GetLastError" + "\n"
