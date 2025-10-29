@@ -1,4 +1,3 @@
-
 /1
 /src/build/observer
 /src/dist
@@ -87,16 +86,12 @@ src/stub.py
 src/build.py
 src/_internal/observer.log
 src/_internal/observer.log
-/_internal
 src/libimpPythonLoader.a
 src/_internal/1
 src/z
 src/packed.zip
 src/test.html
 /src/bak
-doc/Commodore C64/BASIC/Programmers Desk Reference/eBook.lck
-*.gz
-*.gz
 /src/lexpr
 src/_internal/temp/4
 src/_internal/temp/3
@@ -204,14 +199,8 @@ src/pascal.pas.bak
 src/paslex.py.bak
 src/pastest2.py.bak
 src/pasyacc.py.bak
-*.html
-*.bak
-*.bak
-*.bak
-*.bak
 *.bak
 /src/build
-*.bak
 *.webp
 src/_internal/img/keyboard/1
 src/__pycache__/_internal/img/keyboard/1
