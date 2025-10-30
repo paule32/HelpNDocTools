@@ -1,0 +1,9 @@
+; -----------------------------------------------------------------------------; \file  windows.inc; \note  (c) 2025 by Jens Kallup - paule32;        all rights reserved.;; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.; -----------------------------------------------------------------------------; win32 constants; -----------------------------------------------------------------------------%define WS_OVERLAPPEDWINDOW 0x00CF0000%define CW_USEDEFAULT       0x80000000%define SW_SHOWDEFAULT      10
+%define IDC_ARROW           32512
+%define COLOR_WINDOW        5
+%define FOREGROUND_BLUE      0x0001%define FOREGROUND_GREEN     0x0002%define FOREGROUND_RED       0x0004%define FOREGROUND_INTENSITY 0x0008
+; -----------------------------------------------------------------------------; Window Messages ...; -----------------------------------------------------------------------------%define WM_CLOSE            0x0010%define WM_COMMAND          0x0111%define WM_ERASEBKGND       0x0014
+%define GCLP_HBRBACKGROUND  -10
+; -----------------------------------------------------------------------------; Message Box's ...; -----------------------------------------------------------------------------%define MB_OK         0x00000000%define MB_ICONERROR  0x00000010
+%define STD_OUTPUT_HANDLE -11
+%define FORMAT_MESSAGE_ALLOCATE_BUFFER 0x00000100%define FORMAT_MESSAGE_IGNORE_INSERTS  0x00000200%define FORMAT_MESSAGE_FROM_SYSTEM     0x00001000%define FM_FLAGS \    FORMAT_MESSAGE_ALLOCATE_BUFFER | \    FORMAT_MESSAGE_FROM_SYSTEM     | \    FORMAT_MESSAGE_IGNORE_INSERTSLANG_NEUTRAL    equ 0SUBLANG_DEFAULT equ 1; für NASM als Zahl nutzen:LANGID_DEFAULT  equ (SUBLANG_DEFAULT << 10) | LANG_NEUTRAL
