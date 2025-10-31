@@ -10,6 +10,9 @@ text33W: WSTR "33 33"
 text44W: WSTR "lapslo 44 44"
 text55W: WSTR "55 5555"
 msgW: WSTR 'Hello World'
-capW: WSTR 'Pure NASM PE-64'
+cap2A: db "ein Text",13,10,0
+cap2A_length equ ($ - cap2A)
+capW: WSTR 'Pure NASM PE-64', 0
+capW_length: dd 5 ; equ ($-capW)
 data_end:
 times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0

@@ -1,4 +1,4 @@
-fmtHello: db "abde fg", 13, 10, 0
+fmtHello: WSTR "abde fg", 13, 10, 0
 fmtHello_length equ ($-fmtHello)-1
 written: dd 0
 
@@ -14,3 +14,14 @@ wbuf:   times 128 dw 0                           ; Ausgabepuffer (128 WCHAR)
 ErrTitleW: WSTR "Fehler", 0
 
 pMsg:   dq 0                          ; LPWSTR, wird von FormatMessageW allokiert
+errmsgW: WSTR 'RegisterClassExW failed'
+titleW: WSTR 'NASM PE64 GUI without Linker'
+winclassW: WSTR 'NasmWndClass'
+ExitMsgW: WSTR "Exiter"
+ShowHelloW: WSTR "Shower 00"
+ClassOkW: WSTR "Classler"
+ShowLastW: WSTR "lastler 1112222"
+ShowAndW: WSTR "einer zu keiner"
+ShowLast2W: WSTR "einer zu keiner ---->>>"
+
+MessageErrorTextW: WSTR "message error text"

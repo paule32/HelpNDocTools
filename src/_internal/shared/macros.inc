@@ -13,7 +13,7 @@
 %if %0 == 1
     sub     rsp, %1
 %else
-    sub     rsp, 32
+    sub     rsp, SW_SHADOW
 %endif
 %endmacro
 
@@ -24,7 +24,7 @@
 %if %0 == 1
     add     rsp, %1
 %else
-    add     rsp, 32
+    add     rsp, SW_SHADOW
 %endif
 %endmacro
 
@@ -101,7 +101,8 @@ HN_win32_%1: dw 0
 
 %macro CALL_IAT 1        ; CALL_IAT ExitProcess / RegisterClassExW / ...
     AddShadow
-    mov     rax, IMAGE_BASE + RVA_IDATA(IAT_win32_%1)
+    mov     rax, IMAGE_BASE
+    add     rax, RVA_IDATA(IAT_win32_%1)
     call    [rax]
     DelShadow
 %endmacro

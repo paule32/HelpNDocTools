@@ -4,26 +4,25 @@ HandleLastError:
     mov     rbp, rsp
     sub     rsp, 64
     
-    call_GetLastError
-    
-    mov     r8d, eax                      ; r8d = dwMessageId (3. Param)
-    mov     r9d, LANGID_DEFAULT           ; r9d = dwLanguageId (4. Param)
-    
     ; FormatMessageW(FM_FLAGS, NULL, err, LANGID_DEFAULT, (LPWSTR)&pMsg, 0, NULL)
     mov     ecx, FM_FLAGS                       ; rcx = dwFlags
     xor     edx, edx                            ; rdx = lpSource = NULL
-    AddShadow 56                                ; 32 shadow + 3 stack-args (5th,6th,7th)
-    mov     rdx, IMAGE_BASE
-    add     rdx, RVA_DATA(pMsg)
-    mov     rdx, [rdx]
+    mov     r8d, eax                            ; 3th dwMessageId
+    mov     r9d, LANGID_DEFAULT                 ; 4th dwLanguageId
+    
+    AddShadow (32 + (3 * 8) + 8)                ; 32 shadow + 3 stack-args (5th,6th,7th) + 8 padding
+    mov     rax, IMAGE_BASE
+    add     rax, RVA_DATA(pMsg)                 ; rax = &pmsg
     mov     [rsp+32], rax                       ; 5th: lpBuffer (as LPWSTR*) because of ALLOCATE_BUFFER
     mov     dword [rsp+40], 0                   ; 6th: nSize = 0 (Min-Größe)
     mov     qword [rsp+48], 0                   ; 7th: Arguments = NULL
-    call_FormatMessageW
-    DelShadow 56
-    ;test    eax, eax
-    ;jz      .no_text                                    ; 0 = Fehler (kein Text verfügbar)
 
+    ;AddShadow
+    call_FormatMessageW
+    DelShadow (32 + (3 * 8) + 8)
+    test    eax, eax
+    jz      .no_text                                    ; 0 = Fehler (kein Text verfügbar)
+ShowMessageW ShowLast2W,capW
     ; MessageBoxW(NULL, pMsg, titleW, MB_ICONERROR)
     xor     ecx, ecx
     mov     rdx, IMAGE_BASE
@@ -42,6 +41,7 @@ HandleLastError:
     jmp     .done
     
 .no_text:
+ShowMessageW ShowLastW,capW
     call HandleLastErrorHexCode
 .done:
     add     rsp, 64
@@ -90,8 +90,8 @@ PASCALMAIN:
 
 ; --- Prolog ---
 print_line_1:
-push    rbp
-mov     rbp, rsp
+    push    rbp
+    mov     rbp, rsp
 
 ; -------------------------------------------------------------------
 ; 64 Bytes reservieren:
@@ -99,34 +99,30 @@ mov     rbp, rsp
 ;  - 32 B "lokal" (hier ungenutzt, dient auch dem Alignment)
 ; Nach push rbp ist rsp 16-Byte aligned; 64 hält das Alignment.
 ; -------------------------------------------------------------------
-sub     rsp, 64
+    sub     rsp, 64
 
-; --- Konsole öffnen ---
-call_AllocConsole ok_1, pdone
+    ; --- Konsole öffnen ---
+    call_AllocConsole ok_1, prg_done
 
-; --- WriteConsoleA(hOut, fmtHello, hello_len, NULL, NULL) ---
+    ; --- WriteConsoleA(hOut, fmtHello, hello_len, NULL, NULL) ---
 ok_1:
-call_ShowMessageW ok_2, pdone, text11W, capW, 0
+    call_GetStdHandle ok_2, prg_done, STD_OUTPUT_HANDLE
 ok_2:
-call_GetStdHandle ok_3, pdone, STD_OUTPUT_HANDLE
-ok_3:
-call_ShowMessageW ok_4, pdone, text22W, capW, 0
+    mov     rcx, r12                       ; 1. Arg: HANDLE hConsoleOutput
+    mov     rdx, IMAGE_BASE
+    add     rdx, RVA_DATA(cap2A)           ; 2. Arg: LPCVOID lpBuffer
+    mov     r8, IMAGE_BASE
+    add     r8, RVA_DATA(cap2A_length)     ; 3. Arg: DWORD nNumberOfCharsToWrite
+    mov     r8d, cap2A_length
+    xor     r9d, r9d                       ; lpNumberOfCharsWritten = NULL
 
-ok_4:
-call_ShowMessageW ok_5, pdone, text33W, capW, 0
-ok_5:
-mov     rcx, r12                      ; 1. Arg: HANDLE hConsoleOutput
-;lea     rdx, [rel fmtHello]           ; 2. Arg: LPCVOID lpBuffer
-;mov     r8d, [rel fmtHello_length]    ; 3. Arg: DWORD nNumberOfCharsToWrite
-;xor     r9d, r9d                      ; lpNumberOfCharsWritten = NULL
+    AddShadow 32 + 8
+    mov     qword [rsp+32], 0              ; 5. Arg: LPVOID lpReserved = NULL
+    call_WriteConsoleA
+    DelShadow 32 + 8
 
-;AddShadow 40
-;mov     qword [rsp+32], 0             ; 5. Arg: LPVOID lpReserved = NULL
-;CALL_IAT WriteConsoleA
-;DelShadow 40
-call_ShowMessageW pdone, pdone, text44W, capW, 0
-; --- Epilog ---
-pdone:
-add     rsp, 64
-pop     rbp
-ret
+    ; --- Epilog ---
+prg_done:
+    add     rsp, 64
+    pop     rbp
+    ret
