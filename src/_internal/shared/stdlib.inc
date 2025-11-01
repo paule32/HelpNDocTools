@@ -1,81 +1,349 @@
-;---------------------------------------------------
-; \file  stdlib.inc
-; \note  (c) 2025 by Jens Kallup - paule32
-;        all rights reserved.
-;
-; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
-;---------------------------------------------------
-
-;---------------------------------------
-; Routine: IntToString
-; Eingabe: RAX = Zahl
-;          RDI = Pufferadresse
-; Ausgabe: Puffer enthält ASCII-Zeichen
-;---------------------------------------
-IntToStr:
-    ; save stack pointer
-    FUNC_ENTER
-    
-        mov   rcx, 10          ; divisor (remainder = Rest)
-        mov   r10, rdi         ; scan Pointer = Anfang des Puffers
-        mov   rbx, rdi         ; wir merken uns den Puffer
-        
-    .find_end:
-        cmp   byte [r10], 0
-        je    .end_found
-        inc   r10
-        jmp   .find_end
-    .end_found:
-        ; rbx zeigt jetzt auf das Nullterminator-Byte
-    .convert:
-        dec   r10              ; r10 -> letztes belegbares Byte (vor Terminator)
-        
-        ; Sonderfall: falls Zahl == 0, schreibe '0' und springe zum Ende
-        test  rax, rax
-        jnz   .convert_loop
-        
-        mov   byte [r10], '0'
-        dec   r10
-        jmp   .copy_back
-    
-    .convert_loop:
-        xor   rdx, rdx
-        div   rcx
-        add   dl, '0'
-        mov   [r10], dl         ; schreibe Ziffer
-        dec   r10
-        test  rax, rax
-        jnz   .convert_loop
-        
-    .copy_back:
-        ; nach der Schleife steht rbx *unter* dem ersten Ziffernbyte (oder auf Anfang-1)
-        ; setze source = rbx+1, dest = rdi (Anfang des Puffers)
-        lea   r8, [r10 + 1]    ; r8 = Quelle (erste Ziffer)
-        mov   r9, rdi          ; r9 = Ziel (Anfang des Puffers) in rdx temporär
-        
-    .copy_loop:
-        mov   al, [r8]
-        mov   [r9], al
-        inc   r8
-        inc   r9
-        cmp   al, 0
-        jne   .copy_loop
-
-.done:
-    FUNC_LEAVE
-
-;--------------------------------------
-; Hilfsfunktion: strlen
-; RCX = string
-;--------------------------------------
-strlen:
-    xor     rax, rax
-.next_char:
-    cmp     byte [rcx+rax], 0
-    je      .done
-    inc     rax
-    jmp     .next_char
-.done:
-    ret
-
-%include 'windos.inc'
+;---------------------------------------------------
+; \file  stdlib.inc
+; \note  (c) 2025 by Jens Kallup - paule32
+;        all rights reserved.
+;
+; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
+;---------------------------------------------------
+
+; -------------------------------------------------------------------
+; \brief init_console - initialize a text console under the Windows
+;        gui desktop.
+; \param nothing
+; -------------------------------------------------------------------
+; --- Prolog ---
+init_console:
+    FUNC_ENTER
+
+    ; --- Konsole öffnen ---
+    call_AllocConsole .ok_1, .done
+
+    ; --- Konsole auf 80x25 schneiden ---
+    .ok_1:
+    call_GetStdHandle .ok, .done, STD_OUTPUT_HANDLE
+    .ok:
+    
+    ; RCX=hOut, RDX=packed COORD
+    mov      rcx, r12
+    mov      edx, (25 << 16) | 80
+    CALL_IAT SetConsoleScreenBufferSize
+    
+    ; RCX=hOut, RDX=TRUE, R8=&Rect
+    mov      rcx, r12
+    mov      edx, 1
+    mov      r8,  IMAGE_BASE
+    add      r8,  RVA_DATA(Rect80x25)
+    CALL_IAT SetConsoleWindowInfo
+    
+    ; old mode holen
+    mov  rcx, [hIn]
+    lea  rdx, [rel tmpConsoleMode]
+    CALL_IAT GetConsoleMode
+    mov  eax, [rel tmpConsoleMode]
+
+    or   eax, ENABLE_PROCESSED_INPUT | ENABLE_EXTENDED_FLAGS
+    and  eax, ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_QUICK_EDIT_MODE)
+
+    mov  edx, eax
+    mov  rcx, [hIn]
+    CALL_IAT SetConsoleMode
+
+    CALL_IAT GetConsoleWindow
+    mov      rbx, rax                   ; rbx = hwnd
+    test     rax, rax
+    jz       .done                      ; no console available
+    ; HMENU m = GetSystemMenu(h, FALSE);
+    mov      rcx, rbx                   ; hWnd
+    xor      edx, edx                   ; FALSE
+    CALL_IAT GetSystemMenu
+    test     rax, rax
+    jz       .done
+    mov      rdi, rax                   ; rdi = HMENU
+    ; EnableMenuItem(m, SC_CLOSE, MF_BYCOMMAND | MF_GRAYED);
+    mov      rcx, rdi                   ; HMENU
+    mov      edx, SC_CLOSE              ; uIDEnableItem
+    mov      r8d, MF_BYCOMMAND | MF_GRAYED
+    CALL_IAT EnableMenuItem
+    ; Neuzeichnen der Titelleiste/Buttons
+    mov      rcx, rbx
+    CALL_IAT DrawMenuBar
+    .after_menu:
+; --- Epilog ---
+    .done:
+    FUNC_LEAVE
+
+; -------------------------------------------------------------------
+; UTF-8 -> UTF-16
+; -------------------------------------------------------------------
+ascii_to_utf8:
+    ;FUNC_ENTER
+    push    rbx
+    
+    ; Eingaben sichern
+    mov     r10, rcx        ; save src (UTF-8)
+    mov     r11, rdx        ; save dst (LPWSTR)
+    
+    ; MultiByteToWideChar(CodePage=65001, Flags=0, src, -1, dst, cch)
+    mov     ecx, 65001      ; CodePage = CP_UTF8
+    xor     edx, edx        ; dwFlags = 0           (Achtung: edx nullt rdx!)
+    mov     r8,  r10        ; lpMultiByteStr = saved src
+    mov     r9d, -1         ; cbMultiByte = -1 (NUL-terminiert)
+    
+    sub     rsp, 40               ; shadow space
+    mov     [rsp+24], r11         ; lpWideCharStr
+    mov     dword [rsp+32], 256   ; cchWideChar
+    
+    CALL_IAT MultiByteToWideChar
+    
+    add     rsp, 40
+    pop     rbx
+    ret
+    ;FUNC_LEAVE
+    
+; -------------------------------------------------------------------
+; \brief routine to handle win32api GetLastError ...
+; -------------------------------------------------------------------
+HandleLastError:
+    ; --- Prolog ---
+    FUNC_ENTER 64
+    
+    ; FormatMessageW(FM_FLAGS, NULL, err, LANGID_DEFAULT, (LPWSTR)&pMsg, 0, NULL)
+    mov     ecx, FM_FLAGS                       ; rcx = dwFlags
+    xor     edx, edx                            ; rdx = lpSource = NULL
+    mov     r8d, eax                            ; 3th dwMessageId
+    mov     r9d, LANGID_DEFAULT                 ; 4th dwLanguageId
+    
+    AddShadow (32 + (3 * 8) + 8)                ; 32 shadow + 3 stack-args (5th,6th,7th) + 8 padding
+    mov     rax, IMAGE_BASE
+    add     rax, RVA_DATA(pMsg)                 ; rax = &pmsg
+    mov     [rsp+32], rax                       ; 5th: lpBuffer (as LPWSTR*) because of ALLOCATE_BUFFER
+    mov     dword [rsp+40], 0                   ; 6th: nSize = 0 (Min-Größe)
+    mov     qword [rsp+48], 0                   ; 7th: Arguments = NULL
+
+    ;AddShadow
+    call_FormatMessageW
+    DelShadow (32 + (3 * 8) + 8)
+    test    eax, eax
+    jz      .no_text                                    ; 0 = Fehler (kein Text verfügbar)
+
+    ; MessageBoxW(NULL, pMsg, titleW, MB_ICONERROR)
+    xor     ecx, ecx
+    mov     rdx, IMAGE_BASE
+    add     rdx, RVA_DATA(pMsg)                 ; lpText = pMsg (LPWSTR)
+    mov     r8,  IMAGE_BASE
+    add     r8,  RVA_DATA(ErrTitleW)
+    mov     r9d, 0x10                           ; MB_ICONERROR
+    call_MessageBoxW
+
+    ; LocalFree(pMsg)
+    mov     rcx, IMAGE_BASE
+    add     rcx, RVA_DATA(pMsg)
+    mov     rcx, [rcx]
+    call_LocalFree
+
+    jmp     .done
+    
+.no_text:
+    call HandleLastErrorHexCode
+.done:
+    FUNC_LEAVE 64
+
+HandleLastErrorHexCode:
+    ; --- Prolog ---
+    FUNC_ENTER 64
+    
+    ; -----------------------------------------------------------
+    ; write: work around for: mov [rel last_error], eax
+    ;
+    ; 1. load abs Virtual Address into register
+    ; 2. access through this register
+    ; -----------------------------------------------------------
+    mov   rdx, IMAGE_BASE + RVA_DATA(last_error)
+    mov   dword [rdx], eax
+    
+    mov   rcx, IMAGE_BASE + RVA_DATA(wbuf)
+    mov   rdx, IMAGE_BASE + RVA_DATA(fmtW)
+    
+    ; wsprintfW(wbuf, fmtW, err, err)
+    ; (variadisch: AL = 0, Shadow Space 32B)
+    mov     r8d, ecx                     ; 1. varg
+    mov     r9d, edx                     ; 2. varg
+    xor     eax, eax                     ; AL=0 (keine XMM-Args)
+    
+    call_wsprintfW
+        
+    ; MessageBoxW(NULL, wbuf, titleW, MB_ICONERROR)
+    xor     ecx, ecx
+    mov     rdx, IMAGE_BASE + RVA_DATA(wbuf)
+    mov     r8,  IMAGE_BASE + RVA_DATA(ErrTitleW)
+    mov     r9d, 0x10                    ; MB_ICONERROR
+    
+    call_MessageBoxW
+
+    FUNC_LEAVE 64
+
+; -------------------------------------------------------------------
+; int utf8_to_cp1252_char(const uint8_t* src, uint8_t* dst)
+; RCX = src (UTF-8), RDX = dst (CP1252)
+; Rückgabe:
+;   RAX = Anzahl gelesener UTF-8-Bytes (1..2), 0 bei NUL
+;   AL  = geschriebenes CP1252-Byte
+;   CF  = 1, wenn unmappbar -> '?' geschrieben
+; Hinweis: mapped werden ASCII und: äöüÄÖÜß
+; -------------------------------------------------------------------
+utf8_to_cp1252_char:
+    ;FUNC_ENTER 64
+    push    rbx
+
+    mov     bl, [rcx]
+    ShowMessageW titleW,capW
+    test    bl, bl
+    jz      .nul               ; Stringende
+
+    ; ASCII (00..7F) 1:1
+    cmp     bl, 0x7F
+    jbe     .ascii
+
+    ; --- 2-Byte UTF-8, die mit C3 beginnen (äöüÄÖÜß) ---
+    cmp     bl, 0xC3
+    jne     .unmap
+    mov     bh, [rcx+1]        ; zweites Byte
+    ; Tabelle:
+    ; C3 84 -> Ä (C4)
+    ; C3 96 -> Ö (D6)
+    ; C3 9C -> Ü (DC)
+    ; C3 A4 -> ä (E4)
+    ; C3 B6 -> ö (F6)
+    ; C3 BC -> ü (FC)
+    ; C3 9F -> ß (DF)
+
+    ; upper-case
+    cmp     bh, 0x84
+    je      .emit_C4
+    cmp     bh, 0x96
+    je      .emit_D6
+    cmp     bh, 0x9C
+    je      .emit_DC
+    ; lower-case
+    cmp     bh, 0xA4
+    je      .emit_E4
+    cmp     bh, 0xB6
+    je      .emit_F6
+    cmp     bh, 0xBC
+    je      .emit_FC
+    cmp     bh, 0x9F
+    je      .emit_DF
+
+    jmp     .unmap
+
+    .ascii:
+    mov     [rdx], bl
+    mov     al, bl
+    mov     rax, 1
+    clc
+    pop     rbx
+    FUNC_LEAVE 64
+
+    .emit_C4:   mov byte [rdx], 0xC4  ; Ä
+                mov al, 0xC4
+                mov rax, 2
+                clc
+                pop rbx
+                FUNC_LEAVE 64
+    .emit_D6:   mov byte [rdx], 0xD6  ; Ö
+                mov al, 0xD6
+                mov rax, 2
+                clc
+                pop rbx
+                FUNC_LEAVE 64
+    .emit_DC:   mov byte [rdx], 0xDC  ; Ü
+                mov al, 0xDC
+                mov rax, 2
+                clc
+                pop rbx
+                FUNC_LEAVE 64
+    .emit_E4:   mov byte [rdx], 0xE4  ; ä
+                mov al, 0xE4
+                mov rax, 2
+                clc
+                pop rbx
+                FUNC_LEAVE 64
+    .emit_F6:   mov byte [rdx], 0xF6  ; ö
+                mov al, 0xF6
+                mov rax, 2
+                clc
+                pop rbx
+                FUNC_LEAVE 64
+    .emit_FC:   mov byte [rdx], 0xFC  ; ü
+                mov al, 0xFC
+                mov rax, 2
+                clc
+                pop rbx
+                FUNC_LEAVE 64
+    .emit_DF:   mov byte [rdx], 0xDF  ; ß
+                mov al, 0xDF
+                mov rax, 2
+                clc
+                pop rbx
+                FUNC_LEAVE 64
+    .unmap:
+    ; Unbekannt -> '?'
+    mov     byte [rdx], '?'
+    mov     al, '?'
+    stc
+    ; grob: falls Startbyte >= C2 und < E0, konsumieren wir 2 Bytes,
+    ; sonst 1 (damit der Aufrufer weiterkommt).
+    mov     rax, 1
+    cmp     bl, 0xC2
+    jb      .ret_unmap
+    cmp     bl, 0xE0
+    jae     .ret_unmap
+    mov     rax, 2
+    .ret_unmap:
+    pop     rbx
+    FUNC_LEAVE 64
+
+    .nul:
+    xor     eax, eax            ; RAX=0, AL=0
+    clc
+    .exit:
+    pop     rbx
+    FUNC_LEAVE 64
+ 
+; size_t utf8_to_cp1252(const uint8_t* src, uint8_t* dst)
+; RCX=src, RDX=dst -> RAX = geschriebene Bytes, dst ist NUL-terminiert
+
+utf8_to_cp1252:
+    ;FUNC_ENTER 64
+    push    rsi
+    push    rdi
+    mov     rsi, rcx         ; s = src
+    mov     rdi, rdx         ; d = dst
+    xor     rax, rax         ; count = 0
+    
+    .next:
+    movzx   eax, byte [rsi]  ; RCX bleibt unverändert
+    jmp .done
+    test    eax, eax
+    jz      .done
+
+    ; pro Zeichen mappen
+    mov     rcx, rsi
+    mov     rdx, rdi
+    call    utf8_to_cp1252_char
+    
+    ; RAX = konsumierte UTF-8-Bytes
+    add     rsi, rax
+    inc     rdi
+    inc     rax              ; count++
+    jmp     .next
+    .done:
+    push    rcx
+    ShowMessageW titleW,capW
+    pop     rcx
+    mov     byte [rdi], 0
+    pop     rdi
+    pop     rsi
+    ret
+    FUNC_LEAVE 64
+    

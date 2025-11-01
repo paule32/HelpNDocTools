@@ -7,15 +7,15 @@
 ; -----------------------------------------------------------------------------
 ; win32 constants
 ; -----------------------------------------------------------------------------
-%define SW_SHADOW           32       ; 32-Byte Shadow Space pro CALL
+%define SW_SHADOW            32       ; 32-Byte Shadow Space pro CALL
 
-%define WS_OVERLAPPEDWINDOW 0x00CF0000
-%define CW_USEDEFAULT       0x80000000
-%define SW_SHOWDEFAULT      10
+%define WS_OVERLAPPEDWINDOW  0x00CF0000
+%define CW_USEDEFAULT        0x80000000
+%define SW_SHOWDEFAULT       10
 
-%define IDC_ARROW           32512
+%define IDC_ARROW            32512
 
-%define COLOR_WINDOW        5
+%define COLOR_WINDOW         5
 
 %define FOREGROUND_BLUE      0x0001
 %define FOREGROUND_GREEN     0x0002
@@ -28,19 +28,66 @@
 %define WM_CLOSE            0x0010
 %define WM_COMMAND          0x0111
 %define WM_ERASEBKGND       0x0014
+%define WM_SYSCOMMAND       0x0112
+
+; -----------------------------------------------------------------------------
+; window style constant's ...
+; -----------------------------------------------------------------------------
+%define SWP_NOMOVE          0x0002
+%define SWP_NOSIZE          0x0001
+%define SWP_NOZORDER        0x0004
+%define SWP_FRAMECHANGED    0x0020
+
+%define GWL_STYLE           -16
 
 ; -----------------------------------------------------------------------------
 ; Konstanten
 ; -----------------------------------------------------------------------------
-%define WS_OVERLAPPEDWINDOW  0x00CF0000
+%define WS_CAPTION           0x00C00000
+%define WS_MAXIMIZEBOX       0x00010000
+%define WS_MINIMIZEBOX       0x00020000
+%define WS_OVERLAPPED        0x00000000
+%define WS_OVERLAPPEDWINDOW  ( WS_OVERLAPPED  \
+                             | WS_CAPTION     \
+                             | WS_SYSMENU     \
+                             | WS_THICKFRAME  \
+                             | WS_MINIMIZEBOX \
+                             | WS_MAXIMIZEBOX )
+%define WS_SIZEBOX           0x00040000    ; = WS_THICKFRAME
+%define WS_SYSMENU           0x00080000
+
 %define SW_SHOWDEFAULT       10
+%define WS_THICKFRAME        0x00040000
+
 %define CW_USEDEFAULT        0x80000000
 %define CS_HREDRAW           0x0002
 %define CS_VREDRAW           0x0001
-%define IDC_ARROW            32512
-%define COLOR_WINDOW         5
 
+; -----------------------------------------------------------------------------
+; menu flag constant's ...
+; -----------------------------------------------------------------------------
+%define MF_BYCOMMAND         0x00000000
+%define MF_GRAYED            0x00000001
+
+; -----------------------------------------------------------------------------
+; window color constant's ...
+; -----------------------------------------------------------------------------
+%define COLOR_WINDOW         5
 %define GCLP_HBRBACKGROUND  -10
+
+; -----------------------------------------------------------------------------
+; system context constant's (system menu of windows) ...
+; -----------------------------------------------------------------------------
+%define SC_CLOSE             0xF060
+%define SC_MAXIMIZE          0xF030
+%define SC_MINIMIZE          0xF020
+%define SC_RESTORE           0xF120
+%define SC_SIZE              0xF000
+
+; -----------------------------------------------------------------------------
+; cursor arrow id's ...
+; -----------------------------------------------------------------------------
+%define IDC_ARROW            32512
 
 ; -----------------------------------------------------------------------------
 ; Message Box's ...
@@ -48,7 +95,29 @@
 %define MB_OK         0x00000000
 %define MB_ICONERROR  0x00000010
 
+; -----------------------------------------------------------------------------
+; text console handle's for stdin, stdout, and stderr ...
+; -----------------------------------------------------------------------------
+%define STD_INPUT_HANDLE  -10
 %define STD_OUTPUT_HANDLE -11
+%define STD_ERROR_HANDLE  -12
+
+; Console mode bits (wincon.h)
+%define ENABLE_PROCESSED_INPUT  0x0001
+%define ENABLE_LINE_INPUT       0x0002
+%define ENABLE_ECHO_INPUT       0x0004
+%define ENABLE_WINDOW_INPUT     0x0008     ; optional für Window-Events (nicht nötig für KEY_EVENT)
+%define ENABLE_PROCESSED_INPUT  0x0001
+%define ENABLE_QUICK_EDIT_MODE  0x0040
+%define ENABLE_EXTENDED_FLAGS   0x0080
+
+; INPUT_RECORD.EventType
+%define KEY_EVENT               0x0001
+
+; -----------------------------------------------------------------------------
+; code page constant's ...
+; -----------------------------------------------------------------------------
+%define CP_UTF8 65001
 
 %define FORMAT_MESSAGE_ALLOCATE_BUFFER 0x00000100
 %define FORMAT_MESSAGE_IGNORE_INSERTS  0x00000200
@@ -64,3 +133,9 @@ SUBLANG_DEFAULT equ 1
 
 ; für NASM als Zahl nutzen:
 LANGID_DEFAULT  equ (SUBLANG_DEFAULT << 10) | LANG_NEUTRAL
+
+; -----------------------------------------------------------------------------
+; misc
+; -----------------------------------------------------------------------------
+%define INFINITE                0xFFFFFFFF
+%define WAIT_OBJECT_0           0

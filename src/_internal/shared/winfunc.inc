@@ -117,6 +117,40 @@
 %endmacro
 
 ; -----------------------------------------------------------------------------
+; \brief Write - display text on the Windows Console.
+; \param 1 -> label -> on error
+; \param 2 -> label -> text to display
+; \param 3 -> label -> output handle; default is: STD_OUTPUT_HANDLE
+; \see   AllocConsole
+; \since 1.0
+; -----------------------------------------------------------------------------
+%macro call_User_Write 2-3
+%if %0 == 2
+    call_GetStdHandle %%ok, %1, STD_OUTPUT_HANDLE
+%else
+    call_GetStdHandle %%ok, %1, %3
+%endif
+%%ok:
+    ; --- WriteConsoleA(hOut, fmtHello, hello_len, NULL, NULL) ---
+    mov     rcx, r12                       ; 1. Arg: HANDLE hConsoleOutput
+    mov     rdx, IMAGE_BASE
+    add     rdx, RVA_DATA(%2)              ; 2. Arg: LPCVOID lpBuffer
+    mov     r8d, %2_length                 ; 3. Arg: DWORD nNumberOfCharsToWrite
+    xor     r9d, r9d                       ; lpNumberOfCharsWritten = NULL
+    AddShadow 32 + 8
+    mov     qword [rsp+32], 0              ; 5. Arg: LPVOID lpReserved = NULL
+    call_WriteConsoleA
+    DelShadow 32 + 8
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief read a string line in console window ...
+; -----------------------------------------------------------------------------
+%macro call_User_ReadLn 1
+    call user_Console_ReadLn
+%endmacro
+
+; -----------------------------------------------------------------------------
 %macro DefWindowProcW 0
     mov     rax, IMAGE_BASE + RVA_IDATA(IAT_win32_DefWindowProcW)
 %endmacro

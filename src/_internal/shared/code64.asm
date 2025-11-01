@@ -1,3 +1,5 @@
+bits 64
+
 _start:
     mov rbp,rsp
     and rsp,-16

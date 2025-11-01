@@ -253,11 +253,14 @@ HN_win32_%1: dw 0
 ; GETDATA al,  flag8,     BYTE     ; byte read → al
 ; ---------------------------------------------------------------------------
 %macro SETDATA 2-3
+    push    rdx
     mov     rdx, IMAGE_BASE
     add     rdx, RVA_DATA(%1)
     %if %0 = 2
-        mov     [rdx], %2
+        mov     [%2], rdx
+        pop     rdx
     %else
+        pop     rdx
       %ifidni %3, BYTE
         mov     byte  [rdx], %2
       %elifidni %3, WORD
@@ -287,10 +290,10 @@ HN_win32_%1: dw 0
 ;    (al/ax/eax/rax). Sonst <size> angeben (BYTE/WORD/DWORD/QWORD oder 8/16/32/64).
 ; ------------------------------------------------------------
 %macro GETDATA 2-3
-    mov     rdx, IMAGE_BASE
-    add     rdx, RVA_DATA(%2)
+    mov     %1, IMAGE_BASE
+    add     %1, RVA_DATA(%2)
     %if %0 = 2
-        mov     %1, [rdx]
+        ;mov     %1, [rdx]
     %else
       %ifidni %3, BYTE
         mov     %1, byte  [rdx]
@@ -358,4 +361,48 @@ HN_win32_%1: dw 0
     test eax, eax
     je  %1
 %endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief prolog of a assembler routine + 32 Windows 64 Bit shadow
+; \param optional shadow at start -> int
+; -----------------------------------------------------------------------------
+%macro FUNC_ENTER 0-1
+%if %0 == 1
+    AddShadow %1
+%else
+    AddShadow
+%endif
+    push    rbp
+    mov     rbp, rsp
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief epilog of a assembler routine - 32 Windows 64 Bit shadow
+; \param optional shadow at end -> int
+; -----------------------------------------------------------------------------
+%macro FUNC_LEAVE 0-1
+%if %0 == 1
+    DelShadow %1
+%else
+    DelShadow
+%endif
+    pop     rbp
+    ret
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief String-Definition mit auto *_length (ohne 0-Byte)
+; \desc  section .data
+;        ZSTR cap2A, "Hallo", 13, 10
+;
+;        ergibt automatisch:
+;        cap2A          db "Hallo",13,10,0
+;        cap2A_end:
+;        %define cap2A_length (cap2A_end - cap2A - 1)
+; -----------------------------------------------------------------------------
+%macro ZSTR 2+                    ; ZSTR <name>, <bytes...>
+%1:        db %2, 0
+%1_end:
+%define %1_length (%1_end - %1 - 1)
 %endmacro
