@@ -7,6 +7,18 @@
 ;---------------------------------------------------
 
 ; -------------------------------------------------------------------
+; \brief initialize the application ...
+; -------------------------------------------------------------------
+; --- Prolog ---
+init_app:
+    FUNC_ENTER
+    
+    mov      ecx, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    CALL_IAT SetProcessDpiAwarenessContext
+    
+    FUNC_LEAVE
+
+; -------------------------------------------------------------------
 ; \brief init_console - initialize a text console under the Windows
 ;        gui desktop.
 ; \param nothing
@@ -56,7 +68,10 @@ init_console:
     CALL_IAT GetConsoleMode
     mov  eax, [rel tmpConsoleMode]
 
-    or   eax, ENABLE_PROCESSED_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN
+    or   eax, ENABLE_PROCESSED_INPUT             | \
+              ENABLE_EXTENDED_FLAGS              | \
+              ENABLE_VIRTUAL_TERMINAL_PROCESSING | \
+              DISABLE_NEWLINE_AUTO_RETURN
     and  eax, ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_QUICK_EDIT_MODE)
 
     mov  edx, eax
@@ -84,6 +99,13 @@ init_console:
     CALL_IAT DrawMenuBar
     .after_menu:
     .done:
+    
+    ; default color for the console:
+    mov ax, ATTR_BG_BLACK
+    mov [_cA_console_bg], ax
+    ;
+    mov ax, ATTR_FG_LIGHT_YELLOW
+    mov [_cA_console_fg], ax
     
 ; --- Epilog ---
     FUNC_LEAVE

@@ -133,7 +133,48 @@
 %define DISABLE_NEWLINE_AUTO_RETURN         0x0008    ; optional
 %define ENABLE_VIRTUAL_TERMINAL_INPUT       0x0200
 
-%define ATTR_DEFAULT 0x27            ; Hellgrau auf Schwarz
+; -----------------------------------------------------------------------------
+; DOS ANSI foreground color's   0..15
+; -----------------------------------------------------------------------------
+%define ATTR_FG_BLACK           30
+%define ATTR_FG_DARK_RED        31
+%define ATTR_FG_DARK_GREEN      32
+%define ATTR_FG_DARK_YELLOW     33
+%define ATTR_FG_DARK_BLUE       34
+%define ATTR_FG_DARK_PURPLE     35
+%define ATTR_FG_DARK_CYAN       36
+%define ATTR_FG_LIGHT_GRAY      37
+; -----------------------------------------------------------------------------
+%define ATTR_FG_DARK_GRAY       90
+%define ATTR_FG_LIGHT_RED       91
+%define ATTR_FG_LIGHT_GREEN     92
+%define ATTR_FG_LIGHT_YELLOW    93
+%define ATTR_FG_LIGHT_BLUE      94
+%define ATTR_FG_LIGHT_PURPLE    95
+%define ATTR_FG_LIGHT_CYAN      96
+%define ATTR_FG_WHITE           97
+; -----------------------------------------------------------------------------
+; DOS ANSI background color's   0..15
+; -----------------------------------------------------------------------------
+%define ATTR_BG_BLACK           40
+%define ATTR_BG_DARK_RED        41
+%define ATTR_BG_DARK_GREEN      42
+%define ATTR_BG_DARK_YELLOW     43
+%define ATTR_BG_DARK_BLUE       44
+%define ATTR_BG_DARK_PURPLE     45
+%define ATTR_BG_DARK_CYAN       46
+%define ATTR_BG_LIGHT_GRAY      47
+; -----------------------------------------------------------------------------
+%define ATTR_BG_DARK_GRAY       100
+%define ATTR_BG_LIGHT_RED       101
+%define ATTR_BG_LIGHT_GREEN     102
+%define ATTR_BG_LIGHT_YELLOW    103
+%define ATTR_BG_LIGHT_BLUE      104
+%define ATTR_BG_LIGHT_PURPLE    105
+%define ATTR_BG_LIGHT_CYAN      106
+%define ATTR_BG_WHITE           107
+
+%define ATTR_DEFAULT        ATTR_BG_BLACK | ATTR_FG_GRAY   ; Hellgrau auf Schwarz
 
 ; -----------------------------------------------------------------------------
 ; format flags (often used for debug messages) ...

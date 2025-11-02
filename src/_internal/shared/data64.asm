@@ -30,21 +30,28 @@ ASTR prompt         , "Eingabe: ",0
 ; -----------------------------------------------------------------------------
 ASTR screen_clear,  27,'[0m'        ,\
                     27,'[H'         ,\
-                    27,'[48;5;4m'   ,\
-                    27,'[38;5;14m'  ,\
+                    27,'[1;%d;%dm'  ,\
                     27,'[2J'        ,\
-                    27,'[H'
-
-_cA_src_length:     dw 256
-_cA_dst_length:     dw 512
+                    27,'[H'         ,0
 
 Rect80x25:          dw 0, 0, 79, 24         ; SMALL_RECT {Left,Top,Right,Bottom} = {0,0,79,24}
 pMsg:               dq 0                    ; LPWSTR, wird von FormatMessageW allokiert
 spaceW:             db 'o'                  ; wide char ' '
 
+; -----------------------------------------------------------------------------
+; default console values ...
+; -----------------------------------------------------------------------------
+_cA_console_bg:     dq ATTR_BG_BLACK
+_cA_console_fg:     dq ATTR_FG_LIGHT_YELLOW
+
 ;_cW_wbuf:           times 256 dw 0          ; Ausgabepuffer (128 WCHAR)
 _cA_src:            times 256 db 0
 _cA_dst:            times 256 db 0
+
+_cA_src_length:     dw 256
+_cA_dst_length:     dw 512
+
+_cA_buf:            times  64 db 0
 
 mode_in:            dd 0
 mode_out:           dd 0

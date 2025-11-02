@@ -7,10 +7,7 @@ PASCALMAIN:
 ; -------------------------------------------------------------------
     FUNC_ENTER 64
 
-    mov      ecx, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
-    CALL_IAT SetProcessDpiAwarenessContext
-
-    ; --- Konsole öffnen  ---
+    call init_app
     call init_console
     
     ; text + prompt ausgeben
@@ -18,18 +15,17 @@ PASCALMAIN:
     WRITE_CON_A prompt
 
     READL_CON_A dst
-    WRITE_CON_A src
     
-    ;ShowMessageA src,dst
-    
+    SET_COLOR_TO ATTR_FG_LIGHT_BLUE
     SCREEN_CLEAR
-
-    WRITE_CON_A  src
+    
+    WRITE_CON_A  dst
     WRITE_CON_A  prompt
+    
+    READL_CON_A  dst
+    WRITE_CON_A  cap2A
     READL_CON_A  dst
     
-    ;ShowMessageA src,dst
-; --- Exit ---
     .exit:
     xor     ecx, ecx
     CALL_IAT ExitProcess

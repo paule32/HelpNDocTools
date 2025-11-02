@@ -357,7 +357,7 @@
 ; \param dst -> buffer for the "readln" text
 ; -----------------------------------------------------------------------------
 %macro READL_CON_A 1
-    ; prepare
+    ; prepare    
     GET_CON_I_HANDLE  r13
     ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
     GETDATA  rdx, _cA_src
@@ -390,4 +390,86 @@
 %macro SCREEN_CLEAR 0
     GET_CON_O_HANDLE r12
     call user_clear_screen
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief set the color for console window text
+; \param 1. background -> int 0..255
+; \param 2. foreground -> int 0..255
+;
+; \desc  color values > 127 == blink chars
+; -----------------------------------------------------------------------------
+%macro SET_COLOR_TO 0-2
+%if %0 == 2
+    ; sprintf(buf, "%d %d", ATTR_BG_BLACK, ATTR_FG_YELLOW)
+    mov      rax, %1
+    mov      rbx, %2
+    ;
+    mov      rcx, IMAGE_BASE
+    add      rcx, RVA_DATA(_cA_buf)          ; buf
+    mov      rdx, IMAGE_BASE
+    add      rdx, RVA_DATA(_cA_screen_clear) ; fmt
+    ;
+    mov      r8, rax
+    mov      r9, rbx
+    CALL_IAT sprintf                        ; EAX = Anzahl geschriebener Zeichen (ohne NUL)
+    
+    ; WriteFile(hOut, escseq, escsz, &written, NULL)
+    GET_CON_O_HANDLE r12
+    
+    mov      rcx, r12
+    lea      rdx, [rel _cA_screen_clear]
+    mov      r8d, _cA_buf
+    lea      r9,  [written]
+    xor      rax, rax
+    CALL_IAT WriteFile
+%endif
+%if %0 == 1
+    ; sprintf(buf, "%d %d", ATTR_BG_BLACK, ATTR_FG_YELLOW)
+    mov      rax, ATTR_BG_BLACK
+    mov      rbx, %1
+    ;
+    mov      rcx, IMAGE_BASE
+    add      rcx, RVA_DATA(_cA_buf)          ; buf
+    mov      rdx, IMAGE_BASE
+    add      rdx, RVA_DATA(_cA_screen_clear) ; fmt
+    ;
+    mov      r8, rax
+    mov      r9, rbx
+    CALL_IAT sprintf                        ; EAX = Anzahl geschriebener Zeichen (ohne NUL)
+    
+    ; WriteFile(hOut, escseq, escsz, &written, NULL)
+    GET_CON_O_HANDLE r12
+    
+    mov      rcx, r12
+    lea      rdx, [rel _cA_screen_clear]
+    mov      r8d, _cA_buf
+    lea      r9,  [written]
+    xor      rax, rax
+    CALL_IAT WriteFile
+%endif
+%if %0 == 0
+; sprintf(buf, "%d %d", ATTR_BG_BLACK, ATTR_FG_YELLOW)
+    mov      rax, ATTR_BG_BLACK
+    mov      rbx, ATTR_FG_WHITE
+    ;
+    mov      rcx, IMAGE_BASE
+    add      rcx, RVA_DATA(_cA_buf)          ; buf
+    mov      rdx, IMAGE_BASE
+    add      rdx, RVA_DATA(_cA_screen_clear) ; fmt
+    ;
+    mov      r8, rax
+    mov      r9, rbx
+    CALL_IAT sprintf                        ; EAX = Anzahl geschriebener Zeichen (ohne NUL)
+    
+    ; WriteFile(hOut, escseq, escsz, &written, NULL)
+    GET_CON_O_HANDLE r12
+    
+    mov      rcx, r12
+    lea      rdx, [rel _cA_screen_clear]
+    mov      r8d, _cA_buf
+    lea      r9,  [written]
+    xor      rax, rax
+    CALL_IAT WriteFile
+%endif
 %endmacro
