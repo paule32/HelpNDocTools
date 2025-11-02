@@ -1,3 +1,10 @@
+; -----------------------------------------------------------------------------
+; \file  code64.asm
+; \note  (c) 2025 by Jens Kallup - paule32
+;        all rights reserved.
+;
+; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
+; -----------------------------------------------------------------------------
 bits 64
 
 _start:
@@ -36,9 +43,6 @@ _start:
     xor     eax, eax                    ; rax = 0
     mov     ecx, 10                     ; 10 qwords
     rep     stosq
-;.fillwc:
-;    mov     [rdi + ((rcx*8) - 8)], rax
-;    loop    .fillwc
 
     mov     dword [rdi + 0], 80                           ; cbSize
     mov     dword [rdi + 4], CS_HREDRAW | CS_VREDRAW      ; style
@@ -47,10 +51,6 @@ _start:
     mov     rax, IMAGE_BASE
     add     rax, RVA_TEXT(WndProc)
     mov     [rdi + 8], rax
-
-    ; cbClsExtra/cbWndExtra = 0
-    ;mov     dword [rdi + 16], 0
-    ;mov     dword [rdi + 20], 0
 
     ; hInstance
     mov     [rdi + 24], r14
@@ -79,8 +79,7 @@ _start:
     mov     qword [rdi + 56], 0
 
     ; lpszClassName = &winclassW (UTF-16)
-    mov     rax, IMAGE_BASE
-    add     rax, RVA_DATA(winclassW)
+    GETEXT  rax, winclassW
     mov     [rdi + 64], rax
 
     ; hIconSm = NULL
@@ -97,20 +96,18 @@ _start:
     test    eax, eax
     jz      .reg_fail
 
-.class_ok:
-;ShowMessageW ClassOkW,capW
+    .class_ok:
+    ;ShowMessageW ClassOkW,capW
     ; ------------------------------------------------------------------------
     ; CreateWindowExW(
     ;   0, class, title, WS_OVERLAPPEDWINDOW,
     ;   CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
     ;   NULL, NULL, hInstance, NULL)
     ; ------------------------------------------------------------------------
-    ;AddShadow 32 + 8*8                                  ; 32 Shadow + 8 Args
+    ;AddShadow 32 + 8*8                                 ; 32 Shadow + 8 Args
     xor     ecx, ecx                                    ;  1. dwExStyle = 0
-    mov     rdx, IMAGE_BASE
-    add     rdx, RVA_DATA(winclassW)                    ;  2. lpClassName
-    mov     r8,  IMAGE_BASE
-    add     r8,  RVA_DATA(titleW)                       ;  3. lpWindowName
+    GETEXT  rdx, winclassW                              ;  2. lpClassName
+    GETEXT  r8 , titleW                                 ;  3. lpWindowName
     mov     r9d, WS_OVERLAPPEDWINDOW                    ;  4. dwStyle
 
     ; 5.–12. Parameter auf den Stack (in der Reihenfolge!)
@@ -136,80 +133,81 @@ _start:
     
     mov    rsi, rax
     
-; Show / Update
-mov     rcx, rsi
-mov     edx, 5                            ; SW_SHOW
-sub     rsp, 32
-mov     rax, IMAGE_BASE
-add     rax, RVA_IDATA(IAT_win32_ShowWindow)
-call    [rax]
-add     rsp, 32
-
-mov     rcx, rsi
-sub     rsp, 32
-mov     rax, IMAGE_BASE
-add     rax, RVA_IDATA(IAT_win32_UpdateWindow)
-call    [rax]
-add     rsp, 32
-
-; --- Message loop (MSG=48B) ---
-sub     rsp, 48
-mov     rbx, rsp
-.msg:
-    mov     rcx, rbx
-    xor     edx, edx
-    xor     r8d, r8d
-    xor     r9d, r9d
+    ; Show / Update
+    mov     rcx, rsi
+    mov     edx, 5                            ; SW_SHOW
     sub     rsp, 32
     mov     rax, IMAGE_BASE
-    add     rax, RVA_IDATA(IAT_win32_GetMessageW)
-    call    [rax]
-    add     rsp, 32
-    test    eax, eax
-    jz      .quit
-
-    mov     rcx, rbx
-    sub     rsp, 32
-    mov     rax, IMAGE_BASE
-    add     rax, RVA_IDATA(IAT_win32_TranslateMessage)
+    add     rax, RVA_IDATA(IAT_win32_ShowWindow)
     call    [rax]
     add     rsp, 32
 
-    mov     rcx, rbx
+    mov     rcx, rsi
     sub     rsp, 32
     mov     rax, IMAGE_BASE
-    add     rax, RVA_IDATA(IAT_win32_DispatchMessageW)
+    add     rax, RVA_IDATA(IAT_win32_UpdateWindow)
     call    [rax]
     add     rsp, 32
-    jmp     .msg
-.quit:
-add     rsp, 48
 
-; Aufräumen WNDCLASSEXW-Reserve
-add     rsp, 80
-jmp     .ok
+    ; --- Message loop (MSG=48B) ---
+    sub     rsp, 48
+    mov     rbx, rsp
+    .msg:
+        mov     rcx, rbx
+        xor     edx, edx
+        xor     r8d, r8d
+        xor     r9d, r9d
+        sub     rsp, 32
+        mov     rax, IMAGE_BASE
+        add     rax, RVA_IDATA(IAT_win32_GetMessageW)
+        call    [rax]
+        add     rsp, 32
+        test    eax, eax
+        jz      .quit
 
-.reg_fail:
-    ; GetLastError + anzeigen (du hast die Routine schon)
-    sub     rsp,32
-    mov     rax, IMAGE_BASE
-    add     rax, RVA_IDATA(IAT_win32_GetLastError)
-    call    [rax]
-    add     rsp,32
-    ; eax -> deine Fehleranzeige
+        mov     rcx, rbx
+        sub     rsp, 32
+        mov     rax, IMAGE_BASE
+        add     rax, RVA_IDATA(IAT_win32_TranslateMessage)
+        call    [rax]
+        add     rsp, 32
+
+        mov     rcx, rbx
+        sub     rsp, 32
+        mov     rax, IMAGE_BASE
+        add     rax, RVA_IDATA(IAT_win32_DispatchMessageW)
+        call    [rax]
+        add     rsp, 32
+        jmp     .msg
+    .quit:
+    add     rsp, 48
+
+    ; Aufräumen WNDCLASSEXW-Reserve
     add     rsp, 80
-    jmp     .done
+    jmp     .ok
+
+    .reg_fail:
+        ; GetLastError + anzeigen (du hast die Routine schon)
+        sub     rsp,32
+        mov     rax, IMAGE_BASE
+        add     rax, RVA_IDATA(IAT_win32_GetLastError)
+        call    [rax]
+        add     rsp,32
+        ; eax -> deine Fehleranzeige
+        add     rsp, 80
+        jmp     .done
+        
+    .cw_fail:
+        sub     rsp,32
+        mov     rax, IMAGE_BASE
+        add     rax, RVA_IDATA(IAT_win32_GetLastError)
+        call    [rax]
+        add     rsp,32
+        ; eax -> deine Fehleranzeige
+        add     rsp, 80
+        jmp     .done
+        
+    .ok:
+    .done:
     
-.cw_fail:
-    sub     rsp,32
-    mov     rax, IMAGE_BASE
-    add     rax, RVA_IDATA(IAT_win32_GetLastError)
-    call    [rax]
-    add     rsp,32
-    ; eax -> deine Fehleranzeige
-    add     rsp, 80
-    jmp     .done
-    
-.ok:
-.done:
     call_ExitProcess 2

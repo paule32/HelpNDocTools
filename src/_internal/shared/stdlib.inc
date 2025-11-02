@@ -68,8 +68,9 @@ init_console:
     mov      rcx, rbx
     CALL_IAT DrawMenuBar
     .after_menu:
-; --- Epilog ---
     .done:
+    
+; --- Epilog ---
     FUNC_LEAVE
 
 ; -------------------------------------------------------------------
@@ -130,9 +131,8 @@ HandleLastError:
     xor     ecx, ecx
     mov     rdx, IMAGE_BASE
     add     rdx, RVA_DATA(pMsg)                 ; lpText = pMsg (LPWSTR)
-    mov     r8,  IMAGE_BASE
-    add     r8,  RVA_DATA(ErrTitleW)
-    mov     r9d, 0x10                           ; MB_ICONERROR
+    GETEXT  r8 , ErrTitleW
+    mov     r9d, MB_ICONERROR
     call_MessageBoxW
 
     ; LocalFree(pMsg)
@@ -161,8 +161,8 @@ HandleLastErrorHexCode:
     mov   rdx, IMAGE_BASE + RVA_DATA(last_error)
     mov   dword [rdx], eax
     
-    mov   rcx, IMAGE_BASE + RVA_DATA(wbuf)
-    mov   rdx, IMAGE_BASE + RVA_DATA(fmtW)
+    mov   rcx, IMAGE_BASE + RVA_DATA(_cW_wbuf)
+    mov   rdx, IMAGE_BASE + RVA_DATA(_cW_fmtW)
     
     ; wsprintfW(wbuf, fmtW, err, err)
     ; (variadisch: AL = 0, Shadow Space 32B)
@@ -174,8 +174,8 @@ HandleLastErrorHexCode:
         
     ; MessageBoxW(NULL, wbuf, titleW, MB_ICONERROR)
     xor     ecx, ecx
-    mov     rdx, IMAGE_BASE + RVA_DATA(wbuf)
-    mov     r8,  IMAGE_BASE + RVA_DATA(ErrTitleW)
+    mov     rdx, IMAGE_BASE + RVA_DATA(_cW_wbuf)
+    mov     r8,  IMAGE_BASE + RVA_DATA(_cW_ErrTitleW)
     mov     r9d, 0x10                    ; MB_ICONERROR
     
     call_MessageBoxW
@@ -308,10 +308,10 @@ utf8_to_cp1252_char:
     .exit:
     pop     rbx
     FUNC_LEAVE 64
- 
+; -------------------------------------------------------------------
 ; size_t utf8_to_cp1252(const uint8_t* src, uint8_t* dst)
 ; RCX=src, RDX=dst -> RAX = geschriebene Bytes, dst ist NUL-terminiert
-
+; -------------------------------------------------------------------
 utf8_to_cp1252:
     ;FUNC_ENTER 64
     push    rsi
@@ -345,4 +345,3 @@ utf8_to_cp1252:
     pop     rsi
     ret
     FUNC_LEAVE 64
-    

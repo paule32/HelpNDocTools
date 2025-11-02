@@ -10,22 +10,22 @@ data_start:
 
 %include 'data.inc'
 
-cap2A: db "ein Text",13,10,0
-cap2A_length equ ($ - cap2A)
+ASTR cap2A      , "ein Text", 13,10,0
 
-fmtW:           WSTR "Win32-Fehler: 0x%08X (%u)", 0      ; Format-String (UTF-16)
-ErrTitleW:      WSTR "Fehler", 0
+WSTR fmtW       , "Win32-Fehler: 0x%08X (%u)", 0      ; Format-String (UTF-16)
+WSTR ErrTitleW  , "Fehler"
 
-errmsgW:        WSTR 'RegisterClassExW failed'
-titleW:         WSTR 'NASM PE64 GUI without Linker'
-winclassW:      WSTR 'NasmWndClass'
-prompt:         db "Eingabe: ",0
+WSTR errmsgW    , 'RegisterClassExW failed'
+WSTR titleW     , 'NASM PE64 GUI without Linker'
+WSTR winclassW  , 'NasmWndClass'
+
+ASTR prompt     , "Eingabe: ",0
 
 ; SMALL_RECT {Left,Top,Right,Bottom} = {0,0,79,24}
 Rect80x25:      dw 0, 0, 79, 24
 pMsg:           dq 0                    ; LPWSTR, wird von FormatMessageW allokiert
 
-wbuf:           times 256 dw 0          ; Ausgabepuffer (128 WCHAR)
+_cW_wbuf:       times 256 dw 0          ; Ausgabepuffer (128 WCHAR)
 src:            times 256 db 0
 dst:            times 512 db 0
 

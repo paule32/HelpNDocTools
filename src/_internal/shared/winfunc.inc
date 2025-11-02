@@ -330,3 +330,60 @@
     mov     rcx, %1
     CALL_IAT UpdateWindow
 %endmacro
+
+; -----------------------------------------------------------------------------
+; \brief set the length of a given ASCII string to register ...
+; -----------------------------------------------------------------------------
+%macro SETLEN 2
+    mov      %1, %2_length
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief write ASCII text on the text Windows console ...
+; -----------------------------------------------------------------------------
+%macro WRITE_CON_A 1
+    GETDATA  rdx, _cA_%1
+    SETLEN   r8d, _cA_%1
+    mov      rcx, r12
+    xor      r9d, r9d
+    mov      qword [rsp+32], 0
+    CALL_IAT WriteConsoleA
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief read utf-8 text on the text Windows console ...
+; \param dst -> buffer for the "readln" text
+; -----------------------------------------------------------------------------
+%macro READL_CON_A 1
+    ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
+    GETDATA  rdx, src
+    GETDATA  r9 , %1
+    mov      rcx, r13
+    mov      r8d, 127           ; maxChars (Reserviere 1 Byte für NUL)
+    sub      rsp, 40
+    xor      rax, rax           ; lpReserved = NULL (über Shadow Space)
+    mov      [rsp+32], rax
+    CALL_IAT ReadConsoleW
+    add      rsp, 40
+    GETDATA  rcx, src
+    GETDATA  rdx, dst
+    call     utf8_to_cp1252
+%endmacro
+; -----------------------------------------------------------------------------
+; \brief get the output handle of allocated/open console ...
+; \param register to store output handle
+; -----------------------------------------------------------------------------
+%macro GET_CON_O_HANDLE 1
+    mov     ecx, STD_OUTPUT_HANDLE
+    CALL_IAT    GetStdHandle
+    mov     %1, rax         ; hOut
+%endmacro
+; -----------------------------------------------------------------------------
+; \brief get the input handle of allocated/open console ...
+; \param register to store input handle
+; -----------------------------------------------------------------------------
+%macro GET_CON_I_HANDLE 1
+    mov     ecx, STD_INPUT_HANDLE
+    CALL_IAT    GetStdHandle
+    mov     %1, rax         ; hIn
+%endmacro

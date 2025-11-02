@@ -33,10 +33,12 @@
 ; -----------------------------------------------------------------------------
 ; window style constant's ...
 ; -----------------------------------------------------------------------------
+%define SWP_FRAMECHANGED    0x0020
+%define SWP_NOACTIVATE      0x0010
 %define SWP_NOMOVE          0x0002
 %define SWP_NOSIZE          0x0001
 %define SWP_NOZORDER        0x0004
-%define SWP_FRAMECHANGED    0x0020
+%define SWP_SHOWWINDOW      0x0040
 
 %define GWL_STYLE           -16
 
@@ -119,6 +121,16 @@
 ; -----------------------------------------------------------------------------
 %define CP_UTF8 65001
 
+; -----------------------------------------------------------------------------
+; constant's for the monitor ...
+; -----------------------------------------------------------------------------
+%define MONITOR_DEFAULTTONEAREST 2
+
+%define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2  -4   ; WinUser.h: ((DPI_AWARENESS_CONTEXT)-4)
+
+; -----------------------------------------------------------------------------
+; format flags (often used for debug messages) ...
+; -----------------------------------------------------------------------------
 %define FORMAT_MESSAGE_ALLOCATE_BUFFER 0x00000100
 %define FORMAT_MESSAGE_IGNORE_INSERTS  0x00000200
 %define FORMAT_MESSAGE_FROM_SYSTEM     0x00001000
@@ -128,8 +140,11 @@
     FORMAT_MESSAGE_FROM_SYSTEM     | \
     FORMAT_MESSAGE_IGNORE_INSERTS
 
-LANG_NEUTRAL    equ 0
-SUBLANG_DEFAULT equ 1
+; -----------------------------------------------------------------------------
+; language support ...
+; -----------------------------------------------------------------------------
+%define LANG_NEUTRAL    0
+%define SUBLANG_DEFAULT 1
 
 ; für NASM als Zahl nutzen:
 LANGID_DEFAULT  equ (SUBLANG_DEFAULT << 10) | LANG_NEUTRAL

@@ -7,51 +7,25 @@ PASCALMAIN:
 ; -------------------------------------------------------------------
     FUNC_ENTER 64
 
-    ; --- Konsole öffnen ---
+    mov      ecx, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    CALL_IAT SetProcessDpiAwarenessContext
+
+    ; --- Konsole öffnen  ---
     call init_console
     
-    call_User_Write .error, cap2A
-    .error:
+    ; --- get I/O handles ---
+    GET_CON_O_HANDLE r12
+    GET_CON_I_HANDLE r13
     
-    mov     ecx, STD_OUTPUT_HANDLE
-    CALL_IAT    GetStdHandle
-    mov     r12, rax         ; hOut
-
-    mov     ecx, STD_INPUT_HANDLE
-    CALL_IAT    GetStdHandle
-    mov     r13, rax         ; hIn
-
-    ; prompt ausgeben
-    mov     rcx, r12
-    mov     rdx, IMAGE_BASE
-    add     rdx, RVA_DATA(prompt)
-    mov     r8d, 9
-    xor     r9d, r9d
-    mov     qword [rsp+32], 0
-    CALL_IAT    WriteConsoleA
-
-    ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
-    mov      rcx, r13
-    GETDATA  rdx, src
-    ;mov      rdx, IMAGE_BASE
-    ;add      rdx, RVA_DATA(src)
-    mov      r8d, 127            ; maxChars (Reserviere 1 Byte für NUL)
-    mov      r9,  IMAGE_BASE
-    add      r9,  RVA_DATA(read)
-    sub      rsp, 40
-    xor      rax, rax           ; lpReserved = NULL (über Shadow Space)
-    mov      [rsp+32], rax
-    CALL_IAT ReadConsoleW
-    add      rsp, 40
+    ; text + prompt ausgeben
+    WRITE_CON_A cap2A
+    WRITE_CON_A prompt
+    READL_CON_A dst
     
-    GETDATA  rcx, src
-    GETDATA  rdx, dst
-    call utf8_to_cp1252
-
     ShowMessageW src,dst
 ; --- Exit ---
     .exit:
-    xor     ecx, ecx
-    CALL_IAT ExitProcess
+    ;xor     ecx, ecx
+    ;CALL_IAT ExitProcess
     
     FUNC_LEAVE 64

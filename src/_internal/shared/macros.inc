@@ -121,43 +121,112 @@ HN_win32_%1: dw 0
     %define WSTR_DEBUG 0
 %endif
 
-%macro WSTR 1-*
-    %push WSTR                  ; Kontext für %$-Variablen bereitstellen
-    %assign %$arg 0
-    %rep %0
-        %assign %$arg %$arg+1
-        %if %$arg > 1
-            %rotate 1           ; nächstes Macro-Argument in %1 schieben
-        %endif
+; -----------------------------------------------------------------------------
+; WSTR <name>, <items...>
+; items: Strings ("..."), Zahlen (123, 0x41) oder Ausdrücke/Labels
+; erzeugt:
+;   _cW_<name>:              dw ... , 0
+;   _cW_<name>_end:
+;   _cW_<name>_length_bytes  equ (_cW_<name>_end - _cW_<name> - 2) ; ohne Terminator
+;   _cW_<name>_length_words  equ (_cW_<name>_length_bytes/2)
+; -----------------------------------------------------------------------------
+%macro WSTR 2+
+    %push WSTR
+
+    ; Namen sichern, damit %rotate keine Probleme macht
+    %define _WSTR_LBL   _cW_%1
+    %define _WSTR_END   _cW_%1_end
+    %define _WSTR_LENB  _cW_%1_length_bytes
+    %define _WSTR_LENW  _cW_%1_length_words
+
+_WSTR_LBL:
+    ; restliche Argumente abarbeiten
+    %assign %$nargs %0-1
+    %rotate 1
+
+    %rep %$nargs
         %ifstr %1
             %strlen %$n %1
             %assign %$i 0
             %rep %$n
                 %substr %$c %1 %$i+1,1
-                dw %$c          ; 1 Code Unit (0x00xx) ausgeben
+                dw %$c                      ; eine 16-bit Code Unit 0x00xx
                 %assign %$i %$i+1
             %endrep
         %elifnum %1
-            dw %1               ; Zahl/Konstante
+            dw %1                           ; Zahl/Konstante
         %else
-            dw %1               ; Label/Equate/Expression
+            dw %1                           ; Label/Equate/Expression
         %endif
+        %rotate 1
     %endrep
-    dw 0                        ; Nullterminator
-    %pop                        ; Kontext verlassen
+
+    dw 0                                    ; Null-Terminator (1 Word)
+
+_WSTR_END:
+_WSTR_LENB  equ (_WSTR_END - _WSTR_LBL - 2) ; Länge in BYTES (ohne Terminator)
+_WSTR_LENW  equ (_WSTR_LENB/2)              ; Länge in WORDS
+
+    ; Aufräumen
+    %undef _WSTR_LBL
+    %undef _WSTR_END
+    %undef _WSTR_LENB
+    %undef _WSTR_LENW
+    %pop
+%endmacro
+; -----------------------------------------------------------------------------
+; WSTRU <name>, <items...>
+; items:
+;   - "ASCII/Latin-1-Strings"  -> jedes Zeichen als 16-bit Code Unit 0x00xx
+;   - Zahlen/Expressions        -> als Unicode-Codepoint interpretiert:
+;                                 <=0xFFFF (außer Surrogatbereich) -> 1 Word
+;                                 >0xFFFF -> Surrogatpaar (2 Words)
+; erzeugt:
+;   _cW_<name>:              dw ..., 0
+;   _cW_<name>_end:
+;   _cW_<name>_length_bytes  equ (_cW_<name>_end - _cW_<name> - 2) ; ohne Terminator
+;   _cW_<name>_length_words  equ (_cW_<name>_length_bytes/2)
+; -----------------------------------------------------------------------------
+; --- Helper: einen Unicode-Codepoint als UTF-16 ausgeben ---
+; -----------------------------------------------------------------------------
+%macro __WSTR_EMIT_CP 1
+    %assign __cp (%1)
+
+    %if __cp < 0
+        %error "WSTR: negativer Codepoint"
+    %elif __cp <= 0xFFFF
+        ; verbiete explizite Surrogat-Codepoints
+        %if __cp >= 0xD800 && __cp <= 0xDFFF
+            %error "WSTR: Codepoint im Surrogatbereich ist ungueltig"
+        %else
+            dw __cp
+        %endif
+    %elif __cp <= 0x10FFFF
+        %assign __tmp (__cp - 0x10000)
+        %assign __hi  (0xD800 + (__tmp >> 10))
+        %assign __lo  (0xDC00 + (__tmp & 0x3FF))
+        dw __hi, __lo
+    %else
+        %error "WSTR: Codepoint > U+10FFFF"
+    %endif
 %endmacro
 
-; WSTRU  <args...>   (ASCII-Stücke + U+codepoints)
-%macro WSTRU 1-*
+; --- Hauptmakro ---
+%macro WSTRU 2+
     %push WSTRU
-    %assign %$k 0
-    %rep %0
-        %assign %$k %$k+1
-        %if %$k > 1
-            %rotate 1
-        %endif
+
+    %define _WSTR_LBL   _cW_%1
+    %define _WSTR_END   _cW_%1_end
+    %define _WSTR_LENB  _cW_%1_length_bytes
+    %define _WSTR_LENW  _cW_%1_length_words
+
+_WSTR_LBL:
+    %assign %$nargs %0-1
+    %rotate 1
+
+    %rep %$nargs
         %ifstr %1
-            ; ASCII-Stück → wie WSTR
+            ; String: byteweise -> 0x00xx
             %strlen %$n %1
             %assign %$i 0
             %rep %$n
@@ -165,12 +234,26 @@ HN_win32_%1: dw 0
                 dw %$c
                 %assign %$i %$i+1
             %endrep
+        %elifnum %1
+            ; Zahl/Expression als Unicode-Scalar
+            __WSTR_EMIT_CP %1
         %else
-            ; Ansonsten Codepoints/Numbers → WU
-            WU %1
+            ; Label/Expression, zur Sicherheit ebenfalls als Codepoint behandeln
+            __WSTR_EMIT_CP %1
         %endif
+        %rotate 1
     %endrep
+
     dw 0
+
+_WSTR_END:
+_WSTR_LENB  equ (_WSTR_END - _WSTR_LBL - 2)
+_WSTR_LENW  equ (_WSTR_LENB/2)
+
+    %undef _WSTR_LBL
+    %undef _WSTR_END
+    %undef _WSTR_LENB
+    %undef _WSTR_LENW
     %pop
 %endmacro
 
@@ -208,6 +291,30 @@ HN_win32_%1: dw 0
 %endrep
     dw 0
 %pop
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief String-Definition mit auto *_length (ohne 0-Byte)
+; \desc  section .data
+;        ZSTR cap2A, "Hallo", 13, 10
+;
+;        ergibt automatisch:
+;        cap2A          db "Hallo",13,10,0
+;        cap2A_end:
+;        %define cap2A_length (cap2A_end - cap2A - 1)
+; -----------------------------------------------------------------------------
+%macro ASTR 2+                    ; ASTR <name>, <bytes...>
+_cA_%1:       db %2, 0
+_cA_%1_end:
+_cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief set the string label from %2 to register %1 ...
+; -----------------------------------------------------------------------------
+%macro GETEXT 2
+    mov     %1, IMAGE_BASE
+    add     %1, RVA_DATA(_cW_%2)
 %endmacro
 
 ; ------------------------------------------------------------
@@ -389,20 +496,4 @@ HN_win32_%1: dw 0
 %endif
     pop     rbp
     ret
-%endmacro
-
-; -----------------------------------------------------------------------------
-; \brief String-Definition mit auto *_length (ohne 0-Byte)
-; \desc  section .data
-;        ZSTR cap2A, "Hallo", 13, 10
-;
-;        ergibt automatisch:
-;        cap2A          db "Hallo",13,10,0
-;        cap2A_end:
-;        %define cap2A_length (cap2A_end - cap2A - 1)
-; -----------------------------------------------------------------------------
-%macro ZSTR 2+                    ; ZSTR <name>, <bytes...>
-%1:        db %2, 0
-%1_end:
-%define %1_length (%1_end - %1 - 1)
 %endmacro
