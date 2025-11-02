@@ -44,7 +44,6 @@ spaceW:             db 'o'                  ; wide char ' '
 _cA_console_bg:     dq ATTR_BG_BLACK
 _cA_console_fg:     dq ATTR_FG_LIGHT_YELLOW
 
-;_cW_wbuf:           times 256 dw 0          ; Ausgabepuffer (128 WCHAR)
 _cA_src:            times 256 db 0
 _cA_dst:            times 256 db 0
 
@@ -63,6 +62,31 @@ tmpConsoleMode:     dd 0
 last_error:         dd 0
 
 written:            dq 0
+
+; -----------------------------------------------------------------------------
+; 10 GET's each 256 Nytes ...
+; -----------------------------------------------------------------------------
+_cA_get_buffer_0:       times 256 db 0
+_cA_get_buffer_length_0 equ   ($ - _cA_get_buffer_0)
+_cA_get_buffer_1:       times 256 db 0
+_cA_get_buffer_length_1 equ   ($ - _cA_get_buffer_1)
+_cA_get_buffer_2:       times 256 db 0
+_cA_get_buffer_length_2 equ   ($ - _cA_get_buffer_2)
+_cA_get_buffer_3:       times 256 db 0
+_cA_get_buffer_length_3 equ   ($ - _cA_get_buffer_3)
+_cA_get_buffer_4:       times 256 db 0
+_cA_get_buffer_length_4 equ   ($ - _cA_get_buffer_4)
+_cA_get_buffer_5:       times 256 db 0
+_cA_get_buffer_length_5 equ   ($ - _cA_get_buffer_5)
+_cA_get_buffer_6:       times 256 db 0
+_cA_get_buffer_length_6 equ   ($ - _cA_get_buffer_6)
+_cA_get_buffer_7:       times 256 db 0
+_cA_get_buffer_length_7 equ   ($ - _cA_get_buffer_7)
+_cA_get_buffer_8:       times 256 db 0
+_cA_get_buffer_length_8 equ   ($ - _cA_get_buffer_8)
+_cA_get_buffer_9:       times 256 db 0
+_cA_get_buffer_length_9 equ   ($ - _cA_get_buffer_9)
+
 
 data_end:
 times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0
