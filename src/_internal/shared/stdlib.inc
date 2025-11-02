@@ -196,7 +196,6 @@ utf8_to_cp1252_char:
     push    rbx
 
     mov     bl, [rcx]
-    ShowMessageW titleW,capW
     test    bl, bl
     jz      .nul               ; Stringende
 
@@ -338,9 +337,9 @@ utf8_to_cp1252:
     inc     rax              ; count++
     jmp     .next
     .done:
-    push    rcx
-    ShowMessageW titleW,capW
-    pop     rcx
+    ;push    rcx
+    ;ShowMessageW titleW,capW
+    ;pop     rcx
     mov     byte [rdi], 0
     pop     rdi
     pop     rsi

@@ -32,8 +32,9 @@ PASCALMAIN:
 
     ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
     mov      rcx, r13
-    mov      rdx, IMAGE_BASE
-    add      rdx, RVA_DATA(src)
+    GETDATA  rdx, src
+    ;mov      rdx, IMAGE_BASE
+    ;add      rdx, RVA_DATA(src)
     mov      r8d, 127            ; maxChars (Reserviere 1 Byte für NUL)
     mov      r9,  IMAGE_BASE
     add      r9,  RVA_DATA(read)
@@ -45,10 +46,9 @@ PASCALMAIN:
     
     GETDATA  rcx, src
     GETDATA  rdx, dst
-
     call utf8_to_cp1252
 
-    ShowMessageW dst,src
+    ShowMessageW src,dst
 ; --- Exit ---
     .exit:
     xor     ecx, ecx
