@@ -101,8 +101,7 @@ HN_win32_%1: dw 0
 
 %macro CALL_IAT 1        ; CALL_IAT ExitProcess / RegisterClassExW / ...
     AddShadow
-    mov     rax, IMAGE_BASE
-    add     rax, RVA_IDATA(IAT_win32_%1)
+    mov     rax, IMAGE_BASE + RVA_IDATA(IAT_win32_%1)
     call    [rax]
     DelShadow
 %endmacro

@@ -16,12 +16,27 @@ init_console:
     FUNC_ENTER
 
     ; --- Konsole öffnen ---
-    call_AllocConsole .ok_1, .done
+    CALL_IAT AllocConsole
+    GET_CON_O_HANDLE r12
 
-    ; --- Konsole auf 80x25 schneiden ---
-    .ok_1:
-    call_GetStdHandle .ok, .done, STD_OUTPUT_HANDLE
-    .ok:
+    mov      rcx, r12
+    lea      rdx, [rel mode_out]
+    CALL_IAT GetConsoleMode              ; mode_out
+    
+    mov     eax, [rel mode_out]          ; Wert laden (NICHT die Adresse!)
+    or      eax, ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    or      eax, DISABLE_NEWLINE_AUTO_RETURN     ; optional
+    mov     edx, eax                     ; SetConsoleMode(hOut, newMode)
+    mov     rcx, r12
+    CALL_IAT SetConsoleMode
+
+    ; --- INPUT: VT-Input optional aktivieren ---
+    ; hIn besorgen (falls nicht schon vorhanden)
+    GET_CON_I_HANDLE r13                 ; r13 = hIn   (oder mov ecx, STD_INPUT_HANDLE / GetStdHandle)
+
+    mov     rcx, r13
+    lea     rdx, [rel mode_in]
+    CALL_IAT GetConsoleMode
     
     ; RCX=hOut, RDX=packed COORD
     mov      rcx, r12
@@ -41,7 +56,7 @@ init_console:
     CALL_IAT GetConsoleMode
     mov  eax, [rel tmpConsoleMode]
 
-    or   eax, ENABLE_PROCESSED_INPUT | ENABLE_EXTENDED_FLAGS
+    or   eax, ENABLE_PROCESSED_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN
     and  eax, ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_QUICK_EDIT_MODE)
 
     mov  edx, eax
@@ -148,6 +163,23 @@ HandleLastError:
 .done:
     FUNC_LEAVE 64
 
+user_clear_screen:
+    FUNC_ENTER 64
+    GET_CON_O_HANDLE r12
+
+    ; --- Test: ANSI-Sequenzen senden ---
+    mov      rcx, r12
+    mov      rdx, IMAGE_BASE
+    add      rdx, RVA_DATA(_cA_screen_clear)
+    mov      r8d, _cA_screen_clear_length
+    lea      r9,  [rel written]
+    mov      qword [rsp+32], 0              ; lpReserved
+    CALL_IAT WriteConsoleA
+    
+    ; return 0
+    xor eax, eax
+    FUNC_LEAVE 64
+
 HandleLastErrorHexCode:
     ; --- Prolog ---
     FUNC_ENTER 64
@@ -161,8 +193,8 @@ HandleLastErrorHexCode:
     mov   rdx, IMAGE_BASE + RVA_DATA(last_error)
     mov   dword [rdx], eax
     
-    mov   rcx, IMAGE_BASE + RVA_DATA(_cW_wbuf)
-    mov   rdx, IMAGE_BASE + RVA_DATA(_cW_fmtW)
+;    mov   rcx, IMAGE_BASE + RVA_DATA(_cW_wbuf)
+;    mov   rdx, IMAGE_BASE + RVA_DATA(_cW_fmtW)
     
     ; wsprintfW(wbuf, fmtW, err, err)
     ; (variadisch: AL = 0, Shadow Space 32B)
@@ -174,8 +206,8 @@ HandleLastErrorHexCode:
         
     ; MessageBoxW(NULL, wbuf, titleW, MB_ICONERROR)
     xor     ecx, ecx
-    mov     rdx, IMAGE_BASE + RVA_DATA(_cW_wbuf)
-    mov     r8,  IMAGE_BASE + RVA_DATA(_cW_ErrTitleW)
+;    mov     rdx, IMAGE_BASE + RVA_DATA(_cW_wbuf)
+;    mov     r8,  IMAGE_BASE + RVA_DATA(_cW_ErrTitleW)
     mov     r9d, 0x10                    ; MB_ICONERROR
     
     call_MessageBoxW

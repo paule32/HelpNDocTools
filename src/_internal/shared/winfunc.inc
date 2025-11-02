@@ -244,13 +244,13 @@
 ; \param mb_flags  -> optional ( r9d ), default: 0 (MB_OK)
 ; -----------------------------------------------------------------------------
 %macro ShowMessageW 2-3
-    Zero    ecx                                 ; hWnd = NULL
-    mov     rdx, (IMAGE_BASE + RVA_DATA(%1))    ; lpText
-    mov     r8,  (IMAGE_BASE + RVA_DATA(%2))    ; lpCaption    
-%if %0 == 2                                     ; %0 = argument count
-    xor     r9d, r9d                            ; uType = MB_OK
+    Zero    ecx                                     ; hWnd = NULL
+    mov     rdx, (IMAGE_BASE + RVA_DATA(_cA_%1))    ; lpText
+    mov     r8,  (IMAGE_BASE + RVA_DATA(_cA_%2))    ; lpCaption    
+%if %0 == 2                                         ; %0 = argument count
+    xor     r9d, r9d                                ; uType = MB_OK
 %else
-    mov     r9d, %3                             ; uType = argument exists
+    mov     r9d, %3                                 ; uType = argument exists
 %endif
     CALL_IAT MessageBoxW
 %endmacro
@@ -268,8 +268,8 @@
 ; -----------------------------------------------------------------------------
 %macro ShowMessageA 2-3
     Zero    ecx
-    mov     rdx, IMAGE_BASE + RVA_DATA(%1)      ; "MessageBoxW failed"
-    mov     r8,  IMAGE_BASE + RVA_DATA(%2)      ; "User32"
+    mov     rdx, IMAGE_BASE + RVA_DATA(_cA_%1)  ; "MessageBoxW failed"
+    mov     r8,  IMAGE_BASE + RVA_DATA(_cA_%2)  ; "User32"
 %if %0 == 2                                     ; %0 = argument count
     xor     r9d, r9d                            ; uType = MB_OK
 %else
@@ -342,6 +342,8 @@
 ; \brief write ASCII text on the text Windows console ...
 ; -----------------------------------------------------------------------------
 %macro WRITE_CON_A 1
+    ; prepare
+    GET_CON_O_HANDLE r12
     GETDATA  rdx, _cA_%1
     SETLEN   r8d, _cA_%1
     mov      rcx, r12
@@ -355,35 +357,37 @@
 ; \param dst -> buffer for the "readln" text
 ; -----------------------------------------------------------------------------
 %macro READL_CON_A 1
+    ; prepare
+    GET_CON_I_HANDLE  r13
     ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
-    GETDATA  rdx, src
-    GETDATA  r9 , %1
+    GETDATA  rdx, _cA_src
+    GETDATA  r9 , _cA_%1
     mov      rcx, r13
     mov      r8d, 127           ; maxChars (Reserviere 1 Byte für NUL)
-    sub      rsp, 40
     xor      rax, rax           ; lpReserved = NULL (über Shadow Space)
     mov      [rsp+32], rax
-    CALL_IAT ReadConsoleW
-    add      rsp, 40
-    GETDATA  rcx, src
-    GETDATA  rdx, dst
-    call     utf8_to_cp1252
+    CALL_IAT ReadConsoleA
 %endmacro
 ; -----------------------------------------------------------------------------
 ; \brief get the output handle of allocated/open console ...
 ; \param register to store output handle
 ; -----------------------------------------------------------------------------
 %macro GET_CON_O_HANDLE 1
-    mov     ecx, STD_OUTPUT_HANDLE
-    CALL_IAT    GetStdHandle
-    mov     %1, rax         ; hOut
+    mov      ecx, STD_OUTPUT_HANDLE
+    CALL_IAT GetStdHandle
+    mov      %1, rax         ; hOut
 %endmacro
 ; -----------------------------------------------------------------------------
 ; \brief get the input handle of allocated/open console ...
 ; \param register to store input handle
 ; -----------------------------------------------------------------------------
 %macro GET_CON_I_HANDLE 1
-    mov     ecx, STD_INPUT_HANDLE
-    CALL_IAT    GetStdHandle
-    mov     %1, rax         ; hIn
+    mov      ecx, STD_INPUT_HANDLE
+    CALL_IAT GetStdHandle
+    mov      %1, rax         ; hIn
+%endmacro
+
+%macro SCREEN_CLEAR 0
+    GET_CON_O_HANDLE r12
+    call user_clear_screen
 %endmacro

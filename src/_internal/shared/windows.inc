@@ -128,6 +128,13 @@
 
 %define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2  -4   ; WinUser.h: ((DPI_AWARENESS_CONTEXT)-4)
 
+; Console-Mode-Flags (wincon.h)
+%define ENABLE_VIRTUAL_TERMINAL_PROCESSING  0x0004
+%define DISABLE_NEWLINE_AUTO_RETURN         0x0008    ; optional
+%define ENABLE_VIRTUAL_TERMINAL_INPUT       0x0200
+
+%define ATTR_DEFAULT 0x27            ; Hellgrau auf Schwarz
+
 ; -----------------------------------------------------------------------------
 ; format flags (often used for debug messages) ...
 ; -----------------------------------------------------------------------------

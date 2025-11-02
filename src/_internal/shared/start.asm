@@ -4,5 +4,5 @@
 ; -----------------------------------------------------------------------------; .text (Code); -----------------------------------------------------------------------------    times (TEXT_RAW_PTR - ($ - $$)) db 0section_text_start:
 %include 'winproc.asm'%include 'code64.asm'%include 'text64.asm'%include 'stdlib.inc'
 section_text_end:
-%include 'imports.inc'%include 'data64.asm'
+%include 'imports.inc'%include 'data64.asm'%include 'bss64.asm'
 ; -----------------------------------------------------------------------------file_end:

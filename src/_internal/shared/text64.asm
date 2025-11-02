@@ -13,19 +13,25 @@ PASCALMAIN:
     ; --- Konsole öffnen  ---
     call init_console
     
-    ; --- get I/O handles ---
-    GET_CON_O_HANDLE r12
-    GET_CON_I_HANDLE r13
-    
     ; text + prompt ausgeben
     WRITE_CON_A cap2A
     WRITE_CON_A prompt
+
     READL_CON_A dst
+    WRITE_CON_A src
     
-    ShowMessageW src,dst
+    ;ShowMessageA src,dst
+    
+    SCREEN_CLEAR
+
+    WRITE_CON_A  src
+    WRITE_CON_A  prompt
+    READL_CON_A  dst
+    
+    ;ShowMessageA src,dst
 ; --- Exit ---
     .exit:
-    ;xor     ecx, ecx
-    ;CALL_IAT ExitProcess
+    xor     ecx, ecx
+    CALL_IAT ExitProcess
     
     FUNC_LEAVE 64
