@@ -16,14 +16,21 @@ PASCALMAIN:
 
     READL_CON_A dst
     
-    SET_COLOR_TO ATTR_FG_LIGHT_BLUE
-    SCREEN_CLEAR
+    INT2STR buffer, 12321
     
-    WRITE_CON_A  dst
+    CONCATE_ANSI buffer_A, buffer_2, buffer_1
+    CONCATE_ANSI buffer_A, buffer_A, buffer
+    
+    ;SET_COLOR_TO ATTR_FG_LIGHT_BLUE
+    ;SCREEN_CLEAR
+
+    WRITE_CON_A  buffer
+    WRITE_CON_A  buffer_A
     WRITE_CON_A  prompt
     
-    READL_CON_A  dst
-    WRITE_CON_A  cap2A
+    ;READL_CON_A  dst
+    .fail:
+    ;WRITE_CON_A  cap2A
     READL_CON_A  dst
     
     .exit:

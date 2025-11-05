@@ -347,7 +347,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; mov   eax, 0xDEADBEEF
 ; SETDATA last_error, eax          ; dword write
 ; ---------------------------------------------------------------------------
-;; schreiben (Immediate → Größe angeben)
+;; schreiben (Immediate -> Größe angeben)
 ; SETDATA orig_attr, 0x000F, WORD  ; word write
 ; SETDATA flag8,     1,      BYTE  ; byte write
 ; ---------------------------------------------------------------------------

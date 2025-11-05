@@ -357,7 +357,7 @@
 ; \param dst -> buffer for the "readln" text
 ; -----------------------------------------------------------------------------
 %macro READL_CON_A 1
-    ; prepare    
+    ; prepare
     GET_CON_I_HANDLE  r13
     ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
     GETDATA  rdx, _cA_src
@@ -368,6 +368,32 @@
     mov      [rsp+32], rax
     CALL_IAT ReadConsoleA
 %endmacro
+
+; -----------------------------------------------------------------------------
+; \brief concatenate two strings (%2, %3) to a given string destionation (%1).
+; \param dst  -> string buffer
+; \param src1 -> string 0-terminated
+; \param src2 -> string 0-terminated
+; -----------------------------------------------------------------------------
+%macro CONCATE_ANSI 3
+    mov     rcx, IMAGE_BASE + RVA_DATA(_cA_%1)
+    mov     rdx, IMAGE_BASE + RVA_DATA(_cA_%2)
+    mov     r8 , IMAGE_BASE + RVA_DATA(_cA_%3)
+    call    concat_ansi
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief integer to string
+;
+; \param number -> register (number to convert)
+; \param buffer -> destination buffer
+; -----------------------------------------------------------------------------
+%macro INT2STR 2
+    mov     edx, %2                             ; number to convert
+    mov     rcx, IMAGE_BASE + RVA_DATA(_cA_%1)  ; destination buffer
+    call    u32_to_dec                          ; buffer -> "12345",0 ; RAX = 5
+%endmacro
+
 ; -----------------------------------------------------------------------------
 ; \brief get the output handle of allocated/open console ...
 ; \param register to store output handle

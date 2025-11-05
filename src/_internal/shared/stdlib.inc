@@ -185,6 +185,75 @@ HandleLastError:
 .done:
     FUNC_LEAVE 64
 
+; -------------------------------------------------------------------
+; rcx = BYTE buffer[20]
+; edx = DWORD number
+; return:
+; rax = BYTE * start
+; -------------------------------------------------------------------
+u32_to_dec:
+	mov     eax, edx        ; number
+	lea     r8, [rcx + 20]  ; end of buffer
+	dec     r8
+	mov     byte [r8], 0    ; null terminate
+    .loop:
+    mov     rcx, 10
+    mov     rdx, 0
+    div     rcx
+    add     dl, '0'         ; convert remainder to ascii
+    dec     r8
+    mov     byte [r8], dl
+    cmp     rax, 0
+    ja      .loop
+    mov     rax, r8         ; pointer to start of number
+    ret
+    
+; -------------------------------------------------------------------
+; \brief  concatenate two ANSI string's to a single one string dest-
+;         ination. The dst buffer must be big enough !
+;
+; \desc   int concat_ansi(char *dst, const char *s1, const char *s2)
+;
+; \param  RCX -> string buffer = dst
+;
+; \param  RDX -> string = src1
+; \param  R8  -> string = src2
+;
+; \return RAX -> bool   = 1 if 0x00 found, else 0
+; -------------------------------------------------------------------
+concat_ansi:
+    ; -----------------------------------------
+    ; iterate over first string
+    ; -----------------------------------------
+    .loop_s1:
+    mov     al, [rdx]   ; get character on current src1 position
+    test    al, al      ; 0x00 found ?
+    jz      .loop_s2    ; yes, then exit .loop
+    
+    mov     [rcx], al   ; move al character to dst buffer
+    inc     rdx         ; increment position of src1 buffer
+    inc     rcx         ; ... of dst buffer
+    jmp     .loop_s1    ; next character
+    
+    ; -----------------------------------------
+    ; iterate over second string
+    ; -----------------------------------------
+    .loop_s2:
+    mov     al, [r8]    ; get character on current src2 position
+    test    al, al      ; 0x00 found ?
+    jz      .finish     ; yes, then exit .loop
+    
+    mov     [rcx], al   ; move al character to dst buffer
+    inc     r8          ; increment position of src2 buffer
+    inc     rcx         ; ... of dst buffer
+    jmp     .loop_s2    ; next char
+    
+    .finish:
+    xor     eax, eax    ; AL = 0
+    mov     [rcx], al   ; null-terminator
+    mov     eax, 1      ; return true, found end
+    ret
+    
 user_clear_screen:
     FUNC_ENTER 64
     GET_CON_O_HANDLE r12

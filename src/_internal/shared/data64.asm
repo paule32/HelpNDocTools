@@ -44,6 +44,27 @@ spaceW:             db 'o'                  ; wide char ' '
 _cA_console_bg:     dq ATTR_BG_BLACK
 _cA_console_fg:     dq ATTR_FG_LIGHT_YELLOW
 
+_fmt: db "%s", 0
+_cA_buffer_dst:     times 128 db 0
+_cA_buffer_dst_length equ ($ - _cA_buffer_dst)
+_cA_buffer:         times 128 db 0
+_cA_buffer_length  equ ($ - _cA_buffer)
+;_cA_buffer2:         times 128 db 'u'
+_cA_buffer2: db " oI_01", 0
+_cA_buffer2_length  equ ($ - _cA_buffer2)
+
+
+_cA_buffer_2: db "moin", 0
+_cA_buffer_2_length  equ ($ - _cA_buffer_2)
+_cA_buffer_1: db "Hello %s"  , 0
+_cA_buffer_1_length  equ ($ - _cA_buffer_1)
+
+_cA_buffer_3: db " smile"  , 13, 10, 0
+_cA_buffer_3_length  equ ($ - _cA_buffer_3)
+
+_cA_buffer_A: times 128 db 0
+_cA_buffer_A_length  equ ($ - _cA_buffer_A)
+
 _cA_src:            times 256 db 0
 _cA_dst:            times 256 db 0
 
