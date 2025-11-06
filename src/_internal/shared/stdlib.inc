@@ -254,22 +254,16 @@ concat_ansi:
     mov     eax, 1      ; return true, found end
     ret
     
-user_clear_screen:
-    FUNC_ENTER 64
-    GET_CON_O_HANDLE r12
-
-    ; --- Test: ANSI-Sequenzen senden ---
-    mov      rcx, r12
-    mov      rdx, IMAGE_BASE
-    add      rdx, RVA_DATA(_cA_screen_clear)
-    mov      r8d, _cA_screen_clear_length
-    lea      r9,  [rel written]
-    mov      qword [rsp+32], 0              ; lpReserved
-    CALL_IAT WriteConsoleA
-    
-    ; return 0
-    xor eax, eax
-    FUNC_LEAVE 64
+GET_STR_LEN:
+    xor     eax, eax            ; RAX = 0 (counter)
+    .loop:
+    mov     dl, byte [rcx+rax]  ; get character on current src1 position
+    test    dl, dl              ; 0x00 found ?
+    jz      .loop_end           ; yes, then exit .loop
+    inc     rax                 ; ... of dst buffer
+    jmp     .loop               ; next character
+    .loop_end:
+    ret
 
 HandleLastErrorHexCode:
     ; --- Prolog ---

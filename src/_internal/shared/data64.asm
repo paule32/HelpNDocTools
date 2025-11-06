@@ -28,11 +28,52 @@ ASTR prompt         , "Eingabe: ",0
 ;  - ESC[2J       -> Bildschirm löschen (mit Spaces + aktuellen Attributen)
 ;  - ESC[H        -> Cursor 1;1
 ; -----------------------------------------------------------------------------
-ASTR screen_clear,  27,'[0m'        ,\
-                    27,'[H'         ,\
-                    27,'[1;%d;%dm'  ,\
-                    27,'[2J'        ,\
-                    27,'[H'         ,0
+ASTR consoleColor_0,  27,'[0m'
+ASTR consoleColor_1,  27,'[1;'
+ASTR consoleColor_2,  "m"
+ASTR consoleColor_3,  27,'[H',27,'[2J',27,'[H'
+ASTR buffer_semi, ";"
+; -----------------------------------------------------------------------------
+; DOS ANSI foreground color's   0..15
+; -----------------------------------------------------------------------------
+ASTR console_color_30 , "30"
+ASTR console_color_31 , "31"
+ASTR console_color_32 , "32"
+ASTR console_color_33 , "33"
+ASTR console_color_34 , "34"
+ASTR console_color_35 , "35"
+ASTR console_color_36 , "36"
+ASTR console_color_37 , "37"
+; -----------------------------------------------------------------------------
+ASTR console_color_90 , "90"
+ASTR console_color_91 , "91"
+ASTR console_color_92 , "92"
+ASTR console_color_93 , "93"
+ASTR console_color_94 , "94"
+ASTR console_color_95 , "95"
+ASTR console_color_96 , "96"
+ASTR console_color_97 , "97"
+
+; -----------------------------------------------------------------------------
+; DOS ANSI background color's   0..15
+; -----------------------------------------------------------------------------
+ASTR console_color_40 , "40"
+ASTR console_color_41 , "41"
+ASTR console_color_42 , "42"
+ASTR console_color_43 , "43"
+ASTR console_color_44 , "44"
+ASTR console_color_45 , "45"
+ASTR console_color_46 , "46"
+ASTR console_color_47 , "47"
+
+ASTR console_color_100, "100"
+ASTR console_color_101, "101"
+ASTR console_color_102, "102"
+ASTR console_color_103, "103"
+ASTR console_color_104, "104"
+ASTR console_color_105, "105"
+ASTR console_color_106, "106"
+ASTR console_color_107, "107"
 
 Rect80x25:          dw 0, 0, 79, 24         ; SMALL_RECT {Left,Top,Right,Bottom} = {0,0,79,24}
 pMsg:               dq 0                    ; LPWSTR, wird von FormatMessageW allokiert
@@ -41,40 +82,21 @@ spaceW:             db 'o'                  ; wide char ' '
 ; -----------------------------------------------------------------------------
 ; default console values ...
 ; -----------------------------------------------------------------------------
-_cA_console_bg:     dq ATTR_BG_BLACK
-_cA_console_fg:     dq ATTR_FG_LIGHT_YELLOW
+_cA_console_bg:     db ATTR_BG_BLACK, 0
+_cA_console_fg:     db ATTR_FG_LIGHT_YELLOW, 0
 
 _fmt: db "%s", 0
-_cA_buffer_dst:     times 128 db 0
-_cA_buffer_dst_length equ ($ - _cA_buffer_dst)
-_cA_buffer:         times 128 db 0
-_cA_buffer_length  equ ($ - _cA_buffer)
-;_cA_buffer2:         times 128 db 'u'
-_cA_buffer2: db " oI_01", 0
-_cA_buffer2_length  equ ($ - _cA_buffer2)
 
+ASTR buffer , ATTR_BG_BLACK, ATTR_FG_LIGHT_YELLOW
+ASTR buffer2, " oI_01", 0
 
-_cA_buffer_2: db "moin", 0
-_cA_buffer_2_length  equ ($ - _cA_buffer_2)
-_cA_buffer_1: db "Hello %s"  , 0
-_cA_buffer_1_length  equ ($ - _cA_buffer_1)
+ASTR buffer_2, "moin", 0
+ASTR buffer_1, "Hello %s", 0
+ASTR buffer_3, " smile"  , 13, 10, 0
 
-_cA_buffer_3: db " smile"  , 13, 10, 0
-_cA_buffer_3_length  equ ($ - _cA_buffer_3)
-
-_cA_buffer_A: times 128 db 0
-_cA_buffer_A_length  equ ($ - _cA_buffer_A)
-
-_cA_src:            times 256 db 0
-_cA_dst:            times 256 db 0
-
-_cA_src_length:     dw 256
-_cA_dst_length:     dw 512
+_cA_empty:          db 0
 
 _cA_buf:            times  64 db 0
-
-mode_in:            dd 0
-mode_out:           dd 0
 
 hIn:                dq 0
 hOut:               dq 0
@@ -83,31 +105,6 @@ tmpConsoleMode:     dd 0
 last_error:         dd 0
 
 written:            dq 0
-
-; -----------------------------------------------------------------------------
-; 10 GET's each 256 Nytes ...
-; -----------------------------------------------------------------------------
-_cA_get_buffer_0:       times 256 db 0
-_cA_get_buffer_length_0 equ   ($ - _cA_get_buffer_0)
-_cA_get_buffer_1:       times 256 db 0
-_cA_get_buffer_length_1 equ   ($ - _cA_get_buffer_1)
-_cA_get_buffer_2:       times 256 db 0
-_cA_get_buffer_length_2 equ   ($ - _cA_get_buffer_2)
-_cA_get_buffer_3:       times 256 db 0
-_cA_get_buffer_length_3 equ   ($ - _cA_get_buffer_3)
-_cA_get_buffer_4:       times 256 db 0
-_cA_get_buffer_length_4 equ   ($ - _cA_get_buffer_4)
-_cA_get_buffer_5:       times 256 db 0
-_cA_get_buffer_length_5 equ   ($ - _cA_get_buffer_5)
-_cA_get_buffer_6:       times 256 db 0
-_cA_get_buffer_length_6 equ   ($ - _cA_get_buffer_6)
-_cA_get_buffer_7:       times 256 db 0
-_cA_get_buffer_length_7 equ   ($ - _cA_get_buffer_7)
-_cA_get_buffer_8:       times 256 db 0
-_cA_get_buffer_length_8 equ   ($ - _cA_get_buffer_8)
-_cA_get_buffer_9:       times 256 db 0
-_cA_get_buffer_length_9 equ   ($ - _cA_get_buffer_9)
-
 
 data_end:
 times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0

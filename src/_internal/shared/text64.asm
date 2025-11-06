@@ -7,30 +7,19 @@ PASCALMAIN:
 ; -------------------------------------------------------------------
     FUNC_ENTER 64
 
-    call init_app
-    call init_console
-    
+    INIT_CONSOLE
+        
     ; text + prompt ausgeben
     WRITE_CON_A cap2A
     WRITE_CON_A prompt
-
     READL_CON_A dst
     
-    INT2STR buffer, 12321
-    
-    CONCATE_ANSI buffer_A, buffer_2, buffer_1
-    CONCATE_ANSI buffer_A, buffer_A, buffer
-    
-    ;SET_COLOR_TO ATTR_FG_LIGHT_BLUE
-    ;SCREEN_CLEAR
+    SET_COLOR_TO ATTR_BG_BLACK, ATTR_FG_LIGHT_YELLOW
+    SCREEN_CLEAR
 
-    WRITE_CON_A  buffer
-    WRITE_CON_A  buffer_A
+    WRITE_CON_A  dst
     WRITE_CON_A  prompt
     
-    ;READL_CON_A  dst
-    .fail:
-    ;WRITE_CON_A  cap2A
     READL_CON_A  dst
     
     .exit:

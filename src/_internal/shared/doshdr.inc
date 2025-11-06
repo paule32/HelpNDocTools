@@ -12,11 +12,18 @@
 ; Größen des reinen Stubs (Header+Code) – 'stub_end'
 ; steht ganz unten
 ;---------------------------------------------------
-%define STUB_SIZE   (stub_end - $$)
-%define STUB_PAGES  ((STUB_SIZE + 511) / 512)
+%define STUB_SIZE   (pe_header - $$)
+%define STUB_PAGES  ((STUB_SIZE + (511*2)) / 512)
 %define STUB_LAST   (STUB_SIZE % 512)   ; 0 => "512"
-%define HDR_PARAS   (((mz_image - $$) + 15) / 16)
+%define HDR_PARAS   (((mz_image - $$) ) / 16)
 
+org 0
+bits 16
+
+%define HDR_START   $$
+%define STUB_START  mz_image
+
+; ---- Header-Layout-Marker
 dos_start:
     db 'M','Z'                ; e_magic
     dw STUB_LAST              ; e_cblp
@@ -40,7 +47,22 @@ dos_start:
 mz_reloc:                     ; (keine Einträge)
 mz_image:
 
+; ---- 16-bit Stub-Entry bei e_cs:e_ip = 0:0 (ab mz_image)
+stub_entry:
+    ; DS = CS setzen, um statische Daten zu lesen
+    push cs
+    pop  ds
+
+    ; "Hello DOS\r\n$" via INT 21h AH=09h
+    mov  dx, msg
+    mov  ah, 9
+    int  21h
+
+    ; sauber beenden
+    mov  ax, 0x4C00
+    int  21h
+msg: db 'Hello DOS from the MZ stub!', 13, 10, '$'
+
 ;%include 'code16.asm'
 ;%include 'data16.inc'
 
-stub_end:

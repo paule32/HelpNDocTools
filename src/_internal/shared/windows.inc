@@ -5,6 +5,41 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------
+; CPU machine ...
+; -----------------------------------------------------------------------------
+%define IMAGE_FILE_MACHINE_AMD64        0x8664  ; x64
+%define IMAGE_FILE_MACHINE_I386         0x14c   ; Intel 386 or later
+%define IMAGE_FILE_MACHINE_IA64         0x200   ; Intel Itanium processor family
+
+; -----------------------------------------------------------------------------
+; COFF + PE32 header ...
+; -----------------------------------------------------------------------------
+%define IMAGE_FILE_RELOCS_STRIPPED      0x0001
+%define IMAGE_FILE_EXECUTABLE_IMAGE     0x0002
+%define IMAGE_FILE_LOCAL_SYMS_STRIPPED  0x0008
+%define IMAGE_FILE_AGGRESSIVE_WS_TRIM   0x0010
+%define IMAGE_FILE_LARGE_ADDRESS_AWARE  0x0020
+%define IMAGE_FILE_32BIT_MACHINE        0x0100
+%define IMAGE_FILE_DEBUG_STRIPPED       0x0200
+%define IMAGE_FILE_DLL                  0x2000
+
+%define IMAGE_IS_FILE_EXE   IMAGE_FILE_EXECUTABLE_IMAGE    |\
+                            IMAGE_FILE_LARGE_ADDRESS_AWARE |\
+                            IMAGE_FILE_DEBUG_STRIPPED
+; -----------------------------------------------------------------------------
+%define IMAGE_IS_FILE_DLL   IMAGE_FILE_DLL                 |\
+                            IMAGE_FILE_LARGE_ADDRESS_AWARE |\
+                            IMAGE_FILE_DEBUG_STRIPPED
+
+; -----------------------------------------------------------------------------
+; DLL Characteristics
+; -----------------------------------------------------------------------------
+%define IMAGE_DLLCHARACTERISTICS_NX_COMPAT  0x0100  ; Image is NX compatible.
+%define IMAGE_DLLCHARACTERISTICS_NO_SEH     0x0400  ; no SEH
+
+; -----------------------------------------------------------------------------
 ; win32 constants
 ; -----------------------------------------------------------------------------
 %define SW_SHADOW            32       ; 32-Byte Shadow Space pro CALL

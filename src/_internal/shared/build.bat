@@ -7,4 +7,5 @@
 :: ---------------------------------------------------
 nasm.exe -fbin -o start.exe start.asm -w-zeroing
 copy /b           start.exe start.bin
+copy /b           start.exe dos.exe
 upx.exe           start.exe

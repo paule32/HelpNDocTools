@@ -12,9 +12,7 @@ _start:
     and rsp,-16
     sub rsp,32
 
-    AddShadow
     call PASCALMAIN
-    DelShadow
 
     ; hInstance holen
     xor     ecx, ecx

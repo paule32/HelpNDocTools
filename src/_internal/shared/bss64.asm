@@ -35,7 +35,21 @@ struc CSBI
     ._pad               resw 1      ; pad to 24 bytes (alignment)
 endstruc
 ; -----------------------------------------------------------------------------
-csbi                resb CSBI_size
+csbi:               resb CSBI_size
+
+_cA_buffer_dst:     resb 128
+
+_cA_buffer_A:       resb 128
+_cA_buffer_B:       resb 128
+
+_cA_src_length:     resb 256
+_cA_dst_length:     resb 512
+
+_cA_src:            resb 128
+_cA_dst:            resb 128
+
+mode_in:            resd 1
+mode_out:           resd 1
 
 bss_end:
 times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0

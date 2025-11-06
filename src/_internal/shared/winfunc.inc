@@ -244,13 +244,13 @@
 ; \param mb_flags  -> optional ( r9d ), default: 0 (MB_OK)
 ; -----------------------------------------------------------------------------
 %macro ShowMessageW 2-3
-    Zero    ecx                                     ; hWnd = NULL
-    mov     rdx, (IMAGE_BASE + RVA_DATA(_cA_%1))    ; lpText
-    mov     r8,  (IMAGE_BASE + RVA_DATA(_cA_%2))    ; lpCaption    
-%if %0 == 2                                         ; %0 = argument count
-    xor     r9d, r9d                                ; uType = MB_OK
+    Zero    ecx             ; hWnd = NULL
+    mov     rdx, PTR(%1)    ; lpText
+    mov     r8,  PTR(%2)    ; lpCaption    
+%if %0 == 2                 ; %0 = argument count
+    xor     r9d, r9d        ; uType = MB_OK
 %else
-    mov     r9d, %3                                 ; uType = argument exists
+    mov     r9d, %3         ; uType = argument exists
 %endif
     CALL_IAT MessageBoxW
 %endmacro
@@ -343,10 +343,14 @@
 ; -----------------------------------------------------------------------------
 %macro WRITE_CON_A 1
     ; prepare
+    xor      eax, eax
+    mov      rcx, PTR(_cA_%1)
+    call     GET_STR_LEN
+    mov      r14, rax
     GET_CON_O_HANDLE r12
-    GETDATA  rdx, _cA_%1
-    SETLEN   r8d, _cA_%1
     mov      rcx, r12
+    mov      rdx, PTR(_cA_%1)
+    mov      r8 , r14
     xor      r9d, r9d
     mov      qword [rsp+32], 0
     CALL_IAT WriteConsoleA
@@ -360,26 +364,13 @@
     ; prepare
     GET_CON_I_HANDLE  r13
     ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
-    GETDATA  rdx, _cA_src
-    GETDATA  r9 , _cA_%1
     mov      rcx, r13
+    mov      rdx, PTR(_cA_%1)
     mov      r8d, 127           ; maxChars (Reserviere 1 Byte für NUL)
+    mov      r9 , PTR(written)
     xor      rax, rax           ; lpReserved = NULL (über Shadow Space)
     mov      [rsp+32], rax
     CALL_IAT ReadConsoleA
-%endmacro
-
-; -----------------------------------------------------------------------------
-; \brief concatenate two strings (%2, %3) to a given string destionation (%1).
-; \param dst  -> string buffer
-; \param src1 -> string 0-terminated
-; \param src2 -> string 0-terminated
-; -----------------------------------------------------------------------------
-%macro CONCATE_ANSI 3
-    mov     rcx, IMAGE_BASE + RVA_DATA(_cA_%1)
-    mov     rdx, IMAGE_BASE + RVA_DATA(_cA_%2)
-    mov     r8 , IMAGE_BASE + RVA_DATA(_cA_%3)
-    call    concat_ansi
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -392,6 +383,40 @@
     mov     edx, %2                             ; number to convert
     mov     rcx, IMAGE_BASE + RVA_DATA(_cA_%1)  ; destination buffer
     call    u32_to_dec                          ; buffer -> "12345",0 ; RAX = 5
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief concatenate two strings (%2, %3) to a given string destionation (%1).
+; \param dst  -> string buffer
+; \param src1 -> string 0-terminated
+; \param src2 -> string 0-terminated
+; -----------------------------------------------------------------------------
+%macro STRCPY_ANSI 3
+    mov     rcx, IMAGE_BASE + RVA_DATA(_cA_%1)
+    mov     rdx, IMAGE_BASE + RVA_DATA(_cA_%2)
+    mov     r8 , IMAGE_BASE + RVA_DATA(_cA_%3)
+    call    concat_ansi
+%endmacro
+%macro STRCAT_ANSI 2-*
+    %xdefine __DSTSYM (_cA_%1 + 4)
+
+    %rotate 1                     ; ab hier ist %1 der erste src
+    %rep %0-1
+        ; --- Ende von dst finden: RDI zeigt nach REPNZ SCASB auf Byte NACH '\0'
+        mov     rdi, IMAGE_BASE
+        add     rdi, RVA_DATA(__DSTSYM)
+        xor     eax, eax          ; AL = 0
+        mov     rcx, -1
+        repne   scasb
+        lea     rcx, [rdi - 1]    ; RCX -> Position des '\0' (Schreibposition)
+
+        ; einen Source anhängen: (s1 = aktueller, s2 = leer)
+        mov     rdx, PTR(_cA_%1)
+        mov     r8 , PTR(_cA_empty)
+        call    concat_ansi
+
+        %rotate 1                 ; nächster src
+    %endrep
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -415,7 +440,8 @@
 
 %macro SCREEN_CLEAR 0
     GET_CON_O_HANDLE r12
-    call user_clear_screen
+    STRCPY_ANSI buffer_B, consoleColor_3, empty
+    WRITE_CON_A buffer_B
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -425,77 +451,12 @@
 ;
 ; \desc  color values > 127 == blink chars
 ; -----------------------------------------------------------------------------
-%macro SET_COLOR_TO 0-2
+%macro SET_COLOR_TO 2
 %if %0 == 2
-    ; sprintf(buf, "%d %d", ATTR_BG_BLACK, ATTR_FG_YELLOW)
-    mov      rax, %1
-    mov      rbx, %2
-    ;
-    mov      rcx, IMAGE_BASE
-    add      rcx, RVA_DATA(_cA_buf)          ; buf
-    mov      rdx, IMAGE_BASE
-    add      rdx, RVA_DATA(_cA_screen_clear) ; fmt
-    ;
-    mov      r8, rax
-    mov      r9, rbx
-    CALL_IAT sprintf                        ; EAX = Anzahl geschriebener Zeichen (ohne NUL)
-    
-    ; WriteFile(hOut, escseq, escsz, &written, NULL)
-    GET_CON_O_HANDLE r12
-    
-    mov      rcx, r12
-    lea      rdx, [rel _cA_screen_clear]
-    mov      r8d, _cA_buf
-    lea      r9,  [written]
-    xor      rax, rax
-    CALL_IAT WriteFile
-%endif
-%if %0 == 1
-    ; sprintf(buf, "%d %d", ATTR_BG_BLACK, ATTR_FG_YELLOW)
-    mov      rax, ATTR_BG_BLACK
-    mov      rbx, %1
-    ;
-    mov      rcx, IMAGE_BASE
-    add      rcx, RVA_DATA(_cA_buf)          ; buf
-    mov      rdx, IMAGE_BASE
-    add      rdx, RVA_DATA(_cA_screen_clear) ; fmt
-    ;
-    mov      r8, rax
-    mov      r9, rbx
-    CALL_IAT sprintf                        ; EAX = Anzahl geschriebener Zeichen (ohne NUL)
-    
-    ; WriteFile(hOut, escseq, escsz, &written, NULL)
-    GET_CON_O_HANDLE r12
-    
-    mov      rcx, r12
-    lea      rdx, [rel _cA_screen_clear]
-    mov      r8d, _cA_buf
-    lea      r9,  [written]
-    xor      rax, rax
-    CALL_IAT WriteFile
-%endif
-%if %0 == 0
-; sprintf(buf, "%d %d", ATTR_BG_BLACK, ATTR_FG_YELLOW)
-    mov      rax, ATTR_BG_BLACK
-    mov      rbx, ATTR_FG_WHITE
-    ;
-    mov      rcx, IMAGE_BASE
-    add      rcx, RVA_DATA(_cA_buf)          ; buf
-    mov      rdx, IMAGE_BASE
-    add      rdx, RVA_DATA(_cA_screen_clear) ; fmt
-    ;
-    mov      r8, rax
-    mov      r9, rbx
-    CALL_IAT sprintf                        ; EAX = Anzahl geschriebener Zeichen (ohne NUL)
-    
-    ; WriteFile(hOut, escseq, escsz, &written, NULL)
-    GET_CON_O_HANDLE r12
-    
-    mov      rcx, r12
-    lea      rdx, [rel _cA_screen_clear]
-    mov      r8d, _cA_buf
-    lea      r9,  [written]
-    xor      rax, rax
-    CALL_IAT WriteFile
+    STRCPY_ANSI buffer_B, consoleColor_1, empty
+    STRCAT_ANSI buffer_B,                         \
+                console_color_%1, buffer_semi,\
+                console_color_%2, consoleColor_2
+    WRITE_CON_A buffer_B
 %endif
 %endmacro

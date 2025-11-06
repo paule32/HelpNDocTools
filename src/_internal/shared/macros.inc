@@ -6,6 +6,10 @@
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
 
+%ifndef PTR
+%define PTR(sym) (IMAGE_BASE + RVA_DATA(sym))
+%endif
+
 ; -----------------------------------------------------------------------------
 ; add win64 abi shadow ...
 ; -----------------------------------------------------------------------------
@@ -495,4 +499,13 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 %endif
     pop     rbp
     ret
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief initialize a console application ...
+; \param nothing
+; -----------------------------------------------------------------------------
+%macro INIT_CONSOLE 0
+    call init_app
+    call init_console
 %endmacro
