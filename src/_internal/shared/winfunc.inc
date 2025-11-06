@@ -245,8 +245,8 @@
 ; -----------------------------------------------------------------------------
 %macro ShowMessageW 2-3
     Zero    ecx             ; hWnd = NULL
-    mov     rdx, PTR(%1)    ; lpText
-    mov     r8,  PTR(%2)    ; lpCaption    
+    mov     rdx, PTR64(%1)  ; lpText
+    mov     r8,  PTR64(%2)  ; lpCaption    
 %if %0 == 2                 ; %0 = argument count
     xor     r9d, r9d        ; uType = MB_OK
 %else
@@ -342,18 +342,24 @@
 ; \brief write ASCII text on the text Windows console ...
 ; -----------------------------------------------------------------------------
 %macro WRITE_CON_A 1
+%if DOS_SHELL == 1
+    mov  dx, PTR16(%1)
+    mov  ah, 0x09
+    int  0x21
+%else
     ; prepare
     xor      eax, eax
-    mov      rcx, PTR(_cA_%1)
+    mov      rcx, PTR64(_cA_%1)
     call     GET_STR_LEN
     mov      r14, rax
     GET_CON_O_HANDLE r12
     mov      rcx, r12
-    mov      rdx, PTR(_cA_%1)
+    mov      rdx, PTR64(_cA_%1)
     mov      r8 , r14
     xor      r9d, r9d
     mov      qword [rsp+32], 0
     CALL_IAT WriteConsoleA
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -365,9 +371,9 @@
     GET_CON_I_HANDLE  r13
     ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
     mov      rcx, r13
-    mov      rdx, PTR(_cA_%1)
+    mov      rdx, PTR64(_cA_%1)
     mov      r8d, 127           ; maxChars (Reserviere 1 Byte für NUL)
-    mov      r9 , PTR(written)
+    mov      r9 , PTR64(written)
     xor      rax, rax           ; lpReserved = NULL (über Shadow Space)
     mov      [rsp+32], rax
     CALL_IAT ReadConsoleA
@@ -411,8 +417,8 @@
         lea     rcx, [rdi - 1]    ; RCX -> Position des '\0' (Schreibposition)
 
         ; einen Source anhängen: (s1 = aktueller, s2 = leer)
-        mov     rdx, PTR(_cA_%1)
-        mov     r8 , PTR(_cA_empty)
+        mov     rdx, PTR64(_cA_%1)
+        mov     r8 , PTR64(_cA_empty)
         call    concat_ansi
 
         %rotate 1                 ; nächster src

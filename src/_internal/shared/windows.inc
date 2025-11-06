@@ -26,12 +26,10 @@
 %define IMAGE_FILE_DLL                  0x2000
 
 %define IMAGE_IS_FILE_EXE   IMAGE_FILE_EXECUTABLE_IMAGE    |\
-                            IMAGE_FILE_LARGE_ADDRESS_AWARE |\
-                            IMAGE_FILE_DEBUG_STRIPPED
+                            IMAGE_FILE_LARGE_ADDRESS_AWARE
 ; -----------------------------------------------------------------------------
 %define IMAGE_IS_FILE_DLL   IMAGE_FILE_DLL                 |\
-                            IMAGE_FILE_LARGE_ADDRESS_AWARE |\
-                            IMAGE_FILE_DEBUG_STRIPPED
+                            IMAGE_FILE_LARGE_ADDRESS_AWARE
 
 ; -----------------------------------------------------------------------------
 ; DLL Characteristics

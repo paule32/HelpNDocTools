@@ -6,8 +6,12 @@
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
 
-%ifndef PTR
-%define PTR(sym) (IMAGE_BASE + RVA_DATA(sym))
+%ifndef PTR16
+%define PTR16(sym) (sym-end_dos_header)
+%endif
+
+%ifndef PTR64
+%define PTR64(sym) (IMAGE_BASE + RVA_DATA(sym))
 %endif
 
 ; -----------------------------------------------------------------------------

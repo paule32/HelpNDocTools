@@ -5,7 +5,7 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-times (BSS_RAW_PTR-($-$$)) db 0
+
 bss_start:
 
 ; -----------------------------------------------------------------------------
@@ -52,4 +52,4 @@ mode_in:            resd 1
 mode_out:           resd 1
 
 bss_end:
-times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0
+

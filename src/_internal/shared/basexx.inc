@@ -12,4 +12,4 @@ default rel
 %define SECTALIGN    0x1000
 
 %define IMAGE_BASE   IMAGEBASE
-%define ALIGN_UP(x,a) (((x)+(a)-1)/(a))*(a)
+
