@@ -5,7 +5,7 @@ PASCALMAIN:
 ;  - 32 B "lokal" (hier ungenutzt, dient auch dem Alignment)
 ; Nach push rbp ist rsp 16-Byte aligned; 64 hält das Alignment.
 ; -------------------------------------------------------------------
-    FUNC_ENTER 64
+    FUNC_ENTER
 
     INIT_CONSOLE
         
@@ -23,7 +23,4 @@ PASCALMAIN:
     READL_CON_A  dst
     
     .exit:
-    xor     ecx, ecx
-    CALL_IAT ExitProcess
-    
-    FUNC_LEAVE 64
+    FUNC_LEAVE

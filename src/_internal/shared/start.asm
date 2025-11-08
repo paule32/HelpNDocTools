@@ -23,8 +23,8 @@
 ; -----------------------------------------------------------------------------
 text_start:
 
-%include 'winproc.asm'
 %include 'code64.asm'
+%include 'winproc.asm'
 %include 'text64.asm'
 %include 'stdlib.inc'
 
@@ -36,7 +36,3 @@ text_end:
 
 ; -----------------------------------------------------------------------------
 file_end:
-
-%if TEXT_RAW_PTR != 0x400
-  %error ".text RAW PTR muss 0x400 sein (== SizeOfHeaders)."
-%endif

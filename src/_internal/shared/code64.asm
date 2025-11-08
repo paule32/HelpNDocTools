@@ -8,11 +8,15 @@
 bits 64
 
 _start:
-    mov rbp,rsp
-    and rsp,-16
-    sub rsp,32
+;   mov rbp, rsp
+;    and rsp,-16
 
+    sub rsp, 40
     call PASCALMAIN
+
+    mov rcx, 62
+    CALL_IAT ExitProcess
+    ret
 
     ; hInstance holen
     xor     ecx, ecx

@@ -28,7 +28,7 @@ pe_header:
     dd TEXT_RAW_SIZE               ; SizeOfCode
     dd IDATA_RAW_SIZE + DATA_RAW_SIZE  ; SizeOfInitializedData
     dd BSS_VSIZE                   ; SizeOfUninitializedData (nur .bss, virtuell)
-    dd RVA_TEXT(_start)            ; EntryPoint
+    dd RVA_TEXT(text_start)        ; EntryPoint
     dd TEXT_VA                     ; BaseOfCode
     dq IMAGE_BASE                  ; ImageBase
     dd SECTALIGN                   ; SectionAlignment
@@ -38,8 +38,7 @@ pe_header:
     dw 6,0                         ; Subsystem Version
     dd 0
     dd SIZEOF_IMAGE                ; SizeOfImage
-    ;dd SIZEOF_HEADERS              ; SizeOfHeaders
-    dd 0x00000400
+    dd SIZEOF_HEADERS              ; SizeOfHeaders
     dd 0                           ; Checksum
     dw 2                           ; Subsystem = Windows GUI
     dw IMAGE_DLLCHARACTERISTICS_NX_COMPAT ; DllCharacteristics: NXCompat (no ASLR)
@@ -107,6 +106,5 @@ pe_header:
 
 headers_end:
 
-; Auf Dateialignment (0x400) auffüllen
-times (0x400 - ($ - $$)) db 0
-
+; Auf Dateialignment auffüllen
+times (SIZEOF_HEADERS - ($ - $$)) db 0

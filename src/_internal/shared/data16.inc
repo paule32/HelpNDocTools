@@ -7,7 +7,6 @@
 ; -----------------------------------------------------------------------------
 data16_start:
 
-msg:        db 'Hello DOS from the MZ stub all the time of the timers time!', 13, 10, '$'
-msg2:       db "This program requieres MS-Windows.",13,10,"$"
+msg: db "This program requieres MS-Windows.$"
 
 data16_end:
