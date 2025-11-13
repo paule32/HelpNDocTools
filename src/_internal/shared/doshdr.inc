@@ -10,7 +10,7 @@
 
 org 0
 bits 16
-
+section .text
 ; ---- Header-Layout-Marker
 dos_start:
     db 'M','Z'                          ; e_magic
@@ -19,7 +19,7 @@ dos_start:
     dw 0                                ; e_crlc (keine Relocs)
     dw ((stub_entry  - $$) +  15) / 16  ; e_cparhdr (Headergröße in Paragraphen)
     dw 0                                ; e_minalloc
-    dw 0xFFFF                           ; e_maxalloc (so viel wie möglich)
+    dw 0xFEFE                           ; e_maxalloc (so viel wie möglich)
     dw 0                                ; e_ss
     dw 0xFFFE                           ; e_sp (kleiner Stack)
     dw 0                                ; e_csum
@@ -28,9 +28,9 @@ dos_start:
     dw mz_reloc - $$                    ; e_lfarlc (Reloc-Tabelle: leer)
     ;dw 0x0040                          ; e_lfarlc  <-- fest im Header
     dw 0                                ; e_ovno
-    times 4 dw 0                        ; e_res[4]
-    dw 0, 0                             ; e_oemid, e_oeminfo
-    times 10 dw 0                       ; e_res2[10]
+    times     4  dw 0                   ; e_res[4]
+    dw    7274, 8279                    ; e_oemid, e_oeminfo
+    times    10  dw 0                   ; e_res2[10]
     dd pe_header                        ; e_lfanew -> Offset des PE-Headers
     
 end_dos_header equ ($ - dos_start)
@@ -43,9 +43,16 @@ mz_image:
 
 ; ---- 16-bit Stub-Entry bei e_cs:e_ip = 0:0 (ab mz_image)
 stub_entry:
-    
+
+section .text    
 %include 'code16.asm'
+
+section .data
 %include 'data16.inc'
 
+section .bss
+%include 'bss16.asm'
+
+section .text
 align 16
 stub_end:

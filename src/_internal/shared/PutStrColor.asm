@@ -1,0 +1,117 @@
+; -----------------------------------------------------------------------------
+; \file  PutStrColor.asm
+; \note  (c) 2025 by Jens Kallup - paule32
+;        all rights reserved.
+;
+; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
+; -----------------------------------------------------------------------------
+%define DOS_SHELL 1
+
+; --- String per BIOS-Teletype (AH=0Eh) ausgeben ---
+; putc: AL -> Zeichen ausgeben
+putc:
+    push dx
+    mov dl, al
+    mov ah, 02h
+    int 21h
+    pop dx
+    ret
+
+; crlf: \r\n
+DOSrncrlf:
+    mov al, 13
+    call putc
+    mov al, 10
+    call putc
+    ret
+
+DOSPutStrColor:
+    mov  ah, 09h
+    int  0x21
+    ret
+
+print_z:
+    push dx             ; save DX
+    mov si, dx
+    .find_end:
+    lodsb               ; AL = [SI], SI++
+    cmp  al, 0
+    jne .find_end       ; repeat, till 0x00 is found
+    dec si              ; SI points to 0x00
+    
+    mov al, '$'         ; set DOS String end mark
+    mov [si], al        ; append AL
+    inc si
+    mov byte [si], 0    ; end of C-String
+    
+    mov [PTR16(fdbuf)], si
+    DOS_Write fdbuf
+    pop dx              ; restore DX
+    ret
+
+; DX -> 0-terminierte Zeichenkette
+DOS_ConsoleWrite:
+    push ax
+    push dx
+    push si
+    mov si, dx
+    .print_z_loop:
+    lodsb
+    cmp al, '$'
+    je .pe_done
+    cmp al, 0x00
+    je .pe_done
+    mov dl, al
+    mov ah, 02h
+    int 21h
+    jmp .print_z_loop
+    .pe_done:
+    pop si
+    pop dx
+    pop ax
+    ret
+
+PutStrColor:
+    push bx
+    mov  bh, [PTR16(dos_readln_flag)]
+    cmp  bh, 0
+    je   .no_length
+    add  si, 2
+    mov  bh, 0
+    mov  [PTR16(dos_readln_flag)], bh
+    .no_length:
+    pop  bx
+    
+    ; -------------------
+    .print_loop:
+    lodsb                ; AL := [SI], SI++
+    cmp  al, 0x00        ; reach end  ?
+    je   .printed
+    cmp  al, 0x0d
+    je   .printed
+    cmp  al, 0x0a
+    je   .printed
+    cmp  al, 0x00
+    je   .printed
+    test al, al
+    jz   .printed
+    mov  ah, 09h         ; Teletype-Ausgabe
+    mov  cx, 1           ; mim
+    int  10h
+    
+    mov ah, 02h
+    xor bh, bh
+    inc dl
+    int 10h
+    
+    jmp  .print_loop
+
+    .printed:
+    ; --- Cursorposition lesen (AH=03h) ---
+    mov  ah, 03h         ; Read Cursor Position
+    mov  bh, 0           ; Videoseite 0
+    int  10h             ; Rückgabe: DH=Zeile, DL=Spalte (0-basiert)
+    mov  [PTR16(dos_ypos)], dh
+    mov  [PTR16(dos_xpos)], dl
+
+    ret

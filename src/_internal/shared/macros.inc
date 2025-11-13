@@ -7,12 +7,21 @@
 ; -----------------------------------------------------------------------------
 
 %ifndef PTR16
-%define PTR16(sym) (sym-end_dos_header)
+%define PTR16(sym) (sym-code16_start+0x100)
 %endif
 
 %ifndef PTR64
 %define PTR64(sym) (IMAGE_BASE + RVA_DATA(sym))
 %endif
+
+; -----------------------------------------------------------------------------
+; \brief perform a system call (in this case a DOS int 0x21 call)
+; -----------------------------------------------------------------------------
+%macro SysCall 0
+%if DOS_SHELL == 1
+    int 0x21        ; DOS interrupt 0x21
+%endif
+%endmacro
 
 ; -----------------------------------------------------------------------------
 ; add win64 abi shadow ...

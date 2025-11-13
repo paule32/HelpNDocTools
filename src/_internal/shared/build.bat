@@ -5,7 +5,11 @@
 ::
 :: \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 :: ---------------------------------------------------
-nasm.exe -fbin -o start.exe start.asm -w-zeroing
+nasm.exe -fbin -o start.exe start.asm
+
+::-w-zeroing
 copy /b           start.exe start.bin
 copy /b           start.exe dos.exe
 upx.exe           start.exe
+
+nasm -f bin getlang.asm -o getlang.com

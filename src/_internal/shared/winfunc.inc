@@ -341,11 +341,13 @@
 ; -----------------------------------------------------------------------------
 ; \brief write ASCII text on the text Windows console ...
 ; -----------------------------------------------------------------------------
-%macro WRITE_CON_A 1
+%macro WRITE_CON_A 1-2
 %if DOS_SHELL == 1
-    mov  dx, PTR16(%1)
-    mov  ah, 0x09
-    int  0x21
+    %if %0 == 2
+        PUTS_COLOR %1, %2
+    %else
+        PUTS_COLOR %1, 0x07
+    %endif
 %else
     ; prepare
     xor      eax, eax
@@ -366,7 +368,16 @@
 ; \brief read utf-8 text on the text Windows console ...
 ; \param dst -> buffer for the "readln" text
 ; -----------------------------------------------------------------------------
-%macro READL_CON_A 1
+%macro READL_CON_A 0-1
+%if DOS_SHELL == 1
+    %if  %0 == 1
+        mov  dx, PTR16(_cA_%1)
+        call DOSReadLn
+    %else
+        mov  dx, PTR16(_cA_dos_buffer)
+        call DOSReadLn
+    %endif
+%else
     ; prepare
     GET_CON_I_HANDLE  r13
     ; ReadConsoleA(hIn, inbuf, maxChars, &read, NULL)
@@ -377,6 +388,7 @@
     xor      rax, rax           ; lpReserved = NULL (über Shadow Space)
     mov      [rsp+32], rax
     CALL_IAT ReadConsoleA
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -445,9 +457,40 @@
 %endmacro
 
 %macro SCREEN_CLEAR 0
+%if DOS_SHELL == 1
+    call dos_screen_clear
+%else
     GET_CON_O_HANDLE r12
     STRCPY_ANSI buffer_B, consoleColor_3, empty
     WRITE_CON_A buffer_B
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief set the cursor position in dos console ...
+; \param xpos - int
+; \param ypos - int
+; -----------------------------------------------------------------------------
+%macro SET_CURSOR 2
+%if %0 == 0
+    %error 2 argument missiong
+%endif
+%if DOS_SHELL == 1
+    mov  ah, 0x02
+    mov  bh, 0x00
+    %ifidni %2, DH
+        inc  dh
+    %else
+        mov  dh, %2         ; row
+    %endif
+    %ifidni %1, DL
+        inc  dl
+    %else
+        mov  dl, %1         ; col
+    %endif
+    int  0x10
+%else
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -464,5 +507,124 @@
                 console_color_%1, buffer_semi,\
                 console_color_%2, consoleColor_2
     WRITE_CON_A buffer_B
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief macro to put a colored string to the DOS console ...
+; -----------------------------------------------------------------------------
+%macro PUTS_COLOR 2
+%if DOS_SHELL == 1
+    mov  bl, %2             ; color
+    mov  si, PTR16(_cA_%1)  ; text 0-terminated
+    call PutStrColor
+%else
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief  get the length of given label string
+; \param  1. label name/addr
+; \return CX = length of string
+; -----------------------------------------------------------------------------
+%macro STRLEN 1
+%if %0 == 1
+    mov  si, PTR16(_cA_%1)
+    call DOSStrLen
+    mov  ax, cx             ; AX = length
+    add  cx, 1              ; CX = length + 1
+%else
+    %error 'exactly one argument expected.'
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief  helper macro save code resources.
+; \desc   return to DOS with exit code
+; \param  1. exit code value (0..255).
+; \return nothing
+; -----------------------------------------------------------------------------
+%macro DOS_Exit 1
+    mov  ax, 0x4C00 | %1
+    int  21h
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief  print a CRLF on DOS console
+; \param  nothing
+; \return nothing
+; -----------------------------------------------------------------------------
+%macro DOS_crlf 0
+    call DOSrncrlf
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief write a string in DX to DOS console without "lf", and no "cr" ...
+; \param 1. DX - src label
+; \see   DOS_WriteLn
+; -----------------------------------------------------------------------------
+%macro DOS_Write 1
+    lea  dx, [PTR16(_cA_%1)]
+    call DOS_ConsoleWrite
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief write a string in DX to DOS console with "lf", and "cr" ...
+; \param 1. DX - src label
+; \see   DOS_Write
+; -----------------------------------------------------------------------------
+%macro DOS_WriteLn 1
+    DOS_Write %1
+    DOS_crlf
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief allocate memory for/in the DOS console ...
+; \param 1. count paragraphs
+; \note  calculate with: 4096 / 16 = 256 (4096 is a example !)
+; -----------------------------------------------------------------------------
+%macro DOS_AllocMem 1
+%if DOS_SHELL == 1
+    mov  ax, 4800h      ; AH = 48h -> Allocate Memory Block
+    mov  bx, %1         ; Paragraph-Anzahl
+    SysCall
+    
+    sbb  ax, ax
+    cmp  ax, 0
+    je   %%.successful
+    
+    cmp  ax, 0xFF
+    je   %%.fail        ; CF = 1 -> error, AX = error code
+    
+    jmp  %%.fail
+    
+    %%.successful:
+    ; AX = Segment des Blocks
+    mov  es, ax
+    xor  di, di
+    
+    ; Block mit 0x00 füllen
+    mov  cx, 4096
+    mov  al, 0x00
+    rep  stosb          ; write to ES:DI
+    
+    ; demo read access: AL = ES:[1234]
+    ;mov  di, 1234
+    ;mov  al, [es:di]
+    
+    jmp   %%.next
+    
+    %%.fail:
+    DOS_WriteLn msg_alloc_error
+    DOS_Exit    1
+    
+    %%.next:
+%endif
+%endmacro
+
+%macro DOS_FreeMem 0
+%if DOS_SHELL == 1
+    mov ax, 0x4900
+    SysCall
 %endif
 %endmacro

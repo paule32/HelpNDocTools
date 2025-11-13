@@ -7,6 +7,7 @@
 ; -----------------------------------------------------------------------------
 ; PE-Header (PE32+) + Optional Header + Section Table
 ; -----------------------------------------------------------------------------
+%define DOS_SHELL 0
 bits 64
 org 0
 align 8
@@ -34,7 +35,7 @@ pe_header:
     dd SECTALIGN                   ; SectionAlignment
     dd FILEALIGN                   ; FileAlignment
     dw 6,0                         ; OS Version
-    dw 0,0                         ; Image Version
+    dw 1949,1956                   ; Image Version
     dw 6,0                         ; Subsystem Version
     dd 0
     dd SIZEOF_IMAGE                ; SizeOfImage
