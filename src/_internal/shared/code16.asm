@@ -98,16 +98,15 @@ code16_start:
     ; when:
     ; C:\start.exe 123 abc
     ; --------------------------------------
-    lea  si, [PTR16(_cA_cmd_buf)+1]
+    lea  si, [PTR16(_cA_cmd_buf)]
     lea  bx, [PTR16(_cA_cmd_buffer)]
     .next_input:
     lodsb
     cmp  al, ' '
     je   .next_input
-    cmp  al, 0x0d
+    cmp  al, 0x00
     je   .end_input
     mov  [bx], byte al
-    inc  si
     inc  bx
     jmp  .next_input
     
