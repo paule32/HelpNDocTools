@@ -50,6 +50,17 @@ _cA_dst:            resb 128
 
 mode_in:            resd 1
 mode_out:           resd 1
+; -----------------------------------------------------------------------------
+_cA_empty:          resb 1
 
+_cA_buf:            resb 64
+
+hIn:                resq 1
+hOut:               resq 1
+read:               resd 1
+tmpConsoleMode:     resd 1
+last_error:         resd 1
+
+written:            resq 1
 bss_end:
 

@@ -8,7 +8,6 @@
 %define DOS_SHELL 1
 
 bits 16
-org  0
 code16_start:
     mov  si, 81h          ; SI -> Beginn der Kommandozeile im PSP
     mov  cl, [80h]        ; CL = Länge
@@ -35,20 +34,20 @@ code16_start:
     inc  di
 
     .make_dos_str:
-    mov  byte [di], '$'     ; für DOS-Funktion 09h Stringabschluss
+    mov  byte [di], 0x00     ; für DOS-Funktion 09h Stringabschluss
     jmp .next
     
     .no_args:
-    DOS_WriteLn noargs_msg
-    DOS_Exit    0           ; exit - no args.
+    SCREEN_CLEAR
+    SET_CURSOR 0, 1
+    PUTS_COLOR noargs_msg, 0x02 | 0x10
+    SET_CURSOR 0, 2
+    DOS_Exit   0             ; exit - no args.
     
     .next:
-    ; 4096 Bytes = 256 Paragraphs (1 Paragraph = 16 Bytes)
-    ;DOS_AllocMem 256
     STRLEN cmd_buf
 
     READL_CON_A dos_buffer
-    ;DOS_FreeMem
     
     SCREEN_CLEAR
     SET_CURSOR 10, 5
@@ -61,11 +60,15 @@ code16_start:
     SET_CURSOR 10, 10
     READL_CON_A dos_buffer
     
-    SET_CURSOR 10, 7
+    SET_CURSOR 10, 3
     PUTS_COLOR dos_buffer, 0x0E | 0x10
+    
+    SET_CURSOR 10, 7
+    PUTS_COLOR cmd_buf, 0x0E | 0x10
     
     SET_CURSOR 20, 7
     PUTS_COLOR DBFNAME, 0x0E
+    ;DOS_Exit 0
 
 ; -----------------------------------------------------------------------------
 ; dbfmake.asm  - Create/Append field into dBASE III/IV DBF by INT 21h
@@ -87,7 +90,33 @@ code16_start:
     ;mov  ah, 09h
     ;int  21h
     
-    DOS_Write cmd_buf
+    SET_CURSOR 40, 7
+    PUTS_COLOR cmd_buf, 0x0E | 0x10
+    
+    ; --------------------------------------
+    ; the result till DOS_Exit is:  13ac
+    ; when:
+    ; C:\start.exe 123 abc
+    ; --------------------------------------
+    lea  si, [PTR16(_cA_cmd_buf)+1]
+    lea  bx, [PTR16(_cA_cmd_buffer)]
+    .next_input:
+    lodsb
+    cmp  al, ' '
+    je   .next_input
+    cmp  al, 0x0d
+    je   .end_input
+    mov  [bx], byte al
+    inc  si
+    inc  bx
+    jmp  .next_input
+    
+    .end_input:
+    
+    SET_CURSOR 40, 5
+    PUTS_COLOR cmd_buffer, 0x0E | 0x10
+    
+    DOS_Exit 0
 
     jmp  .token_done
     

@@ -7,7 +7,6 @@
 ;---------------------------------------------------
 ; DOS-Header
 ;---------------------------------------------------
-
 org 0
 bits 16
 section .text
@@ -43,16 +42,7 @@ mz_image:
 
 ; ---- 16-bit Stub-Entry bei e_cs:e_ip = 0:0 (ab mz_image)
 stub_entry:
+incbin 'kernel.bin'
 
-section .text    
-%include 'code16.asm'
-
-section .data
-%include 'data16.inc'
-
-section .bss
-%include 'bss16.asm'
-
-section .text
 align 16
 stub_end:

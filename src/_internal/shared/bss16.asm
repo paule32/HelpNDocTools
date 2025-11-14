@@ -8,6 +8,49 @@
 
 bss16_start:
 
-fdescbuf:  resb 4096
+_cA_cmd_buf:        resb 130          ; max. 127 + '$' + Reserve
+_cA_cmd_buffer:     resb 130
+
+fdescbuf:           resb 4096
+
+buf_hex:            resb 6            ; 4 Hex-Zeichen + '$' + Reserve
+buf_dec:            resb 7            ; 5 Dezimal-Zeichen + '$' + Reserve
+
+filename:           resb 128
+_cA_fdbuf:
+fdbuf:              resb 2048
+_cA_namebuf:        resb 16
+
+hFile:              resw 0
+; -----------------------------------------------------------------------------
+g_type:             resw 0
+g_cmd:              resb 0
+g_ftype:            resb 0
+g_ftype_mapped:     resb 0
+g_flen:             resw 0
+g_year:             resw 0
+g_month:            resb 0
+g_day:              resb 0
+; -----------------------------------------------------------------------------
+verByte:            resb 0
+yy:                 resb 0
+mm:                 resb 0
+dd:                 resb 0
+mdx:                resb 0
+lang:               resb 0
+rec32:              resd 0
+
+tokbuf:             resb 64
+fldname:            resb 12
+
+header:             resb 32
+fdbuf_size:         resw 0
+tempdesc:           resb 32
+
+; -----------------------------------------------------------------------------
+
+buf_seg:            resw 0
+size_lo:            resw 0
+size_hi:            resw 0
 
 bss16_end:

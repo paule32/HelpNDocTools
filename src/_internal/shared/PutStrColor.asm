@@ -59,11 +59,10 @@ DOS_ConsoleWrite:
     lodsb
     cmp al, '$'
     je .pe_done
-    cmp al, 0x00
-    je .pe_done
     mov dl, al
-    mov ah, 02h
+    mov ah, 0x02
     int 21h
+    inc si
     jmp .print_z_loop
     .pe_done:
     pop si

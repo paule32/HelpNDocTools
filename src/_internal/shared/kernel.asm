@@ -1,16 +1,22 @@
-VIDEO_MEM EQU 0x0b8000
+;---------------------------------------------------
+; \file  kernel.asm
+; \note  (c) 2025 by Jens Kallup - paule32
+;        all rights reserved.
+;
+; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
+;---------------------------------------------------
+bits 16
+org 0
+%include 'macros.inc'
+%include 'winfunc.inc'
 
-org 0x110000                    ; Set ORG to address kernel is loaded at
+kernel_start:
+section .text
+%include 'code16.asm'
 
-bits 32
-kernel_entry:
-    ; Write MDP in white on magenta starting on second row, column 0
-    mov eax, 0x5f SHL 8 OR 'M'
-    mov [VIDEO_MEM+80*2], ax
-    mov eax, 0x5f SHL 8 OR 'D'
-    mov [VIDEO_MEM+80*2+2], ax
-    mov eax, 0x5f SHL 8 OR 'P'
-    mov [VIDEO_MEM+80*2+4], ax
+section .data
+%include 'data16.inc'
 
-    ret
- 
+section .bss
+%include 'bss16.asm'
+kernel_end:

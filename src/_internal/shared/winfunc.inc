@@ -516,7 +516,7 @@
 %macro PUTS_COLOR 2
 %if DOS_SHELL == 1
     mov  bl, %2             ; color
-    mov  si, PTR16(_cA_%1)  ; text 0-terminated
+    lea  si, PTR16(_cA_%1)  ; text 0-terminated
     call PutStrColor
 %else
 %endif

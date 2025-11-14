@@ -94,17 +94,5 @@ ASTR buffer_2, "moin", 0
 ASTR buffer_1, "Hello %s", 0
 ASTR buffer_3, " smile"  , 13, 10, 0
 
-_cA_empty:          db 0
-
-_cA_buf:            times  64 db 0
-
-hIn:                dq 0
-hOut:               dq 0
-read:               dd 0
-tmpConsoleMode:     dd 0
-last_error:         dd 0
-
-written:            dq 0
-
 data_end:
 times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0
