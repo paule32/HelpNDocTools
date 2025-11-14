@@ -117,6 +117,31 @@ code16_start:
     
     DOS_Exit 0
 
+; -----------------------------------------------------------------
+; BX = Basis of Array
+mov   bx, command_args  
+
+; size in powers of 2 (4,8,16) -> shift
+; e.g.: COMMAND_LINE_size = 65 -> *6 = << 6
+;
+; << 2  => 4
+; << 3  => 8
+; << 4  => 16
+; << 5  => 32
+; << 6  => 64 ( 65 struc size minus 1 (v. Neumann))
+;
+; +---- source index
+; |    +------ index 0 based
+; |    |    +-- struc size
+; |    |    |
+; V    V    V
+; SI = CX * 65  => (CX << 6) + CX  ; CX = 0,1,2,3,4...
+mov   si, cx
+shl   si, 6
+add   si, cx
+mov   byte [bx + si + COMMAND_LINE.arg_str], 'A'
+
+; -----------------------------------------------------------------
     jmp  .token_done
     
     
