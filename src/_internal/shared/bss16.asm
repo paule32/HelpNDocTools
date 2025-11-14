@@ -13,14 +13,9 @@ bss16_start:
 ; -----------------------------------------------------------------------------
 struc COMMAND_LINE
     .arg_count      resb 1            ; max. 255 arguments
-    .arg_1          resb 64           ; max. length = 64 bytes
-    .arg_2          resb 64
-    .arg_3          resb 64
-    .arg_4          resb 64
-    .arg_5          resb 64
-    .arg_6          resb 64
-    .arg_7          resb 64
+    .arg_str        resb 64           ; max. length = 64 bytes
 endstruc
+command_args:       resb COMMAND_LINE_size * 7
 
 _cA_cmd_buf:        resb 130          ; max. 127 + '$' + Reserve
 _cA_cmd_buffer:     resb 130
