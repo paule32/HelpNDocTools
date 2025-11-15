@@ -96,6 +96,7 @@ code16_start:
     ; --------------------------------------
     push dx
     mov  dx, 1
+    xor  cx, cx
     
     lea  si, [PTR16(_cA_cmd_buf)]
     lea  bx, [PTR16(_cA_command_args)]
