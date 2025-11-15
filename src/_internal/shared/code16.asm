@@ -93,13 +93,12 @@ code16_start:
     PUTS_COLOR cmd_buf, 0x0E | 0x10
     
     ; --------------------------------------
-    ; the result till DOS_Exit is:  13ac
-    ; when:
-    ; C:\start.exe 123 abc
     ; --------------------------------------
+    push dx
+    mov  dx, 1
+    
     lea  si, [PTR16(_cA_cmd_buf)]
-    lea  bx, [PTR16(_cA_command_args)+1]
-    xor  cx, cx         ; reset counter
+    lea  bx, [PTR16(_cA_command_args)]
     .next_input:
     lodsb
     cmp  al, ' '        ; whitespace ?
@@ -114,19 +113,23 @@ code16_start:
     cmp  cx, 32         ; max. arg len reached ?
     je  .end_input      ; yes, then exit loop
     inc  cx             ; else, increment arg num.
-    
+        
+    .get_input:
     mov  [bx], byte al  ; append readed char to bx
     inc  bx             ; increment array
     jmp  .next_input    ; get next character
     
     .end_input:
-    mov  [bx], byte 0   ; 0 string terminator
+    cmp  dx, 1          ; 1. argument
+    je   .is_input
+    
     cmp  al, ' '        ; yes, argument ?
     je   .next_input
-
-    dec  cx             ; == args - 1
-    cmp  cx, 0          ; no arguments ?
-    je   .no_args       ; yes, exit loop/application
+    
+    .is_input
+    mov  [bx], byte 0   ; 0 string terminator
+    
+    pop  dx
     
     SET_CURSOR 40, 5
     PUTS_COLOR command_args, 0x0E | 0x10
