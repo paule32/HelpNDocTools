@@ -11,13 +11,16 @@ bss16_start:
 ; -----------------------------------------------------------------------------
 ; \brief hold DOS command line argument information's ...
 ; -----------------------------------------------------------------------------
-struc COMMAND_LINE
+%define MAX_ARGS    7
+struc _cA_COMMAND_LINE
     .arg_count      resb 1            ; max. 255 arguments
     .arg_str        resb 64           ; max. length = 64 bytes
 endstruc
-command_args:       resb COMMAND_LINE_size * 7
+_cA_command_args:   resb 64 * MAX_ARGS
+_cA_command_arglen: resb 64
+arg_total:          resb 1
 
-_cA_cmd_buf:        resb 130          ; max. 127 + '$' + Reserve
+_cA_cmd_buf:        resb 256          ; CMD string
 _cA_cmd_buffer:     resb 130
 
 fdescbuf:           resb 4096

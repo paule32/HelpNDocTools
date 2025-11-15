@@ -6,9 +6,13 @@
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
 %define DOS_SHELL 1
-
+%define MAX_ARGS  7
+%macro CMD_LINE 1-*
+    ;COMMAND_LINE_%1
+%endmacro
 bits 16
 code16_start:
+    xor  ax, ax
     mov  si, 81h          ; SI -> Beginn der Kommandozeile im PSP
     mov  cl, [80h]        ; CL = Länge
     xor  ch, ch           ; CX = Länge
@@ -18,12 +22,15 @@ code16_start:
     mov  di, PTR16(_cA_cmd_buf) ; DI -> Ziel
     .copy:
     lodsb                 ; AL = [DS:SI], SI++
-    cmp  al, 0Dh          ; CR markiert das Ende (Sicherheit)
+    cmp   al, 0x0D        ; CR markiert das Ende (Sicherheit)
     je   .done_copy
     stosb                 ; [ES:DI]=AL (ES=DS in .COM), DI++
     loop .copy
 
     .done_copy:
+    mov  al, 0
+    stosb
+    
     ; Trim: nachlaufende Spaces entfernen
     .trim:
     cmp  di, PTR16(_cA_cmd_buf)
@@ -34,7 +41,7 @@ code16_start:
     inc  di
 
     .make_dos_str:
-    mov  byte [di], 0x00     ; für DOS-Funktion 09h Stringabschluss
+    mov  byte [di], 0     ; für DOS-Funktion 09h Stringabschluss
     jmp .next
     
     .no_args:
@@ -45,8 +52,6 @@ code16_start:
     DOS_Exit   0             ; exit - no args.
     
     .next:
-    STRLEN cmd_buf
-
     READL_CON_A dos_buffer
     
     SCREEN_CLEAR
@@ -68,7 +73,7 @@ code16_start:
     
     SET_CURSOR 20, 7
     PUTS_COLOR DBFNAME, 0x0E
-    ;DOS_Exit 0
+;    DOS_Exit 0
 
 ; -----------------------------------------------------------------------------
 ; dbfmake.asm  - Create/Append field into dBASE III/IV DBF by INT 21h
@@ -83,12 +88,6 @@ code16_start:
 ; Feldname: max 10 Zeichen (dBASE-Beschränkung, 11. Byte = 0)
 ; Feldlaenge: Dezimal (z.B. 20)
 ; -----------------------------------------------------------------------------
-    ;call next_token
-    ;mov  ah, 09h
-    ;int  21h
-    ;lea  dx, [PTR16(cmd_buf)]
-    ;mov  ah, 09h
-    ;int  21h
     
     SET_CURSOR 40, 7
     PUTS_COLOR cmd_buf, 0x0E | 0x10
@@ -99,27 +98,44 @@ code16_start:
     ; C:\start.exe 123 abc
     ; --------------------------------------
     lea  si, [PTR16(_cA_cmd_buf)]
-    lea  bx, [PTR16(_cA_cmd_buffer)]
+    lea  bx, [PTR16(_cA_command_args)+1]
+    xor  cx, cx         ; reset counter
     .next_input:
     lodsb
-    cmp  al, ' '
-    je   .next_input
-    cmp  al, 0x00
-    je   .end_input
-    mov  [bx], byte al
-    inc  bx
-    jmp  .next_input
+    cmp  al, ' '        ; whitespace ?
+    je   .end_input     ; yes, next argument
+    
+    cmp  al, 0x0d       ; read line DOS end ?
+    je   .end_input     ; yes, exit loop
+    cmp  al, 0x00       ; sanity check EOL ?
+    je   .end_input     ; yes, exit loop
+    
+    .check_arg_len:
+    cmp  cx, 32         ; max. arg len reached ?
+    je  .end_input      ; yes, then exit loop
+    inc  cx             ; else, increment arg num.
+    
+    mov  [bx], byte al  ; append readed char to bx
+    inc  bx             ; increment array
+    jmp  .next_input    ; get next character
     
     .end_input:
+    mov  [bx], byte 0   ; 0 string terminator
+    cmp  al, ' '        ; yes, argument ?
+    je   .next_input
+
+    dec  cx             ; == args - 1
+    cmp  cx, 0          ; no arguments ?
+    je   .no_args       ; yes, exit loop/application
     
     SET_CURSOR 40, 5
-    PUTS_COLOR cmd_buffer, 0x0E | 0x10
+    PUTS_COLOR command_args, 0x0E | 0x10
+    DOS_Exit cx
     
-    DOS_Exit 0
 
 ; -----------------------------------------------------------------
 ; BX = Basis of Array
-mov   bx, command_args  
+mov   bx, _cA_command_args
 
 ; size in powers of 2 (4,8,16) -> shift
 ; e.g.: COMMAND_LINE_size = 65 -> *6 = << 6
@@ -139,8 +155,9 @@ mov   bx, command_args
 mov   si, cx
 shl   si, 6
 add   si, cx
-mov   byte [bx + si + COMMAND_LINE.arg_str], 'A'
+mov   byte [bx + si + _cA_COMMAND_LINE.arg_str], 'A'
 
+DOS_Exit 0
 ; -----------------------------------------------------------------
     jmp  .token_done
     
@@ -1492,6 +1509,42 @@ dos_screen_clear:
     xor  bh, bh
     call SetConsoleCursor
     
+    ret
+
+; ------------------------------------------------------------
+; Hilfsroutine: ein Zeichen an aktuelles arg_str anhängen,
+;               maximal 63 Nutzzeichen. Bei Overflow werden
+;               zusätzliche Zeichen bis zum nächsten Separator
+;               verworfen (wir schreiben einfach nicht mehr).
+; IN:
+;   AL = Zeichen
+;   DI = Schreibzeiger (zeigt immer auf nächste freie Stelle)
+;   CX = aktuelle Länge (0..63)
+; OUT:
+;   DI/CX aktualisiert
+; Zerstört: nichts weiter (AX benutzt)
+; ------------------------------------------------------------
+put_char_maybe:
+    cmp     cx, 63
+    jae     .skip_write
+    stosb                   ; [DI] = AL, DI++
+    inc     cx
+    ret
+.skip_write:
+    ; Zeichen verwerfen (nichts schreiben)
+    ret
+
+; DS:SI -> ASCIIZ
+print_z0:
+    .loop:
+    lodsb
+    test    al, al
+    jz      .done
+    mov     dl, al
+    mov     ah, 02h
+    int     21h
+    jmp     .loop
+    .done:
     ret
 
 ; -----------------------------------------------------------------------------

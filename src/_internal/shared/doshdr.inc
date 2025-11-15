@@ -36,7 +36,10 @@ end_dos_header equ ($ - dos_start)
 
 ; Reloc-Tabelle (leer), aber im Headerbereich!
 mz_reloc:                               ; == 0x40
-    
+
+;---------------------------------------------------
+; DOS 16 bit stub
+;---------------------------------------------------
 align 16                                ; <-- sicherstellen, dass mz_image auf Absatzgrenze startet
 mz_image:
 
@@ -44,5 +47,10 @@ mz_image:
 stub_entry:
 incbin 'kernel.bin'
 
-align 16
+;---------------------------------------------------
+; Windows 3.1 16 bit stub
+;---------------------------------------------------
+;align 16
+;%include 'win16NEhdr.inc'
+
 stub_end:

@@ -545,8 +545,28 @@
 ; \return nothing
 ; -----------------------------------------------------------------------------
 %macro DOS_Exit 1
-    mov  ax, 0x4C00 | %1
-    int  21h
+%if DOS_SHELL == 1
+    %ifidni   %1, ax
+        %error 'AX not allowed here.'
+    %elifidni %1, bx
+        mov ax, 0x4C00
+        or  ax, bx
+        SysCall
+    %elifidni %1, cx
+        mov ax, 0x4C00
+        or  ax, cx
+        SysCall
+    %elifidni %1, dx
+        mov ax, 0x4C00
+        or  ax, dx
+        SysCall
+    %elifnum  %1
+        mov  ax, 0x4C00 | %1
+        SysCall
+    %else
+        %error 'BX, CX, DX or <NUM> expected.'
+    %endif
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
