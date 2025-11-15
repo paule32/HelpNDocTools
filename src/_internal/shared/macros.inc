@@ -22,6 +22,13 @@
     int 0x21        ; DOS interrupt 0x21
 %endif
 %endmacro
+%macro VideoCall 0
+%if DOS_SHELL == 1
+    int 0x10
+%else
+    %error 'only DOS supports interrupts.'
+%endif
+%endmacro
 
 ; -----------------------------------------------------------------------------
 ; add win64 abi shadow ...

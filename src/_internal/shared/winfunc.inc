@@ -503,7 +503,7 @@
 %macro SET_COLOR_TO 2
 %if %0 == 2
     STRCPY_ANSI buffer_B, consoleColor_1, empty
-    STRCAT_ANSI buffer_B,                         \
+    STRCAT_ANSI buffer_B,                     \
                 console_color_%1, buffer_semi,\
                 console_color_%2, consoleColor_2
     WRITE_CON_A buffer_B
@@ -647,4 +647,14 @@
     mov ax, 0x4900
     SysCall
 %endif
+%endmacro
+
+; -----------------------------------------
+; COMPARE <reg>, <imm>, <label>
+; Beispiel: COMPARE al, 0x0a, printed
+; Macht:   cmp <reg>, <imm>  /  je <label>
+; -----------------------------------------
+%macro COMPARE 3
+    cmp %1, %2
+    je  %3
 %endmacro

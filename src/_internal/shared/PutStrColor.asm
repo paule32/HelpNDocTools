@@ -13,7 +13,7 @@ putc:
     push dx
     mov dl, al
     mov ah, 02h
-    int 21h
+    SysCall
     pop dx
     ret
 
@@ -27,7 +27,7 @@ DOSrncrlf:
 
 DOSPutStrColor:
     mov  ah, 09h
-    int  0x21
+    SysCall
     ret
 
 print_z:
@@ -59,9 +59,7 @@ DOS_ConsoleWrite:
     lodsb
     cmp al, '$'
     je .pe_done
-    mov dl, al
-    mov ah, 0x02
-    int 21h
+    call putc
     inc si
     jmp .print_z_loop
     .pe_done:
@@ -84,32 +82,33 @@ PutStrColor:
     ; -------------------
     .print_loop:
     lodsb                ; AL := [SI], SI++
-    cmp  al, 0x00        ; reach end  ?
-    je   .printed
-    cmp  al, 0x0d
-    je   .printed
-    cmp  al, 0x0a
-    je   .printed
-    cmp  al, 0x00
-    je   .printed
+    
+    COMPARE al, 0x00, .printed  ; reach end  ?
+    COMPARE al, 0x0d, .printed
+    COMPARE al, 0x0a, .printed
+    
     test al, al
     jz   .printed
     mov  ah, 09h         ; Teletype-Ausgabe
     mov  cx, 1           ; mim
-    int  10h
+    VideoCall
     
     mov ah, 02h
     xor bh, bh
     inc dl
-    int 10h
+    VideoCall
     
     jmp  .print_loop
 
     .printed:
-    ; --- Cursorposition lesen (AH=03h) ---
+    call  DOS_getCursor
+    ret
+    
+; --- Cursorposition lesen (AH=03h) ---
+DOS_getCursor:
     mov  ah, 03h         ; Read Cursor Position
     mov  bh, 0           ; Videoseite 0
-    int  10h             ; Rückgabe: DH=Zeile, DL=Spalte (0-basiert)
+    VideoCall            ; Rückgabe: DH=Zeile, DL=Spalte (0-basiert)
     mov  [PTR16(dos_ypos)], dh
     mov  [PTR16(dos_xpos)], dl
 

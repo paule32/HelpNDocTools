@@ -132,7 +132,7 @@ code16_start:
     
     pop  dx
     
-    SET_CURSOR 40, 5
+    SET_CURSOR 40, 3
     PUTS_COLOR command_args, 0x0E | 0x10
     DOS_Exit cx
     
