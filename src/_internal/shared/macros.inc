@@ -11,6 +11,42 @@
 ; -----------------------------------------------------------------------------
 %define ERROR_Win32API 'this macro can only be use with win32api (Windows).'
 
+; -----------------------------------------------------------------------------
+; \brief DOS error codes for int 0x21 - 3Dh
+; -----------------------------------------------------------------------------
+%define ERROR_INVALID_FUNCTION      0x01
+%define ERROR_FILE_NOT_FOUND        0x02
+%define ERROR_PATH_NOT_FOUND        0x03
+%define ERROR_TOO_MANY_OPEN_FILES   0x04
+%define ERROR_ACCESS_DENIED         0x05
+%define ERROR_INVALID_HANDLE        0x06
+%define ERROR_INVALID_ACCESS        0x0C
+%define ERROR_INVALID_DRIVE         0x0F
+%define ERROR_CURRENT_DIRECTORY     0x10
+%define ERROR_NOT_SAME_DEVICE       0x11
+%define ERROR_NO_MORE_FILES         0x12
+%define ERROR_SEEK                  0x1D
+%define ERROR_NOT_DOS_DISK          0x1E
+
+; -----------------------------------------------------------------------------
+; \brief DOS file open modes ...
+; -----------------------------------------------------------------------------
+%define DOS_READ_ONLY   0x00    ; read  only
+%define DOS_WRITE_ONLY  0x01    ; write only
+%define DOS_READWRITE   0x02    ; read/write
+
+; -----------------------------------------------------------------------------
+; \brief DOS file seek constants ...
+; -----------------------------------------------------------------------------
+%define SEEK_BEGIN      0x00    ; begin of file
+%define SEEK_SET        0x01    ; current position
+%define SEEK_END        0x02    ; file end
+
+; -----------------------------------------------------------------------------
+; \brief DOS console settings ...
+; -----------------------------------------------------------------------------
+%define ATTR_DOS_ERROR              0x0E | 0x10     ; yeloow on blue bakcground
+
 %ifndef PTR16
 %define PTR16(sym) (sym-code16_start+0x100)
 %endif
@@ -1189,7 +1225,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
         mov ax, 0x4C00
         or  ax, bx
         SysCall
-    %elifidni %1, cx
+    %elifidni %1, CX
         mov ax, 0x4C00
         or  ax, cx
         SysCall

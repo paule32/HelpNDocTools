@@ -75,8 +75,33 @@ str_APPEND:         db 'APPEND',0
 ; ---- Daten ----
 _cA_noargs_msg:     db 'no args.', 0
 
+; -----------------------------------------------------------------------------
+; \brief DOS error code messages for int 0x21 function 0x3D (open file)
+; -----------------------------------------------------------------------------
+_cA_open_error_nd:  db 'unknown error.',0
+_cA_open_error_01:  db 'invalid function / wrong AH code.', 0
+_cA_open_error_02:  db 'file not found.', 0
+_cA_open_error_03:  db 'path not found.', 0
+_cA_open_error_04:  db 'too many open files.', 0
+_cA_open_error_05:  db 'access denied.', 0
+_cA_open_error_06:  db 'invalid file handle', 0
+_cA_open_error_0C:  db 'invalid access token.', 0
+_cA_open_error_0F:  db 'invalid drive.', 0
+_cA_open_error_10:  db 'tried to delete current directory.', 0
+_cA_open_error_11:  db 'file on other drive.', 0
+_cA_open_error_12:  db 'no more files.', 0
+
 ; --- Daten ---
-mod_filename:    db 'MODUL1.BIN',0
+mod_filename:           db 'MODUL1.BIN',0
+
+_cA_mod_read_error:     db 'module file not found.',0
+_cA_mod_file_error:     db 'open file error.',0
+_cA_mod_free_error:     db 'free error.',0
+_cA_mod_free_error_no:  db 'memory not freed.',0
+_cA_mod_clos_error:     db 'close error.',0
+_cA_mod_clos_error_no:  db 'file not close error.',0
+_cA_mod_have_error_no:  db 'no error found.',0
+
 mod_hFile:       dw 0
 mod_seg_ovl:     dw 0
 mod_fsize_lo:    dw 0
@@ -90,4 +115,3 @@ rec_len:            dw 0
 
 data16_end:
 
-%define DOS_SHELL 0

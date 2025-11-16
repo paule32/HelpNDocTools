@@ -16,14 +16,15 @@ org 0
 
 ; Eintritt bei Offset 0000h
 entry:
-    ; Erwartung: CS=DS=ES=Modul-Segment
-    ; Übergabe: ES:BX -> Buffer, CX = Länge
-    push ds
-    push es
-
-    ; Status 0 = OK
+    mov bx, 0
+    jmp entry
+    .loopser:
+    cmp bx, 5
+    je  .retf
     xor ax, ax
-
-    pop es
-    pop ds
+    int 0x16
+    inc bx
+    jmp .loopser
+    .retf:
+    xor ax, ax
     retf            ; far return zum Loader

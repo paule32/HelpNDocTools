@@ -9,6 +9,9 @@
 %define MAX_ARGS  7
 bits 16
 code16_start:
+    ;push cs
+    ;pop  ds
+    
     INIT_COMMAND_LINE
     INIT_CONSOLE
         
@@ -54,103 +57,144 @@ code16_start:
     
     SET_CURSOR 40, 3            ; move cursor to col:40, row:3
     PUTS_COLOR ARGV_2, 0x1E     ; display SI (argument)
-    
-    
 
     ; --- Dateiname ---
-    mov dx, PTR16(mod_filename)
-    mov ax, 3D00h           ; open read-only
+    ; 1) Datei öffnen (DS:DX -> ASCIIZ)
+    mov  dx, PTR16(mod_filename)
+    mov  ah, 0x3D               ; open existing file
+    mov  al, DOS_READ_ONLY      ; read-only
     SysCall
-    jc  _exit_err
-    mov [PTR16(mod_hFile)], ax
-
-    ; --- Dateigröße holen (lseek end) ---
-    mov bx, ax              ; handle
-    xor cx, cx
-    xor dx, dx
-    mov ax, 4202h           ; lseek to end
+    jc   _open_error
+    
+    mov  [PTR16(mod_hFile)], ax        ; Handle speichern
+    jmp  _open_read_ok
+    
+    _open_error:
+        push ax
+        SET_CURSOR 0, 1         ; move cursor
+        pop  ax
+        call DOS_handle_error_code
+        ; ---
+    _open_read_ok:
+    
+    ; 2) Größe holen: lseek end
+    mov  bx, ax                 ; BX = Handle
+    xor  cx, cx
+    xor  dx, dx
+    mov  ah, 0x42
+    mov  al, SEEK_END           ; move to end
     SysCall
-    jc  _close_err
-    ; DX:AX = filesize (max ~64KB im Beispiel)
-    mov [PTR16(mod_fsize_lo)], ax
-    mov [PTR16(mod_fsize_hi)], dx
+    jc   _seek_error
+    mov  [PTR16(mod_fsize_lo)], ax     ; DX:AX = filesize
+    mov  [PTR16(mod_fsize_hi)], dx
 
-    ; --- Paragraphbedarf berechnen: paragraphs = (size + 15) / 16 ---
-    ; nur low 16 Bit für Demo (RAW < 64KB)
-    mov ax, [PTR16(mod_fsize_lo)]
-    add ax, 15
-    mov cl, 4
-    shr ax, cl              ; /16
-    jz  .need_min            ; 0 -> trotzdem 1 Paragraph
-    jmp short .have_par
-    .need_min:
-    mov ax, 1
-    .have_par:
-    mov bx, ax              ; BX = paragraphs
-    ; Optional: +Stackreserve fürs Modul (hier nicht, wir nutzen Caller-Stack)
+    _seek_error:
+        SET_CURSOR 0, 1         ; move cursor
+    
+    ; 3) Paragraphbedarf: (size+15)/16, min 1
+    mov  ax, [PTR16(mod_fsize_lo)]
+    add  ax, 15
+    shr  ax, 4
+    jnz  _have_par
+    mov  ax, 1
+_have_par:
+    mov  bx, ax                 ; BX = Paragraphs
 
-    ; --- allozieren ---
-    mov ah, 48h
-    SysCall
-    jc  _close_err
-    mov [PTR16(mod_seg_ovl)], ax       ; AX = Segment
+    ; 4) allozieren (AH=48h)
+    mov  ah, 48h
+    int  21h
+    jc   _close_err
+    mov  [PTR16(mod_seg_ovl)], ax      ; AX = Segment
 
-    ; --- Datei an den Anfang des Segments lesen ---
-    ; reposition to start
-    mov bx, [PTR16(mod_hFile)]
-    xor cx, cx
-    xor dx, dx
-    mov ax, 4200h           ; lseek to start
-    SysCall
+    ; 5) an Dateianfang
+    mov  bx, [PTR16(mod_hFile)]
+    xor  cx, cx
+    xor  dx, dx
+    mov  ax, 4200h              ; move to start
+    int  21h
 
-    mov bx, [PTR16(mod_hFile)]
-    mov ax, [PTR16(mod_seg_ovl)]
-    mov es, ax
-    xor dx, dx              ; ES:DX = 0000h Zieloffset
-    mov cx, [PTR16(mod_fsize_lo)]      ; Demo: Größe <= 64K
-    mov ah, 3Fh             ; read
-    SysCall
-    jc  _free_err
-
-    ; --- Demo-Argumente vorbereiten ---
-
-    ; --- CS=DS für das Modul setzen und far call an ES:0000 ---
-    ; Protokoll: ES:BX=Buffer, CX=Len. AX=Status zurück.
+    ; 6) lesen nach Overlay:0000  (DOS erwartet DS:DX)
+    mov  bx, PTR16(mod_hFile)
+    mov  ax, PTR16(mod_seg_ovl)
     push ds
-    mov ax, [PTR16(mod_seg_ovl)]
-    mov es, ax
-
-    push es                 ; target segment
-    push word 0             ; target offset
-
-    ; vor dem Sprung DS=target CS machen (Modul erwartet DS=CS)
-    ;mov ds, es
-    mov ax, es  ; alternative zu: mov ds, es
-    mov es, ax  ; ...
+    mov  ds, ax                 ; DS = Overlay-Segment
+    xor  dx, dx                 ; DS:DX = 0000h
+    mov  cx, PTR16(mod_fsize_lo) ; (RAW <= 64K)
+    mov  ah, 3Fh
+    int  21h
     
-    retf                    ; -> Modul
-
-    back_from_overlay:
-    ; AX enthält Status (0 = OK). Für Demo: ignorieren.
-    DOS_Exit 0
     
-    ; --- Aufräumen ---
+    
+    mov  si, ax                 ; tatsächlich gelesene Bytes
+    pop  ds
+    jc   _free_err
+    cmp  si, cx
+    jne  _free_err              ; Sicherheitscheck (optional)
+
+    SET_CURSOR 40, 1            ; move cursor
+    PUTS_COLOR ARGV_1, 0x1E     ; display SI (argument)
+
+    ; 7) FAR CALL in Overlay:0000 (DS=CS im Modul sicherstellen)
+    mov  ax, [PTR16(mod_seg_ovl)]
+    mov  es, ax
+    mov  ax, es
+    mov  ds, ax                 ; Modul erwartet DS=CS
+
+    push es
+    push word 0
+    retf                        ; -> MODUL1.BIN (muss per RETF zurück)
+
+_back_from_overlay:
+    ; 8) DS wieder auf CS
+    push cs
+    pop  ds
+
+    ; 9) Ressourcen aufräumen (free + close)
+_exit_read_error:
+    SET_CURSOR 0, 0                     ; move cursor
+    PUTS_COLOR mod_read_error, 0x1E     ; display SI (argument)
+    DOS_Exit 1
+    
 _free_err:
-    mov es, [PTR16(mod_seg_ovl)]
-    mov ah, 49h
-    SysCall
+    mov  ax, [PTR16(mod_seg_ovl)]
+    or   ax, ax
+    jz   _no_free
+    mov  es, ax
+    mov  ah, 49h
+    int  21h
+    
+    SET_CURSOR 0, 1                     ; move cursor
+    PUTS_COLOR mod_free_error, 0x1E     ; display SI (argument)
+    DOS_Exit 1
 
+_no_free:
+    SET_CURSOR 0, 1                     ; move cursor
+    PUTS_COLOR mod_free_error_no, 0x1E  ; display SI (argument)
+        
 _close_err:
-    mov bx, [PTR16(mod_hFile)]
-    mov ah, 3Eh
-    SysCall
-
-    .exit_ok:
-    DOS_Exit 0
+    SET_CURSOR 0, 2                     ; move cursor
+    PUTS_COLOR mod_clos_error, 0x1E     ; display SI (argument)
+    
+    mov  bx, [PTR16(mod_hFile)]
+    or   bx, bx
+    jz   _no_close
+    mov  ah, 3Eh
+    int  21h
 
 _exit_err:
-    DOS_Exit 1               ; exit to DOS
+    SET_CURSOR 0, 3                     ; move cursor
+    PUTS_COLOR mod_file_error, 0x1E     ; display SI (argument)
+    DOS_Exit 1
     
+_no_close:
+    SET_CURSOR 0, 1                    ; move cursor
+    PUTS_COLOR mod_clos_error_no, 0x1E ; display SI (argument)
+    DOS_Exit 1
+
+_exit_ok:
+    SET_CURSOR 0, 1                    ; move cursor
+    PUTS_COLOR mod_have_error_no, 0x1E ; display SI (argument)
+    DOS_Exit 0
 
 ; -----------------------------------------------------------------
 ; BX = Basis of Array
@@ -1548,6 +1592,7 @@ print_z0:
 ; -----------------------------------------------------------------------------
 %include 'CommandLineArg.asm'       ; get command line arguments
 %include 'ConsoleCursor.asm'        ; set the teletype video text cursor
+%include 'ErrorCodes.asm'           ; get last error
 %include 'InitConsole.asm'          ; initialize the DOS console
 %include 'Int16ToStr.asm'           ; convert integer number to string
 %include 'PutStrColor.asm'          ; put colored text onto the DOS screen
