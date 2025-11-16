@@ -6,6 +6,8 @@
 :: \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 :: ---------------------------------------------------
 nasm.exe -f bin -o kernel.bin kernel.asm
+nasm.exe -f bin -o modul1.bin modul1.asm
+
 nasm.exe -f bin -o start.exe  start.asm
 
 ::-w-zeroing

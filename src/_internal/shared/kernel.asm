@@ -8,7 +8,6 @@
 bits 16
 org 0
 %include 'macros.inc'
-%include 'winfunc.inc'
 
 kernel_start:
 section .text

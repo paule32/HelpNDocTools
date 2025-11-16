@@ -55,7 +55,101 @@ code16_start:
     SET_CURSOR 40, 3            ; move cursor to col:40, row:3
     PUTS_COLOR ARGV_2, 0x1E     ; display SI (argument)
     
-    DOS_Exit cx                 ; exit to DOS
+    
+
+    ; --- Dateiname ---
+    mov dx, PTR16(mod_filename)
+    mov ax, 3D00h           ; open read-only
+    SysCall
+    jc  _exit_err
+    mov [PTR16(mod_hFile)], ax
+
+    ; --- Dateigröße holen (lseek end) ---
+    mov bx, ax              ; handle
+    xor cx, cx
+    xor dx, dx
+    mov ax, 4202h           ; lseek to end
+    SysCall
+    jc  _close_err
+    ; DX:AX = filesize (max ~64KB im Beispiel)
+    mov [PTR16(mod_fsize_lo)], ax
+    mov [PTR16(mod_fsize_hi)], dx
+
+    ; --- Paragraphbedarf berechnen: paragraphs = (size + 15) / 16 ---
+    ; nur low 16 Bit für Demo (RAW < 64KB)
+    mov ax, [PTR16(mod_fsize_lo)]
+    add ax, 15
+    mov cl, 4
+    shr ax, cl              ; /16
+    jz  .need_min            ; 0 -> trotzdem 1 Paragraph
+    jmp short .have_par
+    .need_min:
+    mov ax, 1
+    .have_par:
+    mov bx, ax              ; BX = paragraphs
+    ; Optional: +Stackreserve fürs Modul (hier nicht, wir nutzen Caller-Stack)
+
+    ; --- allozieren ---
+    mov ah, 48h
+    SysCall
+    jc  _close_err
+    mov [PTR16(mod_seg_ovl)], ax       ; AX = Segment
+
+    ; --- Datei an den Anfang des Segments lesen ---
+    ; reposition to start
+    mov bx, [PTR16(mod_hFile)]
+    xor cx, cx
+    xor dx, dx
+    mov ax, 4200h           ; lseek to start
+    SysCall
+
+    mov bx, [PTR16(mod_hFile)]
+    mov ax, [PTR16(mod_seg_ovl)]
+    mov es, ax
+    xor dx, dx              ; ES:DX = 0000h Zieloffset
+    mov cx, [PTR16(mod_fsize_lo)]      ; Demo: Größe <= 64K
+    mov ah, 3Fh             ; read
+    SysCall
+    jc  _free_err
+
+    ; --- Demo-Argumente vorbereiten ---
+
+    ; --- CS=DS für das Modul setzen und far call an ES:0000 ---
+    ; Protokoll: ES:BX=Buffer, CX=Len. AX=Status zurück.
+    push ds
+    mov ax, [PTR16(mod_seg_ovl)]
+    mov es, ax
+
+    push es                 ; target segment
+    push word 0             ; target offset
+
+    ; vor dem Sprung DS=target CS machen (Modul erwartet DS=CS)
+    ;mov ds, es
+    mov ax, es  ; alternative zu: mov ds, es
+    mov es, ax  ; ...
+    
+    retf                    ; -> Modul
+
+    back_from_overlay:
+    ; AX enthält Status (0 = OK). Für Demo: ignorieren.
+    DOS_Exit 0
+    
+    ; --- Aufräumen ---
+_free_err:
+    mov es, [PTR16(mod_seg_ovl)]
+    mov ah, 49h
+    SysCall
+
+_close_err:
+    mov bx, [PTR16(mod_hFile)]
+    mov ah, 3Eh
+    SysCall
+
+    .exit_ok:
+    DOS_Exit 0
+
+_exit_err:
+    DOS_Exit 1               ; exit to DOS
     
 
 ; -----------------------------------------------------------------

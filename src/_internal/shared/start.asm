@@ -7,7 +7,6 @@
 ; -----------------------------------------------------------------------------
 %include 'basexx.inc'
 %include 'windows.inc'
-%include 'winfunc.inc'
 %include 'usefunc.inc'
 
 %include 'macros.inc'

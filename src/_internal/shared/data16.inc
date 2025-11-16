@@ -75,6 +75,16 @@ str_APPEND:         db 'APPEND',0
 ; ---- Daten ----
 _cA_noargs_msg:     db 'no args.', 0
 
+; --- Daten ---
+mod_filename:    db 'MODUL1.BIN',0
+mod_hFile:       dw 0
+mod_seg_ovl:     dw 0
+mod_fsize_lo:    dw 0
+mod_fsize_hi:    dw 0
+
+mod_msg:         db 'Hallo vom Loader!$'
+mod_msg_len:     equ ($ - msg)
+
 hdr_len:            dw 0
 rec_len:            dw 0
 

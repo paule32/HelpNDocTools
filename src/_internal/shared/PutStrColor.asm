@@ -79,6 +79,7 @@ PutStrColor:
     .no_length:
     pop  bx
     
+    mov  dx, [PTR16(dos_xpos)]
     ; -------------------
     .print_loop:
     lodsb                ; AL := [SI], SI++
@@ -96,7 +97,7 @@ PutStrColor:
     
     mov ah, 0x02
     mov bh, 0
-    inc dl
+    inc dx
     VideoCall
     
     jmp  .print_loop
