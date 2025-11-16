@@ -7,51 +7,11 @@
 ; -----------------------------------------------------------------------------
 %define DOS_SHELL 1
 %define MAX_ARGS  7
-%macro CMD_LINE 1-*
-    ;COMMAND_LINE_%1
-%endmacro
 bits 16
 code16_start:
-    xor  ax, ax
-    mov  si, 81h          ; SI -> Beginn der Kommandozeile im PSP
-    mov  cl, [80h]        ; CL = Länge
-    xor  ch, ch           ; CX = Länge
-
-    jcxz .no_args         ; nichts übergeben?
-    ; Zielpuffer vorbereiten
-    mov  di, PTR16(_cA_cmd_buf) ; DI -> Ziel
-    .copy:
-    lodsb                 ; AL = [DS:SI], SI++
-    cmp   al, 0x0D        ; CR markiert das Ende (Sicherheit)
-    je   .done_copy
-    stosb                 ; [ES:DI]=AL (ES=DS in .COM), DI++
-    loop .copy
-
-    .done_copy:
-    mov  al, 0
-    stosb
-    
-    ; Trim: nachlaufende Spaces entfernen
-    .trim:
-    cmp  di, PTR16(_cA_cmd_buf)
-    jbe  .make_dos_str
-    dec  di
-    cmp  byte [di], ' '
-    je   .trim
-    inc  di
-
-    .make_dos_str:
-    mov  byte [di], 0     ; für DOS-Funktion 09h Stringabschluss
-    jmp .next
-    
-    .no_args:
-    SCREEN_CLEAR
-    SET_CURSOR 0, 1
-    PUTS_COLOR noargs_msg, 0x02 | 0x10
-    SET_CURSOR 0, 2
-    DOS_Exit   0             ; exit - no args.
-    
-    .next:
+    INIT_COMMAND_LINE
+    INIT_CONSOLE
+        
     READL_CON_A dos_buffer
     
     SCREEN_CLEAR
@@ -92,49 +52,10 @@ code16_start:
     SET_CURSOR 40, 7
     PUTS_COLOR cmd_buf, 0x0E | 0x10
     
-    ; --------------------------------------
-    ; --------------------------------------
-    push dx
-    mov  dx, 1
-    xor  cx, cx
+    SET_CURSOR 40, 3            ; move cursor to col:40, row:3
+    PUTS_COLOR ARGV_2, 0x1E     ; display SI (argument)
     
-    lea  si, [PTR16(_cA_cmd_buf)]
-    lea  bx, [PTR16(_cA_command_args)]
-    .next_input:
-    lodsb
-    cmp  al, ' '        ; whitespace ?
-    je   .end_input     ; yes, next argument
-    
-    cmp  al, 0x0d       ; read line DOS end ?
-    je   .end_input     ; yes, exit loop
-    cmp  al, 0x00       ; sanity check EOL ?
-    je   .end_input     ; yes, exit loop
-    
-    .check_arg_len:
-    cmp  cx, 32         ; max. arg len reached ?
-    je  .end_input      ; yes, then exit loop
-    inc  cx             ; else, increment arg num.
-        
-    .get_input:
-    mov  [bx], byte al  ; append readed char to bx
-    inc  bx             ; increment array
-    jmp  .next_input    ; get next character
-    
-    .end_input:
-    cmp  dx, 1          ; 1. argument
-    je   .is_input
-    
-    cmp  al, ' '        ; yes, argument ?
-    je   .next_input
-    
-    .is_input
-    mov  [bx], byte 0   ; 0 string terminator
-    
-    pop  dx
-    
-    SET_CURSOR 40, 3
-    PUTS_COLOR command_args, 0x0E | 0x10
-    DOS_Exit cx
+    DOS_Exit cx                 ; exit to DOS
     
 
 ; -----------------------------------------------------------------
@@ -1492,29 +1413,6 @@ print_ax_hex:
     pop  ax
     ret
 
-dos_screen_clear:
-    push ds
-    mov  ax, 0B800h
-    mov  es, ax
-
-    xor  di, di         ; Offset 0
-    mov  cx, 80*25      ; 2000 Zeichen
-    mov  ax, 0x0720     ; AL=' ' (20h), AH=07h (hellgrau auf schwarz)
-
-.fill:
-    stosw               ; schreibt AX -> ES:[DI], DI+=2
-    loop .fill
-
-    pop  ds
-
-    ; Cursor (0,0)
-    
-    xor  dx, dx
-    xor  bh, bh
-    call SetConsoleCursor
-    
-    ret
-
 ; ------------------------------------------------------------
 ; Hilfsroutine: ein Zeichen an aktuelles arg_str anhängen,
 ;               maximal 63 Nutzzeichen. Bei Overflow werden
@@ -1546,7 +1444,7 @@ print_z0:
     jz      .done
     mov     dl, al
     mov     ah, 02h
-    int     21h
+    SysCall
     jmp     .loop
     .done:
     ret
@@ -1554,10 +1452,14 @@ print_z0:
 ; -----------------------------------------------------------------------------
 ; \brief include DOS 16-bit stdlib function's ...
 ; -----------------------------------------------------------------------------
-%include 'Int16ToStr.asm'
-%include 'PutStrColor.asm'
-%include 'ReadLn16.asm'
-%include 'SetConsoleCursor.asm'
-%include 'Str16Len.asm'
+%include 'CommandLineArg.asm'       ; get command line arguments
+%include 'ConsoleCursor.asm'        ; set the teletype video text cursor
+%include 'InitConsole.asm'          ; initialize the DOS console
+%include 'Int16ToStr.asm'           ; convert integer number to string
+%include 'PutStrColor.asm'          ; put colored text onto the DOS screen
+%include 'ReadLn16.asm'             ; read a line of text
+%include 'ScreenClear.asm'          ; clear the screen
+%include 'Str16Len.asm'             ; get the length of a string
+%include 'StrCopy.asm'              ; copy a string
 
 code16_end:

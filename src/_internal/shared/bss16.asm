@@ -18,7 +18,15 @@ struc _cA_COMMAND_LINE
 endstruc
 _cA_command_args:   resb 64 * MAX_ARGS
 _cA_command_arglen: resb 64
-arg_total:          resb 1
+arg_total:          resw 1
+
+_cA_cmd_arg_1:      resb 64
+_cA_cmd_arg_2:      resb 64
+_cA_cmd_arg_3:      resb 64
+_cA_cmd_arg_4:      resb 64
+_cA_cmd_arg_5:      resb 64
+_cA_cmd_arg_6:      resb 64
+_cA_cmd_arg_7:      resb 64
 
 _cA_cmd_buf:        resb 256          ; CMD string
 _cA_cmd_buffer:     resb 130

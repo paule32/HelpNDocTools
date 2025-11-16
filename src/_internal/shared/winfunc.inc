@@ -7,6 +7,11 @@
 ; -----------------------------------------------------------------------------
 
 ; -----------------------------------------------------------------------------
+; \brief some pre-defines, to make maintain easier ...
+; -----------------------------------------------------------------------------
+%define ERROR_Win32API 'this macro can only be use with win32api (Windows).'
+
+; -----------------------------------------------------------------------------
 ; \brief allocate/open a text console window under Windows 11 desktop.
 ; \param ok  -> label
 ; \param err -> label
@@ -15,22 +20,30 @@
 ; \return bool - 0 no Error; else Error
 ; -----------------------------------------------------------------------------
 %macro call_AllocConsole 2
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     CALL_IAT AllocConsole
-%if %0 == 2
-    CHECK_NZ %1, %2
+    %if %0 == 2
+        CHECK_NZ %1, %2
+    %endif
 %endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
-; \brief
+; \brief call the Windows 10 win32api function ExitProcess, to close the thread
 ; -----------------------------------------------------------------------------
 %macro call_ExitProcess 0-1
-%if %0 == 1
-    mov rax, %1
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
 %else
-    mov rax, 0
-%endif
+    %if %0 == 1
+        mov rax, %1
+    %else
+        mov rax, 0
+    %endif
     CALL_IAT ExitProcess
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -52,6 +65,9 @@
 ; \return ExitCode - int
 ; -----------------------------------------------------------------------------
 %macro call_GetLastError 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     CALL_IAT GetLastError
     test rax, rax
     jnz  %%ok
@@ -60,6 +76,7 @@
     DelShadow
 %%ok:
 ;ShowMessageW ShowLastW,capW
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -72,6 +89,9 @@
 ; \return ?
 ; -----------------------------------------------------------------------------
 %macro call_GetStdHandle 3
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     mov ecx, %3
     CALL_IAT GetStdHandle
     cmp   rax, -1     ; INVALID_HANDLE_VALUE ?
@@ -86,16 +106,25 @@
     jmp  %2
 %%ok:
     jmp  %1
+%endif
 %endmacro
 
 %macro call_LoadCursorW 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     CALL_IAT LoadCursorW
     ;ShowMessageW ShowHelloW,capW
     ;call_GetLastError
+%endif
 %endmacro
 
 %macro call_LocalFree 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     CALL_IAT MessageBoxW
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -113,7 +142,11 @@
 %endmacro
 
 %macro call_WriteConsoleA 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     CALL_IAT WriteConsoleA
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -125,6 +158,9 @@
 ; \since 1.0
 ; -----------------------------------------------------------------------------
 %macro call_User_Write 2-3
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
 %if %0 == 2
     call_GetStdHandle %%ok, %1, STD_OUTPUT_HANDLE
 %else
@@ -141,6 +177,7 @@
     mov     qword [rsp+32], 0              ; 5. Arg: LPVOID lpReserved = NULL
     call_WriteConsoleA
     DelShadow 32 + 8
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -156,9 +193,13 @@
 %endmacro
 
 %macro IAT_CreateWindowExW 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     mov     rax, IMAGE_BASE
     add     rax, RVA_IDATA(IAT_win32_CreateWindowExW)
     call    [rax]
+%endif
 %endmacro
 ; -----------------------------------------------------------------------------
 
@@ -167,8 +208,12 @@
 ; \since  1.0
 ; -----------------------------------------------------------------------------
 %macro DispatchMessageW 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     mov     rcx, rsi
     CALL_IAT DispatchMessageW
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -178,12 +223,16 @@
 ; \return exitcode -> rax
 ; -----------------------------------------------------------------------------
 %macro ExitProcess 0-1 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     nop
     ;AddShadow (32 + 16)           ; Shadow Space + 16 B Align
     mov     ecx,%1
     CALL_IAT ExitProcess
     ; no return
     ;DelShadow (32 + 16)
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -199,18 +248,26 @@
 %endmacro
 
 %macro GetLastError 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     CALL_IAT GetLastError
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
 ; \brief  GetMessageW
 ; -----------------------------------------------------------------------------
 %macro GetMessageW 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     mov  rcx, rsi
     Zero edx
     Zero r8d
     Zero r9d
     CALL_IAT GetMessageW
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -219,9 +276,13 @@
 ; \param  id - integer: resource id
 ; -----------------------------------------------------------------------------
 %macro LoadCursorW 1
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     Zero ecx
     mov  edx, %1
     CALL_IAT LoadCursorW
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -244,6 +305,9 @@
 ; \param mb_flags  -> optional ( r9d ), default: 0 (MB_OK)
 ; -----------------------------------------------------------------------------
 %macro ShowMessageW 2-3
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     Zero    ecx             ; hWnd = NULL
     mov     rdx, PTR64(%1)  ; lpText
     mov     r8,  PTR64(%2)  ; lpCaption    
@@ -253,6 +317,7 @@
     mov     r9d, %3         ; uType = argument exists
 %endif
     CALL_IAT MessageBoxW
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -267,6 +332,9 @@
 ; \param mb_flags  -> optional ( r9d ), default: 0 (MB_OK)
 ; -----------------------------------------------------------------------------
 %macro ShowMessageA 2-3
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     Zero    ecx
     mov     rdx, IMAGE_BASE + RVA_DATA(_cA_%1)  ; "MessageBoxW failed"
     mov     r8,  IMAGE_BASE + RVA_DATA(_cA_%2)  ; "User32"
@@ -276,6 +344,7 @@
     mov     r9d, %3                             ; uType = argument exists
 %endif
     CALL_IAT MessageBoxA
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -285,6 +354,9 @@
 ; \param  (optional) flag -> integer: default = SW_SHOWDEFAULT
 ; -----------------------------------------------------------------------------
 %macro ShowWindow 1-2
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     nop
     ;AddShadow (32 + 16)           ; Shadow Space + 16 B Align
     mov     rcx, %1
@@ -295,6 +367,7 @@
 %endif
     CALL_IAT ShowWindow
     ;DelShadow (32 + 16)
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -313,8 +386,12 @@
 ; \since  1.0
 ; -----------------------------------------------------------------------------
 %macro TranslateMessage 0
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     mov     rcx, rsi
     CALL_IAT TranslateMessage
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -327,8 +404,12 @@
 ; \param  hwnd -> HWND handle of window to update
 ; -----------------------------------------------------------------------------
 %macro UpdateWindow 1
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     mov     rcx, %1
     CALL_IAT UpdateWindow
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -442,18 +523,26 @@
 ; \param register to store output handle
 ; -----------------------------------------------------------------------------
 %macro GET_CON_O_HANDLE 1
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     mov      ecx, STD_OUTPUT_HANDLE
     CALL_IAT GetStdHandle
     mov      %1, rax         ; hOut
+%endif
 %endmacro
 ; -----------------------------------------------------------------------------
 ; \brief get the input handle of allocated/open console ...
 ; \param register to store input handle
 ; -----------------------------------------------------------------------------
 %macro GET_CON_I_HANDLE 1
+%if DOS_SHELL == 1
+    %error ERROR_Win32API
+%else
     mov      ecx, STD_INPUT_HANDLE
     CALL_IAT GetStdHandle
     mov      %1, rax         ; hIn
+%endif
 %endmacro
 
 %macro SCREEN_CLEAR 0
@@ -468,28 +557,29 @@
 
 ; -----------------------------------------------------------------------------
 ; \brief set the cursor position in dos console ...
-; \param xpos - int
-; \param ypos - int
+; \param xpos - <imm>
+; \param ypos - <imm>
 ; -----------------------------------------------------------------------------
 %macro SET_CURSOR 2
 %if %0 == 0
-    %error 2 argument missiong
+    %error 2 argument missing
 %endif
 %if DOS_SHELL == 1
-    mov  ah, 0x02
-    mov  bh, 0x00
-    %ifidni %2, DH
-        inc  dh
-    %else
-        mov  dh, %2         ; row
-    %endif
-    %ifidni %1, DL
-        inc  dl
-    %else
-        mov  dl, %1         ; col
-    %endif
-    int  0x10
+    mov  dl, %1         ; column
+    mov  dh, %2         ; row
+    call dos_set_cursor
 %else
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief get the cursor position in dos console ...
+; -----------------------------------------------------------------------------
+%macro GET_CURSOR 0
+%if DOS_SHELL == 1
+    call dos_get_cursor
+%else
+    %error 'todo: windows'
 %endif
 %endmacro
 
@@ -511,14 +601,46 @@
 %endmacro
 
 ; -----------------------------------------------------------------------------
+; \brief 
+; -----------------------------------------------------------------------------
+%macro ARG_CURSOR 2
+%if DOS_SHELL == 1
+    GET_ARG  %1             ; save command line argument 1
+    mov  bl, %2             ; color
+    call PutStrColor        ; DOS screen
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
 ; \brief macro to put a colored string to the DOS console ...
 ; -----------------------------------------------------------------------------
 %macro PUTS_COLOR 2
 %if DOS_SHELL == 1
-    mov  bl, %2             ; color
-    lea  si, PTR16(_cA_%1)  ; text 0-terminated
-    call PutStrColor
+    GET_CURSOR              ; move cursor to col:row
+    %ifidni %1, SI              ; text is already in SI
+        mov  bl, %2             ; color
+        call PutStrColor        ; DOS screen
+    %elifidni %1, ARGV_1
+        ARG_CURSOR 1, %2        ; save command line argument 1
+    %elifidni %1, ARGV_2
+        ARG_CURSOR 2, %2        ; save command line argument 2
+    %elifidni %1, ARGV_3
+        ARG_CURSOR 3, %2        ; save command line argument 3
+    %elifidni %1, ARGV_4
+        ARG_CURSOR 4, %2        ; save command line argument 4
+    %elifidni %1, ARGV_5
+        ARG_CURSOR 5, %2        ; save command line argument 5
+    %elifidni %1, ARGV_6
+        ARG_CURSOR 6, %2        ; save command line argument 6
+    %elifidni %1, ARGV_7
+        ARG_CURSOR 7, %2        ; save command line argument 7
+    %else
+        mov  bl, %2             ; color
+        lea  si, PTR16(_cA_%1)  ; text 0-terminated
+        call PutStrColor        ; DOS screen
+    %endif
 %else
+    %error 'this macro is only for DOS programming.'
 %endif
 %endmacro
 
@@ -649,12 +771,88 @@
 %endif
 %endmacro
 
-; -----------------------------------------
-; COMPARE <reg>, <imm>, <label>
-; Beispiel: COMPARE al, 0x0a, printed
-; Macht:   cmp <reg>, <imm>  /  je <label>
-; -----------------------------------------
+; -----------------------------------------------------------------------------
+; \brief COMPARE <reg>, <imm>, <label>
+; \param 1. <reg>
+; \param 2. <imm>
+; \param 3. <label>
+; \note  example: COMPARE al, 0x0a, printed
+;        result:  cmp <reg>, <imm>  /  je <label>
+; -----------------------------------------------------------------------------
 %macro COMPARE 3
     cmp %1, %2
     je  %3
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief  get the n-th command line ...
+; \param  1. <imm>
+; \return SI = text (=argument)
+; \note   example: GET_ARG 2
+;         result:  <text> in SI
+; -----------------------------------------------------------------------------
+%macro GET_ARG 1
+%if DOS_SHELL == 1
+    lea  si, [PTR16(_cA_cmd_buf)]
+    mov  bl, %1
+    call getCommandLine_Arg
+%else
+    %error 'todo: windows'
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief save the n-th command line argument to the <label>
+; \param 1. <imm> -> n-th argument number
+; \param 2. <label>
+; \note  example: SET_ARG <imm>, <label>
+; -----------------------------------------------------------------------------
+%macro SET_ARG 1-2
+%if DOS_SHELL == 1
+    %if %0 == 1
+        GET_ARG  %1
+        STR_COPY _cA_cmd_arg_%1
+    %else
+        GET_ARG  %1
+        STR_COPY _cA_%2
+    %endif
+%else
+    %error 'todo: windows'
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief copy a string from source index SI to DI <label>
+; \param 1. <label>
+; \note  example: STR_COPY <label>
+; -----------------------------------------------------------------------------
+%macro STR_COPY 1
+%if DOS_SHELL == 1
+    lea  di, [%1]       ; ES wird in string_copy gesetzt
+    call string_copy    ; kommt zurück mit SI = Zielstart
+%else
+    %error 'todo: windows'
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief short'ner to get the command line arguments given by the user input.
+; -----------------------------------------------------------------------------
+%macro INIT_COMMAND_LINE 0
+%if DOS_SHELL == 1
+    call dos_get_command_line
+%else
+    %error 'todo: windows'
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief call the DOS console initialize routine ...
+; -----------------------------------------------------------------------------
+%macro INIT_CONSOLE 0
+%if DOS_SHELL == 1
+    call dos_init_console
+%else
+    %error 'todo: windows'
+%endif
 %endmacro

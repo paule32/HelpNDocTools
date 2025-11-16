@@ -15,9 +15,6 @@ ASTR dos_cap2A,  "ein Text", 0
 ASTR dos_prompt, "Eingabe:       ", 0
 
 crlf:            db 13,10,'$'
-
-dos_xpos:        db 0
-dos_ypos:        db 0
 dos_color:       db 0x07
 
 ; -----------------------------------------------------------------------------
@@ -29,6 +26,13 @@ _cA_dos_buffer:  db BUFSZ-2       ; Max. Eingabezeichen (ohne die 2 Verwaltungsb
                  db 0             ; tatsächliche Länge (OUT)
                  times BUFSZ-2 db 0
 dos_readln_flag: db 0
+
+; -----------------------------------------------------------------------------
+; \brief DOS console settings ...
+; -----------------------------------------------------------------------------
+dos_xpos:           db 0      ; current text cursor column
+dos_ypos:           db 0      ; current text cursor row
+dos_page:           db 0      ; current video page
 
 ; -----------------------------------------------------------------------------
 ; dBASE data ...

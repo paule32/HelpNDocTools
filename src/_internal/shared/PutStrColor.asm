@@ -90,18 +90,19 @@ PutStrColor:
     test al, al
     jz   .printed
     mov  ah, 09h         ; Teletype-Ausgabe
+    mov  bh, 0           ; page 0 todo
     mov  cx, 1           ; mim
     VideoCall
     
-    mov ah, 02h
-    xor bh, bh
+    mov ah, 0x02
+    mov bh, 0
     inc dl
     VideoCall
     
     jmp  .print_loop
 
     .printed:
-    call  DOS_getCursor
+    ;call  DOS_getCursor
     ret
     
 ; --- Cursorposition lesen (AH=03h) ---
