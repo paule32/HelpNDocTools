@@ -117,3 +117,5 @@ src/_internal/shared/dos.exe
 src/_internal/shared/KERNEL.BIN
 src/_internal/shared/start.bin
 src/_internal/shared/start.exe
+*.exe
+*.BIN
