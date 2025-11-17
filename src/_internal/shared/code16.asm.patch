@@ -1,0 +1,75 @@
+index 51aad6d..fb6fe9e 100644
+--- code16.asm
++++ code16.asm
+@@ -61,7 +61,6 @@ code16_start:
+     ; --- Dateiname ---
+     ; 1) Datei öffnen (DS:DX -> ASCIIZ)
+     DOS_Open mod_filename, DOS_READ_ONLY
+-    jc   _open_error
+     jnc  _open_read_ok
+         
+     _open_error:
+@@ -76,7 +75,6 @@ code16_start:
+     
+     ; 2) Größe holen: lseek end
+     DOS_Seek mod_hFile, SEEK_END
+-    jc   _seek_error            ; CF = gesetzt
+     jnc  _seek_ok               ; CF = 0
+     
+     _seek_error:
+@@ -90,19 +88,15 @@ code16_start:
+     mov  [PTR16(mod_fsize_lo)], ax     ; DX:AX = filesize
+     mov  [PTR16(mod_fsize_hi)], dx
+     
+-    ; 3) Paragraphbedarf: (size+15)/16, min 1
++    ; 3) Paragraphbedarf: (size+15)/16
+     mov  ax, [PTR16(mod_fsize_lo)]
+     add  ax, 15
+     shr  ax, 4
+-    jnz  _have_par
+-    mov  ax, 1
+     
+     ; 4) allozieren (AH=48h)
+-    _have_par:
+     mov  bx, ax                 ; BX = Paragraphs
+     mov  ah, 48h
+     SysCall
+-    jc   _close_error           ; CF = gesetzt
+     jnc  _close_ok              ; CF = 0
+     
+     _close_error:
+@@ -120,12 +114,12 @@ code16_start:
+     
+ 
+     ; 6) lesen nach Overlay:0000  (DOS erwartet DS:DX)
+-    mov  bx, PTR16(_cA_mod_hFile)
+-    mov  ax, PTR16(mod_seg_ovl)
++    mov  bx, [PTR16(_cA_mod_hFile)]
++    mov  ax, [PTR16(mod_seg_ovl)]
++    mov  cx, [PTR16(mod_fsize_lo)] ; (RAW <= 64K)
+     push ds
+     mov  ds, ax                 ; DS = Overlay-Segment
+     xor  dx, dx                 ; DS:DX = 0000h
+-    mov  cx, [PTR16(mod_fsize_lo)] ; (RAW <= 64K)
+     mov  ah, 3Fh
+     int  21h
+     
+@@ -146,7 +140,9 @@ code16_start:
+ 
+     push es
+     push word 0
+-    retf                        ; -> MODUL1.BIN (muss per RETF zurück)
++    mov bp, sp
++    call far [bp]               ; -> MODUL1.BIN (muss per RETF zurück)
++    add sp, 4
+ 
+     _back_from_overlay:
+     ; 8) DS wieder auf CS
+@@ -164,7 +160,6 @@ code16_start:
+     or   ax, ax
+     jz   _no_free
+     DOS_FreeMem
+-    jc   _free_error
+     jnc  _free_ok
+     
+     _free_error:

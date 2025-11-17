@@ -18,7 +18,7 @@ dos_start:
     dw 0                                ; e_crlc (keine Relocs)
     dw ((stub_entry  - $$) +  15) / 16  ; e_cparhdr (Headergröße in Paragraphen)
     dw 0                                ; e_minalloc
-    dw 0xFEFE                           ; e_maxalloc (so viel wie möglich)
+    dw 0x1000                           ; e_maxalloc (so viel wie möglich)
     dw 0                                ; e_ss
     dw 0xFFFE                           ; e_sp (kleiner Stack)
     dw 0                                ; e_csum

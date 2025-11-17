@@ -1167,30 +1167,46 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 ; \brief macro to put a colored string to the DOS console ...
 ; -----------------------------------------------------------------------------
+%macro IS_STRING 1
+    %assign __isstr 0
+    %ifstr %1
+        %assign __isstr 1
+    %endif
+%endmacro
+
 %macro PUTS_COLOR 2
 %if DOS_SHELL == 1
-    GET_CURSOR              ; move cursor to col:row
-    %ifidni %1, SI              ; text is already in SI
-        mov  bl, %2             ; color
-        call PutStrColor        ; DOS screen
-    %elifidni %1, ARGV_1
-        ARG_CURSOR 1, %2        ; save command line argument 1
-    %elifidni %1, ARGV_2
-        ARG_CURSOR 2, %2        ; save command line argument 2
-    %elifidni %1, ARGV_3
-        ARG_CURSOR 3, %2        ; save command line argument 3
-    %elifidni %1, ARGV_4
-        ARG_CURSOR 4, %2        ; save command line argument 4
-    %elifidni %1, ARGV_5
-        ARG_CURSOR 5, %2        ; save command line argument 5
-    %elifidni %1, ARGV_6
-        ARG_CURSOR 6, %2        ; save command line argument 6
-    %elifidni %1, ARGV_7
-        ARG_CURSOR 7, %2        ; save command line argument 7
+    IS_STRING %1
+    %if __isstr
+        section .data
+            _cA_string_1: db %1
+        section .text
+            mov bl, %2
+            lea si, PTR16(_cA_string_1)
+            call PutStrColor
     %else
-        mov  bl, %2             ; color
-        lea  si, PTR16(_cA_%1)  ; text 0-terminated
-        call PutStrColor        ; DOS screen
+        %ifidni %1, SI              ; text is already in SI
+            mov  bl, %2             ; color
+            call PutStrColor        ; DOS screen
+        %elifidni %1, ARGV_1
+            ARG_CURSOR 1, %2        ; save command line argument 1
+        %elifidni %1, ARGV_2
+            ARG_CURSOR 2, %2        ; save command line argument 2
+        %elifidni %1, ARGV_3
+            ARG_CURSOR 3, %2        ; save command line argument 3
+        %elifidni %1, ARGV_4
+            ARG_CURSOR 4, %2        ; save command line argument 4
+        %elifidni %1, ARGV_5
+            ARG_CURSOR 5, %2        ; save command line argument 5
+        %elifidni %1, ARGV_6
+            ARG_CURSOR 6, %2        ; save command line argument 6
+        %elifidni %1, ARGV_7
+            ARG_CURSOR 7, %2        ; save command line argument 7
+        %else
+            mov  bl, %2             ; color
+            lea  si, PTR16(_cA_%1)  ; text 0-terminated
+            call PutStrColor        ; DOS screen
+        %endif
     %endif
 %else
     %error 'this macro is only for DOS programming.'
@@ -1460,8 +1476,11 @@ _h%1:
 %endif
 %endmacro
 
-%macro DOS_Close 0
+%macro DOS_Close 2
 %if DOS_SHELL == 1
+    mov  bx, [PTR16(_cA_%1)]
+    or   bx, bx
+    jz   %2
     mov  ah, 3Eh
     SysCall
 %else

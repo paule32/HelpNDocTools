@@ -61,7 +61,6 @@ code16_start:
     ; --- Dateiname ---
     ; 1) Datei öffnen (DS:DX -> ASCIIZ)
     DOS_Open mod_filename, DOS_READ_ONLY
-    jc   _open_error
     jnc  _open_read_ok
         
     _open_error:
@@ -76,7 +75,6 @@ code16_start:
     
     ; 2) Größe holen: lseek end
     DOS_Seek mod_hFile, SEEK_END
-    jc   _seek_error            ; CF = gesetzt
     jnc  _seek_ok               ; CF = 0
     
     _seek_error:
@@ -90,19 +88,15 @@ code16_start:
     mov  [PTR16(mod_fsize_lo)], ax     ; DX:AX = filesize
     mov  [PTR16(mod_fsize_hi)], dx
     
-    ; 3) Paragraphbedarf: (size+15)/16, min 1
+    ; 3) Paragraphbedarf: (size+15)/16
     mov  ax, [PTR16(mod_fsize_lo)]
     add  ax, 15
     shr  ax, 4
-    jnz  _have_par
-    mov  ax, 1
     
     ; 4) allozieren (AH=48h)
-    _have_par:
     mov  bx, ax                 ; BX = Paragraphs
     mov  ah, 48h
     SysCall
-    jc   _close_error           ; CF = gesetzt
     jnc  _close_ok              ; CF = 0
     
     _close_error:
@@ -120,12 +114,12 @@ code16_start:
     
 
     ; 6) lesen nach Overlay:0000  (DOS erwartet DS:DX)
-    mov  bx, PTR16(_cA_mod_hFile)
-    mov  ax, PTR16(mod_seg_ovl)
+    mov  bx, [PTR16(_cA_mod_hFile)]
+    mov  ax, [PTR16(mod_seg_ovl)]
+    mov  cx, [PTR16(mod_fsize_lo)] ; (RAW <= 64K)
     push ds
     mov  ds, ax                 ; DS = Overlay-Segment
     xor  dx, dx                 ; DS:DX = 0000h
-    mov  cx, [PTR16(mod_fsize_lo)] ; (RAW <= 64K)
     mov  ah, 3Fh
     int  21h
     
@@ -146,16 +140,23 @@ code16_start:
 
     push es
     push word 0
-    retf                        ; -> MODUL1.BIN (muss per RETF zurück)
+    mov bp, sp
+    call far [bp]               ; -> MODUL1.BIN (muss per RETF zurück)
+    add sp, 4
 
     _back_from_overlay:
     ; 8) DS wieder auf CS
     push cs
     pop  ds
-
+    
+    ;jmp  _exit_ok
+    SET_CURSOR 0, 2                     ; move cursor
+    PUTS_COLOR mod_read_error, 0x1E     ; display SI (argument)
+    
+    
     ; 9) Ressourcen aufräumen (free + close)
     _exit_read_error:
-    SET_CURSOR 0, 0                     ; move cursor
+    SET_CURSOR 0, 1                     ; move cursor
     PUTS_COLOR mod_read_error, 0x1E     ; display SI (argument)
     DOS_Exit 1
     
@@ -164,7 +165,6 @@ code16_start:
     or   ax, ax
     jz   _no_free
     DOS_FreeMem
-    jc   _free_error
     jnc  _free_ok
     
     _free_error:
@@ -183,10 +183,7 @@ code16_start:
     DOS_Exit 1
     
     _close_end_ok:
-    mov  bx, [PTR16(_cA_mod_hFile)]
-    or   bx, bx
-    jz   _no_close
-    DOS_Close
+    DOS_Close mod_hFile, _no_close
     jc   _close_err
     jnc  _exit_ok
     jmp  _exit_ok
@@ -202,9 +199,49 @@ code16_start:
     DOS_Exit 1
 
     _exit_ok:
-    SET_CURSOR 0, 1                    ; move cursor
+    SET_CURSOR 14, 10                   ; move cursor
     PUTS_COLOR mod_have_error_no, 0x1E ; display SI (argument)
     DOS_Exit 0
+
+    ; --- EXEC Parameterblock füllen ---
+    ; 00h: WORD  Environment Segment (0 = erben)
+    ; 02h: DWORD Pointer auf Kommandozeile (OFFSET, dann SEGMENT)
+    ; 06h: DWORD Pointer auf FCB1 (hier PSP-Default: 5Ch:CS)
+    ; 0Ah: DWORD Pointer auf FCB2 (hier PSP-Default: 6Ch:CS)
+
+    mov  word [PTR16(_cA_ExecBlk + 0x00)], 0
+    mov  word [PTR16(_cA_ExecBlk + 0x02)], PTR16(GzipCmdTail)  ; OFFSET
+    mov  word [PTR16(_cA_ExecBlk + 0x04)], cs                  ; SEGMENT
+    mov  word [PTR16(_cA_ExecBlk + 0x06)], 0x005C              ; FCB1 OFFSET
+    mov  word [PTR16(_cA_ExecBlk + 0x08)], cs                  ; FCB1 SEGMENT
+    mov  word [PTR16(_cA_ExecBlk + 0x0A)], 0x006C              ; FCB2 OFFSET
+    mov  word [PTR16(_cA_ExecBlk + 0x0C)], cs                  ; FCB2 SEGMENT
+
+    ; --- EXEC AH=4Bh, AL=00h (Load & Execute) ---
+    mov  dx, PTR16(_cA_GzipAppName)   ; DS:DX -> ASCIIZ "gzip.exe"
+    mov  bx, PTR16(_cA_ExecBlk)       ; ES:BX -> Parameterblock
+    mov  ax, 0x4B00
+    SysCall
+    jc   exec_failed           ; CF=1 => Fehler, AX=Errorcode
+
+    ; Optional: Rückgabecode des Child-Prozesses holen (INT 21h/4Dh)
+    mov  ax, 0x4D00
+    SysCall
+    ; AL enthält Returncode (kann man auswerten)
+    jmp _go_forward
+    
+    exec_failed:
+    PUTS_COLOR GzipErrorMsg, ATTR_DOS_ERROR
+    DOS_Exit 1
+    
+    _go_forward:
+    
+    SET_CURSOR 0, 1
+    PUTS_COLOR GzipErrorMsg, 0x12
+    
+    DOS_Exit 0
+    
+    ret
 
 ; -----------------------------------------------------------------
 ; BX = Basis of Array

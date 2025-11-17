@@ -31,6 +31,9 @@ _cA_cmd_arg_7:      resb 64
 _cA_cmd_buf:        resb 256          ; CMD string
 _cA_cmd_buffer:     resb 130
 
+; EXEC-Parameterblock (14 Bytes)
+_cA_ExecBlk:        resb 14
+
 fdescbuf:           resb 4096
 
 buf_hex:            resb 6            ; 4 Hex-Zeichen + '$' + Reserve

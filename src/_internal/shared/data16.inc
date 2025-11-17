@@ -74,6 +74,21 @@ str_APPEND:         db 'APPEND',0
 
 ; ---- Daten ----
 _cA_noargs_msg:     db 'no args.', 0
+_cA_GzipAppName:    db 'GZIP.EXE', 0
+_cA_GzipErrorMsg:   db 'exec of gzip.exe failed.', 0
+
+; Kommandozeile im PSP-Format:
+; Byte 0: Länge (Anzahl Zeichen)
+; Danach die Zeichen, abgeschlossen mit 0Dh (CR).
+; Üblicherweise beginnt die Tail mit einem Leerzeichen vor dem ersten Argument.
+
+; Hier: " -9 -k input.txt"
+GzipCmdTail:
+    db GzipCmdTextEnd - GzipCmdText          ; Länge
+GzipCmdText:
+    db ' -9 -k input.txt'
+GzipCmdTextEnd:
+    db 13
 
 ; -----------------------------------------------------------------------------
 ; \brief DOS error code messages for int 0x21 function 0x3D (open file)
