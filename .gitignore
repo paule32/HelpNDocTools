@@ -119,3 +119,4 @@ src/_internal/shared/start.bin
 src/_internal/shared/start.exe
 *.exe
 *.BIN
+*.BIN

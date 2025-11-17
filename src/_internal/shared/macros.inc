@@ -1410,3 +1410,13 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
     call init_console
 %endif
 %endmacro
+
+; -----------------------------------------------------------------------------
+; \brief generischer Handler für einen Fehlercode ...
+; -----------------------------------------------------------------------------
+%macro DEF_ERROR 2
+_h%1:
+    PUTS_COLOR %2, ATTR_DOS_ERROR
+    mov   cx, %1
+    jmp   _open_exit
+%endmacro

@@ -65,10 +65,8 @@ code16_start:
     mov  al, DOS_READ_ONLY      ; read-only
     SysCall
     jc   _open_error
-    
-    mov  [PTR16(mod_hFile)], ax        ; Handle speichern
-    jmp  _open_read_ok
-    
+    jnc  _open_read_ok
+        
     _open_error:
         push ax
         SET_CURSOR 0, 1         ; move cursor
@@ -77,19 +75,28 @@ code16_start:
         ; ---
     _open_read_ok:
     
+    mov  [PTR16(mod_hFile)], ax        ; Handle speichern
+    
     ; 2) Größe holen: lseek end
     mov  bx, ax                 ; BX = Handle
     xor  cx, cx
     xor  dx, dx
-    mov  ah, 0x42
+    mov  ah, 0x42               ; LSEEK - set current file position
     mov  al, SEEK_END           ; move to end
     SysCall
     jc   _seek_error
+    jnc  _seek_ok
+    
+    _seek_error:
+        push ax
+        SET_CURSOR 0, 1         ; move cursor
+        pop  ax
+        call DOS_handle_error_code
+        ; ---
+    _seek_ok:
+    
     mov  [PTR16(mod_fsize_lo)], ax     ; DX:AX = filesize
     mov  [PTR16(mod_fsize_hi)], dx
-
-    _seek_error:
-        SET_CURSOR 0, 1         ; move cursor
     
     ; 3) Paragraphbedarf: (size+15)/16, min 1
     mov  ax, [PTR16(mod_fsize_lo)]

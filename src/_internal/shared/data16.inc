@@ -90,6 +90,8 @@ _cA_open_error_0F:  db 'invalid drive.', 0
 _cA_open_error_10:  db 'tried to delete current directory.', 0
 _cA_open_error_11:  db 'file on other drive.', 0
 _cA_open_error_12:  db 'no more files.', 0
+_cA_open_error_1E:  db 'seek error.', 0
+_cA_open_error_1D:  db 'media does not support seek.', 0
 
 ; --- Daten ---
 mod_filename:           db 'MODUL1.BIN',0
@@ -102,6 +104,21 @@ _cA_mod_clos_error:     db 'close error.',0
 _cA_mod_clos_error_no:  db 'file not close error.',0
 _cA_mod_have_error_no:  db 'no error found.',0
 
+; --- Tabelle: [Fehlercode, Handler] ... 0 = Ende ---
+_cA_error_dispatch:
+    dw 01h, _cA_errh01
+    dw 02h, _cA_errh02
+    dw 03h, _cA_errh03
+    dw 04h, _cA_errh04
+    dw 05h, _cA_errh05
+    dw 06h, _cA_errh06
+    dw 0Ch, _cA_errh0C
+    dw 0Fh, _cA_errh0F
+    dw 10h, _cA_errh10
+    dw 11h, _cA_errh11
+    dw 12h, _cA_errh12
+    dw 00h, _cA_errhnd           ; Default (Ende der Liste)
+    
 mod_hFile:       dw 0
 mod_seg_ovl:     dw 0
 mod_fsize_lo:    dw 0
@@ -114,4 +131,3 @@ hdr_len:            dw 0
 rec_len:            dw 0
 
 data16_end:
-
