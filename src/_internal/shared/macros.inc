@@ -20,6 +20,8 @@
 %define ERROR_TOO_MANY_OPEN_FILES   0x04
 %define ERROR_ACCESS_DENIED         0x05
 %define ERROR_INVALID_HANDLE        0x06
+%define ERROR_ARENA_TRASHED         0x07
+%define ERROR_NOT_ENOUGH_MEMORY     0x08
 %define ERROR_INVALID_ACCESS        0x0C
 %define ERROR_INVALID_DRIVE         0x0F
 %define ERROR_CURRENT_DIRECTORY     0x10
@@ -1317,8 +1319,11 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 
 %macro DOS_FreeMem 0
 %if DOS_SHELL == 1
-    mov ax, 0x4900
+    mov es, ax
+    mov ah, 0x49
     SysCall
+%else
+    %error 'todo: windows'
 %endif
 %endmacro
 
@@ -1419,4 +1424,47 @@ _h%1:
     PUTS_COLOR %2, ATTR_DOS_ERROR
     mov   cx, %1
     jmp   _open_exit
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief DOS seek to <origin> in file <handle> ...
+; \param 1. <file handle>
+; \param 2. <origin> 0 - begin of file, 1 - current position, 2 - end of file
+; -----------------------------------------------------------------------------
+%macro DOS_Seek 2
+%if DOS_SHELL == 1
+    mov  bx, [PTR16(_cA_%1)]
+    xor  cx, cx
+    xor  dx, dx
+    mov  ah, 0x42               ; move to ...
+    mov  al, %2
+    SysCall
+%else
+    %error 'todo: windows'
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief DOS open existing <file name>
+; \param 1. <file name>
+; \param 2. <open mode> - DOS_READ_ONLY, DOW_WRITE_ONLY, DOS_READWRITE
+; -----------------------------------------------------------------------------
+%macro DOS_Open 2
+%if DOS_SHELL == 1
+    mov  dx, PTR16(_cA_%1)
+    mov  ah, 0x3D               ; open existing file
+    mov  al, %2                 ; read-only
+    SysCall
+%else
+    %error 'todo: windows'
+%endif
+%endmacro
+
+%macro DOS_Close 0
+%if DOS_SHELL == 1
+    mov  ah, 3Eh
+    SysCall
+%else
+    %error 'todo: windows'
+%endif
 %endmacro

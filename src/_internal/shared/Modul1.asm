@@ -16,15 +16,8 @@ org 0
 
 ; Eintritt bei Offset 0000h
 entry:
-    mov bx, 0
-    jmp entry
-    .loopser:
-    cmp bx, 5
-    je  .retf
-    xor ax, ax
+    mov ah, 0x00
     int 0x16
-    inc bx
-    jmp .loopser
-    .retf:
+    
     xor ax, ax
     retf            ; far return zum Loader

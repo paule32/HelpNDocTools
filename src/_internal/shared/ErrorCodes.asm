@@ -35,6 +35,8 @@ DOS_handle_error_code:
     DEF_ERROR 04h, open_error_04
     DEF_ERROR 05h, open_error_05
     DEF_ERROR 06h, open_error_06    ; ungültiger Handle
+    DEF_ERROR 07h, open_error_07    ; korrupte Speicherverwaltung
+    DEF_ERROR 08h, open_error_08    ; nicht genügend Speicher
     DEF_ERROR 0Ch, open_error_0C
     DEF_ERROR 0Fh, open_error_0F
     DEF_ERROR 10h, open_error_10

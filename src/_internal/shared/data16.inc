@@ -85,6 +85,8 @@ _cA_open_error_03:  db 'path not found.', 0
 _cA_open_error_04:  db 'too many open files.', 0
 _cA_open_error_05:  db 'access denied.', 0
 _cA_open_error_06:  db 'invalid file handle', 0
+_cA_open_error_07:  db 'mcb/arena corrupted.', 0
+_cA_open_error_08:  db 'no more memory.', 0
 _cA_open_error_0C:  db 'invalid access token.', 0
 _cA_open_error_0F:  db 'invalid drive.', 0
 _cA_open_error_10:  db 'tried to delete current directory.', 0
@@ -94,7 +96,7 @@ _cA_open_error_1E:  db 'seek error.', 0
 _cA_open_error_1D:  db 'media does not support seek.', 0
 
 ; --- Daten ---
-mod_filename:           db 'MODUL1.BIN',0
+_cA_mod_filename:       db 'MODUL1.BIN',0
 
 _cA_mod_read_error:     db 'module file not found.',0
 _cA_mod_file_error:     db 'open file error.',0
@@ -119,7 +121,7 @@ _cA_error_dispatch:
     dw 12h, _cA_errh12
     dw 00h, _cA_errhnd           ; Default (Ende der Liste)
     
-mod_hFile:       dw 0
+_cA_mod_hFile:       dw 0
 mod_seg_ovl:     dw 0
 mod_fsize_lo:    dw 0
 mod_fsize_hi:    dw 0

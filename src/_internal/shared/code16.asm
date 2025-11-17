@@ -60,10 +60,7 @@ code16_start:
 
     ; --- Dateiname ---
     ; 1) Datei öffnen (DS:DX -> ASCIIZ)
-    mov  dx, PTR16(mod_filename)
-    mov  ah, 0x3D               ; open existing file
-    mov  al, DOS_READ_ONLY      ; read-only
-    SysCall
+    DOS_Open mod_filename, DOS_READ_ONLY
     jc   _open_error
     jnc  _open_read_ok
         
@@ -75,17 +72,12 @@ code16_start:
         ; ---
     _open_read_ok:
     
-    mov  [PTR16(mod_hFile)], ax        ; Handle speichern
+    mov  [PTR16(_cA_mod_hFile)], ax        ; Handle speichern
     
     ; 2) Größe holen: lseek end
-    mov  bx, ax                 ; BX = Handle
-    xor  cx, cx
-    xor  dx, dx
-    mov  ah, 0x42               ; LSEEK - set current file position
-    mov  al, SEEK_END           ; move to end
-    SysCall
-    jc   _seek_error
-    jnc  _seek_ok
+    DOS_Seek mod_hFile, SEEK_END
+    jc   _seek_error            ; CF = gesetzt
+    jnc  _seek_ok               ; CF = 0
     
     _seek_error:
         push ax
@@ -104,33 +96,38 @@ code16_start:
     shr  ax, 4
     jnz  _have_par
     mov  ax, 1
-_have_par:
-    mov  bx, ax                 ; BX = Paragraphs
-
+    
     ; 4) allozieren (AH=48h)
+    _have_par:
+    mov  bx, ax                 ; BX = Paragraphs
     mov  ah, 48h
-    int  21h
-    jc   _close_err
+    SysCall
+    jc   _close_error           ; CF = gesetzt
+    jnc  _close_ok              ; CF = 0
+    
+    _close_error:
+        push ax
+        SET_CURSOR 0, 1         ; move cursor
+        pop  ax
+        call DOS_handle_error_code
+        ; ---
+    _close_ok:
+    
     mov  [PTR16(mod_seg_ovl)], ax      ; AX = Segment
 
     ; 5) an Dateianfang
-    mov  bx, [PTR16(mod_hFile)]
-    xor  cx, cx
-    xor  dx, dx
-    mov  ax, 4200h              ; move to start
-    int  21h
+    DOS_Seek mod_hFile, SEEK_BEGIN
+    
 
     ; 6) lesen nach Overlay:0000  (DOS erwartet DS:DX)
-    mov  bx, PTR16(mod_hFile)
+    mov  bx, PTR16(_cA_mod_hFile)
     mov  ax, PTR16(mod_seg_ovl)
     push ds
     mov  ds, ax                 ; DS = Overlay-Segment
     xor  dx, dx                 ; DS:DX = 0000h
-    mov  cx, PTR16(mod_fsize_lo) ; (RAW <= 64K)
+    mov  cx, [PTR16(mod_fsize_lo)] ; (RAW <= 64K)
     mov  ah, 3Fh
     int  21h
-    
-    
     
     mov  si, ax                 ; tatsächlich gelesene Bytes
     pop  ds
@@ -139,7 +136,7 @@ _have_par:
     jne  _free_err              ; Sicherheitscheck (optional)
 
     SET_CURSOR 40, 1            ; move cursor
-    PUTS_COLOR ARGV_1, 0x1E     ; display SI (argument)
+    PUTS_COLOR ARGV_1, 0x12     ; display SI (argument)
 
     ; 7) FAR CALL in Overlay:0000 (DS=CS im Modul sicherstellen)
     mov  ax, [PTR16(mod_seg_ovl)]
@@ -151,54 +148,60 @@ _have_par:
     push word 0
     retf                        ; -> MODUL1.BIN (muss per RETF zurück)
 
-_back_from_overlay:
+    _back_from_overlay:
     ; 8) DS wieder auf CS
     push cs
     pop  ds
 
     ; 9) Ressourcen aufräumen (free + close)
-_exit_read_error:
+    _exit_read_error:
     SET_CURSOR 0, 0                     ; move cursor
     PUTS_COLOR mod_read_error, 0x1E     ; display SI (argument)
     DOS_Exit 1
     
-_free_err:
+    _free_err:
     mov  ax, [PTR16(mod_seg_ovl)]
     or   ax, ax
     jz   _no_free
-    mov  es, ax
-    mov  ah, 49h
-    int  21h
+    DOS_FreeMem
+    jc   _free_error
+    jnc  _free_ok
     
-    SET_CURSOR 0, 1                     ; move cursor
-    PUTS_COLOR mod_free_error, 0x1E     ; display SI (argument)
-    DOS_Exit 1
-
-_no_free:
+    _free_error:
+        SET_CURSOR 0, 1
+        call DOS_handle_error_code
+    _free_ok:
+    jmp _close_end_ok
+    
+    _no_free:
     SET_CURSOR 0, 1                     ; move cursor
     PUTS_COLOR mod_free_error_no, 0x1E  ; display SI (argument)
         
-_close_err:
+    _close_err:
     SET_CURSOR 0, 2                     ; move cursor
     PUTS_COLOR mod_clos_error, 0x1E     ; display SI (argument)
+    DOS_Exit 1
     
-    mov  bx, [PTR16(mod_hFile)]
+    _close_end_ok:
+    mov  bx, [PTR16(_cA_mod_hFile)]
     or   bx, bx
     jz   _no_close
-    mov  ah, 3Eh
-    int  21h
-
-_exit_err:
+    DOS_Close
+    jc   _close_err
+    jnc  _exit_ok
+    jmp  _exit_ok
+    
+    _exit_err:
     SET_CURSOR 0, 3                     ; move cursor
     PUTS_COLOR mod_file_error, 0x1E     ; display SI (argument)
     DOS_Exit 1
     
-_no_close:
+    _no_close:
     SET_CURSOR 0, 1                    ; move cursor
     PUTS_COLOR mod_clos_error_no, 0x1E ; display SI (argument)
     DOS_Exit 1
 
-_exit_ok:
+    _exit_ok:
     SET_CURSOR 0, 1                    ; move cursor
     PUTS_COLOR mod_have_error_no, 0x1E ; display SI (argument)
     DOS_Exit 0
