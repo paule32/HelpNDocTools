@@ -120,3 +120,9 @@ src/_internal/shared/start.exe
 *.exe
 *.BIN
 *.BIN
+src/_internal/shared/GZIP.DOC
+src/_internal/shared/MODUL1.GZ
+src/_internal/shared/README
+src/_internal/shared/README.DOS
+src/_internal/shared/start.bin
+src/_internal/shared/COPYING

@@ -136,6 +136,7 @@ code16_start:
     mov  ax, [PTR16(mod_seg_ovl)]
     mov  es, ax
     mov  ax, es
+    push ds
     mov  ds, ax                 ; Modul erwartet DS=CS
 
     push es
@@ -146,13 +147,8 @@ code16_start:
 
     _back_from_overlay:
     ; 8) DS wieder auf CS
-    push cs
     pop  ds
-    
-    ;jmp  _exit_ok
-    SET_CURSOR 0, 2                     ; move cursor
-    PUTS_COLOR mod_read_error, 0x1E     ; display SI (argument)
-    
+    jmp  _exit_ok
     
     ; 9) Ressourcen aufräumen (free + close)
     _exit_read_error:
@@ -199,9 +195,9 @@ code16_start:
     DOS_Exit 1
 
     _exit_ok:
-    SET_CURSOR 14, 10                   ; move cursor
-    PUTS_COLOR mod_have_error_no, 0x1E ; display SI (argument)
-    DOS_Exit 0
+    ;SET_CURSOR 0, 1                    ; move cursor
+    ;PUTS_COLOR mod_have_error_no, 0x1E ; display SI (argument)
+    
 
     ; --- EXEC Parameterblock füllen ---
     ; 00h: WORD  Environment Segment (0 = erben)
@@ -227,17 +223,19 @@ code16_start:
     ; Optional: Rückgabecode des Child-Prozesses holen (INT 21h/4Dh)
     mov  ax, 0x4D00
     SysCall
-    ; AL enthält Returncode (kann man auswerten)
-    jmp _go_forward
+    jc  _go_error
+    jnc _go_forward
+    
+    _go_error:
+        SET_CURSOR 0, 1         ; move cursor
+        call DOS_handle_error_code
+        ; ---
     
     exec_failed:
     PUTS_COLOR GzipErrorMsg, ATTR_DOS_ERROR
     DOS_Exit 1
     
     _go_forward:
-    
-    SET_CURSOR 0, 1
-    PUTS_COLOR GzipErrorMsg, 0x12
     
     DOS_Exit 0
     

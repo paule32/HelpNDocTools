@@ -1167,46 +1167,30 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 ; \brief macro to put a colored string to the DOS console ...
 ; -----------------------------------------------------------------------------
-%macro IS_STRING 1
-    %assign __isstr 0
-    %ifstr %1
-        %assign __isstr 1
-    %endif
-%endmacro
-
 %macro PUTS_COLOR 2
 %if DOS_SHELL == 1
-    IS_STRING %1
-    %if __isstr
-        section .data
-            _cA_string_1: db %1
-        section .text
-            mov bl, %2
-            lea si, PTR16(_cA_string_1)
-            call PutStrColor
+    GET_CURSOR              ; move cursor to col:row
+    %ifidni %1, SI              ; text is already in SI
+        mov  bl, %2             ; color
+        call PutStrColor        ; DOS screen
+    %elifidni %1, ARGV_1
+        ARG_CURSOR 1, %2        ; save command line argument 1
+    %elifidni %1, ARGV_2
+        ARG_CURSOR 2, %2        ; save command line argument 2
+    %elifidni %1, ARGV_3
+        ARG_CURSOR 3, %2        ; save command line argument 3
+    %elifidni %1, ARGV_4
+        ARG_CURSOR 4, %2        ; save command line argument 4
+    %elifidni %1, ARGV_5
+        ARG_CURSOR 5, %2        ; save command line argument 5
+    %elifidni %1, ARGV_6
+        ARG_CURSOR 6, %2        ; save command line argument 6
+    %elifidni %1, ARGV_7
+        ARG_CURSOR 7, %2        ; save command line argument 7
     %else
-        %ifidni %1, SI              ; text is already in SI
-            mov  bl, %2             ; color
-            call PutStrColor        ; DOS screen
-        %elifidni %1, ARGV_1
-            ARG_CURSOR 1, %2        ; save command line argument 1
-        %elifidni %1, ARGV_2
-            ARG_CURSOR 2, %2        ; save command line argument 2
-        %elifidni %1, ARGV_3
-            ARG_CURSOR 3, %2        ; save command line argument 3
-        %elifidni %1, ARGV_4
-            ARG_CURSOR 4, %2        ; save command line argument 4
-        %elifidni %1, ARGV_5
-            ARG_CURSOR 5, %2        ; save command line argument 5
-        %elifidni %1, ARGV_6
-            ARG_CURSOR 6, %2        ; save command line argument 6
-        %elifidni %1, ARGV_7
-            ARG_CURSOR 7, %2        ; save command line argument 7
-        %else
-            mov  bl, %2             ; color
-            lea  si, PTR16(_cA_%1)  ; text 0-terminated
-            call PutStrColor        ; DOS screen
-        %endif
+        mov  bl, %2             ; color
+        lea  si, PTR16(_cA_%1)  ; text 0-terminated
+        call PutStrColor        ; DOS screen
     %endif
 %else
     %error 'this macro is only for DOS programming.'
@@ -1486,4 +1470,99 @@ _h%1:
 %else
     %error 'todo: windows'
 %endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; ERR_HANDLER <err1>[, <err2>, ...]
+; erzeugt für jedes Argument:
+; _cA_errn<arg>:
+;     PUTS_COLOR open_error_<arg>, ATTR_DOS_ERROR
+;     mov cx, <arg>
+;     jmp _open_exit
+; -----------------------------------------------------------------------------
+; Hilfsmakro: Nibble (0..15) -> Hex-Zeichen 0..F
+%macro _HEXDIG 2
+  %if %1 < 10
+    %define %2 %1
+  %elif %1 = 10
+    %define %2 A
+  %elif %1 = 11
+    %define %2 B
+  %elif %1 = 12
+    %define %2 C
+  %elif %1 = 13
+    %define %2 D
+  %elif %1 = 14
+    %define %2 E
+  %elif %1 = 15
+    %define %2 F
+  %else
+    %error "_HEXDIG: Nibble ausserhalb 0..15"
+  %endif
+%endmacro
+; -----------------------------------------------------------------------------
+; expr -> zwei Hex-Zeichen OUT_H/OUT_L (ohne 0x/h), 8-bit
+; -----------------------------------------------------------------------------
+%macro _HEX2 3
+  %assign __v %1
+  %assign __v __v & 0FFh
+  %assign __hi (__v >> 4) & 0Fh
+  %assign __lo  __v       & 0Fh
+  _HEXDIG __hi, %2
+  _HEXDIG __lo, %3
+  %undef __v
+  %undef __hi
+  %undef __lo
+%endmacro
+; -----------------------------------------------------------------------------
+; ERR_HANDLER <err1>[, <err2>, ...]
+; Baut Labels / Namen mit zwei Hex-Ziffern (00..FF), ohne 0x/h.
+; -----------------------------------------------------------------------------
+%macro ERR_HANDLER 1-*
+%rep %0
+    ; Ausdruck auswerten (dezimal/hex ok) und auf 8 Bit begrenzen
+    %assign __v %1
+    %assign __v __v & 0FFh
+
+    ; zwei Hex-Ziffern bilden
+    %assign __hi (__v >> 4) & 0Fh
+    %assign __lo  __v       & 0Fh
+    _HEXDIG __hi, __H
+    _HEXDIG __lo, __L
+
+_cA_errh%+__H%+__L:
+    PUTS_COLOR open_error_%+__H%+__L, ATTR_DOS_ERROR
+    mov cx, %1
+    jmp _open_exit
+    
+    ; Aufräumen der temporären Namen dieser Iteration
+    %undef __H
+    %undef __L
+    %undef __hi
+    %undef __lo
+    %undef __v
+    
+    %rotate 1
+%endrep
+%endmacro
+; -----------------------------------------------------------------------------
+; Für jeden Code: Label _cA_errhXX + Body
+;
+; ---------- Tabelle (Datenbereich) ----------
+; ERZEUGT: 
+;   _cA_error_dispatch:
+;       dw <code>, _cA_errhXX
+;       ...
+;       dw 00h, _cA_errhnd
+; -----------------------------------------------------------------------------
+%macro ERR_ITEMS 1-*
+_cA_error_dispatch:
+  %rep %0
+    _HEX2 %1, __H, __L
+    dw %1, _cA_errh%+__H%+__L
+    %undef __H
+    %undef __L
+    %rotate 1
+  %endrep
+  dw 00h, _cA_errhnd
 %endmacro
