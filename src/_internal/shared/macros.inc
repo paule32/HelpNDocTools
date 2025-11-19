@@ -1341,17 +1341,20 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 %endmacro
 
 ; -----------------------------------------------------------------------------
-; \brief  get the n-th command line ...
+; \brief  get the n-th command line, success: jump to %2 ...
 ; \param  1. <imm>
 ; \return SI = text (=argument)
 ; \note   example: GET_ARG 2
 ;         result:  <text> in SI
 ; -----------------------------------------------------------------------------
-%macro GET_ARG 1
+%macro GET_ARG 1-2
 %if DOS_SHELL == 1
     lea  si, [PTR16(_cA_cmd_buf)]
     mov  bl, %1
     call getCommandLine_Arg
+    %if %0 == 2
+        jnc  %2
+    %endif
 %else
     %error 'todo: windows'
 %endif
@@ -1410,6 +1413,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 %macro INIT_CONSOLE 0
 %if DOS_SHELL == 1
     call dos_init_console
+    SCREEN_CLEAR
 %else
     call init_app
     call init_console
@@ -1573,31 +1577,32 @@ _cA_error_dispatch:
 ; CMPCHAR argvn, 2, '3', is_three
 ; -----------------------------------------------------------------------------
 %macro CMP_CHR 4
-    %assign __arg 0
+    %assign __varg 0
     %ifidni   %1, ARGV_1
-        %assign __arg 1
+        %assign __varg 1
     %elifidni %1, ARGV_2
-        %assign __arg 2
+        %assign __varg 2
     %elifidni %1, ARGV_3
-        %assign __arg 3
+        %assign __varg 3
     %elifidni %1, ARGV_4
-        %assign __arg 4
+        %assign __varg 4
     %elifidni %1, ARGV_5
-        %assign __arg 5
+        %assign __varg 5
     %elifidni %1, ARGV_6
-        %assign __arg 6
+        %assign __varg 6
     %elifidni %1, ARGV_7
-        %assign __arg 7
+        %assign __varg 7
     %endif
-    %if __arg >= 1
-        ;mov si, [PTR16(_cA_cmd_arg_%+__arg)]
-        mov si, [PTR16(_cA_cmd_arg_1)]
+    %if __varg >= 1
+        mov  si, PTR16(_cA_cmd_buf)
+        mov  bl, 1
+        call getCommandLine_Arg
     %else
-        ;mov si, [PTR16(_cA_%1)]
-        mov si, [PTR16(_cA_cmd_arg_1)]
+        lea si, [PTR16(_cA_%1)]
     %endif
-    %undef  __arg
+    %undef  __varg
         xor  cl, cl
+        push si
     %%loop:
         lodsb
         inc cl
@@ -1605,6 +1610,7 @@ _cA_error_dispatch:
         je  %%next
         jmp %%loop
     %%next:
-        cmp si, %3
+        pop si
+        cmp al, %3
         je  %4
 %endmacro

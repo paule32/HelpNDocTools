@@ -20,7 +20,7 @@
 ; \note   Verändert: AX, CX, DX, SI, DI, FLAGS
 ; -----------------------------------------------------------------------------
 getCommandLine_Arg:
-    push di
+    ;push di
     test bl, bl
     jnz .start
     stc
@@ -94,5 +94,5 @@ getCommandLine_Arg:
     stc
 
     .ret:
-    pop  di
+    ;pop  di
     ret

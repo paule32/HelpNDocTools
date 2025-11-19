@@ -9,17 +9,12 @@
 %define MAX_ARGS  7
 bits 16
 code16_start:
-    ;push cs
-    ;pop  ds
-    
     INIT_COMMAND_LINE
     INIT_CONSOLE
         
     READL_CON_A dos_buffer
-    
-    SCREEN_CLEAR
-    SET_CURSOR 10, 5
-    PUTS_COLOR dos_buffer, 0x02 | 0x10
+    SET_CURSOR  10, 5
+    PUTS_COLOR  dos_buffer, 0x02 | 0x10
     
     ; text + prompt ausgeben
     ;SET_CURSOR 2, 10
@@ -52,14 +47,20 @@ code16_start:
 ; Feldlaenge: Dezimal (z.B. 20)
 ; -----------------------------------------------------------------------------
 
-    CMP_CHR  ARGV_2, 2, '3', is_three
+    GET_CURSOR
     SET_CURSOR 20, 7
-    PUTS_COLOR DBFNAME, 12
+    PUTS_COLOR cmd_buf, 2
+
+    CMP_CHR ARGV_1, 1, '3', is_three
+    
+    
+    SET_CURSOR 20, 3
+    PUTS_COLOR SI, 1
     DOS_Exit 0
     
     is_three:
-    SET_CURSOR 20, 7
-    PUTS_COLOR DBFNAME, 0x0E
+    SET_CURSOR 20, 5
+    PUTS_COLOR SI, 0x0F
     DOS_Exit   0
     
     ;ret
