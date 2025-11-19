@@ -49,13 +49,16 @@ code16_start:
 
     GET_CURSOR
     SET_CURSOR 20, 7
-    PUTS_COLOR cmd_buf, 2
-
-    CMP_CHR ARGV_1, 1, '3', is_three
+    PUTS_COLOR 'schärpfel', 2
     
+    SET_CURSOR 20, 8
+    PUTS_COLOR 'schupfel', 3
+
+    CMP_CHR ARGV_1, 3, '5', is_three
+    CMP_STR 'XuzX', 'zuza', is_okk
     
     SET_CURSOR 20, 3
-    PUTS_COLOR SI, 1
+    PUTS_COLOR ARGV_2, 1
     DOS_Exit 0
     
     is_three:
@@ -63,6 +66,10 @@ code16_start:
     PUTS_COLOR SI, 0x0F
     DOS_Exit   0
     
+    is_okk:
+    SET_CURSOR 40, 5
+    PUTS_COLOR 'mufti', 0x0C
+    DOS_Exit   0
     ;ret
 jmp usage
     .token_done:
@@ -1413,6 +1420,7 @@ print_z0:
 %include 'ReadLn16.asm'             ; read a line of text
 %include 'ScreenClear.asm'          ; clear the screen
 %include 'Str16Len.asm'             ; get the length of a string
+%include 'StrCompare.asm'           ; string compare
 %include 'StrCopy.asm'              ; copy a string
 
 code16_end:

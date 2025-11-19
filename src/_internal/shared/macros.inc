@@ -49,6 +49,8 @@
 ; -----------------------------------------------------------------------------
 %define ATTR_DOS_ERROR              0x0E | 0x10     ; yeloow on blue bakcground
 
+%define MAX_ARGV        32      ; maximum count of command line arguments
+
 %ifndef PTR16
 %define PTR16(sym) (sym-code16_start+0x100)
 %endif
@@ -1170,27 +1172,45 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 %macro PUTS_COLOR 2
 %if DOS_SHELL == 1
     GET_CURSOR              ; move cursor to col:row
-    %ifidni %1, SI              ; text is already in SI
-        mov  bl, %2             ; color
-        call PutStrColor        ; DOS screen
-    %elifidni %1, ARGV_1
-        ARG_CURSOR 1, %2        ; save command line argument 1
-    %elifidni %1, ARGV_2
-        ARG_CURSOR 2, %2        ; save command line argument 2
-    %elifidni %1, ARGV_3
-        ARG_CURSOR 3, %2        ; save command line argument 3
-    %elifidni %1, ARGV_4
-        ARG_CURSOR 4, %2        ; save command line argument 4
-    %elifidni %1, ARGV_5
-        ARG_CURSOR 5, %2        ; save command line argument 5
-    %elifidni %1, ARGV_6
-        ARG_CURSOR 6, %2        ; save command line argument 6
-    %elifidni %1, ARGV_7
-        ARG_CURSOR 7, %2        ; save command line argument 7
+    %ifstr %1
+        section .data
+        %%msg: db %1, 0
+        section .text
+        mov  bl, %2                 ; color
+        lea  si, PTR16(%%msg)       ; text 0-terminated
+        call PutStrColor            ; DOS screen
     %else
-        mov  bl, %2             ; color
-        lea  si, PTR16(_cA_%1)  ; text 0-terminated
-        call PutStrColor        ; DOS screen
+        %ifidni %1, DI
+            mov  bl, %2
+            call PutStrColor        ; DOS screen
+        %elifidni %1, SI              ; text is already in SI
+            mov  bl, %2             ; color
+            call PutStrColor        ; DOS screen
+        %else
+            %assign __count 0
+            %assign __varg  0
+            %assign __stop  0
+            %rep MAX_ARGV
+                %if __stop == 0
+                    %assign __count (__count + 1)
+                    %ifidni %1, ARGV_%+__count
+                        %assign __varg __count
+                        %assign __stop 1
+                    %endif
+                %endif
+            %endrep
+            %if __varg > 0
+                mov  si, PTR16(_cA_cmd_buf)
+                mov  bl, __varg
+                call getCommandLine_Arg
+                call PutStrColor        ; DOS screen
+            %else
+                mov  bl, %2             ; color
+                lea  si, PTR16(_cA_%1)  ; text 0-terminated
+                call PutStrColor        ; DOS screen
+            %endif
+            %undef __varg
+        %endif
     %endif
 %else
     %error 'this macro is only for DOS programming.'
@@ -1573,34 +1593,39 @@ _cA_error_dispatch:
 
 ; -----------------------------------------------------------------------------
 ; \brief check a character at the given position in given label string...
-; CMPCHAR <label>, <num-position>, <char to check>, <jump label if equal>
-; CMPCHAR argvn, 2, '3', is_three
+; CMP_CHR <label>, <num-position>, <char to check>, <jump label if equal>
+; CMP_CHR argvn, 2, '3', is_three
 ; -----------------------------------------------------------------------------
 %macro CMP_CHR 4
-    %assign __varg 0
-    %ifidni   %1, ARGV_1
-        %assign __varg 1
-    %elifidni %1, ARGV_2
-        %assign __varg 2
-    %elifidni %1, ARGV_3
-        %assign __varg 3
-    %elifidni %1, ARGV_4
-        %assign __varg 4
-    %elifidni %1, ARGV_5
-        %assign __varg 5
-    %elifidni %1, ARGV_6
-        %assign __varg 6
-    %elifidni %1, ARGV_7
-        %assign __varg 7
-    %endif
-    %if __varg >= 1
-        mov  si, PTR16(_cA_cmd_buf)
-        mov  bl, 1
-        call getCommandLine_Arg
+    %ifstr %1
+        section .data
+        %%msg: db %1, 0
+        section .text
+        lea si, [PTR16(%%msg)]       ; text 0-terminated
     %else
-        lea si, [PTR16(_cA_%1)]
+    section .text
+        %assign __count 0
+        %assign __varg  0
+        %assign __stop  0
+        %rep MAX_ARGV
+            %if __stop == 0
+                %assign __count (__count + 1)
+                %ifidni %1, ARGV_%+__count
+                    %assign __varg __count
+                    %assign __stop 1
+                %endif
+            %endif
+        %endrep
+        %if __varg > 0
+            mov  si, PTR16(_cA_cmd_buf)
+            mov  bl, __varg
+            call getCommandLine_Arg
+        %else
+            lea si, [PTR16(_cA_%1)]
+        %endif
+        %undef __stop
+        %undef __varg
     %endif
-    %undef  __varg
         xor  cl, cl
         push si
     %%loop:
@@ -1613,4 +1638,58 @@ _cA_error_dispatch:
         pop si
         cmp al, %3
         je  %4
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief compare 2 string's ...
+; -----------------------------------------------------------------------------
+%macro CMP_STR 3
+section .data
+section .text
+    %ifnum %1                           ; argument 1 is a number ?
+        %error 'numbers can not be handled as string.'
+    %elifstr %1                         ; argument 1 is a string ?
+        section .data
+        %%part2: db %2, 0
+        section .text
+        mov si, PTR16(%%part2)        ; src
+        PUTS_COLOR SI, 4
+        %ifstr %2                       ; argument 2 is a string ?
+            section .data
+            %%part1: db %1, 0
+            section .text
+            mov di, PTR16(%%part1)    ; dst
+            PUTS_COLOR DI, 8
+            call string_compare
+            cmp  al, 0
+            je   %3
+        %elifnum %2                     ; argument 2 is a number ?
+            %error 'numbers can not be handled as string.'
+        %else
+            %error 'todo'
+        %endif
+    %else
+    section .text
+        %assign __count 0
+        %assign __varg  0
+        %assign __stop  0
+        %rep MAX_ARGV
+            %if __stop == 0
+                %assign __count (__count + 1)
+                %ifidni %1, ARGV_%+__count
+                    %assign __varg __count
+                    %assign __stop 1
+                %endif
+            %endif
+        %endrep
+        %if __varg > 0
+            mov  si, PTR16(_cA_cmd_buf)
+            mov  bl, __varg
+            call getCommandLine_Arg
+        %else
+            lea si, [PTR16(_cA_%1)]
+        %endif
+        %imdef __stop
+        %undef __varg
+    %endif
 %endmacro
