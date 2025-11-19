@@ -1,0 +1,42 @@
+    ; --- EXEC Parameterblock füllen ---
+    ; 00h: WORD  Environment Segment (0 = erben)
+    ; 02h: DWORD Pointer auf Kommandozeile (OFFSET, dann SEGMENT)
+    ; 06h: DWORD Pointer auf FCB1 (hier PSP-Default: 5Ch:CS)
+    ; 0Ah: DWORD Pointer auf FCB2 (hier PSP-Default: 6Ch:CS)
+    mov  word [PTR16(_cA_ExecBlk + 0x00)], 0
+    mov  word [PTR16(_cA_ExecBlk + 0x02)], PTR16(GzipCmdTail)  ; OFFSET
+    mov  word [PTR16(_cA_ExecBlk + 0x04)], ds                  ; SEGMENT
+    mov  word [PTR16(_cA_ExecBlk + 0x06)], 0x005C              ; FCB1 OFFSET
+    mov  word [PTR16(_cA_ExecBlk + 0x08)], cs                  ; FCB1 SEGMENT
+    mov  word [PTR16(_cA_ExecBlk + 0x0A)], 0x006C              ; FCB2 OFFSET
+    mov  word [PTR16(_cA_ExecBlk + 0x0C)], cs                  ; FCB2 SEGMENT
+
+    ; --- EXEC AH=4Bh, AL=00h (Load & Execute) ---
+    mov  dx, PTR16(_cA_GzipAppName)   ; DS:DX -> ASCIIZ "gzip.exe"
+    push ds
+    pop  es
+    mov  bx, PTR16(_cA_ExecBlk)       ; ES:BX -> Parameterblock
+    mov  ax, 0x4B00
+    SysCall
+    jc   exec_failed           ; CF=1 => Fehler, AX=Errorcode
+
+    ; Optional: Rückgabecode des Child-Prozesses holen (INT 21h/4Dh)
+    mov  ax, 0x4D00
+    SysCall
+    jc  _go_error
+    jnc _go_forward
+    
+    _go_error:
+        SET_CURSOR 0, 1         ; move cursor
+        call DOS_handle_error_code
+        ; ---
+    
+    exec_failed:
+    PUTS_COLOR GzipErrorMsg, ATTR_DOS_ERROR
+    DOS_Exit 1
+    
+    _go_forward:
+    
+    DOS_Exit 0
+    
+    ret

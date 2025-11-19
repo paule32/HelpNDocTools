@@ -22,20 +22,20 @@ code16_start:
     PUTS_COLOR dos_buffer, 0x02 | 0x10
     
     ; text + prompt ausgeben
-    SET_CURSOR 2, 10
-    PUTS_COLOR dos_prompt, 0x0E | 0x10
+    ;SET_CURSOR 2, 10
+    ;PUTS_COLOR dos_prompt, 0x0E | 0x10
     
-    SET_CURSOR 10, 10
-    READL_CON_A dos_buffer
+    ;SET_CURSOR 10, 10
+    ;READL_CON_A dos_buffer
     
-    SET_CURSOR 10, 3
-    PUTS_COLOR dos_buffer, 0x0E | 0x10
+    ;SET_CURSOR 10, 3
+    ;PUTS_COLOR dos_buffer, 0x0E | 0x10
     
-    SET_CURSOR 10, 7
-    PUTS_COLOR cmd_buf, 0x0E | 0x10
+    ;SET_CURSOR 10, 7
+    ;PUTS_COLOR cmd_buf, 0x0E | 0x10
     
-    SET_CURSOR 20, 7
-    PUTS_COLOR DBFNAME, 0x0E
+    ;SET_CURSOR 20, 7
+    ;PUTS_COLOR DBFNAME, 0x0E
 ;    DOS_Exit 0
 
 ; -----------------------------------------------------------------------------
@@ -51,234 +51,19 @@ code16_start:
 ; Feldname: max 10 Zeichen (dBASE-Beschränkung, 11. Byte = 0)
 ; Feldlaenge: Dezimal (z.B. 20)
 ; -----------------------------------------------------------------------------
-    
-    SET_CURSOR 40, 7
-    PUTS_COLOR cmd_buf, 0x0E | 0x10
-    
-    SET_CURSOR 40, 3            ; move cursor to col:40, row:3
-    PUTS_COLOR ARGV_2, 0x1E     ; display SI (argument)
 
-    ; --- Dateiname ---
-    ; 1) Datei öffnen (DS:DX -> ASCIIZ)
-    DOS_Open mod_filename, DOS_READ_ONLY
-    jnc  _open_read_ok
-        
-    _open_error:
-        push ax
-        SET_CURSOR 0, 1         ; move cursor
-        pop  ax
-        call DOS_handle_error_code
-        ; ---
-    _open_read_ok:
-    
-    mov  [PTR16(_cA_mod_hFile)], ax        ; Handle speichern
-    
-    ; 2) Größe holen: lseek end
-    DOS_Seek mod_hFile, SEEK_END
-    jnc  _seek_ok               ; CF = 0
-    
-    _seek_error:
-        push ax
-        SET_CURSOR 0, 1         ; move cursor
-        pop  ax
-        call DOS_handle_error_code
-        ; ---
-    _seek_ok:
-    
-    mov  [PTR16(mod_fsize_lo)], ax     ; DX:AX = filesize
-    mov  [PTR16(mod_fsize_hi)], dx
-    
-    ; 3) Paragraphbedarf: (size+15)/16
-    mov  ax, [PTR16(mod_fsize_lo)]
-    add  ax, 15
-    shr  ax, 4
-    
-    ; 4) allozieren (AH=48h)
-    mov  bx, ax                 ; BX = Paragraphs
-    mov  ah, 48h
-    SysCall
-    jnc  _close_ok              ; CF = 0
-    
-    _close_error:
-        push ax
-        SET_CURSOR 0, 1         ; move cursor
-        pop  ax
-        call DOS_handle_error_code
-        ; ---
-    _close_ok:
-    
-    mov  [PTR16(mod_seg_ovl)], ax      ; AX = Segment
-
-    ; 5) an Dateianfang
-    DOS_Seek mod_hFile, SEEK_BEGIN
-    
-
-    ; 6) lesen nach Overlay:0000  (DOS erwartet DS:DX)
-    mov  bx, [PTR16(_cA_mod_hFile)]
-    mov  ax, [PTR16(mod_seg_ovl)]
-    mov  cx, [PTR16(mod_fsize_lo)] ; (RAW <= 64K)
-    push ds
-    mov  ds, ax                 ; DS = Overlay-Segment
-    xor  dx, dx                 ; DS:DX = 0000h
-    mov  ah, 3Fh
-    int  21h
-    
-    mov  si, ax                 ; tatsächlich gelesene Bytes
-    pop  ds
-    jc   _free_err
-    cmp  si, cx
-    jne  _free_err              ; Sicherheitscheck (optional)
-
-    SET_CURSOR 40, 1            ; move cursor
-    PUTS_COLOR ARGV_1, 0x12     ; display SI (argument)
-
-    ; 7) FAR CALL in Overlay:0000 (DS=CS im Modul sicherstellen)
-    mov  ax, [PTR16(mod_seg_ovl)]
-    mov  es, ax
-    mov  ax, es
-    push ds
-    mov  ds, ax                 ; Modul erwartet DS=CS
-
-    push es
-    push word 0
-    mov bp, sp
-    call far [bp]               ; -> MODUL1.BIN (muss per RETF zurück)
-    add sp, 4
-
-    _back_from_overlay:
-    ; 8) DS wieder auf CS
-    pop  ds
-    jmp  _exit_ok
-    
-    ; 9) Ressourcen aufräumen (free + close)
-    _exit_read_error:
-    SET_CURSOR 0, 1                     ; move cursor
-    PUTS_COLOR mod_read_error, 0x1E     ; display SI (argument)
-    DOS_Exit 1
-    
-    _free_err:
-    mov  ax, [PTR16(mod_seg_ovl)]
-    or   ax, ax
-    jz   _no_free
-    DOS_FreeMem
-    jnc  _free_ok
-    
-    _free_error:
-        SET_CURSOR 0, 1
-        call DOS_handle_error_code
-    _free_ok:
-    jmp _close_end_ok
-    
-    _no_free:
-    SET_CURSOR 0, 1                     ; move cursor
-    PUTS_COLOR mod_free_error_no, 0x1E  ; display SI (argument)
-        
-    _close_err:
-    SET_CURSOR 0, 2                     ; move cursor
-    PUTS_COLOR mod_clos_error, 0x1E     ; display SI (argument)
-    DOS_Exit 1
-    
-    _close_end_ok:
-    DOS_Close mod_hFile, _no_close
-    jc   _close_err
-    jnc  _exit_ok
-    jmp  _exit_ok
-    
-    _exit_err:
-    SET_CURSOR 0, 3                     ; move cursor
-    PUTS_COLOR mod_file_error, 0x1E     ; display SI (argument)
-    DOS_Exit 1
-    
-    _no_close:
-    SET_CURSOR 0, 1                    ; move cursor
-    PUTS_COLOR mod_clos_error_no, 0x1E ; display SI (argument)
-    DOS_Exit 1
-
-    _exit_ok:
-    ;SET_CURSOR 0, 1                    ; move cursor
-    ;PUTS_COLOR mod_have_error_no, 0x1E ; display SI (argument)
-    
-
-    ; --- EXEC Parameterblock füllen ---
-    ; 00h: WORD  Environment Segment (0 = erben)
-    ; 02h: DWORD Pointer auf Kommandozeile (OFFSET, dann SEGMENT)
-    ; 06h: DWORD Pointer auf FCB1 (hier PSP-Default: 5Ch:CS)
-    ; 0Ah: DWORD Pointer auf FCB2 (hier PSP-Default: 6Ch:CS)
-
-    mov  word [PTR16(_cA_ExecBlk + 0x00)], 0
-    mov  word [PTR16(_cA_ExecBlk + 0x02)], PTR16(GzipCmdTail)  ; OFFSET
-    mov  word [PTR16(_cA_ExecBlk + 0x04)], cs                  ; SEGMENT
-    mov  word [PTR16(_cA_ExecBlk + 0x06)], 0x005C              ; FCB1 OFFSET
-    mov  word [PTR16(_cA_ExecBlk + 0x08)], cs                  ; FCB1 SEGMENT
-    mov  word [PTR16(_cA_ExecBlk + 0x0A)], 0x006C              ; FCB2 OFFSET
-    mov  word [PTR16(_cA_ExecBlk + 0x0C)], cs                  ; FCB2 SEGMENT
-
-    ; --- EXEC AH=4Bh, AL=00h (Load & Execute) ---
-    mov  dx, PTR16(_cA_GzipAppName)   ; DS:DX -> ASCIIZ "gzip.exe"
-    mov  bx, PTR16(_cA_ExecBlk)       ; ES:BX -> Parameterblock
-    mov  ax, 0x4B00
-    SysCall
-    jc   exec_failed           ; CF=1 => Fehler, AX=Errorcode
-
-    ; Optional: Rückgabecode des Child-Prozesses holen (INT 21h/4Dh)
-    mov  ax, 0x4D00
-    SysCall
-    jc  _go_error
-    jnc _go_forward
-    
-    _go_error:
-        SET_CURSOR 0, 1         ; move cursor
-        call DOS_handle_error_code
-        ; ---
-    
-    exec_failed:
-    PUTS_COLOR GzipErrorMsg, ATTR_DOS_ERROR
-    DOS_Exit 1
-    
-    _go_forward:
-    
+    CMP_CHR  ARGV_2, 2, '3', is_three
+    SET_CURSOR 20, 7
+    PUTS_COLOR DBFNAME, 12
     DOS_Exit 0
     
-    ret
-
-; -----------------------------------------------------------------
-; BX = Basis of Array
-mov   bx, _cA_command_args
-
-; size in powers of 2 (4,8,16) -> shift
-; e.g.: COMMAND_LINE_size = 65 -> *6 = << 6
-;
-; << 2  => 4
-; << 3  => 8
-; << 4  => 16
-; << 5  => 32
-; << 6  => 64 ( 65 struc size minus 1 (v. Neumann))
-;
-; +---- source index
-; |    +------ index 0 based
-; |    |    +-- struc size
-; |    |    |
-; V    V    V
-; SI = CX * 65  => (CX << 6) + CX  ; CX = 0,1,2,3,4...
-mov   si, cx
-shl   si, 6
-add   si, cx
-mov   byte [bx + si + _cA_COMMAND_LINE.arg_str], 'A'
-
-DOS_Exit 0
-; -----------------------------------------------------------------
-    jmp  .token_done
+    is_three:
+    SET_CURSOR 20, 7
+    PUTS_COLOR DBFNAME, 0x0E
+    DOS_Exit   0
     
-    
-    .token_loop:
-    cmp ax, 0x02
-    je  .token_done
-    inc ax
-    jmp .token_loop
-    
-    .token_end:
-    jmp usage
-    
+    ;ret
+jmp usage
     .token_done:
     DOS_Exit 0
         
@@ -1123,59 +908,42 @@ field_already:
     jmp exit0
 
 usage:
-    mov dx, PTR16(msg_usage)
-    call print_$
-    DOS_crlf
+    PUTS_COLOR msg_usage, 0x02
     jmp exit1
 
 badargs:
-    mov dx, PTR16(msg_badargs)
-    call print_$
-    DOS_crlf
+    PUTS_COLOR msg_badargs, 0x02
+    ;DOS_crlf
     jmp exit1
 
 open_fail:
-    mov dx, PTR16(msg_openfail)
-    call print_$
-    DOS_crlf
+    PUTS_COLOR msg_openfail, 0x02
     jmp exit1
 
 ver_mismatch:
-    mov dx, PTR16(msg_ver_mismatch)
-    call print_$
-    DOS_crlf
+    PUTS_COLOR msg_ver_mismatch, 0x02
     jmp exit1
 
 append_with_records_not_supported:
-    mov dx, PTR16(msg_append_recs)
-    call print_$
-    DOS_crlf
+    PUTS_COLOR msg_append_recs, 0x02
     jmp exit1
 
 not_supported:
-    mov dx, PTR16(msg_not_supported)
-    call print_$
-    DOS_crlf
+    PUTS_COLOR msg_not_supported, 0x02
     jmp exit1
 
 io_error:
-    mov dx, PTR16(msg_ioerr)
-    call print_$
-    DOS_crlf
+    PUTS_COLOR msg_ioerr, 0x02
     jmp exit1
 
 bad_header:
-    mov dx, PTR16(msg_badheader)
-    call print_$
-    DOS_crlf
+    PUTS_COLOR msg_badheader, 0x02
     jmp exit1
 
 exit0:
-    mov ax, 4C00h
-    int 21h
+    DOS_Exit 0
 exit1:
-    mov ax, 4C01h
-    int 21h
+    DOS_Exit 1
 
 ;------------------------------------------------------------------------------
 ; dbfhead.asm - dBASE IV DBF-Header anzeigen (DOS .COM)

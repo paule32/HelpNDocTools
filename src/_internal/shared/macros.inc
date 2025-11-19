@@ -1566,3 +1566,45 @@ _cA_error_dispatch:
   %endrep
   dw 00h, _cA_errhnd
 %endmacro
+
+; -----------------------------------------------------------------------------
+; \brief check a character at the given position in given label string...
+; CMPCHAR <label>, <num-position>, <char to check>, <jump label if equal>
+; CMPCHAR argvn, 2, '3', is_three
+; -----------------------------------------------------------------------------
+%macro CMP_CHR 4
+    %assign __arg 0
+    %ifidni   %1, ARGV_1
+        %assign __arg 1
+    %elifidni %1, ARGV_2
+        %assign __arg 2
+    %elifidni %1, ARGV_3
+        %assign __arg 3
+    %elifidni %1, ARGV_4
+        %assign __arg 4
+    %elifidni %1, ARGV_5
+        %assign __arg 5
+    %elifidni %1, ARGV_6
+        %assign __arg 6
+    %elifidni %1, ARGV_7
+        %assign __arg 7
+    %endif
+    %if __arg >= 1
+        ;mov si, [PTR16(_cA_cmd_arg_%+__arg)]
+        mov si, [PTR16(_cA_cmd_arg_1)]
+    %else
+        ;mov si, [PTR16(_cA_%1)]
+        mov si, [PTR16(_cA_cmd_arg_1)]
+    %endif
+    %undef  __arg
+        xor  cl, cl
+    %%loop:
+        lodsb
+        inc cl
+        cmp cl, %2
+        je  %%next
+        jmp %%loop
+    %%next:
+        cmp si, %3
+        je  %4
+%endmacro

@@ -57,14 +57,14 @@ msgColonSp:         db ': $'
 msgCommaSp:         db ', $'
 msgSlash:           db ' / $'
 
-msg_usage:          db 'Usage: DBFMAKE <type:3|4> <CREATE|APPEND> <C|I|F|B|D|T> <feldname> <feldlaenge>', 0
-msg_badargs:        db 'Fehler: Argumente ungueltig.',0
-msg_openfail:       db 'Fehler: Datei kann nicht geoeffnet/erstellt werden.',0
-msg_ver_mismatch:   db 'Fehler: DBF-Typ passt nicht zur Datei.',0
-msg_append_recs:    db 'APPEND abgelehnt: Datei enthaelt Datensaetze (nicht unterstuetzt).',0
-msg_ioerr:          db 'I/O-Fehler.',0
-msg_badheader:      db 'Fehler: ungueltiger Header/Felddeskriptor.',0
-msg_not_supported:  db 'Nicht unterstuetzt: Feldtyp nur mit Typ 4.',0
+_cA_msg_usage:          db 'Usage: DBFMAKE <type:3|4> <CREATE|APPEND> <C|I|F|B|D|T> <feldname> <feldlaenge>', 0
+_cA_msg_badargs:        db 'Fehler: Argumente ungueltig.',0
+_cA_msg_openfail:       db 'Fehler: Datei kann nicht geoeffnet/erstellt werden.',0
+_cA_msg_ver_mismatch:   db 'Fehler: DBF-Typ passt nicht zur Datei.',0
+_cA_msg_append_recs:    db 'APPEND abgelehnt: Datei enthaelt Datensaetze (nicht unterstuetzt).',0
+_cA_msg_ioerr:          db 'I/O-Fehler.',0
+_cA_msg_badheader:      db 'Fehler: ungueltiger Header/Felddeskriptor.',0
+_cA_msg_not_supported:  db 'Nicht unterstuetzt: Feldtyp nur mit Typ 4.',0
 _cA_msg_ok_create:      db 'OK: Neue DBF mit einem Feld erstellt (DATA.DBF).',0
 msg_ok_append:      db 'OK: Feld an bestehende leere DBF angehaengt.',0
 msg_fieldexists:    db 'Hinweis: Feld bereits vorhanden; keine Aenderung vorgenommen.',0
@@ -85,7 +85,7 @@ _cA_GzipErrorMsg:   db 'exec of gzip.exe failed.', 0
 GzipCmdTail:
     db GzipCmdTextEnd - GzipCmdText          ; Länge
 GzipCmdText:
-    db ' -dnc modul1.gz > modul1.bin'
+    db ' -d modul1.biz'
 GzipCmdTextEnd:
     db 13
 
