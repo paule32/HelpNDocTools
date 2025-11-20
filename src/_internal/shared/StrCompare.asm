@@ -38,13 +38,13 @@ string_compare:
     jmp  .next          ; check
     
     .term:
-    mov  al, 0          ; found/same, ret
     pop  di             ; restore di
     pop  si             ; restore si
+    mov  al, 0          ; found/same, ret
     ret                 ; return to caller
     
     .not_equal:
-    mov  al, 1          ; not found, ret
     pop  di             ; restore < di
     pop  si             ; restore < si
+    mov  al, 1          ; not found, ret
     ret                 ; return to caller
