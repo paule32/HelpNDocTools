@@ -427,7 +427,34 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; GETDATA ax,  orig_attr, WORD     ; word read → ax
 ; GETDATA al,  flag8,     BYTE     ; byte read → al
 ; ---------------------------------------------------------------------------
+%macro SET_DATA 1-3
+%if DOS_SHELL == 1
+    %if %0 == 2
+        %ifnum %2
+            section .text
+            lea ax, [PTR16(_cA_%1)]
+            mov ax, %2
+        %endif
+    %elif %0 == 3
+        %ifstr %2
+            %ifndef __var__%1
+                %define __var__%1 1
+                section .data
+                %%__v: db %2, 0
+            %endif
+        %endif
+        section .text
+        lea ax, [PTR16(_cA_%1)]
+        mov ax, %2
+        jmp %3
+    %endif
+%else
+    %error 'tpdo'
+%endif
+%endmacro
 %macro SETDATA 2-3
+%if DOS_SHELL == 1
+%else
     push    rdx
     mov     rdx, IMAGE_BASE
     add     rdx, RVA_DATA(%1)
@@ -456,6 +483,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
         %error "SETDATA: 3rd arg must be BYTE/WORD/DWORD/QWORD or 8/16/32/64"
       %endif
     %endif
+%endif
 %endmacro
 
 ; ------------------------------------------------------------
@@ -1647,30 +1675,62 @@ _cA_error_dispatch:
 ; -----------------------------------------------------------------------------
 ; \brief compare 2 string's ...
 ; -----------------------------------------------------------------------------
+%macro STR_SI 1
+    section .text
+    lea  si, [PTR16(%1)]
+%endmacro
+%macro STR_DI 2
+    section .text
+    lea di, [PTR16(%1)]
+    call string_compare
+    cmp al, 0
+    je  %2
+%endmacro
+
 %macro CMP_STR 3
-    %ifnum %1                           ; argument 1 is a number ?
-        %error 'numbers can not be handled as string.'
-    %elifstr %1                         ; argument 1 is a string ?
+    ; -------------------------
+    ; argument 1 is a number ?
+    ; -------------------------
+    %ifnum %1
+        section .data
+        %defstr %%q1 %1
+        %%partA: db %%q1, 0
+        STR_SI %%partA
+    %endif
+    
+    ; -------------------------
+    ; argument 2 is a number ?
+    ; -------------------------
+    %ifnum %2
+        section .data
+        %defstr %%q2 %2
+        %%partB: db %%q2, 0
+        STR_DI %%partB, %3
+    %endif
+    
+    ; -------------------------
+    ; argument 1 is a string ?
+    ; -------------------------
+    %ifstr %1
         section .data
         %%part1: db %1, 0
+        STR_SI %%part1
+    %endif
+    
+    ; -------------------------
+    ; argument 2 is a string ?
+    ; -------------------------
+    %ifstr %2
+        section .data
+        %%part2: db %2, 0
+        STR_DI %%part2, %3
+    %endif
+    
+    ; -------------------------
+    ; argument 1 is a label ?
+    ; -------------------------
+    %ifid %1
         section .text
-        lea  si, [PTR16(%%part1)]       ; dst
-        %ifstr %2                       ; argument 2 is a string ?
-            section .data
-            %%part2: db %2, 0
-            section .text
-            lea di, [PTR16(%%part2)]    ; src
-            call string_compare
-            test al, al
-            jz   %3
-        %elifnum %2                     ; argument 2 is a number ?
-            %error 'numbers can not be handled as string.'
-        %else
-            %error 'todo'
-        %endif
-        ;pop si
-    %else
-    section .text
         %assign __count 0
         %assign __varg  0
         %assign __stop  0
@@ -1690,7 +1750,7 @@ _cA_error_dispatch:
         %else
             lea si, [PTR16(_cA_%1)]
         %endif
-        %imdef __stop
+        %undef __stop
         %undef __varg
     %endif
 %endmacro

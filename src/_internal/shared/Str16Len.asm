@@ -10,19 +10,22 @@
 ; -----------------------------------------------------------------------------
 ; \brief  get the 16 bit length of a 0-terminated string
 ; \param  Input:  ES:SI -> "0"-terminierter String
-; \return Output: CX = Länge (ohne '0')
+; \return Output: AX = Länge (ohne '0')
 ; -----------------------------------------------------------------------------
 DOSStrLen:
-    push    di
-    mov     di, si
-    mov     al, 0x00
-    cld
-    mov     cx, 0FFFFh
-    repne   scasb          ; search '0x00'
-    mov     ax, 0FFFFh
-    sub     ax, cx         ; AX = Anzahl verglichener Bytes inkl. '0x00'
-    dec     ax             ; ohne Terminierer
-    sub     ax, 2
-    mov     cx, ax
+    push di             ; save DI
+    mov  di, si         ; DI = SI
+    mov  ax, 0          ; reset counter
+    
+    next:
+    mov  al, [si]       ; get character
+    cmp  al, 0          ; found 0-terminator ?
+    je   done           ; yes -> .done
+    
+    inc  si
+    inc  ax
+    jmp  next
+    
+    done:
     pop     di
     ret

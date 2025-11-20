@@ -15,36 +15,26 @@
 ; -----------------------------------------------------------------------------
 string_compare:
     push si             ; save src > si
-    push di             ; save dst > di
     
-    SET_CURSOR 1, 1
-    PUTS_COLOR SI, 6
-    PUTS_COLOR DI, 1
-
     .next:
     mov  al, [si]       ; get src byte
     mov  bl, [di]       ; get dst byte
     
-    test al, al         ; found terminator ?
-    jz   .term          ; yes -> end
-    test bl, bl         ; found terminator ?
-    jz   .term          ; yes -> end
-    
-    cmp  al, bl         ; dst == src ?
+    cmp  al, [di]       ; dst == src ?
     jne  .not_equal     ; no ?
-    
+
     inc  si             ; next src pos.
     inc  di             ; next dst pos.
-    jmp  .next          ; check
+    
+    test al, al
+    jnz  .next          ; check
     
     .term:
-    pop  di             ; restore di
-    pop  si             ; restore si
     mov  al, 0          ; found/same, ret
+    pop  si             ; restore si
     ret                 ; return to caller
     
     .not_equal:
-    pop  di             ; restore < di
-    pop  si             ; restore < si
     mov  al, 1          ; not found, ret
+    pop  si             ; restore < si
     ret                 ; return to caller

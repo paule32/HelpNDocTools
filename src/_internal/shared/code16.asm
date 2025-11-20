@@ -8,31 +8,6 @@
 %define DOS_SHELL 1
 %define MAX_ARGS  7
 bits 16
-code16_start:
-    INIT_COMMAND_LINE
-    INIT_CONSOLE
-        
-    READL_CON_A dos_buffer
-    SET_CURSOR  10, 5
-    PUTS_COLOR  dos_buffer, 0x02 | 0x10
-    
-    ; text + prompt ausgeben
-    ;SET_CURSOR 2, 10
-    ;PUTS_COLOR dos_prompt, 0x0E | 0x10
-    
-    ;SET_CURSOR 10, 10
-    ;READL_CON_A dos_buffer
-    
-    ;SET_CURSOR 10, 3
-    ;PUTS_COLOR dos_buffer, 0x0E | 0x10
-    
-    ;SET_CURSOR 10, 7
-    ;PUTS_COLOR cmd_buf, 0x0E | 0x10
-    
-    ;SET_CURSOR 20, 7
-    ;PUTS_COLOR DBFNAME, 0x0E
-;    DOS_Exit 0
-
 ; -----------------------------------------------------------------------------
 ; dbfmake.asm  - Create/Append field into dBASE III/IV DBF by INT 21h
 ; Build:  nasm -f bin dbfmake.asm -o DBFMAKE.COM
@@ -46,27 +21,54 @@ code16_start:
 ; Feldname: max 10 Zeichen (dBASE-Beschränkung, 11. Byte = 0)
 ; Feldlaenge: Dezimal (z.B. 20)
 ; -----------------------------------------------------------------------------
+code16_start:
+    INIT_COMMAND_LINE
+    INIT_CONSOLE
 
-    GET_CURSOR
-    SET_CURSOR 20, 7
-    PUTS_COLOR 'schärpfel', 2
+    SET_DATA db_have_token, 0
     
-    SET_CURSOR 20, 8
-    PUTS_COLOR 'schupfel', 3
-
-    CMP_CHR ARGV_1, 3, '5', is_three
-    CMP_STR 'zuza', 'zuza', is_okk
-    test al, AL
-    jnz  is_okk
+    CMP_STR ARGV_1, '3', .is_version3
+    CMP_STR ARGV_1, '4', .is_version4
+    jmp usage
+    
+    .is_version3:  SET_DATA db_version, '3', .next1
+    .is_version4:  SET_DATA db_version, '4', .next1
         
-    SET_CURSOR 20, 3
-    PUTS_COLOR ARGV_2, 1
-    DOS_Exit 0
+    .next1:
+    SET_DATA db_have_token, 1
     
-    is_three:
-    SET_CURSOR 20, 5
-    PUTS_COLOR SI, 0x0F
-    DOS_Exit   0
+    CMP_STR ARGV_2, 'create', .is_okCreate
+    CMP_STR ARGV_2, 'append', .is_okAppend
+    
+    .is_okCreate:  SET_DATA db_op, 'C', .next2  ; CREATE
+    .is_okAppend:  SET_DATA db_op, 'A', .next2  ; APPEND
+    
+    .next2:
+    SET_DATA db_have_token, 2
+    
+    CMP_STR ARGV_3, 'c', .is_okTypeC
+    CMP_STR ARGV_3, 'C', .is_okTypeC
+    
+    CMP_STR ARGV_3, 'i', .is_okTypeI
+    CMP_STR ARGV_3, 'I', .is_okTypeI
+    
+    CMP_STR ARGV_3, 'f', .is_okTypeF
+    CMP_STR ARGV_3, 'F', .is_okTypeF
+    
+    CMP_STR ARGV_3, 'b', .is_okTypeB
+    CMP_STR ARGV_3, 'B', .is_okTypeB
+    
+    CMP_STR ARGV_3, 'd', .is_okTypeD
+    CMP_STR ARGV_3, 'D', .is_okTypeD
+    
+    .is_okTypeC:  SET_DATA db_type, 'C', .next3
+    .is_okTypeI:  SET_DATA db_type, 'I', .next3
+    .is_okTypeF:  SET_DATA db_type, 'F', .next3
+    .is_okTypeB:  SET_DATA db_type, 'B', .next3
+    .is_okTypeD:  SET_DATA db_type, 'D', .next3
+        
+    .next3:
+    SET_DATA db_have_token, 3
     
     is_okk:
     SET_CURSOR 40, 5
@@ -77,49 +79,6 @@ jmp usage
     .token_done:
     DOS_Exit 0
         
-    ; -------- <type> --------
-    call next_token
-    jc  usage
-    mov dx, PTR16(tokbuf)
-    call parse_u16
-    jc  badargs
-    cmp ax, 3
-    je  .have_type
-    cmp ax, 4
-    jne badargs
-    .have_type:
-    mov [PTR16(g_type)], ax
-
-    ; -------- <cmd> --------
-    call next_token
-    jc  usage
-    call upper_inplace_dx
-    mov si, dx
-    mov di, PTR16(str_CREATE)
-    call strcmp
-    test ax, ax
-    jz  .cmd_create
-    mov di, PTR16(str_APPEND)
-    mov si, dx
-    call strcmp
-    test ax, ax
-    jz  .cmd_append
-    jmp badargs
-    .cmd_create:
-    mov byte [PTR16(g_cmd)], 1
-    jmp .got_cmd
-    .cmd_append:
-    mov byte [PTR16(g_cmd)], 2
-    .got_cmd:
-
-    ; -------- <feldtype> --------
-    call next_token
-    jc  usage
-    mov si, dx
-    mov al, [si]          ; erstes Zeichen des Tokens
-    call to_upper
-    mov [PTR16(g_ftype)], al
-
     ; -------- <feldname> (max 10) --------
     mov di, PTR16(fldname)
     call copy_token_max_10

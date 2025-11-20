@@ -34,6 +34,14 @@ _cA_cmd_buffer:     resb 130
 ; EXEC-Parameterblock (14 Bytes)
 _cA_ExecBlk:        resb 14
 
+; -----------------------------------------------------------------------------
+; command line holders ...
+; -----------------------------------------------------------------------------
+_cA_db_version:     resb 1   ; 3 -> dBase3, 4 -> dBase4
+_cA_db_op:          resb 1   ; 0 -> CREATE, 1 -> APPEND
+_cA_db_type:        resb 1   ; C|I|F|B|D
+_cA_db_have_token:  resb 1
+
 fdescbuf:           resb 4096
 
 buf_hex:            resb 6            ; 4 Hex-Zeichen + '$' + Reserve
