@@ -56,6 +56,8 @@ code16_start:
 
     CMP_CHR ARGV_1, 3, '5', is_three
     CMP_STR 'zuza', 'zuza', is_okk
+    test al, AL
+    jnz  is_okk
         
     SET_CURSOR 20, 3
     PUTS_COLOR ARGV_2, 1
