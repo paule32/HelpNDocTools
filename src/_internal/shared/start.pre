@@ -1,0 +1,2339 @@
+%line 8+1 basexx.inc
+[default rel]
+
+%line 13+1 basexx.inc
+
+
+
+%line 231+1 windows.inc
+LANGID_DEFAULT equ (1 << 10) | 0
+
+
+
+
+%line 10+1 doshdr.inc
+[org 0]
+[bits 16]
+[section .text]
+
+dos_start:
+ db 'M','Z'
+ dw ( stub_end - $$) % 512
+ dw ((stub_end - $$) + 511) / 512
+ dw 0
+ dw ((stub_entry - $$) + 15) / 16
+ dw 0
+ dw 0x1000
+ dw 0
+ dw 0xFFFE
+ dw 0
+ dw 0
+ dw 0
+ dw mz_reloc - $$
+
+ dw 0
+ times 4 dw 0
+ dw 7274, 8279
+ times 10 dw 0
+ dd pe_header
+
+end_dos_header equ ($ - dos_start)
+
+
+mz_reloc:
+
+
+
+
+[sectalign 16]
+%line 43+0 doshdr.inc
+times (((16) - (($-$$) % (16))) % (16)) nop
+%line 44+1 doshdr.inc
+mz_image:
+
+
+stub_entry:
+incbin 'kernel.bin',0
+
+
+
+
+
+
+
+stub_end:
+%line 11+1 winhdr.inc
+[bits 64]
+[org 0]
+[sectalign 8]
+%line 13+0 winhdr.inc
+times (((8) - (($-$$) % (8))) % (8)) nop
+%line 14+1 winhdr.inc
+pe_header:
+ db 'P','E',0,0
+
+
+ dw 0x8664
+ dw 4
+ dd 0,0,0
+ dw 0x00F0
+ dw 0x0023
+
+%line 27+1 winhdr.inc
+ dw 0x020B
+ db 0,0
+ dd ((((text_end - text_start)) + (0x200) - 1) / (0x200) * (0x200))
+ dd ((((idata_end - idata_start)) + (0x200) - 1) / (0x200) * (0x200)) + ((((data_end - data_start)) + (0x200) - 1) / (0x200) * (0x200))
+ dd (bss_end - bss_start)
+ dd ((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((text_start) - text_start))
+ dd (((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000))
+ dq 0x0000000140000000
+ dd 0x1000
+ dd 0x200
+ dw 6,0
+ dw 1949,1956
+ dw 6,0
+ dd 0
+ dd (((((((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((data_end - data_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((bss_end - bss_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000))
+ dd (((headers_end - $$) + (0x200) - 1) / (0x200) * (0x200))
+ dd 0
+ dw 2
+ dw 0x0100
+ dq 0x100000, 0x1000
+ dq 0x100000, 0x1000
+ dd 0
+ dd 16
+
+
+ dd 0,0
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((import_dir) - idata_start)), (import_dir_end - import_dir)
+ dd 0,0
+ dd 0,0
+ dd 0,0
+ dd 0,0
+ dd 0,0
+ dd 0,0
+ dd 0,0
+ dd 0,0
+ dd 0,0
+ dd 0,0
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((iat_start) - idata_start)), (iat_end - iat_start)
+ dd 0,0
+ dd 0,0
+ dd 0,0
+
+
+ db '.text',0,0,0
+ dd (text_end - text_start)
+ dd (((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000))
+ dd ((((text_end - text_start)) + (0x200) - 1) / (0x200) * (0x200))
+ dd (((headers_end - $$) + (0x200) - 1) / (0x200) * (0x200))
+ dd 0,0
+ dw 0,0
+ dd 0x60000020
+
+
+ db '.idata',0,0
+ dd (idata_end - idata_start)
+ dd ((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000))
+ dd ((((idata_end - idata_start)) + (0x200) - 1) / (0x200) * (0x200))
+ dd ((((((headers_end - $$) + (0x200) - 1) / (0x200) * (0x200)) + ((((text_end - text_start)) + (0x200) - 1) / (0x200) * (0x200))) + (0x200) - 1) / (0x200) * (0x200))
+ dd 0,0
+ dw 0,0
+ dd 0xC0000040
+
+
+ db '.data',0,0,0
+ dd (data_end - data_start)
+ dd (((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000))
+ dd ((((data_end - data_start)) + (0x200) - 1) / (0x200) * (0x200))
+ dd (((((((((headers_end - $$) + (0x200) - 1) / (0x200) * (0x200)) + ((((text_end - text_start)) + (0x200) - 1) / (0x200) * (0x200))) + (0x200) - 1) / (0x200) * (0x200)) + ((((idata_end - idata_start)) + (0x200) - 1) / (0x200) * (0x200))) + (0x200) - 1) / (0x200) * (0x200))
+ dd 0,0
+ dw 0,0
+ dd 0xC0000040
+
+
+ db '.bss',0,0,0,0
+ dd (bss_end - bss_start)
+ dd ((((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((data_end - data_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000))
+ dd 0,0
+ dd 0,0
+ dw 0,0
+ dd 0xC0000080
+
+headers_end:
+
+
+times ((((headers_end - $$) + (0x200) - 1) / (0x200) * (0x200)) - ($ - $$)) db 0
+%line 23+1 start.asm
+[section .text]
+text_start:
+
+%line 8+1 code64.asm
+[bits 64]
+
+_start:
+
+
+
+ sub rsp, 40
+ call PASCALMAIN
+
+ mov rcx, 62
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_ExitProcess) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 19+1 code64.asm
+ ret
+
+
+ xor ecx, ecx
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetModuleHandleW) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 24+1 code64.asm
+ mov r14, rax
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%line 83+1 macros.inc
+ sub rsp, (8 * 10)
+%line 41+1 code64.asm
+ mov rdi, rsp
+
+
+ cld
+ xor eax, eax
+ mov ecx, 10
+ rep stosq
+
+ mov dword [rdi + 0], 80
+ mov dword [rdi + 4], 0x0002 | 0x0001
+
+
+ mov rax, 0x0000000140000000
+ add rax, ((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((WndProc) - text_start))
+ mov [rdi + 8], rax
+
+
+ mov [rdi + 24], r14
+
+
+
+
+
+
+
+
+ xor ecx, ecx
+ mov edx, 32512
+ sub rsp, 32
+
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_LoadCursorW) - idata_start))
+ call [rax]
+ add rsp, 32
+ mov [rdi + 40], rax
+
+
+ mov qword [rdi + 48], 5 + 1
+
+
+ mov qword [rdi + 56], 0
+
+
+%line 384+1 macros.inc
+ mov rax, 0x0000000140000000
+ add rax, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cW_winclassW) - data_start))
+%line 85+1 code64.asm
+ mov [rdi + 64], rax
+
+
+
+
+
+ mov rcx, rdi
+ sub rsp, 32
+
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_RegisterClassExW) - idata_start))
+ call [rax]
+ add rsp, 32
+ test eax, eax
+ jz .reg_fail
+
+ .class_ok:
+
+
+
+
+
+
+
+
+ xor ecx, ecx
+%line 384+1 macros.inc
+ mov rdx, 0x0000000140000000
+ add rdx, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cW_winclassW) - data_start))
+%line 384+1 macros.inc
+ mov r8, 0x0000000140000000
+ add r8, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cW_titleW) - data_start))
+%line 113+1 code64.asm
+ mov r9d, ( 0x00000000 | 0x00C00000 | 0x00080000 | 0x00040000 | 0x00020000 | 0x00010000 )
+
+
+
+ sub rsp, 32 + 8*8
+ mov dword [rsp+32], 100
+ mov dword [rsp+40], 100
+ mov dword [rsp+48], 329
+ mov dword [rsp+56], 200
+ mov qword [rsp+64], 0
+ mov qword [rsp+72], 0
+ mov [rsp+80], r14
+ mov qword [rsp+88], 0
+
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_CreateWindowExW) - idata_start))
+ call [rax]
+
+ add rsp, 32 + 8*8
+
+ test rax, rax
+ jz .cw_fail
+
+ mov rsi, rax
+
+
+ mov rcx, rsi
+ mov edx, 5
+ sub rsp, 32
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_ShowWindow) - idata_start))
+ call [rax]
+ add rsp, 32
+
+ mov rcx, rsi
+ sub rsp, 32
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_UpdateWindow) - idata_start))
+ call [rax]
+ add rsp, 32
+
+
+ sub rsp, 48
+ mov rbx, rsp
+ .msg:
+ mov rcx, rbx
+ xor edx, edx
+ xor r8d, r8d
+ xor r9d, r9d
+ sub rsp, 32
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetMessageW) - idata_start))
+ call [rax]
+ add rsp, 32
+ test eax, eax
+ jz .quit
+
+ mov rcx, rbx
+ sub rsp, 32
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_TranslateMessage) - idata_start))
+ call [rax]
+ add rsp, 32
+
+ mov rcx, rbx
+ sub rsp, 32
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_DispatchMessageW) - idata_start))
+ call [rax]
+ add rsp, 32
+ jmp .msg
+ .quit:
+ add rsp, 48
+
+
+ add rsp, 80
+ jmp .ok
+
+ .reg_fail:
+
+ sub rsp,32
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetLastError) - idata_start))
+ call [rax]
+ add rsp,32
+
+ add rsp, 80
+ jmp .done
+
+ .cw_fail:
+ sub rsp,32
+ mov rax, 0x0000000140000000
+ add rax, (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetLastError) - idata_start))
+ call [rax]
+ add rsp,32
+
+ add rsp, 80
+ jmp .done
+
+ .ok:
+ .done:
+
+%line 596+1 macros.inc
+ mov rax, 2
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_ExitProcess) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1+1 winproc.asm
+[bits 64]
+
+WndProc:
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 847+1 macros.inc
+ cmp edx, 0x0010
+ je .wm_close
+%line 847+1 macros.inc
+ cmp edx, 0x0014
+ je .wm_erasebkgnd
+%line 747+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_DefWindowProcW) - idata_start))
+%line 96+1 macros.inc
+ add rsp, 32
+%line 9+1 winproc.asm
+ jmp [rax]
+.wm_erasebkgnd:
+%line 83+1 macros.inc
+ sub rsp, 48
+%line 12+1 winproc.asm
+ mov [rsp+32],rcx
+ mov [rsp+40],r8
+ lea rdx,[rsp+16]
+ mov rcx,[rsp+32]
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetClientRect) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 17+1 winproc.asm
+ mov rcx,[rsp+32]
+ mov rdx,-10
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetClassLongPtrW) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 20+1 winproc.asm
+ mov rcx,[rsp+40]
+ lea rdx,[rsp+16]
+ mov r8,rax
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_FillRect) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 497+1 macros.inc
+ mov eax, 1
+%line 94+1 macros.inc
+ add rsp, 48
+
+ add rsp, 32
+%line 27+1 winproc.asm
+ ret
+.wm_close:
+%line 182+1 macros.inc
+ xor ecx, ecx
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_PostQuitMessage) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 96+0 macros.inc
+ add rsp, 32
+%line 182+0 macros.inc
+ xor eax, eax
+%line 33+1 winproc.asm
+ ret
+%line 1+1 text64.asm
+PASCALMAIN:
+
+
+
+
+
+
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 551+1 macros.inc
+ push rbp
+ mov rbp, rsp
+%line 1442+1 macros.inc
+ call init_app
+ call init_console
+%line 989+1 macros.inc
+ xor eax, eax
+ mov rcx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_cap2A) - data_start)))
+ call GET_STR_LEN
+ mov r14, rax
+%line 1084+1 macros.inc
+ mov ecx, -11
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1086+1 macros.inc
+ mov r12, rax
+%line 994+1 macros.inc
+ mov rcx, r12
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_cap2A) - data_start)))
+ mov r8 , r14
+ xor r9d, r9d
+ mov qword [rsp+32], 0
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_WriteConsoleA) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 988+1 macros.inc
+
+ xor eax, eax
+ mov rcx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_prompt) - data_start)))
+ call GET_STR_LEN
+ mov r14, rax
+%line 1084+1 macros.inc
+ mov ecx, -11
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1086+1 macros.inc
+ mov r12, rax
+%line 994+1 macros.inc
+ mov rcx, r12
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_prompt) - data_start)))
+ mov r8 , r14
+ xor r9d, r9d
+ mov qword [rsp+32], 0
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_WriteConsoleA) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1017+1 macros.inc
+
+%line 1097+1 macros.inc
+ mov ecx, -10
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1099+1 macros.inc
+ mov r13, rax
+%line 1019+1 macros.inc
+
+ mov rcx, r13
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_dst) - data_start)))
+ mov r8d, 127
+ mov r9 , (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((written) - data_start)))
+ xor rax, rax
+ mov [rsp+32], rax
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_ReadConsoleA) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1049+1 macros.inc
+ mov rcx, 0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_buffer_B) - data_start))
+ mov rdx, 0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_consoleColor_1) - data_start))
+ mov r8 , 0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_empty) - data_start))
+ call concat_ansi
+%line 1056+1 macros.inc
+
+%line 1059+1 macros.inc
+
+ mov rdi, 0x0000000140000000
+ add rdi, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + (((_cA_buffer_B + 4)) - data_start))
+ xor eax, eax
+ mov rcx, -1
+ repne scasb
+ lea rcx, [rdi - 1]
+
+
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_console_color_40) - data_start)))
+ mov r8 , (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_empty) - data_start)))
+ call concat_ansi
+
+%line 1059+1 macros.inc
+
+ mov rdi, 0x0000000140000000
+ add rdi, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + (((_cA_buffer_B + 4)) - data_start))
+ xor eax, eax
+ mov rcx, -1
+ repne scasb
+ lea rcx, [rdi - 1]
+
+
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_buffer_semi) - data_start)))
+ mov r8 , (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_empty) - data_start)))
+ call concat_ansi
+
+%line 1059+1 macros.inc
+
+ mov rdi, 0x0000000140000000
+ add rdi, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + (((_cA_buffer_B + 4)) - data_start))
+ xor eax, eax
+ mov rcx, -1
+ repne scasb
+ lea rcx, [rdi - 1]
+
+
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_console_color_93) - data_start)))
+ mov r8 , (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_empty) - data_start)))
+ call concat_ansi
+
+%line 1059+1 macros.inc
+
+ mov rdi, 0x0000000140000000
+ add rdi, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + (((_cA_buffer_B + 4)) - data_start))
+ xor eax, eax
+ mov rcx, -1
+ repne scasb
+ lea rcx, [rdi - 1]
+
+
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_consoleColor_2) - data_start)))
+ mov r8 , (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_empty) - data_start)))
+ call concat_ansi
+
+%line 988+1 macros.inc
+
+ xor eax, eax
+ mov rcx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_buffer_B) - data_start)))
+ call GET_STR_LEN
+ mov r14, rax
+%line 1084+1 macros.inc
+ mov ecx, -11
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1086+1 macros.inc
+ mov r12, rax
+%line 994+1 macros.inc
+ mov rcx, r12
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_buffer_B) - data_start)))
+ mov r8 , r14
+ xor r9d, r9d
+ mov qword [rsp+32], 0
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_WriteConsoleA) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1084+1 macros.inc
+ mov ecx, -11
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1086+1 macros.inc
+ mov r12, rax
+%line 1049+1 macros.inc
+ mov rcx, 0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_buffer_B) - data_start))
+ mov rdx, 0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_consoleColor_3) - data_start))
+ mov r8 , 0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_empty) - data_start))
+ call concat_ansi
+%line 988+1 macros.inc
+
+ xor eax, eax
+ mov rcx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_buffer_B) - data_start)))
+ call GET_STR_LEN
+ mov r14, rax
+%line 1084+1 macros.inc
+ mov ecx, -11
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1086+1 macros.inc
+ mov r12, rax
+%line 994+1 macros.inc
+ mov rcx, r12
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_buffer_B) - data_start)))
+ mov r8 , r14
+ xor r9d, r9d
+ mov qword [rsp+32], 0
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_WriteConsoleA) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 989+1 macros.inc
+ xor eax, eax
+ mov rcx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_dst) - data_start)))
+ call GET_STR_LEN
+ mov r14, rax
+%line 1084+1 macros.inc
+ mov ecx, -11
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1086+1 macros.inc
+ mov r12, rax
+%line 994+1 macros.inc
+ mov rcx, r12
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_dst) - data_start)))
+ mov r8 , r14
+ xor r9d, r9d
+ mov qword [rsp+32], 0
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_WriteConsoleA) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 988+1 macros.inc
+
+ xor eax, eax
+ mov rcx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_prompt) - data_start)))
+ call GET_STR_LEN
+ mov r14, rax
+%line 1084+1 macros.inc
+ mov ecx, -11
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1086+1 macros.inc
+ mov r12, rax
+%line 994+1 macros.inc
+ mov rcx, r12
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_prompt) - data_start)))
+ mov r8 , r14
+ xor r9d, r9d
+ mov qword [rsp+32], 0
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_WriteConsoleA) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1097+1 macros.inc
+ mov ecx, -10
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1099+1 macros.inc
+ mov r13, rax
+%line 1019+1 macros.inc
+
+ mov rcx, r13
+ mov rdx, (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cA_dst) - data_start)))
+ mov r8d, 127
+ mov r9 , (0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((written) - data_start)))
+ xor rax, rax
+ mov [rsp+32], rax
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_ReadConsoleA) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 25+1 text64.asm
+ .exit:
+%line 96+1 macros.inc
+ add rsp, 32
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 13+1 stdlib.inc
+init_app:
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 551+1 macros.inc
+ push rbp
+ mov rbp, rsp
+%line 16+1 stdlib.inc
+ mov ecx, -4
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_SetProcessDpiAwarenessContext) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 96+1 macros.inc
+ add rsp, 32
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 27+1 stdlib.inc
+init_console:
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 551+1 macros.inc
+ push rbp
+ mov rbp, rsp
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_AllocConsole) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1084+1 macros.inc
+ mov ecx, -11
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1086+1 macros.inc
+ mov r12, rax
+%line 34+1 stdlib.inc
+ mov rcx, r12
+ lea rdx, [rel mode_out]
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetConsoleMode) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 38+1 stdlib.inc
+ mov eax, [rel mode_out]
+ or eax, 0x0004
+ or eax, 0x0008
+ mov edx, eax
+ mov rcx, r12
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_SetConsoleMode) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1097+1 macros.inc
+ mov ecx, -10
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetStdHandle) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 1099+1 macros.inc
+ mov r13, rax
+%line 49+1 stdlib.inc
+ mov rcx, r13
+ lea rdx, [rel mode_in]
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetConsoleMode) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 54+1 stdlib.inc
+ mov rcx, r12
+ mov edx, (25 << 16) | 80
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_SetConsoleScreenBufferSize) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 59+1 stdlib.inc
+ mov rcx, r12
+ mov edx, 1
+ mov r8, 0x0000000140000000
+ add r8, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((Rect80x25) - data_start))
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_SetConsoleWindowInfo) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 66+1 stdlib.inc
+ mov rcx, [hIn]
+ lea rdx, [rel tmpConsoleMode]
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetConsoleMode) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 69+1 stdlib.inc
+ mov eax, [rel tmpConsoleMode]
+
+ or eax, 0x0001 | 0x0080 | 0x0004 | 0x0008
+%line 75+1 stdlib.inc
+ and eax, ~(0x0002 | 0x0004 | 0x0040)
+
+ mov edx, eax
+ mov rcx, [hIn]
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_SetConsoleMode) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetConsoleWindow) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 82+1 stdlib.inc
+ mov rbx, rax
+ test rax, rax
+ jz .done
+
+ mov rcx, rbx
+ xor edx, edx
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_GetSystemMenu) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 89+1 stdlib.inc
+ test rax, rax
+ jz .done
+ mov rdi, rax
+
+ mov rcx, rdi
+ mov edx, 0xF060
+ mov r8d, 0x00000000 | 0x00000001
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_EnableMenuItem) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 98+1 stdlib.inc
+ mov rcx, rbx
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_DrawMenuBar) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 100+1 stdlib.inc
+ .after_menu:
+ .done:
+
+
+ mov ax, 40
+ mov [_cA_console_bg], ax
+
+ mov ax, 93
+ mov [_cA_console_fg], ax
+
+
+%line 96+1 macros.inc
+ add rsp, 32
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 116+1 stdlib.inc
+ascii_to_utf8:
+
+ push rbx
+
+
+ mov r10, rcx
+ mov r11, rdx
+
+
+ mov ecx, 65001
+ xor edx, edx
+ mov r8, r10
+ mov r9d, -1
+
+ sub rsp, 40
+ mov [rsp+24], r11
+ mov dword [rsp+32], 256
+
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_MultiByteToWideChar) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 136+1 stdlib.inc
+ add rsp, 40
+ pop rbx
+ ret
+
+
+
+
+
+HandleLastError:
+
+%line 83+1 macros.inc
+ sub rsp, 64
+%line 551+1 macros.inc
+ push rbp
+ mov rbp, rsp
+%line 149+1 stdlib.inc
+ mov ecx, 0x00000100 | 0x00001000 | 0x00000200
+ xor edx, edx
+ mov r8d, eax
+ mov r9d, LANGID_DEFAULT
+
+%line 83+1 macros.inc
+ sub rsp, (32 + (3 * 8) + 8)
+%line 155+1 stdlib.inc
+ mov rax, 0x0000000140000000
+ add rax, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((pMsg) - data_start))
+ mov [rsp+32], rax
+ mov dword [rsp+40], 0
+ mov qword [rsp+48], 0
+
+
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_FormatMessageW) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 94+1 macros.inc
+ add rsp, (32 + (3 * 8) + 8)
+%line 164+1 stdlib.inc
+ test eax, eax
+ jz .no_text
+
+
+ xor ecx, ecx
+ mov rdx, 0x0000000140000000
+ add rdx, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((pMsg) - data_start))
+%line 384+1 macros.inc
+ mov r8, 0x0000000140000000
+ add r8, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((_cW_ErrTitleW) - data_start))
+%line 172+1 stdlib.inc
+ mov r9d, 0x00000010
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_MessageBoxW) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 176+1 stdlib.inc
+ mov rcx, 0x0000000140000000
+ add rcx, ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((pMsg) - data_start))
+ mov rcx, [rcx]
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_MessageBoxW) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 181+1 stdlib.inc
+ jmp .done
+
+.no_text:
+ call HandleLastErrorHexCode
+.done:
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 194+1 stdlib.inc
+u32_to_dec:
+ mov eax, edx
+ lea r8, [rcx + 20]
+ dec r8
+ mov byte [r8], 0
+ .loop:
+ mov rcx, 10
+ mov rdx, 0
+ div rcx
+ add dl, '0'
+ dec r8
+ mov byte [r8], dl
+ cmp rax, 0
+ ja .loop
+ mov rax, r8
+ ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+concat_ansi:
+
+
+
+ .loop_s1:
+ mov al, [rdx]
+ test al, al
+ jz .loop_s2
+
+ mov [rcx], al
+ inc rdx
+ inc rcx
+ jmp .loop_s1
+
+
+
+
+ .loop_s2:
+ mov al, [r8]
+ test al, al
+ jz .finish
+
+ mov [rcx], al
+ inc r8
+ inc rcx
+ jmp .loop_s2
+
+ .finish:
+ xor eax, eax
+ mov [rcx], al
+ mov eax, 1
+ ret
+
+GET_STR_LEN:
+ xor eax, eax
+ .loop:
+ mov dl, byte [rcx+rax]
+ test dl, dl
+ jz .loop_end
+ inc rax
+ jmp .loop
+ .loop_end:
+ ret
+
+HandleLastErrorHexCode:
+
+%line 83+1 macros.inc
+ sub rsp, 64
+%line 551+1 macros.inc
+ push rbp
+ mov rbp, rsp
+%line 278+1 stdlib.inc
+ mov rdx, 0x0000000140000000 + ((((((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((idata_end - idata_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((last_error) - data_start))
+ mov dword [rdx], eax
+
+
+
+
+
+
+ mov r8d, ecx
+ mov r9d, edx
+ xor eax, eax
+
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_wsprintfW) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 293+1 stdlib.inc
+ xor ecx, ecx
+
+
+ mov r9d, 0x10
+
+%line 85+1 macros.inc
+ sub rsp, 32
+%line 173+1 macros.inc
+ mov rax, 0x0000000140000000 + (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((IAT_win32_MessageBoxW) - idata_start))
+ call [rax]
+%line 96+1 macros.inc
+ add rsp, 32
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 311+1 stdlib.inc
+utf8_to_cp1252_char:
+
+ push rbx
+
+ mov bl, [rcx]
+ test bl, bl
+ jz .nul
+
+
+ cmp bl, 0x7F
+ jbe .ascii
+
+
+ cmp bl, 0xC3
+ jne .unmap
+ mov bh, [rcx+1]
+
+
+
+
+
+
+
+
+
+
+ cmp bh, 0x84
+ je .emit_C4
+ cmp bh, 0x96
+ je .emit_D6
+ cmp bh, 0x9C
+ je .emit_DC
+
+ cmp bh, 0xA4
+ je .emit_E4
+ cmp bh, 0xB6
+ je .emit_F6
+ cmp bh, 0xBC
+ je .emit_FC
+ cmp bh, 0x9F
+ je .emit_DF
+
+ jmp .unmap
+
+ .ascii:
+ mov [rdx], bl
+ mov al, bl
+ mov rax, 1
+ clc
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 363+1 stdlib.inc
+ .emit_C4: mov byte [rdx], 0xC4
+ mov al, 0xC4
+ mov rax, 2
+ clc
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 369+1 stdlib.inc
+ .emit_D6: mov byte [rdx], 0xD6
+ mov al, 0xD6
+ mov rax, 2
+ clc
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 375+1 stdlib.inc
+ .emit_DC: mov byte [rdx], 0xDC
+ mov al, 0xDC
+ mov rax, 2
+ clc
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 381+1 stdlib.inc
+ .emit_E4: mov byte [rdx], 0xE4
+ mov al, 0xE4
+ mov rax, 2
+ clc
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 387+1 stdlib.inc
+ .emit_F6: mov byte [rdx], 0xF6
+ mov al, 0xF6
+ mov rax, 2
+ clc
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 393+1 stdlib.inc
+ .emit_FC: mov byte [rdx], 0xFC
+ mov al, 0xFC
+ mov rax, 2
+ clc
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 399+1 stdlib.inc
+ .emit_DF: mov byte [rdx], 0xDF
+ mov al, 0xDF
+ mov rax, 2
+ clc
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 405+1 stdlib.inc
+ .unmap:
+
+ mov byte [rdx], '?'
+ mov al, '?'
+ stc
+
+
+ mov rax, 1
+ cmp bl, 0xC2
+ jb .ret_unmap
+ cmp bl, 0xE0
+ jae .ret_unmap
+ mov rax, 2
+ .ret_unmap:
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 422+1 stdlib.inc
+ .nul:
+ xor eax, eax
+ clc
+ .exit:
+ pop rbx
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 432+1 stdlib.inc
+utf8_to_cp1252:
+
+ push rsi
+ push rdi
+ mov rsi, rcx
+ mov rdi, rdx
+ xor rax, rax
+
+ .next:
+ movzx eax, byte [rsi]
+ jmp .done
+ test eax, eax
+ jz .done
+
+
+ mov rcx, rsi
+ mov rdx, rdi
+ call utf8_to_cp1252_char
+
+
+ add rsi, rax
+ inc rdi
+ inc rax
+ jmp .next
+ .done:
+
+
+
+ mov byte [rdi], 0
+ pop rdi
+ pop rsi
+ ret
+%line 94+1 macros.inc
+ add rsp, 64
+%line 565+1 macros.inc
+ pop rbp
+ ret
+%line 31+1 start.asm
+text_end:
+
+%line 10+1 imports.inc
+ times (((((((headers_end - $$) + (0x200) - 1) / (0x200) * (0x200)) + ((((text_end - text_start)) + (0x200) - 1) / (0x200) * (0x200))) + (0x200) - 1) / (0x200) * (0x200)) - ($ - $$)) db 0
+idata_start:
+
+
+
+
+%line 148+1 macros.inc
+ import_dir:
+%line 151+1 macros.inc
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((INT_win32_kernel32) - idata_start))
+ dd 0,0
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((dll_win32_kernel32) - idata_start))
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((iat_win32_kernel32) - idata_start))
+%line 151+1 macros.inc
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((INT_win32_user32) - idata_start))
+ dd 0,0
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((dll_win32_user32) - idata_start))
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((iat_win32_user32) - idata_start))
+%line 151+1 macros.inc
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((INT_win32_msvcrt) - idata_start))
+ dd 0,0
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((dll_win32_msvcrt) - idata_start))
+ dd (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((iat_win32_msvcrt) - idata_start))
+%line 157+1 macros.inc
+ dd 0,0,0,0,0
+ import_dir_end:
+%line 104+1 macros.inc
+INT_win32_kernel32:
+%line 107+1 macros.inc
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_lstrlenA) - idata_start))
+%line 107+0 macros.inc
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_AllocConsole) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ExitProcess) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_FormatMessageW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_FillConsoleOutputAttribute) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_FillConsoleOutputCharacterW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetConsoleMode) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetConsoleScreenBufferInfo) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetConsoleWindow) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetCurrentConsoleFont) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetLargestConsoleWindowSize) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetLastError) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetModuleHandleW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetProcAddress) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetStdHandle) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_LoadLibraryA) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_LocalFree) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ReadConsoleA) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ReadConsoleInputW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ReadConsoleW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ReadFile) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_RtlMoveMemory) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleCP) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleCursorPosition) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleMode) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleOutputCP) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleScreenBufferSize) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleTextAttribute) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleWindowInfo) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MultiByteToWideChar) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_WaitForSingleObject) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_WriteConsoleA) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_WriteConsoleW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_WriteFile) - idata_start))
+%line 110+0 macros.inc
+ dq 0
+%line 104+0 macros.inc
+INT_win32_user32:
+%line 107+0 macros.inc
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_CreateWindowExW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_DefWindowProcW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_DispatchMessageW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_DrawMenuBar) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_EnableMenuItem) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_FillRect) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetClassLongPtrW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetClientRect) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetMessageW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetMonitorInfoW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetSysColorBrush) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetSystemMenu) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetWindowLongPtrA) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetWindowRect) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_LoadCursorW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MessageBoxA) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MessageBoxW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MonitorFromWindow) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MoveWindow) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_RegisterClassExW) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetProcessDpiAwarenessContext) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetWindowLongPtrA) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetWindowPos) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ShowWindow) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_PostQuitMessage) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_TranslateMessage) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_UpdateWindow) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_wsprintfW) - idata_start))
+%line 110+0 macros.inc
+ dq 0
+%line 104+0 macros.inc
+INT_win32_msvcrt:
+%line 107+0 macros.inc
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_fgets) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_scanf) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_sprintf) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_printf) - idata_start))
+ dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_puts) - idata_start))
+%line 110+0 macros.inc
+ dq 0
+%line 28+1 imports.inc
+iat_start:
+%line 117+1 macros.inc
+iat_win32_kernel32:
+%line 120+1 macros.inc
+IAT_win32_lstrlenA: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_lstrlenA) - idata_start))
+%line 120+0 macros.inc
+IAT_win32_AllocConsole: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_AllocConsole) - idata_start))
+IAT_win32_ExitProcess: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ExitProcess) - idata_start))
+IAT_win32_FormatMessageW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_FormatMessageW) - idata_start))
+IAT_win32_FillConsoleOutputAttribute: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_FillConsoleOutputAttribute) - idata_start))
+IAT_win32_FillConsoleOutputCharacterW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_FillConsoleOutputCharacterW) - idata_start))
+IAT_win32_GetConsoleMode: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetConsoleMode) - idata_start))
+IAT_win32_GetConsoleScreenBufferInfo: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetConsoleScreenBufferInfo) - idata_start))
+IAT_win32_GetConsoleWindow: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetConsoleWindow) - idata_start))
+IAT_win32_GetCurrentConsoleFont: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetCurrentConsoleFont) - idata_start))
+IAT_win32_GetLargestConsoleWindowSize: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetLargestConsoleWindowSize) - idata_start))
+IAT_win32_GetLastError: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetLastError) - idata_start))
+IAT_win32_GetModuleHandleW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetModuleHandleW) - idata_start))
+IAT_win32_GetProcAddress: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetProcAddress) - idata_start))
+IAT_win32_GetStdHandle: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetStdHandle) - idata_start))
+IAT_win32_LoadLibraryA: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_LoadLibraryA) - idata_start))
+IAT_win32_LocalFree: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_LocalFree) - idata_start))
+IAT_win32_ReadConsoleA: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ReadConsoleA) - idata_start))
+IAT_win32_ReadConsoleInputW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ReadConsoleInputW) - idata_start))
+IAT_win32_ReadConsoleW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ReadConsoleW) - idata_start))
+IAT_win32_ReadFile: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ReadFile) - idata_start))
+IAT_win32_RtlMoveMemory: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_RtlMoveMemory) - idata_start))
+IAT_win32_SetConsoleCP: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleCP) - idata_start))
+IAT_win32_SetConsoleCursorPosition: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleCursorPosition) - idata_start))
+IAT_win32_SetConsoleMode: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleMode) - idata_start))
+IAT_win32_SetConsoleOutputCP: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleOutputCP) - idata_start))
+IAT_win32_SetConsoleScreenBufferSize: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleScreenBufferSize) - idata_start))
+IAT_win32_SetConsoleTextAttribute: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleTextAttribute) - idata_start))
+IAT_win32_SetConsoleWindowInfo: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetConsoleWindowInfo) - idata_start))
+IAT_win32_MultiByteToWideChar: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MultiByteToWideChar) - idata_start))
+IAT_win32_WaitForSingleObject: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_WaitForSingleObject) - idata_start))
+IAT_win32_WriteConsoleA: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_WriteConsoleA) - idata_start))
+IAT_win32_WriteConsoleW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_WriteConsoleW) - idata_start))
+IAT_win32_WriteFile: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_WriteFile) - idata_start))
+%line 123+0 macros.inc
+ dq 0
+%line 117+0 macros.inc
+iat_win32_user32:
+%line 120+0 macros.inc
+IAT_win32_CreateWindowExW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_CreateWindowExW) - idata_start))
+IAT_win32_DefWindowProcW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_DefWindowProcW) - idata_start))
+IAT_win32_DispatchMessageW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_DispatchMessageW) - idata_start))
+IAT_win32_DrawMenuBar: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_DrawMenuBar) - idata_start))
+IAT_win32_EnableMenuItem: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_EnableMenuItem) - idata_start))
+IAT_win32_FillRect: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_FillRect) - idata_start))
+IAT_win32_GetClassLongPtrW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetClassLongPtrW) - idata_start))
+IAT_win32_GetClientRect: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetClientRect) - idata_start))
+IAT_win32_GetMessageW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetMessageW) - idata_start))
+IAT_win32_GetMonitorInfoW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetMonitorInfoW) - idata_start))
+IAT_win32_GetSysColorBrush: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetSysColorBrush) - idata_start))
+IAT_win32_GetSystemMenu: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetSystemMenu) - idata_start))
+IAT_win32_GetWindowLongPtrA: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetWindowLongPtrA) - idata_start))
+IAT_win32_GetWindowRect: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_GetWindowRect) - idata_start))
+IAT_win32_LoadCursorW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_LoadCursorW) - idata_start))
+IAT_win32_MessageBoxA: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MessageBoxA) - idata_start))
+IAT_win32_MessageBoxW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MessageBoxW) - idata_start))
+IAT_win32_MonitorFromWindow: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MonitorFromWindow) - idata_start))
+IAT_win32_MoveWindow: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_MoveWindow) - idata_start))
+IAT_win32_RegisterClassExW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_RegisterClassExW) - idata_start))
+IAT_win32_SetProcessDpiAwarenessContext: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetProcessDpiAwarenessContext) - idata_start))
+IAT_win32_SetWindowLongPtrA: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetWindowLongPtrA) - idata_start))
+IAT_win32_SetWindowPos: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_SetWindowPos) - idata_start))
+IAT_win32_ShowWindow: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_ShowWindow) - idata_start))
+IAT_win32_PostQuitMessage: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_PostQuitMessage) - idata_start))
+IAT_win32_TranslateMessage: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_TranslateMessage) - idata_start))
+IAT_win32_UpdateWindow: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_UpdateWindow) - idata_start))
+IAT_win32_wsprintfW: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_wsprintfW) - idata_start))
+%line 123+0 macros.inc
+ dq 0
+%line 117+0 macros.inc
+iat_win32_msvcrt:
+%line 120+0 macros.inc
+IAT_win32_fgets: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_fgets) - idata_start))
+IAT_win32_scanf: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_scanf) - idata_start))
+IAT_win32_sprintf: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_sprintf) - idata_start))
+IAT_win32_printf: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_printf) - idata_start))
+IAT_win32_puts: dq (((((((headers_end - $$) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((((text_end - text_start)) + (0x1000) - 1) / (0x1000) * (0x1000))) + (0x1000) - 1) / (0x1000) * (0x1000)) + ((HN_win32_puts) - idata_start))
+%line 123+0 macros.inc
+ dq 0
+%line 32+1 imports.inc
+iat_end:
+
+
+
+
+%line 132+1 macros.inc
+HN_win32_lstrlenA: dw 0
+ db 'lstrlenA', 0
+%line 132+1 macros.inc
+HN_win32_AllocConsole: dw 0
+ db 'AllocConsole', 0
+%line 132+1 macros.inc
+HN_win32_ExitProcess: dw 0
+ db 'ExitProcess', 0
+%line 132+1 macros.inc
+HN_win32_FormatMessageW: dw 0
+ db 'FormatMessageW', 0
+%line 132+1 macros.inc
+HN_win32_FillConsoleOutputAttribute: dw 0
+ db 'FillConsoleOutputAttribute', 0
+%line 132+1 macros.inc
+HN_win32_FillConsoleOutputCharacterW: dw 0
+ db 'FillConsoleOutputCharacterW', 0
+%line 132+1 macros.inc
+HN_win32_GetConsoleMode: dw 0
+ db 'GetConsoleMode', 0
+%line 132+1 macros.inc
+HN_win32_GetConsoleScreenBufferInfo: dw 0
+ db 'GetConsoleScreenBufferInfo', 0
+%line 132+1 macros.inc
+HN_win32_GetConsoleWindow: dw 0
+ db 'GetConsoleWindow', 0
+%line 132+1 macros.inc
+HN_win32_GetCurrentConsoleFont: dw 0
+ db 'GetCurrentConsoleFont', 0
+%line 132+1 macros.inc
+HN_win32_GetLargestConsoleWindowSize: dw 0
+ db 'GetLargestConsoleWindowSize', 0
+%line 132+1 macros.inc
+HN_win32_GetLastError: dw 0
+ db 'GetLastError', 0
+%line 132+1 macros.inc
+HN_win32_GetModuleHandleW: dw 0
+ db 'GetModuleHandleW', 0
+%line 132+1 macros.inc
+HN_win32_GetProcAddress: dw 0
+ db 'GetProcAddress', 0
+%line 132+1 macros.inc
+HN_win32_GetStdHandle: dw 0
+ db 'GetStdHandle', 0
+%line 132+1 macros.inc
+HN_win32_LoadLibraryA: dw 0
+ db 'LoadLibraryA', 0
+%line 132+1 macros.inc
+HN_win32_LocalFree: dw 0
+ db 'LocalFree', 0
+%line 132+1 macros.inc
+HN_win32_ReadConsoleA: dw 0
+ db 'ReadConsoleA', 0
+%line 132+1 macros.inc
+HN_win32_ReadConsoleInputW: dw 0
+ db 'ReadConsoleInputW', 0
+%line 132+1 macros.inc
+HN_win32_ReadConsoleW: dw 0
+ db 'ReadConsoleW', 0
+%line 132+1 macros.inc
+HN_win32_ReadFile: dw 0
+ db 'ReadFile', 0
+%line 132+1 macros.inc
+HN_win32_RtlMoveMemory: dw 0
+ db 'RtlMoveMemory', 0
+%line 132+1 macros.inc
+HN_win32_SetConsoleCP: dw 0
+ db 'SetConsoleCP', 0
+%line 132+1 macros.inc
+HN_win32_SetConsoleCursorPosition: dw 0
+ db 'SetConsoleCursorPosition', 0
+%line 132+1 macros.inc
+HN_win32_SetConsoleMode: dw 0
+ db 'SetConsoleMode', 0
+%line 132+1 macros.inc
+HN_win32_SetConsoleOutputCP: dw 0
+ db 'SetConsoleOutputCP', 0
+%line 132+1 macros.inc
+HN_win32_SetConsoleScreenBufferSize: dw 0
+ db 'SetConsoleScreenBufferSize', 0
+%line 132+1 macros.inc
+HN_win32_SetConsoleTextAttribute: dw 0
+ db 'SetConsoleTextAttribute', 0
+%line 132+1 macros.inc
+HN_win32_SetConsoleWindowInfo: dw 0
+ db 'SetConsoleWindowInfo', 0
+%line 132+1 macros.inc
+HN_win32_MultiByteToWideChar: dw 0
+ db 'MultiByteToWideChar', 0
+%line 132+1 macros.inc
+HN_win32_WaitForSingleObject: dw 0
+ db 'WaitForSingleObject', 0
+%line 132+1 macros.inc
+HN_win32_WriteConsoleA: dw 0
+ db 'WriteConsoleA', 0
+%line 132+1 macros.inc
+HN_win32_WriteConsoleW: dw 0
+ db 'WriteConsoleW', 0
+%line 132+1 macros.inc
+HN_win32_WriteFile: dw 0
+ db 'WriteFile', 0
+%line 132+1 macros.inc
+HN_win32_CreateWindowExW: dw 0
+ db 'CreateWindowExW', 0
+%line 132+1 macros.inc
+HN_win32_DefWindowProcW: dw 0
+ db 'DefWindowProcW', 0
+%line 132+1 macros.inc
+HN_win32_DispatchMessageW: dw 0
+ db 'DispatchMessageW', 0
+%line 132+1 macros.inc
+HN_win32_DrawMenuBar: dw 0
+ db 'DrawMenuBar', 0
+%line 132+1 macros.inc
+HN_win32_EnableMenuItem: dw 0
+ db 'EnableMenuItem', 0
+%line 132+1 macros.inc
+HN_win32_FillRect: dw 0
+ db 'FillRect', 0
+%line 132+1 macros.inc
+HN_win32_GetClassLongPtrW: dw 0
+ db 'GetClassLongPtrW', 0
+%line 132+1 macros.inc
+HN_win32_GetClientRect: dw 0
+ db 'GetClientRect', 0
+%line 132+1 macros.inc
+HN_win32_GetMessageW: dw 0
+ db 'GetMessageW', 0
+%line 132+1 macros.inc
+HN_win32_GetMonitorInfoW: dw 0
+ db 'GetMonitorInfoW', 0
+%line 132+1 macros.inc
+HN_win32_GetSysColorBrush: dw 0
+ db 'GetSysColorBrush', 0
+%line 132+1 macros.inc
+HN_win32_GetSystemMenu: dw 0
+ db 'GetSystemMenu', 0
+%line 132+1 macros.inc
+HN_win32_GetWindowLongPtrA: dw 0
+ db 'GetWindowLongPtrA', 0
+%line 132+1 macros.inc
+HN_win32_GetWindowRect: dw 0
+ db 'GetWindowRect', 0
+%line 132+1 macros.inc
+HN_win32_LoadCursorW: dw 0
+ db 'LoadCursorW', 0
+%line 132+1 macros.inc
+HN_win32_MessageBoxA: dw 0
+ db 'MessageBoxA', 0
+%line 132+1 macros.inc
+HN_win32_MessageBoxW: dw 0
+ db 'MessageBoxW', 0
+%line 132+1 macros.inc
+HN_win32_MonitorFromWindow: dw 0
+ db 'MonitorFromWindow', 0
+%line 132+1 macros.inc
+HN_win32_MoveWindow: dw 0
+ db 'MoveWindow', 0
+%line 132+1 macros.inc
+HN_win32_RegisterClassExW: dw 0
+ db 'RegisterClassExW', 0
+%line 132+1 macros.inc
+HN_win32_SetProcessDpiAwarenessContext: dw 0
+ db 'SetProcessDpiAwarenessContext', 0
+%line 132+1 macros.inc
+HN_win32_SetWindowLongPtrA: dw 0
+ db 'SetWindowLongPtrA', 0
+%line 132+1 macros.inc
+HN_win32_SetWindowPos: dw 0
+ db 'SetWindowPos', 0
+%line 132+1 macros.inc
+HN_win32_ShowWindow: dw 0
+ db 'ShowWindow', 0
+%line 132+1 macros.inc
+HN_win32_PostQuitMessage: dw 0
+ db 'PostQuitMessage', 0
+%line 132+1 macros.inc
+HN_win32_TranslateMessage: dw 0
+ db 'TranslateMessage', 0
+%line 132+1 macros.inc
+HN_win32_UpdateWindow: dw 0
+ db 'UpdateWindow', 0
+%line 132+1 macros.inc
+HN_win32_wsprintfW: dw 0
+ db 'wsprintfW', 0
+%line 132+1 macros.inc
+HN_win32_fgets: dw 0
+ db 'fgets', 0
+%line 132+1 macros.inc
+HN_win32_scanf: dw 0
+ db 'scanf', 0
+%line 132+1 macros.inc
+HN_win32_sprintf: dw 0
+ db 'sprintf', 0
+%line 132+1 macros.inc
+HN_win32_printf: dw 0
+ db 'printf', 0
+%line 132+1 macros.inc
+HN_win32_puts: dw 0
+ db 'puts', 0
+%line 44+1 imports.inc
+dll_win32_kernel32: db 'kernel32.dll',0
+dll_win32_user32: db 'user32.dll',0
+dll_win32_msvcrt: db 'msvcrt.dll',0
+
+idata_end:
+
+%line 8+1 data64.asm
+times ((((((((((headers_end - $$) + (0x200) - 1) / (0x200) * (0x200)) + ((((text_end - text_start)) + (0x200) - 1) / (0x200) * (0x200))) + (0x200) - 1) / (0x200) * (0x200)) + ((((idata_end - idata_start)) + (0x200) - 1) / (0x200) * (0x200))) + (0x200) - 1) / (0x200) * (0x200))-($-$$)) db 0
+data_start:
+
+
+
+%line 375+1 macros.inc
+_cA_cap2A: db "ein Text", 13,10,0, 0
+_cA_cap2A_end:
+_cA_cap2A_length equ (_cA_cap2A_end - _cA_cap2A - 1)
+%line 210+1 macros.inc
+_cW_fmtW:
+
+%line 214+1 macros.inc
+
+%line 221+1 macros.inc
+ dw 'W'
+%line 221+0 macros.inc
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+ dw 'W'
+%line 231+0 macros.inc
+
+%line 232+1 macros.inc
+ dw 0
+
+_cW_fmtW_end:
+_cW_fmtW_length_bytes equ (_cW_fmtW_end - _cW_fmtW - 2)
+_cW_fmtW_length_words equ (_cW_fmtW_length_bytes/2)
+
+
+%line 203+1 macros.inc
+
+
+%line 209+1 macros.inc
+
+_cW_ErrTitleW:
+
+%line 214+1 macros.inc
+
+%line 221+1 macros.inc
+ dw 'F'
+%line 221+0 macros.inc
+ dw 'e'
+ dw 'h'
+ dw 'l'
+ dw 'e'
+ dw 'r'
+%line 231+0 macros.inc
+
+%line 232+1 macros.inc
+ dw 0
+
+_cW_ErrTitleW_end:
+_cW_ErrTitleW_length_bytes equ (_cW_ErrTitleW_end - _cW_ErrTitleW - 2)
+_cW_ErrTitleW_length_words equ (_cW_ErrTitleW_length_bytes/2)
+
+
+%line 210+1 macros.inc
+_cW_errmsgW:
+
+%line 214+1 macros.inc
+
+%line 221+1 macros.inc
+ dw 'R'
+%line 221+0 macros.inc
+ dw 'e'
+ dw 'g'
+ dw 'i'
+ dw 's'
+ dw 't'
+ dw 'e'
+ dw 'r'
+ dw 'C'
+ dw 'l'
+ dw 'a'
+ dw 's'
+ dw 's'
+ dw 'E'
+ dw 'x'
+ dw 'W'
+ dw ' '
+ dw 'f'
+ dw 'a'
+ dw 'i'
+ dw 'l'
+ dw 'e'
+ dw 'd'
+%line 231+0 macros.inc
+
+%line 232+1 macros.inc
+ dw 0
+
+_cW_errmsgW_end:
+_cW_errmsgW_length_bytes equ (_cW_errmsgW_end - _cW_errmsgW - 2)
+_cW_errmsgW_length_words equ (_cW_errmsgW_length_bytes/2)
+
+
+%line 203+1 macros.inc
+
+
+%line 209+1 macros.inc
+
+_cW_titleW:
+
+%line 214+1 macros.inc
+
+%line 221+1 macros.inc
+ dw 'N'
+%line 221+0 macros.inc
+ dw 'A'
+ dw 'S'
+ dw 'M'
+ dw ' '
+ dw 'P'
+ dw 'E'
+ dw '6'
+ dw '4'
+ dw ' '
+ dw 'G'
+ dw 'U'
+ dw 'I'
+ dw ' '
+ dw 'w'
+ dw 'i'
+ dw 't'
+ dw 'h'
+ dw 'o'
+ dw 'u'
+ dw 't'
+ dw ' '
+ dw 'L'
+ dw 'i'
+ dw 'n'
+ dw 'k'
+ dw 'e'
+ dw 'r'
+%line 231+0 macros.inc
+
+%line 232+1 macros.inc
+ dw 0
+
+_cW_titleW_end:
+_cW_titleW_length_bytes equ (_cW_titleW_end - _cW_titleW - 2)
+_cW_titleW_length_words equ (_cW_titleW_length_bytes/2)
+
+
+%line 203+1 macros.inc
+
+
+%line 209+1 macros.inc
+
+_cW_winclassW:
+
+%line 214+1 macros.inc
+
+%line 221+1 macros.inc
+ dw 'N'
+%line 221+0 macros.inc
+ dw 'a'
+ dw 's'
+ dw 'm'
+ dw 'W'
+ dw 'n'
+ dw 'd'
+ dw 'C'
+ dw 'l'
+ dw 'a'
+ dw 's'
+ dw 's'
+%line 231+0 macros.inc
+
+%line 232+1 macros.inc
+ dw 0
+
+_cW_winclassW_end:
+_cW_winclassW_length_bytes equ (_cW_winclassW_end - _cW_winclassW - 2)
+_cW_winclassW_length_words equ (_cW_winclassW_length_bytes/2)
+
+
+%line 375+1 macros.inc
+_cA_prompt: db "Eingabe: ",0, 0
+_cA_prompt_end:
+_cA_prompt_length equ (_cA_prompt_end - _cA_prompt - 1)
+%line 375+1 macros.inc
+_cA_consoleColor_0: db 27,'[0m', 0
+_cA_consoleColor_0_end:
+_cA_consoleColor_0_length equ (_cA_consoleColor_0_end - _cA_consoleColor_0 - 1)
+%line 375+1 macros.inc
+_cA_consoleColor_1: db 27,'[1;', 0
+_cA_consoleColor_1_end:
+_cA_consoleColor_1_length equ (_cA_consoleColor_1_end - _cA_consoleColor_1 - 1)
+%line 375+1 macros.inc
+_cA_consoleColor_2: db "m", 0
+_cA_consoleColor_2_end:
+_cA_consoleColor_2_length equ (_cA_consoleColor_2_end - _cA_consoleColor_2 - 1)
+%line 375+1 macros.inc
+_cA_consoleColor_3: db 27,'[H',27,'[2J',27,'[H', 0
+_cA_consoleColor_3_end:
+_cA_consoleColor_3_length equ (_cA_consoleColor_3_end - _cA_consoleColor_3 - 1)
+%line 375+1 macros.inc
+_cA_buffer_semi: db ";", 0
+_cA_buffer_semi_end:
+_cA_buffer_semi_length equ (_cA_buffer_semi_end - _cA_buffer_semi - 1)
+%line 375+1 macros.inc
+_cA_console_color_30: db "30", 0
+_cA_console_color_30_end:
+_cA_console_color_30_length equ (_cA_console_color_30_end - _cA_console_color_30 - 1)
+%line 375+1 macros.inc
+_cA_console_color_31: db "31", 0
+_cA_console_color_31_end:
+_cA_console_color_31_length equ (_cA_console_color_31_end - _cA_console_color_31 - 1)
+%line 375+1 macros.inc
+_cA_console_color_32: db "32", 0
+_cA_console_color_32_end:
+_cA_console_color_32_length equ (_cA_console_color_32_end - _cA_console_color_32 - 1)
+%line 375+1 macros.inc
+_cA_console_color_33: db "33", 0
+_cA_console_color_33_end:
+_cA_console_color_33_length equ (_cA_console_color_33_end - _cA_console_color_33 - 1)
+%line 375+1 macros.inc
+_cA_console_color_34: db "34", 0
+_cA_console_color_34_end:
+_cA_console_color_34_length equ (_cA_console_color_34_end - _cA_console_color_34 - 1)
+%line 375+1 macros.inc
+_cA_console_color_35: db "35", 0
+_cA_console_color_35_end:
+_cA_console_color_35_length equ (_cA_console_color_35_end - _cA_console_color_35 - 1)
+%line 375+1 macros.inc
+_cA_console_color_36: db "36", 0
+_cA_console_color_36_end:
+_cA_console_color_36_length equ (_cA_console_color_36_end - _cA_console_color_36 - 1)
+%line 375+1 macros.inc
+_cA_console_color_37: db "37", 0
+_cA_console_color_37_end:
+_cA_console_color_37_length equ (_cA_console_color_37_end - _cA_console_color_37 - 1)
+%line 375+1 macros.inc
+_cA_console_color_90: db "90", 0
+_cA_console_color_90_end:
+_cA_console_color_90_length equ (_cA_console_color_90_end - _cA_console_color_90 - 1)
+%line 375+1 macros.inc
+_cA_console_color_91: db "91", 0
+_cA_console_color_91_end:
+_cA_console_color_91_length equ (_cA_console_color_91_end - _cA_console_color_91 - 1)
+%line 375+1 macros.inc
+_cA_console_color_92: db "92", 0
+_cA_console_color_92_end:
+_cA_console_color_92_length equ (_cA_console_color_92_end - _cA_console_color_92 - 1)
+%line 375+1 macros.inc
+_cA_console_color_93: db "93", 0
+_cA_console_color_93_end:
+_cA_console_color_93_length equ (_cA_console_color_93_end - _cA_console_color_93 - 1)
+%line 375+1 macros.inc
+_cA_console_color_94: db "94", 0
+_cA_console_color_94_end:
+_cA_console_color_94_length equ (_cA_console_color_94_end - _cA_console_color_94 - 1)
+%line 375+1 macros.inc
+_cA_console_color_95: db "95", 0
+_cA_console_color_95_end:
+_cA_console_color_95_length equ (_cA_console_color_95_end - _cA_console_color_95 - 1)
+%line 375+1 macros.inc
+_cA_console_color_96: db "96", 0
+_cA_console_color_96_end:
+_cA_console_color_96_length equ (_cA_console_color_96_end - _cA_console_color_96 - 1)
+%line 375+1 macros.inc
+_cA_console_color_97: db "97", 0
+_cA_console_color_97_end:
+_cA_console_color_97_length equ (_cA_console_color_97_end - _cA_console_color_97 - 1)
+%line 375+1 macros.inc
+_cA_console_color_40: db "40", 0
+_cA_console_color_40_end:
+_cA_console_color_40_length equ (_cA_console_color_40_end - _cA_console_color_40 - 1)
+%line 375+1 macros.inc
+_cA_console_color_41: db "41", 0
+_cA_console_color_41_end:
+_cA_console_color_41_length equ (_cA_console_color_41_end - _cA_console_color_41 - 1)
+%line 375+1 macros.inc
+_cA_console_color_42: db "42", 0
+_cA_console_color_42_end:
+_cA_console_color_42_length equ (_cA_console_color_42_end - _cA_console_color_42 - 1)
+%line 375+1 macros.inc
+_cA_console_color_43: db "43", 0
+_cA_console_color_43_end:
+_cA_console_color_43_length equ (_cA_console_color_43_end - _cA_console_color_43 - 1)
+%line 375+1 macros.inc
+_cA_console_color_44: db "44", 0
+_cA_console_color_44_end:
+_cA_console_color_44_length equ (_cA_console_color_44_end - _cA_console_color_44 - 1)
+%line 375+1 macros.inc
+_cA_console_color_45: db "45", 0
+_cA_console_color_45_end:
+_cA_console_color_45_length equ (_cA_console_color_45_end - _cA_console_color_45 - 1)
+%line 375+1 macros.inc
+_cA_console_color_46: db "46", 0
+_cA_console_color_46_end:
+_cA_console_color_46_length equ (_cA_console_color_46_end - _cA_console_color_46 - 1)
+%line 375+1 macros.inc
+_cA_console_color_47: db "47", 0
+_cA_console_color_47_end:
+_cA_console_color_47_length equ (_cA_console_color_47_end - _cA_console_color_47 - 1)
+%line 375+1 macros.inc
+_cA_console_color_100: db "100", 0
+_cA_console_color_100_end:
+_cA_console_color_100_length equ (_cA_console_color_100_end - _cA_console_color_100 - 1)
+%line 375+1 macros.inc
+_cA_console_color_101: db "101", 0
+_cA_console_color_101_end:
+_cA_console_color_101_length equ (_cA_console_color_101_end - _cA_console_color_101 - 1)
+%line 375+1 macros.inc
+_cA_console_color_102: db "102", 0
+_cA_console_color_102_end:
+_cA_console_color_102_length equ (_cA_console_color_102_end - _cA_console_color_102 - 1)
+%line 375+1 macros.inc
+_cA_console_color_103: db "103", 0
+_cA_console_color_103_end:
+_cA_console_color_103_length equ (_cA_console_color_103_end - _cA_console_color_103 - 1)
+%line 375+1 macros.inc
+_cA_console_color_104: db "104", 0
+_cA_console_color_104_end:
+_cA_console_color_104_length equ (_cA_console_color_104_end - _cA_console_color_104 - 1)
+%line 375+1 macros.inc
+_cA_console_color_105: db "105", 0
+_cA_console_color_105_end:
+_cA_console_color_105_length equ (_cA_console_color_105_end - _cA_console_color_105 - 1)
+%line 375+1 macros.inc
+_cA_console_color_106: db "106", 0
+_cA_console_color_106_end:
+_cA_console_color_106_length equ (_cA_console_color_106_end - _cA_console_color_106 - 1)
+%line 375+1 macros.inc
+_cA_console_color_107: db "107", 0
+_cA_console_color_107_end:
+_cA_console_color_107_length equ (_cA_console_color_107_end - _cA_console_color_107 - 1)
+%line 78+1 data64.asm
+Rect80x25: dw 0, 0, 79, 24
+pMsg: dq 0
+spaceW: db 'o'
+
+
+
+
+_cA_console_bg: db 40, 0
+_cA_console_fg: db 93, 0
+
+_fmt: db "%s", 0
+
+%line 375+1 macros.inc
+_cA_buffer: db 40, 93, 0
+_cA_buffer_end:
+_cA_buffer_length equ (_cA_buffer_end - _cA_buffer - 1)
+%line 375+1 macros.inc
+_cA_buffer2: db " oI_01", 0, 0
+_cA_buffer2_end:
+_cA_buffer2_length equ (_cA_buffer2_end - _cA_buffer2 - 1)
+%line 375+1 macros.inc
+_cA_buffer_2: db "moin", 0, 0
+_cA_buffer_2_end:
+_cA_buffer_2_length equ (_cA_buffer_2_end - _cA_buffer_2 - 1)
+%line 375+1 macros.inc
+_cA_buffer_1: db "Hello %s", 0, 0
+_cA_buffer_1_end:
+_cA_buffer_1_length equ (_cA_buffer_1_end - _cA_buffer_1 - 1)
+%line 375+1 macros.inc
+_cA_buffer_3: db " smile" , 13, 10, 0, 0
+_cA_buffer_3_end:
+_cA_buffer_3_length equ (_cA_buffer_3_end - _cA_buffer_3 - 1)
+%line 97+1 data64.asm
+data_end:
+times (((($-$$) + (0x200) - 1) / (0x200) * (0x200))-($-$$)) db 0
+%line 36+1 start.asm
+[section .bss]
+%line 9+1 bss64.asm
+bss_start:
+
+
+
+
+[absolute 0]
+%line 14+0 bss64.asm
+COORD:
+%line 15+1 bss64.asm
+ .X resw 1
+ .Y resw 1
+COORD_size equ ($-COORD)
+%line 17+0 bss64.asm
+[section .bss]
+%line 18+1 bss64.asm
+
+[absolute 0]
+%line 19+0 bss64.asm
+SMALL_RECT:
+%line 20+1 bss64.asm
+ .Left resw 1
+ .Top resw 1
+ .Right resw 1
+ .Bot resw 1
+SMALL_RECT_size equ ($-SMALL_RECT)
+%line 24+0 bss64.asm
+[section .bss]
+%line 25+1 bss64.asm
+
+
+
+
+[absolute 0]
+%line 29+0 bss64.asm
+CSBI:
+%line 30+1 bss64.asm
+ .dwSize resw 2
+ .dwCursorPos resw 2
+ .wAttributes resw 1
+ .srWindow resw 4
+ .dwMaxWindowSize resw 2
+ ._pad resw 1
+CSBI_size equ ($-CSBI)
+%line 36+0 bss64.asm
+[section .bss]
+%line 37+1 bss64.asm
+
+csbi: resb CSBI_size
+
+_cA_buffer_dst: resb 128
+
+_cA_buffer_A: resb 128
+_cA_buffer_B: resb 128
+
+
+
+
+_cA_src: resb 128
+_cA_dst: resb 128
+
+mode_in: resd 1
+mode_out: resd 1
+
+_cA_empty: resb 1
+
+_cA_buf: resb 64
+
+hIn: resq 1
+hOut: resq 1
+read: resd 1
+tmpConsoleMode: resd 1
+last_error: resd 1
+
+written: resq 1
+bss_end:
+
+%line 40+1 start.asm
+[section .text]
+file_end:
