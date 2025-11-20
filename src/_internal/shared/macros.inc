@@ -1177,13 +1177,15 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
         %%msg: db %1, 0
         section .text
         mov  bl, %2                 ; color
-        lea  si, PTR16(%%msg)       ; text 0-terminated
+        mov  si, PTR16(%%msg)       ; text 0-terminated
         call PutStrColor            ; DOS screen
     %else
         %ifidni %1, DI
+            section .text
             mov  bl, %2
             call PutStrColor        ; DOS screen
-        %elifidni %1, SI              ; text is already in SI
+        %elifidni %1, SI            ; text is already in SI
+            section .text
             mov  bl, %2             ; color
             call PutStrColor        ; DOS screen
         %else
@@ -1200,13 +1202,15 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
                 %endif
             %endrep
             %if __varg > 0
+                section .text
                 mov  si, PTR16(_cA_cmd_buf)
                 mov  bl, __varg
                 call getCommandLine_Arg
                 call PutStrColor        ; DOS screen
             %else
+                section .text
                 mov  bl, %2             ; color
-                lea  si, PTR16(_cA_%1)  ; text 0-terminated
+                mov  si, PTR16(_cA_%1)  ; text 0-terminated
                 call PutStrColor        ; DOS screen
             %endif
             %undef __varg
@@ -1644,30 +1648,27 @@ _cA_error_dispatch:
 ; \brief compare 2 string's ...
 ; -----------------------------------------------------------------------------
 %macro CMP_STR 3
-section .data
-section .text
     %ifnum %1                           ; argument 1 is a number ?
         %error 'numbers can not be handled as string.'
     %elifstr %1                         ; argument 1 is a string ?
         section .data
-        %%part2: db %2, 0
+        %%part1: db %1, 0
         section .text
-        mov si, PTR16(%%part2)        ; src
-        PUTS_COLOR SI, 4
+        lea  si, [PTR16(%%part1)]       ; dst
         %ifstr %2                       ; argument 2 is a string ?
             section .data
-            %%part1: db %1, 0
+            %%part2: db %2, 0
             section .text
-            mov di, PTR16(%%part1)    ; dst
-            PUTS_COLOR DI, 8
+            lea di, [PTR16(%%part2)]    ; src
             call string_compare
-            cmp  al, 0
-            je   %3
+            test al, al
+            jz   %3
         %elifnum %2                     ; argument 2 is a number ?
             %error 'numbers can not be handled as string.'
         %else
             %error 'todo'
         %endif
+        ;pop si
     %else
     section .text
         %assign __count 0

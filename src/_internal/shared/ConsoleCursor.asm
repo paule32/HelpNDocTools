@@ -19,10 +19,20 @@ dos_set_cursor:
     ret
 
 dos_get_cursor:
+    push di
+    push si
+    push bx
+    push dx
+    
     mov  bh, 0                   ; todo
     mov  ah, 0x03
     VideoCall
     mov  [PTR16(dos_xpos)], dl   ; column
     mov  [PTR16(dos_ypos)], dh   ; row
     mov  [PTR16(dos_page)], bh   ; video page
+    
+    pop  dx
+    pop  bx
+    pop  si
+    pop  di
     ret

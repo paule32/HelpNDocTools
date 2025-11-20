@@ -55,8 +55,8 @@ code16_start:
     PUTS_COLOR 'schupfel', 3
 
     CMP_CHR ARGV_1, 3, '5', is_three
-    CMP_STR 'XuzX', 'zuza', is_okk
-    
+    CMP_STR 'zuza', 'zuza', is_okk
+        
     SET_CURSOR 20, 3
     PUTS_COLOR ARGV_2, 1
     DOS_Exit 0
@@ -68,7 +68,7 @@ code16_start:
     
     is_okk:
     SET_CURSOR 40, 5
-    PUTS_COLOR 'mufti', 0x0C
+    PUTS_COLOR 'mufti', 0x1C
     DOS_Exit   0
     ;ret
 jmp usage
