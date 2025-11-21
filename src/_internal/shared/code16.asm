@@ -25,57 +25,104 @@ code16_start:
     INIT_COMMAND_LINE
     INIT_CONSOLE
 
-    SET_DATA db_have_token, 0
+    SET_CURSOR 1,2
+    PUTS_COLOR "123", 0x0F
     
-    CMP_STR ARGV_1, '3', .is_version3
-    CMP_STR ARGV_1, '4', .is_version4
-    jmp usage
+    CMP_STR ARGV_1, ARGV_1, is_version_1
+    CMP_STR ARGV_1, ARGV_2, is_version_2
+    CMP_STR ARGV_1, 'abcd', is_version_3
+    CMP_STR ARGV_2, '1234', is_version_4
+    CMP_STR "abcd", "abcd", is_version_5
     
-    .is_version3:  SET_DATA db_version, '3', .next1
-    .is_version4:  SET_DATA db_version, '4', .next1
-        
+    ;jmp  usage
+    
+    DOS_Exit 0
+    
+    
+    
     .next1:
-    SET_DATA db_have_token, 1
+;    SET_DATA db_have_token, 1
     
-    CMP_STR ARGV_2, 'create', .is_okCreate
-    CMP_STR ARGV_2, 'append', .is_okAppend
+;    CMP_STR ARGV_2, 'create', .is_okCreate
+;    CMP_STR ARGV_2, 'append', .is_okAppend
     
-    .is_okCreate:  SET_DATA db_op, 'C', .next2  ; CREATE
-    .is_okAppend:  SET_DATA db_op, 'A', .next2  ; APPEND
+;    .is_okCreate:  SET_DATA db_op, 'C', .next2  ; CREATE
+;    .is_okAppend:  SET_DATA db_op, 'A', .next2  ; APPEND
     
     .next2:
-    SET_DATA db_have_token, 2
+;    SET_DATA db_have_token, 2
     
-    CMP_STR ARGV_3, 'c', .is_okTypeC
-    CMP_STR ARGV_3, 'C', .is_okTypeC
+;    CMP_STR ARGV_3, 'c', .is_okTypeC
+;    CMP_STR ARGV_3, 'C', .is_okTypeC
     
-    CMP_STR ARGV_3, 'i', .is_okTypeI
-    CMP_STR ARGV_3, 'I', .is_okTypeI
+;    CMP_STR ARGV_3, 'i', .is_okTypeI
+;    CMP_STR ARGV_3, 'I', .is_okTypeI
     
-    CMP_STR ARGV_3, 'f', .is_okTypeF
-    CMP_STR ARGV_3, 'F', .is_okTypeF
+;    CMP_STR ARGV_3, 'f', .is_okTypeF
+;    CMP_STR ARGV_3, 'F', .is_okTypeF
     
-    CMP_STR ARGV_3, 'b', .is_okTypeB
-    CMP_STR ARGV_3, 'B', .is_okTypeB
+;    CMP_STR ARGV_3, 'b', .is_okTypeB
+;    CMP_STR ARGV_3, 'B', .is_okTypeB
     
-    CMP_STR ARGV_3, 'd', .is_okTypeD
-    CMP_STR ARGV_3, 'D', .is_okTypeD
+;    CMP_STR ARGV_3, 'd', .is_okTypeD
+;    CMP_STR ARGV_3, 'D', .is_okTypeD
     
-    .is_okTypeC:  SET_DATA db_type, 'C', .next3
-    .is_okTypeI:  SET_DATA db_type, 'I', .next3
-    .is_okTypeF:  SET_DATA db_type, 'F', .next3
-    .is_okTypeB:  SET_DATA db_type, 'B', .next3
-    .is_okTypeD:  SET_DATA db_type, 'D', .next3
+;    .is_okTypeC:  SET_DATA db_type, 'C', .next3
+;    .is_okTypeI:  SET_DATA db_type, 'I', .next3
+;    .is_okTypeF:  SET_DATA db_type, 'F', .next3
+;    .is_okTypeB:  SET_DATA db_type, 'B', .next3
+;    .is_okTypeD:  SET_DATA db_type, 'D', .next3
         
     .next3:
-    SET_DATA db_have_token, 3
+;    SET_DATA db_have_token, 3
     
-    is_okk:
+    .is_okk:
     SET_CURSOR 40, 5
     PUTS_COLOR 'mufti', 0x1C
     DOS_Exit   0
-    ;ret
+    ret
+    
+    
+is_version_1:
+    ;mov [PTR16(_cA_db_version)], byte 3
+    SET_CURSOR 10, 1
+    PUTS_COLOR 'argv1 == argv1', 0x0F
+    ret
+is_version_2:
+    ;mov [PTR16(_cA_db_version)], byte 4
+    SET_CURSOR 10, 2
+    PUTS_COLOR 'argv1 == argv2', 0x0E
+    ret
+is_version_3:
+    ;mov [PTR16(_cA_db_version)], byte 5
+    SET_CURSOR 10, 3
+    PUTS_COLOR 'argv1 == "abcd"', 0xF
+    ret
+is_version_4:
+    ;mov [PTR16(_cA_db_version)], byte 6
+    SET_CURSOR 10, 4
+    PUTS_COLOR 'argv2 == 1234', 0xF
+    ret
+is_version_5:    
+    ;mov [PTR16(_cA_db_version)], byte 6
+    SET_CURSOR 10, 5
+    PUTS_COLOR '"abcd" == "abcd"', 0xF
+    ret
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 jmp usage
+    _done:
+    PUTS_COLOR 'ddd', 0x1C
     .token_done:
     DOS_Exit 0
         

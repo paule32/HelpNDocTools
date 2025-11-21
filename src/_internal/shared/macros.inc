@@ -1199,50 +1199,50 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro PUTS_COLOR 2
 %if DOS_SHELL == 1
-    GET_CURSOR              ; move cursor to col:row
+    ;GET_CURSOR              ; move cursor to col:row
     %ifstr %1
         section .data
         %%msg: db %1, 0
         section .text
+        xor  bx, bx
         mov  bl, %2                 ; color
         mov  si, PTR16(%%msg)       ; text 0-terminated
         call PutStrColor            ; DOS screen
+    %elifidni %1, SI            ; text is already in SI
+        section .text
+        mov  bl, %2
+        call PutStrColor        ; DOS screen
+    %elifidni %1, DI            ; text is already in DI
+        section .text
+        mov  bl, %2             ; color
+        call PutStrColor        ; DOS screen
     %else
-        %ifidni %1, DI
+        %assign __count 0
+        %assign __varg  0
+        %assign __stop  0
+        %rep MAX_ARGV
+            %if __stop == 0
+                %assign __count (__count + 1)
+                %ifidni %1, ARGV_%+__count
+                    %assign __varg __count
+                    %assign __stop 1
+                %endif
+            %endif
+        %endrep
+        %if __varg > 0
             section .text
-            mov  bl, %2
-            call PutStrColor        ; DOS screen
-        %elifidni %1, SI            ; text is already in SI
-            section .text
-            mov  bl, %2             ; color
+            mov  si, PTR16(_cA_cmd_buf)
+            mov  bl, __varg
+            call getCommandLine_Arg
             call PutStrColor        ; DOS screen
         %else
-            %assign __count 0
-            %assign __varg  0
-            %assign __stop  0
-            %rep MAX_ARGV
-                %if __stop == 0
-                    %assign __count (__count + 1)
-                    %ifidni %1, ARGV_%+__count
-                        %assign __varg __count
-                        %assign __stop 1
-                    %endif
-                %endif
-            %endrep
-            %if __varg > 0
-                section .text
-                mov  si, PTR16(_cA_cmd_buf)
-                mov  bl, __varg
-                call getCommandLine_Arg
-                call PutStrColor        ; DOS screen
-            %else
-                section .text
-                mov  bl, %2             ; color
-                mov  si, PTR16(_cA_%1)  ; text 0-terminated
-                call PutStrColor        ; DOS screen
-            %endif
-            %undef __varg
+            section .text
+            mov  bl, %2             ; color
+            mov  ax, PTR16(_cA_%1)  ; text 0-terminated
+            mov  si, ax
+            call PutStrColor        ; DOS screen
         %endif
+        %undef __varg
     %endif
 %else
     %error 'this macro is only for DOS programming.'
@@ -1684,73 +1684,136 @@ _cA_error_dispatch:
     lea di, [PTR16(%1)]
     call string_compare
     cmp al, 0
-    je  %2
+    jne %%neq
+    call %2
+    %%neq:
 %endmacro
 
 %macro CMP_STR 3
-    ; -------------------------
-    ; argument 1 is a number ?
-    ; -------------------------
-    %ifnum %1
-        section .data
-        %defstr %%q1 %1
-        %%partA: db %%q1, 0
-        STR_SI %%partA
-    %endif
-    
-    ; -------------------------
-    ; argument 2 is a number ?
-    ; -------------------------
-    %ifnum %2
-        section .data
-        %defstr %%q2 %2
-        %%partB: db %%q2, 0
-        STR_DI %%partB, %3
-    %endif
-    
-    ; -------------------------
-    ; argument 1 is a string ?
-    ; -------------------------
-    %ifstr %1
+    %ifnum %1                           ; argument 1 is a number ?
+        %error 'numbers can not be handled as string.'
+    %elifstr %1                         ; argument 1 is a string ?
         section .data
         %%part1: db %1, 0
-        STR_SI %%part1
-    %endif
-    
-    ; -------------------------
-    ; argument 2 is a string ?
-    ; -------------------------
-    %ifstr %2
-        section .data
-        %%part2: db %2, 0
-        STR_DI %%part2, %3
-    %endif
-    
-    ; -------------------------
-    ; argument 1 is a label ?
-    ; -------------------------
-    %ifid %1
         section .text
-        %assign __count 0
-        %assign __varg  0
-        %assign __stop  0
+        lea si, [PTR16(%%part1)]        ; src
+        %ifid %2
+            %assign __count3 0
+            %assign __varg3  0
+            %assign __stop3  0
+            %rep MAX_ARGV
+                %if __stop3 == 0
+                    %assign __count3 (__count3 + 1)
+                    %ifidni %2, ARGV_%+__count3
+                        %assign __varg3 __count3
+                        %assign __stop3 1
+                    %endif
+                %endif
+            %endrep
+            %if __varg3 > 0
+                section  .text
+                push si
+                lea  si, [PTR16(_cA_cmd_buf)]
+                mov  bl, __varg3
+                call getCommandLine_Arg
+                mov  di, si
+                pop  si
+                call string_compare
+                cmp  al, 0
+                jne  %%jum4
+                call %3
+                %%jum4:
+            %endif
+        %elifstr %2                       ; argument 2 is a string ?
+            section .data
+            %%part2: db %1, 0
+            section .text
+            lea  di, [PTR16(%%part2)]   ; dst
+            call string_compare
+            cmp  al, 0
+            jne  %%jum1
+            call %3
+            %%jum1:
+        %elifnum %2                     ; argument 2 is a number ?
+            %error 'numbers can not be handled as string.'
+        %else
+            %error 'todo'
+        %endif
+    %elifid %1
+        %assign __count1 0
+        %assign __varg1  0
+        %assign __stop1  0
         %rep MAX_ARGV
-            %if __stop == 0
-                %assign __count (__count + 1)
-                %ifidni %1, ARGV_%+__count
-                    %assign __varg __count
-                    %assign __stop 1
+            %if __stop1 == 0
+                %assign __count1 (__count1 + 1)
+                %ifidni %1, ARGV_%+__count1
+                    %assign __varg1 __count1
+                    %assign __stop1 1
                 %endif
             %endif
         %endrep
-        %if __varg > 0
+        %ifid %2
+            %assign __count2 0
+            %assign __varg2  0
+            %assign __stop2  0
+            %rep MAX_ARGV
+                %if __stop2 == 0
+                    %assign __count2 (__count2 + 1)
+                    %ifidni %2, ARGV_%+__count2
+                        %assign __varg2 __count2
+                        %assign __stop2 1
+                    %endif
+                %endif
+            %endrep
+            %if __varg1 > 0
+                %if __varg2 > 0
+                    section  .text
+                    mov  si, PTR16(_cA_cmd_buf)
+                    mov  bl, __varg1
+                    call getCommandLine_Arg
+                    push si
+                    mov  di, PTR16(_cA_cmd_buf)
+                    mov  bl, __varg2
+                    call getCommandLine_Arg
+                    mov  di, si
+                    pop  si
+                    call string_compare
+                    cmp  al, 0
+                    jne  %%jum3
+                    call %3
+                    %%jum3:
+                %else
+                    lea di, [PTR16(_cA_%1)]
+                %endif
+            %else
+                lea si, [PTR16(_cA_%1)]
+            %endif
+        %elifstr %2                     ; argument 2 is a string ?
+            section .data
+            %%part3: db %2, 0
+            section .text
+            lea  si, [PTR16(%%part3)]   ; dst
+            push si
             mov  si, PTR16(_cA_cmd_buf)
-            mov  bl, __varg
+            mov  bl, __varg1
             call getCommandLine_Arg
+            mov  di, si
+            pop  si
+            call string_compare
+            cmp  al, 0
+            jne  %%jum2
+            call %3
+            %%jum2:
+        %elifnum %2                     ; argument 2 is a number ?
+            %error 'numbers can not be handled as string.'
         %else
-            lea si, [PTR16(_cA_%1)]
+            %error 'todo'
         %endif
-        %undef __stop
-        %undef __varg
     %endif
+    
+    %undef __stop
+    %undef __varg
+    
+    xor  di, di
+    xor  si, si
 %endmacro

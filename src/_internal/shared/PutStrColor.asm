@@ -70,6 +70,7 @@ DOS_ConsoleWrite:
 
 PutStrColor:
     push bx
+    
     mov  bh, [PTR16(dos_readln_flag)]
     cmp  bh, 0
     je   .no_length
@@ -108,10 +109,18 @@ PutStrColor:
     
 ; --- Cursorposition lesen (AH=03h) ---
 DOS_getCursor:
+    push dx
+    push di
+    push si
+    
     mov  ah, 03h         ; Read Cursor Position
     mov  bh, 0           ; Videoseite 0
     VideoCall            ; Rückgabe: DH=Zeile, DL=Spalte (0-basiert)
+    
     mov  [PTR16(dos_ypos)], dh
     mov  [PTR16(dos_xpos)], dl
-
+    
+    pop  si
+    pop  di
+    pop  dx
     ret
