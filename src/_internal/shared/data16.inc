@@ -182,6 +182,15 @@ _cA_gdt_end:
 _cA_gdt_descriptor:
     dw PTR16(_cA_gdt_end) - PTR16(_cA_gdt) - 1   ; Limit (Größe der GDT - 1)
     dd 0                   ; Basisadresse der GDT (wird oben zur Laufzeit gefüllt)
+
+rm_cs  dw 0
+rm_ds  dw 0
+rm_ss  dw 0
+rm_sp  dw 0
+
+rm_far_ptr:
+    dd PTR16(rm_entry) ; 32-Bit Offset
+    dw 0               ; Segment (0 oder dein ursprüngliches CS)
     
 hdr_len:            dw 0
 rec_len:            dw 0

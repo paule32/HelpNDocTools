@@ -25,9 +25,21 @@ bits 16
 code16_start:
     INIT_COMMAND_LINE
     INIT_CONSOLE
-
+    
+    SCREEN_CLEAR
+    SET_CURSOR 0, 1
+    
     call PROC_CHECK
     call CHECK_MODE
+    
+    ; COM: CS = DS = ES = SS
+    mov ax, cs
+    mov [PTR16(rm_cs)], ax
+    mov [PTR16(rm_ds)], ax
+    mov [PTR16(rm_ss)], ax
+    mov [PTR16(rm_sp)], sp
+    
+    mov [PTR16(rm_far_ptr)+4], ax   ; Segment eintragen
     
     cli                    ; Interrupts aus
 
@@ -37,9 +49,9 @@ code16_start:
     shl   edx, 4           ; EDX = DS * 16 = lineare Basis des datasegments
 
     lea eax, [edx + PTR16(_cA_gdt)] ; GDT liegt irgendwo in unserem data, also Basis + Offset
-    mov  [PTR16(_cA_gdt)+2], eax   ; GDT-Basis in Descriptor schreiben
+    mov  [PTR16(_cA_gdt_descriptor)+2], eax   ; GDT-Basis in Descriptor schreiben
 
-    lgdt [PTR16(_cA_gdt)]  ; GDTR laden
+    lgdt [PTR16(_cA_gdt_descriptor)]  ; GDTR laden
 
     ; -----------------------------
     ; Protected Mode einschalten
@@ -50,15 +62,60 @@ code16_start:
 
     ; Weit-Sprung in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
     push 0x08
-    add edx, PTR16(go_pm)
+    add  edx, PTR16(go_pm)
     push edx
-    mov bp, sp
-    jmp far dword [bp]
+    mov  bp, sp
+    jmp  far dword [bp]
 
 bits 32
 go_pm:
-    mov     word [0xb8000],0x741  ; Display white A in protected mode
-    spin:   jmp spin           ; Loop
+    mov ax, 0x10
+    mov ds, ax
+
+    mov word [0xb8000], (0x0E << 8) | 'A'
+    mov word [0xb8002], (0x0F << 8) | 'B'
+    mov word [0xb8004], (0x03 << 8) | 'C'
+
+    ; irgendwas tun ...
+
+    ; und dann irgendwann zurück nach DOS:
+    jmp pm_exit
+    
+pm_exit:
+    cli
+
+    ; falls du irgendwann Paging benutzt:
+    ; mov eax, cr0
+    ; and eax, 0x7FFFFFFF
+    ; mov cr0, eax
+
+    ; Protected Mode ausschalten (PE=0)
+    mov eax, cr0
+    and eax, 0xFFFFFFFE
+    mov cr0, eax
+
+    ; Jetzt sind wir wieder im Real Mode, aber CS/DS/SS etc. sind noch "komisch"
+    ; Far Jump in 16-Bit-Stub, damit CS sauber gesetzt wird
+    jmp far [PTR16(rm_far_ptr)]
+
+; -----------------------------------------------------------------------------
+bits 16
+rm_entry:
+    ; Real-Mode-Segmente wiederherstellen
+    mov ax, [PTR16(rm_ds)]
+    mov ds, ax
+    mov es, ax
+
+    mov ax, [PTR16(rm_ss)]
+    mov ss, ax
+    mov sp, [PTR16(rm_sp)]
+    
+    mov ax, cs
+    mov [PTR16(rm_far_ptr)+4], ax   ; Segment eintragen
+
+    sti                     ; Interrupts wieder erlauben
+    
+    DOS_Exit 0
 
 ; -----------------------------------------------------------------------------
 ; \brief check, if a compatible 80386 CPU is present on the system ...
@@ -92,7 +149,7 @@ PROC_CHECK:
 ; -----------------------------------------------------------------------------
 ; \brief check, if we in real mode or not ...
 ; -----------------------------------------------------------------------------
-CHECK_MODE
+CHECK_MODE:
     mov eax, cr0            ; get CR0 to EAX
     and al, 1               ; check if PM bit is set
     jnz not_real_mode		; yes, it is, so exit

@@ -11,7 +11,7 @@ dos_init_console:
     call dos_get_rows               ; get DOS screen rows
     
     SCREEN_CLEAR
-    SET_CURSOR 0,1
+    SET_CURSOR 0, 1
     
     call dos_get_command_line
     ret
