@@ -8,7 +8,6 @@
 %define DOS_SHELL 1
 %define MAX_ARGS  7
 bits 16
-org  0
 ; -----------------------------------------------------------------------------
 ; \brief  Create/Append field into dBASE III/IV DBF by INT 21h
 ; \note   Build:  nasm -f bin dbfmake.asm -o DBFMAKE.COM
@@ -26,27 +25,41 @@ org  0
 code16_start:
     INIT_COMMAND_LINE
     INIT_CONSOLE
-    
+
     call PROC_CHECK
     call CHECK_MODE
     
-    cli
-    lgdt    [PTR16(_cA_gdtr)]
-    mov     eax, cr0  ; The LSb of cr0 is the protected mode bit
-    or      al,  0x01 ; Set protected mode bit
-    mov     cr0, eax  ; Mov modified word to the control register
-    jmp     PTR16(_cA_codesel):PTR16(go_pm)
-    
+    cli                    ; Interrupts aus
+
+    ; DS-Segmentbasis berechnen (Segment << 4)
+    mov   dx, ds
+    movzx edx, dx
+    shl   edx, 4           ; EDX = DS * 16 = lineare Basis des datasegments
+
+    lea eax, [edx + PTR16(_cA_gdt)] ; GDT liegt irgendwo in unserem data, also Basis + Offset
+    mov  [PTR16(_cA_gdt)+2], eax   ; GDT-Basis in Descriptor schreiben
+
+    lgdt [PTR16(_cA_gdt)]  ; GDTR laden
+
+    ; -----------------------------
+    ; Protected Mode einschalten
+    ; -----------------------------
+    mov eax, cr0
+    or  eax, 1             ; PE-Bit (Bit 0) setzen
+    mov cr0, eax
+
+    ; Weit-Sprung in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
+    push 0x08
+    add edx, PTR16(go_pm)
+    push edx
+    mov bp, sp
+    jmp far dword [bp]
+
 bits 32
 go_pm:
-    mov     ax, PTR16(_cA_datasel)
-    mov     ds, ax             ; Initialise ds & es to data segment
-    mov     es, ax
-    mov     ax, PTR16(_cA_videosel)   ; Initialise gs to video memory
-    mov     gs, ax
-    mov     word [gs:0],0x741  ; Display white A in protected mode
+    mov     word [0xb8000],0x741  ; Display white A in protected mode
     spin:   jmp spin           ; Loop
-    
+
 ; -----------------------------------------------------------------------------
 ; \brief check, if a compatible 80386 CPU is present on the system ...
 ; -----------------------------------------------------------------------------
@@ -79,7 +92,7 @@ PROC_CHECK:
 ; -----------------------------------------------------------------------------
 ; \brief check, if we in real mode or not ...
 ; -----------------------------------------------------------------------------
-CHECK_MODE:
+CHECK_MODE
     mov eax, cr0            ; get CR0 to EAX
     and al, 1               ; check if PM bit is set
     jnz not_real_mode		; yes, it is, so exit
