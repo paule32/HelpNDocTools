@@ -126,3 +126,5 @@ src/_internal/shared/README
 src/_internal/shared/README.DOS
 src/_internal/shared/start.bin
 src/_internal/shared/COPYING
+src/_internal/shared/kernel.lst
+src/_internal/shared/kernel.pre

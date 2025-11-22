@@ -19,18 +19,19 @@ kernel_start:
 
 
 
+
 code16_start:
-%line 1456+1 macros.inc
+%line 1605+1 macros.inc
  call dos_get_command_line
-%line 1467+1 macros.inc
+%line 1616+1 macros.inc
  call dos_init_console
-%line 1133+1 macros.inc
+%line 1282+1 macros.inc
  call dos_screen_clear
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 1
  mov dh, 2
  call dos_set_cursor
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
 
 [section .data]
@@ -40,124 +41,115 @@ code16_start:
  mov bl, 0x0F
  mov si, (..@8.msg-code16_start+0x100)
  call PutStrColor
-%line 1151+1 macros.inc
- mov dl, 10
- mov dh, 2
- call dos_set_cursor
-%line 1770+1 macros.inc
+%line 1929+1 macros.inc
 [section .text]
- mov si, (_cA_cmd_buf-code16_start+0x100)
- mov bl, 1
- call getCommandLine_Arg
+%line 1826+1 macros.inc
  push si
- mov di, (_cA_cmd_buf-code16_start+0x100)
+%line 1868+1 macros.inc
+ lea si, [(_cA_cmd_buf-code16_start+0x100)]
+%line 1936+1 macros.inc
  mov bl, 1
+%line 1941+1 macros.inc
  call getCommandLine_Arg
  mov di, si
+%line 1831+1 macros.inc
  pop si
- call string_compare
- cmp al, 0
- jne ..@12.jum3
- call is_version_1
- ..@12.jum3:
-%line 1813+1 macros.inc
-
-%line 1816+1 macros.inc
-
- xor di, di
- xor si, si
-%line 1770+1 macros.inc
+%line 1929+1 macros.inc
 [section .text]
- mov si, (_cA_cmd_buf-code16_start+0x100)
- mov bl, 1
- call getCommandLine_Arg
+%line 1826+1 macros.inc
  push si
- mov di, (_cA_cmd_buf-code16_start+0x100)
+%line 1868+1 macros.inc
+ lea si, [(_cA_cmd_buf-code16_start+0x100)]
+%line 1936+1 macros.inc
  mov bl, 2
+%line 1941+1 macros.inc
  call getCommandLine_Arg
  mov di, si
+%line 1831+1 macros.inc
  pop si
+%line 1919+1 macros.inc
+[section .text]
  call string_compare
  cmp al, 0
- jne ..@14.jum3
+ jne ..@24.jum4
  call is_version_2
- ..@14.jum3:
-%line 1813+1 macros.inc
-
-%line 1816+1 macros.inc
-
- xor di, di
- xor si, si
-%line 1792+1 macros.inc
+ ..@24.jum4:
+%line 1993+1 macros.inc
 [section .data]
- ..@16.part3: db 'abcd', 0
+ ..@26.part3: db 'abcd', 0
 [section .text]
- lea si, [(..@16.part3-code16_start+0x100)]
+%line 1868+1 macros.inc
+ lea si, [(..@26.part3-code16_start+0x100)]
+%line 1929+1 macros.inc
+[section .text]
+%line 1826+1 macros.inc
  push si
- mov si, (_cA_cmd_buf-code16_start+0x100)
+%line 1868+1 macros.inc
+ lea si, [(_cA_cmd_buf-code16_start+0x100)]
+%line 1936+1 macros.inc
  mov bl, 1
+%line 1941+1 macros.inc
  call getCommandLine_Arg
  mov di, si
+%line 1831+1 macros.inc
  pop si
+%line 1919+1 macros.inc
+[section .text]
  call string_compare
  cmp al, 0
- jne ..@16.jum2
+ jne ..@36.jum4
  call is_version_3
- ..@16.jum2:
-%line 1813+1 macros.inc
-
-%line 1816+1 macros.inc
-
- xor di, di
- xor si, si
-%line 1792+1 macros.inc
+ ..@36.jum4:
+%line 1993+1 macros.inc
 [section .data]
- ..@19.part3: db '1234', 0
+ ..@38.part3: db '1234', 0
 [section .text]
- lea si, [(..@19.part3-code16_start+0x100)]
+%line 1868+1 macros.inc
+ lea si, [(..@38.part3-code16_start+0x100)]
+%line 1929+1 macros.inc
+[section .text]
+%line 1826+1 macros.inc
  push si
- mov si, (_cA_cmd_buf-code16_start+0x100)
+%line 1868+1 macros.inc
+ lea si, [(_cA_cmd_buf-code16_start+0x100)]
+%line 1936+1 macros.inc
  mov bl, 2
+%line 1941+1 macros.inc
  call getCommandLine_Arg
  mov di, si
+%line 1831+1 macros.inc
  pop si
+%line 1919+1 macros.inc
+[section .text]
  call string_compare
  cmp al, 0
- jne ..@19.jum2
+ jne ..@48.jum4
  call is_version_4
- ..@19.jum2:
-%line 1813+1 macros.inc
-
-%line 1816+1 macros.inc
-
- xor di, di
- xor si, si
-%line 1696+1 macros.inc
+ ..@48.jum4:
+%line 1952+1 macros.inc
 [section .data]
- ..@22.part1: db "abcd", 0
+ ..@50.part1: db "abcd", 0
 [section .text]
- lea si, [(..@22.part1-code16_start+0x100)]
-%line 1728+1 macros.inc
+%line 1868+1 macros.inc
+ lea si, [(..@50.part1-code16_start+0x100)]
+%line 1963+1 macros.inc
 [section .data]
- ..@22.part2: db "abcd", 0
+ ..@50.part2: db "abcd", 0
 [section .text]
- lea di, [(..@22.part2-code16_start+0x100)]
+%line 1868+1 macros.inc
+ lea di, [(..@50.part2-code16_start+0x100)]
+%line 1919+1 macros.inc
+[section .text]
  call string_compare
  cmp al, 0
- jne ..@22.jum1
+ jne ..@57.jum4
  call is_version_5
- ..@22.jum1:
-%line 1813+1 macros.inc
-
-%line 1816+1 macros.inc
-
- xor di, di
- xor si, si
-%line 1291+1 macros.inc
+ ..@57.jum4:
+%line 1440+1 macros.inc
  mov ax, 0x4C00 | 0
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
-%line 44+1 code16.asm
+%line 43+1 code16.asm
  .next1:
 
 
@@ -195,117 +187,117 @@ code16_start:
 
 
  .is_okk:
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 40
  mov dh, 5
  call dos_set_cursor
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
 
 [section .data]
- ..@30.msg: db 'mufti', 0
+ ..@62.msg: db 'mufti', 0
 [section .text]
  xor bx, bx
  mov bl, 0x1C
- mov si, (..@30.msg-code16_start+0x100)
+ mov si, (..@62.msg-code16_start+0x100)
  call PutStrColor
-%line 1291+1 macros.inc
+%line 1440+1 macros.inc
  mov ax, 0x4C00 | 0
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
-%line 84+1 code16.asm
+%line 83+1 code16.asm
  ret
 
 
 is_version_1:
 
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 10
  mov dh, 1
  call dos_set_cursor
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
 
 [section .data]
- ..@36.msg: db 'argv1 == argv1', 0
+ ..@68.msg: db 'argv1 == argv1', 0
 [section .text]
  xor bx, bx
  mov bl, 0x0F
- mov si, (..@36.msg-code16_start+0x100)
+ mov si, (..@68.msg-code16_start+0x100)
  call PutStrColor
-%line 91+1 code16.asm
+%line 90+1 code16.asm
  ret
 is_version_2:
 
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 10
  mov dh, 2
  call dos_set_cursor
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
 
 [section .data]
- ..@40.msg: db 'argv1 == argv2', 0
+ ..@72.msg: db 'argv1 == argv2', 0
 [section .text]
  xor bx, bx
  mov bl, 0x0E
- mov si, (..@40.msg-code16_start+0x100)
+ mov si, (..@72.msg-code16_start+0x100)
  call PutStrColor
-%line 96+1 code16.asm
+%line 95+1 code16.asm
  ret
 is_version_3:
 
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 10
  mov dh, 3
  call dos_set_cursor
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
 
 [section .data]
- ..@44.msg: db 'argv1 == "abcd"', 0
+ ..@76.msg: db 'argv1 == "abcd"', 0
 [section .text]
  xor bx, bx
- mov bl, 0xF
- mov si, (..@44.msg-code16_start+0x100)
+ mov bl, 0x0F
+ mov si, (..@76.msg-code16_start+0x100)
  call PutStrColor
-%line 101+1 code16.asm
+%line 100+1 code16.asm
  ret
 is_version_4:
 
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 10
  mov dh, 4
  call dos_set_cursor
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
 
 [section .data]
- ..@48.msg: db 'argv2 == 1234', 0
+ ..@80.msg: db 'argv2 == 1234', 0
 [section .text]
  xor bx, bx
  mov bl, 0xF
- mov si, (..@48.msg-code16_start+0x100)
+ mov si, (..@80.msg-code16_start+0x100)
  call PutStrColor
-%line 106+1 code16.asm
+%line 105+1 code16.asm
  ret
 is_version_5:
 
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 10
  mov dh, 5
  call dos_set_cursor
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
 
 [section .data]
- ..@52.msg: db '"abcd" == "abcd"', 0
+ ..@84.msg: db '"abcd" == "abcd"', 0
 [section .text]
  xor bx, bx
  mov bl, 0xF
- mov si, (..@52.msg-code16_start+0x100)
+ mov si, (..@84.msg-code16_start+0x100)
  call PutStrColor
-%line 111+1 code16.asm
+%line 110+1 code16.asm
  ret
 
 
@@ -321,21 +313,21 @@ is_version_5:
 
 jmp usage
  _done:
-%line 1204+1 macros.inc
+%line 1353+1 macros.inc
 [section .data]
- ..@55.msg: db 'ddd', 0
+ ..@87.msg: db 'ddd', 0
 [section .text]
  xor bx, bx
  mov bl, 0x1C
- mov si, (..@55.msg-code16_start+0x100)
+ mov si, (..@87.msg-code16_start+0x100)
  call PutStrColor
-%line 127+1 code16.asm
+%line 126+1 code16.asm
  .token_done:
-%line 1291+1 macros.inc
+%line 1440+1 macros.inc
  mov ax, 0x4C00 | 0
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
-%line 131+1 code16.asm
+%line 130+1 code16.asm
  mov di, (fldname-code16_start+0x100)
  call copy_token_max_10
  jc usage
@@ -443,9 +435,9 @@ do_create:
 
 
  call print_$
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 239+1 code16.asm
+%line 238+1 code16.asm
  jmp exit0
 
 
@@ -574,9 +566,9 @@ do_append:
 
  mov dx, (msg_ok_append-code16_start+0x100)
  call print_$
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 368+1 code16.asm
+%line 367+1 code16.asm
  jmp exit0
 
 
@@ -1133,103 +1125,103 @@ field_already:
  int 21h
  mov dx, (msg_fieldexists-code16_start+0x100)
  call print_$
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 925+1 code16.asm
+%line 924+1 code16.asm
  jmp exit0
 
 usage:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02
  mov ax, (_cA_msg_usage-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 929+1 code16.asm
+%line 928+1 code16.asm
  jmp exit1
 
 badargs:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02
  mov ax, (_cA_msg_badargs-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 934+1 code16.asm
+%line 933+1 code16.asm
  jmp exit1
 
 open_fail:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02
  mov ax, (_cA_msg_openfail-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 938+1 code16.asm
+%line 937+1 code16.asm
  jmp exit1
 
 ver_mismatch:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02
  mov ax, (_cA_msg_ver_mismatch-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 942+1 code16.asm
+%line 941+1 code16.asm
  jmp exit1
 
 append_with_records_not_supported:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02
  mov ax, (_cA_msg_append_recs-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 946+1 code16.asm
+%line 945+1 code16.asm
  jmp exit1
 
 not_supported:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02
  mov ax, (_cA_msg_not_supported-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 950+1 code16.asm
+%line 949+1 code16.asm
  jmp exit1
 
 io_error:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02
  mov ax, (_cA_msg_ioerr-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 954+1 code16.asm
+%line 953+1 code16.asm
  jmp exit1
 
 bad_header:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02
  mov ax, (_cA_msg_badheader-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 958+1 code16.asm
+%line 957+1 code16.asm
  jmp exit1
 
 exit0:
-%line 1291+1 macros.inc
+%line 1440+1 macros.inc
  mov ax, 0x4C00 | 0
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
-%line 962+1 code16.asm
+%line 961+1 code16.asm
 exit1:
-%line 1291+1 macros.inc
+%line 1440+1 macros.inc
  mov ax, 0x4C00 | 1
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
-%line 971+1 code16.asm
+%line 970+1 code16.asm
  mov si, 80h
  lodsb
  mov bl, al
@@ -1296,9 +1288,9 @@ exit1:
  call print_$
  mov al, [(verByte-code16_start+0x100)]
  call print_hex8
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1039+1 code16.asm
+%line 1038+1 code16.asm
  mov dx, (msgDate-code16_start+0x100)
  call print_$
  mov al, [(yy-code16_start+0x100)]
@@ -1311,48 +1303,48 @@ exit1:
  call putc
  mov al, [(dd-code16_start+0x100)]
  call print_dec8
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1053+1 code16.asm
+%line 1052+1 code16.asm
  mov dx, (msgRecs-code16_start+0x100)
  call print_$
 
  mov ax, [(rec32-code16_start+0x100) + 0]
  mov dx, [(rec32-code16_start+0x100) + 2]
  call print_hex32
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1061+1 code16.asm
+%line 1060+1 code16.asm
  mov dx, (msgHdr-code16_start+0x100)
  call print_$
  mov ax, [(hdr_len-code16_start+0x100)]
  call print_dec16
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1067+1 code16.asm
+%line 1066+1 code16.asm
  mov dx, (msgRec-code16_start+0x100)
  call print_$
  mov ax, [(rec_len-code16_start+0x100)]
  call print_dec16
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1073+1 code16.asm
+%line 1072+1 code16.asm
  mov dx, (msgMDX-code16_start+0x100)
  call print_$
  mov al, [(mdx-code16_start+0x100)]
  call print_hex8
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1079+1 code16.asm
+%line 1078+1 code16.asm
  mov dx, (msgLang-code16_start+0x100)
  call print_$
  mov al, [(lang-code16_start+0x100)]
  call print_hex8
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1305+0 macros.inc
+%line 1454+0 macros.inc
  call DOSrncrlf
-%line 1088+1 code16.asm
+%line 1087+1 code16.asm
  mov ax, [(hdr_len-code16_start+0x100)]
  sub ax, 32
  jbe .no_fields
@@ -1366,9 +1358,9 @@ exit1:
 
  mov dx, (msgFields-code16_start+0x100)
  call print_$
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1104+1 code16.asm
+%line 1103+1 code16.asm
  mov si, (fdbuf-code16_start+0x100)
  mov cx, ax
  xor bp, bp
@@ -1410,10 +1402,10 @@ exit1:
  .name_done:
  mov byte [di], 0
 
-%line 1314+1 macros.inc
+%line 1463+1 macros.inc
  lea dx, [(_cA_namebuf-code16_start+0x100)]
  call DOS_ConsoleWrite
-%line 1146+1 code16.asm
+%line 1145+1 code16.asm
  mov dx, (msgCommaSp-code16_start+0x100)
  call print_$
 
@@ -1433,9 +1425,9 @@ exit1:
  mov al, [si+17]
  mov ah, 0
  call print_dec16
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1168+1 code16.asm
+%line 1167+1 code16.asm
  add si, 32
  sub cx, 32
  jmp .next_field
@@ -1446,9 +1438,9 @@ exit1:
  .no_fields:
  mov dx, (msgNoFields-code16_start+0x100)
  call print_$
-%line 1305+1 macros.inc
+%line 1454+1 macros.inc
  call DOSrncrlf
-%line 1179+1 code16.asm
+%line 1178+1 code16.asm
  jmp .close_and_exit
 
 
@@ -1685,9 +1677,9 @@ print_z0:
  jz .done
  mov dl, al
  mov ah, 02h
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
-%line 1416+1 code16.asm
+%line 1415+1 code16.asm
  jmp .loop
  .done:
  ret
@@ -1782,7 +1774,7 @@ dos_set_cursor:
  mov [(dos_page-code16_start+0x100)], bh
 
  mov ah, 02h
-%line 72+1 macros.inc
+%line 145+1 macros.inc
  int 0x10
 %line 19+1 ConsoleCursor.asm
  ret
@@ -1795,7 +1787,7 @@ dos_get_cursor:
 
  mov bh, 0
  mov ah, 0x03
-%line 72+1 macros.inc
+%line 145+1 macros.inc
  int 0x10
 %line 30+1 ConsoleCursor.asm
  mov [(dos_xpos-code16_start+0x100)], dl
@@ -1828,903 +1820,903 @@ DOS_handle_error_code:
 
 
 
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h01h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_01-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 01h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h02h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_02-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 02h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h03h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_03-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 03h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h04h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_04-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 04h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h05h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_05-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 05h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h06h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_06-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 06h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h07h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_07-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 07h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h08h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_08-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 08h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h09h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_09-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 09h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h0Ah:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0A-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 0Ah
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h0Bh:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0B-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 0Bh
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h0Ch:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0C-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 0Ch
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h0Dh:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0D-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 0Dh
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h0Eh:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0E-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 0Eh
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h0Fh:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0F-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 0Fh
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h10h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_10-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 10h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h11h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_11-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 11h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h12h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_12-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 12h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h15h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_15-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 15h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h1Dh:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_1D-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 1Dh
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h1Eh:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_1E-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 1Eh
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h1Fh:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_1F-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 1Fh
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h20h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_20-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 20h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h21h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_21-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 21h
  jmp _open_exit
-%line 1479+1 macros.inc
+%line 1628+1 macros.inc
 _h27h:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_27-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1481+1 macros.inc
+%line 1630+1 macros.inc
  mov cx, 27h
  jmp _open_exit
-%line 1589+1 macros.inc
+%line 1738+1 macros.inc
 _cA_errh01:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_01-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x01
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh02:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_02-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x02
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh03:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_03-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x03
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh04:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_04-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x04
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh05:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_05-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x05
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh06:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_06-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x06
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh07:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_07-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x07
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh08:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_08-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x08
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh09:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_09-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x09
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh0A:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0A-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x0A
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh0B:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0B-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x0B
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh0C:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0C-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x0C
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh0D:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0D-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x0D
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh0E:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0E-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x0E
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh0F:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_0F-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x0F
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh10:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_10-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x10
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh11:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_11-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x11
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh12:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_12-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x12
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh15:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_15-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x15
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh1D:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_1D-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x1D
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh1E:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_1E-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x1E
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh1F:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_1F-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x1F
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh20:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_20-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x20
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh21:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_21-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x21
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
-%line 1579+1 macros.inc
+%line 1728+1 macros.inc
 
-%line 1582+1 macros.inc
+%line 1731+1 macros.inc
 
 
-%line 1588+1 macros.inc
+%line 1737+1 macros.inc
 
 _cA_errh27:
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_27-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1591+1 macros.inc
+%line 1740+1 macros.inc
  mov cx, 0x27
  jmp _open_exit
 
 
-%line 1600+1 macros.inc
+%line 1749+1 macros.inc
 
 %line 67+1 ErrorCodes.asm
 _cA_errhnd:
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x0E | 0x10
  mov ax, (_cA_open_error_nd-code16_start+0x100)
@@ -2735,17 +2727,17 @@ _cA_errhnd:
  jmp _open_exit
 
 _open_exit:
-%line 1283+1 macros.inc
+%line 1432+1 macros.inc
  mov ax, 0x4C00
  or ax, cx
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
 %line 9+1 InitConsole.asm
 dos_init_console:
  call dos_get_cols
  call dos_get_rows
 
-%line 1133+1 macros.inc
+%line 1282+1 macros.inc
  call dos_screen_clear
 %line 15+1 InitConsole.asm
  call dos_get_command_line
@@ -2756,7 +2748,7 @@ dos_init_console:
 
 dos_get_cols:
  mov ah, 0Fh
-%line 72+1 macros.inc
+%line 145+1 macros.inc
  int 0x10
 %line 27+1 InitConsole.asm
  mov bl, ah
@@ -2768,7 +2760,7 @@ dos_get_cols:
 dos_get_rows:
  mov ax, 1130h
  mov bh, 00h
-%line 72+1 macros.inc
+%line 145+1 macros.inc
  int 0x10
 %line 37+1 InitConsole.asm
  mov dl, dl
@@ -2813,31 +2805,31 @@ dos_get_command_line:
  jmp .next
 
  .no_args:
-%line 1133+1 macros.inc
+%line 1282+1 macros.inc
  call dos_screen_clear
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 0
  mov dh, 1
  call dos_set_cursor
-%line 1202+1 macros.inc
+%line 1351+1 macros.inc
 
-%line 1239+1 macros.inc
+%line 1388+1 macros.inc
 [section .text]
  mov bl, 0x02 | 0x10
  mov ax, (_cA_noargs_msg-code16_start+0x100)
  mov si, ax
  call PutStrColor
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 0
  mov dh, 2
  call dos_set_cursor
-%line 1291+1 macros.inc
+%line 1440+1 macros.inc
  mov ax, 0x4C00 | 0
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
 %line 85+1 InitConsole.asm
  .next:
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 0
  mov dh, 0
  call dos_set_cursor
@@ -2889,7 +2881,7 @@ putc:
  push dx
  mov dl, al
  mov ah, 02h
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
 %line 17+1 PutStrColor.asm
  pop dx
@@ -2905,7 +2897,7 @@ DOSrncrlf:
 
 DOSPutStrColor:
  mov ah, 09h
-%line 67+1 macros.inc
+%line 134+1 macros.inc
  int 0x21
 %line 31+1 PutStrColor.asm
  ret
@@ -2925,7 +2917,7 @@ print_z:
  mov byte [si], 0
 
  mov [(fdbuf-code16_start+0x100)], si
-%line 1314+1 macros.inc
+%line 1463+1 macros.inc
  lea dx, [(_cA_fdbuf-code16_start+0x100)]
  call DOS_ConsoleWrite
 %line 49+1 PutStrColor.asm
@@ -2968,13 +2960,13 @@ PutStrColor:
  .print_loop:
  lodsb
 
-%line 1391+1 macros.inc
+%line 1540+1 macros.inc
  cmp al, 0x00
  je .printed
-%line 1391+1 macros.inc
+%line 1540+1 macros.inc
  cmp al, 0x0d
  je .printed
-%line 1391+1 macros.inc
+%line 1540+1 macros.inc
  cmp al, 0x0a
  je .printed
 %line 92+1 PutStrColor.asm
@@ -2983,13 +2975,13 @@ PutStrColor:
  mov ah, 09h
  mov bh, 0
  mov cx, 1
-%line 72+1 macros.inc
+%line 145+1 macros.inc
  int 0x10
 %line 99+1 PutStrColor.asm
  mov ah, 0x02
  mov bh, 0
  inc dx
-%line 72+1 macros.inc
+%line 145+1 macros.inc
  int 0x10
 %line 104+1 PutStrColor.asm
  jmp .print_loop
@@ -3006,7 +2998,7 @@ DOS_getCursor:
 
  mov ah, 03h
  mov bh, 0
-%line 72+1 macros.inc
+%line 145+1 macros.inc
  int 0x10
 %line 120+1 PutStrColor.asm
  mov [(dos_ypos-code16_start+0x100)], dh
@@ -3062,7 +3054,7 @@ dos_screen_clear:
 
  pop ds
 
-%line 1151+1 macros.inc
+%line 1300+1 macros.inc
  mov dl, 0
  mov dh, 0
  call dos_set_cursor
@@ -3138,7 +3130,7 @@ string_copy:
  pop bx
  pop bx
  ret
-%line 1435+1 code16.asm
+%line 1434+1 code16.asm
 code16_end:
 %line 16+1 kernel.asm
 [section .data]
@@ -3149,14 +3141,14 @@ msg: db "This program requieres MS-Windows.$",0
 msgErr: db 'Open error AX=', '$'
 
 
-%line 375+1 macros.inc
-_cA_dos_cap2A: db "ein Text", 0, 0
-_cA_dos_cap2A_end:
-_cA_dos_cap2A_length equ (_cA_dos_cap2A_end - _cA_dos_cap2A - 1)
-%line 375+1 macros.inc
-_cA_dos_prompt: db "Eingabe:       ", 0, 0
-_cA_dos_prompt_end:
-_cA_dos_prompt_length equ (_cA_dos_prompt_end - _cA_dos_prompt - 1)
+%line 513+1 macros.inc
+ _cA_dos_cap2A: db "ein Text", 0, 0
+ _cA_dos_cap2A_end:
+ _cA_dos_cap2A_length equ (_cA_dos_cap2A_end - _cA_dos_cap2A - 1)
+%line 513+1 macros.inc
+ _cA_dos_prompt: db "Eingabe:       ", 0, 0
+ _cA_dos_prompt_end:
+ _cA_dos_prompt_length equ (_cA_dos_prompt_end - _cA_dos_prompt - 1)
 %line 17+1 data16.inc
 crlf: db 13,10,'$'
 dos_color: db 0x07
@@ -3277,11 +3269,11 @@ _cA_mod_have_error_no: db 'no error found.',0
 
 
 
-%line 1615+1 macros.inc
+%line 1764+1 macros.inc
 _cA_error_dispatch:
-%line 1618+1 macros.inc
+%line 1767+1 macros.inc
  dw 0x01, _cA_errh01
-%line 1618+0 macros.inc
+%line 1767+0 macros.inc
  dw 0x02, _cA_errh02
  dw 0x03, _cA_errh03
  dw 0x04, _cA_errh04
@@ -3306,7 +3298,7 @@ _cA_error_dispatch:
  dw 0x20, _cA_errh20
  dw 0x21, _cA_errh21
  dw 0x27, _cA_errh27
-%line 1623+0 macros.inc
+%line 1772+0 macros.inc
  dw 00h, _cA_errhnd
 %line 141+1 data16.inc
 _cA_mod_hFile: dw 0
@@ -3320,7 +3312,7 @@ mod_msg_len: equ ($ - msg)
 hdr_len: dw 0
 rec_len: dw 0
 
-
+_cA_ARGV1: db '42', 0
 _cA_cmd_num: db ' 3',0
 
 

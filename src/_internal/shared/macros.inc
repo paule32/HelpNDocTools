@@ -51,27 +51,100 @@
 
 %define MAX_ARGV        32      ; maximum count of command line arguments
 
+; -----------------------------------------------------------------------------
+; \brief DOS 16-Bit applications handles the offsets of symbols otherwise as
+;        Windows 32 or 64-Bit.
+; -----------------------------------------------------------------------------
 %ifndef PTR16
 %define PTR16(sym) (sym-code16_start+0x100)
 %endif
 
+; -----------------------------------------------------------------------------
+; \brief Windows 32 or 64-Bit applications handles the offsets of symbols other
+;        wise as DOS 16-Bit programs.
+; -----------------------------------------------------------------------------
 %ifndef PTR64
 %define PTR64(sym) (IMAGE_BASE + RVA_DATA(sym))
 %endif
 
 ; -----------------------------------------------------------------------------
+; \brief pre-processor variables and constants ...
+; \note  __pre_stop -> nasm does not have a return or exit directive to stop
+;                      the pre-processing. But, we can tell nasm, to use a var
+;                      to sign: "stop pre-processing, and handle all following
+;                      directives as rejected."
+; -----------------------------------------------------------------------------
+%assign __pre_stop 0        ; only display one error, if __pre_stop == 1 !
+%assign __vargs    0        ; number of command line arguments
+
+; -----------------------------------------------------------------------------
+; \brief  get the positional argument of a command line parameter in console.
+; \param  1. <id> -> ARGV_n where n can be 1..32 (MAX_ARGV == 32).
+; \return __vargs <imm> -> the number of the parameter > 0
+; -----------------------------------------------------------------------------
+%macro GET_VARGS 2
+    %if __pre_stop == 0
+        %assign __count 0
+        %assign __vargs 0
+        %assign __stop  0
+        %rep MAX_ARGV
+            %if __stop == 0
+                %assign __count (__count + 1)
+                %ifidni %1,  ARGV_%+__count
+                    %assign __vargs __count
+                    %assign __stop 1
+                    %assign _%2 __count  ; the _%2 there is a pitfail: todo!
+                %endif
+            %endif
+        %endrep
+        %undef __count
+        %undef __stop
+    %endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief display a nasm error message with macro argument %1. Then the
+;        __pre_stop pre-processor variable will set to 1.
+;        (1 -> ignore all next macros)
+; -----------------------------------------------------------------------------
+%macro EMIT_ERROR 1
+    %if __pre_stop == 0
+        EMIT_ERROR 1
+        %assign __pre_stop 1
+    %endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief display a nasm warning message with macro argument %1. Then the
+;        __pre_stop pre-processor variable will set to 1.
+;        (1 -> ignore all next macros)
+; -----------------------------------------------------------------------------
+%macro EMIT_WARN 1
+    %if __pre_stop == 0
+        EMIT_ERROR 1
+        %assign __pre_stop 1
+    %endif
+%endmacro
+
+; -----------------------------------------------------------------------------
 ; \brief perform a system call (in this case a DOS int 0x21 call)
 ; -----------------------------------------------------------------------------
 %macro SysCall 0
-%if DOS_SHELL == 1
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
     int 0x21        ; DOS interrupt 0x21
+%else
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
+
+; -----------------------------------------------------------------------------
+; \brief perform a video call. It is only used in DOS 16-Bit applications.
+; -----------------------------------------------------------------------------
 %macro VideoCall 0
-%if DOS_SHELL == 1
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
     int 0x10
 %else
-    %error 'only DOS supports interrupts.'
+    EMIT_ERROR 'only DOS supports interrupts.'
 %endif
 %endmacro
 
@@ -79,10 +152,16 @@
 ; add win64 abi shadow ...
 ; -----------------------------------------------------------------------------
 %macro AddShadow 0-1
-%if %0 == 1
-    sub     rsp, %1
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+    EMIT_ERROR 'AddShadow is only used for Windows 10+ 64-Bit development.'
 %else
-    sub     rsp, SW_SHADOW
+    %if __pre_stop == 0
+        %if %0 == 1
+            sub rsp, %1
+        %else
+            sub rsp, SW_SHADOW
+        %endif
+    %endif
 %endif
 %endmacro
 
@@ -90,10 +169,16 @@
 ; delete added win64 abi shadow ...
 ; -----------------------------------------------------------------------------
 %macro DelShadow 0-1
-%if %0 == 1
-    add     rsp, %1
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+    EMIT_ERROR 'DelShadow is only used for Windows 10+ 64-Bit development.'
 %else
-    add     rsp, SW_SHADOW
+    %if __pre_stop == 0
+        %if %0 == 1
+            add rsp, %1
+        %else
+            add rsp, SW_SHADOW
+        %endif
+    %endif
 %endif
 %endmacro
 
@@ -101,38 +186,56 @@
 ; MAKE_INT <Label>, <Func1>, <Func2>, ...
 ; -----------------------------------------------------------------------------
 %macro MAKE_INT 2-*
-%1:
-%assign __n %0-1
-%rep __n
-    dq RVA_IDATA(HN_win32_%2)
-    %rotate 1
-%endrep
-    dq 0
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+    EMIT_ERROR 'MAKE_INT is only used for Windows 10+ 64-Bit development.'
+%else
+    %if __pre_stop == 0
+    %1:
+        %assign __n %0-1
+        %rep __n
+            dq RVA_IDATA(HN_win32_%2)
+            %rotate 1
+        %endrep
+        dq 0
+    %endif
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
 ; MAKE_IAT <Label>, <Func1>, <Func2>, ...
 ; -----------------------------------------------------------------------------
 %macro MAKE_IAT 2-*
-iat_win32_%1:
-%assign __n %0-1
-%rep __n
-IAT_win32_%2: dq RVA_IDATA(HN_win32_%2)
-    %rotate 1
-%endrep
-    dq 0
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+    EMIT_ERROR 'MAKE_IAT is only used for Windows 10+ 64-Bit development.'
+%else
+    %if __pre_stop == 0
+        iat_win32_%1:
+        %assign __n %0-1
+        %rep __n
+            IAT_win32_%2: dq RVA_IDATA(HN_win32_%2)
+            %rotate 1
+        %endrep
+        dq 0
+    %endif
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
 ; HNSTR <Func1>, <Func2>, ...
 ; -----------------------------------------------------------------------------
 %macro HNSTR 1-*
-%assign __n %0
-%rep __n
-HN_win32_%1: dw 0
-    db %str(%1), 0
-%rotate 1
-%endrep
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+    EMIT_ERROR 'HNSTR is only used for Windows 10+ 64-Bit development.'
+%else
+    %if __pre_stop == 0
+        %assign __n %0
+        %rep __n
+            HN_win32_%1: dw 0
+            db %str(%1), 0
+            %rotate 1
+        %endrep
+    %endif
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -144,49 +247,71 @@ HN_win32_%1: dw 0
 ; dir_label_end:
 ; -----------------------------------------------------------------------------
 %macro MAKE_IMPORT 1-*
-    %define __DIR %1
-    %1:
-    %assign __n %0-1
-    %rep __n
-        dd RVA_IDATA(INT_win32_%2)
-        dd 0,0
-        dd RVA_IDATA(dll_win32_%2)
-        dd RVA_IDATA(iat_win32_%2)
-        %rotate 1
-    %endrep
-        dd 0,0,0,0,0
-    __DIR %+ _end:
-    %undef __DIR
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+    EMIT_ERROR 'MAKE_IMPORT is only used for Windows 10+ 64-Bit development.'
+%else
+    %if __pre_stop == 0
+        %define __DIR %1
+        %1:
+        %assign __n %0-1
+        %rep __n
+            dd RVA_IDATA(INT_win32_%2)
+            dd 0,0
+            dd RVA_IDATA(dll_win32_%2)
+            dd RVA_IDATA(iat_win32_%2)
+            %rotate 1
+        %endrep
+            dd 0,0,0,0,0
+        __DIR %+ _end:
+        %undef __DIR
+    %endif
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
 ; mini helper ...
 ; -----------------------------------------------------------------------------
 %macro WIN64_PROLOG 0
-    mov rbp, rsp
-    and rsp, -16
-    AddShadow 32         ; Shadow Space
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+    EMIT_ERROR 'This macro is only used for Windows 10+ 64-Bit development.'
+%else
+    %if __pre_stop == 0
+        mov rbp, rsp
+        and rsp, -16
+        AddShadow 32         ; Shadow Space
+    %endif
+%endif
 %endmacro
 
 %macro CALL_IAT 1        ; CALL_IAT ExitProcess / RegisterClassExW / ...
-    AddShadow
-    mov     rax, IMAGE_BASE + RVA_IDATA(IAT_win32_%1)
-    call    [rax]
-    DelShadow
+%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+    EMIT_ERROR 'MAKE_IMPORT is only used for Windows 10+ 64-Bit development.'
+%else
+    %if __pre_stop == 0
+        AddShadow
+        mov     rax, IMAGE_BASE + RVA_IDATA(IAT_win32_%1)
+        call    [rax]
+        DelShadow
+    %endif
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
 ; zero register's
 ; -----------------------------------------------------------------------------
 %macro Zero 1
-    xor %1, %1
+    %if __pre_stop == 0
+        xor %1, %1
+    %endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
 ; UTF-16LE aus ASCII (<=0x7F) schnell schreiben
 ; -----------------------------------------------------------------------------
 %ifndef WSTR_DEBUG
-    %define WSTR_DEBUG 0
+    %if __pre_stop == 0
+        %define WSTR_DEBUG 0
+    %endif
 %endif
 
 ; -----------------------------------------------------------------------------
@@ -199,6 +324,7 @@ HN_win32_%1: dw 0
 ;   _cW_<name>_length_words  equ (_cW_<name>_length_bytes/2)
 ; -----------------------------------------------------------------------------
 %macro WSTR 2+
+    %if __pre_stop == 0
     %push WSTR
 
     ; Namen sichern, damit %rotate keine Probleme macht
@@ -241,6 +367,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)              ; Länge in WORDS
     %undef _WSTR_LENB
     %undef _WSTR_LENW
     %pop
+    %endif      ; __pre_stop
 %endmacro
 ; -----------------------------------------------------------------------------
 ; WSTRU <name>, <items...>
@@ -258,29 +385,32 @@ _WSTR_LENW  equ (_WSTR_LENB/2)              ; Länge in WORDS
 ; --- Helper: einen Unicode-Codepoint als UTF-16 ausgeben ---
 ; -----------------------------------------------------------------------------
 %macro __WSTR_EMIT_CP 1
-    %assign __cp (%1)
+    %if __pre_stop == 0
+        %assign __cp (%1)
 
-    %if __cp < 0
-        %error "WSTR: negativer Codepoint"
-    %elif __cp <= 0xFFFF
-        ; verbiete explizite Surrogat-Codepoints
-        %if __cp >= 0xD800 && __cp <= 0xDFFF
-            %error "WSTR: Codepoint im Surrogatbereich ist ungueltig"
+        %if __cp < 0
+            EMIT_ERROR "WSTR: negativer Codepoint"
+        %elif __cp <= 0xFFFF
+            ; verbiete explizite Surrogat-Codepoints
+            %if __cp >= 0xD800 && __cp <= 0xDFFF
+                EMIT_ERROR "WSTR: Codepoint im Surrogatbereich ist ungueltig"
+            %else
+                dw __cp
+            %endif
+        %elif __cp <= 0x10FFFF
+            %assign __tmp (__cp - 0x10000)
+            %assign __hi  (0xD800 + (__tmp >> 10))
+            %assign __lo  (0xDC00 + (__tmp & 0x3FF))
+            dw __hi, __lo
         %else
-            dw __cp
+            EMIT_ERROR "WSTR: Codepoint > U+10FFFF"
         %endif
-    %elif __cp <= 0x10FFFF
-        %assign __tmp (__cp - 0x10000)
-        %assign __hi  (0xD800 + (__tmp >> 10))
-        %assign __lo  (0xDC00 + (__tmp & 0x3FF))
-        dw __hi, __lo
-    %else
-        %error "WSTR: Codepoint > U+10FFFF"
     %endif
 %endmacro
 
 ; --- Hauptmakro ---
 %macro WSTRU 2+
+    %if __pre_stop == 0
     %push WSTRU
 
     %define _WSTR_LBL   _cW_%1
@@ -323,6 +453,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
     %undef _WSTR_LENB
     %undef _WSTR_LENW
     %pop
+    %endif      ; __pre_stop
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -330,6 +461,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ; (in Codeunits, ohne Null)
 ; -----------------------------------------------------------------------------
 %macro WSTR_AND_LEN 2-*
+    %if __pre_stop == 0
     %push WSTRUL
     %define %$name %1
 %1:
@@ -337,6 +469,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 %$name %+ _end:
     %xdefine %$name %+ _len ( ((%$name %+ _end) - (%$name))/2 - 1 )
     %pop
+    %endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -345,20 +478,24 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ; und dann:
 ; -----------------------------------------------------------------------------
 %macro WSTR_LENGTH 1
-    %xdefine %1_len ( ((%1_end) - (%1))/2 - 1 )
+    %if __pre_stop == 0
+        %xdefine %1_len ( ((%1_end) - (%1))/2 - 1 )
+    %endif
 %endmacro
 
 %macro AWSTR 1
-%push
-%strlen __n %1
-%assign __i 0
-%rep __n
-    %substr __c %1 __i+1,1
-    dw __c
-    %assign __i __i+1
-%endrep
-    dw 0
-%pop
+%if __pre_stop == 0
+    %push
+    %strlen __n %1
+    %assign __i 0
+    %rep __n
+        %substr __c %1 __i+1,1
+        dw __c
+        %assign __i __i+1
+    %endrep
+        dw 0
+    %pop
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -372,17 +509,21 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ;        %define cap2A_length (cap2A_end - cap2A - 1)
 ; -----------------------------------------------------------------------------
 %macro ASTR 2+                    ; ASTR <name>, <bytes...>
-_cA_%1:       db %2, 0
-_cA_%1_end:
-_cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
+%if __pre_stop == 0
+    _cA_%1:       db %2, 0
+    _cA_%1_end:
+    _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
+%endif
 %endmacro
 
 ; -----------------------------------------------------------------------------
 ; \brief set the string label from %2 to register %1 ...
 ; -----------------------------------------------------------------------------
 %macro GETEXT 2
+%if __pre_stop == 0
     mov     %1, IMAGE_BASE
     add     %1, RVA_DATA(_cW_%2)
+%endif
 %endmacro
 
 ; ------------------------------------------------------------
@@ -392,13 +533,17 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; Optional: einfacher Alias ohne Klammern/EXPR:
 ; ------------------------------------------------------------
 %imacro DATA_ABS 1
+%if __pre_stop == 0
     IMAGE_BASE + RVA_DATA(%1)
+%endif
 %endmacro
 ; ------------------------------------------------------------
 ; Helfer: absolute VA einer Data-Variable bauen
 ; ------------------------------------------------------------
 %macro DATA_PTR 1
+%if __pre_stop == 0
     (IMAGE_BASE + RVA_DATA(%1))
+%endif
 %endmacro
 ; ---------------------------------------------------------------------------
 ;; SETDATA <name>, <src> [, <size>]
@@ -429,27 +574,31 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; ---------------------------------------------------------------------------
 %macro SET_DATA 1-3
 %if DOS_SHELL == 1
-    %if %0 == 2
-        %ifnum %2
+    %if __pre_stop == 0
+        %if %0 == 2
+            %ifnum %2
+                section .text
+                lea ax, [PTR16(_cA_%1)]
+                mov ax, %2
+            %endif
+        %elif %0 == 3
+            %ifstr %2
+                %ifndef __var__%1
+                    %define __var__%1 1
+                    section .data
+                    %%__v: db %2, 0
+                %endif
+            %endif
             section .text
             lea ax, [PTR16(_cA_%1)]
             mov ax, %2
+            jmp %3
         %endif
-    %elif %0 == 3
-        %ifstr %2
-            %ifndef __var__%1
-                %define __var__%1 1
-                section .data
-                %%__v: db %2, 0
-            %endif
-        %endif
-        section .text
-        lea ax, [PTR16(_cA_%1)]
-        mov ax, %2
-        jmp %3
     %endif
 %else
-    %error 'tpdo'
+    %if __pre_stop == 0
+        EMIT_ERROR 'todo'
+    %endif
 %endif
 %endmacro
 %macro SETDATA 2-3
@@ -480,7 +629,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
       %elif %3 = 64
         mov     qword [rdx], %2
       %else
-        %error "SETDATA: 3rd arg must be BYTE/WORD/DWORD/QWORD or 8/16/32/64"
+        EMIT_ERROR "SETDATA: 3rd arg must be BYTE/WORD/DWORD/QWORD or 8/16/32/64"
       %endif
     %endif
 %endif
@@ -515,7 +664,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
       %elif %3 = 64
         mov     %1, qword [rdx]
       %else
-        %error "GETDATA: 3rd arg must be BYTE/WORD/DWORD/QWORD or 8/16/32/64"
+        EMIT_ERROR "GETDATA: 3rd arg must be BYTE/WORD/DWORD/QWORD or 8/16/32/64"
       %endif
     %endif
 %endmacro
@@ -604,7 +753,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro call_AllocConsole 2
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     CALL_IAT AllocConsole
     %if %0 == 2
@@ -618,7 +767,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro call_ExitProcess 0-1
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     %if %0 == 1
         mov rax, %1
@@ -649,7 +798,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro call_GetLastError 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     CALL_IAT GetLastError
     test rax, rax
@@ -673,7 +822,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro call_GetStdHandle 3
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     mov ecx, %3
     CALL_IAT GetStdHandle
@@ -694,7 +843,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 
 %macro call_LoadCursorW 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     CALL_IAT LoadCursorW
     ;ShowMessageW ShowHelloW,capW
@@ -704,7 +853,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 
 %macro call_LocalFree 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     CALL_IAT MessageBoxW
 %endif
@@ -726,7 +875,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 
 %macro call_WriteConsoleA 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     CALL_IAT WriteConsoleA
 %endif
@@ -742,7 +891,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro call_User_Write 2-3
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
 %if %0 == 2
     call_GetStdHandle %%ok, %1, STD_OUTPUT_HANDLE
@@ -777,7 +926,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 
 %macro IAT_CreateWindowExW 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     mov     rax, IMAGE_BASE
     add     rax, RVA_IDATA(IAT_win32_CreateWindowExW)
@@ -792,7 +941,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro DispatchMessageW 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     mov     rcx, rsi
     CALL_IAT DispatchMessageW
@@ -807,7 +956,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro ExitProcess 0-1 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     nop
     ;AddShadow (32 + 16)           ; Shadow Space + 16 B Align
@@ -832,7 +981,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 
 %macro GetLastError 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     CALL_IAT GetLastError
 %endif
@@ -843,7 +992,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro GetMessageW 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     mov  rcx, rsi
     Zero edx
@@ -860,7 +1009,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro LoadCursorW 1
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     Zero ecx
     mov  edx, %1
@@ -889,7 +1038,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro ShowMessageW 2-3
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     Zero    ecx             ; hWnd = NULL
     mov     rdx, PTR64(%1)  ; lpText
@@ -916,7 +1065,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro ShowMessageA 2-3
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     Zero    ecx
     mov     rdx, IMAGE_BASE + RVA_DATA(_cA_%1)  ; "MessageBoxW failed"
@@ -938,7 +1087,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro ShowWindow 1-2
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     nop
     ;AddShadow (32 + 16)           ; Shadow Space + 16 B Align
@@ -970,7 +1119,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro TranslateMessage 0
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     mov     rcx, rsi
     CALL_IAT TranslateMessage
@@ -988,7 +1137,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro UpdateWindow 1
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     mov     rcx, %1
     CALL_IAT UpdateWindow
@@ -1107,7 +1256,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro GET_CON_O_HANDLE 1
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     mov      ecx, STD_OUTPUT_HANDLE
     CALL_IAT GetStdHandle
@@ -1120,7 +1269,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro GET_CON_I_HANDLE 1
 %if DOS_SHELL == 1
-    %error ERROR_Win32API
+    EMIT_ERROR ERROR_Win32API
 %else
     mov      ecx, STD_INPUT_HANDLE
     CALL_IAT GetStdHandle
@@ -1145,7 +1294,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 ; -----------------------------------------------------------------------------
 %macro SET_CURSOR 2
 %if %0 == 0
-    %error 2 argument missing
+    EMIT_ERROR 2 argument missing
 %endif
 %if DOS_SHELL == 1
     mov  dl, %1         ; column
@@ -1162,7 +1311,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 %if DOS_SHELL == 1
     call dos_get_cursor
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1245,7 +1394,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
         %undef __varg
     %endif
 %else
-    %error 'this macro is only for DOS programming.'
+    EMIT_ERROR 'this macro is only for DOS programming.'
 %endif
 %endmacro
 
@@ -1261,7 +1410,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
     mov  ax, cx             ; AX = length
     add  cx, 1              ; CX = length + 1
 %else
-    %error 'exactly one argument expected.'
+    EMIT_ERROR 'exactly one argument expected.'
 %endif
 %endmacro
 
@@ -1274,7 +1423,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 %macro DOS_Exit 1
 %if DOS_SHELL == 1
     %ifidni   %1, ax
-        %error 'AX not allowed here.'
+        EMIT_ERROR 'AX not allowed here.'
     %elifidni %1, bx
         mov ax, 0x4C00
         or  ax, bx
@@ -1291,7 +1440,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
         mov  ax, 0x4C00 | %1
         SysCall
     %else
-        %error 'BX, CX, DX or <NUM> expected.'
+        EMIT_ERROR 'BX, CX, DX or <NUM> expected.'
     %endif
 %endif
 %endmacro
@@ -1375,7 +1524,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
     mov ah, 0x49
     SysCall
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1408,7 +1557,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
         jnc  %2
     %endif
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1428,7 +1577,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
         STR_COPY _cA_%2
     %endif
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1442,7 +1591,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
     lea  di, [%1]       ; ES wird in string_copy gesetzt
     call string_copy    ; kommt zurück mit SI = Zielstart
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1455,7 +1604,7 @@ _cA_%1_length equ (_cA_%1_end - _cA_%1 - 1)
 %if DOS_SHELL == 1
     call dos_get_command_line
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1496,7 +1645,7 @@ _h%1:
     mov  al, %2
     SysCall
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1512,7 +1661,7 @@ _h%1:
     mov  al, %2                 ; read-only
     SysCall
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1524,7 +1673,7 @@ _h%1:
     mov  ah, 3Eh
     SysCall
 %else
-    %error 'todo: windows'
+    EMIT_ERROR 'todo: windows'
 %endif
 %endmacro
 
@@ -1553,7 +1702,7 @@ _h%1:
   %elif %1 = 15
     %define %2 F
   %else
-    %error "_HEXDIG: Nibble ausserhalb 0..15"
+    EMIT_ERROR "_HEXDIG: Nibble ausserhalb 0..15"
   %endif
 %endmacro
 ; -----------------------------------------------------------------------------
@@ -1672,148 +1821,188 @@ _cA_error_dispatch:
         je  %4
 %endmacro
 
-; -----------------------------------------------------------------------------
-; \brief compare 2 string's ...
-; -----------------------------------------------------------------------------
-%macro STR_SI 1
-    section .text
-    lea  si, [PTR16(%1)]
+%macro SAVE 1
+    %if __pre_stop == 0
+        push %1
+    %endif
 %endmacro
-%macro STR_DI 2
-    section .text
-    lea di, [PTR16(%1)]
-    call string_compare
-    cmp al, 0
-    jne %%neq
-    call %2
-    %%neq:
+%macro RESTORE 1
+    %if __pre_stop == 0
+        pop  %1
+    %endif
 %endmacro
 
-%macro CMP_STR 3
-    %ifnum %1                           ; argument 1 is a number ?
-        %error 'numbers can not be handled as string.'
-    %elifstr %1                         ; argument 1 is a string ?
-        section .data
-        %%part1: db %1, 0
-        section .text
-        lea si, [PTR16(%%part1)]        ; src
-        %ifid %2
-            %assign __count3 0
-            %assign __varg3  0
-            %assign __stop3  0
-            %rep MAX_ARGV
-                %if __stop3 == 0
-                    %assign __count3 (__count3 + 1)
-                    %ifidni %2, ARGV_%+__count3
-                        %assign __varg3 __count3
-                        %assign __stop3 1
-                    %endif
-                %endif
-            %endrep
-            %if __varg3 > 0
-                section  .text
-                push si
-                lea  si, [PTR16(_cA_cmd_buf)]
-                mov  bl, __varg3
-                call getCommandLine_Arg
-                mov  di, si
-                pop  si
-                call string_compare
-                cmp  al, 0
-                jne  %%jum4
-                call %3
-                %%jum4:
-            %endif
-        %elifstr %2                       ; argument 2 is a string ?
-            section .data
-            %%part2: db %1, 0
-            section .text
-            lea  di, [PTR16(%%part2)]   ; dst
-            call string_compare
-            cmp  al, 0
-            jne  %%jum1
-            call %3
-            %%jum1:
-        %elifnum %2                     ; argument 2 is a number ?
-            %error 'numbers can not be handled as string.'
+; -----------------------------------------------------------------------------
+; \brief LEA.w introduce a 16-Bit (word) LEA - load effective address.
+; \note  With this directive, you dont need anymore to give the IMNAGE BASE to
+;        the addressing mode. It use the %macro  PTR16(<label>).
+; \note  This macro is case-insensitive
+; \see   %macro PTR16
+; -----------------------------------------------------------------------------
+%imacro lea.w 2
+%if DOS_SHELL == 1      ; compilation for DOS 16-Bit ?
+    %if __pre_stop == 0
+        %undef __prefix     ; reset
+        %undef __suffix     ; ...
+        %ifidni %1, SI
+            %define __prefix si
+        %elifidni %1, DI
+            %define __prefix di
         %else
-            %error 'todo'
+            EMIT_ERROR 'invalide prefix for LEA.W'
         %endif
-    %elifid %1
-        %assign __count1 0
-        %assign __varg1  0
-        %assign __stop1  0
-        %rep MAX_ARGV
-            %if __stop1 == 0
-                %assign __count1 (__count1 + 1)
-                %ifidni %1, ARGV_%+__count1
-                    %assign __varg1 __count1
-                    %assign __stop1 1
-                %endif
-            %endif
-        %endrep
-        %ifid %2
-            %assign __count2 0
-            %assign __varg2  0
-            %assign __stop2  0
-            %rep MAX_ARGV
-                %if __stop2 == 0
-                    %assign __count2 (__count2 + 1)
-                    %ifidni %2, ARGV_%+__count2
-                        %assign __varg2 __count2
-                        %assign __stop2 1
+        %ifndef __prefix
+            %assign __pre_stop 1
+        %endif
+        %if __pre_stop == 0
+            %xdefine __s %str(%2)
+            %xdefine __n %strlen(__s)
+            %if __n >= 2
+                %xdefine __fst %substr(__s,0,1)
+                %xdefine __lst %substr(__s,__n,1)
+                %ifidn __fst, '['
+                    %ifidn __lst, ']'
+                        %xdefine __inner %substr(__s,2,__n-2)
+                        %xdefine __tok   %tok(__inner)
+                        %define __suffix [PTR16(__tok)]
+                            lea __prefix, __suffix
+                    %else
+                        EMIT_ERROR 'closed bracket missing.'
                     %endif
-                %endif
-            %endrep
-            %if __varg1 > 0
-                %if __varg2 > 0
-                    section  .text
-                    mov  si, PTR16(_cA_cmd_buf)
-                    mov  bl, __varg1
-                    call getCommandLine_Arg
-                    push si
-                    mov  di, PTR16(_cA_cmd_buf)
-                    mov  bl, __varg2
-                    call getCommandLine_Arg
-                    mov  di, si
-                    pop  si
-                    call string_compare
-                    cmp  al, 0
-                    jne  %%jum3
-                    call %3
-                    %%jum3:
                 %else
-                    lea di, [PTR16(_cA_%1)]
+                    EMIT_ERROR 'missing brackets.'
+                    ; todo
                 %endif
             %else
-                lea si, [PTR16(_cA_%1)]
+                EMIT_ERROR 'directive too short.'
             %endif
-        %elifstr %2                     ; argument 2 is a string ?
-            section .data
-            %%part3: db %2, 0
-            section .text
-            lea  si, [PTR16(%%part3)]   ; dst
-            push si
-            mov  si, PTR16(_cA_cmd_buf)
-            mov  bl, __varg1
-            call getCommandLine_Arg
-            mov  di, si
-            pop  si
-            call string_compare
-            cmp  al, 0
-            jne  %%jum2
-            call %3
-            %%jum2:
-        %elifnum %2                     ; argument 2 is a number ?
-            %error 'numbers can not be handled as string.'
-        %else
-            %error 'todo'
         %endif
     %endif
-    
-    %undef __stop
-    %undef __varg
-    
-    xor  di, di
-    xor  si, si
+%else
+    EMIT_ERROR 'todo: windows'
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief MOV.w introduce a 16-Bit (word) MOV.
+; \note  With this directive, you dont need anymore to give the IMNAGE BASE to
+;        the addressing mode. It use the %macro  PTR16(<label>).
+; \note  This macro is case-insensitive
+; \see   %macro PTR16
+; -----------------------------------------------------------------------------
+%imacro mov.w 2
+%if DOS_SHELL == 1
+    %if __pre_stop == 0
+        %ifidni %1, BL
+            %ifid %2
+                mov bl, PTR16(_cA_%2)
+            %endif
+        %endif
+    %endif
+%else
+    %if __pre_stop == 0
+        EMIT_ERROR 'todo: windows'
+    %endif
+%endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; \brief STR_CMP - compare 2 string's ...
+; \note  Examples:
+;            STR_CMP ARGV_1, ARGV_2, is_version_2
+;            STR_CMP ARGV_1, 'abcd', is_version_3
+;            STR_CMP ARGV_2, '1234', is_version_4
+;            STR_CMP "abcd", "abcd", is_version_5
+; -----------------------------------------------------------------------------
+%macro STR_STR_HELPER 1
+    %if __pre_stop == 0
+        section .text
+        call string_compare
+        cmp  al, 0
+        jne  %%jum4
+        call %1
+        %%jum4:
+    %endif
+%endmacro
+%macro STR_ARG_HELPER 1-2
+    %if __pre_stop == 0
+        section  .text
+        SAVE si
+        %if %0 == 2
+            lea.w si, [_cA_%1]
+            mov  bl, %2
+        %elif %0 == 1
+            lea.w si, [_cA_cmd_buf]
+            mov  bl, %1
+        %else
+            EMIT_ERROR 'this macro excepted 2 arguments.'
+            %assign __pre_stop 1
+        %endif
+        call getCommandLine_Arg
+        mov  di, si
+        RESTORE  si
+    %endif
+%endmacro
+%macro STR_CMP 3
+    %if __pre_stop == 0
+        %ifnum %1                           ; argument 1 is a number ?
+            EMIT_ERROR 'numbers can not be handled as string.'
+            %assign __pre_stop 1
+        %elifstr %1                         ; argument 1 is a string ?
+            section .data
+            %%part1: db %1, 0
+            section .text
+            lea.w si, [%%part1]
+            %ifid %2
+                GET_VARGS %2, __vargs
+                %if __vargs > 0
+                    STR_ARG_HELPER __vargs
+                    STR_STR_HELPER %3
+                %endif
+            %elifstr %2                     ; argument 2 is a string ?
+                section .data
+                %%part2: db %1, 0
+                section .text
+                LEA.w  DI, [%%part2]        ; dst
+                STR_STR_HELPER %3
+            %elifnum %2                     ; argument 2 is a number ?
+                EMIT_ERROR 'numbers can not be handled as string.'
+                %assign __pre_stop 1
+            %else
+                EMIT_ERROR 'todo'
+                %assign __pre_stop 1
+            %endif
+        %elifid %1
+            %assign __varg1 0
+            %assign __varg2 0
+            GET_VARGS %1, _varg1
+            %ifid %2
+                GET_VARGS %2, _varg2
+                %if __varg1 > 0
+                    %if __varg2 > 0
+                        STR_ARG_HELPER __varg1
+                        STR_ARG_HELPER __varg2
+                        STR_STR_HELPER %3
+                    %else
+                        LEA.w DI, [_cA_%2]
+                    %endif
+                %else
+                    LEA.w SI, [_cA_%1]
+                %endif
+            %elifstr %2                     ; argument 2 is a string ?
+                section .data
+                %%part3: db %2, 0
+                section .text
+                LEA.w si, [%%part3]
+                STR_ARG_HELPER __varg1
+                STR_STR_HELPER %3
+            %elifnum %2                     ; argument 2 is a number ?
+                EMIT_ERROR 'numbers can not be handled as string.'
+            %else
+                EMIT_ERROR 'todo'
+            %endif
+        %endif
+        %undef __stop
+        %undef __varg
+    %endif
 %endmacro

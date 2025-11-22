@@ -9,17 +9,18 @@
 %define MAX_ARGS  7
 bits 16
 ; -----------------------------------------------------------------------------
-; dbfmake.asm  - Create/Append field into dBASE III/IV DBF by INT 21h
-; Build:  nasm -f bin dbfmake.asm -o DBFMAKE.COM
-; Run:    DBFMAKE <type> <cmd> <feldtype> <feldname> <feldlaenge>
-; Example:
-;   DBFMAKE 3 CREATE C NAME 20
-;   DBFMAKE 4 APPEND I AGE 3
-; Type: 3 (dBASE III), 4 (dBASE IV)
-; Cmd:  CREATE | APPEND
-; Feldtype: C,I,F,B,D,T  (T only for type 4)
-; Feldname: max 10 Zeichen (dBASE-Beschränkung, 11. Byte = 0)
-; Feldlaenge: Dezimal (z.B. 20)
+; \brief  Create/Append field into dBASE III/IV DBF by INT 21h
+; \note   Build:  nasm -f bin dbfmake.asm -o DBFMAKE.COM
+;         Run:    DBFMAKE <type> <cmd> <fieldtype> <feldname> <feldlength>
+;         Example:
+;             DBFMAKE 3 CREATE C NAME 20
+;             DBFMAKE 4 APPEND I AGE 3
+;
+; \note   Type: 3 (dBASE III), 4 (dBASE IV)
+; \note   Cmd:  CREATE | APPEND
+; \note   Fieldtype: C,I,F,B,D,T  (T only for type 4)
+; \note   Fieldname: max 10 chars (dBASE-limit, 11. Byte = 0)
+; \note   Fiedlength: decimal (e.g.. 20)
 ; -----------------------------------------------------------------------------
 code16_start:
     INIT_COMMAND_LINE
@@ -28,11 +29,10 @@ code16_start:
     SET_CURSOR 1,2
     PUTS_COLOR "123", 0x0F
     
-    CMP_STR ARGV_1, ARGV_1, is_version_1
-    CMP_STR ARGV_1, ARGV_2, is_version_2
-    CMP_STR ARGV_1, 'abcd', is_version_3
-    CMP_STR ARGV_2, '1234', is_version_4
-    CMP_STR "abcd", "abcd", is_version_5
+    STR_CMP ARGV_1, ARGV_2, is_version_2
+    STR_CMP ARGV_1, 'abcd', is_version_3
+    STR_CMP ARGV_2, '1234', is_version_4
+    STR_CMP "abcd", "abcd", is_version_5
     
     ;jmp  usage
     
@@ -96,7 +96,7 @@ is_version_2:
 is_version_3:
     ;mov [PTR16(_cA_db_version)], byte 5
     SET_CURSOR 10, 3
-    PUTS_COLOR 'argv1 == "abcd"', 0xF
+    PUTS_COLOR 'argv1 == "abcd"', 0x0F
     ret
 is_version_4:
     ;mov [PTR16(_cA_db_version)], byte 6

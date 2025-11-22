@@ -149,7 +149,7 @@ mod_msg_len:     equ ($ - msg)
 hdr_len:            dw 0
 rec_len:            dw 0
 
-
+_cA_ARGV1: db '42', 0
 _cA_cmd_num: db ' 3',0
 
 
