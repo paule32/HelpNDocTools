@@ -76,12 +76,8 @@ dos_get_command_line:
     jmp  .next
     
     .no_args:
-    SCREEN_CLEAR
-    SET_CURSOR 0, 1
-    PUTS_COLOR noargs_msg, 0x02 | 0x10
-    SET_CURSOR 0, 2
+    PUTS_COLOR noargs_msg, 0x12
     DOS_Exit   0          ; exit - no args.
     
     .next:
-    SET_CURSOR 0, 0
     ret

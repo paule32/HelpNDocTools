@@ -49,10 +49,9 @@ code16_start:
     movzx eax, ax          ; EAX = CS (Zero-extend)
     shl   eax, 4           ; EAX = CS * 16 = lineare Basis des Codesegments
     
-    add eax, PTR16(_cA_gdt) ; GDT liegt irgendwo in unserem Code, also Basis + Offset
-    mov  [PTR16(_cA_gdt_descriptor)+2], eax  ; GDT-Basis in Descriptor schreiben
-    
-    lgdt [PTR16(_cA_gdt_descriptor)]  ; GDTR laden
+    add   eax, PTR16(_cA_gdt) ; GDT liegt irgendwo in unserem Code, also Basis + Offset
+    mov   [PTR16(_cA_gdt_descriptor)+2], eax  ; GDT-Basis in Descriptor schreiben
+    lgdt  [PTR16(_cA_gdt_descriptor)]  ; GDTR laden
     
     ; -----------------------------
     ; Protected Mode einschalten
@@ -62,48 +61,12 @@ code16_start:
     mov cr0, eax
     
     ; Weit-Sprung in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
-    jmp 0x08:protected_mode_entry  ; 0x08 = 1. GDT-Code-Deskriptor
+    jmp 0x08:PTR16(protected_mode_entry)  ; 0x08 = 1. GDT-Code-Deskriptor
     
-; --------------------------------
-; Ab hier 32-Bit Code
-; --------------------------------
-[BITS 32]
-
-protected_mode_entry:
-    ; Segmentregister auf 32-Bit-Data-Deskriptor setzen
-    mov ax, 0x10           ; 0x10 = 2. GDT-Eintrag = Data-Segment
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-
-    ; Stack für 32-Bit setzen
-    mov esp, 0x9FC00       ; irgendeine hohe Adresse im Low-Memory-Bereich
-
-    ; Kleine Demo: Text direkt in den VGA-Textmodus-Speicher schreiben (0xB8000)
-    mov edi, 0xB8000       ; VGA-Textmodus-Adresse
-    mov eax, 0x1F201F20    ; zwei Zeichen ' ' (Space) mit Attribut 0x1F (weiß auf blau)
-                           ; hier nur als Dummy, um Format zu zeigen
-
-    ; Beispieltext "PM32" schreiben
-    mov byte [edi], 'P'
-    mov byte [edi+1], 0x1F
-    mov byte [edi+2], 'M'
-    mov byte [edi+3], 0x1F
-    mov byte [edi+4], '3'
-    mov byte [edi+5], 0x1F
-    mov byte [edi+6], '2'
-    mov byte [edi+7], 0x1F
-
-    .hang:
-    jmp .hang              ; Endlosschleife, damit man den Zustand sieht
-    
-    ret
-
 ; -----------------------------------------------------------------------------
 ; \brief check, if a compatible 80386 CPU is present on the system ...
 ; -----------------------------------------------------------------------------
+bits 16
 PROC_CHECK:
     pushf                   ; save flags
     xor  ah, ah             ; clear high byte
@@ -132,7 +95,7 @@ PROC_CHECK:
 ; -----------------------------------------------------------------------------
 ; \brief check, if we in real mode or not ...
 ; -----------------------------------------------------------------------------
-CHECK_MODE
+CHECK_MODE:
     mov eax, cr0            ; get CR0 to EAX
     and al, 1               ; check if PM bit is set
     jnz not_real_mode		; yes, it is, so exit
@@ -167,6 +130,42 @@ is_version_5:
     ;mov [PTR16(_cA_db_version)], byte 6
     SET_CURSOR 10, 5
     PUTS_COLOR '"abcd" == "abcd"', 0xF
+    ret
+
+; --------------------------------
+; Ab hier 32-Bit Code
+; --------------------------------
+bits 32
+protected_mode_entry:
+    ; Segmentregister auf 32-Bit-Data-Deskriptor setzen
+    mov ax, 0x10           ; 0x10 = 2. GDT-Eintrag = Data-Segment
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    ; Stack für 32-Bit setzen
+    mov esp, 0x9FC00       ; irgendeine hohe Adresse im Low-Memory-Bereich
+
+    ; Kleine Demo: Text direkt in den VGA-Textmodus-Speicher schreiben (0xB8000)
+    mov edi, 0xB8000       ; VGA-Textmodus-Adresse
+    mov eax, 0x1F201F20    ; zwei Zeichen ' ' (Space) mit Attribut 0x1F (weiß auf blau)
+                           ; hier nur als Dummy, um Format zu zeigen
+
+    ; Beispieltext "PM32" schreiben
+    mov byte [edi], 'P'
+    mov byte [edi+1], 0x1F
+    mov byte [edi+2], 'M'
+    mov byte [edi+3], 0x1F
+    mov byte [edi+4], '3'
+    mov byte [edi+5], 0x1F
+    mov byte [edi+6], '2'
+    mov byte [edi+7], 0x1F
+
+    .hang:
+    jmp .hang              ; Endlosschleife, damit man den Zustand sieht
+    
     ret
 
 ; -----------------------------------------------------------------------------

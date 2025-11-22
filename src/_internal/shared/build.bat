@@ -8,15 +8,15 @@
 ::nasm.exe -f bin -o kernel.bin kernel.asm
 ::nasm.exe -f bin -o modul1.bin modul1.asm
 
-nasm.exe -E kernel.asm > kernel.pre
-nasm.exe -E start.asm  > start.pre
+::nasm.exe -E kernel.asm > kernel.pre
+::nasm.exe -E start.asm  > start.pre
 
-nasm.exe -f bin -o kernel.bin kernel.asm -l kernel.lst
-nasm.exe -f bin -o start.exe  start.asm  -l start.lst
+nasm.exe -f bin -o kernel.bin kernel.asm
+nasm.exe -f bin -o start.exe  start.asm
 
 ::-w-zeroing
-copy /b           start.exe start.bin
-copy /b           start.exe dos.exe
+copy /b           start.exe start.bin >nul:
+copy /b           start.exe dos.exe   >nul:
 upx.exe           start.exe
 
-nasm -f bin getlang.asm -o getlang.com
+::nasm -f bin getlang.asm -o getlang.com

@@ -5,8 +5,6 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-%define DOS_SHELL 1
-
 dos_set_cursor:
     mov  [PTR16(dos_xpos)], dl   ; column
     mov  [PTR16(dos_ypos)], dh   ; row

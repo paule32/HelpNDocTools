@@ -5,7 +5,6 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-%define DOS_SHELL 1
 
 ; -----------------------------------------------------------------------------
 ; \brief  get the 16 bit length of a 0-terminated string

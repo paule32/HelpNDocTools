@@ -5,7 +5,6 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-%define DOS_SHELL 1
 
 ; --- String per BIOS-Teletype (AH=0Eh) ausgeben ---
 ; putc: AL -> Zeichen ausgeben
