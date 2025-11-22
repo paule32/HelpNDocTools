@@ -8,6 +8,7 @@
 %define DOS_SHELL 1
 %define MAX_ARGS  7
 bits 16
+org  0
 ; -----------------------------------------------------------------------------
 ; \brief  Create/Append field into dBASE III/IV DBF by INT 21h
 ; \note   Build:  nasm -f bin dbfmake.asm -o DBFMAKE.COM
@@ -25,43 +26,26 @@ bits 16
 code16_start:
     INIT_COMMAND_LINE
     INIT_CONSOLE
-
+    
     call PROC_CHECK
     call CHECK_MODE
     
-    cli                    ; Interrupts aus
-
-    ; Segmentregister vorbereiten (Real Mode)
-    xor ax, ax
-    mov ds, ax
-    mov es, ax
-    mov ss, ax
-    mov sp, 0x7C00         ; einfachen Stack setzen
+    cli
+    lgdt    [PTR16(_cA_gdtr)]
+    mov     eax, cr0  ; The LSb of cr0 is the protected mode bit
+    or      al,  0x01 ; Set protected mode bit
+    mov     cr0, eax  ; Mov modified word to the control register
+    jmp     PTR16(_cA_codesel):PTR16(go_pm)
     
-    ; -----------------------------
-    ; GDT-Deskriptor vorbereiten
-    ; -----------------------------
-    ; Wir müssen die lineare Basisadresse der GDT in den GDTR schreiben
-    ; In Real Mode können wir trotzdem 32-Bit Register benutzen (mit 66h Prefix)
-    
-    ; CS-Segmentbasis berechnen (Segment << 4)
-    mov   ax, cs
-    movzx eax, ax          ; EAX = CS (Zero-extend)
-    shl   eax, 4           ; EAX = CS * 16 = lineare Basis des Codesegments
-    
-    add   eax, PTR16(_cA_gdt) ; GDT liegt irgendwo in unserem Code, also Basis + Offset
-    mov   [PTR16(_cA_gdt_descriptor)+2], eax  ; GDT-Basis in Descriptor schreiben
-    lgdt  [PTR16(_cA_gdt_descriptor)]  ; GDTR laden
-    
-    ; -----------------------------
-    ; Protected Mode einschalten
-    ; -----------------------------
-    mov eax, cr0
-    or  eax, 1             ; PE-Bit (Bit 0) setzen
-    mov cr0, eax
-    
-    ; Weit-Sprung in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
-    jmp 0x08:PTR16(protected_mode_entry)  ; 0x08 = 1. GDT-Code-Deskriptor
+bits 32
+go_pm:
+    mov     ax, PTR16(_cA_datasel)
+    mov     ds, ax             ; Initialise ds & es to data segment
+    mov     es, ax
+    mov     ax, PTR16(_cA_videosel)   ; Initialise gs to video memory
+    mov     gs, ax
+    mov     word [gs:0],0x741  ; Display white A in protected mode
+    spin:   jmp spin           ; Loop
     
 ; -----------------------------------------------------------------------------
 ; \brief check, if a compatible 80386 CPU is present on the system ...
@@ -106,68 +90,6 @@ CHECK_MODE:
     DOS_Exit 1
     ret
     
-is_version_1:
-    ;mov [PTR16(_cA_db_version)], byte 3
-    SET_CURSOR 10, 1
-    PUTS_COLOR 'argv1 == argv1', 0x0F
-    ret
-is_version_2:
-    ;mov [PTR16(_cA_db_version)], byte 4
-    SET_CURSOR 10, 2
-    PUTS_COLOR 'argv1 == argv2', 0x0E
-    ret
-is_version_3:
-    ;mov [PTR16(_cA_db_version)], byte 5
-    SET_CURSOR 10, 3
-    PUTS_COLOR 'argv1 == "abcd"', 0x0F
-    ret
-is_version_4:
-    ;mov [PTR16(_cA_db_version)], byte 6
-    SET_CURSOR 10, 4
-    PUTS_COLOR 'argv2 == 1234', 0xF
-    ret
-is_version_5:    
-    ;mov [PTR16(_cA_db_version)], byte 6
-    SET_CURSOR 10, 5
-    PUTS_COLOR '"abcd" == "abcd"', 0xF
-    ret
-
-; --------------------------------
-; Ab hier 32-Bit Code
-; --------------------------------
-bits 32
-protected_mode_entry:
-    ; Segmentregister auf 32-Bit-Data-Deskriptor setzen
-    mov ax, 0x10           ; 0x10 = 2. GDT-Eintrag = Data-Segment
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-
-    ; Stack für 32-Bit setzen
-    mov esp, 0x9FC00       ; irgendeine hohe Adresse im Low-Memory-Bereich
-
-    ; Kleine Demo: Text direkt in den VGA-Textmodus-Speicher schreiben (0xB8000)
-    mov edi, 0xB8000       ; VGA-Textmodus-Adresse
-    mov eax, 0x1F201F20    ; zwei Zeichen ' ' (Space) mit Attribut 0x1F (weiß auf blau)
-                           ; hier nur als Dummy, um Format zu zeigen
-
-    ; Beispieltext "PM32" schreiben
-    mov byte [edi], 'P'
-    mov byte [edi+1], 0x1F
-    mov byte [edi+2], 'M'
-    mov byte [edi+3], 0x1F
-    mov byte [edi+4], '3'
-    mov byte [edi+5], 0x1F
-    mov byte [edi+6], '2'
-    mov byte [edi+7], 0x1F
-
-    .hang:
-    jmp .hang              ; Endlosschleife, damit man den Zustand sieht
-    
-    ret
-
 ; -----------------------------------------------------------------------------
 ; \brief include DOS 16-bit stdlib function's ...
 ; -----------------------------------------------------------------------------

@@ -152,37 +152,45 @@ _cA_norealmode:  db 'You are currently running in V86 mode!',0
 ; --------------------------------
 ; Global Descriptor Table (GDT)
 ; --------------------------------
+bits 16
+_cA_gdtr:
+dw      PTR16(_cA_gdt_end)-PTR16(_cA_gdt)-1   ; Length of the gdt
+dd      0x500+_cA_gdt           ; Physical address of gdt
 
 _cA_gdt:
-    ; Null-Deskriptor (immer Pflicht)
-    dq 0x0000000000000000
+_cA_nullsel equ $-PTR16(_cA_gdt)       ; This is 0, the first descriptor in gdt
+_cA_gdt0:                       ; Null descriptor, as per convention gdt0 is 0
+dq      0                       ; Each gdt entry is 8 bytes (64 bits)
 
-    ; Code-Segment-Deskriptor: Basis=0, Limit=4GB, Executable, Readable
-    ; Access Byte: 0x9A (10011010b)
-    ; Flags+Limit high: 0xCF (11001111b) => Granularity=4K, 32-bit, LimitHigh=0xF
-_cA_gdt_code:
-    dw 0xFFFF              ; Limit low
-    dw 0x0000              ; Base low
-    db 0x00                ; Base mid
-    db 10011010b           ; Access (0x9A)
-    db 11001111b           ; Flags + Limit high (0xCF)
-    db 0x00                ; Base high
+_cA_codesel equ $-PTR16(_cA_gdt)       ; This is 8, the second descriptor in gdt
+_cA_code_gdt:                   ; Code descriptor 4 GB flat segment at 0000:0000h
+dw      0x0FFFF                 ; Bits 0-15 of segment limit
+dw      0x0000                  ; Bits 0-15 of segment base
+db      0x00                    ; Bits 16-23 of segment base
+db      0x09A                   ; P,DPL(2),1,TYPE(3),A  -> present, privilege level 0,
+                                ;  1, executable, non-conforming, readable
+db      0x0CF                   ; G,D,0,AVL,LIMIT(4)    -> page granularity, default 32-bit
+                                ;  lower nibble bits 16-19 of 4 GB segment limit
+db      0x00                    ; Bits 24-31 of segment base
 
-    ; Data-Segment-Deskriptor: Basis=0, Limit=4GB, Read/Write
-    ; Access Byte: 0x92 (10010010b)
-_cA_gdt_data:
-    dw 0xFFFF              ; Limit low
-    dw 0x0000              ; Base low
-    db 0x00                ; Base mid
-    db 10010010b           ; Access (0x92)
-    db 11001111b           ; Flags + Limit high (0xCF)
-    db 0x00                ; Base high
+_cA_datasel equ $-PTR16(_cA_gdt)       ; This is 16, the third descriptor in gdt
+_cA_data_gdt:                   ; Data descriptor 4 GB flat segment at 0000:0000h
+dw      0x0FFFF                 ; Limit 4 GB
+dw      0x0000                  ; Base 0000:0000h
+db      0x00                    ; Descriptor format same as above
+db      0x092
+db      0x0CF
+db      0x00
+
+_cA_videosel equ $-PTR16(_cA_gdt)      ; This is 24, the fourth descriptor in gdt
+dw      3999                    ; Limit 80*25*2-1
+dw      0x8000                  ; Base 0x000B8000
+db      0x0B
+db      0x92                    ; present, ring 0, data, expand-up, writable
+db      0x00                    ; Byte granularity 16 bit
+db      0x00
 _cA_gdt_end:
 
-_cA_gdt_descriptor:
-    dw PTR16(_cA_gdt_end) - PTR16(_cA_gdt) - 1   ; Limit (Größe der GDT - 1)
-    dd 0                   ; Basisadresse der GDT (wird oben zur Laufzeit gefüllt)
-    
 hdr_len:            dw 0
 rec_len:            dw 0
 
