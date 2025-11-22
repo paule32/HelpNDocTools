@@ -20,16 +20,36 @@ dos_start:
     dw 0                                ; e_minalloc
     dw 0x1000                           ; e_maxalloc (so viel wie möglich)
     dw 0                                ; e_ss
-    dw 0xFFFE                           ; e_sp (kleiner Stack)
-    dw 0                                ; e_csum
+    dw 0xFEFE                           ; e_sp (kleiner Stack)
+    dw 1105                             ; e_csum
     dw 0                                ; e_ip  (Code startet bei 0 im Image)
     dw 0                                ; e_cs
     dw mz_reloc - $$                    ; e_lfarlc (Reloc-Tabelle: leer)
-    ;dw 0x0040                          ; e_lfarlc  <-- fest im Header
-    dw 0                                ; e_ovno
-    times     4  dw 0                   ; e_res[4]
+    dw 700                              ; e_ovno
+    ; ----
+    dw 1932
+    dw 1949
+    dw 1956
+    dw 1989
+    ;times    4  dw 0                   ; e_res[4]
+    ; ----
+    
     dw    7274, 8279                    ; e_oemid, e_oeminfo
-    times    10  dw 0                   ; e_res2[10]
+    
+    ; ----
+    dw 49152
+    dw 31710
+    dw 580
+    dw 820
+    dw 817
+    dw 834
+    dw 49369
+    dw 2234
+    dw 326
+    dw 0xFEFE
+    ;times    10  dw 0                  ; e_res2[10]
+    ; ----
+    
     dd pe_header                        ; e_lfanew -> Offset des PE-Headers
     
 end_dos_header equ ($ - dos_start)

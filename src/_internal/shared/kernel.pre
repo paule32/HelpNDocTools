@@ -27,130 +27,18 @@ code16_start:
  call dos_init_console
 %line 1282+1 macros.inc
  call dos_screen_clear
-%line 1300+1 macros.inc
- mov dl, 1
- mov dh, 2
- call dos_set_cursor
-%line 1351+1 macros.inc
+%line 29+1 code16.asm
+ call PROC_CHECK
+ call CHECK_MODE
+
+ cli
 
 
-[section .data]
- ..@8.msg: db "123", 0
-[section .text]
- xor bx, bx
- mov bl, 0x0F
- mov si, (..@8.msg-code16_start+0x100)
- call PutStrColor
-%line 1929+1 macros.inc
-[section .text]
-%line 1826+1 macros.inc
- push si
-%line 1868+1 macros.inc
- lea si, [(_cA_cmd_buf-code16_start+0x100)]
-%line 1936+1 macros.inc
- mov bl, 1
-%line 1941+1 macros.inc
- call getCommandLine_Arg
- mov di, si
-%line 1831+1 macros.inc
- pop si
-%line 1929+1 macros.inc
-[section .text]
-%line 1826+1 macros.inc
- push si
-%line 1868+1 macros.inc
- lea si, [(_cA_cmd_buf-code16_start+0x100)]
-%line 1936+1 macros.inc
- mov bl, 2
-%line 1941+1 macros.inc
- call getCommandLine_Arg
- mov di, si
-%line 1831+1 macros.inc
- pop si
-%line 1919+1 macros.inc
-[section .text]
- call string_compare
- cmp al, 0
- jne ..@24.jum4
- call is_version_2
- ..@24.jum4:
-%line 1993+1 macros.inc
-[section .data]
- ..@26.part3: db 'abcd', 0
-[section .text]
-%line 1868+1 macros.inc
- lea si, [(..@26.part3-code16_start+0x100)]
-%line 1929+1 macros.inc
-[section .text]
-%line 1826+1 macros.inc
- push si
-%line 1868+1 macros.inc
- lea si, [(_cA_cmd_buf-code16_start+0x100)]
-%line 1936+1 macros.inc
- mov bl, 1
-%line 1941+1 macros.inc
- call getCommandLine_Arg
- mov di, si
-%line 1831+1 macros.inc
- pop si
-%line 1919+1 macros.inc
-[section .text]
- call string_compare
- cmp al, 0
- jne ..@36.jum4
- call is_version_3
- ..@36.jum4:
-%line 1993+1 macros.inc
-[section .data]
- ..@38.part3: db '1234', 0
-[section .text]
-%line 1868+1 macros.inc
- lea si, [(..@38.part3-code16_start+0x100)]
-%line 1929+1 macros.inc
-[section .text]
-%line 1826+1 macros.inc
- push si
-%line 1868+1 macros.inc
- lea si, [(_cA_cmd_buf-code16_start+0x100)]
-%line 1936+1 macros.inc
- mov bl, 2
-%line 1941+1 macros.inc
- call getCommandLine_Arg
- mov di, si
-%line 1831+1 macros.inc
- pop si
-%line 1919+1 macros.inc
-[section .text]
- call string_compare
- cmp al, 0
- jne ..@48.jum4
- call is_version_4
- ..@48.jum4:
-%line 1952+1 macros.inc
-[section .data]
- ..@50.part1: db "abcd", 0
-[section .text]
-%line 1868+1 macros.inc
- lea si, [(..@50.part1-code16_start+0x100)]
-%line 1963+1 macros.inc
-[section .data]
- ..@50.part2: db "abcd", 0
-[section .text]
-%line 1868+1 macros.inc
- lea di, [(..@50.part2-code16_start+0x100)]
-%line 1919+1 macros.inc
-[section .text]
- call string_compare
- cmp al, 0
- jne ..@57.jum4
- call is_version_5
- ..@57.jum4:
-%line 1440+1 macros.inc
- mov ax, 0x4C00 | 0
-%line 134+1 macros.inc
- int 0x21
-%line 43+1 code16.asm
- .next1:
+ xor ax, ax
+ mov ds, ax
+ mov es, ax
+ mov ss, ax
+ mov sp, 0x7C00
 
 
 
@@ -159,55 +47,121 @@ code16_start:
 
 
 
- .next2:
+ mov ax, cs
+ movzx eax, ax
+ shl eax, 4
+
+ add eax, (_cA_gdt-code16_start+0x100)
+ mov [(_cA_gdt_descriptor-code16_start+0x100)+2], eax
+
+ lgdt [(_cA_gdt_descriptor-code16_start+0x100)]
 
 
 
 
+ mov eax, cr0
+ or eax, 1
+ mov cr0, eax
+
+
+ jmp 0x08:protected_mode_entry
 
 
 
 
+[BITS 32]
+
+protected_mode_entry:
+
+ mov ax, 0x10
+ mov ds, ax
+ mov es, ax
+ mov fs, ax
+ mov gs, ax
+ mov ss, ax
+
+
+ mov esp, 0x9FC00
+
+
+ mov edi, 0xB8000
+ mov eax, 0x1F201F20
 
 
 
+ mov byte [edi], 'P'
+ mov byte [edi+1], 0x1F
+ mov byte [edi+2], 'M'
+ mov byte [edi+3], 0x1F
+ mov byte [edi+4], '3'
+ mov byte [edi+5], 0x1F
+ mov byte [edi+6], '2'
+ mov byte [edi+7], 0x1F
 
+ .hang:
+ jmp .hang
 
-
-
-
-
-
-
-
-
-
-
- .next3:
-
-
- .is_okk:
-%line 1300+1 macros.inc
- mov dl, 40
- mov dh, 5
- call dos_set_cursor
-%line 1351+1 macros.inc
-
-
-[section .data]
- ..@62.msg: db 'mufti', 0
-[section .text]
- xor bx, bx
- mov bl, 0x1C
- mov si, (..@62.msg-code16_start+0x100)
- call PutStrColor
-%line 1440+1 macros.inc
- mov ax, 0x4C00 | 0
-%line 134+1 macros.inc
- int 0x21
-%line 83+1 code16.asm
  ret
 
+
+
+
+PROC_CHECK:
+ pushf
+ xor ah, ah
+ push ax
+ popf
+ pushf
+ pop ax
+ and ah, 0xF0
+ cmp ah, 0xF0
+ je no386
+ mov ah, 70h
+ push ax
+ popf
+ pushf
+ pop ax
+ and ah, 70h
+ jz no386
+ popf
+ ret
+
+ no386:
+%line 1388+1 macros.inc
+[section .text]
+ mov bl, 3
+ mov ax, (_cA_no386e-code16_start+0x100)
+ mov si, ax
+ call PutStrColor
+%line 1440+1 macros.inc
+ mov ax, 0x4C00 | 1
+%line 134+1 macros.inc
+ int 0x21
+%line 130+1 code16.asm
+ ret
+
+
+
+
+CHECK_MODE
+ mov eax, cr0
+ and al, 1
+ jnz not_real_mode
+ ret
+
+ not_real_mode:
+%line 1388+1 macros.inc
+[section .text]
+ mov bl, 3
+ mov ax, (_cA_norealmode-code16_start+0x100)
+ mov si, ax
+ call PutStrColor
+%line 1440+1 macros.inc
+ mov ax, 0x4C00 | 1
+%line 134+1 macros.inc
+ int 0x21
+%line 144+1 code16.asm
+ ret
 
 is_version_1:
 
@@ -219,13 +173,13 @@ is_version_1:
 
 
 [section .data]
- ..@68.msg: db 'argv1 == argv1', 0
+ ..@16.msg: db 'argv1 == argv1', 0
 [section .text]
  xor bx, bx
  mov bl, 0x0F
- mov si, (..@68.msg-code16_start+0x100)
+ mov si, (..@16.msg-code16_start+0x100)
  call PutStrColor
-%line 90+1 code16.asm
+%line 150+1 code16.asm
  ret
 is_version_2:
 
@@ -237,13 +191,13 @@ is_version_2:
 
 
 [section .data]
- ..@72.msg: db 'argv1 == argv2', 0
+ ..@20.msg: db 'argv1 == argv2', 0
 [section .text]
  xor bx, bx
  mov bl, 0x0E
- mov si, (..@72.msg-code16_start+0x100)
+ mov si, (..@20.msg-code16_start+0x100)
  call PutStrColor
-%line 95+1 code16.asm
+%line 155+1 code16.asm
  ret
 is_version_3:
 
@@ -255,13 +209,13 @@ is_version_3:
 
 
 [section .data]
- ..@76.msg: db 'argv1 == "abcd"', 0
+ ..@24.msg: db 'argv1 == "abcd"', 0
 [section .text]
  xor bx, bx
  mov bl, 0x0F
- mov si, (..@76.msg-code16_start+0x100)
+ mov si, (..@24.msg-code16_start+0x100)
  call PutStrColor
-%line 100+1 code16.asm
+%line 160+1 code16.asm
  ret
 is_version_4:
 
@@ -273,13 +227,13 @@ is_version_4:
 
 
 [section .data]
- ..@80.msg: db 'argv2 == 1234', 0
+ ..@28.msg: db 'argv2 == 1234', 0
 [section .text]
  xor bx, bx
  mov bl, 0xF
- mov si, (..@80.msg-code16_start+0x100)
+ mov si, (..@28.msg-code16_start+0x100)
  call PutStrColor
-%line 105+1 code16.asm
+%line 165+1 code16.asm
  ret
 is_version_5:
 
@@ -291,1397 +245,13 @@ is_version_5:
 
 
 [section .data]
- ..@84.msg: db '"abcd" == "abcd"', 0
+ ..@32.msg: db '"abcd" == "abcd"', 0
 [section .text]
  xor bx, bx
  mov bl, 0xF
- mov si, (..@84.msg-code16_start+0x100)
+ mov si, (..@32.msg-code16_start+0x100)
  call PutStrColor
-%line 110+1 code16.asm
- ret
-
-
-
-
-
-
-
-
-
-
-
-
-jmp usage
- _done:
-%line 1353+1 macros.inc
-[section .data]
- ..@87.msg: db 'ddd', 0
-[section .text]
- xor bx, bx
- mov bl, 0x1C
- mov si, (..@87.msg-code16_start+0x100)
- call PutStrColor
-%line 126+1 code16.asm
- .token_done:
-%line 1440+1 macros.inc
- mov ax, 0x4C00 | 0
-%line 134+1 macros.inc
- int 0x21
-%line 130+1 code16.asm
- mov di, (fldname-code16_start+0x100)
- call copy_token_max_10
- jc usage
- mov byte [di], 0
-
-
- call next_token
- jc usage
- mov dx, (tokbuf-code16_start+0x100)
- call parse_u16
- jc badargs
- mov [(g_flen-code16_start+0x100)], ax
-
-
- mov al, [(g_ftype-code16_start+0x100)]
- call map_fieldtype
- jc badargs
- cmp bh, 1
- jne .ok_ftyp
- cmp word [(g_type-code16_start+0x100)], 4
- jne not_supported
- .ok_ftyp:
- cmp bl, 0
- je .keep_len
- mov byte [(g_flen-code16_start+0x100) ], bl
- mov byte [(g_flen-code16_start+0x100) + 1], 0
- .keep_len:
- mov ax, [(g_flen-code16_start+0x100)]
- mov dl, [(g_ftype-code16_start+0x100)]
- call validate_length
- jc badargs
-
-
- mov ah, 2Ah
- int 21h
- mov [(g_year-code16_start+0x100)], cx
- mov [(g_month-code16_start+0x100)], dh
- mov [(g_day-code16_start+0x100)], dl
-
-
-do_dispatch:
- cmp byte [(g_cmd-code16_start+0x100)], 1
- je do_create
- jmp do_append
-
-
-print_hex16:
- push ax
- push bx
- push cx
- push dx
- mov bx, ax
- mov cx, 4
- .next_nibble:
- rol bx, 4
- mov dl, bl
- and dl, 0Fh
- add dl, '0'
- cmp dl, '9'
- jbe .out
- add dl, 7
- .out:
- mov ah, 02h
- int 21h
- loop .next_nibble
- mov dl, 'h'
- mov ah, 02h
- int 21h
- mov dl, 13
- int 21h
- mov dl, 10
- int 21h
- pop dx
- pop cx
- pop bx
- pop ax
- ret
-
-do_create:
-
- mov dx, (_cA_DBFNAME-code16_start+0x100)
- mov ah, 41h
- int 21h
-
-
- mov dx, (_cA_DBFNAME-code16_start+0x100)
- mov cx, 0
- mov ah, 3Ch
- int 21h
- jc io_error
- mov [(hFile-code16_start+0x100)], ax
-
-
- call build_header_for_new
- call write_full_header
-
-
- mov bx, [(hFile-code16_start+0x100)]
- mov ah, 3Eh
- int 21h
-
-
-
-
-
-
- call print_$
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 238+1 code16.asm
- jmp exit0
-
-
-do_append:
-
- mov dx, (_cA_DBFNAME-code16_start+0x100)
- mov ax, 3D02h
- int 21h
- jc open_fail
- mov [(hFile-code16_start+0x100)], ax
-
-
- mov bx, [(hFile-code16_start+0x100)]
- mov dx, (header-code16_start+0x100)
- mov cx, 32
- mov ah, 3Fh
- int 21h
- jc io_error
- cmp ax, 32
- jne io_error
-
-
- mov al, [(header-code16_start+0x100)+0]
- cmp word [(g_type-code16_start+0x100)], 3
- jne .chk4
- cmp al, 03h
- jne ver_mismatch
- jmp .t_ok
- .chk4:
- cmp al, 04h
- jne ver_mismatch
- .t_ok:
-
-
- mov ax, [(header-code16_start+0x100)+4]
- mov dx, [(header-code16_start+0x100)+6]
- or ax, ax
- or dx, dx
- jnz append_with_records_not_supported
-
-
- mov ax, [(header-code16_start+0x100)+8]
- mov [(hdr_len-code16_start+0x100)], ax
- mov ax, [(header-code16_start+0x100)+10]
- mov [(rec_len-code16_start+0x100)], ax
-
-
- mov ax, [(hdr_len-code16_start+0x100)]
- sub ax, 32
- jbe bad_header
- mov bx, [(hFile-code16_start+0x100)]
- mov dx, (fdescbuf-code16_start+0x100)
- mov cx, ax
- mov ah, 3Fh
- int 21h
- jc io_error
- mov [(fdbuf_size-code16_start+0x100)], ax
-
-
- call field_exists
- jc field_already
-
-
- mov si, (fdescbuf-code16_start+0x100)
- mov cx, [(fdbuf_size-code16_start+0x100)]
- .find_term:
- cmp cx, 0
- je bad_header
- cmp byte [si], 0Dh
- je .term_found
- add si, 32
- sub cx, 32
- jmp .find_term
- .term_found:
-
- call build_one_descriptor_to_temp
-
- push si
- mov di, si
- mov si, (tempdesc-code16_start+0x100)
- mov cx, 32
- rep movsb
- pop si
-
- mov byte [si], 0Dh
-
-
- mov ax, [(hdr_len-code16_start+0x100)]
- add ax, 32
- mov [(hdr_len-code16_start+0x100)], ax
- mov [(header-code16_start+0x100)+8], ax
- mov ax, [(rec_len-code16_start+0x100)]
- add ax, [(g_flen-code16_start+0x100)]
- mov [(rec_len-code16_start+0x100)], ax
- mov [(header-code16_start+0x100)+10], ax
-
-
- mov bx, [(hFile-code16_start+0x100)]
- xor dx, dx
- xor cx, cx
- mov ax, 4200h
- int 21h
-
-
- mov bx, [(hFile-code16_start+0x100)]
- mov dx, (header-code16_start+0x100)
- mov cx, 32
- mov ah, 40h
- int 21h
- jc io_error
-
-
- mov ax, [(hdr_len-code16_start+0x100)]
- sub ax, 32
- mov cx, ax
- mov dx, (fdescbuf-code16_start+0x100)
- mov bx, [hFile]
- mov ah, 40h
- int 21h
- jc io_error
-
-
- mov bx, [(hFile-code16_start+0x100)]
- mov ah, 3Eh
- int 21h
-
- mov dx, (msg_ok_append-code16_start+0x100)
- call print_$
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 367+1 code16.asm
- jmp exit0
-
-
-
-
-build_header_for_new:
- push ax
- push bx
- push cx
- push dx
-
-
- mov di, (header-code16_start+0x100)
- mov cx, 16
- xor ax, ax
- rep stosw
- mov di, (fdescbuf-code16_start+0x100)
- mov cx, 2048
- rep stosw
-
-
- mov ax, [(g_type-code16_start+0x100)]
- cmp ax, 3
- jne .v4
- mov byte [(header-code16_start+0x100)+0], 03h
- jmp .v_ok
- .v4:
- mov byte [(header-code16_start+0x100)+0], 04h
- .v_ok:
-
- mov ax, [(g_year-code16_start+0x100)]
- mov bx, 100
- xor dx, dx
- div bx
- mov al, dl
- mov [(header-code16_start+0x100)+1], al
- mov al, [(g_month-code16_start+0x100)]
- mov [(header-code16_start+0x100)+2], al
- mov al, [(g_day-code16_start+0x100)]
- mov [(header-code16_start+0x100)+3], al
-
-
- mov dword [(header-code16_start+0x100)+4], 0
-
-
- mov ax, [(g_flen-code16_start+0x100)]
- add ax, 1
- mov [(header-code16_start+0x100)+10], ax
- mov [(rec_len-code16_start+0x100)], ax
-
-
- mov ax, 32+32+1
- mov [(header-code16_start+0x100)+8], ax
- mov [(hdr_len-code16_start+0x100)], ax
-
-
-
-
- mov di, (fdescbuf-code16_start+0x100)
- call build_one_descriptor_at_di
- mov byte [(fdescbuf-code16_start+0x100)+32], 0Dh
-
- pop dx
- pop cx
- pop bx
- pop ax
- ret
-
-
-write_full_header:
-
- mov bx, [(hFile-code16_start+0x100)]
- xor dx, dx
- xor cx, cx
- mov ax, 4200h
- int 21h
-
- mov bx, [(hFile-code16_start+0x100)]
- mov dx, (header-code16_start+0x100)
- mov cx, 32
- mov ah, 40h
- int 21h
- jc io_error
-
- mov ax, [(hdr_len-code16_start+0x100)]
- sub ax, 32
- mov cx, ax
- mov dx, (fdescbuf-code16_start+0x100)
- mov bx, [(hFile-code16_start+0x100)]
- mov ah, 40h
- int 21h
- jc io_error
- ret
-
-
-build_one_descriptor_at_di:
- push si
- push ax
- push cx
-
-
- mov si, (fldname-code16_start+0x100)
- mov cx, 11
- .ncopy:
- lodsb
- cmp al, 0
- je .padz
- stosb
- loop .ncopy
- jmp .name_done
- .padz:
- stosb
- dec cx
- jz .name_done
- mov al, 0
- rep stosb
- .name_done:
-
-
- mov al, [(g_ftype-code16_start+0x100)]
- call map_fieldtype_char_only
- stosb
-
-
- xor ax, ax
- mov cx, 4
- rep stosb
-
-
- mov ax, [(g_flen-code16_start+0x100)]
- mov al, al
- stosb
-
-
- mov al, 0
- stosb
-
-
- stosb
- stosb
-
-
- mov al, 0
- stosb
-
-
- mov cx, 11
- mov al, 0
- rep stosb
-
- pop cx
- pop ax
- pop si
- ret
-
-build_one_descriptor_to_temp:
- mov di, (tempdesc-code16_start+0x100)
- call build_one_descriptor_at_di
- ret
-
-
-field_exists:
- push si
- push di
- push cx
- push ax
- mov si, (fdescbuf-code16_start+0x100)
- mov cx, [(fdbuf_size-code16_start+0x100)]
- .floop:
- cmp cx, 0
- je .no
- cmp byte [si], 0Dh
- je .no
-
- push si
- mov di, (fldname-code16_start+0x100)
- mov bx, 11
- mov dx, 1
- .cmpn:
- mov al, [si]
- mov ah, [di]
- cmp ah, 0
- je .endcmp
- cmp al, ah
- jne .not
- inc si
- inc di
- dec bx
- jnz .cmpn
- .endcmp:
-
- jmp .match
- .not:
- mov dx, 0
- .match:
- pop si
- cmp dx, 1
- je .yes
- add si, 32
- sub cx, 32
- jmp .floop
- .yes:
- stc
- pop ax
- pop cx
- pop di
- pop si
- ret
- .no:
- clc
- pop ax
- pop cx
- pop di
- pop si
- ret
-
-
-
-
-next_token:
- push ax
- push di
-
- .nt_skip:
- cmp bl, 0
- je .none
- mov al, [si]
- inc si
- dec bl
- cmp al, 13
- je .none
- cmp al, ' '
- je .nt_skip
- cmp al, 9
- je .nt_skip
- dec si
- inc bl
-
- mov di, (_cA_cmd_buf-code16_start+0x100)
- .nt_copy:
- cmp bl, 0
- je .done
- mov al, [si]
- cmp al, 13
- je .done
- cmp al, ' '
- je .done
- cmp al, 9
- je .done
- mov [di], al
- inc di
- inc si
- dec bl
- jmp .nt_copy
- .done:
- mov byte [di], 0
- mov dx, (_cA_cmd_buf-code16_start+0x100)
- clc
- pop di
- pop ax
- ret
- .none:
- stc
- pop di
- pop ax
- ret
-
-
-copy_token_max_10:
- push ax
- push cx
-
- .ct10_skip:
- cmp bl, 0
- je .none
- mov al, [si]
- inc si
- dec bl
- cmp al, 13
- je .none
- cmp al, ' '
- je .ct10_skip
- cmp al, 9
- je .ct10_skip
- dec si
- inc bl
-
- mov cx, 10
- .ct10_copy:
- cmp bl, 0
- je .end
- mov al, [si]
- cmp al, 13
- je .end
- cmp al, ' '
- je .end
- cmp al, 9
- je .end
- cmp cx, 0
- je .skip_rest
- mov [di], al
- inc di
- inc si
- dec bl
- dec cx
- jmp .ct10_copy
- .skip_rest:
- cmp bl, 0
- je .end
- mov al, [si]
- inc si
- dec bl
- cmp al, 13
- je .end
- cmp al, ' '
- jne .skip_rest
- .end:
- mov byte [di], 0
- clc
- pop cx
- pop ax
- ret
- .none:
- stc
- pop cx
- pop ax
- ret
-
-
-strcmp:
- push si
- push di
- .sc_loop:
- lodsb
- mov ah, [di]
- inc di
- call to_upper_al
- call to_upper_ah
- cmp al, ah
- jne .ne
- test al, al
- jnz .sc_loop
- xor ax, ax
- or ax, ax
- pop di
- pop si
- ret
- .ne:
- mov ax, 1
- or ax, ax
- pop di
- pop si
- ret
-
-
-parse_u16:
- push bx
- push si
- mov si, dx
- xor ax, ax
- .pu_loop:
- lodsb
- test al, al
- jz .ok
- cmp al, '0'
- jb .err
- cmp al, '9'
- ja .err
- sub al, '0'
- mov bx, ax
- shl ax, 1
- mov dx, ax
- shl ax, 2
- add ax, dx
- add ax, bx
- jc .err
- jmp .pu_loop
- .ok:
- clc
- pop si
- pop bx
- ret
- .err:
- stc
- pop si
- pop bx
- ret
-
-
-upper_inplace_dx:
- push ax
- push dx
- mov si, dx
- .upl:
- lodsb
- test al, al
- jz .done
- call to_upper
- mov [si-1], al
- jmp .upl
- .done:
- pop dx
- pop ax
- ret
-
-
-to_upper:
- cmp al, 'a'
- jb .ret
- cmp al, 'z'
- ja .ret
- sub al, 32
- .ret:
- ret
-to_upper_al:
- call to_upper
- ret
-to_upper_ah:
- xchg al, ah
- call to_upper
- xchg al, ah
- ret
-
-
-
-map_fieldtype:
- push ax
- call to_upper_al
- cmp al, 'C'
- je .C
- cmp al, 'I'
- je .I
- cmp al, 'F'
- je .F
- cmp al, 'B'
- je .B
- cmp al, 'D'
- je .D
- cmp al, 'T'
- je .T
- stc
- jmp .out
- .C: mov al, 'C'
- xor bl, bl
- xor bh, bh
- jmp .ok
- .I: mov al, 'N'
- xor bl, bl
- xor bh, bh
- jmp .ok
- .F: mov al, 'F'
- xor bl, bl
- xor bh, bh
- jmp .ok
- .B: mov al, 'L'
- mov bl, 1
- xor bh, bh
- jmp .ok
- .D: mov al, 'D'
- mov bl, 8
- xor bh, bh
- jmp .ok
- .T: mov al, 'T'
- mov bl, 8
- mov bh, 1
- jmp .ok
- .ok:
- mov [(g_ftype_mapped-code16_start+0x100)], al
- clc
- .out:
- pop ax
- ret
-
-map_fieldtype_char_only:
- push bx
- call map_fieldtype
- mov al, [(g_ftype_mapped-code16_start+0x100)]
- pop bx
- ret
-
-
-validate_length:
- push ax
- push dx
- call to_upper_dl
- cmp dl, 'B'
- jne .nB
- cmp ax, 1
- jne .bad
- jmp .ok
- .nB:
- cmp dl, 'D'
- jne .nD
- cmp ax, 8
- jne .bad
- jmp .ok
- .nD:
- cmp dl, 'T'
- jne .nT
- cmp ax, 8
- jne .bad
- jmp .ok
- .nT:
- cmp dl, 'C'
- jne .nC
- cmp ax, 1
- jb .bad
- cmp ax, 254
- ja .bad
- jmp .ok
- .nC:
- cmp dl, 'I'
- jne .nI
- cmp ax, 1
- jb .bad
- cmp ax, 20
- ja .bad
- jmp .ok
- .nI:
- cmp dl, 'F'
- jne .bad
- cmp ax, 1
- jb .bad
- cmp ax, 20
- ja .bad
- jmp .ok
- .ok:
- clc
- pop dx
- pop ax
- ret
- .bad:
- stc
- pop dx
- pop ax
- ret
-
-to_upper_dl:
- xchg al, dl
- call to_upper
- xchg al, dl
- ret
-
-
-print_$:
- mov ah, 09h
- int 21h
- ret
-
-field_already:
-
- mov bx, [hFile]
- mov ah, 3Eh
- int 21h
- mov dx, (msg_fieldexists-code16_start+0x100)
- call print_$
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 924+1 code16.asm
- jmp exit0
-
-usage:
-%line 1388+1 macros.inc
-[section .text]
- mov bl, 0x02
- mov ax, (_cA_msg_usage-code16_start+0x100)
- mov si, ax
- call PutStrColor
-%line 928+1 code16.asm
- jmp exit1
-
-badargs:
-%line 1388+1 macros.inc
-[section .text]
- mov bl, 0x02
- mov ax, (_cA_msg_badargs-code16_start+0x100)
- mov si, ax
- call PutStrColor
-%line 933+1 code16.asm
- jmp exit1
-
-open_fail:
-%line 1388+1 macros.inc
-[section .text]
- mov bl, 0x02
- mov ax, (_cA_msg_openfail-code16_start+0x100)
- mov si, ax
- call PutStrColor
-%line 937+1 code16.asm
- jmp exit1
-
-ver_mismatch:
-%line 1388+1 macros.inc
-[section .text]
- mov bl, 0x02
- mov ax, (_cA_msg_ver_mismatch-code16_start+0x100)
- mov si, ax
- call PutStrColor
-%line 941+1 code16.asm
- jmp exit1
-
-append_with_records_not_supported:
-%line 1388+1 macros.inc
-[section .text]
- mov bl, 0x02
- mov ax, (_cA_msg_append_recs-code16_start+0x100)
- mov si, ax
- call PutStrColor
-%line 945+1 code16.asm
- jmp exit1
-
-not_supported:
-%line 1388+1 macros.inc
-[section .text]
- mov bl, 0x02
- mov ax, (_cA_msg_not_supported-code16_start+0x100)
- mov si, ax
- call PutStrColor
-%line 949+1 code16.asm
- jmp exit1
-
-io_error:
-%line 1388+1 macros.inc
-[section .text]
- mov bl, 0x02
- mov ax, (_cA_msg_ioerr-code16_start+0x100)
- mov si, ax
- call PutStrColor
-%line 953+1 code16.asm
- jmp exit1
-
-bad_header:
-%line 1388+1 macros.inc
-[section .text]
- mov bl, 0x02
- mov ax, (_cA_msg_badheader-code16_start+0x100)
- mov si, ax
- call PutStrColor
-%line 957+1 code16.asm
- jmp exit1
-
-exit0:
-%line 1440+1 macros.inc
- mov ax, 0x4C00 | 0
-%line 134+1 macros.inc
- int 0x21
-%line 961+1 code16.asm
-exit1:
-%line 1440+1 macros.inc
- mov ax, 0x4C00 | 1
-%line 134+1 macros.inc
- int 0x21
-%line 970+1 code16.asm
- mov si, 80h
- lodsb
- mov bl, al
- jz .usage
- mov di, (filename-code16_start+0x100)
- call skip_spaces_2
- jc .usage
- call copy_token_to_di_2
- mov byte [di], 0
-
-
- mov dx, (filename-code16_start+0x100)
- mov ax, 3D00h
- int 21h
- jc .open_fail
- mov [(hFile-code16_start+0x100)], ax
-
-
- mov bx, [(hFile-code16_start+0x100)]
- mov dx, (header-code16_start+0x100)
- mov cx, 32
- mov ah, 3Fh
- int 21h
- jc .read_fail
- cmp ax, 32
- jne .read_fail
-
-
-
- mov al, [(header-code16_start+0x100) + 0]
- mov [(verByte-code16_start+0x100)], al
-
-
- mov al, [(header-code16_start+0x100) + 1]
- mov [(yy-code16_start+0x100)], al
- mov al, [(header-code16_start+0x100) + 2]
- mov [(mm-code16_start+0x100)], al
- mov al, [(header-code16_start+0x100) + 3]
- mov [(dd-code16_start+0x100)], al
-
-
- mov ax, [(header-code16_start+0x100) + 4]
- mov dx, [(header-code16_start+0x100) + 6]
- mov [(rec32-code16_start+0x100) + 0], ax
- mov [(rec32-code16_start+0x100) + 2], dx
-
-
- mov ax, [(header-code16_start+0x100) + 8]
- mov [(hdr_len-code16_start+0x100)], ax
- mov ax, [(header-code16_start+0x100) + 10]
- mov [(rec_len-code16_start+0x100)], ax
-
-
- mov al, [(header-code16_start+0x100)+28]
- mov [(mdx-code16_start+0x100)], al
- mov al, [(header-code16_start+0x100)+29]
- mov [(lang-code16_start+0x100)], al
-
-
- mov dx, (msgTitle-code16_start+0x100)
- call print_$
-
- mov dx, (msgVer-code16_start+0x100)
- call print_$
- mov al, [(verByte-code16_start+0x100)]
- call print_hex8
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1038+1 code16.asm
- mov dx, (msgDate-code16_start+0x100)
- call print_$
- mov al, [(yy-code16_start+0x100)]
- call print_dec8
- mov al, '-'
- call putc
- mov al, [(mm-code16_start+0x100)]
- call print_dec8
- mov al, '-'
- call putc
- mov al, [(dd-code16_start+0x100)]
- call print_dec8
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1052+1 code16.asm
- mov dx, (msgRecs-code16_start+0x100)
- call print_$
-
- mov ax, [(rec32-code16_start+0x100) + 0]
- mov dx, [(rec32-code16_start+0x100) + 2]
- call print_hex32
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1060+1 code16.asm
- mov dx, (msgHdr-code16_start+0x100)
- call print_$
- mov ax, [(hdr_len-code16_start+0x100)]
- call print_dec16
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1066+1 code16.asm
- mov dx, (msgRec-code16_start+0x100)
- call print_$
- mov ax, [(rec_len-code16_start+0x100)]
- call print_dec16
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1072+1 code16.asm
- mov dx, (msgMDX-code16_start+0x100)
- call print_$
- mov al, [(mdx-code16_start+0x100)]
- call print_hex8
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1078+1 code16.asm
- mov dx, (msgLang-code16_start+0x100)
- call print_$
- mov al, [(lang-code16_start+0x100)]
- call print_hex8
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1454+0 macros.inc
- call DOSrncrlf
-%line 1087+1 code16.asm
- mov ax, [(hdr_len-code16_start+0x100)]
- sub ax, 32
- jbe .no_fields
- mov bx, [(hFile-code16_start+0x100)]
- mov dx, (fdbuf-code16_start+0x100)
- mov cx, ax
- mov ah, 3Fh
- int 21h
- jc .read_fail
-
-
- mov dx, (msgFields-code16_start+0x100)
- call print_$
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1103+1 code16.asm
- mov si, (fdbuf-code16_start+0x100)
- mov cx, ax
- xor bp, bp
-
- .next_field:
- cmp cx, 0
- jbe .done_fields
-
- cmp byte [si], 0Dh
- je .done_fields
-
-
- inc bp
- mov dx, (msgFieldN-code16_start+0x100)
- call print_$
- mov ax, bp
- call print_dec16
- mov dx, (msgColonSp-code16_start+0x100)
- call print_$
-
-
-
- push si
- mov di, (_cA_namebuf-code16_start+0x100)
- mov bx, 11
- .copy_name:
- mov al, [si]
- cmp al, 0
- je .pad_zero
-
- mov [di], al
- inc di
- inc si
- dec bx
- jnz .copy_name
- jmp short .name_done
- .pad_zero:
- mov [di], al
- .name_done:
- mov byte [di], 0
-
-%line 1463+1 macros.inc
- lea dx, [(_cA_namebuf-code16_start+0x100)]
- call DOS_ConsoleWrite
-%line 1145+1 code16.asm
- mov dx, (msgCommaSp-code16_start+0x100)
- call print_$
-
-
- pop si
- mov al, [si+11]
- call putc
- mov dx, (msgCommaSp-code16_start+0x100)
- call print_$
-
-
- mov al, [si+16]
- mov ah, 0
- call print_dec16
- mov dx, (msgSlash-code16_start+0x100)
- call print_$
- mov al, [si+17]
- mov ah, 0
- call print_dec16
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1167+1 code16.asm
- add si, 32
- sub cx, 32
- jmp .next_field
-
- .done_fields:
- jmp .close_and_exit
-
- .no_fields:
- mov dx, (msgNoFields-code16_start+0x100)
- call print_$
-%line 1454+1 macros.inc
- call DOSrncrlf
-%line 1178+1 code16.asm
- jmp .close_and_exit
-
-
- .usage:
- mov dx, (msgUsage-code16_start+0x100)
- call print_$
- jmp .exit
-
- .open_fail:
- mov dx, (msgOpenErr-code16_start+0x100)
- call print_$
- jmp .exit
-
- .read_fail:
- mov dx, (msgReadErr-code16_start+0x100)
- call print_$
- jmp .close_and_exit
-
- .close_and_exit:
- mov bx, [(hFile-code16_start+0x100)]
- mov ah, 3Eh
- int 21h
- .exit:
- mov ax, 4C00h
- int 21h
-
-
-
-print_$_2:
- mov ah, 09h
- int 21h
- ret
-
-
-print_hex8:
- push ax
- push bx
- mov bl, al
- mov bh, al
- shr bl, 4
- and bh, 0Fh
- mov al, bl
- call hex_nibble
- mov al, bh
- call hex_nibble
- pop bx
- pop ax
- ret
-
-hex_nibble:
- and al, 0Fh
- cmp al, 9
- jbe .digit
- add al, 7
- .digit:
- add al, '0'
- call putc
- ret
-
-
-print_hex32:
- push ax
- push dx
- mov ax, dx
- call print_hex16
- pop dx
- pop ax
- call print_hex16
- ret
-
-
-print_dec8:
- push ax
- xor ah, ah
- call print_dec16
- pop ax
- ret
-
-
-
-print_dec16:
- push ax
- push bx
- push dx
- push cx
- mov cx, 0
- cmp ax, 0
- jne .pd_loop
- mov al, '0'
- call putc
- jmp .pd_done
- .pd_loop:
- xor dx, dx
- mov bx, 10
- div bx
- push dx
- inc cx
- cmp ax, 0
- jne .pd_loop
- .pd_out:
- pop dx
- add dl, '0'
- mov al, dl
- call putc
- loop .pd_out
- .pd_done:
- pop cx
- pop dx
- pop bx
- pop ax
- ret
-
-
-
-skip_spaces_2:
- push ax
- .ss_loop:
- cmp bl, 0
- jz .ss_empty
- mov al, [si]
- inc si
- dec bl
- cmp al, ' '
- jz .ss_loop
- cmp al, 9
- jz .ss_loop
-
- dec si
- inc bl
- clc
- pop ax
- ret
- .ss_empty:
- stc
- pop ax
- ret
-
-
-copy_token_to_di_2:
- push ax
- .ct_loop:
- cmp bl, 0
- jz .ct_done
- mov al, [si]
- cmp al, 13
- je .ct_done
- cmp al, ' '
- je .ct_done
- mov [di], al
- inc di
- inc si
- dec bl
- jmp .ct_loop
- .ct_done:
- pop ax
- ret
-
-
-MAXLEN equ 63
-
-
-print_err_ax_bx:
- push ax
- push cx
- push dx
- mov dx, (msgErr-code16_start+0x100)
- mov ah, 0x09
- int 0x21
- mov ax, bx
- call print_ax_hex
- mov dx, (crlf-code16_start+0x100)
- mov ah, 0x09
- int 0x21
- pop dx
- pop cx
- pop ax
- ret
-
-
-print_ax_hex:
- push ax
- push bx
- push cx
- push dx
- mov bx, ax
- mov cx, 4
- .hexloop:
- rol bx, 4
- mov al, bl
- and al, 0x0F
- add al, '0'
- cmp al, '9'
- jbe .put
- add al, 7
- .put:
- mov dl, al
- mov ah, 0x02
- int 0x21
- loop .hexloop
- pop dx
- pop cx
- pop bx
- pop ax
- ret
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-put_char_maybe:
- cmp cx, 63
- jae .skip_write
- stosb
- inc cx
- ret
-.skip_write:
-
- ret
-
-
-print_z0:
- .loop:
- lodsb
- test al, al
- jz .done
- mov dl, al
- mov ah, 02h
-%line 134+1 macros.inc
- int 0x21
-%line 1415+1 code16.asm
- jmp .loop
- .done:
+%line 170+1 code16.asm
  ret
 
 
@@ -3130,7 +1700,7 @@ string_copy:
  pop bx
  pop bx
  ret
-%line 1434+1 code16.asm
+%line 187+1 code16.asm
 code16_end:
 %line 16+1 kernel.asm
 [section .data]
@@ -3308,6 +1878,43 @@ mod_fsize_hi: dw 0
 
 mod_msg: db 'Hallo vom Loader!$'
 mod_msg_len: equ ($ - msg)
+
+_cA_no386e: db 'Sorry, at least a 80386 is needed!',0
+_cA_norealmode: db 'You are currently running in V86 mode!',0
+
+
+
+
+
+_cA_gdt:
+
+ dq 0x0000000000000000
+
+
+
+
+_cA_gdt_code:
+ dw 0xFFFF
+ dw 0x0000
+ db 0x00
+ db 10011010b
+ db 11001111b
+ db 0x00
+
+
+
+_cA_gdt_data:
+ dw 0xFFFF
+ dw 0x0000
+ db 0x00
+ db 10010010b
+ db 11001111b
+ db 0x00
+_cA_gdt_end:
+
+_cA_gdt_descriptor:
+ dw (_cA_gdt_end-code16_start+0x100) - (_cA_gdt-code16_start+0x100) - 1
+ dd 0
 
 hdr_len: dw 0
 rec_len: dw 0

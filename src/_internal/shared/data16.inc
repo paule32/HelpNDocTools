@@ -146,6 +146,43 @@ mod_fsize_hi:    dw 0
 mod_msg:         db 'Hallo vom Loader!$'
 mod_msg_len:     equ ($ - msg)
 
+_cA_no386e:      db 'Sorry, at least a 80386 is needed!',0
+_cA_norealmode:  db 'You are currently running in V86 mode!',0
+
+; --------------------------------
+; Global Descriptor Table (GDT)
+; --------------------------------
+
+_cA_gdt:
+    ; Null-Deskriptor (immer Pflicht)
+    dq 0x0000000000000000
+
+    ; Code-Segment-Deskriptor: Basis=0, Limit=4GB, Executable, Readable
+    ; Access Byte: 0x9A (10011010b)
+    ; Flags+Limit high: 0xCF (11001111b) => Granularity=4K, 32-bit, LimitHigh=0xF
+_cA_gdt_code:
+    dw 0xFFFF              ; Limit low
+    dw 0x0000              ; Base low
+    db 0x00                ; Base mid
+    db 10011010b           ; Access (0x9A)
+    db 11001111b           ; Flags + Limit high (0xCF)
+    db 0x00                ; Base high
+
+    ; Data-Segment-Deskriptor: Basis=0, Limit=4GB, Read/Write
+    ; Access Byte: 0x92 (10010010b)
+_cA_gdt_data:
+    dw 0xFFFF              ; Limit low
+    dw 0x0000              ; Base low
+    db 0x00                ; Base mid
+    db 10010010b           ; Access (0x92)
+    db 11001111b           ; Flags + Limit high (0xCF)
+    db 0x00                ; Base high
+_cA_gdt_end:
+
+_cA_gdt_descriptor:
+    dw PTR16(_cA_gdt_end) - PTR16(_cA_gdt) - 1   ; Limit (Größe der GDT - 1)
+    dd 0                   ; Basisadresse der GDT (wird oben zur Laufzeit gefüllt)
+    
 hdr_len:            dw 0
 rec_len:            dw 0
 

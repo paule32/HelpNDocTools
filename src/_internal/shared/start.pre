@@ -25,16 +25,36 @@ dos_start:
  dw 0
  dw 0x1000
  dw 0
- dw 0xFFFE
- dw 0
+ dw 0xFEFE
+ dw 1105
  dw 0
  dw 0
  dw mz_reloc - $$
+ dw 700
 
- dw 0
- times 4 dw 0
+ dw 1932
+ dw 1949
+ dw 1956
+ dw 1989
+
+
+
  dw 7274, 8279
- times 10 dw 0
+
+
+ dw 49152
+ dw 31710
+ dw 580
+ dw 820
+ dw 817
+ dw 834
+ dw 49369
+ dw 2234
+ dw 326
+ dw 0xFEFE
+
+
+
  dd pe_header
 
 end_dos_header equ ($ - dos_start)
@@ -46,9 +66,9 @@ mz_reloc:
 
 
 [sectalign 16]
-%line 43+0 doshdr.inc
+%line 63+0 doshdr.inc
 times (((16) - (($-$$) % (16))) % (16)) nop
-%line 44+1 doshdr.inc
+%line 64+1 doshdr.inc
 mz_image:
 
 
