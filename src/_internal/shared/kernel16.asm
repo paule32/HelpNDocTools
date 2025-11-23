@@ -5,6 +5,8 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ;---------------------------------------------------
+%include 'config.inc'
+; --------------------------------------------------
 bits 16
 org 0
 %include 'macros.inc'

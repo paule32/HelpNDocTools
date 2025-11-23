@@ -109,7 +109,7 @@
 ; -----------------------------------------------------------------------------
 %macro EMIT_ERROR 1
     %if __pre_stop == 0
-        EMIT_ERROR 1
+        EMIT_ERROR %1
         %assign __pre_stop 1
     %endif
 %endmacro
@@ -284,8 +284,10 @@
 %endmacro
 
 %macro CALL_IAT 1        ; CALL_IAT ExitProcess / RegisterClassExW / ...
-%if ((DOS_SHELL == 1) && (__pre_stop == 0))
-    EMIT_ERROR 'MAKE_IMPORT is only used for Windows 10+ 64-Bit development.'
+%if DOS_SHELL == 1
+    %if __pre_stop == 0
+        EMIT_ERROR 'MAKE_IMPORT is only used for Windows 10+ 64-Bit development.'
+    %endif
 %else
     %if __pre_stop == 0
         AddShadow
@@ -1602,7 +1604,12 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ; -----------------------------------------------------------------------------
 %macro INIT_COMMAND_LINE 0
 %if DOS_SHELL == 1
-    call dos_get_command_line
+    %if DOS_MODE == 16
+        call dos_get_command_line
+    %else
+        ;%warning 'todo: dos32'
+        ;%assign __pre_stop 1
+    %endif
 %else
     EMIT_ERROR 'todo: windows'
 %endif
@@ -1613,8 +1620,13 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ; -----------------------------------------------------------------------------
 %macro INIT_CONSOLE 0
 %if DOS_SHELL == 1
-    call dos_init_console
-    SCREEN_CLEAR
+    %if DOS_MODE == 16
+        call dos_init_console
+        SCREEN_CLEAR
+    %else
+        ;%warning 'todo: dos32'
+        ;%assign __pre_stop 1
+    %endif
 %else
     call init_app
     call init_console
@@ -1638,12 +1650,17 @@ _h%1:
 ; -----------------------------------------------------------------------------
 %macro DOS_Seek 2
 %if DOS_SHELL == 1
-    mov  bx, [PTR16(_cA_%1)]
-    xor  cx, cx
-    xor  dx, dx
-    mov  ah, 0x42               ; move to ...
-    mov  al, %2
-    SysCall
+    %if DOS_MODE == 16
+        mov  bx, [PTR16(_cA_%1)]
+        xor  cx, cx
+        xor  dx, dx
+        mov  ah, 0x42               ; move to ...
+        mov  al, %2
+        SysCall
+    %else
+        %error 'todo: dos32'
+        %assign __pre_stop 1
+    %endif
 %else
     EMIT_ERROR 'todo: windows'
 %endif
@@ -1656,10 +1673,15 @@ _h%1:
 ; -----------------------------------------------------------------------------
 %macro DOS_Open 2
 %if DOS_SHELL == 1
-    mov  dx, PTR16(_cA_%1)
-    mov  ah, 0x3D               ; open existing file
-    mov  al, %2                 ; read-only
-    SysCall
+    %if DOS_MODE == 16
+        mov  dx, PTR16(_cA_%1)
+        mov  ah, 0x3D               ; open existing file
+        mov  al, %2                 ; read-only
+        SysCall
+    %else
+        %error 'todo: dos32'
+        %assign __pre_stop 1
+    %endif
 %else
     EMIT_ERROR 'todo: windows'
 %endif
@@ -1667,11 +1689,16 @@ _h%1:
 
 %macro DOS_Close 2
 %if DOS_SHELL == 1
-    mov  bx, [PTR16(_cA_%1)]
-    or   bx, bx
-    jz   %2
-    mov  ah, 3Eh
-    SysCall
+    %if DOS_MODE == 16
+        mov  bx, [PTR16(_cA_%1)]
+        or   bx, bx
+        jz   %2
+        mov  ah, 3Eh
+        SysCall
+    %else
+        %error 'todo: dos32'
+        %assign __pre_stop 1
+    %endif
 %else
     EMIT_ERROR 'todo: windows'
 %endif
@@ -1841,7 +1868,7 @@ _cA_error_dispatch:
 ; -----------------------------------------------------------------------------
 %imacro lea.w 2
 %if DOS_SHELL == 1      ; compilation for DOS 16-Bit ?
-    %if __pre_stop == 0
+    %if ((DOS_MODE == 16) && (__pre_stop == 0))
         %undef __prefix     ; reset
         %undef __suffix     ; ...
         %ifidni %1, SI
@@ -1892,7 +1919,7 @@ _cA_error_dispatch:
 ; -----------------------------------------------------------------------------
 %imacro mov.w 2
 %if DOS_SHELL == 1
-    %if __pre_stop == 0
+    %if ((DOS_MODE == 16) && (__pre_stop == 0))
         %ifidni %1, BL
             %ifid %2
                 mov bl, PTR16(_cA_%2)

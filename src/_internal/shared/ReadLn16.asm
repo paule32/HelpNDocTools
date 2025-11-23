@@ -10,6 +10,7 @@
 ; \brief Eingabe holen (DOS Zeileneingabe, mit eigenem Editor/Echo)
 ; \param DX - buffer
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 DOSReadLn:
     mov ah, 0Ah
     int 21h              ; Rückkehr nach ENTER; [buf+1]=len, [buf+2..]=Text, [buf+2+len]=0Dh
@@ -32,4 +33,4 @@ DOSReadLn:
     ;int 21h
     
     ret
- 
+%endif

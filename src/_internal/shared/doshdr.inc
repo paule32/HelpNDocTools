@@ -7,8 +7,9 @@
 ;---------------------------------------------------
 ; DOS-Header
 ;---------------------------------------------------
-org 0
+%if DOS_SHELL == 1
 bits 16
+org 0
 section .text
 ; ---- Header-Layout-Marker
 dos_start:
@@ -50,7 +51,9 @@ dos_start:
     ;times    10  dw 0                  ; e_res2[10]
     ; ----
     
-    dd pe_header                        ; e_lfanew -> Offset des PE-Headers
+    %if DOS_SHELL == 64
+        dd pe_header                    ; e_lfanew -> Offset des PE-Headers
+    %endif
     
 end_dos_header equ ($ - dos_start)
 
@@ -65,12 +68,21 @@ mz_image:
 
 ; ---- 16-bit Stub-Entry bei e_cs:e_ip = 0:0 (ab mz_image)
 stub_entry:
-incbin 'kernel.bin'
+incbin 'kernel16.bin'
 
-;---------------------------------------------------
-; Windows 3.1 16 bit stub
-;---------------------------------------------------
+%if DOS_MODE == 32
+bits 32
+go_pm:
+section .text
+    mov ax, 0x10
+    mov ds, ax
+
+    incbin 'kernel32.bin'
+    
+    spin:   jmp spin        ; Loop
+%endif
+
 ;align 16
-;%include 'win16NEhdr.inc'
 
 stub_end:
+%endif

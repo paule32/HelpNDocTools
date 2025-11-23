@@ -11,6 +11,7 @@
 ; \param  Input:  ES:SI -> "0"-terminierter String
 ; \return Output: AX = Länge (ohne '0')
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 DOSStrLen:
     push di             ; save DI
     mov  di, si         ; DI = SI
@@ -28,3 +29,4 @@ DOSStrLen:
     done:
     pop     di
     ret
+%endif

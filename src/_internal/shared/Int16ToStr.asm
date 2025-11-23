@@ -16,6 +16,7 @@
 ; \note   destroy's: AX,BX,CX,DX (internal saved)
 ; \note   buffer: max. 5 digits + '$' => min. 6 bytes
 ; ----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 DOSIntToStr:
     push ax
     push bx
@@ -56,3 +57,4 @@ DOSIntToStr:
     pop bx
     pop ax
     ret
+%endif

@@ -5,6 +5,7 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 64
 times (DATA_RAW_PTR-($-$$)) db 0
 data_start:
 
@@ -96,3 +97,5 @@ ASTR buffer_3, " smile"  , 13, 10, 0
 
 data_end:
 times (ALIGN_UP($-$$,FILEALIGN)-($-$$)) db 0
+
+%endif

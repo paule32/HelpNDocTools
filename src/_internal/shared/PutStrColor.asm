@@ -8,6 +8,7 @@
 
 ; --- String per BIOS-Teletype (AH=0Eh) ausgeben ---
 ; putc: AL -> Zeichen ausgeben
+%if DOS_SHELL == 1
 putc:
     push dx
     mov dl, al
@@ -123,3 +124,4 @@ DOS_getCursor:
     pop  di
     pop  dx
     ret
+%endif

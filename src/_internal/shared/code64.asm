@@ -5,6 +5,7 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
+%if DOS_MODE == 64
 bits 64
 
 _start:
@@ -213,3 +214,4 @@ _start:
     .done:
     
     call_ExitProcess 2
+%endif

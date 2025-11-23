@@ -5,7 +5,6 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-%define DOS_SHELL 1
 %define MAX_ARGS  7
 bits 16
 ; -----------------------------------------------------------------------------
@@ -22,6 +21,7 @@ bits 16
 ; \note   Fieldname: max 10 chars (dBASE-limit, 11. Byte = 0)
 ; \note   Fiedlength: decimal (e.g.. 20)
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 code16_start:
     INIT_COMMAND_LINE
     INIT_CONSOLE
@@ -29,50 +29,56 @@ code16_start:
     SCREEN_CLEAR
     SET_CURSOR 0, 1
     
-    call PROC_CHECK
-    call CHECK_MODE
-    
-    cli                    ; Interrupts aus
+    %if DOS_MODE == 32
+        call PROC_CHECK
+        call CHECK_MODE
+        
+        cli                    ; Interrupts aus
 
-    ; DS-Segmentbasis berechnen (Segment << 4)
-    mov   dx, ds
-    movzx edx, dx
-    shl   edx, 4           ; EDX = DS * 16 = lineare Basis des datasegments
+        ; DS-Segmentbasis berechnen (Segment << 4)
+        mov   dx, ds
+        movzx edx, dx
+        shl   edx, 4           ; EDX = DS * 16 = lineare Basis des datasegments
 
-    lea eax, [edx + PTR16(_cA_gdt)] ; GDT liegt irgendwo in unserem data, also Basis + Offset
-    mov  [PTR16(_cA_gdt_descriptor)+2], eax   ; GDT-Basis in Descriptor schreiben
+        lea eax, [edx + PTR16(_cA_gdt)] ; GDT liegt irgendwo in unserem data, also Basis + Offset
+        mov  [PTR16(_cA_gdt_descriptor)+2], eax   ; GDT-Basis in Descriptor schreiben
 
-    lgdt [PTR16(_cA_gdt_descriptor)]  ; GDTR laden
+        lgdt [PTR16(_cA_gdt_descriptor)]  ; GDTR laden
 
-    ; -----------------------------
-    ; Protected Mode einschalten
-    ; -----------------------------
-    mov eax, cr0
-    or  eax, 1             ; PE-Bit (Bit 0) setzen
-    mov cr0, eax
+        ; -----------------------------
+        ; Protected Mode einschalten
+        ; -----------------------------
+        mov eax, cr0
+        or  eax, 1             ; PE-Bit (Bit 0) setzen
+        mov cr0, eax
 
-    ; Weit-Sprung in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
-    push 0x08
-    add edx, PTR16(go_pm)
-    push edx
-    mov bp, sp
-    jmp far dword [bp]
+        ; Weit-Sprung in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
+        push 0x08
+        add edx, PTR16(go_pm)
+        push edx
+        mov bp, sp
+        jmp far dword [bp]
+    %else
+        DOS_Exit 0
+    %endif
+%endif
 
+%if DOS_MODE == 32
 bits 32
 go_pm:
+section .text
     mov ax, 0x10
     mov ds, ax
 
-    ;incbin 'kernel32.bin'
-    mov word [0xb8000], (0x0E << 8) | 'A'
-    mov word [0xb8002], (0x0F << 8) | 'B'
-    mov word [0xb8004], (0x03 << 8) | 'C'
+    incbin 'kernel32.bin'
     
     spin:   jmp spin        ; Loop
+%endif
 
 ; -----------------------------------------------------------------------------
 ; \brief check, if a compatible 80386 CPU is present on the system ...
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 bits 16
 PROC_CHECK:
     pushf                   ; save flags
@@ -98,10 +104,12 @@ PROC_CHECK:
     PUTS_COLOR no386e, 3    ; and exit
     DOS_Exit 1
     ret
-
+%endif
 ; -----------------------------------------------------------------------------
 ; \brief check, if we in real mode or not ...
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
+bits 16
 CHECK_MODE:
     mov eax, cr0            ; get CR0 to EAX
     and al, 1               ; check if PM bit is set
@@ -112,7 +120,8 @@ CHECK_MODE:
     PUTS_COLOR norealmode, 3
     DOS_Exit 1
     ret
-    
+%endif
+
 ; -----------------------------------------------------------------------------
 ; \brief include DOS 16-bit stdlib function's ...
 ; -----------------------------------------------------------------------------

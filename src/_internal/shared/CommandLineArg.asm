@@ -19,6 +19,7 @@
 ; \error  Bei Misserfolg (CF=1): CX=0, SI undefiniert
 ; \note   Verändert: AX, CX, DX, SI, DI, FLAGS
 ; -----------------------------------------------------------------------------
+%if ((DOS_SHELL == 1) && (DOS_MODE == 16))
 getCommandLine_Arg:
     ;push di
     test bl, bl
@@ -96,3 +97,4 @@ getCommandLine_Arg:
     .ret:
     ;pop  di
     ret
+%endif

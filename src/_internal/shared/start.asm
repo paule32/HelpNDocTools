@@ -5,6 +5,8 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
+%include 'config.inc'       ; user customizeable definitions ...
+; -----------------------------------------------------------------------------
 %include 'basexx.inc'
 %include 'windows.inc'
 %include 'usefunc.inc'

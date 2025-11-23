@@ -10,7 +10,7 @@
 ; mod1.asm (RAW BIN)
 ; NASM: nasm -f bin -o MOD1.BIN mod1.asm
 ; -----------------------------------------------------------------------------
-
+%if DOS_SHELL == 1
 use16
 org 0
 
@@ -21,3 +21,4 @@ entry:
     
     xor ax, ax
     retf            ; far return zum Loader
+%endif

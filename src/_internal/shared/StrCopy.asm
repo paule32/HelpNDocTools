@@ -12,6 +12,7 @@
 ; Rückgabe: SI = Zielstart (damit PUTS_COLOR direkt funktioniert)
 ; Clobbers: AX, CX, DI, ES, BX, FLAGS
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 string_copy:
     push    bx
     push    si
@@ -36,3 +37,4 @@ string_copy:
     pop     bx              ; ursprüngliches SI verwerfen (gewollt)
     pop     bx              ; wiederherstellen von BX
     ret
+%endif

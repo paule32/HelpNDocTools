@@ -5,11 +5,14 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-%define TEXT_VRAM 0B800h
+%define TEXT_VRAM 0xb8000
 
 dos_screen_clear:
+%if DOS_SHELL == 1
+    bits 16
+    section .text
     push ds
-    mov  ax, TEXT_VRAM
+    mov  ax, 0xb800
     mov  es, ax
 
     xor  di, di         ; Offset 0
@@ -31,4 +34,13 @@ dos_screen_clear:
     SET_CURSOR 0, 0
     
     ret
- 
+%elif DOS_SHELL == 32
+    bits 32
+    section .text
+    mov edi, 0xb8000
+    mov [PutStr_Ptr], edi
+    mov ecx, 40 * 25
+    mov eax, 0x07200720
+    rep stosd
+    ret
+%endif

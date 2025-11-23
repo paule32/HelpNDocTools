@@ -1,3 +1,11 @@
+;---------------------------------------------------
+; \file  winproc.asm
+; \note  (c) 2025 by Jens Kallup - paule32
+;        all rights reserved.
+;
+; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
+;---------------------------------------------------
+%if DOS_MODE == 64
 bits 64
 
 WndProc:
@@ -31,3 +39,4 @@ WndProc:
     DelShadow
     Zero eax
     ret
+%endif

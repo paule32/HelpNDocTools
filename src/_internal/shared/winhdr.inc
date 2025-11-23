@@ -7,7 +7,7 @@
 ; -----------------------------------------------------------------------------
 ; PE-Header (PE32+) + Optional Header + Section Table
 ; -----------------------------------------------------------------------------
-%define DOS_SHELL 0
+%if DOS_MODE == 64
 bits 64
 org 0
 align 8
@@ -109,3 +109,5 @@ headers_end:
 
 ; Auf Dateialignment auffüllen
 times (SIZEOF_HEADERS - ($ - $$)) db 0
+
+%endif

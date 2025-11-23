@@ -10,6 +10,7 @@
 ; \brief dispatch: search the handler and jump to it ...
 ; -----------------------------------------------------------------------------
 DOS_handle_error_code:
+%if DOS_SHELL == 1
     ; AX enthält den DOS-Fehlercode
     mov   bx, ax             ; bx = gesuchter Code
     mov   si, _cA_error_dispatch
@@ -71,3 +72,4 @@ _cA_errhnd:
 
 _open_exit:
     DOS_Exit cx
+%endif

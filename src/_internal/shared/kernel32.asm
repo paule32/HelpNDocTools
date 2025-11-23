@@ -5,13 +5,16 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-bits 16
+%include 'config.inc'
+; -----------------------------------------------------------------------------
+bits 32
 org 0
-;%include 'macros.inc'
+%include 'macros.inc'
 
 kernel32_start:
-;section .text
-;%include 'code32.asm'
+kernel32:
+section .text
+%include 'code32.asm'
 
 ;section .data
 ;%include 'data32.inc'

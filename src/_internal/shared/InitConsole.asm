@@ -5,7 +5,7 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-
+%if DOS_SHELL == 1
 dos_init_console:
     call dos_get_cols               ; get DOS screen columns
     call dos_get_rows               ; get DOS screen rows
@@ -82,3 +82,4 @@ dos_get_command_line:
     
     .next:
     ret
+%endif

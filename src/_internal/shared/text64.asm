@@ -5,6 +5,7 @@ PASCALMAIN:
 ;  - 32 B "lokal" (hier ungenutzt, dient auch dem Alignment)
 ; Nach push rbp ist rsp 16-Byte aligned; 64 hält das Alignment.
 ; -------------------------------------------------------------------
+%if DOS_MODE == 64
     FUNC_ENTER
 
     INIT_CONSOLE
@@ -24,3 +25,4 @@ PASCALMAIN:
     
     .exit:
     FUNC_LEAVE
+%endif

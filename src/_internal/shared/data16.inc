@@ -5,6 +5,7 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 data16_start:
 
 msg:            db "This program requieres MS-Windows.$",0
@@ -199,3 +200,4 @@ _cA_cmd_num: db ' 3',0
 
 
 data16_end:
+%endif

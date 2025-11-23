@@ -7,6 +7,7 @@
 ; -----------------------------------------------------------------------------
 ; pre-calculatuins
 ; -----------------------------------------------------------------------------
+%if DOS_MODE == 64
 %define ALIGN_UP(x,a)  (((x) + (a) - 1) / (a) * (a))
 
 ; ---- Header/erste Section ----
@@ -50,3 +51,5 @@
 %define RVA_IDATA(L)  (IDATA_VA + ((L) - idata_start))
 %define RVA_DATA(L)   (DATA_VA  + ((L) - data_start))
 %define RVA_BSS(L)    (BSS_VA   + ((L) - bss_start))
+
+%endif

@@ -5,6 +5,7 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 dos_set_cursor:
     mov  [PTR16(dos_xpos)], dl   ; column
     mov  [PTR16(dos_ypos)], dh   ; row
@@ -15,7 +16,9 @@ dos_set_cursor:
     mov  ah, 02h
     VideoCall
     ret
+%endif
 
+%if DOS_SHELL == 16
 dos_get_cursor:
     push di
     push si
@@ -34,3 +37,4 @@ dos_get_cursor:
     pop  si
     pop  di
     ret
+%endif

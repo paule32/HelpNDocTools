@@ -13,6 +13,7 @@
 ; \return AL = 1 (found/same)
 ;         AL = 0 (not same)
 ; -----------------------------------------------------------------------------
+%if DOS_SHELL == 1
 string_compare:
     push si             ; save src > si
     
@@ -38,3 +39,4 @@ string_compare:
     mov  al, 1          ; not found, ret
     pop  si             ; restore < si
     ret                 ; return to caller
+%endif
