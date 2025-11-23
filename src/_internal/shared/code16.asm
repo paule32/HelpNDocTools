@@ -32,21 +32,13 @@ code16_start:
     call PROC_CHECK
     call CHECK_MODE
     
-    ; COM: CS = DS = ES = SS
-    mov ax, cs
-    mov [PTR16(rm_cs)], ax
-    mov [PTR16(rm_ds)], ax
-    mov [PTR16(rm_ss)], ax
-    mov [PTR16(rm_sp)], sp
-    
-    mov [PTR16(rm_far_ptr)+4], ax   ; Segment eintragen
-    
     cli                    ; Interrupts aus
 
     ; DS-Segmentbasis berechnen (Segment << 4)
-    mov   dx, ds
-    movzx edx, dx
-    shl   edx, 4           ; EDX = DS * 16 = lineare Basis des datasegments
+    or  eax, 1             ; PE-Bit (Bit 0) setzen
+    mov cr0, eax
+    
+    push ds
 
     lea eax, [edx + PTR16(_cA_gdt)] ; GDT liegt irgendwo in unserem data, also Basis + Offset
     mov  [PTR16(_cA_gdt_descriptor)+2], eax   ; GDT-Basis in Descriptor schreiben
@@ -60,18 +52,45 @@ code16_start:
     or  eax, 1             ; PE-Bit (Bit 0) setzen
     mov cr0, eax
 
-    ; Weit-Sprung in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
+    ; far jump in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
+    push ds
     push 0x08
     add  edx, PTR16(go_pm)
     push edx
     mov  bp, sp
     jmp  far dword [bp]
+    call far dword [esp]
+    add  sp, 6
+
+    pop ax
+    mov ds, ax
+    mov es, ax
+    sti
+
+    DOS_Exit 0
 
 bits 32
 go_pm:
-    mov ax, 0x10
-    mov ds, ax
+    ; real mode stack location
+    mov     edx, ss
+    mov     eax, esp
+    ; keep using it by calculating linear address
+    ; align it for good measure
+    and     esp, 0xfffc
+    movzx   ecx, dx
+    shl     ecx, 4
+    add     esp, ecx
 
+    mov     cx, 0x10
+    mov     ds, ecx
+    mov     ss, ecx
+
+    ; save real mode stack info on PM stack
+    push    edx
+    push    eax
+
+    ;call dos_screen_clear32
+    
     mov word [0xb8000], (0x0E << 8) | 'A'
     mov word [0xb8002], (0x0F << 8) | 'B'
     mov word [0xb8004], (0x03 << 8) | 'C'
@@ -83,37 +102,36 @@ go_pm:
     
 pm_exit:
     cli
+    
+    ; get back real mode stack location
+    pop eax
+    pop edx
 
-    ; falls du irgendwann Paging benutzt:
-    ; mov eax, cr0
-    ; and eax, 0x7FFFFFFF
-    ; mov cr0, eax
-
-    ; Protected Mode ausschalten (PE=0)
-    mov eax, cr0
-    and eax, 0xFFFFFFFE
-    mov cr0, eax
-
-    ; Jetzt sind wir wieder im Real Mode, aber CS/DS/SS etc. sind noch "komisch"
-    ; Far Jump in 16-Bit-Stub, damit CS sauber gesetzt wird
-    jmp far [PTR16(rm_far_ptr)]
+    ; jump to 16 bit PM code by
+    ; constructing the pointer on the stack
+    push 0x18 ; 16 bit code selector
+    call .next
+    .next:
+    add dword [esp], pm16 - .next
+    retf
 
 ; -----------------------------------------------------------------------------
 bits 16
 rm_entry:
-    ; Real-Mode-Segmente wiederherstellen
-    mov ax, [PTR16(rm_ds)]
-    mov ds, ax
-    mov es, ax
-
-    mov ax, [PTR16(rm_ss)]
-    mov ss, ax
-    mov sp, [PTR16(rm_sp)]
+pm16:
+    mov cx, 0x20 ; 16 bit PM stack selector
+    mov ss, cx   ; to set SP size
     
-    mov ax, cs
-    mov [PTR16(rm_far_ptr)+4], ax   ; Segment eintragen
-
-    sti                     ; Interrupts wieder erlauben
+    mov ecx, cr0
+    and ecx, 0xfffffffe       ; PE-Bit (Bit 0) loschen
+    mov cr0, ecx
+    
+    sti                     ; Interrupts ausschalten
+    
+    ; restore real mode stack
+    mov ss, dx
+    mov esp, eax
+    o32 retf
     
     DOS_Exit 0
 

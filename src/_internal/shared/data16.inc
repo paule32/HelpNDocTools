@@ -155,7 +155,9 @@ _cA_norealmode:  db 'You are currently running in V86 mode!',0
 
 _cA_gdt:
     ; Null-Deskriptor (immer Pflicht)
-    dq 0x0000000000000000
+    db 10010010b           ; Access (0x92)
+    db 11001111b           ; Flags + Limit high (0xCF)
+    db 0x00                ; Base high
 
     ; Code-Segment-Deskriptor: Basis=0, Limit=4GB, Executable, Readable
     ; Access Byte: 0x9A (10011010b)
@@ -165,7 +167,7 @@ _cA_gdt_code:
     dw 0x0000              ; Base low
     db 0x00                ; Base mid
     db 10011010b           ; Access (0x9A)
-    db 11001111b           ; Flags + Limit high (0xCF)
+    db 10001111b           ; Flags + Limit high (0x8F)
     db 0x00                ; Base high
 
     ; Data-Segment-Deskriptor: Basis=0, Limit=4GB, Read/Write
@@ -175,7 +177,7 @@ _cA_gdt_data:
     dw 0x0000              ; Base low
     db 0x00                ; Base mid
     db 10010010b           ; Access (0x92)
-    db 11001111b           ; Flags + Limit high (0xCF)
+    db 10001111b           ; Flags + Limit high (0x8F)
     db 0x00                ; Base high
 _cA_gdt_end:
 
@@ -183,18 +185,11 @@ _cA_gdt_descriptor:
     dw PTR16(_cA_gdt_end) - PTR16(_cA_gdt) - 1   ; Limit (Größe der GDT - 1)
     dd 0                   ; Basisadresse der GDT (wird oben zur Laufzeit gefüllt)
 
-rm_cs  dw 0
-rm_ds  dw 0
-rm_ss  dw 0
-rm_sp  dw 0
-
-rm_far_ptr:
-    dd PTR16(rm_entry) ; 32-Bit Offset
-    dw 0               ; Segment (0 oder dein ursprüngliches CS)
-    
 hdr_len:            dw 0
 rec_len:            dw 0
 
+PutStr_Ptr: dd 0xb8000
+    
 _cA_ARGV1: db '42', 0
 _cA_cmd_num: db ' 3',0
 
