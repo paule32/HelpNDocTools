@@ -1,9 +1,1 @@
-entry:
-
-    ; push 0 (ExitCode)
-    xor  ecx, ecx
-    push ecx
-    mov  eax, [IAT_ExitProcess]
-    call eax
-
-CodeEnd:
+; -----------------------------------------------------------------------------; \file  code32.asm; \note  (c) 2025 by Jens Kallup - paule32;        all rights reserved.;; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.; -----------------------------------------------------------------------------bits 32section .textkernel32_start:kernel32:    mov ax, 0x10    mov ds, ax    mov word [0xb8000], (0x0E << 8) | 'A'    mov word [0xb8002], (0x0F << 8) | 'B'    mov word [0xb8004], (0x03 << 8) | 'C'kernel32_end:

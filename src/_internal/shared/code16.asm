@@ -35,10 +35,9 @@ code16_start:
     cli                    ; Interrupts aus
 
     ; DS-Segmentbasis berechnen (Segment << 4)
-    or  eax, 1             ; PE-Bit (Bit 0) setzen
-    mov cr0, eax
-    
-    push ds
+    mov   dx, ds
+    movzx edx, dx
+    shl   edx, 4           ; EDX = DS * 16 = lineare Basis des datasegments
 
     lea eax, [edx + PTR16(_cA_gdt)] ; GDT liegt irgendwo in unserem data, also Basis + Offset
     mov  [PTR16(_cA_gdt_descriptor)+2], eax   ; GDT-Basis in Descriptor schreiben
@@ -52,88 +51,24 @@ code16_start:
     or  eax, 1             ; PE-Bit (Bit 0) setzen
     mov cr0, eax
 
-    ; far jump in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
-    push ds
+    ; Weit-Sprung in 32-Bit Code-Segment, um Pipeline zu leeren und CS zu setzen
     push 0x08
-    add  edx, PTR16(go_pm)
+    add edx, PTR16(go_pm)
     push edx
-    mov  bp, sp
-    jmp  far dword [bp]
-    call far dword [esp]
-    add  sp, 6
-
-    pop ax
-    mov ds, ax
-    mov es, ax
-    sti
-
-    DOS_Exit 0
+    mov bp, sp
+    jmp far dword [bp]
 
 bits 32
 go_pm:
-    ; real mode stack location
-    mov     edx, ss
-    mov     eax, esp
-    ; keep using it by calculating linear address
-    ; align it for good measure
-    and     esp, 0xfffc
-    movzx   ecx, dx
-    shl     ecx, 4
-    add     esp, ecx
+    mov ax, 0x10
+    mov ds, ax
 
-    mov     cx, 0x10
-    mov     ds, ecx
-    mov     ss, ecx
-
-    ; save real mode stack info on PM stack
-    push    edx
-    push    eax
-
-    ;call dos_screen_clear32
-    
+    ;incbin 'kernel32.bin'
     mov word [0xb8000], (0x0E << 8) | 'A'
     mov word [0xb8002], (0x0F << 8) | 'B'
     mov word [0xb8004], (0x03 << 8) | 'C'
-
-    ; irgendwas tun ...
-
-    ; und dann irgendwann zurück nach DOS:
-    jmp pm_exit
     
-pm_exit:
-    cli
-    
-    ; get back real mode stack location
-    pop eax
-    pop edx
-
-    ; jump to 16 bit PM code by
-    ; constructing the pointer on the stack
-    push 0x18 ; 16 bit code selector
-    call .next
-    .next:
-    add dword [esp], pm16 - .next
-    retf
-
-; -----------------------------------------------------------------------------
-bits 16
-rm_entry:
-pm16:
-    mov cx, 0x20 ; 16 bit PM stack selector
-    mov ss, cx   ; to set SP size
-    
-    mov ecx, cr0
-    and ecx, 0xfffffffe       ; PE-Bit (Bit 0) loschen
-    mov cr0, ecx
-    
-    sti                     ; Interrupts ausschalten
-    
-    ; restore real mode stack
-    mov ss, dx
-    mov esp, eax
-    o32 retf
-    
-    DOS_Exit 0
+    spin:   jmp spin        ; Loop
 
 ; -----------------------------------------------------------------------------
 ; \brief check, if a compatible 80386 CPU is present on the system ...

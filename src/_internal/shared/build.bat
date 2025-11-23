@@ -11,7 +11,9 @@
 ::nasm.exe -E kernel.asm > kernel.pre
 ::nasm.exe -E start.asm  > start.pre
 
-nasm.exe -f bin -o kernel.bin kernel.asm
+nasm.exe -f bin -o kernel16.bin kernel16.asm
+nasm.exe -f bin -o kernel32.bin kernel32.asm
+
 nasm.exe -f bin -o start.exe  start.asm
 
 ::-w-zeroing
