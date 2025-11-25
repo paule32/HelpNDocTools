@@ -109,7 +109,7 @@
 ; -----------------------------------------------------------------------------
 %macro EMIT_ERROR 1
     %if __pre_stop == 0
-        EMIT_ERROR %1
+        %error %1
         %assign __pre_stop 1
     %endif
 %endmacro
@@ -141,7 +141,7 @@
 ; \brief perform a video call. It is only used in DOS 16-Bit applications.
 ; -----------------------------------------------------------------------------
 %macro VideoCall 0
-%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+%if ((DOS_SHELL == 16) && (__pre_stop == 0))
     int 0x10
 %else
     EMIT_ERROR 'only DOS supports interrupts.'
@@ -152,7 +152,7 @@
 ; add win64 abi shadow ...
 ; -----------------------------------------------------------------------------
 %macro AddShadow 0-1
-%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+%if ((DOS_SHELL == 16) && (__pre_stop == 0))
     EMIT_ERROR 'AddShadow is only used for Windows 10+ 64-Bit development.'
 %else
     %if __pre_stop == 0
@@ -224,7 +224,7 @@
 ; HNSTR <Func1>, <Func2>, ...
 ; -----------------------------------------------------------------------------
 %macro HNSTR 1-*
-%if ((DOS_SHELL == 1) && (__pre_stop == 0))
+%if ((DOS_SHELL == 16) && (__pre_stop == 0))
     EMIT_ERROR 'HNSTR is only used for Windows 10+ 64-Bit development.'
 %else
     %if __pre_stop == 0
@@ -284,7 +284,7 @@
 %endmacro
 
 %macro CALL_IAT 1        ; CALL_IAT ExitProcess / RegisterClassExW / ...
-%if DOS_SHELL == 1
+%if DOS_SHELL == 16
     %if __pre_stop == 0
         EMIT_ERROR 'MAKE_IMPORT is only used for Windows 10+ 64-Bit development.'
     %endif
@@ -1157,7 +1157,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ; \brief write ASCII text on the text Windows console ...
 ; -----------------------------------------------------------------------------
 %macro WRITE_CON_A 1-2
-%if DOS_SHELL == 1
+%if DOS_SHELL == 16
     %if %0 == 2
         PUTS_COLOR %1, %2
     %else
@@ -1280,7 +1280,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 %endmacro
 
 %macro SCREEN_CLEAR 0
-%if DOS_SHELL == 1
+%if DOS_SHELL == 16
     call dos_screen_clear
 %else
     GET_CON_O_HANDLE r12
@@ -1349,7 +1349,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ; \brief macro to put a colored string to the DOS console ...
 ; -----------------------------------------------------------------------------
 %macro PUTS_COLOR 2
-%if DOS_SHELL == 1
+%if DOS_SHELL == 16
     ;GET_CURSOR              ; move cursor to col:row
     %ifstr %1
         section .data
@@ -1603,7 +1603,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ; \param nothing
 ; -----------------------------------------------------------------------------
 %macro INIT_COMMAND_LINE 0
-%if DOS_SHELL == 1
+%if DOS_SHELL == 16
     %if DOS_MODE == 16
         call dos_get_command_line
     %else
@@ -1619,7 +1619,7 @@ _WSTR_LENW  equ (_WSTR_LENB/2)
 ; \brief call the DOS console initialize routine ...
 ; -----------------------------------------------------------------------------
 %macro INIT_CONSOLE 0
-%if DOS_SHELL == 1
+%if DOS_SHELL == 16
     %if DOS_MODE == 16
         call dos_init_console
         SCREEN_CLEAR

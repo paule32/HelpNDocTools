@@ -12,7 +12,7 @@ ENTRY(_kmain)
 
 SECTIONS {
     /* loader address for KERNEL.BIN */
-    . = 0x00100000;
+    . = 0x40000;
 
     .text : {
         *(.text*)
