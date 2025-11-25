@@ -10,7 +10,7 @@
 ; \brief dispatch: search the handler and jump to it ...
 ; -----------------------------------------------------------------------------
 DOS_handle_error_code:
-%if DOS_SHELL == 1
+%if DOS_SHELL == 16
     ; AX enthält den DOS-Fehlercode
     mov   bx, ax             ; bx = gesuchter Code
     mov   si, _cA_error_dispatch

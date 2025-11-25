@@ -5,6 +5,9 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
+%ifndef __WINDOWS__INC__
+%define __WINDOWS__INC__
+
 %if DOS_MODE == 64
 ; -----------------------------------------------------------------------------
 ; CPU machine ...
@@ -236,4 +239,11 @@ LANGID_DEFAULT  equ (SUBLANG_DEFAULT << 10) | LANG_NEUTRAL
 %define INFINITE                0xFFFFFFFF
 %define WAIT_OBJECT_0           0
 
-%endif
+; -----------------------------------------------------------------------------
+; DOS 32 protected mode ...
+; -----------------------------------------------------------------------------
+%elif DOS_MODE == 32
+%define TEXT_VRAM 0xb8000       ; vga text video buffer address
+
+%endif  ; DOS_MODE
+%endif  ; __WINDOWS__INC__

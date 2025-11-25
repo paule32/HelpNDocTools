@@ -5,7 +5,7 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
-%if DOS_SHELL == 1
+%if DOS_SHELL == 16
 data16_start:
 
 msg:            db "This program requieres MS-Windows.$",0
@@ -153,7 +153,7 @@ _cA_norealmode:  db 'You are currently running in V86 mode!',0
 ; --------------------------------
 ; Global Descriptor Table (GDT)
 ; --------------------------------
-
+%if DOS_MODE == 32
 _cA_gdt:
     ; Null-Deskriptor (immer Pflicht)
     dq 0x0000000000000000
@@ -194,10 +194,11 @@ rec_len:            dw 0
 
 section .data
     PutStr_Ptr dd 0xb8000
-    
+%endif      ; DOS_MODE == 32
+
 _cA_ARGV1: db '42', 0
 _cA_cmd_num: db ' 3',0
 
 
 data16_end:
-%endif
+%endif      ; DOS_SHELL == 16

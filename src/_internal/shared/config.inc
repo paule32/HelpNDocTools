@@ -8,5 +8,5 @@
 ; Configuration file
 ;---------------------------------------------------
 
-%define DOS_SHELL 1         ; 1 indicates a console application.
-%define DOS_MODE 32         ; set this to 16 for 16 bit DOS or 64 for win32pe+
+%define DOS_SHELL 16        ; 1 indicates a console application.
+%define DOS_MODE  32        ; set this to 16 for 16 bit DOS or 64 for win32pe+

@@ -13,7 +13,7 @@ k_clear_screenv:
     bits 16
     section .text
     push ds
-    mov  ax, 0xb800
+    mov  ax, TEXT_VRAM
     mov  es, ax
 
     xor  di, di         ; Offset 0
@@ -60,12 +60,14 @@ dos_screen_clear:
 k_clear_screen:
 bits 32
 section .text
-    mov  eax, 0xb8000
+    mov  eax, TEXT_VRAM
+    mov  bx, 0
 .loop:
     mov  byte [eax],  ' '
     mov  byte [eax+1], 0x07  ; gray text
     add  eax, 2
-    cmp  eax, ((80 * 25) * 2)
+    inc  bx
+    cmp  bx, ((80 * 25) * 2)
     jne  .loop
     ret
 %endif

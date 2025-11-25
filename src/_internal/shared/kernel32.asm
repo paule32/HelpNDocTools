@@ -9,12 +9,16 @@
 ; -----------------------------------------------------------------------------
 bits 32
 org 0
+%include 'windows.inc'
 %include 'macros.inc'
 
 kernel32_start:
 kernel32:
 section .text
 %include 'code32.asm'
+; -----------------------------------------------------------------------------
+%include 'ScreenClear.asm'
+%include 'PutStrColor.asm'
 
 ;section .data
 ;%include 'data32.inc'

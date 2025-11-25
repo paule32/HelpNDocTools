@@ -21,7 +21,7 @@ bits 16
 ; \note   Fieldname: max 10 chars (dBASE-limit, 11. Byte = 0)
 ; \note   Fiedlength: decimal (e.g.. 20)
 ; -----------------------------------------------------------------------------
-%if DOS_SHELL == 1
+%if ((DOS_SHELL == 16) && ((DOS_MODE == 16) || (DOS_MODE == 32)))
 code16_start:
     INIT_COMMAND_LINE
     INIT_CONSOLE
@@ -63,7 +63,7 @@ code16_start:
     %endif
 %endif
 
-%if DOS_MODE == 32
+%if ((DOS_SHELL == 16) && (DOS_MODE == 32))
 bits 32
 go_pm:
 section .text
@@ -74,7 +74,7 @@ section .text
 ; -----------------------------------------------------------------------------
 ; \brief check, if a compatible 80386 CPU is present on the system ...
 ; -----------------------------------------------------------------------------
-%if DOS_SHELL == 1
+%if ((DOS_SHELL == 16) && ((DOS_MODE == 16) || (DOS_MODE == 32)))
 bits 16
 PROC_CHECK:
     pushf                   ; save flags
@@ -104,7 +104,7 @@ PROC_CHECK:
 ; -----------------------------------------------------------------------------
 ; \brief check, if we in real mode or not ...
 ; -----------------------------------------------------------------------------
-%if DOS_SHELL == 1
+%if ((DOS_SHELL == 16) && ((DOS_MODE == 16) || (DOS_MODE == 32)))
 bits 16
 CHECK_MODE:
     mov eax, cr0            ; get CR0 to EAX

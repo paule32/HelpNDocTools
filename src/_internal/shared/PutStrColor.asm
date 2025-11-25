@@ -5,10 +5,11 @@
 ;
 ; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
 ; -----------------------------------------------------------------------------
+%include 'windows.inc'
 
 ; --- String per BIOS-Teletype (AH=0Eh) ausgeben ---
 ; putc: AL -> Zeichen ausgeben
-%if DOS_SHELL == 1
+%if ((DOS_SHELL == 16) && (DOS_MODE == 16))
 putc:
     push dx
     mov dl, al
@@ -123,5 +124,82 @@ DOS_getCursor:
     pop  si
     pop  di
     pop  dx
+    ret
+%endif
+%if ((DOS_SHELL == 16) && (DOS_MODE == 32))
+; -----------------------------------------------------------------------------
+; unsigned int k_printf(char* message, unsigned int line)
+; {
+;     char* vidmem = (char*) 0xb8000;
+;     unsigned int i = line * 80 * 2;
+; 
+;     while  (*message != 0) {
+;         if (*message == '\\') {
+;             *message++;
+;             if (*message == 'n') { 
+;                 *message++;
+;                 line++;
+;                 i = (line*80*2);
+;                 if (*message == 0) {
+;                     return(1);
+;                 }
+;             }
+;         }
+;         vidmem[i] = *message; *message++; ++i;
+;         vidmem[i] = 0x07;
+;         ++i;
+;     }
+;     return 1;
+; }
+; -----------------------------------------------------------------------------
+PutStrColor:
+k_printf:
+    push    edi
+    push    esi
+    push    ebx
+    mov     edx, DWORD [esp + 16]
+    mov     ebx, DWORD [esp + 20]
+    mov     cl , BYTE  [edx]
+    lea     eax, [ebx + ebx * 4]
+    sal     eax, 5
+    test    cl, cl
+    jne     .L12
+    jmp     .L8
+.L21:
+    mov     edi, esi
+    mov     cl, BYTE [edx]
+    mov     esi, edx
+    mov     edx, edi
+.L10:
+    mov     BYTE [eax + TEXT_VRAM    ], cl  ; character
+    mov     BYTE [eax + TEXT_VRAM + 1], 7   ; color
+    mov     cl, BYTE [esi + 1]
+    add     eax, 2
+    test    cl, cl
+    je      .L8
+.L12:
+    lea     esi, [edx+1]
+    cmp     cl, 92
+    jne     .L21
+    mov     cl, BYTE [edx + 1]
+    cmp     cl, 110
+    je      .L11
+    add     edx, 2
+    jmp     .L10
+.L11:
+    inc     ebx
+    mov     cl, BYTE [edx + 2]
+    lea     esi, [edx + 2]
+    lea     eax, [ebx + ebx * 4]
+    sal     eax, 5
+    test    cl, cl
+    je      .L8
+    add     edx, 3
+    jmp     .L10
+.L8:
+    pop     ebx
+    mov     eax, 1
+    pop     esi
+    pop     edi
     ret
 %endif
