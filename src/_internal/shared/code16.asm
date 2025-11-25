@@ -1,4 +1,3 @@
-
 ; -----------------------------------------------------------------------------
 ; \file  code16.asm
 ; \note  (c) 2025 by Jens Kallup - paule32
@@ -68,11 +67,7 @@ code16_start:
 bits 32
 go_pm:
 section .text
-    mov ax, 0x10
-    mov ds, ax
-
     incbin 'kernel32.bin'
-    
     spin:   jmp spin        ; Loop
 %endif
 

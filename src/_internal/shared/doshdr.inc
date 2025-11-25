@@ -51,7 +51,7 @@ dos_start:
     ;times    10  dw 0                  ; e_res2[10]
     ; ----
     
-    %if DOS_MODE == 64
+    %if DOS_SHELL == 64
         dd pe_header                    ; e_lfanew -> Offset des PE-Headers
     %endif
     
@@ -70,21 +70,6 @@ mz_image:
 stub_entry:
 incbin 'kernel16.bin'
 
-%if DOS_MODE == 32
-bits 32
-go_pm:
-section .text
-    mov ax, 0x10
-    mov ds, ax
-
-    incbin 'kernel32.bin'
-    
-    spin:   jmp spin        ; Loop
-%elif DOS_MODE == 64
-incbin 'kernel64.bin'
-%endif
-
 ;align 16
-
 stub_end:
 %endif

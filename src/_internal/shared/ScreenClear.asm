@@ -7,8 +7,9 @@
 ; -----------------------------------------------------------------------------
 %define TEXT_VRAM 0xb8000
 
+%if DOS_MODE == 16
 dos_screen_clear:
-%if DOS_SHELL == 1
+k_clear_screenv:
     bits 16
     section .text
     push ds
@@ -34,13 +35,37 @@ dos_screen_clear:
     SET_CURSOR 0, 0
     
     ret
-%elif DOS_SHELL == 32
-    bits 32
-    section .text
-    mov edi, 0xb8000
-    mov [PutStr_Ptr], edi
-    mov ecx, 40 * 25
-    mov eax, 0x07200720
-    rep stosd
+%endif
+
+; -----------------------------------------------------------------------------
+; \brief 32-bit PM-DOS screen clear stuff ...
+; -----------------------------------------------------------------------------
+%if DOS_MODE == 32
+; -----------------------------------------------------------------------------
+; \brief kernel PM-DOS screen clear function with default 80x25 dimension.
+; \note  C-kernel source:
+;
+; void k_clear_screen()
+; {
+;     char* vidmem = (char*) 0xb8000;
+;     unsigned int i=0;
+;     while(i<(80*2*25)) {
+;         vidmem[i] = ' '; ++i;
+;         vidmem[i] = 0x07;
+;         ++i;
+;     }
+; }
+; -----------------------------------------------------------------------------
+dos_screen_clear:
+k_clear_screen:
+bits 32
+section .text
+    mov  eax, 0xb8000
+.loop:
+    mov  byte [eax],  ' '
+    mov  byte [eax+1], 0x07  ; gray text
+    add  eax, 2
+    cmp  eax, ((80 * 25) * 2)
+    jne  .loop
     ret
 %endif

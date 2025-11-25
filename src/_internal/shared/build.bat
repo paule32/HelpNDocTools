@@ -11,15 +11,14 @@
 ::nasm.exe -E kernel.asm > kernel.pre
 ::nasm.exe -E start.asm  > start.pre
 
-nasm.exe -f bin -o kernel16.bin kernel16.asm -DDOS_SHELL=1 -DDOS_MODE=16
-nasm.exe -f bin -o kernel32.bin kernel32.asm -DDOS_SHELL=1 -DDOS_MODE=32
-nasm.exe -f bin -o kernel64.bin kernel64.asm -DDOS_SHELL=1 -DDOS_MODE=64
+nasm.exe -f bin -o kernel16.bin kernel16.asm
+nasm.exe -f bin -o kernel32.bin kernel32.asm
 
-::nasm.exe -f bin -o start.exe  start.asm
+nasm.exe -f bin -o start.exe  start.asm
 
 ::-w-zeroing
-::copy /b           start.exe start.bin >nul:
-::copy /b           start.exe dos.exe   >nul:
-::upx.exe           start.exe
+copy /b           start.exe start.bin >nul:
+copy /b           start.exe dos.exe   >nul:
+upx.exe           start.exe
 
 ::nasm -f bin getlang.asm -o getlang.com
