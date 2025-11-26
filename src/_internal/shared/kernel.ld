@@ -15,6 +15,7 @@ SECTIONS {
     . = 0x40000;
 
     .text : {
+        LONG(_kmain)
         *(.text*)
     }
 

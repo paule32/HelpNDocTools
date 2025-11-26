@@ -123,16 +123,13 @@ protected_mode_entry:
     mov esp, 0x0090000
 
     ; Kernel-Entrypoint (Address from linker script!)
-    mov eax, 0x0040040    ; physiscall Adress of KERNEL.BIN-Entry: 0x1000:0000
-    call eax
+    call [0x40000] ; physiscall Adress of KERNEL.BIN-Entry: 0x1000:0000
 
 hang:
     jmp hang
 
 ; ------------------ Daten (16-Bit) --------------------
-
-[bits 16]
-
+bits 16
 kernel_fname db "KERNEL.BIN",0
 
 msg_file db "open error: KERNEL.BIN$",0
