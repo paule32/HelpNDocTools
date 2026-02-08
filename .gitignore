@@ -206,3 +206,10 @@ src/pastest2.py.bak
 src/pasyacc.py.bak
 *.bak
 *.pyc
+/src/__pycache__
+/src/build
+/src/loader/.vs
+/src/loader
+/src/temp/2
+*.o
+src/temp/asm/ReactOS/ReactOS-0.4.15-src.zip

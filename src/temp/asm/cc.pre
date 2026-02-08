@@ -1,0 +1,513 @@
+%line 9+1 code16.asm
+[bits 16]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+code16_start:
+ INIT_COMMAND_LINE
+ INIT_CONSOLE
+
+ SCREEN_CLEAR
+ SET_CURSOR 0, 1
+
+%line 62+1 code16.asm
+ DOS_Exit 0
+%line 65+1 code16.asm
+
+%line 77+1 code16.asm
+
+
+
+
+
+[bits 16]
+PROC_CHECK:
+ pushf
+ xor ah, ah
+ push ax
+ popf
+ pushf
+ pop ax
+ and ah, 0xF0
+ cmp ah, 0xF0
+ je no386
+ mov ah, 70h
+ push ax
+ popf
+ pushf
+ pop ax
+ and ah, 70h
+ jz no386
+ popf
+ ret
+
+ no386:
+ PUTS_COLOR no386e, 3
+ DOS_Exit 1
+ ret
+
+
+
+
+
+[bits 16]
+CHECK_MODE:
+ mov eax, cr0
+ and al, 1
+ jnz not_real_mode
+ ret
+
+ not_real_mode:
+ PUTS_COLOR norealmode, 3
+ DOS_Exit 1
+ ret
+
+
+
+
+
+%line 9+1 ConsoleCursor.asm
+dos_set_cursor:
+ mov [PTR16(dos_xpos)], dl
+ mov [PTR16(dos_ypos)], dh
+
+ mov bh, 0
+ mov [PTR16(dos_page)], bh
+
+ mov ah, 02h
+ VideoCall
+ ret
+
+
+%line 12+1 ErrorCodes.asm
+DOS_handle_error_code:
+
+
+ mov bx, ax
+ mov si, _cA_error_dispatch
+ .next:
+ lodsw
+ test ax, ax
+ jz .default
+ cmp ax, bx
+ je .match
+ add si, 2
+ jmp .next
+ .match:
+ jmp word [si]
+ .default:
+ jmp _cA_open_error_nd
+
+
+
+
+ DEF_ERROR 01h, open_error_01
+ DEF_ERROR 02h, open_error_02
+ DEF_ERROR 03h, open_error_03
+ DEF_ERROR 04h, open_error_04
+ DEF_ERROR 05h, open_error_05
+ DEF_ERROR 06h, open_error_06
+ DEF_ERROR 07h, open_error_07
+ DEF_ERROR 08h, open_error_08
+ DEF_ERROR 09h, open_error_09
+ DEF_ERROR 0Ah, open_error_0A
+ DEF_ERROR 0Bh, open_error_0B
+ DEF_ERROR 0Ch, open_error_0C
+ DEF_ERROR 0Dh, open_error_0D
+ DEF_ERROR 0Eh, open_error_0E
+ DEF_ERROR 0Fh, open_error_0F
+ DEF_ERROR 10h, open_error_10
+ DEF_ERROR 11h, open_error_11
+ DEF_ERROR 12h, open_error_12
+ DEF_ERROR 15h, open_error_15
+ DEF_ERROR 1Dh, open_error_1D
+ DEF_ERROR 1Eh, open_error_1E
+ DEF_ERROR 1Fh, open_error_1F
+ DEF_ERROR 20h, open_error_20
+ DEF_ERROR 21h, open_error_21
+ DEF_ERROR 27h, open_error_27
+
+ ERR_HANDLER 0x01, 0x02, 0x03, 0x04
+ ERR_HANDLER 0x05, 0x06, 0x07, 0x08
+ ERR_HANDLER 0x09, 0x0A, 0x0B, 0x0C
+ ERR_HANDLER 0x0D, 0x0E, 0x0F, 0x10
+ ERR_HANDLER 0x11, 0x12, 0x15
+ ERR_HANDLER 0x1D, 0x1E, 0x1F, 0x20
+ ERR_HANDLER 0x21
+ ERR_HANDLER 0x27
+
+_cA_errhnd:
+ PUTS_COLOR open_error_nd, ATTR_DOS_ERROR
+ mov cx, 32
+ jmp _open_exit
+
+_open_exit:
+ DOS_Exit cx
+%line 9+1 InitConsole.asm
+dos_init_console:
+ call dos_get_cols
+ call dos_get_rows
+
+ SCREEN_CLEAR
+ SET_CURSOR 0, 1
+
+ call dos_get_command_line
+ ret
+
+
+
+
+dos_get_cols:
+ mov ah, 0Fh
+ VideoCall
+
+
+
+ mov bl, ah
+ ret
+
+
+
+
+dos_get_rows:
+ mov ax, 1130h
+ mov bh, 00h
+ VideoCall
+ mov dl, dl
+ inc dl
+ mov bh, dl
+ ret
+
+
+
+
+dos_get_command_line:
+ xor ax, ax
+ mov si, 81h
+ mov cl, [80h]
+ xor ch, ch
+
+ jcxz .no_args
+
+ mov di, PTR16(_cA_cmd_buf)
+ .copy:
+ lodsb
+ cmp al, 0x0D
+ je .done_copy
+ stosb
+ loop .copy
+
+ .done_copy:
+ mov al, 0
+ stosb
+
+
+ .trim:
+ cmp di, PTR16(_cA_cmd_buf)
+ jbe .make_dos_str
+ dec di
+ cmp byte [di], ' '
+ je .trim
+ inc di
+
+ .make_dos_str:
+ mov byte [di], 0
+ jmp .next
+
+ .no_args:
+ PUTS_COLOR noargs_msg, 0x12
+ DOS_Exit 0
+
+ .next:
+ ret
+%line 20+1 Int16ToStr.asm
+DOSIntToStr:
+ push ax
+ push bx
+ push cx
+ push dx
+ push di
+
+ mov bx, 10
+ xor cx, cx
+
+ cmp ax, 0
+ jne .div_loop
+ mov byte [di], '0'
+ inc di
+ jmp short .finish
+
+ .div_loop:
+ xor dx, dx
+ div bx
+ push dx
+ inc cx
+ test ax, ax
+ jne .div_loop
+
+ .write_loop:
+ pop dx
+ add dl, '0'
+ mov [di], dl
+ inc di
+ loop .write_loop
+
+ .finish:
+ mov byte [di], 0x00
+
+ pop di
+ pop dx
+ pop cx
+ pop bx
+ pop ax
+ ret
+%line 12+1 PutStrColor.asm
+putc:
+ push dx
+ mov dl, al
+ mov ah, 02h
+ SysCall
+ pop dx
+ ret
+
+
+DOSrncrlf:
+ mov al, 13
+ call putc
+ mov al, 10
+ call putc
+ ret
+
+DOSPutStrColor:
+ mov ah, 09h
+ SysCall
+ ret
+
+print_z:
+ push dx
+ mov si, dx
+ .find_end:
+ lodsb
+ cmp al, 0
+ jne .find_end
+ dec si
+
+ mov al, '$'
+ mov [si], al
+ inc si
+ mov byte [si], 0
+
+ mov [PTR16(fdbuf)], si
+ DOS_Write fdbuf
+ pop dx
+ ret
+
+
+DOS_ConsoleWrite:
+ push ax
+ push dx
+ push si
+ mov si, dx
+ .print_z_loop:
+ lodsb
+ cmp al, '$'
+ je .pe_done
+ call putc
+ inc si
+ jmp .print_z_loop
+ .pe_done:
+ pop si
+ pop dx
+ pop ax
+ ret
+
+PutStrColor:
+ push bx
+
+ mov bh, [PTR16(dos_readln_flag)]
+ cmp bh, 0
+ je .no_length
+ add si, 2
+ mov bh, 0
+ mov [PTR16(dos_readln_flag)], bh
+ .no_length:
+ pop bx
+
+ mov dx, [PTR16(dos_xpos)]
+
+ .print_loop:
+ lodsb
+
+ COMPARE al, 0x00, .printed
+ COMPARE al, 0x0d, .printed
+ COMPARE al, 0x0a, .printed
+
+ test al, al
+ jz .printed
+ mov ah, 09h
+ mov bh, 0
+ mov cx, 1
+ VideoCall
+
+ mov ah, 0x02
+ mov bh, 0
+ inc dx
+ VideoCall
+
+ jmp .print_loop
+
+ .printed:
+
+ ret
+
+
+DOS_getCursor:
+ push dx
+ push di
+ push si
+
+ mov ah, 03h
+ mov bh, 0
+ VideoCall
+
+ mov [PTR16(dos_ypos)], dh
+ mov [PTR16(dos_xpos)], dl
+
+ pop si
+ pop di
+ pop dx
+ ret
+%line 14+1 ReadLn16.asm
+DOSReadLn:
+ mov ah, 0Ah
+ int 21h
+
+
+ mov bx, dx
+ lea si, [bx + 2]
+ mov bl, [bx + 1]
+
+
+ mov byte [si + bx], 0x00
+
+
+ mov bh, 1
+ mov [PTR16(dos_readln_flag)], bh
+
+
+
+
+
+
+ ret
+%line 10+1 ScreenClear.asm
+dos_screen_clear:
+
+[bits 16]
+[section .text]
+ push ds
+ mov ax, 0xb800
+ mov es, ax
+
+ xor di, di
+
+
+ mov al, bl
+ mul bh
+ mov cx, ax
+
+
+ mov ax, 0x0720
+
+ .fill:
+ stosw
+ loop .fill
+
+ pop ds
+
+ SET_CURSOR 0, 0
+
+ ret
+%line 15+1 Str16Len.asm
+DOSStrLen:
+ push di
+ mov di, si
+ mov ax, 0
+
+ next:
+ mov al, [si]
+ cmp al, 0
+ je done
+
+ inc si
+ inc ax
+ jmp next
+
+ done:
+ pop di
+ ret
+%line 17+1 StrCompare.asm
+string_compare:
+ push si
+
+ .next:
+ mov al, [si]
+ mov bl, [di]
+
+ cmp al, [di]
+ jne .not_equal
+
+ inc si
+ inc di
+
+ test al, al
+ jnz .next
+
+ .term:
+ mov al, 0
+ pop si
+ ret
+
+ .not_equal:
+ mov al, 1
+ pop si
+ ret
+%line 16+1 StrCopy.asm
+string_copy:
+ push bx
+ push si
+
+
+ push ds
+ pop es
+
+ mov bx, di
+ mov cx, 63
+
+ .copy:
+ lodsb
+ stosb
+ test al, al
+ jz .done
+ loop .copy
+ mov byte [es:di], 0
+
+ .done:
+ mov si, bx
+ pop bx
+ pop bx
+ ret
+%line 140+1 code16.asm
+code16_end:

@@ -1,0 +1,113 @@
+; -----------------------------------------------------------------------------
+; \file  winhdr.inc
+; \note  (c) 2025 by Jens Kallup - paule32
+;        all rights reserved.
+;
+; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
+; -----------------------------------------------------------------------------
+; PE-Header (PE32+) + Optional Header + Section Table
+; -----------------------------------------------------------------------------
+%if DOS_MODE == 64
+bits 64
+org 0
+align 8
+pe_header:
+    db 'P','E',0,0                 ; "PE\0\0"
+
+    ; COFF
+    dw IMAGE_FILE_MACHINE_AMD64    ; AMD64
+    dw 4                           ; Sections: .text, .idata, .data, .bss
+    dd 0,0,0
+    dw 0x00F0                      ; SizeOfOptionalHeader (PE32+)
+    dw 0x0023                      ; EXECUTABLE|LAA  (Relocs stripped)
+
+%include 'precalc.asm'
+
+; --------- Optional Header (PE32+)
+    dw 0x020B                      ; Magic
+    db 0,0                         ; LinkerVersion
+    dd TEXT_RAW_SIZE               ; SizeOfCode
+    dd IDATA_RAW_SIZE + DATA_RAW_SIZE  ; SizeOfInitializedData
+    dd BSS_VSIZE                   ; SizeOfUninitializedData (nur .bss, virtuell)
+    dd RVA_TEXT(text_start)        ; EntryPoint
+    dd TEXT_VA                     ; BaseOfCode
+    dq IMAGE_BASE                  ; ImageBase
+    dd SECTALIGN                   ; SectionAlignment
+    dd FILEALIGN                   ; FileAlignment
+    dw 6,0                         ; OS Version
+    dw 1949,1956                   ; Image Version
+    dw 6,0                         ; Subsystem Version
+    dd 0
+    dd SIZEOF_IMAGE                ; SizeOfImage
+    dd SIZEOF_HEADERS              ; SizeOfHeaders
+    dd 0                           ; Checksum
+    dw 2                           ; Subsystem = Windows GUI
+    dw IMAGE_DLLCHARACTERISTICS_NX_COMPAT ; DllCharacteristics: NXCompat (no ASLR)
+    dq 0x100000, 0x1000            ; Stack Reserve/Commit
+    dq 0x100000, 0x1000            ; Heap  Reserve/Commit
+    dd 0
+    dd 16
+
+    ; Data Directories
+    dd 0,0                         ; 0 Export
+    dd RVA_IDATA(import_dir), (import_dir_end - import_dir) ; 1 Import
+    dd 0,0                         ; 2 Resource
+    dd 0,0                         ; 3 Exception
+    dd 0,0                         ; 4 Security
+    dd 0,0                         ; 5 Base Reloc
+    dd 0,0                         ; 6 Debug
+    dd 0,0                         ; 7 Architecture
+    dd 0,0                         ; 8 Global Ptr
+    dd 0,0                         ; 9 TLS
+    dd 0,0                         ; 10 Load Config
+    dd 0,0                         ; 11 Bound Import
+    dd RVA_IDATA(iat_start), (iat_end - iat_start)          ; 12 IAT
+    dd 0,0                         ; 13 Delay Import
+    dd 0,0                         ; 14 COM
+    dd 0,0                         ; 15 Reserved
+
+    ; Section .text
+    db '.text',0,0,0
+    dd TEXT_VSIZE
+    dd TEXT_VA
+    dd TEXT_RAW_SIZE
+    dd TEXT_RAW_PTR
+    dd 0,0
+    dw 0,0
+    dd 0x60000020                  ; CODE|EXECUTE|READ
+
+    ; Section .idata
+    db '.idata',0,0
+    dd IDATA_VSIZE
+    dd IDATA_VA
+    dd IDATA_RAW_SIZE
+    dd IDATA_RAW_PTR
+    dd 0,0
+    dw 0,0
+    dd 0xC0000040                  ; INIT_DATA|READ|WRITE
+
+    ; --- Section .data
+    db '.data',0,0,0
+    dd DATA_VSIZE
+    dd DATA_VA
+    dd DATA_RAW_SIZE
+    dd DATA_RAW_PTR
+    dd 0,0
+    dw 0,0
+    dd 0xC0000040      ; READ | WRITE | INIT_DATA
+    
+    ; --- Section .bss
+    db '.bss',0,0,0,0
+    dd BSS_VSIZE
+    dd BSS_VA
+    dd 0,0
+    dd 0,0
+    dw 0,0
+    dd 0xC0000080      ; READ | WRITE | UNINITIALIZED_DATA
+
+headers_end:
+
+; Auf Dateialignment auffüllen
+times (SIZEOF_HEADERS - ($ - $$)) db 0
+
+%endif
