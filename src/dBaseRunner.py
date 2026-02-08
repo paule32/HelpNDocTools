@@ -789,6 +789,399 @@ class CppEmitter:
     def text(self):
         return "\n".join(self.lines) + "\n"
 
+class JavaEmitter:
+    def __init__(self):
+        self.lines = []
+        self.level = 0
+
+    def emit(self, line=""):
+        self.lines.append(("  " * self.level) + line)
+
+    def indent(self): self.level += 1
+    def dedent(self): self.level = max(0, self.level - 1)
+
+    def text(self):
+        return "\n".join(self.lines) + "\n"
+
+class DBaseToJava:
+    def __init__(self, parser, classes=None, class_name="GenProg", package=None):
+        self.p = parser
+        self.out = JavaEmitter()
+        self.classes = classes or {}
+        self.class_name = class_name
+        self.package = package
+        self._tmp_i = 0
+
+    def new_temp(self):
+        self._tmp_i += 1
+        return f"t{self._tmp_i}"
+
+    def jstr(self, s: str) -> str:
+        s = s.replace("\\", "\\\\").replace('"', '\\"')
+        return f"\"{s}\""
+
+    def jstr_list(self, items):
+        # java.util.List.of("A","B")
+        inner = ", ".join(self.jstr(x) for x in items)
+        return f"java.util.List.of({inner})"
+
+    def jval_list(self, exprs):
+        # java.util.List.of(a, b, c)
+        inner = ", ".join(exprs)
+        return f"java.util.List.of({inner})"
+
+    def generate(self, tree, out_path: str):
+        o = self.out
+        if self.package:
+            o.emit(f"package {self.package};")
+            o.emit("")
+        o.emit("import java.util.*;")
+        o.emit("")
+        o.emit("public class " + self.class_name + " {")
+        o.indent()
+        o.emit("public static void main(String[] args) {")
+        o.indent()
+        o.emit("TRT rt = new TRT();")
+        o.emit("try {")
+        o.indent()
+
+        self.gen_input(tree)
+
+        o.dedent()
+        o.emit("} catch (Exception e) {")
+        o.indent()
+        o.emit('System.err.println("ERROR: " + e.getMessage());')
+        o.emit("e.printStackTrace();")
+        o.dedent()
+        o.emit("}")
+        o.dedent()
+        o.emit("}")
+        o.dedent()
+        o.emit("}")
+        Path(out_path).write_text(o.text(), encoding="utf-8")
+
+    # input : item* EOF
+    def gen_input(self, ctx):
+        for it in ctx.item():
+            self.gen_item(it)
+
+    # item : classDecl | methodDecl | statement
+    def gen_item(self, it):
+        if it.statement():
+            return self.gen_stmt(it.statement())
+        if it.classDecl():
+            self.out.emit("// TODO classDecl not implemented in Java backend")
+            return
+        if it.methodDecl():
+            self.out.emit("// TODO methodDecl not implemented in Java backend")
+            return
+        self.out.emit("// TODO unhandled item")
+
+    # statement dispatcher (erweitern wie bei Python/Pascal)
+    def gen_stmt(self, st):
+        if st.writeStmt():         return self.gen_write(st.writeStmt())
+        if st.assignStmt():        return self.gen_assign(st.assignStmt())
+        if st.localDeclStmt():     return self.gen_local_decl(st.localDeclStmt())
+        if st.localAssignStmt():   return self.gen_local_assign(st.localAssignStmt())
+        if st.ifStmt():            return self.gen_if(st.ifStmt())
+        if st.forStmt():           return self.gen_for(st.forStmt())
+        if st.breakStmt():         return self.gen_break(st.breakStmt())
+        if st.returnStmt():        return self.gen_return(st.returnStmt())
+        if st.withStmt():          return self.gen_with(st.withStmt())
+        if st.parameterStmt():     return self.gen_parameter(st.parameterStmt())
+        if st.exprStmt():          return self.gen_expr_stmt(st.exprStmt())
+
+        self.out.emit("// TODO unhandled statement: " + type(st.getChild(0)).__name__)
+
+    # writeStmt : WRITE writeArg (PLUS writeArg)* ;
+    def gen_write(self, ctx):
+        parts = [self.gen_write_arg(a) for a in ctx.writeArg()]
+        if not parts:
+            self.out.emit("rt.WRITE(TRT.Null());")
+            return
+
+        expr = parts[0]
+        for p in parts[1:]:
+            expr = f"rt.BINOP({expr}, \"+\", {p})"
+        self.out.emit(f"rt.WRITE({expr});")
+
+    # writeArg : STRING | dottedRef | expr ;
+    def gen_write_arg(self, actx):
+        if actx.STRING():
+            # actx.STRING().getText() liefert schon Anführungszeichen aus dem Lexer
+            return f"TRT.V({actx.STRING().getText()})"
+        if actx.dottedRef():
+            base, path = self.gen_dotted_ref_parts(actx.dottedRef())
+            return f"rt.GET({base}, {path})"
+        if actx.expr():
+            return self.gen_expr(actx.expr())
+        return "TRT.Null()"
+
+    def gen_local_decl(self, ctx):
+        name = ctx.name.text if hasattr(ctx, "name") else ctx.IDENT().getText()
+        self.out.emit(f"rt.SET_NAME({self.jstr(name)}, TRT.Null());")
+
+    def gen_local_assign(self, ctx):
+        name = ctx.name.text if hasattr(ctx, "name") else ctx.IDENT().getText()
+        rhs = self.gen_expr(ctx.expr())
+        self.out.emit(f"rt.SET_NAME({self.jstr(name)}, {rhs});")
+
+    # lvalue : postfixExpr | dottedRef ;
+    def gen_assign(self, ctx):
+        rhs = self.gen_expr(ctx.expr())
+        lv = ctx.lvalue()
+
+        if lv.dottedRef():
+            base, path = self.gen_dotted_ref_parts(lv.dottedRef())
+            self.out.emit(f"rt.SET({base}, {path}, {rhs});")
+            return
+
+        pe = lv.postfixExpr()
+        if pe:
+            chain = self.lvalue_chain_from_postfix(pe)
+
+            if len(chain) == 1:
+                self.out.emit(f"rt.SET_NAME({self.jstr(chain[0])}, {rhs});")
+                return
+
+            head = chain[0]
+            if head.upper() == "THIS":
+                base = "rt.GET_THIS()"
+                path = self.jstr_list(chain[1:])
+            else:
+                base = f"rt.GET_NAME({self.jstr(head)})"
+                path = self.jstr_list(chain[1:])
+
+            self.out.emit(f"rt.SET({base}, {path}, {rhs});")
+            return
+
+        self.out.emit("// TODO unsupported lvalue: " + lv.getText())
+
+    # ifStmt : IF expr block (ELSE block)? ENDIF ;
+    def gen_if(self, ctx):
+        cond = self.gen_expr(ctx.expr())
+        self.out.emit(f"if (rt.TRUE({cond})) {{")
+        self.out.indent()
+
+        then_block = ctx.block(0)
+        for st in then_block.statement():
+            self.gen_stmt(st)
+
+        self.out.dedent()
+        self.out.emit("}")
+
+        if ctx.ELSE():
+            self.out.emit("else {")
+            self.out.indent()
+            else_block = ctx.block(1)
+            for st in else_block.statement():
+                self.gen_stmt(st)
+            self.out.dedent()
+            self.out.emit("}")
+
+    # forStmt : FOR IDENT ASSIGN numberExpr TO numberExpr (STEP numberExpr)? block ENDFOR ;
+    def gen_for(self, ctx):
+        var = ctx.IDENT().getText()
+        start = ctx.numberExpr(0).getText()
+        end   = ctx.numberExpr(1).getText()
+        step  = ctx.numberExpr(2).getText() if ctx.STEP() else "1"
+
+        self.out.emit(f"rt.SET_NAME({self.jstr(var)}, TRT.V({start}));")
+        self.out.emit(f"while (rt.TRUE(rt.FOR_COND(rt.GET_NAME({self.jstr(var)}), TRT.V({end}), TRT.V({step})))) {{")
+        self.out.indent()
+
+        for st in ctx.block().statement():
+            self.gen_stmt(st)
+
+        self.out.emit(f"rt.SET_NAME({self.jstr(var)}, rt.BINOP(rt.GET_NAME({self.jstr(var)}), \"+\", TRT.V({step})));")
+        self.out.dedent()
+        self.out.emit("}")
+
+    def gen_break(self, ctx):
+        self.out.emit("break;")
+
+    def gen_return(self, ctx):
+        # Top-level main: delegiere an Runtime (z.B. Exception oder Flag)
+        if ctx.expr():
+            self.out.emit(f"rt.RETURN({self.gen_expr(ctx.expr())});")
+        else:
+            self.out.emit("rt.RETURN(TRT.Null());")
+
+    # parameterStmt : PARAMETER paramNames ;  paramNames : IDENT (',' IDENT)* ;
+    def gen_parameter(self, ctx):
+        p = ctx.paramNames()
+        names = [t.getText() for t in p.IDENT()]
+        self.out.emit(f"rt.PARAMETER({self.jstr_list(names)});")
+
+    # exprStmt : postfixExpr ;
+    def gen_expr_stmt(self, ctx):
+        e = self.gen_postfix(ctx.postfixExpr())
+        self.out.emit(e + ";")
+
+    # WITH
+    def gen_with(self, ctx):
+        base = self.gen_with_target(ctx.withTarget())
+        tmp = self.new_temp()
+        self.out.emit(f"Object {tmp} = {base};")
+        self.out.emit(f"rt.PUSH_WITH({tmp});")
+
+        body = ctx.withBody()
+        for ch in list(getattr(body, "children", []) or []):
+            t = type(ch).__name__
+            if t.endswith("WithAssignStmtContext"):
+                self.gen_with_assign(ch)
+            elif t.endswith("WithStmtContext"):
+                self.gen_with(ch)
+            elif t.endswith("StatementContext"):
+                self.gen_stmt(ch)
+
+        self.out.emit("rt.POP_WITH();")
+
+    def gen_with_target(self, ctx):
+        if ctx.THIS():
+            return "rt.GET_THIS()"
+        if ctx.dottedRef():
+            base, path = self.gen_dotted_ref_parts(ctx.dottedRef())
+            return f"rt.GET({base}, {path})"
+        if ctx.IDENT():
+            return f"rt.GET_NAME({self.jstr(ctx.IDENT().getText())})"
+        if ctx.postfixExpr():
+            return self.gen_postfix(ctx.postfixExpr())
+        return "TRT.Null()"
+
+    def gen_with_assign(self, ctx):
+        path = [t.getText() for t in ctx.withLvalue().IDENT()]
+        rhs = self.gen_expr(ctx.expr())
+        self.out.emit(f"rt.WITH_SET({self.jstr_list(path)}, {rhs});")
+
+    # ----- expr/postfix/primary (runtime-backed) -----
+    def gen_expr(self, ctx):
+        return self.gen_logical_or(ctx.logicalOr())
+
+    def gen_logical_or(self, ctx):
+        parts = [self.gen_logical_and(x) for x in ctx.logicalAnd()]
+        out = parts[0]
+        for rhs in parts[1:]:
+            out = f"rt.BINOP({out}, \"OR\", {rhs})"
+        return out
+
+    def gen_logical_and(self, ctx):
+        parts = [self.gen_logical_not(x) for x in ctx.logicalNot()]
+        out = parts[0]
+        for rhs in parts[1:]:
+            out = f"rt.BINOP({out}, \"AND\", {rhs})"
+        return out
+
+    def gen_logical_not(self, ctx):
+        if ctx.NOT():
+            inner = self.gen_logical_not(ctx.logicalNot())
+            return f"rt.UNOP(\"NOT\", {inner})"
+        return self.gen_comparison(ctx.comparison())
+
+    def gen_comparison(self, ctx):
+        left = self.gen_additive(ctx.additiveExpr(0))
+        if ctx.compareOp():
+            op = ctx.compareOp().getText()
+            right = self.gen_additive(ctx.additiveExpr(1))
+            return f"rt.BINOP({left}, {self.jstr(op)}, {right})"
+        return left
+
+    def gen_additive(self, ctx):
+        terms = [self.gen_multiplicative(x) for x in ctx.multiplicativeExpr()]
+        out = terms[0]
+        kids = list(ctx.getChildren())
+        i = 1
+        while i < len(kids):
+            op = kids[i].getText()
+            rhs = terms[(i + 1) // 2]
+            out = f"rt.BINOP({out}, {self.jstr(op)}, {rhs})"
+            i += 2
+        return out
+
+    def gen_multiplicative(self, ctx):
+        factors = [self.gen_postfix(x) for x in ctx.postfixExpr()]
+        out = factors[0]
+        kids = list(ctx.getChildren())
+        i = 1
+        while i < len(kids):
+            op = kids[i].getText()
+            rhs = factors[(i + 1) // 2]
+            out = f"rt.BINOP({out}, {self.jstr(op)}, {rhs})"
+            i += 2
+        return out
+
+    def gen_postfix(self, ctx):
+        cur = self.gen_primary(ctx.primary())
+        kids = list(ctx.getChildren())
+        k = 1
+        while k < len(kids):
+            t = kids[k].getText()
+            if t == "(":
+                args = []
+                if kids[k+1].getText() != ")":
+                    argctx = kids[k+1]
+                    args = [self.gen_expr(e) for e in argctx.expr()]
+                    k += 1
+                cur = f"rt.CALL_ANY({cur}, {self.jval_list(args)})"
+                k += 2
+                continue
+            if t in (".", "::"):
+                name = kids[k+1].getText()
+                cur = f"rt.GET_ATTR({cur}, {self.jstr(name)})"
+                k += 2
+                continue
+            k += 1
+        return cur
+
+    def gen_primary(self, ctx):
+        if ctx.THIS():
+            return "rt.GET_THIS()"
+        if ctx.STRING():
+            return f"TRT.V({ctx.STRING().getText()})"
+        if ctx.NUMBER():
+            return f"TRT.V({ctx.NUMBER().getText()})"
+        if ctx.FLOAT():
+            return f"TRT.V({ctx.FLOAT().getText()})"
+        if ctx.IDENT():
+            return f"rt.GET_NAME({self.jstr(ctx.IDENT().getText())})"
+        if ctx.newExpr():
+            return self.gen_new(ctx.newExpr())
+        if ctx.expr():
+            return "(" + self.gen_expr(ctx.expr()) + ")"
+        return "TRT.Null()"
+
+    def gen_new(self, ctx):
+        class_name = ctx.IDENT().getText()
+        args = []
+        if ctx.argList():
+            args = [self.gen_expr(e) for e in ctx.argList().expr()]
+        return f"rt.NEW({self.jstr(class_name)}, {self.jval_list(args)})"
+
+    def gen_dotted_ref_parts(self, dctx):
+        parts = [t.getText() for t in dctx.IDENT()]
+        head = parts[0]
+        if head.upper() == "THIS":
+            base = "rt.GET_THIS()"
+            path = self.jstr_list(parts[1:])
+        else:
+            base = f"rt.GET_NAME({self.jstr(head)})"
+            path = self.jstr_list(parts[1:])
+        return base, path
+
+    def lvalue_chain_from_postfix(self, pe):
+        chain = [pe.primary().getText()]
+        i = 1
+        while i < pe.getChildCount():
+            ch = pe.getChild(i).getText()
+            if ch == ".":
+                chain.append(pe.getChild(i+1).getText())
+                i += 2
+                continue
+            if ch == "(":
+                raise RuntimeError(f"LVALUE darf keinen Call enthalten: {pe.getText()}")
+            i += 1
+        return chain
+        
 class DBaseToCpp:
     def __init__(self, parser, classes=None, prog_name="genprog"):
         self.p = parser
@@ -5347,16 +5740,19 @@ class EditorWidget(QDialog):
         layout.addWidget(self.btn_run)
         
         hlayout = QHBoxLayout()
-        self.btn_gen_python = QPushButton("Generate Python" , self)
-        self.btn_gen_pascal = QPushButton("Generate Pascal" , self)
-        self.btn_gen_gnucpp = QPushButton("Generate GNU C++", self)
+        self.btn_gen_python = QPushButton("Generate Python Code" , self)
+        self.btn_gen_pascal = QPushButton("Generate Pascal Code" , self)
+        self.btn_gen_javout = QPushButton("Generate Jave Code"   , self)
+        self.btn_gen_gnucpp = QPushButton("Generate GNU C++ Code", self)
         
         self.btn_gen_python.clicked.connect(self.on_button_gen_python_clicked)
         self.btn_gen_pascal.clicked.connect(self.on_button_gen_pascal_clicked)
+        self.btn_gen_javout.clicked.connect(self.on_button_gen_javout_clicked)
         self.btn_gen_gnucpp.clicked.connect(self.on_button_gen_gnucpp_clicked)
         
         hlayout.addWidget(self.btn_gen_python)
         hlayout.addWidget(self.btn_gen_pascal)
+        hlayout.addWidget(self.btn_gen_javout)
         hlayout.addWidget(self.btn_gen_gnucpp)
         
         layout.addLayout(hlayout)
@@ -5375,7 +5771,23 @@ class EditorWidget(QDialog):
     
     def closeEvent(self, event):
         self.close_tracked_windows()
-    
+
+    def on_button_gen_javout_clicked(self):
+        # 0 pre-procession
+        pp = Preprocessor(include_paths=[Path("includes")])
+        pre = pp.process("dbase.prg")
+        
+        #source = FileStream(filename, encoding="utf-8")
+        source  = InputStream(pre)
+        lexer   = dBaseLexer(source)
+        tokens  = CommonTokenStream(lexer)
+        tokens.fill();
+        parser  = dBaseParser(tokens)
+        tree    = parser.input_()
+        codegen = DBaseToJava(parser, class_name="GenProg", package=None) #, classes=VISITOR.classes)
+        codegen.generate(tree, "dbase.java")
+        print("gen java ok.")
+
     def on_button_gen_python_clicked(self):
         # 0 pre-procession
         pp = Preprocessor(include_paths=[Path("includes")])
@@ -5424,22 +5836,6 @@ class EditorWidget(QDialog):
         codegen.generate(tree, "dbase.pas")
         print("gen pas ok.")
     
-    def on_button_gen_python_clicked(self):
-        # 0 pre-procession
-        pp = Preprocessor(include_paths=[Path("includes")])
-        pre = pp.process("dbase.prg")
-        
-        #source = FileStream(filename, encoding="utf-8")
-        source  = InputStream(pre)
-        lexer   = dBaseLexer(source)
-        tokens  = CommonTokenStream(lexer)
-        tokens.fill();
-        parser  = dBaseParser(tokens)
-        tree    = parser.input_()
-        codegen = DBaseToPython(parser) #, classes=VISITOR.classes)
-        codegen.generate(tree, "dbase.py")
-        print("gen c++ ok.")
-        
     def on_button_run_clicked(self):
         # Das ist die Funktion, die beim Klick ausgeführt wird
         content = self.text.toPlainText().strip()
