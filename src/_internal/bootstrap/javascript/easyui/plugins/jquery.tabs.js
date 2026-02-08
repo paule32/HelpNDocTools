@@ -512,7 +512,7 @@ for(var i=0;i<_6d.length;i++){
 var p=_6d[i];
 tmp.html(p.panel("options").title);
 var _6e=tmp.text();
-tmp.html(_6b);
+tmp.text(_6b);
 _6b=tmp.text();
 if(_6e==_6b){
 tab=p;

@@ -1,0 +1,1662 @@
+const tocData =[
+  {
+    "id": "0",
+    "title": "Liste der Tabellen",
+    "href": "ListederTabellen.htm"
+  },
+  {
+    "id": "0",
+    "title": "Über diesen Leitfaden",
+    "href": "UberdiesesHandbuch.htm"
+  },
+  {
+    "id": "0",
+    "title": "Bezeichnungen",
+    "href": "Bezeichnungen.htm"
+  },
+  {
+    "id": "0",
+    "title": "Syntax Diagramme",
+    "href": "SyntaxDiagramme.htm"
+  },
+  {
+    "id": "0",
+    "title": "Über die Sprache Pascal",
+    "href": "UberdieSprachePascal.htm"
+  },
+  {
+    "id": "1",
+    "title": "Pascal Zeichen und Symbole",
+    "children": [
+      {
+        "id": "1",
+        "title": "Symbole",
+        "children": null,
+        "href": "11Symbole.htm"
+      },
+      {
+        "id": "2",
+        "title": "Kommentare",
+        "children": null,
+        "href": "12Kommentare.htm"
+      },
+      {
+        "id": "3",
+        "title": "Reservierte Schlüsselwörter",
+        "children": [
+          {
+            "id": "1",
+            "title": "Turbo Pascal",
+            "children": null,
+            "href": "131TurboPascal.htm"
+          },
+          {
+            "id": "2",
+            "title": "Object Pascal",
+            "children": null,
+            "href": "132ObjectPascal.htm"
+          },
+          {
+            "id": "3",
+            "title": "Modifikationen",
+            "children": null,
+            "href": "133Modifikationen.htm"
+          }
+        ],
+        "href": "13ReservierteSchlusselworter.htm"
+      },
+      {
+        "id": "4",
+        "title": "Kennzeichnungen",
+        "children": null,
+        "href": "14Bezeichner.htm"
+      },
+      {
+        "id": "5",
+        "title": "Hinweise für Direktiven",
+        "children": null,
+        "href": "15HinweiseundDirektiven.htm"
+      },
+      {
+        "id": "6",
+        "title": "Zahlen",
+        "children": null,
+        "href": "16Zahlen.htm"
+      },
+      {
+        "id": "7",
+        "title": "Bezeichner",
+        "children": null,
+        "href": "17Bezeichner.htm"
+      },
+      {
+        "id": "8",
+        "title": "Sprungmarken",
+        "children": null,
+        "href": "18Sprungmarken.htm"
+      },
+      {
+        "id": "9",
+        "title": "Zeichenketten",
+        "children": null,
+        "href": "19Zeichenketten.htm"
+      }
+    ],
+    "href": "11Symbole.htm"
+  },
+  {
+    "id": "2",
+    "title": "Konstanten",
+    "children": [
+      {
+        "id": "1",
+        "title": "Gewöhnliche Konstanten",
+        "children": null,
+        "href": "21GewohnlicheKonstanten.htm"
+      },
+      {
+        "id": "2",
+        "title": "Typisierte",
+        "children": null,
+        "href": "22TypisierteKonstanten.htm"
+      },
+      {
+        "id": "3",
+        "title": "Resourcen Zeichenketten",
+        "children": null,
+        "href": "23ResourcenZeichenketten.htm"
+      }
+    ],
+    "href": "2Konstanten.htm"
+  },
+  {
+    "id": "3",
+    "title": "Typen",
+    "children": [
+      {
+        "id": "1",
+        "title": "Basis-Typen",
+        "children": [
+          {
+            "id": "1",
+            "title": "Ordinale Typen",
+            "children": null,
+            "href": "311OrdinaleTypen.htm"
+          },
+          {
+            "id": "2",
+            "title": "Ganze Zahlen (Integer)",
+            "children": null,
+            "href": "312GanzeZahlenInteger.htm"
+          },
+          {
+            "id": "3",
+            "title": "Boolesche Typen",
+            "children": null,
+            "href": "313BoolescheTypen.htm"
+          },
+          {
+            "id": "4",
+            "title": "Aufzählungen",
+            "children": null,
+            "href": "314Aufzahlungen.htm"
+          },
+          {
+            "id": "5",
+            "title": "Untermengen",
+            "children": null,
+            "href": "315Untermengen.htm"
+          },
+          {
+            "id": "6",
+            "title": "Zeichen",
+            "children": null,
+            "href": "316Zeichen.htm"
+          }
+        ],
+        "href": "31Basistypen.htm"
+      },
+      {
+        "id": "2",
+        "title": "Zeichen-Typen",
+        "children": [
+          {
+            "id": "1",
+            "title": "Char oder AnsiChar",
+            "children": null,
+            "href": "321CharoderAnsiChar.htm"
+          },
+          {
+            "id": "2",
+            "title": "WideChar",
+            "children": null,
+            "href": "322WideChar.htm"
+          },
+          {
+            "id": "3",
+            "title": "Sonstige",
+            "children": null,
+            "href": "323Sonstige.htm"
+          },
+          {
+            "id": "4",
+            "title": "Einzel-Byte Zeichenketten",
+            "children": [
+              {
+                "id": "1",
+                "title": "ShortString",
+                "children": null,
+                "href": "3241ShortString.htm"
+              },
+              {
+                "id": "2",
+                "title": "ShortString",
+                "children": null,
+                "href": "3241ShortString.htm"
+              },
+              {
+                "id": "3",
+                "title": "AnsiString",
+                "children": null,
+                "href": "3242AnsiString.htm"
+              },
+              {
+                "id": "4",
+                "title": "WideString",
+                "children": null,
+                "href": "3241ShortString.htm"
+              },
+              {
+                "id": "5",
+                "title": "RawByteString",
+                "children": null,
+                "href": "3244RawByteString.htm"
+              },
+              {
+                "id": "6",
+                "title": "UTF8String",
+                "children": null,
+                "href": "3245UTF8String.htm"
+              },
+              {
+                "id": "7",
+                "title": "UnicodeString",
+                "children": null,
+                "href": "3251UnicodeString.htm"
+              }
+            ],
+            "href": "324Einzel-ByteZeichenketten.htm"
+          },
+          {
+            "id": "5",
+            "title": "Zeichen-Code Umwandlung",
+            "children": [
+              {
+                "id": "1",
+                "title": "Multi-Byte Zeichenketten",
+                "children": null,
+                "href": "325Multi-ByteZeichenketten.htm"
+              }
+            ],
+            "href": "3243Zeichen-CodeUmwandlung.htm"
+          },
+          {
+            "id": "6",
+            "title": "Konstante Zeichenketten",
+            "children": null,
+            "href": "326KonstanteZeichenketten.htm"
+          },
+          {
+            "id": "7",
+            "title": "Nullterminierente Zeichenketten (PChar)",
+            "children": null,
+            "href": "327NullterminierenteZeichenkette.htm"
+          },
+          {
+            "id": "8",
+            "title": "Zeichenketten-Größen",
+            "children": null,
+            "href": "328Zeichenketten-Grossen.htm"
+          }
+        ],
+        "href": "32Zeichen-Typen.htm"
+      },
+      {
+        "id": "3",
+        "title": "Strukturierte Typen",
+        "children": [
+          {
+            "id": "1",
+            "title": "Gepackte Struktur-Typen",
+            "children": null,
+            "href": "331GepackteStruktur-Typen.htm"
+          },
+          {
+            "id": "2",
+            "title": "Array's",
+            "children": [
+              {
+                "id": "1",
+                "title": "Statische Array's",
+                "children": null,
+                "href": "3321StatischeArrays.htm"
+              },
+              {
+                "id": "2",
+                "title": "Dynamische Array's",
+                "children": null,
+                "href": "3321StatischeArrays.htm"
+              },
+              {
+                "id": "3",
+                "title": "Typen-Kompatibilität dynamischer Array's",
+                "children": null,
+                "href": "3321StatischeArrays.htm"
+              },
+              {
+                "id": "4",
+                "title": "Constucktor dynamischer Array's",
+                "children": null,
+                "href": "3321StatischeArrays.htm"
+              },
+              {
+                "id": "5",
+                "title": "Feldkonstanten-Ausdrücke dynamiscer Array's",
+                "children": null,
+                "href": "3321StatischeArrays.htm"
+              },
+              {
+                "id": "6",
+                "title": "Packen und Entpacken eines Array's",
+                "children": null,
+                "href": "3321StatischeArrays.htm"
+              }
+            ],
+            "href": "332Arrays.htm"
+          },
+          {
+            "id": "3",
+            "title": "Record's",
+            "children": [
+              {
+                "id": "1",
+                "title": "Layout und Größe",
+                "children": null,
+                "href": "3331LayoutundGrosse.htm"
+              },
+              {
+                "id": "2",
+                "title": "Bemerkungen und Beispiele",
+                "children": null,
+                "href": "3332BemerkungenundBeispiele.htm"
+              }
+            ],
+            "href": "333Records.htm"
+          },
+          {
+            "id": "4",
+            "title": "Mengen-Typen",
+            "children": null,
+            "href": "334Mengen-Typen.htm"
+          },
+          {
+            "id": "6",
+            "title": "Datei-Typen",
+            "children": null,
+            "href": "335Datei-Typen.htm"
+          }
+        ],
+        "href": "33StrukturierteTypen.htm"
+      },
+      {
+        "id": "4",
+        "title": "Zeiger",
+        "children": null,
+        "href": "34Zeiger.htm"
+      },
+      {
+        "id": "5",
+        "title": "Foeward-Deklarationen",
+        "children": null,
+        "href": "35Forward-Deklarationen.htm"
+      },
+      {
+        "id": "6",
+        "title": "Prozedur-Typen",
+        "children": null,
+        "href": "36Prozedur-Typen.htm"
+      },
+      {
+        "id": "7",
+        "title": "Variant's",
+        "children": [
+          {
+            "id": "1",
+            "title": "Definition",
+            "children": null,
+            "href": "371Definition.htm"
+          },
+          {
+            "id": "3",
+            "title": "Variant's im Interface-Teil",
+            "children": null,
+            "href": "373VariantsimInterface-Teil.htm"
+          }
+        ],
+        "href": "37Variants.htm"
+      },
+      {
+        "id": "8",
+        "title": "Alias-Typen",
+        "children": null,
+        "href": "38Alias-Typen.htm"
+      },
+      {
+        "id": "9",
+        "title": "Verwaltete Typen",
+        "children": null,
+        "href": "39VerwalteteTypen.htm"
+      }
+    ],
+    "href": "3Typen.htm"
+  },
+  {
+    "id": "4",
+    "title": "Variablen",
+    "children": [
+      {
+        "id": "1",
+        "title": "Definition",
+        "children": null,
+        "href": "41Definition.htm"
+      },
+      {
+        "id": "2",
+        "title": "Erklärung",
+        "children": null,
+        "href": "42Erklarung.htm"
+      },
+      {
+        "id": "3",
+        "title": "Geltungssbereich",
+        "children": null,
+        "href": "43Geltungssbereich.htm"
+      },
+      {
+        "id": "4",
+        "title": "Initialisierte Variablen",
+        "children": null,
+        "href": "44InitialisierteVariablen.htm"
+      },
+      {
+        "id": "5",
+        "title": "Initialisierte Variablen mit Standard-Wert",
+        "children": null,
+        "href": "45InitialisierteVariablenmitStan.htm"
+      },
+      {
+        "id": "6",
+        "title": "Thread-Variablen",
+        "children": null,
+        "href": "46Thread-Variablen.htm"
+      },
+      {
+        "id": "7",
+        "title": "Eigenschaften",
+        "children": null,
+        "href": "47Eigenschaften.htm"
+      }
+    ],
+    "href": "4Variablen.htm"
+  },
+  {
+    "id": "5",
+    "title": "Objekte",
+    "children": [
+      {
+        "id": "1",
+        "title": "Deklaration",
+        "children": null,
+        "href": "51Deklaration.htm"
+      },
+      {
+        "id": "2",
+        "title": "Abtrakte und Sealed Objekte",
+        "children": null,
+        "href": "52AbtrakteundSealedObjekte.htm"
+      },
+      {
+        "id": "3",
+        "title": "Felder",
+        "children": null,
+        "href": "53Felder.htm"
+      },
+      {
+        "id": "4",
+        "title": "Klassen oder statische Felder",
+        "children": null,
+        "href": "54KlassenoderstatischeFelder.htm"
+      },
+      {
+        "id": "5",
+        "title": "Constructor und Destructor",
+        "children": null,
+        "href": "55ConstructorundDestructor.htm"
+      },
+      {
+        "id": "6",
+        "title": "Methoden",
+        "children": [
+          {
+            "id": "1",
+            "title": "Erklärung",
+            "children": null,
+            "href": "561Erklarung.htm"
+          },
+          {
+            "id": "2",
+            "title": "Methoden-Aufruf",
+            "children": [
+              {
+                "id": "1",
+                "title": "Statische Methoden",
+                "children": null,
+                "href": "5621StatischeMethoden.htm"
+              },
+              {
+                "id": "2",
+                "title": "Virtuelle Methoden",
+                "children": null,
+                "href": "5621StatischeMethoden.htm"
+              },
+              {
+                "id": "3",
+                "title": "Abstrakthierte Methoden",
+                "children": null,
+                "href": "5621StatischeMethoden.htm"
+              },
+              {
+                "id": "4",
+                "title": "Klassen-Methoden oder statische Methoden",
+                "children": null,
+                "href": "5621StatischeMethoden.htm"
+              }
+            ],
+            "href": "562Methoden-Aufruf.htm"
+          }
+        ],
+        "href": "56Methoden.htm"
+      },
+      {
+        "id": "7",
+        "title": "Sichtbarkeit",
+        "children": null,
+        "href": "57Sichtbarkeit.htm"
+      }
+    ],
+    "href": "5Objekte.htm"
+  },
+  {
+    "id": "6",
+    "title": "Klassen",
+    "children": [
+      {
+        "id": "1",
+        "title": "Klassen-Definitionen",
+        "children": null,
+        "href": "61Klassen-Definitionen.htm"
+      },
+      {
+        "id": "2",
+        "title": "Abstrakte und Sealed Klassen",
+        "children": null,
+        "href": "62AbstrakteundSealedKlassen.htm"
+      },
+      {
+        "id": "3",
+        "title": "Normale und statische Felder",
+        "children": [
+          {
+            "id": "1",
+            "title": "Normalisierte Felder / Variablen",
+            "children": null,
+            "href": "631NormalisierteFelderVariablen.htm"
+          },
+          {
+            "id": "2",
+            "title": "Klassen-Felder / Variablen",
+            "children": null,
+            "href": "632Klassen-FelderVariablen.htm"
+          }
+        ],
+        "href": "63NormaleundstatischeFelder.htm"
+      },
+      {
+        "id": "4",
+        "title": "Klassen - CTOR",
+        "children": null,
+        "href": "64Klassen-CTORconstructor.htm"
+      },
+      {
+        "id": "5",
+        "title": "Klassen - DTOR",
+        "children": null,
+        "href": "65Klassen-DTORdestructor.htm"
+      },
+      {
+        "id": "6",
+        "title": "Methoden",
+        "children": [
+          {
+            "id": "1",
+            "title": "Erklärung",
+            "children": null,
+            "href": "661Erklarung.htm"
+          },
+          {
+            "id": "2",
+            "title": "Aufrufen",
+            "children": null,
+            "href": "661Erklarung.htm"
+          },
+          {
+            "id": "3",
+            "title": "Virtuelle Methoden",
+            "children": null,
+            "href": "661Erklarung.htm"
+          },
+          {
+            "id": "4",
+            "title": "Klassen - Methoden",
+            "children": null,
+            "href": "661Erklarung.htm"
+          },
+          {
+            "id": "5",
+            "title": "Klassen CTOR und DTOR",
+            "children": null,
+            "href": "661Erklarung.htm"
+          },
+          {
+            "id": "6",
+            "title": "Statische Klassen - Methoden",
+            "children": null,
+            "href": "661Erklarung.htm"
+          },
+          {
+            "id": "7",
+            "title": "Nachrichten - Methoden",
+            "children": null,
+            "href": "661Erklarung.htm"
+          },
+          {
+            "id": "8",
+            "title": "Vererbung",
+            "children": null,
+            "href": "661Erklarung.htm"
+          }
+        ],
+        "href": "66Methoden.htm"
+      },
+      {
+        "id": "7",
+        "title": "Eigenschaften",
+        "children": [
+          {
+            "id": "1",
+            "title": "Definition",
+            "children": null,
+            "href": "671Definition.htm"
+          },
+          {
+            "id": "2",
+            "title": "Indezierte Eigenschaften",
+            "children": null,
+            "href": "671Definition.htm"
+          },
+          {
+            "id": "3",
+            "title": "Array basierte Eigenschaften",
+            "children": null,
+            "href": "671Definition.htm"
+          },
+          {
+            "id": "4",
+            "title": "Standard - Eigenschaften (public)",
+            "children": null,
+            "href": "671Definition.htm"
+          },
+          {
+            "id": "5",
+            "title": "Veröffentliche - Eigenschaften (published)",
+            "children": null,
+            "href": "671Definition.htm"
+          },
+          {
+            "id": "6",
+            "title": "Speicherinformationen",
+            "children": null,
+            "href": "671Definition.htm"
+          },
+          {
+            "id": "7",
+            "title": "Eigenschaften überschreiben und neu deklarieren",
+            "children": null,
+            "href": "671Definition.htm"
+          }
+        ],
+        "href": "67Eigenschaften.htm"
+      },
+      {
+        "id": "8",
+        "title": "Klassen - Eigenschaften",
+        "children": null,
+        "href": "68Klassen-Eigenschaften.htm"
+      },
+      {
+        "id": "9",
+        "title": "Verschachtelte Typen, Konstanten, und Variablen",
+        "children": null,
+        "href": "69VerschachtelteTypenKonstantenu.htm"
+      }
+    ],
+    "href": "6Klassen.htm"
+  },
+  {
+    "id": "7",
+    "title": "Schnittstellen (Interface's)",
+    "children": [
+      {
+        "id": "1",
+        "title": "Definition",
+        "children": null,
+        "href": "71Definition.htm"
+      },
+      {
+        "id": "2",
+        "title": "Identifikation",
+        "children": null,
+        "href": "71Definition.htm"
+      },
+      {
+        "id": "3",
+        "title": "Implementierung",
+        "children": null,
+        "href": "71Definition.htm"
+      },
+      {
+        "id": "4",
+        "title": "Vererbung",
+        "children": null,
+        "href": "71Definition.htm"
+      },
+      {
+        "id": "5",
+        "title": "Delegation",
+        "children": null,
+        "href": "71Definition.htm"
+      },
+      {
+        "id": "6",
+        "title": "COM",
+        "children": null,
+        "href": "71Definition.htm"
+      },
+      {
+        "id": "7",
+        "title": "CORBA und andere Schnittstellen",
+        "children": null,
+        "href": "71Definition.htm"
+      },
+      {
+        "id": "8",
+        "title": "Referenzzählung",
+        "children": null,
+        "href": "71Definition.htm"
+      }
+    ],
+    "href": "7SchnittstellenInterfaces.htm"
+  },
+  {
+    "id": "8",
+    "title": "Generics",
+    "children": [
+      {
+        "id": "1",
+        "title": "Einführung",
+        "children": null,
+        "href": "81Einfuhrung.htm"
+      },
+      {
+        "id": "2",
+        "title": "Get'ter Typ - Definition",
+        "children": null,
+        "href": "82GetterTyp-Definition.htm"
+      },
+      {
+        "id": "3",
+        "title": "Typen - Spezialsierung",
+        "children": null,
+        "href": "83Typen-Spezialisierung.htm"
+      },
+      {
+        "id": "4",
+        "title": "Einschränkungen",
+        "children": null,
+        "href": "84Einschrankungen.htm"
+      },
+      {
+        "id": "5",
+        "title": "Kompatibilität zu Delphi",
+        "children": [
+          {
+            "id": "1",
+            "title": "Syntax - Elemente",
+            "children": null,
+            "href": "851Syntax-Elemente.htm"
+          },
+          {
+            "id": "2",
+            "title": "Einschränken für Record's",
+            "children": null,
+            "href": "852EinschrankungenfurRecords.htm"
+          },
+          {
+            "id": "3",
+            "title": "Typen - Überladung(en)",
+            "children": null,
+            "href": "853Typen-Uberladungen.htm"
+          },
+          {
+            "id": "4",
+            "title": "Überlegungen für Namensbereiche",
+            "children": null,
+            "href": "854UberlegungenfurNamensbereiche.htm"
+          }
+        ],
+        "href": "85KompatibilitatzuDelphi.htm"
+      },
+      {
+        "id": "6",
+        "title": "Typen-Kompatibilität",
+        "children": null,
+        "href": "86Typen-Kompatibilitat1.htm"
+      },
+      {
+        "id": "7",
+        "title": "Verwendung der eingebauten Funktionen",
+        "children": null,
+        "href": "87VerwendungdereingebautenFunkti.htm"
+      },
+      {
+        "id": "8",
+        "title": "Überlegungen zum Geltungsbereich",
+        "children": null,
+        "href": "88UberlegungenzumGeltungsbereich.htm"
+      },
+      {
+        "id": "9",
+        "title": "Operator-Überladung und Generics",
+        "children": null,
+        "href": "89Operator-UberladungundGenerics.htm"
+      }
+    ],
+    "href": "8Generics.htm"
+  },
+  {
+    "id": "9",
+    "title": "Erweiterte Record's",
+    "children": [
+      {
+        "id": "1",
+        "title": "Definition",
+        "children": null,
+        "href": "91Definition.htm"
+      },
+      {
+        "id": "2",
+        "title": "Erweiterte Record-Aufzähler",
+        "children": null,
+        "href": "92ErweiterteRecord-Aufzahler.htm"
+      },
+      {
+        "id": "3",
+        "title": "Record-Operationen",
+        "children": null,
+        "href": "93Record-Operationen.htm"
+      }
+    ],
+    "href": "9ErweiterteRecords.htm"
+  },
+  {
+    "id": "10",
+    "title": "Klassen, Record's, und Typen-Helfer",
+    "children": [
+      {
+        "id": "1",
+        "title": "Definition",
+        "children": null,
+        "href": "101Definition.htm"
+      },
+      {
+        "id": "2",
+        "title": "Einschränkungen bei Klassen Helfer",
+        "children": null,
+        "href": "102EinschrankungenbeiKlassenHelf.htm"
+      },
+      {
+        "id": "3",
+        "title": "Einschränkungen bei Record  Helfer",
+        "children": null,
+        "href": "103EinschrankungenbeiRecordHelfe.htm"
+      },
+      {
+        "id": "4",
+        "title": "Überlegungen zu einfachen Helper",
+        "children": null,
+        "href": "104UberlegungenzueinfachenHelper.htm"
+      },
+      {
+        "id": "5",
+        "title": "Anmerkungen zu Umfang und Lebensdauer von Record-Helper",
+        "children": null,
+        "href": "105AnmerkungenzuUmfangundLebensd.htm"
+      },
+      {
+        "id": "6",
+        "title": "Vererbung",
+        "children": null,
+        "href": "106Vererbung.htm"
+      },
+      {
+        "id": "7",
+        "title": "Verwendung",
+        "children": null,
+        "href": "107Verwendung.htm"
+      }
+    ],
+    "href": "10KlassenRecordsundTypen-Helfer.htm"
+  },
+  {
+    "id": "11",
+    "title": "Objektorientierte Pascal - Klassen",
+    "children": [
+      {
+        "id": "1",
+        "title": "Einführung",
+        "children": null,
+        "href": "111Einfuhrung.htm"
+      },
+      {
+        "id": "2",
+        "title": "Klassendeklarationen",
+        "children": null,
+        "href": "112Klassendeklarationen.htm"
+      },
+      {
+        "id": "3",
+        "title": "Formele Deklaration",
+        "children": null,
+        "href": "113FormeleDeklaration.htm"
+      },
+      {
+        "id": "4",
+        "title": "Instanzen zuteilen und zuordnen",
+        "children": null,
+        "href": "114Instanzenzuteilenundzuordnen.htm"
+      },
+      {
+        "id": "5",
+        "title": "Protokolldefinitionen",
+        "children": null,
+        "href": "115Protokolldefinitionen.htm"
+      },
+      {
+        "id": "6",
+        "title": "Kategorien",
+        "children": null,
+        "href": "116Kategorien.htm"
+      },
+      {
+        "id": "7",
+        "title": "Namensumfang und Bezeichner",
+        "children": null,
+        "href": "117NamensumfangundBezeichner.htm"
+      },
+      {
+        "id": "8",
+        "title": "Selektoren",
+        "children": null,
+        "href": "118Selektoren.htm"
+      },
+      {
+        "id": "9",
+        "title": "Der ID Type",
+        "children": null,
+        "href": "119DerIDTyp.htm"
+      },
+      {
+        "id": "10",
+        "title": "Aufzählungen in Objective-C Klassen",
+        "children": null,
+        "href": "1110AufzahlungeninObjective-CKla.htm"
+      }
+    ],
+    "href": "11ObjektorientiertePascal-Klasse.htm"
+  },
+  {
+    "id": "12",
+    "title": "Ausdrücke",
+    "children": [
+      {
+        "id": "1",
+        "title": "Ausdrucks - Syntax",
+        "children": null,
+        "href": "121Ausdrucks-Syntax.htm"
+      },
+      {
+        "id": "2",
+        "title": "Funktionsaufrufe",
+        "children": null,
+        "href": "122Funktionsaufrufe.htm"
+      },
+      {
+        "id": "3",
+        "title": "Mengen - CTOR",
+        "children": null,
+        "href": "123Mengen-CTOR.htm"
+      },
+      {
+        "id": "4",
+        "title": "Typ-Casting von Werten",
+        "children": null,
+        "href": "124Typ-CastingvonWerten.htm"
+      },
+      {
+        "id": "5",
+        "title": "Typ-Casting von Variablen",
+        "children": null,
+        "href": "125Typ-CastingvonVariablen.htm"
+      },
+      {
+        "id": "6",
+        "title": "Sonstige Typ-Casting's",
+        "children": null,
+        "href": "126SonstigeTyp-Castings.htm"
+      },
+      {
+        "id": "7",
+        "title": "Der @ - Operator",
+        "children": null,
+        "href": "127Der-Operator.htm"
+      },
+      {
+        "id": "8",
+        "title": "Operatoren",
+        "children": [
+          {
+            "id": "1",
+            "title": "Arithmetische Operatoren",
+            "children": null,
+            "href": "1281ArithmetischeOperatoren.htm"
+          },
+          {
+            "id": "2",
+            "title": "Logische Operatoren",
+            "children": null,
+            "href": "1282LogischeOperatoren.htm"
+          },
+          {
+            "id": "3",
+            "title": "Boolesche Operatoren",
+            "children": null,
+            "href": "1283BoolescheOperatoren.htm"
+          },
+          {
+            "id": "4",
+            "title": "Zeichenketten Operatoren",
+            "children": null,
+            "href": "1284ZeichenkettenOperatoren.htm"
+          },
+          {
+            "id": "5",
+            "title": "Operatoren bei dynamischen Array's",
+            "children": null,
+            "href": "1285OperatorenbeidynamischenArra.htm"
+          },
+          {
+            "id": "6",
+            "title": "Mengen - Operatoren",
+            "children": null,
+            "href": "1286Mengen-Operatoren.htm"
+          },
+          {
+            "id": "7",
+            "title": "Relationale Operatoren",
+            "children": null,
+            "href": "1287RelationaleOperatoren.htm"
+          },
+          {
+            "id": "8",
+            "title": "Klassen - Operatoren",
+            "children": null,
+            "href": "1288Klassen-Operatoren.htm"
+          }
+        ],
+        "href": "128Operatoren.htm"
+      }
+    ],
+    "href": "12Ausdrucke.htm"
+  },
+  {
+    "id": "13",
+    "title": "Anweisungen",
+    "children": [
+      {
+        "id": "1",
+        "title": "Einfache Anweisungen",
+        "children": [
+          {
+            "id": "1",
+            "title": "Zuweisungen",
+            "children": null,
+            "href": "1311Zuweisungen.htm"
+          },
+          {
+            "id": "2",
+            "title": "Prozeduren - PROCEDURE",
+            "children": null,
+            "href": "1312Prozeduren-PROCEDURE.htm"
+          },
+          {
+            "id": "3",
+            "title": "Sprungs - Anweisung GOTO",
+            "children": null,
+            "href": "1313Sprungs-AnweisungGOTO.htm"
+          }
+        ],
+        "href": "131EinfacheAnweisungen.htm"
+      },
+      {
+        "id": "2",
+        "title": "Strukturierte Anweisungen",
+        "children": [
+          {
+            "id": "1",
+            "title": "Zusammengesetzte Anweisungen",
+            "children": null,
+            "href": "1321ZusammengesetzteAnweisungen.htm"
+          },
+          {
+            "id": "2",
+            "title": "CASE",
+            "children": null,
+            "href": "1322CASE.htm"
+          },
+          {
+            "id": "3",
+            "title": "IF ... THEN",
+            "children": null,
+            "href": "1323IFTHEN.htm"
+          },
+          {
+            "id": "4",
+            "title": "FOR ... TO / DOWNTO ... DO",
+            "children": null,
+            "href": "1324FORTODOWNTODO.htm"
+          },
+          {
+            "id": "5",
+            "title": "FOR .. IN .. DO",
+            "children": null,
+            "href": "1325FORINDO.htm"
+          },
+          {
+            "id": "6",
+            "title": "REPEAT ... UNTIL",
+            "children": null,
+            "href": "1326REPEATUNTIL.htm"
+          },
+          {
+            "id": "7",
+            "title": "WHILE ... DO",
+            "children": null,
+            "href": "1327WHILEDO.htm"
+          },
+          {
+            "id": "8",
+            "title": "WITH",
+            "children": null,
+            "href": "1328WITH.htm"
+          },
+          {
+            "id": "9",
+            "title": "Ausnahmen (EXCEPT)",
+            "children": null,
+            "href": "1329AusnahmenEXCEPT.htm"
+          }
+        ],
+        "href": "132StrukturierteAnweisungen.htm"
+      },
+      {
+        "id": "3",
+        "title": "Assembler Anweisungen",
+        "children": null,
+        "href": "133AssemblerAnweisungen.htm"
+      }
+    ],
+    "href": "13Anweisungen.htm"
+  },
+  {
+    "id": "14",
+    "title": "Benutzung von Funktionen und Prozeduren",
+    "children": [
+      {
+        "id": "1",
+        "title": "FUNCTION Deklarationen",
+        "children": null,
+        "href": "141FUNCTIONDeklarationen.htm"
+      },
+      {
+        "id": "2",
+        "title": "PROCEDURE Deklarationen",
+        "children": null,
+        "href": "142PROCEDUREDeklarationen.htm"
+      },
+      {
+        "id": "3",
+        "title": "Funktion Rückgabewert mittels RESULT",
+        "children": null,
+        "href": "143FunktionRuckgabewertmittelsRE.htm"
+      },
+      {
+        "id": "4",
+        "title": "Parameter Listen",
+        "children": [
+          {
+            "id": "1",
+            "title": "Werte",
+            "children": null,
+            "href": "1441Werte.htm"
+          },
+          {
+            "id": "2",
+            "title": "Variablen",
+            "children": null,
+            "href": "1442Variablen.htm"
+          },
+          {
+            "id": "3",
+            "title": "Ausgabe Parameter",
+            "children": null,
+            "href": "1443AusgabeParameter.htm"
+          },
+          {
+            "id": "4",
+            "title": "Konstante Parameter",
+            "children": null,
+            "href": "1444KonstanteParameter.htm"
+          },
+          {
+            "id": "5",
+            "title": "Offene Array's",
+            "children": null,
+            "href": "1445OffeneArrays.htm"
+          },
+          {
+            "id": "6",
+            "title": "Array of Const",
+            "children": null,
+            "href": "1446ArrayofConst.htm"
+          },
+          {
+            "id": "7",
+            "title": "Untypisierte Parameter",
+            "children": null,
+            "href": "1447UntypisierteParameter.htm"
+          },
+          {
+            "id": "8",
+            "title": "Verwaltete Typen und Referenzzähler",
+            "children": null,
+            "href": "1448VerwalteteTypenundReferenzza.htm"
+          }
+        ],
+        "href": "144ParameterListen.htm"
+      },
+      {
+        "id": "5",
+        "title": "Überladung von Funktionen",
+        "children": null,
+        "href": "145UberladungvonFunktionen.htm"
+      },
+      {
+        "id": "6",
+        "title": "Mit FORWARD deklarierte Funktionen",
+        "children": null,
+        "href": "146MitFORWARDdeklarierteFunktion.htm"
+      },
+      {
+        "id": "7",
+        "title": "Externe Funktionen",
+        "children": null,
+        "href": "147ExterneFunktionen.htm"
+      },
+      {
+        "id": "8",
+        "title": "Assembler Funktionen",
+        "children": null,
+        "href": "148AssemblerFunktionen.htm"
+      },
+      {
+        "id": "9",
+        "title": "Modifikatoren",
+        "children": [
+          {
+            "id": "1",
+            "title": "alias",
+            "children": null,
+            "href": "1491alias.htm"
+          },
+          {
+            "id": "2",
+            "title": "cdecl",
+            "children": null,
+            "href": "1492cdecl.htm"
+          },
+          {
+            "id": "3",
+            "title": "cppdecl",
+            "children": null,
+            "href": "1493cppdecl.htm"
+          },
+          {
+            "id": "4",
+            "title": "export",
+            "children": null,
+            "href": "1494export.htm"
+          },
+          {
+            "id": "5",
+            "title": "hardfloat",
+            "children": null,
+            "href": "1495hardfloat.htm"
+          },
+          {
+            "id": "6",
+            "title": "inline",
+            "children": null,
+            "href": "1496inline.htm"
+          },
+          {
+            "id": "7",
+            "title": "interrupt",
+            "children": null,
+            "href": "1497interrupt.htm"
+          },
+          {
+            "id": "8",
+            "title": "iocheck",
+            "children": null,
+            "href": "1498iocheck.htm"
+          },
+          {
+            "id": "9",
+            "title": "local",
+            "children": null,
+            "href": "1499local.htm"
+          },
+          {
+            "id": "10",
+            "title": "MS_ABI_Default",
+            "children": null,
+            "href": "14910MS_ABI_Default.htm"
+          },
+          {
+            "id": "11",
+            "title": "MS_ABI_CDecl",
+            "children": null,
+            "href": "14911MS_ABI_CDecl.htm"
+          },
+          {
+            "id": "12",
+            "title": "MWPascal",
+            "children": null,
+            "href": "14912MWPascal.htm"
+          },
+          {
+            "id": "13",
+            "title": "noreturn",
+            "children": null,
+            "href": "14913noreturn.htm"
+          },
+          {
+            "id": "14",
+            "title": "nostackframe",
+            "children": null,
+            "href": "14914nostackframe.htm"
+          },
+          {
+            "id": "15",
+            "title": "overload",
+            "children": null,
+            "href": "14915overload.htm"
+          },
+          {
+            "id": "16",
+            "title": "pascal",
+            "children": null,
+            "href": "14916pascal.htm"
+          },
+          {
+            "id": "17",
+            "title": "public",
+            "children": null,
+            "href": "14917public.htm"
+          },
+          {
+            "id": "18",
+            "title": "register",
+            "children": null,
+            "href": "14918register.htm"
+          },
+          {
+            "id": "19",
+            "title": "safecall",
+            "children": null,
+            "href": "14919safecall.htm"
+          },
+          {
+            "id": "20",
+            "title": "saveregisters",
+            "children": null,
+            "href": "14920saveregisters.htm"
+          },
+          {
+            "id": "21",
+            "title": "softfloat",
+            "children": null,
+            "href": "14921softfloat.htm"
+          },
+          {
+            "id": "22",
+            "title": "stdcall",
+            "children": null,
+            "href": "14922stdcall.htm"
+          },
+          {
+            "id": "23",
+            "title": "SYSV_ABI_Default",
+            "children": null,
+            "href": "14923SYSV_ABI_Default.htm"
+          },
+          {
+            "id": "24",
+            "title": "SYSV_ABI_CDecl",
+            "children": null,
+            "href": "14924SYSV_ABI_CDecl.htm"
+          },
+          {
+            "id": "25",
+            "title": "VectorCall",
+            "children": null,
+            "href": "14925VectorCall.htm"
+          },
+          {
+            "id": "26",
+            "title": "varargs",
+            "children": null,
+            "href": "14926varargs.htm"
+          },
+          {
+            "id": "27",
+            "title": "winapi",
+            "children": null,
+            "href": "14927winapi.htm"
+          }
+        ],
+        "href": "149Modifikatoren.htm"
+      },
+      {
+        "id": "10",
+        "title": "Nicht unterstützte Modifikatoren",
+        "children": null,
+        "href": "1410NichtunterstutzteModifikator.htm"
+      }
+    ],
+    "href": "14BenutzungvonFunktionenundProze.htm"
+  },
+  {
+    "id": "15",
+    "title": "Operatoren Überladung",
+    "children": [
+      {
+        "id": "1",
+        "title": "Einleitung",
+        "children": null,
+        "href": "151Einleitung.htm"
+      },
+      {
+        "id": "2",
+        "title": "Operatoren - Deklarationen",
+        "children": null,
+        "href": "152Operatoren-Deklarationen.htm"
+      },
+      {
+        "id": "3",
+        "title": "Operator - Zuweisung",
+        "children": null,
+        "href": "153Operator-Zuweisung.htm"
+      },
+      {
+        "id": "4",
+        "title": "Arithmetische Operatoren",
+        "children": null,
+        "href": "154ArithmetischeOperatoren.htm"
+      },
+      {
+        "id": "5",
+        "title": "Vergleichende Operatoren",
+        "children": null,
+        "href": "155VergleichendeOperatoren.htm"
+      },
+      {
+        "id": "6",
+        "title": "In Operator",
+        "children": null,
+        "href": "156InOperator.htm"
+      },
+      {
+        "id": "7",
+        "title": "Logik Operatoren",
+        "children": null,
+        "href": "157LogikOperatoren.htm"
+      },
+      {
+        "id": "8",
+        "title": "Auf- und Ab-Zählungs Operatoren",
+        "children": null,
+        "href": "158Auf-undAb-ZahlungsOperatoren.htm"
+      },
+      {
+        "id": "9",
+        "title": "Aufzählungs - Operator",
+        "children": null,
+        "href": "159Aufzahlungs-Operator.htm"
+      }
+    ],
+    "href": "15OperatorenUberladung.htm"
+  },
+  {
+    "id": "16",
+    "title": "Programme, Module und Blöcke",
+    "children": [
+      {
+        "id": "1",
+        "title": "Programme",
+        "children": null,
+        "href": "161Programme.htm"
+      },
+      {
+        "id": "2",
+        "title": "Module (Unit's)",
+        "children": null,
+        "href": "162ModuleUnits.htm"
+      },
+      {
+        "id": "3",
+        "title": "Namensräume",
+        "children": null,
+        "href": "163Namensraume.htm"
+      },
+      {
+        "id": "4",
+        "title": "Abhängigkeiten von Modulen",
+        "children": null,
+        "href": "164AbhangigkeitenvonModulen.htm"
+      },
+      {
+        "id": "5",
+        "title": "Blöcke",
+        "children": null,
+        "href": "165Blocke.htm"
+      },
+      {
+        "id": "6",
+        "title": "Anwendungsbereiche (Scope)",
+        "children": [
+          {
+            "id": "1",
+            "title": "Blöcke",
+            "children": null,
+            "href": "1661Blocke.htm"
+          },
+          {
+            "id": "2",
+            "title": "Record's",
+            "children": null,
+            "href": "1662Records.htm"
+          },
+          {
+            "id": "3",
+            "title": "Klassen",
+            "children": null,
+            "href": "1663Klassen.htm"
+          },
+          {
+            "id": "4",
+            "title": "Unit's",
+            "children": null,
+            "href": "1664Units.htm"
+          }
+        ],
+        "href": "166AnwendungsbereicheScope.htm"
+      },
+      {
+        "id": "7",
+        "title": "Bibliotheken",
+        "children": null,
+        "href": "167Bibliotheken.htm"
+      }
+    ],
+    "href": "16ProgrammeModuleundBlocke.htm"
+  },
+  {
+    "id": "17",
+    "title": "Ausnahmen",
+    "children": [
+      {
+        "id": "1",
+        "title": "Die RAISE Anweisung",
+        "children": null,
+        "href": "171DieRAISEAnweisung.htm"
+      },
+      {
+        "id": "2",
+        "title": "Ausnahme-Behandlung und Verschachtelung",
+        "children": null,
+        "href": "172Ausnahme-BehandlungundVerscha.htm"
+      }
+    ],
+    "href": "17Ausnahmen.htm"
+  },
+  {
+    "id": "18",
+    "title": "Assembler",
+    "children": [
+      {
+        "id": "1",
+        "title": "Anweisungen",
+        "children": null,
+        "href": "181Anweisungen.htm"
+      },
+      {
+        "id": "2",
+        "title": "Prozeduren und Funktionen",
+        "children": null,
+        "href": "182ProzedurenundFunktionen.htm"
+      }
+    ],
+    "href": "18Assembler.htm"
+  }
+];

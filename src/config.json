@@ -1,0 +1,27 @@
+{
+  "ui": {
+    "active_color": "#22c55e",
+    "inactive_color": "#334155",
+    "separator_color": "#1f2937",
+    "led_on": "#10b981",
+    "led_off": "#0b1220"
+  },
+  "effects": {
+    "list": [
+      "drum",
+      "clap",
+      "tick"
+    ],
+    "colors": {
+      "drum": "#ef4444",
+      "clap": "#eab308",
+      "tick": "#3b82f6"
+    }
+  },
+  "channels": {},
+  "envelopes": [
+    "linear",
+    "exponential",
+    "s-curve"
+  ]
+}

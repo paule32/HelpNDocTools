@@ -1,0 +1,449 @@
+
+import sys
+import os
+import re
+from dataclasses import dataclass
+from typing import List, Dict, Tuple, Optional
+
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
+    QPushButton, QFileDialog, QPlainTextEdit, QMessageBox, QLabel, QSplitter
+)
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
+
+from c6510_spec import C6510Spec
+
+# ----------------- Utility: petscii-ish ascii view -----------------
+PRINTABLE = set(range(0x20, 0x7F))
+def byte_to_petscii_char(b: int) -> str:
+    # Simple readable approximation for GUI: show ASCII for printable range;
+    # use dot for others. (Full PETSCII mapping would add graphics chars.)
+    if b in PRINTABLE:
+        return chr(b)
+    return "."
+
+def hexdump_rows(data: bytes, base_addr: int = 0x0000) -> List[str]:
+    rows = []
+    for i in range(0, len(data), 8):
+        chunk = data[i:i+8]
+        # split 8 into two groups of 4
+        left = " ".join(f"{b:02X}" for b in chunk[:4]).ljust(11)
+        right = " ".join(f"{b:02X}" for b in chunk[4:8]).ljust(11)
+        ascii_part = "".join(byte_to_petscii_char(b) for b in chunk)
+        addr = base_addr + i
+        rows.append(f"{addr:04X}  {left} | {right}  {ascii_part}")
+    return rows
+
+# ----------------- Assembler -----------------
+@dataclass
+class AsmLine:
+    label: Optional[str]
+    mnemonic: Optional[str]
+    operand: Optional[str]
+    raw: str
+    lineno: int
+
+class MiniAssembler:
+    def __init__(self, spec: C6510Spec):
+        self.spec = spec
+        self.org = 0x1000
+        self.pc = self.org
+        self.symbols: Dict[str, int] = {}
+
+    # --- Parsing ---
+    def parse(self, text: str) -> List[AsmLine]:
+        lines: List[AsmLine] = []
+        for lineno, rawline in enumerate(text.splitlines(), start=1):
+            line = rawline.split(";",1)[0].rstrip()  # strip comments
+            if not line.strip():
+                continue
+            label = None
+            mnemonic = None
+            operand = None
+
+            # label:
+            if ":" in line:
+                before, after = line.split(":", 1)
+                if before.strip():
+                    label = before.strip()
+                line = after.strip()
+
+            if line:
+                parts = line.split(None, 1)
+                mnemonic = parts[0].upper()
+                operand = parts[1].strip() if len(parts) > 1 else None
+
+            lines.append(AsmLine(label, mnemonic, operand, rawline, lineno))
+        return lines
+
+    # --- Expression eval (hex $.., dec, labels) ---
+    def eval_expr(self, expr: str) -> int:
+        expr = expr.strip()
+        # Handle char literal: 'A'
+        m = re.fullmatch(r"'(.)'", expr)
+        if m:
+            return ord(m.group(1))
+        # Hex $xxxx or $xx
+        if expr.startswith("$"):
+            return int(expr[1:], 16)
+        # Binary %xxxxxxxx
+        if expr.startswith("%"):
+            return int(expr[1:], 2)
+        # Decimal or label
+        if expr.isdigit():
+            return int(expr, 10)
+        # Label
+        if expr in self.symbols:
+            return self.symbols[expr]
+        raise ValueError(f"Unbekannter Ausdruck/Label: {expr}")
+
+    # --- Addressing mode detection ---
+    def detect_mode_and_operand_bytes(self, mnem: str, operand: Optional[str], pc: int) -> Tuple[str, List[int]]:
+        if operand is None:
+            # check for accumulator form e.g. "ASL A"
+            mode = "imp"
+            return mode, []
+        op = operand.strip()
+
+        # Accumulator
+        if op.upper() == "A":
+            return "acc", []
+
+        # Immediate
+        if op.startswith("#"):
+            v = self.eval_expr(op[1:]) & 0xFF
+            return "imm", [v]
+
+        # Indirect forms
+        if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*,\s*X\s*\)", op):
+            # (zp,X)
+            inner = op[1:-1]
+            inner = inner.replace(" ", "")
+            addr = self.eval_expr(inner.split(",")[0])
+            return "indx", [addr & 0xFF]
+        if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*\)\s*,\s*Y", op):
+            # (zp),Y
+            inner = op.split(")")[0][1:]
+            addr = self.eval_expr(inner)
+            return "indy", [addr & 0xFF]
+        if re.fullmatch(r"\(\s*\$?[0-9A-Fa-f]+\s*\)", op):
+            # (abs) (JMP only)
+            addr = self.eval_expr(op[1:-1])
+            return "ind", [addr & 0xFF, (addr >> 8) & 0xFF]
+
+        # Comma indexed abs/zp
+        m = re.fullmatch(r"(.+)\s*,\s*X", op, re.IGNORECASE)
+        if m:
+            val = self.eval_expr(m.group(1))
+            if val <= 0xFF:
+                return "zpx", [val & 0xFF]
+            else:
+                return "absx", [val & 0xFF, (val >> 8) & 0xFF]
+        m = re.fullmatch(r"(.+)\s*,\s*Y", op, re.IGNORECASE)
+        if m:
+            val = self.eval_expr(m.group(1))
+            if val <= 0xFF:
+                return "zpy", [val & 0xFF]
+            else:
+                return "absy", [val & 0xFF, (val >> 8) & 0xFF]
+
+        # Plain zp/abs or label
+        val = self.eval_expr(op)
+        if val <= 0xFF:
+            return "zp", [val & 0xFF]
+        else:
+            return "abs", [val & 0xFF, (val >> 8) & 0xFF]
+
+    # --- Assemble (two-pass) ---
+    def assemble(self, text: str) -> Tuple[bytes, int, List[str]]:
+        listing: List[str] = []
+        lines = self.parse(text)
+
+        # Pass 1: symbols & size compute
+        self.pc = self.org
+        self.symbols.clear()
+        locations: List[int] = []
+        for ln in lines:
+            if ln.label:
+                if ln.label in self.symbols:
+                    raise ValueError(f"Label doppelt definiert: {ln.label} (Zeile {ln.lineno})")
+                self.symbols[ln.label] = self.pc
+
+            if not ln.mnemonic:
+                locations.append(self.pc)
+                continue
+
+            mnem = ln.mnemonic.upper()
+            # directives
+            if mnem == ".ORG":
+                if not ln.operand:
+                    raise ValueError(f".org ohne Adresse (Zeile {ln.lineno})")
+                self.org = self.eval_expr(ln.operand)
+                self.pc = self.org
+                locations.append(self.pc)
+                continue
+            if mnem in (".BYTE",".BYT"):
+                if not ln.operand: 
+                    locations.append(self.pc)
+                    continue
+                count = 0
+                for part in ln.operand.split(","):
+                    p = part.strip()
+                    if p.startswith('"') and p.endswith('"'):
+                        s = bytes(p[1:-1], "latin1", "replace")
+                        self.pc += len(s)
+                        count += len(s)
+                    else:
+                        self.pc += 1
+                        count += 1
+                locations.append(self.pc)
+                continue
+            if mnem == ".WORD":
+                if ln.operand:
+                    cnt = len([_ for _ in ln.operand.split(",") if _.strip()])
+                    self.pc += 2*cnt
+                locations.append(self.pc)
+                continue
+            if mnem in (".TEXT",".ASC"):
+                if not ln.operand or not (ln.operand.startswith('"') and ln.operand.endswith('"')):
+                    raise ValueError(f'.text erwartet "String" (Zeile {ln.lineno})')
+                s = bytes(ln.operand[1:-1], "latin1", "replace")
+                self.pc += len(s)
+                locations.append(self.pc)
+                continue
+
+            # instructions
+            opnd = ln.operand
+            if mnem in {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}:
+                # relative branch: size 2
+                self.pc += 2
+                locations.append(self.pc)
+                continue
+
+            # detect addressing size via chosen mode
+            try:
+                mode, ob = self.detect_mode_and_operand_bytes(mnem, opnd, self.pc)
+            except Exception:
+                # unknown yet (forward label), assume abs or rel as fallback
+                if mnem == "JMP" and opnd and opnd.startswith("("):
+                    size = 3
+                elif opnd and opnd.startswith("#"):
+                    size = 2
+                else:
+                    size = 3
+                self.pc += size
+                locations.append(self.pc)
+                continue
+
+            # lookup opcode to determine size
+            try:
+                opcode = self.spec.get_opcode(mnem, mode)
+            except KeyError:
+                raise ValueError(f"Nicht unterstützte Adressierungsart: {mnem} {mode} (Zeile {ln.lineno})")
+            size = 1 + len(ob)
+            self.pc += size
+            locations.append(self.pc)
+
+        # Pass 2: emission
+        self.pc = self.org
+        out = bytearray()
+        idx = 0
+        for ln in lines:
+            if not ln.mnemonic:
+                continue
+            mnem = ln.mnemonic.upper()
+            if mnem == ".ORG":
+                self.org = self.eval_expr(ln.operand)
+                self.pc = self.org
+                out = bytearray()  # new segment (simple single segment for this mini-asm)
+                continue
+            if mnem in (".BYTE",".BYT"):
+                if ln.operand:
+                    for part in ln.operand.split(","):
+                        p = part.strip()
+                        if p.startswith('"') and p.endswith('"'):
+                            s = bytes(p[1:-1], "latin1", "replace")
+                            out.extend(s)
+                            self.pc += len(s)
+                        else:
+                            v = self.eval_expr(p) & 0xFF
+                            out.append(v)
+                            self.pc += 1
+                continue
+            if mnem == ".WORD":
+                if ln.operand:
+                    for part in ln.operand.split(","):
+                        p = part.strip()
+                        if not p: continue
+                        v = self.eval_expr(p) & 0xFFFF
+                        out.extend([v & 0xFF, (v >> 8) & 0xFF])
+                        self.pc += 2
+                continue
+            if mnem in (".TEXT",".ASC"):
+                s = bytes(ln.operand[1:-1], "latin1", "replace")
+                out.extend(s)
+                self.pc += len(s)
+                continue
+
+            if mnem in {"BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"}:
+                opcode = self.spec.get_opcode(mnem, "rel")
+                target = self.eval_expr(ln.operand)
+                off = C6510Spec.rel_branch_offset(self.pc, target)
+                out.extend([opcode, off])
+                listing.append(f"{self.pc:04X}: {opcode:02X} {off:02X}    {mnem} {ln.operand or ''}")
+                self.pc += 2
+                continue
+
+            mode, ob = self.detect_mode_and_operand_bytes(mnem, ln.operand, self.pc)
+            try:
+                opcode = self.spec.get_opcode(mnem, mode)
+            except KeyError:
+                raise ValueError(f"Nicht unterstützte Adressierungsart: {mnem} {mode} (Zeile {ln.lineno})")
+            out.append(opcode)
+            out.extend(ob)
+            listing.append(f"{self.pc:04X}: " + " ".join(f"{b:02X}" for b in [opcode]+ob) + f"    {mnem} {ln.operand or ''}")
+            self.pc += 1 + len(ob)
+
+        return bytes(out), self.org, listing
+
+# ----------------- PRG writer with BASIC autostart -----------------
+def build_autostart_prg(payload: bytes, start_addr: int) -> bytes:
+    # BASIC @ $0801: 10 SYS <start_addr>
+    LOAD_BASIC = 0x0801
+    sysline = bytes([0x9E]) + b" " + str(start_addr).encode("ascii") + b"\x00"
+    next_addr = LOAD_BASIC + 2 + 2 + len(sysline)
+    basic = bytes([next_addr & 0xFF, next_addr >> 8, 10, 0]) + sysline + b"\x00\x00"
+    prg = bytearray()
+    prg.extend([LOAD_BASIC & 0xFF, LOAD_BASIC >> 8])
+    prg.extend(basic)
+    prg.extend([start_addr & 0xFF, start_addr >> 8])
+    prg.extend(payload)
+    return bytes(prg)
+
+# ----------------- GUI -----------------
+SAMPLE = r"""; Mini-Assembler Demo
+.org $1000
+        LDX #$00
+loop:   LDA msg,X
+        BEQ done
+        JSR $FFD2
+        INX
+        BNE loop
+done:   RTS
+msg:    .text "HELLO, C64!", 0
+"""
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("C64 Mini Assembler (PyQt5)")
+        self.resize(1100, 700)
+
+        self.spec = C6510Spec.from_json("6510_with_illegal_flags.json")
+        self.assembler = MiniAssembler(self.spec)
+
+        # Widgets
+        self.editor = QPlainTextEdit()
+        self.editor.setPlainText(SAMPLE)
+        self.editor.setLineWrapMode(QPlainTextEdit.NoWrap)
+        font = QFont("Consolas")
+        font.setStyleHint(QFont.Monospace)
+        font.setPointSize(11)
+        self.editor.setFont(font)
+
+        self.hexview = QPlainTextEdit()
+        self.hexview.setReadOnly(True)
+        self.hexview.setLineWrapMode(QPlainTextEdit.NoWrap)
+        self.hexview.setFont(font)
+
+        # Buttons
+        self.btn_load = QPushButton("Laden")
+        self.btn_save = QPushButton("Speichern")
+        self.btn_compile = QPushButton("Compile")
+
+        self.btn_load.clicked.connect(self.load_source)
+        self.btn_save.clicked.connect(self.save_source)
+        self.btn_compile.clicked.connect(self.compile_source)
+
+        # Layout
+        topbar = QHBoxLayout()
+        topbar.addWidget(self.btn_load)
+        topbar.addWidget(self.btn_save)
+        topbar.addStretch(1)
+        topbar.addWidget(self.btn_compile)
+
+        splitter = QSplitter()
+        splitter.setOrientation(Qt.Horizontal)
+        splitter.addWidget(self.hexview)
+        splitter.addWidget(self.editor)
+        splitter.setSizes([500, 600])
+
+        central = QWidget()
+        v = QVBoxLayout(central)
+        v.addLayout(topbar)
+        v.addWidget(splitter)
+        self.setCentralWidget(central)
+
+        # initial compile
+        self.compile_source()
+
+    def load_source(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Assembler laden", "", "ASM/Text (*.asm *.s *.txt);;Alle Dateien (*)")
+        if not path:
+            return
+        with open(path, "r", encoding="utf-8") as f:
+            self.editor.setPlainText(f.read())
+
+    def save_source(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Assembler speichern", "source.asm", "ASM (*.asm);;Alle Dateien (*)")
+        if not path:
+            return
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(self.editor.toPlainText())
+
+    def compile_source(self):
+        try:
+            payload, org, listing = self.assembler.assemble(self.editor.toPlainText())
+            prg = build_autostart_prg(payload, start_addr=org)
+            # Show hex of PRG with addresses starting at load address of BASIC (0x0801)
+            load_addr = prg[0] | (prg[1] << 8)
+            body = prg[2:]
+            rows = hexdump_rows(body, base_addr=load_addr)
+            header = "ADDR   00 01 02 03   |  04 05 06 07   ASCII\n" + "-"*60
+            self.hexview.setPlainText(header + "\n" + "\n".join(rows))
+
+            # Offer to save PRG
+            self._last_prg = prg
+            self.statusBar().showMessage(f"Compiled: {len(payload)} bytes @ ${org:04X}  (PRG {len(prg)} bytes incl. BASIC stub)", 5000)
+        except Exception as e:
+            QMessageBox.critical(self, "Fehler", str(e))
+
+    def closeEvent(self, ev):
+        return super().closeEvent(ev)
+
+    # Menu action to save PRG (optional via Ctrl+S for source; separate for PRG):
+    def keyPressEvent(self, e):
+        if e.modifiers() & Qt.ControlModifier and e.key() == Qt.Key_P:
+            self.save_prg()
+        super().keyPressEvent(e)
+
+    def save_prg(self):
+        if not hasattr(self, "_last_prg"):
+            QMessageBox.information(self, "Hinweis", "Erst kompilieren (Compile).")
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "PRG speichern", "program.prg", "C64 PRG (*.prg);;Alle Dateien (*)")
+        if not path:
+            return
+        with open(path, "wb") as f:
+            f.write(self._last_prg)
+        self.statusBar().showMessage(f"PRG gespeichert: {path}", 5000)
+
+def main():
+    app = QApplication(sys.argv)
+    w = MainWindow()
+    w.show()
+    return app.exec_()
+
+if __name__ == "__main__":
+    sys.exit(main())

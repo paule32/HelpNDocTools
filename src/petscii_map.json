@@ -1,0 +1,1282 @@
+{
+  "00": {
+    "hex": "00",
+    "unicode": "",
+    "name": "CTRL_00"
+  },
+  "01": {
+    "hex": "01",
+    "unicode": "",
+    "name": "CTRL_01"
+  },
+  "02": {
+    "hex": "02",
+    "unicode": "",
+    "name": "CTRL_02"
+  },
+  "03": {
+    "hex": "03",
+    "unicode": "",
+    "name": "CTRL_03"
+  },
+  "04": {
+    "hex": "04",
+    "unicode": "",
+    "name": "CTRL_04"
+  },
+  "05": {
+    "hex": "05",
+    "unicode": "",
+    "name": "CTRL_05"
+  },
+  "06": {
+    "hex": "06",
+    "unicode": "",
+    "name": "CTRL_06"
+  },
+  "07": {
+    "hex": "07",
+    "unicode": "",
+    "name": "CTRL_07"
+  },
+  "08": {
+    "hex": "08",
+    "unicode": "",
+    "name": "CTRL_08"
+  },
+  "09": {
+    "hex": "09",
+    "unicode": "",
+    "name": "CTRL_09"
+  },
+  "0A": {
+    "hex": "0A",
+    "unicode": "",
+    "name": "CTRL_0A"
+  },
+  "0B": {
+    "hex": "0B",
+    "unicode": "",
+    "name": "CTRL_0B"
+  },
+  "0C": {
+    "hex": "0C",
+    "unicode": "",
+    "name": "CTRL_0C"
+  },
+  "0D": {
+    "hex": "0D",
+    "unicode": "",
+    "name": "CTRL_0D"
+  },
+  "0E": {
+    "hex": "0E",
+    "unicode": "",
+    "name": "CTRL_0E"
+  },
+  "0F": {
+    "hex": "0F",
+    "unicode": "",
+    "name": "CTRL_0F"
+  },
+  "10": {
+    "hex": "10",
+    "unicode": "",
+    "name": "CTRL_10"
+  },
+  "11": {
+    "hex": "11",
+    "unicode": "",
+    "name": "CTRL_11"
+  },
+  "12": {
+    "hex": "12",
+    "unicode": "",
+    "name": "CTRL_12"
+  },
+  "13": {
+    "hex": "13",
+    "unicode": "",
+    "name": "CTRL_13"
+  },
+  "14": {
+    "hex": "14",
+    "unicode": "",
+    "name": "CTRL_14"
+  },
+  "15": {
+    "hex": "15",
+    "unicode": "",
+    "name": "CTRL_15"
+  },
+  "16": {
+    "hex": "16",
+    "unicode": "",
+    "name": "CTRL_16"
+  },
+  "17": {
+    "hex": "17",
+    "unicode": "",
+    "name": "CTRL_17"
+  },
+  "18": {
+    "hex": "18",
+    "unicode": "",
+    "name": "CTRL_18"
+  },
+  "19": {
+    "hex": "19",
+    "unicode": "",
+    "name": "CTRL_19"
+  },
+  "1A": {
+    "hex": "1A",
+    "unicode": "",
+    "name": "CTRL_1A"
+  },
+  "1B": {
+    "hex": "1B",
+    "unicode": "",
+    "name": "CTRL_1B"
+  },
+  "1C": {
+    "hex": "1C",
+    "unicode": "",
+    "name": "CTRL_1C"
+  },
+  "1D": {
+    "hex": "1D",
+    "unicode": "",
+    "name": "CTRL_1D"
+  },
+  "1E": {
+    "hex": "1E",
+    "unicode": "",
+    "name": "CTRL_1E"
+  },
+  "1F": {
+    "hex": "1F",
+    "unicode": "",
+    "name": "CTRL_1F"
+  },
+  "20": {
+    "hex": "20",
+    "unicode": " ",
+    "name": " "
+  },
+  "21": {
+    "hex": "21",
+    "unicode": "!",
+    "name": "!"
+  },
+  "22": {
+    "hex": "22",
+    "unicode": "\"",
+    "name": "\""
+  },
+  "23": {
+    "hex": "23",
+    "unicode": "#",
+    "name": "#"
+  },
+  "24": {
+    "hex": "24",
+    "unicode": "$",
+    "name": "$"
+  },
+  "25": {
+    "hex": "25",
+    "unicode": "%",
+    "name": "%"
+  },
+  "26": {
+    "hex": "26",
+    "unicode": "&",
+    "name": "&"
+  },
+  "27": {
+    "hex": "27",
+    "unicode": "'",
+    "name": "'"
+  },
+  "28": {
+    "hex": "28",
+    "unicode": "(",
+    "name": "("
+  },
+  "29": {
+    "hex": "29",
+    "unicode": ")",
+    "name": ")"
+  },
+  "2A": {
+    "hex": "2A",
+    "unicode": "*",
+    "name": "*"
+  },
+  "2B": {
+    "hex": "2B",
+    "unicode": "+",
+    "name": "+"
+  },
+  "2C": {
+    "hex": "2C",
+    "unicode": ",",
+    "name": ","
+  },
+  "2D": {
+    "hex": "2D",
+    "unicode": "-",
+    "name": "-"
+  },
+  "2E": {
+    "hex": "2E",
+    "unicode": ".",
+    "name": "."
+  },
+  "2F": {
+    "hex": "2F",
+    "unicode": "/",
+    "name": "/"
+  },
+  "30": {
+    "hex": "30",
+    "unicode": "0",
+    "name": "0"
+  },
+  "31": {
+    "hex": "31",
+    "unicode": "1",
+    "name": "1"
+  },
+  "32": {
+    "hex": "32",
+    "unicode": "2",
+    "name": "2"
+  },
+  "33": {
+    "hex": "33",
+    "unicode": "3",
+    "name": "3"
+  },
+  "34": {
+    "hex": "34",
+    "unicode": "4",
+    "name": "4"
+  },
+  "35": {
+    "hex": "35",
+    "unicode": "5",
+    "name": "5"
+  },
+  "36": {
+    "hex": "36",
+    "unicode": "6",
+    "name": "6"
+  },
+  "37": {
+    "hex": "37",
+    "unicode": "7",
+    "name": "7"
+  },
+  "38": {
+    "hex": "38",
+    "unicode": "8",
+    "name": "8"
+  },
+  "39": {
+    "hex": "39",
+    "unicode": "9",
+    "name": "9"
+  },
+  "3A": {
+    "hex": "3A",
+    "unicode": ":",
+    "name": ":"
+  },
+  "3B": {
+    "hex": "3B",
+    "unicode": ";",
+    "name": ";"
+  },
+  "3C": {
+    "hex": "3C",
+    "unicode": "<",
+    "name": "<"
+  },
+  "3D": {
+    "hex": "3D",
+    "unicode": "=",
+    "name": "="
+  },
+  "3E": {
+    "hex": "3E",
+    "unicode": ">",
+    "name": ">"
+  },
+  "3F": {
+    "hex": "3F",
+    "unicode": "?",
+    "name": "?"
+  },
+  "40": {
+    "hex": "40",
+    "unicode": "@",
+    "name": "@"
+  },
+  "41": {
+    "hex": "41",
+    "unicode": "A",
+    "name": "A"
+  },
+  "42": {
+    "hex": "42",
+    "unicode": "B",
+    "name": "B"
+  },
+  "43": {
+    "hex": "43",
+    "unicode": "C",
+    "name": "C"
+  },
+  "44": {
+    "hex": "44",
+    "unicode": "D",
+    "name": "D"
+  },
+  "45": {
+    "hex": "45",
+    "unicode": "E",
+    "name": "E"
+  },
+  "46": {
+    "hex": "46",
+    "unicode": "F",
+    "name": "F"
+  },
+  "47": {
+    "hex": "47",
+    "unicode": "G",
+    "name": "G"
+  },
+  "48": {
+    "hex": "48",
+    "unicode": "H",
+    "name": "H"
+  },
+  "49": {
+    "hex": "49",
+    "unicode": "I",
+    "name": "I"
+  },
+  "4A": {
+    "hex": "4A",
+    "unicode": "J",
+    "name": "J"
+  },
+  "4B": {
+    "hex": "4B",
+    "unicode": "K",
+    "name": "K"
+  },
+  "4C": {
+    "hex": "4C",
+    "unicode": "L",
+    "name": "L"
+  },
+  "4D": {
+    "hex": "4D",
+    "unicode": "M",
+    "name": "M"
+  },
+  "4E": {
+    "hex": "4E",
+    "unicode": "N",
+    "name": "N"
+  },
+  "4F": {
+    "hex": "4F",
+    "unicode": "O",
+    "name": "O"
+  },
+  "50": {
+    "hex": "50",
+    "unicode": "P",
+    "name": "P"
+  },
+  "51": {
+    "hex": "51",
+    "unicode": "Q",
+    "name": "Q"
+  },
+  "52": {
+    "hex": "52",
+    "unicode": "R",
+    "name": "R"
+  },
+  "53": {
+    "hex": "53",
+    "unicode": "S",
+    "name": "S"
+  },
+  "54": {
+    "hex": "54",
+    "unicode": "T",
+    "name": "T"
+  },
+  "55": {
+    "hex": "55",
+    "unicode": "U",
+    "name": "U"
+  },
+  "56": {
+    "hex": "56",
+    "unicode": "V",
+    "name": "V"
+  },
+  "57": {
+    "hex": "57",
+    "unicode": "W",
+    "name": "W"
+  },
+  "58": {
+    "hex": "58",
+    "unicode": "X",
+    "name": "X"
+  },
+  "59": {
+    "hex": "59",
+    "unicode": "Y",
+    "name": "Y"
+  },
+  "5A": {
+    "hex": "5A",
+    "unicode": "Z",
+    "name": "Z"
+  },
+  "5B": {
+    "hex": "5B",
+    "unicode": "[",
+    "name": "["
+  },
+  "5C": {
+    "hex": "5C",
+    "unicode": "£",
+    "name": "POUND"
+  },
+  "5D": {
+    "hex": "5D",
+    "unicode": "]",
+    "name": "]"
+  },
+  "5E": {
+    "hex": "5E",
+    "unicode": "↑",
+    "name": "UP_ARROW"
+  },
+  "5F": {
+    "hex": "5F",
+    "unicode": "←",
+    "name": "LEFT_ARROW"
+  },
+  "60": {
+    "hex": "60",
+    "unicode": "`",
+    "name": "`"
+  },
+  "61": {
+    "hex": "61",
+    "unicode": "a",
+    "name": "a"
+  },
+  "62": {
+    "hex": "62",
+    "unicode": "b",
+    "name": "b"
+  },
+  "63": {
+    "hex": "63",
+    "unicode": "c",
+    "name": "c"
+  },
+  "64": {
+    "hex": "64",
+    "unicode": "d",
+    "name": "d"
+  },
+  "65": {
+    "hex": "65",
+    "unicode": "e",
+    "name": "e"
+  },
+  "66": {
+    "hex": "66",
+    "unicode": "f",
+    "name": "f"
+  },
+  "67": {
+    "hex": "67",
+    "unicode": "g",
+    "name": "g"
+  },
+  "68": {
+    "hex": "68",
+    "unicode": "h",
+    "name": "h"
+  },
+  "69": {
+    "hex": "69",
+    "unicode": "i",
+    "name": "i"
+  },
+  "6A": {
+    "hex": "6A",
+    "unicode": "j",
+    "name": "j"
+  },
+  "6B": {
+    "hex": "6B",
+    "unicode": "k",
+    "name": "k"
+  },
+  "6C": {
+    "hex": "6C",
+    "unicode": "l",
+    "name": "l"
+  },
+  "6D": {
+    "hex": "6D",
+    "unicode": "m",
+    "name": "m"
+  },
+  "6E": {
+    "hex": "6E",
+    "unicode": "n",
+    "name": "n"
+  },
+  "6F": {
+    "hex": "6F",
+    "unicode": "o",
+    "name": "o"
+  },
+  "70": {
+    "hex": "70",
+    "unicode": "p",
+    "name": "p"
+  },
+  "71": {
+    "hex": "71",
+    "unicode": "q",
+    "name": "q"
+  },
+  "72": {
+    "hex": "72",
+    "unicode": "r",
+    "name": "r"
+  },
+  "73": {
+    "hex": "73",
+    "unicode": "s",
+    "name": "s"
+  },
+  "74": {
+    "hex": "74",
+    "unicode": "t",
+    "name": "t"
+  },
+  "75": {
+    "hex": "75",
+    "unicode": "u",
+    "name": "u"
+  },
+  "76": {
+    "hex": "76",
+    "unicode": "v",
+    "name": "v"
+  },
+  "77": {
+    "hex": "77",
+    "unicode": "w",
+    "name": "w"
+  },
+  "78": {
+    "hex": "78",
+    "unicode": "x",
+    "name": "x"
+  },
+  "79": {
+    "hex": "79",
+    "unicode": "y",
+    "name": "y"
+  },
+  "7A": {
+    "hex": "7A",
+    "unicode": "z",
+    "name": "z"
+  },
+  "7B": {
+    "hex": "7B",
+    "unicode": "{",
+    "name": "{"
+  },
+  "7C": {
+    "hex": "7C",
+    "unicode": "|",
+    "name": "|"
+  },
+  "7D": {
+    "hex": "7D",
+    "unicode": "}",
+    "name": "}"
+  },
+  "7E": {
+    "hex": "7E",
+    "unicode": "π",
+    "name": "PI"
+  },
+  "7F": {
+    "hex": "7F",
+    "unicode": "",
+    "name": "EXT_7F"
+  },
+  "80": {
+    "hex": "80",
+    "unicode": "",
+    "name": "EXT_80"
+  },
+  "81": {
+    "hex": "81",
+    "unicode": "",
+    "name": "EXT_81"
+  },
+  "82": {
+    "hex": "82",
+    "unicode": "",
+    "name": "EXT_82"
+  },
+  "83": {
+    "hex": "83",
+    "unicode": "",
+    "name": "EXT_83"
+  },
+  "84": {
+    "hex": "84",
+    "unicode": "",
+    "name": "EXT_84"
+  },
+  "85": {
+    "hex": "85",
+    "unicode": "",
+    "name": "EXT_85"
+  },
+  "86": {
+    "hex": "86",
+    "unicode": "",
+    "name": "EXT_86"
+  },
+  "87": {
+    "hex": "87",
+    "unicode": "",
+    "name": "EXT_87"
+  },
+  "88": {
+    "hex": "88",
+    "unicode": "",
+    "name": "EXT_88"
+  },
+  "89": {
+    "hex": "89",
+    "unicode": "",
+    "name": "EXT_89"
+  },
+  "8A": {
+    "hex": "8A",
+    "unicode": "",
+    "name": "EXT_8A"
+  },
+  "8B": {
+    "hex": "8B",
+    "unicode": "",
+    "name": "EXT_8B"
+  },
+  "8C": {
+    "hex": "8C",
+    "unicode": "",
+    "name": "EXT_8C"
+  },
+  "8D": {
+    "hex": "8D",
+    "unicode": "",
+    "name": "EXT_8D"
+  },
+  "8E": {
+    "hex": "8E",
+    "unicode": "",
+    "name": "EXT_8E"
+  },
+  "8F": {
+    "hex": "8F",
+    "unicode": "",
+    "name": "EXT_8F"
+  },
+  "90": {
+    "hex": "90",
+    "unicode": "",
+    "name": "EXT_90"
+  },
+  "91": {
+    "hex": "91",
+    "unicode": "",
+    "name": "EXT_91"
+  },
+  "92": {
+    "hex": "92",
+    "unicode": "",
+    "name": "EXT_92"
+  },
+  "93": {
+    "hex": "93",
+    "unicode": "",
+    "name": "EXT_93"
+  },
+  "94": {
+    "hex": "94",
+    "unicode": "",
+    "name": "EXT_94"
+  },
+  "95": {
+    "hex": "95",
+    "unicode": "",
+    "name": "EXT_95"
+  },
+  "96": {
+    "hex": "96",
+    "unicode": "",
+    "name": "EXT_96"
+  },
+  "97": {
+    "hex": "97",
+    "unicode": "",
+    "name": "EXT_97"
+  },
+  "98": {
+    "hex": "98",
+    "unicode": "",
+    "name": "EXT_98"
+  },
+  "99": {
+    "hex": "99",
+    "unicode": "",
+    "name": "EXT_99"
+  },
+  "9A": {
+    "hex": "9A",
+    "unicode": "",
+    "name": "EXT_9A"
+  },
+  "9B": {
+    "hex": "9B",
+    "unicode": "",
+    "name": "EXT_9B"
+  },
+  "9C": {
+    "hex": "9C",
+    "unicode": "",
+    "name": "EXT_9C"
+  },
+  "9D": {
+    "hex": "9D",
+    "unicode": "",
+    "name": "EXT_9D"
+  },
+  "9E": {
+    "hex": "9E",
+    "unicode": "",
+    "name": "EXT_9E"
+  },
+  "9F": {
+    "hex": "9F",
+    "unicode": "",
+    "name": "EXT_9F"
+  },
+  "A0": {
+    "hex": "A0",
+    "unicode": " ",
+    "name": "EXT_A0"
+  },
+  "A1": {
+    "hex": "A1",
+    "unicode": "",
+    "name": "EXT_A1"
+  },
+  "A2": {
+    "hex": "A2",
+    "unicode": "",
+    "name": "EXT_A2"
+  },
+  "A3": {
+    "hex": "A3",
+    "unicode": "",
+    "name": "EXT_A3"
+  },
+  "A4": {
+    "hex": "A4",
+    "unicode": "",
+    "name": "EXT_A4"
+  },
+  "A5": {
+    "hex": "A5",
+    "unicode": "",
+    "name": "EXT_A5"
+  },
+  "A6": {
+    "hex": "A6",
+    "unicode": "",
+    "name": "EXT_A6"
+  },
+  "A7": {
+    "hex": "A7",
+    "unicode": "",
+    "name": "EXT_A7"
+  },
+  "A8": {
+    "hex": "A8",
+    "unicode": "",
+    "name": "EXT_A8"
+  },
+  "A9": {
+    "hex": "A9",
+    "unicode": "",
+    "name": "EXT_A9"
+  },
+  "AA": {
+    "hex": "AA",
+    "unicode": "",
+    "name": "EXT_AA"
+  },
+  "AB": {
+    "hex": "AB",
+    "unicode": "",
+    "name": "EXT_AB"
+  },
+  "AC": {
+    "hex": "AC",
+    "unicode": "",
+    "name": "EXT_AC"
+  },
+  "AD": {
+    "hex": "AD",
+    "unicode": "",
+    "name": "EXT_AD"
+  },
+  "AE": {
+    "hex": "AE",
+    "unicode": "",
+    "name": "EXT_AE"
+  },
+  "AF": {
+    "hex": "AF",
+    "unicode": "",
+    "name": "EXT_AF"
+  },
+  "B0": {
+    "hex": "B0",
+    "unicode": "",
+    "name": "EXT_B0"
+  },
+  "B1": {
+    "hex": "B1",
+    "unicode": "",
+    "name": "EXT_B1"
+  },
+  "B2": {
+    "hex": "B2",
+    "unicode": "",
+    "name": "EXT_B2"
+  },
+  "B3": {
+    "hex": "B3",
+    "unicode": "",
+    "name": "EXT_B3"
+  },
+  "B4": {
+    "hex": "B4",
+    "unicode": "",
+    "name": "EXT_B4"
+  },
+  "B5": {
+    "hex": "B5",
+    "unicode": "",
+    "name": "EXT_B5"
+  },
+  "B6": {
+    "hex": "B6",
+    "unicode": "",
+    "name": "EXT_B6"
+  },
+  "B7": {
+    "hex": "B7",
+    "unicode": "",
+    "name": "EXT_B7"
+  },
+  "B8": {
+    "hex": "B8",
+    "unicode": "",
+    "name": "EXT_B8"
+  },
+  "B9": {
+    "hex": "B9",
+    "unicode": "",
+    "name": "EXT_B9"
+  },
+  "BA": {
+    "hex": "BA",
+    "unicode": "",
+    "name": "EXT_BA"
+  },
+  "BB": {
+    "hex": "BB",
+    "unicode": "",
+    "name": "EXT_BB"
+  },
+  "BC": {
+    "hex": "BC",
+    "unicode": "",
+    "name": "EXT_BC"
+  },
+  "BD": {
+    "hex": "BD",
+    "unicode": "",
+    "name": "EXT_BD"
+  },
+  "BE": {
+    "hex": "BE",
+    "unicode": "",
+    "name": "EXT_BE"
+  },
+  "BF": {
+    "hex": "BF",
+    "unicode": "",
+    "name": "EXT_BF"
+  },
+  "C0": {
+    "hex": "C0",
+    "unicode": "",
+    "name": "EXT_C0"
+  },
+  "C1": {
+    "hex": "C1",
+    "unicode": "",
+    "name": "EXT_C1"
+  },
+  "C2": {
+    "hex": "C2",
+    "unicode": "",
+    "name": "EXT_C2"
+  },
+  "C3": {
+    "hex": "C3",
+    "unicode": "",
+    "name": "EXT_C3"
+  },
+  "C4": {
+    "hex": "C4",
+    "unicode": "",
+    "name": "EXT_C4"
+  },
+  "C5": {
+    "hex": "C5",
+    "unicode": "",
+    "name": "EXT_C5"
+  },
+  "C6": {
+    "hex": "C6",
+    "unicode": "",
+    "name": "EXT_C6"
+  },
+  "C7": {
+    "hex": "C7",
+    "unicode": "",
+    "name": "EXT_C7"
+  },
+  "C8": {
+    "hex": "C8",
+    "unicode": "",
+    "name": "EXT_C8"
+  },
+  "C9": {
+    "hex": "C9",
+    "unicode": "",
+    "name": "EXT_C9"
+  },
+  "CA": {
+    "hex": "CA",
+    "unicode": "",
+    "name": "EXT_CA"
+  },
+  "CB": {
+    "hex": "CB",
+    "unicode": "",
+    "name": "EXT_CB"
+  },
+  "CC": {
+    "hex": "CC",
+    "unicode": "",
+    "name": "EXT_CC"
+  },
+  "CD": {
+    "hex": "CD",
+    "unicode": "",
+    "name": "EXT_CD"
+  },
+  "CE": {
+    "hex": "CE",
+    "unicode": "",
+    "name": "EXT_CE"
+  },
+  "CF": {
+    "hex": "CF",
+    "unicode": "",
+    "name": "EXT_CF"
+  },
+  "D0": {
+    "hex": "D0",
+    "unicode": "",
+    "name": "EXT_D0"
+  },
+  "D1": {
+    "hex": "D1",
+    "unicode": "",
+    "name": "EXT_D1"
+  },
+  "D2": {
+    "hex": "D2",
+    "unicode": "",
+    "name": "EXT_D2"
+  },
+  "D3": {
+    "hex": "D3",
+    "unicode": "",
+    "name": "EXT_D3"
+  },
+  "D4": {
+    "hex": "D4",
+    "unicode": "",
+    "name": "EXT_D4"
+  },
+  "D5": {
+    "hex": "D5",
+    "unicode": "",
+    "name": "EXT_D5"
+  },
+  "D6": {
+    "hex": "D6",
+    "unicode": "",
+    "name": "EXT_D6"
+  },
+  "D7": {
+    "hex": "D7",
+    "unicode": "",
+    "name": "EXT_D7"
+  },
+  "D8": {
+    "hex": "D8",
+    "unicode": "",
+    "name": "EXT_D8"
+  },
+  "D9": {
+    "hex": "D9",
+    "unicode": "",
+    "name": "EXT_D9"
+  },
+  "DA": {
+    "hex": "DA",
+    "unicode": "",
+    "name": "EXT_DA"
+  },
+  "DB": {
+    "hex": "DB",
+    "unicode": "",
+    "name": "EXT_DB"
+  },
+  "DC": {
+    "hex": "DC",
+    "unicode": "",
+    "name": "EXT_DC"
+  },
+  "DD": {
+    "hex": "DD",
+    "unicode": "",
+    "name": "EXT_DD"
+  },
+  "DE": {
+    "hex": "DE",
+    "unicode": "",
+    "name": "EXT_DE"
+  },
+  "DF": {
+    "hex": "DF",
+    "unicode": "",
+    "name": "EXT_DF"
+  },
+  "E0": {
+    "hex": "E0",
+    "unicode": "",
+    "name": "EXT_E0"
+  },
+  "E1": {
+    "hex": "E1",
+    "unicode": "",
+    "name": "EXT_E1"
+  },
+  "E2": {
+    "hex": "E2",
+    "unicode": "",
+    "name": "EXT_E2"
+  },
+  "E3": {
+    "hex": "E3",
+    "unicode": "",
+    "name": "EXT_E3"
+  },
+  "E4": {
+    "hex": "E4",
+    "unicode": "",
+    "name": "EXT_E4"
+  },
+  "E5": {
+    "hex": "E5",
+    "unicode": "",
+    "name": "EXT_E5"
+  },
+  "E6": {
+    "hex": "E6",
+    "unicode": "",
+    "name": "EXT_E6"
+  },
+  "E7": {
+    "hex": "E7",
+    "unicode": "",
+    "name": "EXT_E7"
+  },
+  "E8": {
+    "hex": "E8",
+    "unicode": "",
+    "name": "EXT_E8"
+  },
+  "E9": {
+    "hex": "E9",
+    "unicode": "",
+    "name": "EXT_E9"
+  },
+  "EA": {
+    "hex": "EA",
+    "unicode": "",
+    "name": "EXT_EA"
+  },
+  "EB": {
+    "hex": "EB",
+    "unicode": "",
+    "name": "EXT_EB"
+  },
+  "EC": {
+    "hex": "EC",
+    "unicode": "",
+    "name": "EXT_EC"
+  },
+  "ED": {
+    "hex": "ED",
+    "unicode": "",
+    "name": "EXT_ED"
+  },
+  "EE": {
+    "hex": "EE",
+    "unicode": "",
+    "name": "EXT_EE"
+  },
+  "EF": {
+    "hex": "EF",
+    "unicode": "",
+    "name": "EXT_EF"
+  },
+  "F0": {
+    "hex": "F0",
+    "unicode": "",
+    "name": "EXT_F0"
+  },
+  "F1": {
+    "hex": "F1",
+    "unicode": "",
+    "name": "EXT_F1"
+  },
+  "F2": {
+    "hex": "F2",
+    "unicode": "",
+    "name": "EXT_F2"
+  },
+  "F3": {
+    "hex": "F3",
+    "unicode": "",
+    "name": "EXT_F3"
+  },
+  "F4": {
+    "hex": "F4",
+    "unicode": "",
+    "name": "EXT_F4"
+  },
+  "F5": {
+    "hex": "F5",
+    "unicode": "",
+    "name": "EXT_F5"
+  },
+  "F6": {
+    "hex": "F6",
+    "unicode": "",
+    "name": "EXT_F6"
+  },
+  "F7": {
+    "hex": "F7",
+    "unicode": "",
+    "name": "EXT_F7"
+  },
+  "F8": {
+    "hex": "F8",
+    "unicode": "",
+    "name": "EXT_F8"
+  },
+  "F9": {
+    "hex": "F9",
+    "unicode": "",
+    "name": "EXT_F9"
+  },
+  "FA": {
+    "hex": "FA",
+    "unicode": "",
+    "name": "EXT_FA"
+  },
+  "FB": {
+    "hex": "FB",
+    "unicode": "",
+    "name": "EXT_FB"
+  },
+  "FC": {
+    "hex": "FC",
+    "unicode": "",
+    "name": "EXT_FC"
+  },
+  "FD": {
+    "hex": "FD",
+    "unicode": "",
+    "name": "EXT_FD"
+  },
+  "FE": {
+    "hex": "FE",
+    "unicode": "",
+    "name": "EXT_FE"
+  },
+  "FF": {
+    "hex": "FF",
+    "unicode": "",
+    "name": "EXT_FF"
+  }
+}

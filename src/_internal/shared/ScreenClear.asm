@@ -1,0 +1,73 @@
+; -----------------------------------------------------------------------------
+; \file  ScreenClear.asm
+; \note  (c) 2025 by Jens Kallup - paule32
+;        all rights reserved.
+;
+; \desc  Create a dBASE MS-Windows 11 64-bit Pro EXE.
+; -----------------------------------------------------------------------------
+%define TEXT_VRAM 0xb8000
+
+%if DOS_MODE == 16
+dos_screen_clear:
+k_clear_screenv:
+    bits 16
+    section .text
+    push ds
+    mov  ax, TEXT_VRAM
+    mov  es, ax
+
+    xor  di, di         ; Offset 0
+    
+    ; default size is:  80x25
+    mov  al, bl         ; AL = 25
+    mul  bh             ; AX = AL * BH = 25 * 80 = 2000 (0x07D0)
+    mov  cx, ax         ; 2000 chars
+    
+    ; color
+    mov  ax, 0x0720     ; AL=' ' (20h), AH=07h (hellgrau auf schwarz)
+
+    .fill:
+    stosw               ; schreibt AX -> ES:[DI], DI+=2
+    loop .fill
+
+    pop  ds
+
+    SET_CURSOR 0, 0
+    
+    ret
+%endif
+
+; -----------------------------------------------------------------------------
+; \brief 32-bit PM-DOS screen clear stuff ...
+; -----------------------------------------------------------------------------
+%if DOS_MODE == 32
+; -----------------------------------------------------------------------------
+; \brief kernel PM-DOS screen clear function with default 80x25 dimension.
+; \note  C-kernel source:
+;
+; void k_clear_screen()
+; {
+;     char* vidmem = (char*) 0xb8000;
+;     unsigned int i=0;
+;     while(i<(80*2*25)) {
+;         vidmem[i] = ' '; ++i;
+;         vidmem[i] = 0x07;
+;         ++i;
+;     }
+; }
+; -----------------------------------------------------------------------------
+dos_screen_clear:
+k_clear_screen:
+bits 32
+section .text
+    mov  eax, TEXT_VRAM
+    mov  bx, 0
+.loop:
+    mov  byte [eax],  ' '
+    mov  byte [eax+1], 0x07  ; gray text
+    add  eax, 2
+    inc  bx
+    cmp  bx, ((80 * 25) * 2)
+    jne  .loop
+    ret
+%endif

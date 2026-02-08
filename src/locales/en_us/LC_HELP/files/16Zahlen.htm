@@ -1,0 +1,358 @@
+﻿<!DOCTYPE html>
+
+<html>
+	
+<head>
+	<title>1.6.  Zahlen</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="description" content="FPC Referenz Handbuch" />
+    <meta name="generator" content="HelpNDoc Ultimate Edition 9.9.0.637" />
+	
+	
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #000000;
+		}
+	</style>
+
+	<style type="text/css">body {
+background-color: black;
+}
+hr {
+color: yellow;
+}
+.center {
+text-align: center;
+color: white;
+background-color:blue;
+width:100%;
+}
+.centercommonlizenz {
+background-image:url(./lib/common1.png);
+background-repeat:no-repeat;
+background-size:contain;
+background-position:center; 
+width:140px;
+height:58px;
+}
+.header_container {
+width:148px;
+height:48px;
+background-image:url(./lib/1.bmp);
+background-size:contain;
+background-repeat: repeat-x;
+}
+.nextlink a,
+.nextlink a:visited,
+.nextlink a:hover,
+.nextlink a:active {
+  color: cyan;
+  text-decoration: none !important;;
+}</style>
+
+	<script type="text/javascript" src="js/chmRelative.js"></script>
+	
+	
+</head>
+
+<body>
+
+
+
+	
+	
+	<div id="topic_content">
+        
+<p class="rvps2"><span class="rvts6"></span><span class="rvts6"></span><span class="rvts6"></span></p>
+<div class="rvps2">
+<table width="98%" style="border-color: #000000; border-style: solid; border-width: 1px; background-color: #ffffff; border-spacing: 2px;">
+ <tr style="vertical-align: middle;">
+  <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; border-top: none; border-right: none; border-bottom: none; border-left: none; background-color: #800000; vertical-align: middle; width: 90%; height: 259px;">
+   <p class="rvps3"><span class="rvts6"><br/></span></p>
+   <div class="rvps4">
+   <table width="100%" style="border-width: 0px; background-color: #000055; border-collapse: collapse; margin: 0px auto;">
+    <tr style="vertical-align: middle;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 0px; background-color: #000080; width: 100%; height: 20px;">
+      <div class="rvps3">
+      <table width="100%" style="border-width: 0px; background-color: #000055; border-collapse: collapse; margin: 0px auto;">
+       <tr style="vertical-align: middle;">
+        <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 0px; background-color: #000080; width: 100%; height: 39px;">
+         <div class="rvps2">
+         <table width="100%" style="border-width: 0px; background-color: #000041; border-spacing: 0px; padding: 1px;">
+          <tr style="vertical-align: middle;">
+           <td style="padding: 0px; vertical-align: middle; width: 11%; height: 38px;">
+            <p class="rvps2"><img alt="" style="padding : 1px;" src="lib/mathe.png"></p>
+           </td>
+           <td style="padding: 0px; vertical-align: middle; width: 78%; height: 38px;">
+            <p class="rvps3"><span class="rvts15">PASCAL</span><span class="rvts14"> </span><span class="rvts16">- FPC Referenz Handbuch</span></p>
+           </td>
+           <td style="padding: 0px; vertical-align: middle; width: 11%; height: 38px;">
+            <p class="rvps9"><img alt="" style="padding : 1px;" src="lib/mathe.png"></p>
+           </td>
+          </tr>
+         </table>
+         </div>
+        </td>
+       </tr>
+       <tr style="vertical-align: top;">
+        <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 0px; background-color: #333333; width: 704px;">
+         <div class="rvps3">
+         <table width="100%" style="border-width: 0px; border-spacing: 2px; margin: 0px auto;">
+          <tr style="vertical-align: top;">
+           <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; border-top: none; border-right: none; border-bottom: none; border-left: none; background-color: #333333; vertical-align: middle; width: 25%; height: 31px;">
+            <p class="rvps8"><span class="rvts19">FPC  v.3.2.2</span></p>
+           </td>
+           <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; border-top: none; border-right: none; border-bottom: none; border-left: none; background-color: #333333; vertical-align: middle; width: 205px; height: 31px;">
+            <p class="rvps3"><span class="rvts18"><div style="font-family:'Arial';font-size:10pt;color:white;">
+  <div style="float='left';font-family:'Arial Black';font-size:10pt;color:white;">F</div>ree
+  <div style="float='left';font-family:'Arial Black';font-size:10pt;color:white;">P</div>ascal
+  <div style="float='left';font-family:'Arial Black';font-size:10pt;color:white;">C</div>ompiler
+</div>
+</span></p>
+           </td>
+           <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; border-top: none; border-right: none; border-bottom: none; border-left: none; background-color: #333333; vertical-align: middle; width: 25%; height: 31px;">
+            <p class="rvps9"><img alt="" style="width : 61px; height : 31px; padding : 1px;" src="lib/logo.gif"></p>
+           </td>
+          </tr>
+         </table>
+         </div>
+        </td>
+       </tr>
+      </table>
+      </div>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 0px; background-color: #000000; width: 704px;">
+      <div class="rvps10">
+      <table width="100%" style="border-width: 0px; background-color: #000000; border-spacing: 2px;">
+       <tr style="vertical-align: top;">
+        <td style="padding: 0px;">
+         <p class="rvps2"><span class="rvts22"><span class="nextlink"><a href="15HinweiseundDirektiven.htm"><< Zurück</a></span></span></p>
+        </td>
+        <td style="padding: 0px;">
+         <p class="rvps3"><a class="rvts20" href="Inhalt.htm#Inhalt">Inhalt</a></p>
+        </td>
+        <td style="padding: 0px;">
+         <p class="rvps9"><span class="rvts22"><span class="nextlink"><a href="17Bezeichner.htm">Weiter >></a></span></span></p>
+        </td>
+       </tr>
+       <tr style="vertical-align: top;">
+        <td colspan="3" style="padding: 0px;">
+         <hr style="height : 1px; background-color : #000000; border-style : none;">        </td>
+       </tr>
+      </table>
+      </div>
+      <p class="rvps2"><span class="rvts13">
+<div class="rvps21">
+<a name="Zahlen"></a><table width="100%" style="border-color: #000000; border-style: solid; border-width: 1px; border-spacing: 2px;">
+ <tr style="vertical-align: top;">
+  <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px;">
+   <p class="rvps22"><span class="rvts13">1.6. &nbsp;Zahlen</span></p>
+   <p class="rvps22"><span class="rvts11"><br/></span></p>
+   <p class="rvps22"><span class="rvts27">Zahlen werden standardmäßig in Dezimalschreibweise dargestellt. Reelle (oder Dezimal-)Zahlen werden in technischer oder wissenschaftlicher Notation geschrieben (z. B. 0,314E1).</span></p>
+   <p class="rvps22"><span class="rvts27"><br/></span></p>
+   <p class="rvps22"><span class="rvts27">Für Konstanten vom Typ Integer unterstützt Free Pascal vier Formate:</span></p>
+   <p class="rvps22"><span class="rvts27"><br/></span></p>
+   <ol style="text-indent: 0px; padding: 0; margin: 0 0 0 24px; list-style-position: outside;">
+    <li class="rvps22 noindent"><span class="rvts27">Normales Dezimalformat (Basis 10). Dies ist das Standardformat.</span></li>
+    <li class="rvps22 noindent"><span class="rvts27">Hexadezimalformat &nbsp; &nbsp; &nbsp; &nbsp; (Basis 16), analog zu Turbo Pascal. Um einen konstanten Wert im Hexadezimalformat anzugeben, stellen Sie ihm ein Dollarzeichen ($) voran. Somit entspricht $FF im Hexadezimalformat 255 im Dezimalformat.</span><br/><span class="rvts27">Beachten Sie, dass die Groß- und Kleinschreibung bei hexadezimalen Konstanten keine Rolle spielt.</span></li>
+    <li class="rvps22 noindent"><span class="rvts27">Ab Version 1.0.7 wird auch das Oktalformat (Basis 8) unterstützt.</span><br/><span class="rvts27">Um eine Konstante im Oktalformat anzugeben, stellen Sie ihr ein Et-Zeichen (&amp;) voran. Beispielsweise wird 15 in Oktalnotation als &amp;17 angegeben.</span></li>
+    <li class="rvps22 noindent"><span class="rvts27">Binärnotation (Basis 2). Einer Binärzahl kann ein Prozentzeichen (%) vorangestellt werden. Somit kann 255 in Binärnotation als %11111111 angegeben werden.</span></li>
+   </ol>
+   <p class="rvps22"><span class="rvts27"><br/></span></p>
+   <p class="rvps22"><span class="rvts27">Die folgenden Diagramme zeigen die Syntax für Zahlen.</span></p>
+   <p class="rvps22"><span class="rvts27"><br/></span></p>
+   <div class="rvps44">
+   <table width="100%" style="border-color: #000000; border-style: solid; border-width: 1px; border-spacing: 2px;">
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="padding : 1px;" src="lib/hexdigit%201.jpeg" usemap="#AAAB278C189144D89756BB77C9A05CE9"><map name="AAAB278C189144D89756BB77C9A05CE9"><area shape="rect" coords="111,36,164,73" alt="" title="" href="Syntax.htm#Syntax_digit"><area shape="rect" coords="114,83,192,114" alt="" title="" href="Syntax.htm#Symbol_hexletter"></map></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">digit &nbsp; &nbsp; ::= [0-9]</span></p>
+      <p class="rvps2"><span class="rvts58">hexletter ::= [a-fA-F]</span></p>
+      <p class="rvps2"><span class="rvts58">hexdigit &nbsp;::= '$' ( digit | hexletter )</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="padding : 1px;" src="lib/oktal.png"></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">oktal ::= '&amp;' digits</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="padding : 1px;" src="lib/graph_bindigit.jpeg" usemap="#6BA6105842204880969258C1E8694EEF"><map name="6BA6105842204880969258C1E8694EEF"></map></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">bindigit ::= '%' [0-1]*</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="padding : 1px;" src="lib/graph_digit%201.jpeg" usemap="#F6BEC1DB3C5E4F45AC9BA6887519D82A"><map name="F6BEC1DB3C5E4F45AC9BA6887519D82A"></map></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">digit ::= [0-9]*</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="padding : 1px;" src="lib/vorzeichen.png"></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">Vorzeichen ::= '+' | '-'</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="width : 248px; height : 171px; padding : 1px;" src="lib/unsigned_integer.png"></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">vorzeichenlose Ganzzahlen ::=</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; &nbsp; digit_sequence</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; | '$' hexdigit_sequence &nbsp;</span><span class="rvts59">/* $CAFE001 */</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; | '&amp;' octal_sequence &nbsp; &nbsp; </span><span class="rvts59">/* &amp;270 &nbsp; &nbsp; */</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; | '%' bindigit_sequence &nbsp;</span><span class="rvts59">/* %10100 &nbsp; */</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="padding : 1px;" src="lib/scale_factor.png"></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">scale_factor ::=</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; (E | e)('+'|'-')digit_sequence</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="width : 374px; height : 111px; padding : 1px;" src="lib/unsigned_real.png"></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">unsigned_real ::=</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; &nbsp; digit_sequence '.' digit_sequence</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; | scale_factor</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="padding : 1px;" src="lib/unsigned_number.png"></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">unsigned_number ::=</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; &nbsp; unsigned_real</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; | unsigned_integer</span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td colspan="2" style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 780px;">
+      <hr style="height : 1px; background-color : #000000; border-style : none;">     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #fffff0; width: 278px;">
+      <p class="rvps44"><img alt="" style="padding : 1px;" src="lib/signed_number.png"></p>
+     </td>
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 1px; background-color: #ffffff; width: 502px;">
+      <p class="rvps2"><span class="rvts58">signed_number ::=</span></p>
+      <p class="rvps2"><span class="rvts58">&nbsp; ('+' | '-') unsigned_number</span></p>
+     </td>
+    </tr>
+   </table>
+   </div>
+   <p class="rvps44"><span class="rvts6"><br/></span></p>
+   <p class="rvps44"><span class="rvts44">Hinweis:</span></p>
+   <p class="rvps44"><span class="rvts27">oktal und binäre Notation wird im TP und Delphi kompatibilitätsmodus nicht unterstützt.</span></p>
+   <p class="rvps44"><span class="rvts27"><br/></span></p>
+  </td>
+ </tr>
+</table>
+</div>
+<p></p>
+</span></p>
+      <p class="rvps2"><span class="rvts13"><br/></span></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 0px; background-color: #c0c0c0; width: 704px;">
+      <p class="rvps7"><a class="rvts21" href="https://www.freepascal.org" target="_blank">www.freepascal.org</a></p>
+     </td>
+    </tr>
+    <tr style="vertical-align: top;">
+     <td style="border-width : 1px; border-color: #000000; border-style: solid; padding: 0px; background-color: #000080; vertical-align: middle; width: 100%;">
+      <p class="rvps51"><span class="rvts11">(C) 2025 by Jens Kallup - paule32</span></p>
+      <p class="rvps50"><span class="rvts11">Übersetzung lizenziert unter der Creative Common Lizenz NC</span></p>
+      <p class="rvps6"><a href="https://de.wikipedia.org/wiki/Creative_Commons" target="_blank"><img alt="" style="width : 119px; height : 35px; padding : 1px;" src="lib/common.png"></a></p>
+     </td>
+    </tr>
+   </table>
+   </div>
+   <p class="rvps3"><span class="rvts6"><br/></span></p>
+  </td>
+ </tr>
+</table>
+</div>
+<p class="rvps2"><span class="rvts6"></span><span class="rvts6"></span><span class="rvts6"></span></p>
+<p class="rvps2"><span class="rvts6"></span><span class="rvts6"></span></p>
+<p class="rvps2"><span class="rvts6"></span><span class="rvts6"></span><span class="rvts6"></span></p>
+<p class="rvps2" style="break-before: always;"><span class="rvts12"></span><span class="rvts6"></span></p>
+
+	</div>
+	
+	
+
+	<div id="custom_footer"></div>
+
+	
+	
+
+	
+</body>
+	
+</html>
+

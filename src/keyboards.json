@@ -1,0 +1,318 @@
+[
+  [
+    \"US English Keyboard Layout\",
+    \":/img/keyboard/usenglish\"
+  ],
+  [
+    \"US English International Keyboard Layout\",
+    \":/img/keyboard/usinternational\"
+  ],
+  [
+    \"Arabic Keyboard Layout\",
+    \":/img/keyboard/arabic\"
+  ],
+  [
+    \"Armenian Keyboard Layout\",
+    \":/img/keyboard/armenian\"
+  ],
+  [
+    \"Azeri/Azerbaijani Keyboard Layout\",
+    \":/img/keyboard/azeri\"
+  ],
+  [
+    \"Belgian Keyboard Layout\",
+    \":/img/keyboard/belgian\"
+  ],
+  [
+    \"Bengali Keyboard Layout\",
+    \":/img/keyboard/bengali\"
+  ],
+  [
+    \"Bosnian Keyboard Layout\",
+    \":/img/keyboard/Bosnian\"
+  ],
+  [
+    \"Bulgarian Keyboard Layout\",
+    \":/img/keyboard/Bulgarian\"
+  ],
+  [
+    \"Burmese Keyboard Layout\",
+    \":/img/keyboard/Burmese\"
+  ],
+  [
+    \"Cherokee Keyboard Layout\",
+    \":/img/keyboard/Cherokee\"
+  ],
+  [
+    \"Chinese Keyboard Layout\",
+    \":/img/keyboard/Chinese\"
+  ],
+  [
+    \"Colemak Keyboard Layout\",
+    \":/img/keyboard/Colemak\"
+  ],
+  [
+    \"Croatian Keyboard Layout\",
+    \":/img/keyboard/Croatian\"
+  ],
+  [
+    \"Czech Keyboard Layout\",
+    \":/img/keyboard/Czech\"
+  ],
+  [
+    \"Danish Keyboard Layout\",
+    \":/img/keyboard/Danish\"
+  ],
+  [
+    \"Dvorak Keyboard Layout\",
+    \":/img/keyboard/Dvorak\"
+  ],
+  [
+    \"Dutch Keyboard Layout\",
+    \":/img/keyboard/Dutch\"
+  ],
+  [
+    \"Estonian Keyboard Layout\",
+    \":/img/keyboard/Estonian\"
+  ],
+  [
+    \"Finnish Keyboard Layout\",
+    \":/img/keyboard/Finnish\"
+  ],
+  [
+    \"French Keyboard Layout\",
+    \":/img/keyboard/French\"
+  ],
+  [
+    \"French (BÉPO) Keyboard Layout\",
+    \":/img/keyboard/French_BÉPO\"
+  ],
+  [
+    \"French (Canadian) Keyboard Layout\",
+    \":/img/keyboard/French_Canadian\"
+  ],
+  [
+    \"German Keyboard Layout\",
+    \":/img/keyboard/German\"
+  ],
+  [
+    \"Georgian Keyboard Layout\",
+    \":/img/keyboard/Georgian\"
+  ],
+  [
+    \"Greek Keyboard Layout\",
+    \":/img/keyboard/Greek\"
+  ],
+  [
+    \"Greek (Polytonic) Keyboard Layout\",
+    \":/img/keyboard/Greek_Polytonic\"
+  ],
+  [
+    \"Gujarati Keyboard Layout\",
+    \":/img/keyboard/Gujarati\"
+  ],
+  [
+    \"Hebrew Keyboard Layout\",
+    \":/img/keyboard/Hebrew\"
+  ],
+  [
+    \"Hindi Keyboard Layout\",
+    \":/img/keyboard/Hindi\"
+  ],
+  [
+    \"Hungarian Keyboard Layout\",
+    \":/img/keyboard/Hungarian\"
+  ],
+  [
+    \"Icelandic Keyboard Layout\",
+    \":/img/keyboard/Icelandic\"
+  ],
+  [
+    \"Inuktitut (Naqittaut) Keyboard Layout\",
+    \":/img/keyboard/Inuktitut_Naqittaut\"
+  ],
+  [
+    \"Italian Keyboard Layout\",
+    \":/img/keyboard/Italian\"
+  ],
+  [
+    \"Japanese Keyboard Layout\",
+    \":/img/keyboard/Japanese\"
+  ],
+  [
+    \"Kannada Keyboard Layout\",
+    \":/img/keyboard/Kannada\"
+  ],
+  [
+    \"Kazakh Keyboard Layout\",
+    \":/img/keyboard/Kazakh\"
+  ],
+  [
+    \"Khmer Keyboard Layout\",
+    \":/img/keyboard/Khmer\"
+  ],
+  [
+    \"Korean Keyboard Layout\",
+    \":/img/keyboard/Korean\"
+  ],
+  [
+    \"Kurdish Keyboard Layout\",
+    \":/img/keyboard/Kurdish\"
+  ],
+  [
+    \"Latvian Keyboard Layout\",
+    \":/img/keyboard/Latvian\"
+  ],
+  [
+    \"Lithuanian Keyboard Layout\",
+    \":/img/keyboard/Lithuanian\"
+  ],
+  [
+    \"Macedonian Keyboard Layout\",
+    \":/img/keyboard/Macedonian\"
+  ],
+  [
+    \"Malayalam Keyboard Layout\",
+    \":/img/keyboard/Malayalam\"
+  ],
+  [
+    \"Maltese Keyboard Layout\",
+    \":/img/keyboard/Maltese\"
+  ],
+  [
+    \"Nepali Keyboard Layout\",
+    \":/img/keyboard/Nepali\"
+  ],
+  [
+    \"Northern Sami Keyboard Layout\",
+    \":/img/keyboard/Northern_Sami\"
+  ],
+  [
+    \"Norwegian Keyboard Layout\",
+    \":/img/keyboard/Norwegian\"
+  ],
+  [
+    \"Odia/Oriya Keyboard Layout\",
+    \":/img/keyboard/Odia_Oriya\"
+  ],
+  [
+    \"Pashto Keyboard Layout\",
+    \":/img/keyboard/Pashto\"
+  ],
+  [
+    \"Persian/Farsi Keyboard Layout\",
+    \":/img/keyboard/Persian_Farsi\"
+  ],
+  [
+    \"Polish Keyboard Layout\",
+    \":/img/keyboard/Polish\"
+  ],
+  [
+    \"Polish (214) Keyboard Layout\",
+    \":/img/keyboard/Polish_typist_214\"
+  ],
+  [
+    \"Portuguese Keyboard Layout\",
+    \":/img/keyboard/Portuguese\"
+  ],
+  [
+    \"Portuguese (Brazilian) Keyboard Layout\",
+    \":/img/keyboard/Portuguese_Brazilian\"
+  ],
+  [
+    \"Punjabi (Gurmukhi) Keyboard Layout\",
+    \":/img/keyboard/Punjabi_Gurmukhi\"
+  ],
+  [
+    \"Romanian Keyboard Layout\",
+    \":/img/keyboard/Romanian\"
+  ],
+  [
+    \"Russian Keyboard Layout\",
+    \":/img/keyboard/Russian\"
+  ],
+  [
+    \"Russian (Phonetic) Keyboard Layout\",
+    \":/img/keyboard/Russian_Phonetic\"
+  ],
+  [
+    \"Serbian Keyboard Layout\",
+    \":/img/keyboard/Serbian\"
+  ],
+  [
+    \"Serbian (Latin) Keyboard Layout\",
+    \":/img/keyboard/Serbian_Latin\"
+  ],
+  [
+    \"Sinhala Keyboard Layout\",
+    \":/img/keyboard/Sinhala\"
+  ],
+  [
+    \"Slovak Keyboard Layout\",
+    \":/img/keyboard/Slovak\"
+  ],
+  [
+    \"Slovene/Slovenian Keyboard Layout\",
+    \":/img/keyboard/Slovene\"
+  ],
+  [
+    \"Spanish Keyboard Layout\",
+    \":/img/keyboard/Spanish\"
+  ],
+  [
+    \"Spanish (Latin America) Keyboard Layout\",
+    \":/img/keyboard/Spanish_latam\"
+  ],
+  [
+    \"Swedish Keyboard Layout\",
+    \":/img/keyboard/Swedish\"
+  ],
+  [
+    \"Swiss Keyboard Layout\",
+    \":/img/keyboard/Swiss\"
+  ],
+  [
+    \"Tamil Keyboard Layout\",
+    \":/img/keyboard/Tamil\"
+  ],
+  [
+    \"Telugu Keyboard Layout\",
+    \":/img/keyboard/Telugu\"
+  ],
+  [
+    \"Thai (Kedmanee) Keyboard Layout\",
+    \":/img/keyboard/Thai_Kedmanee\"
+  ],
+  [
+    \"Tibetan Keyboard Layout\",
+    \":/img/keyboard/Tibetan\"
+  ],
+  [
+    \"Turkish F Keyboard Layout\",
+    \":/img/keyboard/TurkishF\"
+  ],
+  [
+    \"Turkish Q Keyboard Layout\",
+    \":/img/keyboard/TurkishQ\"
+  ],
+  [
+    \"Ukrainian Keyboard Layout\",
+    \":/img/keyboard/Ukrainian\"
+  ],
+  [
+    \"Urdu Keyboard Layout\",
+    \":/img/keyboard/Urdu\"
+  ],
+  [
+    \"Uyghur Keyboard Layout\",
+    \":/img/keyboard/Uyghur\"
+  ],
+  [
+    \"Uzbek Keyboard Layout\",
+    \":/img/keyboard/Uzbek\"
+  ],
+  [
+    \"Vietnamese Keyboard Layout\",
+    \":/img/keyboard/Vietnamese\"
+  ]
+]

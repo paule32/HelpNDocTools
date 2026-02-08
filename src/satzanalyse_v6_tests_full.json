@@ -1,0 +1,677 @@
+[
+  {
+    "sentence": "ich bleibe zu hause",
+    "step2": {
+      "original": "ich bleibe zu hause",
+      "normalized_suggestion": "Ich bleibe zu hause.",
+      "issues": [
+        {
+          "type": "casing",
+          "pos": 0,
+          "msg": "Satzanfang klein geschrieben.",
+          "suggest": "Erstes Wort groß schreiben."
+        },
+        {
+          "type": "punctuation",
+          "msg": "Kein Satzzeichen am Ende.",
+          "suggest": "Punkt/Frage-/Ausrufezeichen setzen."
+        }
+      ]
+    },
+    "step3": {
+      "original": "ich bleibe zu hause",
+      "issues": [
+        {
+          "type": "fixed_phrase",
+          "span": "zu hause",
+          "msg": "Feste Wendung „zu Hause“ groß/korrekt schreiben.",
+          "suggest": "zu Hause"
+        }
+      ],
+      "normalized_suggestion": "ich bleibe zu Hause"
+    },
+    "step4": {
+      "original": "ich bleibe zu hause",
+      "issues": []
+    },
+    "step5": {
+      "original": "ich bleibe zu hause",
+      "recognized": [
+        {
+          "token": "hause",
+          "class": "Nomen (Plural)",
+          "base": "haus"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "im allgemeinen ist das in ordnung",
+    "step2": {
+      "original": "im allgemeinen ist das in ordnung",
+      "normalized_suggestion": "Im allgemeinen ist das in ordnung.",
+      "issues": [
+        {
+          "type": "casing",
+          "pos": 0,
+          "msg": "Satzanfang klein geschrieben.",
+          "suggest": "Erstes Wort groß schreiben."
+        },
+        {
+          "type": "punctuation",
+          "msg": "Kein Satzzeichen am Ende.",
+          "suggest": "Punkt/Frage-/Ausrufezeichen setzen."
+        }
+      ]
+    },
+    "step3": {
+      "original": "im allgemeinen ist das in ordnung",
+      "issues": [
+        {
+          "type": "fixed_phrase",
+          "span": "im allgemeinen",
+          "msg": "Feste Wendung „im Allgemeinen“ groß/korrekt schreiben.",
+          "suggest": "im Allgemeinen"
+        },
+        {
+          "type": "fixed_phrase",
+          "span": "in ordnung",
+          "msg": "Feste Wendung „in Ordnung“ groß/korrekt schreiben.",
+          "suggest": "in Ordnung"
+        }
+      ],
+      "normalized_suggestion": "im Allgemeinen ist das in Ordnung"
+    },
+    "step4": {
+      "original": "im allgemeinen ist das in ordnung",
+      "issues": []
+    },
+    "step5": {
+      "original": "im allgemeinen ist das in ordnung",
+      "recognized": [],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "wir zahlen im voraus",
+    "step2": {
+      "original": "wir zahlen im voraus",
+      "normalized_suggestion": "Wir zahlen im voraus.",
+      "issues": [
+        {
+          "type": "casing",
+          "pos": 0,
+          "msg": "Satzanfang klein geschrieben.",
+          "suggest": "Erstes Wort groß schreiben."
+        },
+        {
+          "type": "punctuation",
+          "msg": "Kein Satzzeichen am Ende.",
+          "suggest": "Punkt/Frage-/Ausrufezeichen setzen."
+        }
+      ]
+    },
+    "step3": {
+      "original": "wir zahlen im voraus",
+      "issues": [
+        {
+          "type": "fixed_phrase",
+          "span": "im voraus",
+          "msg": "Feste Wendung „im Voraus“ groß/korrekt schreiben.",
+          "suggest": "im Voraus"
+        }
+      ],
+      "normalized_suggestion": "wir zahlen im Voraus"
+    },
+    "step4": {
+      "original": "wir zahlen im voraus",
+      "issues": []
+    },
+    "step5": {
+      "original": "wir zahlen im voraus",
+      "recognized": [],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "kommt das in frage",
+    "step2": {
+      "original": "kommt das in frage",
+      "normalized_suggestion": "Kommt das in frage.",
+      "issues": [
+        {
+          "type": "casing",
+          "pos": 0,
+          "msg": "Satzanfang klein geschrieben.",
+          "suggest": "Erstes Wort groß schreiben."
+        },
+        {
+          "type": "punctuation",
+          "msg": "Kein Satzzeichen am Ende.",
+          "suggest": "Punkt/Frage-/Ausrufezeichen setzen."
+        },
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        }
+      ]
+    },
+    "step3": {
+      "original": "kommt das in frage",
+      "issues": [
+        {
+          "type": "fixed_phrase",
+          "span": "in frage",
+          "msg": "Feste Wendung „in Frage“ groß/korrekt schreiben.",
+          "suggest": "in Frage"
+        }
+      ],
+      "normalized_suggestion": "kommt das in Frage"
+    },
+    "step4": {
+      "original": "kommt das in frage",
+      "issues": []
+    },
+    "step5": {
+      "original": "kommt das in frage",
+      "recognized": [],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Heute und und morgen gehen wir einkaufen.",
+    "step2": {
+      "original": "Heute und und morgen gehen wir einkaufen.",
+      "normalized_suggestion": "Heute und und morgen gehen wir einkaufen.",
+      "issues": [
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Heute und und morgen gehen wir einkaufen.",
+      "issues": [],
+      "normalized_suggestion": "Heute und und morgen gehen wir einkaufen."
+    },
+    "step4": {
+      "original": "Heute und und morgen gehen wir einkaufen.",
+      "issues": [
+        {
+          "type": "conjunction_repeat",
+          "tokens": [
+            "und",
+            "und"
+          ],
+          "msg": "Doppelte Konjunktion „und und“. Kürzen."
+        },
+        {
+          "type": "comma_hint",
+          "msg": "Mehrfaches „und/oder“ – Kommasetzung prüfen (Aufzählung/Teilsätze?)."
+        }
+      ]
+    },
+    "step5": {
+      "original": "Heute und und morgen gehen wir einkaufen.",
+      "recognized": [],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Er kam und ging und blieb und schwieg.",
+    "step2": {
+      "original": "Er kam und ging und blieb und schwieg.",
+      "normalized_suggestion": "Er kam und ging und blieb und schwieg.",
+      "issues": [
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        },
+        {
+          "type": "verb_existence",
+          "msg": "Kein finites Verb erkannt (Heuristik)."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Er kam und ging und blieb und schwieg.",
+      "issues": [],
+      "normalized_suggestion": "Er kam und ging und blieb und schwieg."
+    },
+    "step4": {
+      "original": "Er kam und ging und blieb und schwieg.",
+      "issues": [
+        {
+          "type": "conjunction_repeat_spaced",
+          "tokens": [
+            "und",
+            "und"
+          ],
+          "msg": "Mögliche Dopplung der Konjunktion „und … und“. Prüfen."
+        },
+        {
+          "type": "conjunction_repeat_spaced",
+          "tokens": [
+            "und",
+            "und"
+          ],
+          "msg": "Mögliche Dopplung der Konjunktion „und … und“. Prüfen."
+        },
+        {
+          "type": "comma_hint",
+          "msg": "Mehrfaches „und/oder“ – Kommasetzung prüfen (Aufzählung/Teilsätze?)."
+        }
+      ]
+    },
+    "step5": {
+      "original": "Er kam und ging und blieb und schwieg.",
+      "recognized": [],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Ich habe nicht keinen Hunger.",
+    "step2": {
+      "original": "Ich habe nicht keinen Hunger.",
+      "normalized_suggestion": "Ich habe nicht keinen Hunger.",
+      "issues": []
+    },
+    "step3": {
+      "original": "Ich habe nicht keinen Hunger.",
+      "issues": [],
+      "normalized_suggestion": "Ich habe nicht keinen Hunger."
+    },
+    "step4": {
+      "original": "Ich habe nicht keinen Hunger.",
+      "issues": [
+        {
+          "type": "double_negation",
+          "span": "nicht keinen",
+          "msg": "Mögliche doppelte Negation."
+        }
+      ]
+    },
+    "step5": {
+      "original": "Ich habe nicht keinen Hunger.",
+      "recognized": [],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Diese Häuser sind groß.",
+    "step2": {
+      "original": "Diese Häuser sind groß.",
+      "normalized_suggestion": "Diese Häuser sind groß.",
+      "issues": [
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Diese Häuser sind groß.",
+      "issues": [],
+      "normalized_suggestion": "Diese Häuser sind groß."
+    },
+    "step4": {
+      "original": "Diese Häuser sind groß.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Diese Häuser sind groß.",
+      "recognized": [
+        {
+          "token": "Häuser",
+          "class": "Nomen (Plural)",
+          "base": "haus"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Die Männer arbeiten.",
+    "step2": {
+      "original": "Die Männer arbeiten.",
+      "normalized_suggestion": "Die Männer arbeiten.",
+      "issues": [
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Die Männer arbeiten.",
+      "issues": [],
+      "normalized_suggestion": "Die Männer arbeiten."
+    },
+    "step4": {
+      "original": "Die Männer arbeiten.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Die Männer arbeiten.",
+      "recognized": [
+        {
+          "token": "Männer",
+          "class": "Nomen (Plural)",
+          "base": "mann"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Die Kinder spielen.",
+    "step2": {
+      "original": "Die Kinder spielen.",
+      "normalized_suggestion": "Die Kinder spielen.",
+      "issues": [
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Die Kinder spielen.",
+      "issues": [],
+      "normalized_suggestion": "Die Kinder spielen."
+    },
+    "step4": {
+      "original": "Die Kinder spielen.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Die Kinder spielen.",
+      "recognized": [
+        {
+          "token": "Kinder",
+          "class": "Nomen (Plural)",
+          "base": "kind"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Die Wörter sind schwierig.",
+    "step2": {
+      "original": "Die Wörter sind schwierig.",
+      "normalized_suggestion": "Die Wörter sind schwierig.",
+      "issues": [
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Die Wörter sind schwierig.",
+      "issues": [],
+      "normalized_suggestion": "Die Wörter sind schwierig."
+    },
+    "step4": {
+      "original": "Die Wörter sind schwierig.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Die Wörter sind schwierig.",
+      "recognized": [
+        {
+          "token": "Wörter",
+          "class": "Nomen (Plural)",
+          "base": "wort"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Die Lieder sind schön.",
+    "step2": {
+      "original": "Die Lieder sind schön.",
+      "normalized_suggestion": "Die Lieder sind schön.",
+      "issues": [
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Die Lieder sind schön.",
+      "issues": [],
+      "normalized_suggestion": "Die Lieder sind schön."
+    },
+    "step4": {
+      "original": "Die Lieder sind schön.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Die Lieder sind schön.",
+      "recognized": [
+        {
+          "token": "Lieder",
+          "class": "Nomen (Plural)",
+          "base": "lied"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Die Gremien entscheiden später.",
+    "step2": {
+      "original": "Die Gremien entscheiden später.",
+      "normalized_suggestion": "Die Gremien entscheiden später.",
+      "issues": []
+    },
+    "step3": {
+      "original": "Die Gremien entscheiden später.",
+      "issues": [],
+      "normalized_suggestion": "Die Gremien entscheiden später."
+    },
+    "step4": {
+      "original": "Die Gremien entscheiden später.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Die Gremien entscheiden später.",
+      "recognized": [
+        {
+          "token": "Gremien",
+          "class": "Nomen (Plural)",
+          "base": "gremium"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Ich habe es gemacht.",
+    "step2": {
+      "original": "Ich habe es gemacht.",
+      "normalized_suggestion": "Ich habe es gemacht.",
+      "issues": []
+    },
+    "step3": {
+      "original": "Ich habe es gemacht.",
+      "issues": [],
+      "normalized_suggestion": "Ich habe es gemacht."
+    },
+    "step4": {
+      "original": "Ich habe es gemacht.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Ich habe es gemacht.",
+      "recognized": [
+        {
+          "token": "gemacht",
+          "class": "Verbform",
+          "base": "machen"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Wir haben es gesehen.",
+    "step2": {
+      "original": "Wir haben es gesehen.",
+      "normalized_suggestion": "Wir haben es gesehen.",
+      "issues": []
+    },
+    "step3": {
+      "original": "Wir haben es gesehen.",
+      "issues": [],
+      "normalized_suggestion": "Wir haben es gesehen."
+    },
+    "step4": {
+      "original": "Wir haben es gesehen.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Wir haben es gesehen.",
+      "recognized": [
+        {
+          "token": "gesehen",
+          "class": "Verbform",
+          "base": "sehen"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Er hat es aufgemacht.",
+    "step2": {
+      "original": "Er hat es aufgemacht.",
+      "normalized_suggestion": "Er hat es aufgemacht.",
+      "issues": []
+    },
+    "step3": {
+      "original": "Er hat es aufgemacht.",
+      "issues": [],
+      "normalized_suggestion": "Er hat es aufgemacht."
+    },
+    "step4": {
+      "original": "Er hat es aufgemacht.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Er hat es aufgemacht.",
+      "recognized": [
+        {
+          "token": "aufgemacht",
+          "class": "Verbform",
+          "base": "aufmachen"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Sie hat es mitgenommen.",
+    "step2": {
+      "original": "Sie hat es mitgenommen.",
+      "normalized_suggestion": "Sie hat es mitgenommen.",
+      "issues": []
+    },
+    "step3": {
+      "original": "Sie hat es mitgenommen.",
+      "issues": [],
+      "normalized_suggestion": "Sie hat es mitgenommen."
+    },
+    "step4": {
+      "original": "Sie hat es mitgenommen.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Sie hat es mitgenommen.",
+      "recognized": [],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Wir sind zurückgegangen.",
+    "step2": {
+      "original": "Wir sind zurückgegangen.",
+      "normalized_suggestion": "Wir sind zurückgegangen.",
+      "issues": [
+        {
+          "type": "verb_position",
+          "msg": "Vermutlich kein finites Verb in 2. Position (Heuristik).",
+          "info": "In vielen deutschen Hauptsätzen steht das finite Verb an 2. Stelle."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Wir sind zurückgegangen.",
+      "issues": [],
+      "normalized_suggestion": "Wir sind zurückgegangen."
+    },
+    "step4": {
+      "original": "Wir sind zurückgegangen.",
+      "issues": []
+    },
+    "step5": {
+      "original": "Wir sind zurückgegangen.",
+      "recognized": [],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  },
+  {
+    "sentence": "Heute komme ich später nach hause",
+    "step2": {
+      "original": "Heute komme ich später nach hause",
+      "normalized_suggestion": "Heute komme ich später nach hause.",
+      "issues": [
+        {
+          "type": "punctuation",
+          "msg": "Kein Satzzeichen am Ende.",
+          "suggest": "Punkt/Frage-/Ausrufezeichen setzen."
+        },
+        {
+          "type": "fixed_phrase",
+          "span": "nach hause",
+          "msg": "Feste Wendung „nach Hause“ groß schreiben.",
+          "suggest": "Hause groß."
+        }
+      ]
+    },
+    "step3": {
+      "original": "Heute komme ich später nach hause",
+      "issues": [],
+      "normalized_suggestion": "Heute komme ich später nach hause"
+    },
+    "step4": {
+      "original": "Heute komme ich später nach hause",
+      "issues": []
+    },
+    "step5": {
+      "original": "Heute komme ich später nach hause",
+      "recognized": [
+        {
+          "token": "hause",
+          "class": "Nomen (Plural)",
+          "base": "haus"
+        }
+      ],
+      "note": "Heuristik mit Umlaut-Umkehr, Sonderfällen und trennbaren Verben."
+    }
+  }
+]

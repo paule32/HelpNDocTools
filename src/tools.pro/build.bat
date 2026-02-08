@@ -13,9 +13,13 @@
 :: ----------------------------------------------------------------------
 :: compile the stub, and add images to the temp.pyc ...
 @echo off
-python -m compileall stub.py
-copy __pycache__\stub.cpython-312.pyc .\stub.pyc
-python zipfiles.py
-
+::python -m compileall stub.py
+::copy __pycache__\stub.cpython-312.pyc .\stub.pyc
+::python zipfiles.py
 :: to test the application...
-python app.pyc
+::python app.pyc
+
+python keyboard.py
+copy /y resources.qrc ..\resources.qrc
+cd ..
+pyrcc5 resources.qrc -o resources_rc.py
