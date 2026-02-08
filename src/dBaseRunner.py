@@ -747,6 +747,1392 @@ class _QtEventFilter(QObject):
 
         return False
 
+class PyEmitter:
+    def __init__(self):
+        self.lines = []
+        self.level = 0
+
+    def emit(self, line=""):
+        self.lines.append(("    " * self.level) + line)
+
+    def indent(self): self.level += 1
+    def dedent(self): self.level = max(0, self.level - 1)
+
+    def text(self):
+        return "\n".join(self.lines) + "\n"
+
+class PasEmitter:
+    def __init__(self):
+        self.lines = []
+        self.level = 0
+
+    def emit(self, line=""):
+        self.lines.append(("  " * self.level) + line)
+
+    def indent(self): self.level += 1
+    def dedent(self): self.level = max(0, self.level - 1)
+
+    def text(self):
+        return "\n".join(self.lines) + "\n"
+
+class CppEmitter:
+    def __init__(self):
+        self.lines = []
+        self.level = 0
+
+    def emit(self, line=""):
+        self.lines.append(("  " * self.level) + line)
+
+    def indent(self): self.level += 1
+    def dedent(self): self.level = max(0, self.level - 1)
+
+    def text(self):
+        return "\n".join(self.lines) + "\n"
+
+class DBaseToCpp:
+    def __init__(self, parser, classes=None, prog_name="genprog"):
+        self.p = parser
+        self.out = CppEmitter()
+        self.classes = classes or {}
+        self.prog_name = prog_name
+        self._tmp_i = 0
+
+    def new_temp(self):
+        self._tmp_i += 1
+        return f"t{self._tmp_i}"
+
+    # ---------- helpers ----------
+    def cpp_str(self, s: str) -> str:
+        return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+    def cpp_str_vec(self, items):
+        # {"A","B"}
+        inner = ", ".join(self.cpp_str(x) for x in items)
+        return "{ " + inner + " }"
+
+    def cpp_val_vec(self, exprs):
+        # { a, b, c }
+        inner = ", ".join(exprs)
+        return "{ " + inner + " }"
+
+    def norm_local(self, name: str) -> str:
+        return "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in name).lower()
+
+    # ---------- entry ----------
+    def generate(self, tree, out_path: str):
+        o = self.out
+        o.emit("// generated dBase -> GNU C++ (runtime-backed)")
+        o.emit("#include <iostream>")
+        o.emit("#include <vector>")
+        o.emit("#include <string>")
+        o.emit("#include \"dBaseRT.hpp\"")
+        o.emit("")
+        o.emit("int main() {")
+        o.indent()
+        o.emit("TRT rt;")
+        o.emit("try {")
+        o.indent()
+
+        self.gen_input(tree)
+
+        o.dedent()
+        o.emit("} catch (const std::exception& e) {")
+        o.indent()
+        o.emit('std::cerr << "ERROR: " << e.what() << std::endl;')
+        o.emit("return 1;")
+        o.dedent()
+        o.emit("}")
+        o.emit("return 0;")
+        o.dedent()
+        o.emit("}")
+        Path(out_path).write_text(o.text(), encoding="utf-8")
+
+    # ---------- root ----------
+    def gen_input(self, ctx):
+        for it in ctx.item():
+            self.gen_item(it)
+
+    def gen_item(self, it):
+        if it.statement():
+            return self.gen_stmt(it.statement())
+        if it.classDecl():
+            self.out.emit("// TODO classDecl not implemented in C++ backend")
+            return
+        if it.methodDecl():
+            self.out.emit("// TODO methodDecl not implemented in C++ backend")
+            return
+        self.out.emit("// TODO unhandled item")
+
+    # ---------- statements ----------
+    def gen_stmt(self, st):
+        if st.writeStmt():         return self.gen_write(st.writeStmt())
+        if st.assignStmt():        return self.gen_assign(st.assignStmt())
+        if st.localDeclStmt():     return self.gen_local_decl(st.localDeclStmt())
+        if st.localAssignStmt():   return self.gen_local_assign(st.localAssignStmt())
+        if st.ifStmt():            return self.gen_if(st.ifStmt())
+        if st.forStmt():           return self.gen_for(st.forStmt())
+        if st.breakStmt():         return self.gen_break(st.breakStmt())
+        if st.returnStmt():        return self.gen_return(st.returnStmt())
+        if st.withStmt():          return self.gen_with(st.withStmt())
+        if st.parameterStmt():     return self.gen_parameter(st.parameterStmt())
+        if st.exprStmt():          return self.gen_expr_stmt(st.exprStmt())
+
+        self.out.emit("// TODO unhandled statement: " + type(st.getChild(0)).__name__)
+
+    def gen_write(self, ctx):
+        # writeStmt : WRITE writeArg (PLUS writeArg)* ;
+        parts = [self.gen_write_arg(a) for a in ctx.writeArg()]
+        if not parts:
+            self.out.emit("rt.WRITE(TRT::Null());")
+            return
+
+        expr = parts[0]
+        for p in parts[1:]:
+            expr = f"rt.BINOP({expr}, \"+\", {p})"
+
+        self.out.emit(f"rt.WRITE({expr});")
+
+    def gen_write_arg(self, actx):
+        if actx.STRING():
+            return f"TRT::V({actx.STRING().getText()})"  # String-Literal inkl. Quotes kommt aus Lexer
+        if actx.dottedRef():
+            base, path = self.gen_dotted_ref_parts(actx.dottedRef())
+            return f"rt.GET({base}, {path})"
+        if actx.expr():
+            return self.gen_expr(actx.expr())
+        return "TRT::Null()"
+
+    def gen_local_decl(self, ctx):
+        name = ctx.name.text if hasattr(ctx, "name") else ctx.IDENT().getText()
+        self.out.emit(f"rt.SET_NAME({self.cpp_str(name)}, TRT::Null());")
+
+    def gen_local_assign(self, ctx):
+        name = ctx.name.text if hasattr(ctx, "name") else ctx.IDENT().getText()
+        rhs = self.gen_expr(ctx.expr())
+        self.out.emit(f"rt.SET_NAME({self.cpp_str(name)}, {rhs});")
+
+    def gen_assign(self, ctx):
+        rhs = self.gen_expr(ctx.expr())
+        lv = ctx.lvalue()
+
+        if lv.dottedRef():
+            base, path = self.gen_dotted_ref_parts(lv.dottedRef())
+            self.out.emit(f"rt.SET({base}, {path}, {rhs});")
+            return
+
+        pe = lv.postfixExpr()
+        if pe:
+            chain = self.lvalue_chain_from_postfix(pe)
+
+            if len(chain) == 1:
+                self.out.emit(f"rt.SET_NAME({self.cpp_str(chain[0])}, {rhs});")
+                return
+
+            head = chain[0]
+            if head.upper() == "THIS":
+                base = "rt.GET_THIS()"
+                path = self.cpp_str_vec(chain[1:])
+            else:
+                base = f"rt.GET_NAME({self.cpp_str(head)})"
+                path = self.cpp_str_vec(chain[1:])
+
+            self.out.emit(f"rt.SET({base}, {path}, {rhs});")
+            return
+
+        self.out.emit("// TODO unsupported lvalue: " + lv.getText())
+
+    def gen_if(self, ctx):
+        # ifStmt : IF expr block (ELSE block)? ENDIF ;
+        cond = self.gen_expr(ctx.expr())
+        self.out.emit(f"if (rt.TRUE({cond})) {{")
+        self.out.indent()
+
+        then_block = ctx.block(0)
+        for st in then_block.statement():
+            self.gen_stmt(st)
+
+        self.out.dedent()
+        self.out.emit("}")
+
+        if ctx.ELSE():
+            self.out.emit("else {")
+            self.out.indent()
+            else_block = ctx.block(1)
+            for st in else_block.statement():
+                self.gen_stmt(st)
+            self.out.dedent()
+            self.out.emit("}")
+
+    def gen_for(self, ctx):
+        # forStmt : FOR IDENT ASSIGN numberExpr TO numberExpr (STEP numberExpr)? block ENDFOR ;
+        var = ctx.IDENT().getText()
+        start = ctx.numberExpr(0).getText()
+        end   = ctx.numberExpr(1).getText()
+        step  = ctx.numberExpr(2).getText() if ctx.STEP() else "1"
+
+        # Wir halten "i" als Runtime-Variable, damit Semantik identisch bleibt
+        self.out.emit(f"rt.SET_NAME({self.cpp_str(var)}, TRT::V({start}));")
+        self.out.emit(f"while (rt.TRUE(rt.FOR_COND(rt.GET_NAME({self.cpp_str(var)}), TRT::V({end}), TRT::V({step})))) {{")
+        self.out.indent()
+
+        for st in ctx.block().statement():
+            self.gen_stmt(st)
+
+        self.out.emit(f"rt.SET_NAME({self.cpp_str(var)}, rt.BINOP(rt.GET_NAME({self.cpp_str(var)}), \"+\", TRT::V({step})));")
+        self.out.dedent()
+        self.out.emit("}")
+
+    def gen_break(self, ctx):
+        self.out.emit("break;")
+
+    def gen_return(self, ctx):
+        # Top-level main(): wir delegieren an runtime (oder du kannst return 0/1 machen)
+        if ctx.expr():
+            self.out.emit(f"rt.RETURN({self.gen_expr(ctx.expr())});")
+        else:
+            self.out.emit("rt.RETURN(TRT::Null());")
+
+    def gen_parameter(self, ctx):
+        p = ctx.paramNames()
+        names = [t.getText() for t in p.IDENT()]
+        self.out.emit(f"rt.PARAMETER({self.cpp_str_vec(names)});")
+
+    def gen_expr_stmt(self, ctx):
+        # exprStmt : postfixExpr ;
+        e = self.gen_postfix(ctx.postfixExpr())
+        self.out.emit(f"(void){e};")
+
+    # ---------- WITH ----------
+    def gen_with(self, ctx):
+        base = self.gen_with_target(ctx.withTarget())
+        tmp = self.new_temp()
+        self.out.emit(f"auto {tmp} = {base};")
+        self.out.emit(f"rt.PUSH_WITH({tmp});")
+
+        body = ctx.withBody()
+        for ch in list(getattr(body, "children", []) or []):
+            t = type(ch).__name__
+            if t.endswith("WithAssignStmtContext"):
+                self.gen_with_assign(ch)
+            elif t.endswith("WithStmtContext"):
+                self.gen_with(ch)
+            elif t.endswith("StatementContext"):
+                self.gen_stmt(ch)
+
+        self.out.emit("rt.POP_WITH();")
+
+    def gen_with_target(self, ctx):
+        if ctx.THIS():
+            return "rt.GET_THIS()"
+        if ctx.dottedRef():
+            base, path = self.gen_dotted_ref_parts(ctx.dottedRef())
+            return f"rt.GET({base}, {path})"
+        if ctx.IDENT():
+            return f"rt.GET_NAME({self.cpp_str(ctx.IDENT().getText())})"
+        if ctx.postfixExpr():
+            return self.gen_postfix(ctx.postfixExpr())
+        return "TRT::Null()"
+
+    def gen_with_assign(self, ctx):
+        path = [t.getText() for t in ctx.withLvalue().IDENT()]
+        rhs = self.gen_expr(ctx.expr())
+        self.out.emit(f"rt.WITH_SET({self.cpp_str_vec(path)}, {rhs});")
+
+    # ---------- expr / postfix / primary ----------
+    # Hier kannst du (fast) genau deine Python-Version übernehmen, nur dass
+    # du C++-Strings und TRT::V(...) nutzt. Ich mach’s minimal:
+
+    def gen_expr(self, ctx):
+        # expr : logicalOr ;
+        return self.gen_logical_or(ctx.logicalOr())
+
+    def gen_logical_or(self, ctx):
+        parts = [self.gen_logical_and(x) for x in ctx.logicalAnd()]
+        out = parts[0]
+        for rhs in parts[1:]:
+            out = f"rt.BINOP({out}, \"OR\", {rhs})"
+        return out
+
+    def gen_logical_and(self, ctx):
+        parts = [self.gen_logical_not(x) for x in ctx.logicalNot()]
+        out = parts[0]
+        for rhs in parts[1:]:
+            out = f"rt.BINOP({out}, \"AND\", {rhs})"
+        return out
+
+    def gen_logical_not(self, ctx):
+        if ctx.NOT():
+            inner = self.gen_logical_not(ctx.logicalNot())
+            return f"rt.UNOP(\"NOT\", {inner})"
+        return self.gen_comparison(ctx.comparison())
+
+    def gen_comparison(self, ctx):
+        left = self.gen_additive(ctx.additiveExpr(0))
+        if ctx.compareOp():
+            op = ctx.compareOp().getText()
+            right = self.gen_additive(ctx.additiveExpr(1))
+            return f"rt.BINOP({left}, {self.cpp_str(op)}, {right})"
+        return left
+
+    def gen_additive(self, ctx):
+        terms = [self.gen_multiplicative(x) for x in ctx.multiplicativeExpr()]
+        out = terms[0]
+        kids = list(ctx.getChildren())
+        i = 1
+        while i < len(kids):
+            op = kids[i].getText()
+            rhs = terms[(i + 1) // 2]
+            out = f"rt.BINOP({out}, {self.cpp_str(op)}, {rhs})"
+            i += 2
+        return out
+
+    def gen_multiplicative(self, ctx):
+        factors = [self.gen_postfix(x) for x in ctx.postfixExpr()]
+        out = factors[0]
+        kids = list(ctx.getChildren())
+        i = 1
+        while i < len(kids):
+            op = kids[i].getText()
+            rhs = factors[(i + 1) // 2]
+            out = f"rt.BINOP({out}, {self.cpp_str(op)}, {rhs})"
+            i += 2
+        return out
+
+    def gen_postfix(self, ctx):
+        cur = self.gen_primary(ctx.primary())
+        kids = list(ctx.getChildren())
+        k = 1
+        while k < len(kids):
+            t = kids[k].getText()
+            if t == "(":
+                args = []
+                if kids[k+1].getText() != ")":
+                    argctx = kids[k+1]
+                    args = [self.gen_expr(e) for e in argctx.expr()]
+                    k += 1
+                cur = f"rt.CALL_ANY({cur}, {self.cpp_val_vec(args)})"
+                k += 2
+                continue
+            if t in (".", "::"):
+                name = kids[k+1].getText()
+                cur = f"rt.GET_ATTR({cur}, {self.cpp_str(name)})"
+                k += 2
+                continue
+            k += 1
+        return cur
+
+    def gen_primary(self, ctx):
+        if ctx.THIS():
+            return "rt.GET_THIS()"
+        if ctx.STRING():
+            return f"TRT::V({ctx.STRING().getText()})"
+        if ctx.NUMBER():
+            return f"TRT::V({ctx.NUMBER().getText()})"
+        if ctx.FLOAT():
+            return f"TRT::V({ctx.FLOAT().getText()})"
+        if ctx.IDENT():
+            return f"rt.GET_NAME({self.cpp_str(ctx.IDENT().getText())})"
+        if ctx.newExpr():
+            return self.gen_new(ctx.newExpr())
+        if ctx.expr():
+            return "(" + self.gen_expr(ctx.expr()) + ")"
+        return "TRT::Null()"
+
+    def gen_new(self, ctx):
+        class_name = ctx.IDENT().getText()
+        args = []
+        if ctx.argList():
+            args = [self.gen_expr(e) for e in ctx.argList().expr()]
+        return f"rt.NEW({self.cpp_str(class_name)}, {self.cpp_val_vec(args)})"
+
+    def gen_dotted_ref_parts(self, dctx):
+        parts = [t.getText() for t in dctx.IDENT()]
+        head = parts[0]
+        if head.upper() == "THIS":
+            base = "rt.GET_THIS()"
+            path = self.cpp_str_vec(parts[1:])
+        else:
+            base = f"rt.GET_NAME({self.cpp_str(head)})"
+            path = self.cpp_str_vec(parts[1:])
+        return base, path
+
+    def lvalue_chain_from_postfix(self, pe):
+        chain = [pe.primary().getText()]
+        i = 1
+        while i < pe.getChildCount():
+            ch = pe.getChild(i).getText()
+            if ch == ".":
+                chain.append(pe.getChild(i+1).getText())
+                i += 2
+                continue
+            if ch == "(":
+                raise RuntimeError(f"LVALUE darf keinen Call enthalten: {pe.getText()}")
+            i += 1
+        return chain
+        
+class DBaseToPascal:
+    def __init__(self, parser, classes=None, unit_name="GenProg"):
+        self.p = parser
+        self.out = PasEmitter()
+        self.classes = classes or {}
+        self.unit_name = unit_name
+        self._tmp_i = 0
+
+    def new_temp(self):
+        self._tmp_i += 1
+        return f"t{self._tmp_i}"
+
+    # ----------------- ENTRY -----------------
+    def generate(self, tree, out_path: str):
+        o = self.out
+
+        # Minimal-Programm. Du kannst auch "unit" generieren, wenn du willst.
+        o.emit(f"program {self.unit_name};")
+        o.emit("")
+        o.emit("{$mode objfpc}{$H+}")
+        o.emit("")
+        o.emit("uses")
+        o.indent()
+        o.emit("SysUtils, Variants, dBaseRT;")
+        o.dedent()
+        o.emit(";")
+        o.emit("")
+        o.emit("var")
+        o.indent()
+        o.emit("rt: TRT;")
+        o.dedent()
+        o.emit("")
+        o.emit("begin")
+        o.indent()
+        o.emit("rt := TRT.Create;")
+        o.emit("try")
+        o.indent()
+
+        self.gen_input(tree)
+
+        o.dedent()
+        o.emit("finally")
+        o.indent()
+        o.emit("rt.Free;")
+        o.dedent()
+        o.emit("end;")
+        o.dedent()
+        o.emit("end.")
+        Path(out_path).write_text(o.text(), encoding="utf-8")
+
+    # ----------------- ROOT -----------------
+    def gen_input(self, ctx):
+        # input : item* EOF
+        for it in ctx.item():
+            self.gen_item(it)
+
+    def gen_item(self, it):
+        # item : classDecl | methodDecl | statement
+        if it.statement():
+            return self.gen_stmt(it.statement())
+        if it.classDecl():
+            return self.gen_class(it.classDecl())   # optional später
+        if it.methodDecl():
+            return self.gen_method(it.methodDecl()) # optional später
+        self.out.emit("{ TODO unhandled item }")
+
+    # ----------------- STATEMENTS -----------------
+    def gen_stmt(self, st):
+        # Passe das an die Stmt-Alternativen an, die du schon in Python eingebaut hast.
+        if st.writeStmt():         return self.gen_write(st.writeStmt())
+        if st.assignStmt():        return self.gen_assign(st.assignStmt())
+        if st.localDeclStmt():     return self.gen_local_decl(st.localDeclStmt())
+        if st.localAssignStmt():   return self.gen_local_assign(st.localAssignStmt())
+        if st.ifStmt():            return self.gen_if(st.ifStmt())
+        if st.forStmt():           return self.gen_for(st.forStmt())
+        if st.returnStmt():        return self.gen_return(st.returnStmt())
+        if st.breakStmt():         return self.gen_break(st.breakStmt())
+        if st.withStmt():          return self.gen_with(st.withStmt())
+        if st.parameterStmt():     return self.gen_parameter(st.parameterStmt())
+        # … Schritt für Schritt erweitern …
+        self.out.emit("{ TODO unhandled statement: " + type(st.getChild(0)).__name__ + " }")
+
+    def gen_write(self, ctx):
+        # writeStmt : WRITE writeArg (PLUS writeArg)* ;
+        parts = [self.gen_write_arg(a) for a in ctx.writeArg()]
+        if not parts:
+            self.out.emit("rt.WRITE('');")
+            return
+
+        # dBase-Plus soll runtime-semantisch bleiben -> BINOP kaskadieren
+        expr = parts[0]
+        for p in parts[1:]:
+            expr = f"rt.BINOP({expr}, '+', {p})"
+
+        self.out.emit(f"rt.WRITE({expr});")
+
+    def gen_write_arg(self, actx):
+        # writeArg : STRING | dottedRef | expr ;
+        if actx.STRING():
+            return actx.STRING().getText()
+        if actx.dottedRef():
+            base_expr, path = self.gen_dotted_ref_parts(actx.dottedRef())
+            return f"rt.GET({base_expr}, {path})"
+        if actx.expr():
+            return self.gen_expr(actx.expr())
+        return f"Null"
+
+    def gen_local_decl(self, ctx):
+        # LOCAL IDENT
+        name = ctx.name.text if hasattr(ctx, "name") else ctx.IDENT().getText()
+        self.out.emit(f"rt.SET_NAME('{name}', Null);")
+
+    def gen_local_assign(self, ctx):
+        name = ctx.name.text if hasattr(ctx, "name") else ctx.IDENT().getText()
+        rhs = self.gen_expr(ctx.expr())
+        self.out.emit(f"rt.SET_NAME('{name}', {rhs});")
+
+    def gen_assign(self, ctx):
+        rhs = self.gen_expr(ctx.expr())
+        lv = ctx.lvalue()
+
+        # lvalue : postfixExpr | dottedRef ;
+        if lv.dottedRef():
+            base_expr, path = self.gen_dotted_ref_parts(lv.dottedRef())
+            self.out.emit(f"rt.SET_({base_expr}, {path}, {rhs});")
+            return
+
+        pe = lv.postfixExpr()
+        if pe:
+            chain = self.lvalue_chain_from_postfix(pe)  # ["Y"] oder ["THIS","X","Y"]
+
+            if len(chain) == 1:
+                self.out.emit(f"rt.SET_NAME('{chain[0]}', {rhs});")
+                return
+
+            head = chain[0]
+            if head.upper() == "THIS":
+                base_expr = "rt.GET_THIS()"
+                path = chain[1:]
+            else:
+                base_expr = f"rt.GET_NAME('{head}')"
+                path = chain[1:]
+
+            self.out.emit(f"rt.SET_({base_expr}, {self.pas_str_array(path)}, {rhs});")
+            return
+
+        self.out.emit("{ TODO unsupported lvalue }")
+
+    def gen_if(self, ctx):
+        # ifStmt : IF expr block (ELSE block)? ENDIF ;
+        cond = self.gen_expr(ctx.expr())
+        self.out.emit(f"if rt.TRUE_({cond}) then")
+        self.out.emit("begin")
+        self.out.indent()
+
+        then_block = ctx.block(0)
+        for st in then_block.statement():
+            self.gen_stmt(st)
+
+        self.out.dedent()
+        self.out.emit("end")
+
+        if ctx.ELSE():
+            self.out.emit("else")
+            self.out.emit("begin")
+            self.out.indent()
+
+            else_block = ctx.block(1)
+            for st in else_block.statement():
+                self.gen_stmt(st)
+
+            self.out.dedent()
+            self.out.emit("end;")
+        else:
+            self.out.emit(";")
+
+    def gen_for(self, ctx):
+        # forStmt : FOR IDENT ASSIGN numberExpr TO numberExpr (STEP numberExpr)? block ENDFOR ;
+        varname = self.norm_local(ctx.IDENT().getText())
+        start = ctx.numberExpr(0).getText()
+        end   = ctx.numberExpr(1).getText()
+        step  = ctx.numberExpr(2).getText() if ctx.STEP() else "1"
+
+        # STEP != 1 -> while-Schleife (FPC for kann keinen Step)
+        if step == "1":
+            self.out.emit(f"rt.SET_NAME('{varname}', {start});")
+            self.out.emit(f"while rt.TRUE_(rt.BINOP(rt.GET_NAME('{varname}'), '<=', {end})) do")
+            self.out.emit("begin")
+            self.out.indent()
+            # Body
+            for st in ctx.block().statement():
+                self.gen_stmt(st)
+            # Increment
+            self.out.emit(f"rt.SET_NAME('{varname}', rt.BINOP(rt.GET_NAME('{varname}'), '+', {step}));")
+            self.out.dedent()
+            self.out.emit("end;")
+        else:
+            # allgemein: i := start; while cond: body; i += step
+            self.out.emit(f"rt.SET_NAME('{varname}', {start});")
+            self.out.emit(f"while rt.TRUE_(rt.FOR_COND(rt.GET_NAME('{varname}'), {end}, {step})) do")
+            self.out.emit("begin")
+            self.out.indent()
+            for st in ctx.block().statement():
+                self.gen_stmt(st)
+            self.out.emit(f"rt.SET_NAME('{varname}', rt.BINOP(rt.GET_NAME('{varname}'), '+', {step}));")
+            self.out.dedent()
+            self.out.emit("end;")
+
+    def gen_break(self, ctx):
+        # in Pascal: break;
+        self.out.emit("break;")
+
+    def gen_return(self, ctx):
+        # Im Program-Level gibt es kein "return". In Methoden später: Exit(value).
+        # Hier delegieren wir:
+        if ctx.expr():
+            self.out.emit(f"rt.RETURN_({self.gen_expr(ctx.expr())});")
+        else:
+            self.out.emit("rt.RETURN_(Null);")
+
+    def gen_parameter(self, ctx):
+        # parameterStmt : PARAMETER paramNames ;
+        p = ctx.paramNames()
+        names = [t.getText() for t in p.IDENT()]
+        self.out.emit(f"rt.PARAMETER({self.pas_str_array(names)});")
+
+    # ----------------- WITH -----------------
+    def gen_with(self, ctx):
+        # withStmt : WITH '(' withTarget ')' withBody ENDWITH ;
+        base = self.gen_with_target(ctx.withTarget())
+        tmp = self.new_temp()
+        self.out.emit(f"var {tmp}: Variant; {tmp} := {base};")  # simpel, du kannst var-block auch global machen
+        self.out.emit(f"rt.PUSH_WITH({tmp});")
+        body = ctx.withBody()
+        for ch in list(getattr(body, "children", []) or []):
+            t = type(ch).__name__
+            if t.endswith("WithAssignStmtContext"):
+                self.gen_with_assign(ch)
+            elif t.endswith("WithStmtContext"):
+                self.gen_with(ch)
+            elif t.endswith("StatementContext"):
+                self.gen_stmt(ch)
+        self.out.emit("rt.POP_WITH();")
+
+    def gen_with_target(self, ctx):
+        # withTarget : THIS | dottedRef | IDENT | postfixExpr ;
+        if ctx.THIS():
+            return "rt.GET_THIS()"
+        if ctx.dottedRef():
+            base_expr, path = self.gen_dotted_ref_parts(ctx.dottedRef())
+            return f"rt.GET({base_expr}, {path})"
+        if ctx.IDENT():
+            name = ctx.IDENT().getText()
+            return f"rt.GET_NAME('{name}')"
+        if ctx.postfixExpr():
+            return self.gen_postfix(ctx.postfixExpr())
+        return "Null"
+
+    def gen_with_assign(self, ctx):
+        # withAssignStmt : withLvalue ASSIGN expr ;
+        path = [t.getText() for t in ctx.withLvalue().IDENT()]
+        rhs = self.gen_expr(ctx.expr())
+        self.out.emit(f"rt.WITH_SET({self.pas_str_array(path)}, {rhs});")
+
+    # ----------------- EXPRESSIONS -----------------
+    # Hier: nutze deine bereits angepassten gen_expr/gen_postfix/gen_primary-Methoden,
+    # aber gib Pascal-Ausdrücke zurück, die auf rt.* basieren.
+
+    def gen_expr(self, ctx):
+        # expr : logicalOr ;
+        return self.gen_logical_or(ctx.logicalOr())
+
+    def gen_logical_or(self, ctx):
+        parts = [self.gen_logical_and(x) for x in ctx.logicalAnd()]
+        out = parts[0]
+        for rhs in parts[1:]:
+            out = f"rt.BINOP({out}, 'OR', {rhs})"
+        return out
+
+    def gen_logical_and(self, ctx):
+        parts = [self.gen_logical_not(x) for x in ctx.logicalNot()]
+        out = parts[0]
+        for rhs in parts[1:]:
+            out = f"rt.BINOP({out}, 'AND', {rhs})"
+        return out
+
+    def gen_logical_not(self, ctx):
+        if ctx.NOT():
+            inner = self.gen_logical_not(ctx.logicalNot())
+            return f"rt.UNOP('NOT', {inner})"
+        return self.gen_comparison(ctx.comparison())
+
+    def gen_comparison(self, ctx):
+        left = self.gen_additive(ctx.additiveExpr(0))
+        if ctx.compareOp():
+            op = ctx.compareOp().getText()
+            right = self.gen_additive(ctx.additiveExpr(1))
+            return f"rt.BINOP({left}, '{op}', {right})"
+        return left
+
+    def gen_additive(self, ctx):
+        terms = [self.gen_multiplicative(x) for x in ctx.multiplicativeExpr()]
+        out = terms[0]
+        kids = list(ctx.getChildren())
+        i = 1
+        while i < len(kids):
+            op = kids[i].getText()
+            rhs = terms[(i + 1) // 2]
+            out = f"rt.BINOP({out}, '{op}', {rhs})"
+            i += 2
+        return out
+
+    def gen_multiplicative(self, ctx):
+        factors = [self.gen_postfix(x) for x in ctx.postfixExpr()]
+        out = factors[0]
+        kids = list(ctx.getChildren())
+        i = 1
+        while i < len(kids):
+            op = kids[i].getText()
+            rhs = factors[(i + 1) // 2]
+            out = f"rt.BINOP({out}, '{op}', {rhs})"
+            i += 2
+        return out
+
+    def gen_postfix(self, ctx):
+        # postfixExpr : primary ( '(' argList? ')' | ('.'|'::') IDENT )* ;
+        cur = self.gen_primary(ctx.primary())
+        kids = list(ctx.getChildren())
+        k = 1
+        while k < len(kids):
+            t = kids[k].getText()
+            if t == "(":
+                args = []
+                if kids[k+1].getText() != ")":
+                    argctx = kids[k+1]
+                    args = [self.gen_expr(e) for e in argctx.expr()]
+                    k += 1
+                cur = f"rt.CALL_ANY({cur}, {self.pas_expr_array(args)})"
+                k += 2
+                continue
+            if t in (".", "::"):
+                name = kids[k+1].getText()
+                cur = f"rt.GET_ATTR({cur}, '{name}')"
+                k += 2
+                continue
+            k += 1
+        return cur
+    
+    def gen_new(self, ctx):
+        # newExpr : NEW IDENT LPAREN argList? RPAREN ;
+        class_name = ctx.IDENT().getText()
+        args = []
+        if ctx.argList():
+            args = [self.gen_expr(e) for e in ctx.argList().expr()]
+        
+        # Pascal: array of Variant -> wir geben einen Pascal-Array-Ausdruck zurück
+        return f"rt.NEW('{class_name}', {self.pas_expr_array(args)})"
+    
+    def gen_class(self, ctx):
+        self.out.emit("{ TODO gen_class: " + ctx.name.text + " }")
+
+    def gen_method(self, ctx):
+        self.out.emit("{ TODO gen_method: " + ctx.IDENT().getText() + " }")
+        
+    def gen_primary(self, ctx):
+        if ctx.THIS():    return "rt.GET_THIS()"
+        if ctx.STRING():  return ctx.STRING().getText()
+        if ctx.NUMBER():  return ctx.NUMBER().getText()
+        if ctx.FLOAT():   return ctx.FLOAT().getText()
+        if ctx.IDENT():
+            name = ctx.IDENT().getText()
+            return f"rt.GET_NAME('{name}')"
+        if ctx.newExpr():
+            return self.gen_new(ctx.newExpr())
+        if ctx.expr():
+            return f"({self.gen_expr(ctx.expr())})"
+        return "Null"
+
+    # ----------------- dottedRef / lvalue helpers -----------------
+    def gen_dotted_ref_parts(self, dctx):
+        parts = [t.getText() for t in dctx.IDENT()]
+        head = parts[0]
+        if head.upper() == "THIS":
+            base = "rt.GET_THIS()"
+            path = parts[1:]
+        else:
+            base = f"rt.GET_NAME('{head}')"
+            path = parts[1:]
+        return base, self.pas_str_array(path)
+
+    def lvalue_chain_from_postfix(self, pe):
+        chain = [pe.primary().getText()]
+        i = 1
+        while i < pe.getChildCount():
+            ch = pe.getChild(i).getText()
+            if ch == ".":
+                chain.append(pe.getChild(i+1).getText())
+                i += 2
+                continue
+            if ch == "(":
+                raise RuntimeError(f"LVALUE darf keinen Call enthalten: {pe.getText()}")
+            i += 1
+        return chain
+
+    # ----------------- small utils -----------------
+    def pas_str_array(self, items):
+        # ["A","B"] -> ['A','B']
+        inner = ", ".join("'" + s.replace("'", "''") + "'" for s in items)
+        return f"[{inner}]"
+
+    def pas_expr_array(self, exprs):
+        # ["rt.GET_NAME('X')", "5"] -> [rt.GET_NAME('X'), 5]
+        inner = ", ".join(exprs)
+        return f"[{inner}]"
+
+    def norm_local(self, name: str) -> str:
+        # optional (wenn du Namen in Pascal-Var-IDs brauchst)
+        return "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in name).lower()
+        
+class DBaseToPython:
+    """
+    ParseTree -> Python source (calls into your runtime 'rt').
+    - No direct attribute access; all member ops go through rt.GET/rt.SET/rt.CALL
+    - Keeps dBase semantics in runtime, not in generated python.
+    """
+
+    def __init__(self, parser, classes=None):
+        self.p = parser
+        self.out = PyEmitter()
+        self.classes = classes or {}  # optional: your collected ClassDefs, if you want structure
+
+    # ---------- public ----------
+    def generate(self, tree, out_path: str):
+        self.out.emit("# generated by dBaseToPython (runtime-backed)")
+        self.out.emit("from dBaseRuntimeFacade import RT")
+        self.out.emit("")
+        self.out.emit("rt = RT()")
+        self.out.emit("")
+        self.out.emit("def main():")
+        self.out.indent()
+
+        self.gen_input(tree)  # adapt name to your root rule
+
+        self.out.dedent()
+        self.out.emit("")
+        self.out.emit("if __name__ == '__main__':")
+        self.out.indent()
+        self.out.emit("main()")
+        self.out.dedent()
+
+        Path(out_path).write_text(self.out.text(), encoding="utf-8")
+
+    # ---------- root / statements ----------
+    def gen_input(self, ctx):
+        # input : item* EOF
+        for it in ctx.item():
+            self.gen_item(it)
+
+    def gen_item(self, it):
+        # Dispatch by available child rule; adapt to your grammar structure
+        # item : classDecl | methodDecl | statement
+        if it.statement():
+            return self.gen_stmt(it.statement())
+        if it.classDecl():
+            return self.gen_class(it.classDecl())
+        if it.methodDecl():
+            return self.gen_method(it.methodDecl())
+
+        # fallback:
+        self.out.emit(f"# TODO unhandled stmt: {type(it).__name__}")
+
+    def gen_stmt(self, st):
+        if st.ifStmt():            return self.gen_if(st.ifStmt())
+        if st.forStmt():           return self.gen_for(st.forStmt())
+        if st.doWhileStatement():  return self.gen_do_while(st.doWhileStatement())
+
+        if st.writeStmt():         return self.gen_write(st.writeStmt())
+        if st.assignStmt():        return self.gen_assign(st.assignStmt())
+        if st.localDeclStmt():     return self.gen_local_decl(st.localDeclStmt())
+        if st.localAssignStmt():   return self.gen_local_assign(st.localAssignStmt())
+
+        if st.callStmt():          return self.gen_call_stmt(st.callStmt())
+        if st.exprStmt():          return self.gen_expr_stmt(st.exprStmt())
+
+        if st.parameterStmt():     return self.gen_parameter(st.parameterStmt())
+        if st.createFileStmt():    return self.gen_create_file(st.createFileStmt())
+        if st.deleteStmt():        return self.gen_delete(st.deleteStmt())
+
+        if st.withStmt():          return self.gen_with(st.withStmt())
+        if st.doStmt():            return self.gen_do(st.doStmt())
+
+        if st.returnStmt():        return self.gen_return(st.returnStmt())
+        if st.breakStmt():         return self.gen_break(st.breakStmt())
+
+        if st.classDecl():         return self.gen_class(st.classDecl())
+
+        # bessere Debug-Ausgabe: zeig, was wirklich drinsteckt
+        child0 = st.getChild(0)
+        self.out.emit(f"# TODO unhandled statement: {type(child0).__name__}  text={st.getText()!r}")
+    
+    def gen_local_decl(self, ctx):
+        # localDeclStmt : LOCAL name=IDENT ;
+        name = ctx.name.text
+        self.out.emit(f"rt.SET_NAME({name!r}, None)")
+
+    def gen_local_assign(self, ctx):
+        # localAssignStmt : LOCAL name=IDENT ASSIGN expr ;
+        name = ctx.name.text
+        rhs  = self.gen_expr(ctx.expr())
+        self.out.emit(f"rt.SET_NAME({name!r}, {rhs})")
+
+    def gen_expr_stmt(self, ctx):
+        # exprStmt : postfixExpr ;
+        e = self.gen_postfix(ctx.postfixExpr())
+        self.out.emit(e)
+
+    def gen_call_stmt(self, ctx):
+        # callStmt : CALL callTarget ;
+        # callTarget : (SUPER DCOLON)? IDENT LPAREN argList? RPAREN ;
+        # simplest: delegiere als "exprStmt" (Call ist Effekt)
+        txt = ctx.callTarget().getText()
+        self.out.emit(f"rt.CALL_STMT({txt!r})  # TODO: map callTarget sauber")
+
+    def gen_do_while(self, ctx):
+        # doWhileStatement : DO WHILE condition block ENDDO ;
+        cond = self.gen_logical_or(ctx.condition().logicalOr())
+        self.out.emit(f"while rt.TRUE({cond}):")
+        self.out.indent()
+        for st in ctx.block().statement():
+            self.gen_stmt(st)
+        self.out.dedent()
+
+    def gen_delete(self, ctx):
+        # deleteStmt : DELETE IDENT ;
+        self.out.emit(f"rt.DELETE_NAME({ctx.IDENT().getText()!r})")
+
+    def gen_create_file(self, ctx):
+        # createFileStmt : CREATE FILE (expr)? ;
+        arg = self.gen_expr(ctx.expr()) if ctx.expr() else "None"
+        self.out.emit(f"rt.CREATE_FILE({arg})")
+        
+    def gen_break(self, ctx):
+        self.out.emit("break")
+        
+    def gen_parameter(self, ctx):
+        p = ctx.paramNames()
+        names = [t.getText() for t in p.IDENT()]
+        self.out.emit(f"rt.PARAMETER({names!r})")
+    
+    def new_temp(self):
+        n = getattr(self, "_tmp_i", 0) + 1
+        self._tmp_i = n
+        return f"_t{n}"
+
+    def gen_with(self, ctx):
+        # withStmt : WITH LPAREN withTarget RPAREN withBody ENDWITH ;
+
+        base = self.gen_with_target(ctx.withTarget())
+        tmp = self.new_temp()
+
+        # base einmal auswerten (wichtig, falls es ein Call/Expr ist)
+        self.out.emit(f"{tmp} = {base}")
+        self.out.emit(f"rt.PUSH_WITH({tmp})")
+
+        # body: (withAssignStmt | withStmt | statement)*
+        body = ctx.withBody()
+        for ch in list(getattr(body, "children", []) or []):
+            # ANTLR liefert "TerminalNode" auch als children, die ignorieren wir
+            if hasattr(ch, "withAssignStmt") and ch.withAssignStmt():
+                self.gen_with_assign(ch.withAssignStmt())
+            elif hasattr(ch, "withStmt") and ch.withStmt():
+                self.gen_with(ch.withStmt())
+            elif hasattr(ch, "statement") and ch.statement():
+                self.gen_stmt(ch.statement())
+            else:
+                # manchmal ist ch direkt der Context-Typ
+                t = type(ch).__name__
+                if t.endswith("WithAssignStmtContext"):
+                    self.gen_with_assign(ch)
+                elif t.endswith("WithStmtContext"):
+                    self.gen_with(ch)
+                elif t.endswith("StatementContext"):
+                    self.gen_stmt(ch)
+                else:
+                    pass
+
+        self.out.emit("rt.POP_WITH()")
+
+
+    def gen_with_target(self, ctx):
+        # withTarget : THIS | dottedRef | IDENT | postfixExpr ;
+        if ctx.THIS():
+            return "this"
+
+        if ctx.dottedRef():
+            base_expr, path = self.gen_dotted_ref_parts(ctx.dottedRef())
+            return f"rt.GET({base_expr}, {path})"
+
+        if ctx.IDENT():
+            # Variablenzugriff: runtime-semantisch (Scoping/WITH)
+            name = ctx.IDENT().getText()
+            return f"rt.GET_NAME({name!r})"
+
+        if ctx.postfixExpr():
+            # postfix kann call/member enthalten -> dein gen_postfix liefert runtime-Ausdruck
+            return self.gen_postfix(ctx.postfixExpr())
+
+        return f"rt.PRIMARY({ctx.getText()!r})"
+
+
+    def gen_with_assign(self, ctx):
+        # withAssignStmt : withLvalue ASSIGN expr ;
+        path = [t.getText() for t in ctx.withLvalue().IDENT()]  # z.B. ["top"] oder ["pushbutton1","width"]
+        rhs = self.gen_expr(ctx.expr())
+        self.out.emit(f"rt.WITH_SET({path!r}, {rhs})")
+    # ---------- WRITE ----------
+    def gen_write_arg(self, actx):
+        # writeArg : STRING | dottedRef | expr ;
+        if actx.STRING():
+            return actx.STRING().getText()
+        if actx.dottedRef():
+            base_expr, path = self.gen_dotted_ref_parts(actx.dottedRef())
+            return f"rt.GET({base_expr}, {path})"
+        if actx.expr():
+            return self.gen_expr(actx.expr())
+        return f"rt.PRIMARY({actx.getText()!r})"
+        
+    def gen_write(self, ctx):
+        # writeStmt : WRITE writeArg (PLUS writeArg)* ;
+        parts = [self.gen_write_arg(a) for a in ctx.writeArg()]
+
+        if not parts:
+            self.out.emit("rt.WRITE('')")   # sollte praktisch nie passieren
+            return
+
+        # WRITE a + b + c  -> runtime-konforme Verkettung
+        expr = parts[0]
+        for p in parts[1:]:
+            expr = f"rt.BINOP({expr}, '+', {p})"
+
+        self.out.emit(f"rt.WRITE({expr})")
+
+    # ---------- assignment ----------
+    def lvalue_chain_from_postfix(self, pe):
+        # postfixExpr : primary ( '(' ... ')' | ('.'|'::') IDENT )*
+        chain = [pe.primary().getText()]
+        i = 1
+        while i < pe.getChildCount():
+            ch = pe.getChild(i).getText()
+
+            if ch == '.':
+                chain.append(pe.getChild(i + 1).getText())
+                i += 2
+                continue
+
+            if ch == '(':
+                raise Exception(f"LVALUE darf keinen Call enthalten: {pe.getText()}")
+
+            i += 1
+        return chain
+        
+    def gen_assign(self, ctx):
+        rhs = self.gen_expr(ctx.expr())
+        lv = ctx.lvalue()
+
+        # 1) dottedRef direkt (THIS.X.Y ...)
+        if lv.dottedRef():
+            base_expr, path = self.gen_dotted_ref_parts(lv.dottedRef())
+            self.out.emit(f"rt.SET({base_expr}, {path}, {rhs})")
+            return
+
+        # 2) postfixExpr als LHS: kann "Y" oder "THIS.X.Y" sein
+        pe = lv.postfixExpr()
+        if pe:
+            chain = self.lvalue_chain_from_postfix(pe)   # z.B. ["Y"] oder ["THIS","PushButton1","Text"]
+
+            if len(chain) == 1:
+                # wichtig: über Runtime setzen, damit WITH/Scopes wie im Interpreter funktionieren
+                self.out.emit(f"rt.SET_NAME({chain[0]!r}, {rhs})")
+                return
+
+            # Kette: base + path
+            head = chain[0]
+            if head.upper() == "THIS":
+                base_expr = "this"
+                path = chain[1:]
+            else:
+                base_expr = self.norm_local(head)
+                path = chain[1:]
+
+            self.out.emit(f"rt.SET({base_expr}, {path!r}, {rhs})")
+            return
+
+        self.out.emit(f"# TODO unsupported lvalue: {lv.getText()}")
+
+    # ---------- IF ----------
+    def gen_if(self, ctx):
+        # ifStmt : IF expr block (ELSE block)? ENDIF ;
+        cond = self.gen_expr(ctx.expr())
+        self.out.emit(f"if rt.TRUE({cond}):")
+        self.out.indent()
+
+        # then-block
+        then_block = ctx.block(0)
+        for st in then_block.statement():
+            self.gen_stmt(st)
+
+        self.out.dedent()
+
+        # else-block (optional)
+        if ctx.ELSE():
+            self.out.emit("else:")
+            self.out.indent()
+
+            else_block = ctx.block(1)
+            for st in else_block.statement():
+                self.gen_stmt(st)
+
+            self.out.dedent()
+
+    # ---------- FOR ----------
+    def gen_for(self, ctx):
+        # forStmt : FOR IDENT ASSIGN expr TO expr (STEP expr)? block ENDFOR ;
+        
+        var = self.norm_local(ctx.IDENT().getText())
+        
+        start = ctx.numberExpr(0).getText()
+        end   = ctx.numberExpr(1).getText()
+        step  = ctx.numberExpr(2).getText() if ctx.STEP() else "1"
+        
+        # dBase TO ist inklusiv -> Runtime-Helper
+        self.out.emit(f"for {var} in rt.RANGE_INCL({start}, {end}, {step}):")
+        self.out.indent()
+        for st in ctx.block().statement():
+            self.gen_stmt(st)
+        self.out.dedent()
+
+    # ---------- RETURN ----------
+    def gen_return(self, ctx):
+        if ctx.expr():
+            self.out.emit(f"return {self.gen_expr(ctx.expr())}")
+        else:
+            self.out.emit("return")
+
+    # ---------- CLASS / METHOD ----------
+    def gen_class(self, ctx):
+        cname = ctx.name.text  # adapt
+        parent = ctx.parent.text if ctx.parent else "OBJECT"
+
+        self.out.emit(f"class {self.norm_class(cname)}({self.norm_class(parent)}):")
+        self.out.indent()
+        self.out.emit("def __init__(self, *args):")
+        self.out.indent()
+        self.out.emit("super().__init__()")
+        self.out.emit("self._instance = rt.MAKE_INSTANCE(self, args)")  # or however you represent instances
+        self.out.dedent()
+        self.out.emit("")
+
+        # properties/methods in body: adapt to your classBody structure
+        body = ctx.classBody()
+        for ch in list(getattr(body, "children", []) or []):
+            if hasattr(ch, "methodDecl") and ch.methodDecl():
+                self.gen_method(ch.methodDecl())
+            else:
+                # propertyDecl / init statements -> put into __init__ or Init method
+                pass
+
+        self.out.dedent()
+        self.out.emit("")
+
+    def gen_method(self, mctx):
+        mname = mctx.IDENT().getText()
+        params = [p.getText() for p in mctx.paramList().IDENT()] if mctx.paramList() else []
+        pyparams = ", ".join(["self"] + [self.norm_local(p) for p in params])
+
+        self.out.emit(f"def {self.norm_method(mname)}({pyparams}):")
+        self.out.indent()
+        # inside methods, dBase THIS maps to `self` (or `this`)
+        self.out.emit("this = self")
+        # method statements:
+        for st in mctx.block().statement():
+            self.gen_stmt(st)
+        self.out.dedent()
+        self.out.emit("")
+
+
+    def gen_new(self, ctx):
+        class_name = ctx.IDENT().getText()
+        args = [self.gen_expr(e) for e in ctx.argList().expr()] if ctx.argList() else []
+        return f"rt.NEW({class_name!r}, {', '.join(args)})"
+
+    def gen_call(self, ctx):
+        # something like dottedRef '(' args ')'
+        base_expr, path = self.gen_dotted_ref_parts(ctx.dottedRef())
+        args = [self.gen_expr(e) for e in ctx.argList().expr()] if ctx.argList() else []
+        return f"rt.CALL({base_expr}, {path}, [{', '.join(args)}])"
+
+    def gen_dotted_ref_parts(self, dctx):
+        # e.g. THIS.PushButton1.Text -> base=this, path=["PushButton1","Text"]
+        parts = [t.getText() for t in dctx.IDENT()]
+
+        head = parts[0]
+        if head.upper() == "THIS":
+            base = "this"
+            path = parts[1:]
+        else:
+            base = self.norm_local(head)
+            path = parts[1:]
+
+        return base, repr(path)
+
+    # ---------- naming ----------
+    def norm_local(self, name: str) -> str:
+        # conservative: keep letters/digits/_ and lower it
+        return "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in name).lower()
+
+    def norm_class(self, name: str) -> str:
+        # keep it simple; you can make PascalCase if you like
+        return "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in name)
+
+    def norm_method(self, name: str) -> str:
+        return self.norm_local(name)
+        
+        
+    def gen_expr(self, ctx):
+        # expr : logicalOr ;
+        return self.gen_logical_or(ctx.logicalOr())
+
+    def gen_logical_or(self, ctx):
+        # logicalOr : logicalAnd (OR logicalAnd)* ;
+        parts = [self.gen_logical_and(x) for x in ctx.logicalAnd()]
+        out = parts[0]
+        for rhs in parts[1:]:
+            out = f"rt.BINOP({out}, 'OR', {rhs})"
+        return out
+
+    def gen_logical_and(self, ctx):
+        # logicalAnd : logicalNot (AND logicalNot)* ;
+        parts = [self.gen_logical_not(x) for x in ctx.logicalNot()]
+        out = parts[0]
+        for rhs in parts[1:]:
+            out = f"rt.BINOP({out}, 'AND', {rhs})"
+        return out
+
+    def gen_logical_not(self, ctx):
+        # logicalNot : NOT logicalNot | comparison ;
+        if ctx.NOT():
+            inner = self.gen_logical_not(ctx.logicalNot())
+            return f"rt.UNOP('NOT', {inner})"
+        return self.gen_comparison(ctx.comparison())
+
+    def gen_comparison(self, ctx):
+        # comparison : additiveExpr (compareOp additiveExpr)? ;
+        left = self.gen_additive(ctx.additiveExpr(0))
+        if ctx.compareOp():
+            op = ctx.compareOp().getText()
+            right = self.gen_additive(ctx.additiveExpr(1))
+            return f"rt.BINOP({left}, {op!r}, {right})"
+        return left
+
+    def gen_additive(self, ctx):
+        # additiveExpr : multiplicativeExpr ((PLUS|MINUS) multiplicativeExpr)* ;
+        terms = [self.gen_multiplicative(x) for x in ctx.multiplicativeExpr()]
+        out = terms[0]
+        # Operatoren stehen als Token zwischen den Termen -> über getChildren laufen
+        # Einfacher: Text-basiert paaren (robust genug für Start)
+        # Wir bauen anhand der Kindersequenz: term (op term)*.
+        children = list(ctx.getChildren())
+        i = 1
+        while i < len(children):
+            op = children[i].getText()
+            rhs = terms[(i + 1) // 2]
+            out = f"rt.BINOP({out}, {op!r}, {rhs})"
+            i += 2
+        return out
+
+    def gen_multiplicative(self, ctx):
+        # multiplicativeExpr : postfixExpr ((STAR|SLASH) postfixExpr)* ;
+        factors = [self.gen_postfix(x) for x in ctx.postfixExpr()]
+        out = factors[0]
+        children = list(ctx.getChildren())
+        i = 1
+        while i < len(children):
+            op = children[i].getText()
+            rhs = factors[(i + 1) // 2]
+            out = f"rt.BINOP({out}, {op!r}, {rhs})"
+            i += 2
+        return out
+
+    def gen_postfix(self, ctx):
+        # postfixExpr : primary ( LPAREN argList? RPAREN | (DOT|DCOLON) IDENT )* ;
+        cur = self.gen_primary(ctx.primary())
+
+        # Wir laufen über die restlichen Kinder und erkennen Muster:
+        # ( ... )  oder . IDENT / :: IDENT
+        kids = list(ctx.getChildren())
+        k = 1
+        while k < len(kids):
+            t = kids[k].getText()
+
+            if t == "(":
+                # call: ( argList? )
+                # argList ist optional und sitzt zwischen '(' und ')'
+                args = []
+                # wenn nächstes Kind nicht ')', ist es argList
+                if kids[k + 1].getText() != ")":
+                    # kids[k+1] ist der argList-Context
+                    argctx = kids[k + 1]
+                    args = [self.gen_expr(e) for e in argctx.expr()]
+                    k += 1  # argList "verbraucht"
+                cur = f"rt.CALL_ANY({cur}, [{', '.join(args)}])"
+                k += 2  # überspringe ')'
+                continue
+
+            if t in (".", "::"):
+                name = kids[k + 1].getText()
+                cur = f"rt.GET_ATTR({cur}, {name!r})"
+                k += 2
+                continue
+
+            # fallback (sollte selten passieren)
+            k += 1
+
+        return cur
+
+    def gen_primary(self, ctx):
+        # primary:
+        # handlerList | newExpr | memberExpr | literal | THIS | SUPER | FLOAT | NUMBER
+        # | IDENT | STRING | BRACKET_STRING | '(' expr ')'
+        if ctx.THIS():
+            return "this"
+
+        if ctx.SUPER():
+            return "super_obj"  # falls du es nutzt; sonst an runtime delegieren
+
+        if ctx.STRING():
+            return ctx.STRING().getText()
+
+        if ctx.BRACKET_STRING():
+            return ctx.BRACKET_STRING().getText()
+
+        if ctx.NUMBER():
+            return ctx.NUMBER().getText()
+
+        if ctx.FLOAT():
+            return ctx.FLOAT().getText()
+
+        if ctx.IDENT():
+            return self.norm_local(ctx.IDENT().getText())
+
+        if ctx.literal():
+            return ctx.literal().getText()
+
+        if ctx.newExpr():
+            return self.gen_new(ctx.newExpr())
+
+        # ( expr )
+        if ctx.expr():
+            return self.gen_expr(ctx.expr())
+
+        # memberExpr/handlerList erstmal roh:
+        return f"rt.PRIMARY({ctx.getText()!r})"
+        
 # ---------------------------------------------------------------------------
 # Qt application stuff: Editor ...
 # ---------------------------------------------------------------------------
@@ -3527,17 +4913,18 @@ def parse(filename: str):
                 raise UnterminatedBlockCommentError(line, col)
             break
     
-    visitor = ExecVisitor()
+    global VISITOR
+    VISITOR = ExecVisitor()
     
     # PASS 1: Klassen sammeln
-    visitor._mode = "collect"
-    visitor.visit(tree)
+    VISITOR._mode = "collect"
+    VISITOR.visit(tree)
 
     # PASS 2: Statements ausführen
-    visitor._mode = "exec"
-    visitor.visit(tree)
+    VISITOR._mode = "exec"
+    VISITOR.visit(tree)
     
-    for line in visitor.output:
+    for line in VISITOR.output:
         print(line)
     
     #print("Tree  :", tree.toStringTree(recog=parser))
@@ -3954,9 +5341,25 @@ class EditorWidget(QDialog):
         layout.addWidget(self.splitter)
 
         # Button
-        self.btn = QPushButton("Ausführen", self)
-        self.btn.clicked.connect(self.on_button_clicked)  # Signal -> Slot
-        layout.addWidget(self.btn)
+        self.btn_run = QPushButton("Ausführen" , self)
+        self.btn_run.clicked.connect(self.on_button_run_clicked)
+        
+        layout.addWidget(self.btn_run)
+        
+        hlayout = QHBoxLayout()
+        self.btn_gen_python = QPushButton("Generate Python" , self)
+        self.btn_gen_pascal = QPushButton("Generate Pascal" , self)
+        self.btn_gen_gnucpp = QPushButton("Generate GNU C++", self)
+        
+        self.btn_gen_python.clicked.connect(self.on_button_gen_python_clicked)
+        self.btn_gen_pascal.clicked.connect(self.on_button_gen_pascal_clicked)
+        self.btn_gen_gnucpp.clicked.connect(self.on_button_gen_gnucpp_clicked)
+        
+        hlayout.addWidget(self.btn_gen_python)
+        hlayout.addWidget(self.btn_gen_pascal)
+        hlayout.addWidget(self.btn_gen_gnucpp)
+        
+        layout.addLayout(hlayout)
         
         with open("dbase.prg", "r", encoding="utf-8") as f:
             content = f.read()
@@ -3972,8 +5375,72 @@ class EditorWidget(QDialog):
     
     def closeEvent(self, event):
         self.close_tracked_windows()
+    
+    def on_button_gen_python_clicked(self):
+        # 0 pre-procession
+        pp = Preprocessor(include_paths=[Path("includes")])
+        pre = pp.process("dbase.prg")
         
-    def on_button_clicked(self):
+        #source = FileStream(filename, encoding="utf-8")
+        source  = InputStream(pre)
+        lexer   = dBaseLexer(source)
+        tokens  = CommonTokenStream(lexer)
+        tokens.fill();
+        parser  = dBaseParser(tokens)
+        tree    = parser.input_()
+        codegen = DBaseToPython(parser) #, classes=VISITOR.classes)
+        codegen.generate(tree, "dbase.py")
+        print("gen py ok.")
+    
+    def on_button_gen_gnucpp_clicked(self):
+        # 0 pre-procession
+        pp = Preprocessor(include_paths=[Path("includes")])
+        pre = pp.process("dbase.prg")
+        
+        #source = FileStream(filename, encoding="utf-8")
+        source  = InputStream(pre)
+        lexer   = dBaseLexer(source)
+        tokens  = CommonTokenStream(lexer)
+        tokens.fill();
+        parser  = dBaseParser(tokens)
+        tree    = parser.input_()
+        codegen = DBaseToCpp(parser, prog_name="genprog")
+        codegen.generate(tree, "dbase.cc")
+        print("gen c++ ok.")
+    
+    def on_button_gen_pascal_clicked(self):
+        # 0 pre-procession
+        pp = Preprocessor(include_paths=[Path("includes")])
+        pre = pp.process("dbase.prg")
+        
+        #source = FileStream(filename, encoding="utf-8")
+        source  = InputStream(pre)
+        lexer   = dBaseLexer(source)
+        tokens  = CommonTokenStream(lexer)
+        tokens.fill();
+        parser  = dBaseParser(tokens)
+        tree    = parser.input_()
+        codegen = DBaseToPascal(parser, unit_name="GenProg")
+        codegen.generate(tree, "dbase.pas")
+        print("gen pas ok.")
+    
+    def on_button_gen_python_clicked(self):
+        # 0 pre-procession
+        pp = Preprocessor(include_paths=[Path("includes")])
+        pre = pp.process("dbase.prg")
+        
+        #source = FileStream(filename, encoding="utf-8")
+        source  = InputStream(pre)
+        lexer   = dBaseLexer(source)
+        tokens  = CommonTokenStream(lexer)
+        tokens.fill();
+        parser  = dBaseParser(tokens)
+        tree    = parser.input_()
+        codegen = DBaseToPython(parser) #, classes=VISITOR.classes)
+        codegen.generate(tree, "dbase.py")
+        print("gen c++ ok.")
+        
+    def on_button_run_clicked(self):
         # Das ist die Funktion, die beim Klick ausgeführt wird
         content = self.text.toPlainText().strip()
         if not content:
