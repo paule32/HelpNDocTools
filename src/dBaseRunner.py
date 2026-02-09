@@ -1495,7 +1495,7 @@ class DBaseToCSharp:
         if start is None:
             if hasattr(fctx, "assignStmt") and fctx.assignStmt():
                 a = fctx.assignStmt()
-                start = get_assign_rhs(a)  # aus deinem Assign-Helper von vorhin
+                start = self.get_assign_rhs(a)  # aus deinem Assign-Helper von vorhin
                 # var ggf. aus assign lhs
                 if var is None:
                     lhs = get_assign_lhs(a)
@@ -2523,6 +2523,869 @@ class DBaseToPascal:
     def norm_local(self, name: str) -> str:
         # optional (wenn du Namen in Pascal-Var-IDs brauchst)
         return "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in name).lower()
+
+class DBaseToJavaScript:
+    def __init__(self, parser, class_name="GenProg", module_name=None):
+        self.parser = parser
+        self.class_name = class_name
+        self.module_name = module_name  # optional
+        self.out = []
+        self.indent = 0
+
+    # ---------- robuste Helfer (wie zuvor) ----------
+    def iter_block_statements(self, block):
+        if block is None:
+            return []
+        for attr in ("stmt", "statement", "stat", "statementList", "stmtList", "stmts"):
+            fn = getattr(block, attr, None)
+            if callable(fn):
+                try:
+                    res = fn()
+                    if res is None:
+                        continue
+                    return res if isinstance(res, list) else [res]
+                except TypeError:
+                    pass
+        kids = list(getattr(block, "children", []) or [])
+        out = []
+        for ch in kids:
+            t = type(ch).__name__.lower()
+            if "stmt" in t or "statement" in t or "stat" in t:
+                out.append(ch)
+        return out
+
+    def get_write_exprs(self, wctx):
+        if wctx is None:
+            return []
+        if hasattr(wctx, "expr"):
+            expr_attr = getattr(wctx, "expr")
+            if callable(expr_attr):
+                try:
+                    res = expr_attr()
+                    if res is not None:
+                        return res if isinstance(res, list) else [res]
+                except TypeError:
+                    pass
+            try:
+                out = []
+                i = 0
+                while True:
+                    out.append(expr_attr(i))
+                    i += 1
+            except Exception:
+                if out:
+                    return out
+        if hasattr(wctx, "exprList") and wctx.exprList():
+            el = wctx.exprList()
+            if hasattr(el, "expr") and callable(el.expr):
+                res = el.expr()
+                if res is not None:
+                    return res if isinstance(res, list) else [res]
+        if hasattr(wctx, "primary") and wctx.primary():
+            p = wctx.primary()
+            return p if isinstance(p, list) else [p]
+        kids = list(getattr(wctx, "children", []) or [])
+        out = []
+        for ch in kids:
+            t = type(ch).__name__.lower()
+            if "expr" in t or "primary" in t:
+                out.append(ch)
+        return out
+        
+    def get_assign_lhs(self, actx):
+        if actx is None:
+            return None
+        for name in ("lhs", "lvalue", "target", "left", "ref"):
+            fn = getattr(actx, name, None)
+            if callable(fn):
+                try:
+                    res = fn()
+                    if res is not None:
+                        return res
+                except TypeError:
+                    pass
+        if hasattr(actx, "dottedRef") and actx.dottedRef():
+            return actx.dottedRef()
+        if hasattr(actx, "IDENT") and actx.IDENT():
+            return actx.IDENT()
+        kids = list(getattr(actx, "children", []) or [])
+        for ch in kids:
+            t = type(ch).__name__.lower()
+            if "dottedref" in t or "lvalue" in t or "ref" in t or "primary" in t:
+                return ch
+        return None
+
+    def get_assign_rhs(self, actx):
+        if actx is None:
+            return None
+        if hasattr(actx, "expr") and callable(actx.expr):
+            try:
+                res = actx.expr()
+                if isinstance(res, list):
+                    return res[-1] if res else None
+                if res is not None:
+                    return res
+            except TypeError:
+                i = 0
+                last = None
+                while True:
+                    try:
+                        last = actx.expr(i)
+                        i += 1
+                    except Exception:
+                        break
+                return last
+        kids = list(getattr(actx, "children", []) or [])
+        for ch in reversed(kids):
+            if "expr" in type(ch).__name__.lower() or hasattr(ch, "primary"):
+                return ch
+        return None
+
+    # --- API wie bei dir ---
+    def generate(self, tree, outfile):
+        self.out, self.indent = [], 0
+
+        # Header: ES Modules, Runtime import
+        self.emit('import { WRITE, NEWOBJ, ParentForm } from "./rt.js";')
+        self.emit()
+
+        # Tree abarbeiten
+        if hasattr(tree, "item"):
+            for it in tree.item():
+                self.gen_item(it)
+        else:
+            self.gen_any(tree)
+
+        # optional: Auto-Start / Main
+        self.emit()
+        self.emit(f"// --- optional quick test ---")
+        self.emit(f"// const app = new {self.class_name}();")
+        self.emit(f"// if (app.Init) app.Init();")
+
+        with open(outfile, "w", encoding="utf-8") as f:
+            f.write(self.get_code())
+
+    # --- basics ---
+    def emit(self, s=""):
+        self.out.append("  " * self.indent + s)
+
+    def get_code(self):
+        return "\n".join(self.out)
+
+    # --- tree fallback ---
+    def gen_any(self, node):
+        if hasattr(node, "classDecl") and node.classDecl():
+            return self.gen_class(node.classDecl())
+        if hasattr(node, "children"):
+            for ch in (node.children or []):
+                self.gen_any(ch)
+
+    # --- old schema entrypoints ---
+    def gen_item(self, it):
+        if hasattr(it, "classDecl") and it.classDecl():
+            return self.gen_class(it.classDecl())
+        self.emit(f"// TODO item: {type(it).__name__}")
+
+    def gen_class(self, ctx):
+        # Du kannst wahlweise ctx.name.text nehmen, oder immer class_name erzwingen
+        cls = self.class_name
+
+        parent = "ParentForm"
+        if getattr(ctx, "parent", None):
+            parent = ctx.parent.text
+
+        self.emit(f"export class {cls} extends {parent} " + "{")
+        self.indent += 1
+
+        body = ctx.classBody()
+        children = list(getattr(body, "children", []) or [])
+
+        # Properties -> in JS im ctor initialisieren
+        props = []
+        for ch in children:
+            if hasattr(ch, "propertyDecl") and ch.propertyDecl():
+                props.append(ch.propertyDecl().IDENT().getText())
+
+        self.emit("constructor() {")
+        self.indent += 1
+        self.emit("super();")
+        for p in props:
+            self.emit(f"this.{p} = null;")
+        self.indent -= 1
+        self.emit("}")
+        self.emit()
+
+        # Methods
+        for ch in children:
+            if hasattr(ch, "methodDecl") and ch.methodDecl():
+                self.gen_method(ch.methodDecl())
+
+        self.indent -= 1
+        self.emit("}")
+        self.emit()
+
+    def gen_method(self, ctx):
+        name = ctx.IDENT().getText()
+
+        params = []
+        if hasattr(ctx, "paramList") and ctx.paramList():
+            for p in ctx.paramList().IDENT():
+                params.append(p.getText())
+
+        self.emit(f"{name}(" + ", ".join(params) + ") {")
+        self.indent += 1
+
+        block = ctx.block()
+        for st in self.iter_block_statements(block):
+            self._emit_stmt_multiline(self.gen_stmt(st))
+
+        self.indent -= 1
+        self.emit("}")
+        self.emit()
+
+    def _emit_stmt_multiline(self, s):
+        for line in s.split("\n"):
+            self.emit(line)
+
+    # --- statements ---
+    def gen_stmt(self, st):
+        # WRITE -> WRITE(...)
+        if hasattr(st, "writeStmt") and st.writeStmt():
+            w = st.writeStmt()
+            exprs = self.get_write_exprs(w)
+            args = ", ".join(self.gen_expr(ex) for ex in exprs)
+            return f"WRITE({args});" if args else "WRITE();"
+
+        # ASSIGN
+        if hasattr(st, "assignStmt") and st.assignStmt():
+            a = st.assignStmt()
+            lhs_ctx = self.get_assign_lhs(a)
+            rhs_ctx = self.get_assign_rhs(a)
+            lhs = self.gen_expr(lhs_ctx) if lhs_ctx is not None else "/* TODO lhs */"
+            rhs = self.gen_expr(rhs_ctx) if rhs_ctx is not None else "/* TODO rhs */"
+            return f"{lhs} = {rhs};"
+
+        # RETURN
+        if hasattr(st, "returnStmt") and st.returnStmt():
+            r = st.returnStmt()
+            if hasattr(r, "expr") and r.expr():
+                return f"return {self.gen_expr(r.expr())};"
+            return "return;"
+
+        # BREAK
+        if hasattr(st, "breakStmt") and st.breakStmt():
+            return "break;"
+
+        # IF
+        if hasattr(st, "ifStmt") and st.ifStmt():
+            return self.gen_if(st.ifStmt())
+
+        # FOR
+        if hasattr(st, "forStmt") and st.forStmt():
+            return self.gen_for(st.forStmt())
+
+        # expr stmt
+        if hasattr(st, "expr") and st.expr():
+            return self.gen_expr(st.expr()) + ";"
+
+        return f"// TODO stmt: {type(st).__name__}"
+
+    def gen_if(self, ctx):
+        cond = self.gen_expr(ctx.expr())
+        lines = [f"if ({cond}) {{"]
+
+        then_blk = ctx.thenBlock() if hasattr(ctx, "thenBlock") else (ctx.block(0) if hasattr(ctx, "block") else None)
+        self.indent += 1
+        for st in self.iter_block_statements(then_blk):
+            lines.append("  " * self.indent + self.gen_stmt(st))
+        self.indent -= 1
+        lines.append("  " * self.indent + "}")
+
+        # else optional
+        else_blk = None
+        if hasattr(ctx, "elseBlock") and ctx.elseBlock():
+            else_blk = ctx.elseBlock()
+        elif hasattr(ctx, "block") and len(ctx.block()) > 1:
+            else_blk = ctx.block(1)
+
+        if else_blk is not None:
+            lines.append("  " * self.indent + "else {")
+            self.indent += 1
+            for st in self.iter_block_statements(else_blk):
+                lines.append("  " * self.indent + self.gen_stmt(st))
+            self.indent -= 1
+            lines.append("  " * self.indent + "}")
+
+        return "\n".join(lines)
+
+    def gen_for(self, ctx):
+        # Da dein ForStmtContext kein expr() hat, wieder heuristisch
+        var = ctx.IDENT().getText() if hasattr(ctx, "IDENT") and ctx.IDENT() else "i"
+
+        start_ctx = end_ctx = step_ctx = None
+        for nm in ("startExpr", "fromExpr", "start"):
+            fn = getattr(ctx, nm, None)
+            if callable(fn):
+                try:
+                    start_ctx = fn()
+                    if start_ctx is not None:
+                        break
+                except TypeError:
+                    pass
+        for nm in ("endExpr", "toExpr", "end"):
+            fn = getattr(ctx, nm, None)
+            if callable(fn):
+                try:
+                    end_ctx = fn()
+                    if end_ctx is not None:
+                        break
+                except TypeError:
+                    pass
+        for nm in ("stepExpr", "byExpr", "step"):
+            fn = getattr(ctx, nm, None)
+            if callable(fn):
+                try:
+                    step_ctx = fn()
+                    if step_ctx is not None:
+                        break
+                except TypeError:
+                    pass
+
+        start = self.gen_expr(start_ctx) if start_ctx is not None else "0"
+        end   = self.gen_expr(end_ctx)   if end_ctx   is not None else "0"
+        step  = self.gen_expr(step_ctx)  if step_ctx  is not None else "1"
+
+        lines = [f"for (let {var} = {start}; {var} <= {end}; {var} += {step}) {{"]
+
+        blk = ctx.block() if hasattr(ctx, "block") else None
+        self.indent += 1
+        for st in self.iter_block_statements(blk):
+            lines.append("  " * self.indent + self.gen_stmt(st))
+        self.indent -= 1
+
+        lines.append("  " * self.indent + "}")
+        return "\n".join(lines)
+
+    # --- expressions ---
+    def gen_expr(self, e):
+        if e is None:
+            return "null"
+
+        if hasattr(e, "primary") and e.primary():
+            return self.gen_primary(e.primary())
+
+        if hasattr(e, "left") and hasattr(e, "right") and hasattr(e, "op"):
+            a = self.gen_expr(e.left)
+            b = self.gen_expr(e.right)
+            op = e.op.text
+            op_map = {"AND": "&&", "OR": "||", "=": "==", "<>": "!="}
+            op2 = op_map.get(op.upper(), op)
+            return f"({a} {op2} {b})"
+
+        if hasattr(e, "getText"):
+            return e.getText()
+
+        return "null"
+
+    def gen_primary(self, ctx):
+        # NEW
+        if hasattr(ctx, "newExpr") and ctx.newExpr():
+            return self.gen_new(ctx.newExpr())
+
+        if hasattr(ctx, "NUMBER") and ctx.NUMBER():
+            return ctx.NUMBER().getText()
+
+        if hasattr(ctx, "STRING") and ctx.STRING():
+            return ctx.STRING().getText()
+
+        if hasattr(ctx, "IDENT") and ctx.IDENT():
+            name = ctx.IDENT().getText()
+            if name.upper() == "THIS":
+                return "this"
+            if name.upper() == "NIL":
+                return "null"
+            return name
+
+        if hasattr(ctx, "dottedRef") and ctx.dottedRef():
+            return self.gen_dotted_ref(ctx.dottedRef())
+
+        if hasattr(ctx, "callExpr") and ctx.callExpr():
+            return self.gen_call(ctx.callExpr())
+
+        return "null"
+
+    def gen_dotted_ref(self, ctx):
+        parts = [t.getText() for t in ctx.IDENT()]
+        if parts and parts[0].upper() == "THIS":
+            parts[0] = "this"
+        return ".".join(parts)
+
+    def gen_new(self, ctx):
+        # JS: entweder direkt new ClassName(...) ODER Runtime NEWOBJ
+        # Da du Klassen evtl. nicht immer als JS-Klasse hast: robust über NEWOBJ("Class", args)
+        class_name = ctx.IDENT().getText()
+        args = []
+        if hasattr(ctx, "argList") and ctx.argList():
+            for a in ctx.argList().expr():
+                args.append(self.gen_expr(a))
+        return f'NEWOBJ("{class_name}", ' + ", ".join(args) + ")" if args else f'NEWOBJ("{class_name}")'
+
+    def gen_call(self, ctx):
+        if hasattr(ctx, "dottedRef") and ctx.dottedRef():
+            callee = self.gen_dotted_ref(ctx.dottedRef())
+        elif hasattr(ctx, "IDENT") and ctx.IDENT():
+            callee = ctx.IDENT().getText()
+        else:
+            callee = "/*callee*/"
+
+        args = []
+        if hasattr(ctx, "argList") and ctx.argList():
+            for a in ctx.argList().expr():
+                args.append(self.gen_expr(a))
+
+        # WRITE als Funktion
+        if callee.upper() == "WRITE":
+            callee = "WRITE"
+
+        return callee + "(" + ", ".join(args) + ")"
+        
+class DBaseToVBAAccess:
+    """
+    Generiert:
+      - <module_name>.bas  (Standardmodul mit Public Sub Main oder Hilfsprocs)
+      - <class_name>.cls   (Class Module)
+      - RT.bas, PushButton.cls (Runtime)
+    """
+    def __init__(self, parser, class_name="GenProg", module_name="GenProg"):
+        self.parser = parser
+        self.class_name = class_name
+        self.module_name = module_name
+
+        self.out = []
+        self.indent = 0
+        self._cur_func = None  # für RETURN in VBA
+
+    # --- Reuse von deinen robusten Helfern (Block/WRITE/ASSIGN/FOR) ---
+    def iter_block_statements(self, block):
+        if block is None:
+            return []
+        for attr in ("stmt", "statement", "stat", "statementList", "stmtList", "stmts"):
+            fn = getattr(block, attr, None)
+            if callable(fn):
+                try:
+                    res = fn()
+                    if res is None:
+                        continue
+                    return res if isinstance(res, list) else [res]
+                except TypeError:
+                    pass
+        kids = list(getattr(block, "children", []) or [])
+        out = []
+        for ch in kids:
+            t = type(ch).__name__.lower()
+            if "stmt" in t or "statement" in t or "stat" in t:
+                out.append(ch)
+        return out
+
+    def get_write_exprs(self, wctx):
+        if wctx is None:
+            return []
+        if hasattr(wctx, "expr"):
+            expr_attr = getattr(wctx, "expr")
+            if callable(expr_attr):
+                try:
+                    res = expr_attr()
+                    if res is not None:
+                        return res if isinstance(res, list) else [res]
+                except TypeError:
+                    pass
+            try:
+                out = []
+                i = 0
+                while True:
+                    out.append(expr_attr(i))
+                    i += 1
+            except Exception:
+                if out:
+                    return out
+        if hasattr(wctx, "exprList") and wctx.exprList():
+            el = wctx.exprList()
+            if hasattr(el, "expr") and callable(el.expr):
+                res = el.expr()
+                if res is not None:
+                    return res if isinstance(res, list) else [res]
+        if hasattr(wctx, "primary") and wctx.primary():
+            p = wctx.primary()
+            return p if isinstance(p, list) else [p]
+        kids = list(getattr(wctx, "children", []) or [])
+        out = []
+        for ch in kids:
+            t = type(ch).__name__.lower()
+            if "expr" in t or "primary" in t:
+                out.append(ch)
+        return out
+
+    def get_assign_lhs(self, actx):
+        if actx is None:
+            return None
+        for name in ("lhs", "lvalue", "target", "left", "ref"):
+            fn = getattr(actx, name, None)
+            if callable(fn):
+                try:
+                    res = fn()
+                    if res is not None:
+                        return res
+                except TypeError:
+                    pass
+        if hasattr(actx, "dottedRef") and actx.dottedRef():
+            return actx.dottedRef()
+        if hasattr(actx, "IDENT") and actx.IDENT():
+            return actx.IDENT()
+        kids = list(getattr(actx, "children", []) or [])
+        for ch in kids:
+            t = type(ch).__name__.lower()
+            if "dottedref" in t or "lvalue" in t or "ref" in t or "primary" in t:
+                return ch
+        return None
+
+    def get_assign_rhs(self, actx):
+        if actx is None:
+            return None
+        if hasattr(actx, "expr") and callable(actx.expr):
+            try:
+                res = actx.expr()
+                if isinstance(res, list):
+                    return res[-1] if res else None
+                if res is not None:
+                    return res
+            except TypeError:
+                i = 0
+                last = None
+                while True:
+                    try:
+                        last = actx.expr(i)
+                        i += 1
+                    except Exception:
+                        break
+                return last
+        kids = list(getattr(actx, "children", []) or [])
+        for ch in reversed(kids):
+            if "expr" in type(ch).__name__.lower() or hasattr(ch, "primary"):
+                return ch
+        return None
+
+    # ---------- file writing ----------
+    def generate(self, tree, filename):
+        # 2) Klasse generieren
+        self.out, self.indent = [], 0
+        self._emit_class_header()
+        self._gen_tree(tree)
+        cls_code = self.get_code()
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(cls_code)
+
+    # ---------- emit helpers ----------
+    def emit(self, s=""):
+        self.out.append("    " * self.indent + s)
+
+    def get_code(self):
+        return "\n".join(self.out)
+
+    def _emit_class_header(self):
+        # Access .cls Textformat braucht keinen speziellen Header, nur Option/Explicit ist gut.
+        self.emit("Option Compare Database")
+        self.emit("Option Explicit")
+        self.emit()
+
+    # ---------- tree driving ----------
+    def _gen_tree(self, tree):
+        # je nach deinem parse-tree:
+        if hasattr(tree, "item"):
+            for it in tree.item():
+                self.gen_item(it)
+        else:
+            self.gen_any(tree)
+
+    def gen_any(self, node):
+        if hasattr(node, "classDecl") and node.classDecl():
+            return self.gen_class(node.classDecl())
+        if hasattr(node, "children"):
+            for ch in (node.children or []):
+                self.gen_any(ch)
+
+    # ---------- old schema entrypoints ----------
+    def gen_item(self, it):
+        if hasattr(it, "classDecl") and it.classDecl():
+            return self.gen_class(it.classDecl())
+        # sonst ignorieren
+        return None
+
+    def gen_class(self, ctx):
+        # VBA: wir generieren i.d.R. genau eine Klasse als Ziel (class_name),
+        # aber du kannst auch ctx.name.text nehmen – je nachdem was du willst.
+        cls = self.class_name
+
+        body = ctx.classBody()
+        children = list(getattr(body, "children", []) or [])
+
+        # Properties
+        for ch in children:
+            if hasattr(ch, "propertyDecl") and ch.propertyDecl():
+                self.gen_property(ch.propertyDecl())
+
+        # Methods
+        for ch in children:
+            if hasattr(ch, "methodDecl") and ch.methodDecl():
+                self.gen_method(ch.methodDecl())
+
+    def gen_property(self, ctx):
+        name = ctx.IDENT().getText()
+        # VBA: als Public Variant (dynamisch)
+        self.emit(f"Public {name} As Variant")
+
+    def gen_method(self, ctx):
+        name = ctx.IDENT().getText()
+        self._cur_func = name
+
+        params = []
+        if hasattr(ctx, "paramList") and ctx.paramList():
+            for p in ctx.paramList().IDENT():
+                params.append(f"ByVal {p.getText()} As Variant")
+
+        self.emit()
+        self.emit(f"Public Function {name}(" + ", ".join(params) + ") As Variant")
+        self.indent += 1
+
+        block = ctx.block()
+        for st in self.iter_block_statements(block):
+            self._emit_stmt_multiline(self.gen_stmt(st))
+
+        # Default return
+        self.emit(f"{name} = Null")
+        self.indent -= 1
+        self.emit("End Function")
+
+        self._cur_func = None
+
+    def _emit_stmt_multiline(self, s):
+        for line in s.split("\n"):
+            self.emit(line)
+
+    # ---------- statements ----------
+    def gen_stmt(self, st):
+        # WRITE
+        if hasattr(st, "writeStmt") and st.writeStmt():
+            w = st.writeStmt()
+            exprs = self.get_write_exprs(w)
+            if not exprs:
+                return "Debug.Print"
+            args = ", ".join(self.gen_expr(ex) for ex in exprs)
+            # wir nutzen RT.WRITE, damit multi-args sauber sind
+            return f"WRITE {args}"
+
+        # ASSIGN
+        if hasattr(st, "assignStmt") and st.assignStmt():
+            a = st.assignStmt()
+            lhs_ctx = self.get_assign_lhs(a)
+            rhs_ctx = self.get_assign_rhs(a)
+            lhs = self.gen_expr(lhs_ctx) if lhs_ctx is not None else "/*lhs*/"
+            rhs = self.gen_expr(rhs_ctx) if rhs_ctx is not None else "/*rhs*/"
+
+            # VBA braucht Set bei Objektzuweisung. Heuristik: rhs beginnt mit NEWOBJ(...) oder New ...
+            rhs_trim = rhs.lstrip()
+            if rhs_trim.upper().startswith("NEWOBJ(") or rhs_trim.upper().startswith("NEW "):
+                return f"Set {lhs} = {rhs}"
+            return f"{lhs} = {rhs}"
+
+        # RETURN
+        if hasattr(st, "returnStmt") and st.returnStmt():
+            r = st.returnStmt()
+            if hasattr(r, "expr") and r.expr():
+                val = self.gen_expr(r.expr())
+                fn = self._cur_func or "/*func*/"
+                return f"{fn} = {val}\nExit Function"
+            return "Exit Function"
+
+        # BREAK
+        if hasattr(st, "breakStmt") and st.breakStmt():
+            return "Exit For"
+
+        # IF
+        if hasattr(st, "ifStmt") and st.ifStmt():
+            return self.gen_if(st.ifStmt())
+
+        # FOR
+        if hasattr(st, "forStmt") and st.forStmt():
+            return self.gen_for(st.forStmt())
+
+        # expr stmt
+        if hasattr(st, "expr") and st.expr():
+            return self.gen_expr(st.expr())
+
+        return f"' TODO stmt: {type(st).__name__}"
+
+    def gen_if(self, ctx):
+        cond = self.gen_expr(ctx.expr())
+        lines = [f"If {cond} Then"]
+
+        then_blk = ctx.thenBlock() if hasattr(ctx, "thenBlock") else (ctx.block(0) if hasattr(ctx, "block") else None)
+        self.indent += 1
+        for st in self.iter_block_statements(then_blk):
+            lines.append("    " * self.indent + self.gen_stmt(st))
+        self.indent -= 1
+
+        # else optional
+        else_blk = None
+        if hasattr(ctx, "elseBlock") and ctx.elseBlock():
+            else_blk = ctx.elseBlock()
+        elif hasattr(ctx, "block") and len(ctx.block()) > 1:
+            else_blk = ctx.block(1)
+
+        if else_blk is not None:
+            lines.append("Else")
+            self.indent += 1
+            for st in self.iter_block_statements(else_blk):
+                lines.append("    " * self.indent + self.gen_stmt(st))
+            self.indent -= 1
+
+        lines.append("End If")
+        return "\n".join(lines)
+
+    def gen_for(self, ctx):
+        # Da deine ForStmtContext kein expr() hat, bleibt es heuristisch:
+        var = ctx.IDENT().getText() if hasattr(ctx, "IDENT") and ctx.IDENT() else "i"
+
+        start_ctx = None
+        end_ctx = None
+        step_ctx = None
+
+        # häufig: startExpr/toExpr/stepExpr etc.
+        for nm in ("startExpr", "fromExpr", "start"):
+            fn = getattr(ctx, nm, None)
+            if callable(fn):
+                try:
+                    start_ctx = fn()
+                    if start_ctx is not None:
+                        break
+                except TypeError:
+                    pass
+
+        for nm in ("endExpr", "toExpr", "end"):
+            fn = getattr(ctx, nm, None)
+            if callable(fn):
+                try:
+                    end_ctx = fn()
+                    if end_ctx is not None:
+                        break
+                except TypeError:
+                    pass
+
+        for nm in ("stepExpr", "byExpr", "step"):
+            fn = getattr(ctx, nm, None)
+            if callable(fn):
+                try:
+                    step_ctx = fn()
+                    if step_ctx is not None:
+                        break
+                except TypeError:
+                    pass
+
+        start = self.gen_expr(start_ctx) if start_ctx is not None else "0"
+        end = self.gen_expr(end_ctx) if end_ctx is not None else "0"
+        step = self.gen_expr(step_ctx) if step_ctx is not None else "1"
+
+        lines = [f"Dim {var} As Long", f"For {var} = {start} To {end} Step {step}"]
+
+        blk = ctx.block() if hasattr(ctx, "block") else None
+        self.indent += 1
+        for st in self.iter_block_statements(blk):
+            lines.append("    " * self.indent + self.gen_stmt(st))
+        self.indent -= 1
+
+        lines.append("Next")
+        return "\n".join(lines)
+
+    # ---------- expressions ----------
+    def gen_expr(self, e):
+        if e is None:
+            return "Null"
+
+        if hasattr(e, "primary") and e.primary():
+            return self.gen_primary(e.primary())
+
+        # binary op (wenn dein AST so liefert)
+        if hasattr(e, "left") and hasattr(e, "right") and hasattr(e, "op"):
+            a = self.gen_expr(e.left)
+            b = self.gen_expr(e.right)
+            op = e.op.text
+            op_map = {"AND": "And", "OR": "Or", "=": "=", "<>": "<>"}
+            op2 = op_map.get(op.upper(), op)
+            return f"({a} {op2} {b})"
+
+        if hasattr(e, "getText"):
+            return e.getText()
+
+        return "Null"
+
+    def gen_primary(self, ctx):
+        if hasattr(ctx, "newExpr") and ctx.newExpr():
+            return self.gen_new(ctx.newExpr())
+
+        if hasattr(ctx, "NUMBER") and ctx.NUMBER():
+            return ctx.NUMBER().getText()
+
+        if hasattr(ctx, "STRING") and ctx.STRING():
+            return ctx.STRING().getText()
+
+        if hasattr(ctx, "IDENT") and ctx.IDENT():
+            name = ctx.IDENT().getText()
+            if name.upper() == "THIS":
+                return "Me"
+            if name.upper() == "NIL":
+                return "Nothing"
+            return name
+
+        if hasattr(ctx, "dottedRef") and ctx.dottedRef():
+            return self.gen_dotted_ref(ctx.dottedRef())
+
+        if hasattr(ctx, "callExpr") and ctx.callExpr():
+            return self.gen_call(ctx.callExpr())
+
+        return "Null"
+
+    def gen_dotted_ref(self, ctx):
+        parts = [t.getText() for t in ctx.IDENT()]
+        if parts and parts[0].upper() == "THIS":
+            parts[0] = "Me"
+        return ".".join(parts)
+
+    def gen_new(self, ctx):
+        # VBA kann New <Class> nicht mit Args. Daher: RT.NEWOBJ("Class", args...)
+        class_name = ctx.IDENT().getText()
+        args = []
+        if hasattr(ctx, "argList") and ctx.argList():
+            for a in ctx.argList().expr():
+                args.append(self.gen_expr(a))
+        if args:
+            return f'NEWOBJ("{class_name}", ' + ", ".join(args) + ")"
+        return f'NEWOBJ("{class_name}")'
+
+    def gen_call(self, ctx):
+        # callee
+        if hasattr(ctx, "dottedRef") and ctx.dottedRef():
+            callee = self.gen_dotted_ref(ctx.dottedRef())
+        elif hasattr(ctx, "IDENT") and ctx.IDENT():
+            callee = ctx.IDENT().getText()
+        else:
+            callee = "/*callee*/"
+
+        # args
+        args = []
+        if hasattr(ctx, "argList") and ctx.argList():
+            for a in ctx.argList().expr():
+                args.append(self.gen_expr(a))
+
+        return callee + "(" + ", ".join(args) + ")"
         
 class DBaseToPython:
     """
@@ -6270,7 +7133,7 @@ class EditorWidget(QDialog):
         self.tree.setModel(model)
         self.tree.expandAll()
         
-        layout = QVBoxLayout(self)
+        vlayout = QVBoxLayout()
 
         # Mehrzeiliges Eingabefeld
         self.text = CodeEditor(self.splitter)
@@ -6288,15 +7151,15 @@ class EditorWidget(QDialog):
         self.splitter.setStretchFactor(1, 1)  # Editor
         self.splitter.setSizes([220, 800])
         
-        layout.addWidget(self.splitter)
+        vlayout.addWidget(self.splitter)
 
         # Button
         self.btn_run = QPushButton("Ausführen" , self)
         self.btn_run.clicked.connect(self.on_button_run_clicked)
         
-        layout.addWidget(self.btn_run)
+        vlayout.addWidget(self.btn_run)
         
-        hlayout = QHBoxLayout()
+        h1layout = QHBoxLayout()
         self.btn_gen_python = QPushButton("Generate Python Code" , self)
         self.btn_gen_pascal = QPushButton("Generate Pascal Code" , self)
         self.btn_gen_javout = QPushButton("Generate Jave Code"   , self)
@@ -6309,13 +7172,28 @@ class EditorWidget(QDialog):
         self.btn_gen_gnucpp.clicked.connect(self.on_button_gen_gnucpp_clicked)
         self.btn_gen_csharp.clicked.connect(self.on_button_gen_csharp_clicked)
         
-        hlayout.addWidget(self.btn_gen_python)
-        hlayout.addWidget(self.btn_gen_pascal)
-        hlayout.addWidget(self.btn_gen_javout)
-        hlayout.addWidget(self.btn_gen_gnucpp)
-        hlayout.addWidget(self.btn_gen_csharp)
+        h1layout.addWidget(self.btn_gen_python)
+        h1layout.addWidget(self.btn_gen_pascal)
+        h1layout.addWidget(self.btn_gen_javout)
+        h1layout.addWidget(self.btn_gen_gnucpp)
+        h1layout.addWidget(self.btn_gen_csharp)
         
-        layout.addLayout(hlayout)
+        h2layout = QHBoxLayout()
+        self.btn_gen_vbaout = QPushButton("Generate Visual-Basic Access Code", self)
+        self.btn_gen_javscr = QPushButton("Generate Java Script Code", self)
+        
+        self.btn_gen_vbaout.clicked.connect(self.on_button_gen_vbaout_clicked)
+        self.btn_gen_javscr.clicked.connect(self.on_button_gen_javscr_clicked)
+        
+        h2layout = QHBoxLayout()
+        h2layout.addWidget(self.btn_gen_vbaout)
+        h2layout.addWidget(self.btn_gen_javscr)
+        
+        vlayout.addLayout(h1layout)
+        vlayout.addLayout(h2layout)
+        
+        layout = QVBoxLayout(self)
+        layout.addLayout(vlayout)
         
         with open(self.filename, "r", encoding="utf-8") as f:
             content = f.read()
@@ -6332,6 +7210,18 @@ class EditorWidget(QDialog):
     def closeEvent(self, event):
         self.close_tracked_windows()
 
+    def on_button_gen_vbaout_clicked(self):
+        parser  = DBaseParser(self.filename)
+        codegen = DBaseToVBAAccess(parser, class_name="GenProg", module_name="GenProg")
+        codegen.generate(parser.tree, "dbase.cls")
+        print("gen vba ok.")
+        
+    def on_button_gen_javscr_clicked(self):
+        parser  = DBaseParser(self.filename)
+        codegen = DBaseToJavaScript(parser, class_name="GenProg", module_name=None)
+        codegen.generate(parser.tree, "dbase.js")
+        print("gen js ok.")
+        
     def on_button_gen_csharp_clicked(self):
         parser  = DBaseParser(self.filename)
         codegen = DBaseToCSharp(parser, class_name="GenProg", namespace=None)
