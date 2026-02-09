@@ -29,11 +29,12 @@ import pprint
 # ---------------------------------------------------------------------------
 from PyQt5.QtCore    import (
     QObject, Qt, QSocketNotifier, pyqtSignal, QEvent, QRect, QSize, QRegExp,
-    QFileInfo, QPoint
+    QFileInfo, QPoint, QAbstractProxyModel, QModelIndex, QRegularExpression
 )
 from PyQt5.QtGui     import (
     QFont, QPainter, QFontMetrics, QSyntaxHighlighter, QTextCharFormat,
-    QColor, QStandardItemModel, QStandardItem
+    QColor, QStandardItemModel, QStandardItem, QIcon, QFontInfo,
+    QFontDatabase, QRegularExpressionValidator, QIntValidator
 )
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QDialog, QPushButton, QVBoxLayout,
@@ -43,7 +44,7 @@ from PyQt5.QtWidgets import (
     QMenu, QFileDialog, QFileIconProvider, QListWidget, QTableWidget,
     QTableWidgetItem, QHeaderView, QStyledItemDelegate, QGroupBox, QLabel,
     QLineEdit, QCheckBox, QRadioButton, QSpacerItem, QGridLayout, QSpinBox,
-    QSizePolicy
+    QSizePolicy, QStyleOptionHeader, QStyle, QTableView, QAbstractItemView
 )
 
 TYPE_VALUES = [
@@ -747,6 +748,61 @@ class _QtEventFilter(QObject):
 
         return False
 
+class RowMarkerProxy(QAbstractProxyModel):
+    def __init__(self, source_model, parent=None):
+        super().__init__(parent)
+        self.setSourceModel(source_model)
+        self._row = -1
+        self._marker = "\u25BA"
+        self._font = QFont("Arial", 12)
+
+    # --- Pflicht-Forwarder ---
+    def mapToSource(self, proxyIndex):
+        return self.sourceModel().index(proxyIndex.row(), proxyIndex.column(), proxyIndex.parent())
+
+    def mapFromSource(self, sourceIndex):
+        return self.index(sourceIndex.row(), sourceIndex.column(), sourceIndex.parent())
+
+    def index(self, row, column, parent=QModelIndex()):
+        if self.hasIndex(row, column, parent):
+            return self.createIndex(row, column)
+        return QModelIndex()
+
+    def parent(self, child):
+        return QModelIndex()
+
+    def rowCount(self, parent=QModelIndex()):
+        return self.sourceModel().rowCount(parent)
+
+    def columnCount(self, parent=QModelIndex()):
+        return self.sourceModel().columnCount(parent)
+
+    def data(self, index, role=Qt.DisplayRole):
+        return self.sourceModel().data(self.mapToSource(index), role)
+
+    def setData(self, index, value, role=Qt.EditRole):
+        return self.sourceModel().setData(self.mapToSource(index), value, role)
+
+    def flags(self, index):
+        return self.sourceModel().flags(self.mapToSource(index))
+
+    # --- Hier passiert die Magie: Header links ---
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if orientation == Qt.Vertical and role == Qt.DisplayRole:
+            return "\u25BA" if section == self._row else ""
+        return self.sourceModel().headerData(section, orientation, role)
+
+    def setCurrentRow(self, row: int):
+        if row == self._row:
+            return
+        old = self._row
+        self._row = row
+        # Nur alte + neue Zeile im Header neu zeichnen lassen
+        if old >= 0:
+            self.headerDataChanged.emit(Qt.Vertical, old, old)
+        if row >= 0:
+            self.headerDataChanged.emit(Qt.Vertical, row, row)
+            
 class PyEmitter:
     def __init__(self):
         self.lines = []
@@ -6985,6 +7041,48 @@ class SourceAliasesTab(QWidget):
         self._model[new_alias] = new_path or old_path
         self._reload_list(select_alias=new_alias)
 
+class UpperNoSpaceDelegate(QStyledItemDelegate):
+    """Editor erzwingt: keine Leerzeichen + (optional) Großbuchstaben."""
+
+    def __init__(self, parent=None, force_upper=True):
+        super().__init__(parent)
+        self.force_upper = force_upper
+        # ^\S*$  => 0..n Nicht-Leerzeichen, keine Spaces/Tabs
+        self._validator = QRegularExpressionValidator(QRegularExpression(r"^\S*$"))
+
+    def createEditor(self, parent, option, index):
+        ed = QLineEdit(parent)
+        ed.setValidator(self._validator)
+
+        if self.force_upper:
+            ed.textEdited.connect(lambda t: ed.setText(t.upper()))
+        return ed
+
+    def setEditorData(self, editor, index):
+        txt = (index.data(Qt.EditRole) or index.data(Qt.DisplayRole) or "")
+        editor.setText(txt.upper() if self.force_upper else txt)
+
+    def setModelData(self, editor, model, index):
+        txt = editor.text()
+        txt = txt.upper() if self.force_upper else txt
+        model.setData(index, txt, Qt.EditRole)
+
+class IntOnlyDelegate(QStyledItemDelegate):
+    def __init__(self, parent=None, min_value=0, max_value=999999):
+        super().__init__(parent)
+        self._validator = QIntValidator(min_value, max_value)
+
+    def createEditor(self, parent, option, index):
+        ed = QLineEdit(parent)
+        ed.setValidator(self._validator)  # verhindert Nicht-Zahlen + Leerzeichen
+        return ed
+
+    def setEditorData(self, editor, index):
+        editor.setText(str(index.data(Qt.EditRole) or index.data(Qt.DisplayRole) or ""))
+
+    def setModelData(self, editor, model, index):
+        model.setData(index, editor.text(), Qt.EditRole)
+        
 class TypeComboDelegate(QStyledItemDelegate):
     """ComboBox-Editor nur für die Type-Spalte."""
 
@@ -7027,15 +7125,37 @@ class TableDesignerDialog(QDialog):
         self.setWindowModality(Qt.NonModal)
 
         layout = QVBoxLayout(self)
+        
+        self.table = QTableView(self)
+        self.model = QStandardItemModel(0, 6, self.table)
+        self.proxy = RowMarkerProxy(self.model, self.table)
+        self.table.setModel(self.proxy)
+        
+        #self.table.setColumnCount(6)
+        self.model.setHorizontalHeaderLabels(["Field", "Name", "Type", "Width", "Decimal", "Index"])
 
-        self.table = QTableWidget(self)
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["Field", "Name", "Type", "Width", "Decimal", "Index"])
+        self.table.setEditTriggers(
+            QAbstractItemView.DoubleClicked |
+            QAbstractItemView.SelectedClicked |
+            QAbstractItemView.EditKeyPressed
+        )
+
+        # Delegate auf Spalten
+        self.table.setItemDelegateForColumn(4, IntOnlyDelegate     (self.table, min_value=0, max_value=512))
+        self.table.setItemDelegateForColumn(3, IntOnlyDelegate     (self.table, min_value=0, max_value=512))
+        self.table.setItemDelegateForColumn(2, TypeComboDelegate(2, self.table))
+        self.table.setItemDelegateForColumn(1, UpperNoSpaceDelegate(self.table, force_upper=True))
 
         self.table.setAlternatingRowColors(True)
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setSelectionMode(QTableWidget.SingleSelection)
-        self.table.verticalHeader().setVisible(False)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode    (QAbstractItemView.SingleSelection)
+        
+        self.table.verticalHeader().setVisible(True)
+        self.table.verticalHeader().setFixedWidth(24)
+        self.table.verticalHeader().setDefaultAlignment(Qt.AlignCenter)
+
+        vm = self.table.verticalHeader()
+        vm.setFont(QFont("Arial", 14))
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
@@ -7053,11 +7173,16 @@ class TableDesignerDialog(QDialog):
 
         self._fill_demo_data()
 
-        # Delegate: Type-Spalte (Index 2) als ComboBox editierbar
-        self.table.setItemDelegateForColumn(2, TypeComboDelegate(type_column=2, parent=self.table))
-
+        self.table.selectionModel().currentChanged.connect(self.on_current_changed)
         self.table.selectRow(0)
-
+        
+        self.proxy.setCurrentRow(0)
+        self.table.selectRow(0)
+        
+    # Bei Reihenwechsel Marker mitwandern lassen
+    def on_current_changed(self, current, previous):
+        self.proxy.setCurrentRow(current.row())
+        
     def _fill_demo_data(self):
         rows = [
             (1,  "First_Name",    "Character", 25, 0, "None"),
@@ -7074,21 +7199,16 @@ class TableDesignerDialog(QDialog):
             (12, "Notes",         "Memo",      10, 0, ""),
         ]
 
-        self.table.setRowCount(len(rows))
-        for r, row in enumerate(rows):
-            for c, val in enumerate(row):
-                item = QTableWidgetItem(str(val))
-
-                if c in (0, 3, 4):
-                    item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                else:
-                    item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-
-                # Field-Spalte nicht editierbar (wie Index/Nummer)
-                if c == 0:
-                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-
-                self.table.setItem(r, c, item)
+        for r, rowdata in enumerate(rows):
+            self.model.insertRow(r)
+            for c, value in enumerate(rowdata):
+                text = str(value)
+                
+                # 1. Feld (Spalte 0) in Großbuchstaben
+                if c == 1:
+                    text = text.upper()
+                
+                self.model.setItem(r, c, QStandardItem(text))
 
 class DBaseParser:
     def __init__(self, filename):
@@ -7495,6 +7615,8 @@ class IconTab(QListWidget):
 class DirectoryIconDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        
+        self.setFont(QFont("Arial", 10))
 
         self.setWindowTitle("Directory Icon Browser")
         self.setModal(False)
@@ -7519,10 +7641,16 @@ class DirectoryIconDialog(QDialog):
         self.tabs = QTabWidget()
         self.icon_lists = []
 
-        for i in range(7):
-            lw = IconTab()
-            self.icon_lists.append(lw)
-            self.tabs.addTab(lw, f"Tab {i+1}")
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Alle Typen")
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Projekte"  )
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Formulare" )
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Berichte"  )
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Programme" )
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Tabellen"  )
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "SQL"       )
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Grafiken"  )
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Internet"  )
+        lw = IconTab(); self.icon_lists.append(lw); self.tabs.addTab(lw, "Sonstiges" )
 
         # --- Layout ---
         root = QVBoxLayout(self)
@@ -8827,9 +8955,72 @@ class MainWindow(QMainWindow):
 
         # Beispiel-Menü "Fenster"
         # Menü: Eigenschaften -> Arbeitsplatz
+        f1 = QFont("Verdana", 11); f1.setBold(True)
+        f2 = QFont("Verdana", 10); f2.setBold(False)
+        
         menubar = self.menuBar()
+        menubar.setFont(f1)
+        menubar.font().setBold(True)
+        
+        menu_file       = menubar.addMenu("Datei")
+        menu_file.setFont(f2)
+        
+        menu_edit       = menubar.addMenu("Editieren")
+        menu_display    = menubar.addMenu("Anzeige")
         menu_properties = menubar.addMenu("Eigenschaften")
         menu_windows    = menubar.addMenu("Fenster")
+        menu_help       = menubar.addMenu("Hilfe")
+        
+        menu_file_new               = menu_file.addMenu("Neu")
+        menu_file_new.setFont(f2)
+        
+        action_file_open            = QAction("Öffnen", self)
+        action_file_close           = QAction("Schließen", self)
+        
+        action_file_new_project     = QAction("Neues Projekt", self)
+        action_file_open_project    = QAction("Projekt öffnen", self)
+        action_file_print           = QAction("Drucken", self)
+        action_file_print_preview   = QAction("Durckvorschau", self)
+        action_file_window_app      = QAction("Ein-klick Anwendung", self)
+        action_file_web_wizard      = QAction("Web Wizard", self)
+        action_file_database        = QAction("Datenbank-Verwaltung", self)
+        action_file_exit            = QAction("Beenden", self)
+        
+        action_file_new_form        = QAction("Formular", self)
+        action_file_new_menu        = QAction("Menu", self)
+        action_file_new_popupmenu   = QAction("Popup-Menu", self)
+        action_file_new_report      = QAction("Bericht", self)
+        action_file_new_labels      = QAction("Ettiketten", self)
+        action_file_new_program     = QAction("Programm", self)
+        action_file_new_table       = QAction("Tabelle", self)
+        action_file_new_sql         = QAction("SQL", self)
+        
+        menu_file_new.addAction(action_file_new_form)
+        menu_file_new.addAction(action_file_new_menu)
+        menu_file_new.addAction(action_file_new_popupmenu)
+        menu_file_new.addSeparator()
+        menu_file_new.addAction(action_file_new_report)
+        menu_file_new.addAction(action_file_new_labels)
+        menu_file_new.addSeparator()
+        menu_file_new.addAction(action_file_new_program)
+        menu_file_new.addSeparator()
+        menu_file_new.addAction(action_file_new_table)
+        menu_file_new.addAction(action_file_new_sql)
+        
+        menu_file.addAction(action_file_open)
+        menu_file.addAction(action_file_close)
+        menu_file.addSeparator()
+        menu_file.addAction(action_file_new_project)
+        menu_file.addAction(action_file_open_project)
+        menu_file.addSeparator()
+        menu_file.addAction(action_file_print)
+        menu_file.addAction(action_file_print_preview)
+        menu_file.addSeparator()
+        menu_file.addAction(action_file_window_app)
+        menu_file.addAction(action_file_web_wizard)
+        menu_file.addSeparator()
+        menu_file.addAction(action_file_database)
+        menu_file.addAction(action_file_exit)
         
         action_workplace = QAction("Arbeitsplatz", self)
         action_workplace.triggered.connect(self.open_workplace_properties)
@@ -8844,12 +9035,63 @@ class MainWindow(QMainWindow):
 
         self._dlg_workplace = None  # Dialog-Instanz merken (nicht jedes Mal neu)
         
+        self._create_toolbar()
+        self._create_statusbar()
+        
         dlg = DirectoryIconDialog()
         sub = self.mdi.addSubWindow(dlg)
         sub.show()
         
         self.mdi_open_editor()
         self.mdi_open_table_designer()
+
+    def on_new(self):
+        self.status_left.setText("Neu angelegt")
+
+    def on_open(self):
+        self.status_left.setText("Öffnen...")
+
+    def on_save(self):
+        self.status_left.setText("Gespeichert")
+        
+    def _create_toolbar(self):
+        toolbar = QToolBar("Haupt-Toolbar", self)
+        toolbar.setIconSize(QSize(48, 48))
+        self.addToolBar(Qt.TopToolBarArea, toolbar)
+
+        act_new  = QAction(QIcon("icons/new.png" ), "Neu"      , self)
+        act_open = QAction(QIcon("icons/open.png"), "Öffnen"   , self)
+        act_save = QAction(QIcon("icons/save.png"), "Speichern", self)
+
+        act_new .triggered.connect(self.on_new)
+        act_open.triggered.connect(self.on_open)
+        act_save.triggered.connect(self.on_save)
+
+        toolbar.addAction(act_new)
+        toolbar.addAction(act_open)
+        toolbar.addAction(act_save)
+
+        toolbar.addSeparator()
+        
+    def _create_statusbar(self):
+        status = QStatusBar(self)
+        self.setStatusBar(status)
+
+        # Panel 1 – linker Bereich (dehnbar)
+        self.status_left = QLabel("Bereit")
+        self.status_left.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+        # Panel 2 – Mitte
+        self.status_mid = QLabel("MDI: 0 Fenster")
+        self.status_mid.setAlignment(Qt.AlignCenter)
+
+        # Panel 3 – rechts
+        self.status_right = QLabel("Ln 1, Col 1")
+        self.status_right.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+        status.addWidget(self.status_left, 1)        # Stretch
+        status.addPermanentWidget(self.status_mid, 0)
+        status.addPermanentWidget(self.status_right, 0)
         
     def mdi_open_editor(self, title="Unbenannt", text=""):
         w = EditorWidget(text)
