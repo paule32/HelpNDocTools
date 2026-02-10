@@ -1,0 +1,88 @@
+name: Build executables (Windows + Linux)
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.11"
+            add_data_sep: ":"
+          - os: windows-latest
+            python: "3.11"
+            add_data_sep: ";"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: "pip"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pyinstaller
+
+      # Optional, aber sehr hilfreich: sammelt Hidden-Imports automatisch ein (inkl. antlr4 etc.)
+      - name: Collect hidden imports (modulegraph)
+        shell: bash
+        run: |
+          pip install modulegraph
+
+      - name: Build (PyInstaller onefile)
+        shell: bash
+        run: |
+          APP_NAME="dBaseRunner"
+          ENTRYPOINT="dBaseRunner.py"
+
+          # Icons mit einpacken (unter Windows ; unter Linux :)
+          ADD_DATA_ARG="src/icons${{ matrix.add_data_sep }}src/icons"
+
+          # Hidden imports: erst automatisch versuchen, plus antlr4 zur Sicherheit
+          # (Wenn du später im Log fehlende Module siehst, einfach hier ergänzen)
+          HIDDEN_IMPORTS=$(python - <<'PY'
+import sys
+try:
+    from modulegraph import modulegraph
+    mg = modulegraph.ModuleGraph()
+    mg.run_script("dBaseRunner.py")
+    mods = sorted({m.identifier for m in mg.flatten() if getattr(m, "identifier", None)})
+    # Filter auf "antlr" (und optional weitere) – kann man erweitern
+    wanted = [m for m in mods if m.startswith("antlr4")]
+    print(" ".join(f"--hidden-import={m}" for m in wanted))
+except Exception:
+    print("")
+PY
+)
+          # antlr4 Basis-Modul immer dazu
+          EXTRA="--hidden-import=antlr4"
+
+          pyinstaller \
+            --noconfirm \
+            --clean \
+            --onefile \
+            --name "$APP_NAME" \
+            --add-data "$ADD_DATA_ARG" \
+            $EXTRA $HIDDEN_IMPORTS \
+            "$ENTRYPOINT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-dBaseRunner
+          path: dist/*
