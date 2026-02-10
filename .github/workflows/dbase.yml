@@ -35,14 +35,13 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          fi
-          # falls requirements.txt in src/ liegt, zusätzlich:
-          if [ -f src/requirements.txt ]; then
-            pip install -r src/requirements.txt
-          fi
-          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install Windows-only dependencies
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          if [ -f requirements-windows.txt ]; then pip install -r requirements-windows.txt; fi
 
       - name: Build (PyInstaller onefile)
         shell: bash

@@ -39,8 +39,8 @@ PyQt5_sip==12.15.0
 PyQtWebEngine==5.15.7
 PyQtWebEngine-Qt5==5.15.2
 python-dateutil==2.9.0.post0
-pywin32==308
-pywin32-ctypes==0.2.3
+pywin32==308; platform_system=="Windows"
+pywin32-ctypes==0.2.3; platform_system=="Windows"
 requests==2.32.4
 rich==13.9.4
 screeninfo==0.8.1
