@@ -36,7 +36,8 @@ from PyQt5.QtGui     import (
     QFont, QPainter, QFontMetrics, QSyntaxHighlighter, QTextCharFormat,
     QColor, QStandardItemModel, QStandardItem, QIcon, QFontInfo,
     QFontDatabase, QRegularExpressionValidator, QIntValidator, QPainterPath,
-    QLinearGradient, QRadialGradient, QPen
+    QLinearGradient, QRadialGradient, QPen, QKeySequence, QPalette,
+    QTextFormat
 )
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QDialog, QPushButton, QVBoxLayout,
@@ -46,7 +47,8 @@ from PyQt5.QtWidgets import (
     QMenu, QFileDialog, QFileIconProvider, QListWidget, QTableWidget,
     QTableWidgetItem, QHeaderView, QStyledItemDelegate, QGroupBox, QLabel,
     QLineEdit, QCheckBox, QRadioButton, QSpacerItem, QGridLayout, QSpinBox,
-    QSizePolicy, QStyleOptionHeader, QStyle, QTableView, QAbstractItemView
+    QSizePolicy, QStyleOptionHeader, QStyle, QTableView, QAbstractItemView,
+    QStyleOptionComplex, QProxyStyle
 )
 
 TYPE_VALUES = [
@@ -66,6 +68,143 @@ NATIVE_BASES = {
     "PUSHBUTTON": QPushButton,
 }
 
+# ---------------------------------------------------------------------------
+# Scrollbars (global)
+# ---------------------------------------------------------------------------
+APP_DARK_QSS = """
+/* VERTICAL */
+QScrollBar:vertical {
+    background: #081a33;          /* navy */
+    width: 16px;                 /* Breite */
+    margin: 16px 0 16px 0;       /* Platz für Buttons oben/unten */
+    border: 1px solid #0f2a4a;
+}
+
+QScrollBar::handle:vertical {
+    background: #2b6cb0;         /* normales Blau */
+    border: 1px solid #163a66;
+    border-radius: 6px;
+
+    min-height: 26px;            /* nie kleiner */
+    max-height: 26px;            /* nie größer (fix 26px) */
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    background: #061226;         /* etwas dunkler */
+    height: 16px;                /* Button-Höhe */
+    border: 1px solid #0f2a4a;
+}
+
+QScrollBar::sub-line:vertical {  /* oben */
+    subcontrol-origin: margin;
+    subcontrol-position: top;
+}
+QScrollBar::add-line:vertical {  /* unten */
+    subcontrol-origin: margin;
+    subcontrol-position: bottom;
+}
+
+/* Pfeile (ohne Bilder): simple “Chevron”-Optik über Farben */
+QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+    width: 8px;
+    height: 8px;
+    background: #c9b458;         /* dein gelb – gut sichtbar */
+    border-radius: 2px;
+}
+QScrollBar::up-arrow:vertical { margin-top: 3px; }
+QScrollBar::down-arrow:vertical { margin-bottom: 3px; }
+
+/* Track-Bereiche */
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+/* HORIZONTAL */
+QScrollBar:horizontal {
+    background: #081a33;         /* navy */
+    height: 16px;                /* Höhe */
+    margin: 0 16px 0 16px;       /* Platz für Buttons links/rechts */
+    border: 1px solid #0f2a4a;
+}
+
+QScrollBar::handle:horizontal {
+    background: #2b6cb0;
+    border: 1px solid #163a66;
+    border-radius: 6px;
+
+    min-width: 26px;
+    max-width: 26px;             /* fix 26px breit */
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    background: #061226;
+    width: 16px;                 /* Button-Breite */
+    border: 1px solid #0f2a4a;
+}
+
+QScrollBar::sub-line:horizontal {  /* links */
+    subcontrol-origin: margin;
+    subcontrol-position: left;
+}
+QScrollBar::add-line:horizontal {  /* rechts */
+    subcontrol-origin: margin;
+    subcontrol-position: right;
+}
+
+QScrollBar::left-arrow:horizontal, QScrollBar::right-arrow:horizontal {
+    width: 8px;
+    height: 8px;
+    background: #c9b458;
+    border-radius: 2px;
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: transparent;
+}
+
+/* Toolbar */
+QToolBar {
+    background: #1e1f22;              /* dunkelgrau */
+    border: 1px solid #2b2d31;
+    spacing: 6px;
+    padding: 4px;
+}
+QToolBar::separator {
+    background: #2b2d31;
+    width: 1px;
+    margin: 6px 4px;
+}
+
+/* ToolButtons (Icons/Buttons in der Toolbar) */
+QToolButton {
+    background: transparent;
+    color: #c9b458;                    /* gelb */
+    border: 1px solid transparent;
+    padding: 4px 6px;
+    border-radius: 6px;
+}
+QToolButton:hover {
+    background: #2b2d31;
+    border-color: #3a3d45;
+}
+QToolButton:pressed {
+    background: #343740;
+}
+
+/* Statusbar */
+QStatusBar {
+    background: #1e1f22;
+    border-top: 1px solid #2b2d31;
+}
+QStatusBar QLabel {
+    color: #c9b458;
+    padding: 0 6px;
+}
+QStatusBar::item {
+    border: none;                      /* keine extra Boxen */
+}
+"""
+
 @dataclass
 class FontValue:
     obj      : QFont
@@ -79,6 +218,7 @@ def ensure_qt_app():
     app = QApplication.instance()
     if app is None:
         app = QApplication(sys.argv)
+        app.setStyle(IconScrollBarStyle(app.style()))
     return app
 
 # ---------------------------------------------------------------------------
@@ -4464,10 +4604,10 @@ class DBaseHighlighter(QSyntaxHighlighter):
         # --- Formate ---
         self.fmt_keyword = QTextCharFormat()
         self.fmt_keyword.setFontWeight(QFont.Bold)
-        self.fmt_keyword.setForeground(QColor(0, 0, 0))  # schwarz
+        self.fmt_keyword.setForeground(QColor(200, 200, 0))  # schwarz
 
         self.fmt_comment = QTextCharFormat()
-        self.fmt_comment.setForeground(QColor(0, 128, 0))  # grün
+        self.fmt_comment.setForeground(QColor(0, 148, 0))  # grün
 
         # --- Keywords (nach Bedarf erweitern) ---
         keywords = [
@@ -4525,92 +4665,429 @@ class DBaseHighlighter(QSyntaxHighlighter):
                 break
             start = self.block_start.indexIn(text, start + length)
 
+class BreakpointArea(QWidget):
+    def __init__(self, editor: "CodeEditor"):
+        super().__init__(editor)
+        self.editor = editor
+        self.setCursor(Qt.PointingHandCursor)
+
+    def sizeHint(self):
+        return QSize(self.editor.breakpoint_area_width(), 0)
+
+    def paintEvent(self, event):
+        self.editor.paint_breakpoint_area(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.editor.toggle_breakpoint_at_y(event.pos().y())
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
 class LineNumberArea(QWidget):
     def __init__(self, editor: "CodeEditor"):
         super().__init__(editor)
-        self.code_editor = editor
+        self.editor = editor
 
     def sizeHint(self):
-        return QSize(self.code_editor.line_number_area_width(), 0)
+        return QSize(self.editor.line_number_area_width(), 0)
 
     def paintEvent(self, event):
-        self.code_editor.line_number_area_paint_event(event)
+        self.editor.paint_line_number_area(event)
 
+class TitleBar(QWidget):
+    def __init__(self, parent_dialog: QDialog, title: str, icon: QIcon = None):
+        super().__init__(parent_dialog)
+        self.dlg = parent_dialog
+        self._drag_pos = None
+        self.setFixedHeight(34)
+
+        # --- left icon + title ---
+        self.iconLabel = QLabel()
+        self.iconLabel.setFixedSize(22, 22)
+        if icon is not None:
+            self.iconLabel.setPixmap(icon.pixmap(18, 18))
+        self.iconLabel.setCursor(Qt.PointingHandCursor)
+
+        self.titleLabel = QLabel(title)
+        self.titleLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+        # --- window buttons ---
+        self.btnMin = QToolButton()
+        self.btnMax = QToolButton()
+        self.btnClose = QToolButton()
+
+        # Standard-Icons (plattformabhängig, aber okay). Alternativ eigene SVGs setzen.
+        style = self.style()
+        self.btnMin.setIcon(style.standardIcon(style.SP_TitleBarMinButton))
+        self.btnMax.setIcon(style.standardIcon(style.SP_TitleBarMaxButton))
+        self.btnClose.setIcon(style.standardIcon(style.SP_TitleBarCloseButton))
+
+        self.btnMin.clicked.connect(self.dlg.showMinimized)
+        self.btnMax.clicked.connect(self._toggle_max_restore)
+        self.btnClose.clicked.connect(self.dlg.close)
+
+        # Layout
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(10, 0, 8, 0)
+        lay.setSpacing(8)
+        lay.addWidget(self.iconLabel)
+        lay.addWidget(self.titleLabel)
+        lay.addWidget(self.btnMin)
+        lay.addWidget(self.btnMax)
+        lay.addWidget(self.btnClose)
+
+        # Styling: Verlauf blau->weiß + dunkler Rahmen
+        self.setStyleSheet("""
+TitleBar {
+    border: 1px solid #3a3a3a;
+    border-bottom: 1px solid #2a2a2a;
+    background: qlineargradient(
+        x1:0, y1:0, x2:1, y2:0,
+        stop:0 #1a4fa3,
+        stop:1 #f2f6ff
+    );
+}
+QLabel {
+    color: #0b0f18;
+    font-weight: 600;
+}
+QToolButton {
+    border: 0px;
+    padding: 6px;
+    border-radius: 6px;
+    background: transparent;
+}
+QToolButton:hover {
+    background: rgba(0,0,0,0.10);
+}
+QToolButton:pressed {
+    background: rgba(0,0,0,0.18);
+}
+""")
+
+    def _toggle_max_restore(self):
+        if self.dlg.isMaximized():
+            self.dlg.showNormal()
+        else:
+            self.dlg.showMaximized()
+
+    # --- close on double click icon ---
+    def mouseDoubleClickEvent(self, event):
+        # optional: Doppelklick auf TitleBar toggelt maximieren
+        if event.button() == Qt.LeftButton:
+            self._toggle_max_restore()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
+    def eventFilter(self, obj, event):
+        return super().eventFilter(obj, event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            # Drag starten (global Position merken)
+            self._drag_pos = event.globalPos() - self.dlg.frameGeometry().topLeft()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._drag_pos is not None and (event.buttons() & Qt.LeftButton):
+            if not self.dlg.isMaximized():
+                self.dlg.move(event.globalPos() - self._drag_pos)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._drag_pos = None
+        super().mouseReleaseEvent(event)
+
+    def _icon_double_clicked(self):
+        self.dlg.close()
+
+    def showEvent(self, event):
+        # Doppelklick auf IconLabel => schließen
+        self.iconLabel.mouseDoubleClickEvent = lambda e: (self.dlg.close(), e.accept())
+        super().showEvent(event)
+
+class IconScrollBarStyle(QProxyStyle):
+    def __init__(self, base_style=None):
+        super().__init__(base_style)
+        self.track      = QColor("#081a33")  # navy
+        self.btn_bg     = QColor("#061246")  # dunkler
+        self.thumb      = QColor("#2b6cb0")  # blau
+        self.border     = QColor("#0f2a4a")
+        self.icon_color = QColor("#c9b458")  # gelb
+
+        # Optional: eine Icon-Font laden (z.B. FontAwesome/Material)
+        # Wenn du eine ttf in Resources hast: ":/fonts/YourIconFont.ttf"
+        self.icon_font = QFont()
+        self.icon_font.setPointSize(10)
+        self.icon_font.setBold(True)
+
+        # Fallback-Glyphs (funktionieren ohne Extra-Font)
+        self.g_up = "▲"
+        self.g_down = "▼"
+        self.g_left = "◀"
+        self.g_right = "▶"
+
+        # Wenn du FontAwesome nutzt, setze z.B.:
+        # self.g_up = "\uf077"   # chevron-up
+        # self.g_down = "\uf078"
+        # self.g_left = "\uf053"
+        # self.g_right = "\uf054"
+
+    # --- Größen: 16px dick, Thumb immer 26px ---
+    def pixelMetric(self, metric, option=None, widget=None):
+        if metric == QStyle.PM_ScrollBarExtent:
+            return 21
+        if metric == QStyle.PM_ScrollBarSliderMin:
+            return 32  # min thumb length
+        return super().pixelMetric(metric, option, widget)
+
+    def drawComplexControl(self, control, option: QStyleOptionComplex, painter: QPainter, widget=None):
+        if control != QStyle.CC_ScrollBar:
+            return super().drawComplexControl(control, option, painter, widget)
+
+        painter.save()
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        # Subcontrol-Rects holen
+        sub_line = self.subControlRect(control, option, QStyle.SC_ScrollBarSubLine, widget)
+        add_line = self.subControlRect(control, option, QStyle.SC_ScrollBarAddLine, widget)
+        groove   = self.subControlRect(control, option, QStyle.SC_ScrollBarGroove, widget)
+        slider   = self.subControlRect(control, option, QStyle.SC_ScrollBarSlider, widget)
+
+        # Track/Groove
+        painter.fillRect(option.rect, self.track)
+        painter.fillRect(groove, self.track)
+
+        # Buttons
+        painter.fillRect(sub_line, self.btn_bg)
+        painter.fillRect(add_line, self.btn_bg)
+
+        painter.setPen(self.border)
+        painter.drawRect(sub_line.adjusted(0, 0, -1, -1))
+        painter.drawRect(add_line.adjusted(0, 0, -1, -1))
+        painter.drawRect(option.rect.adjusted(0, 0, -1, -1))
+
+        # Thumb (fix 26px wird über Metrics erzwungen; Qt berechnet slider-Rect)
+        painter.setPen(self.border)
+        painter.setBrush(self.thumb)
+        r = slider.adjusted(2, 2, -2, -2)
+        painter.drawRoundedRect(r, 6, 6)
+
+        # Pfeil-Glyphs zeichnen
+        painter.setPen(self.icon_color)
+        painter.setFont(self.icon_font)
+
+        if option.state & QStyle.State_Horizontal:
+            painter.drawText(sub_line, Qt.AlignCenter, self.g_left)
+            painter.drawText(add_line, Qt.AlignCenter, self.g_right)
+        else:
+            painter.drawText(sub_line, Qt.AlignCenter, self.g_up)
+            painter.drawText(add_line, Qt.AlignCenter, self.g_down)
+
+        painter.restore()
+
+    # Optional: wenn du willst, dass der Thumb wirklich NIE > 26 wird:
+    # Qt kann bei wenig Inhalt größere Slider zeichnen; dafür “max” müssen wir tricksen.
+    # Am stabilsten: SliderRect kürzen:
+    def subControlRect(self, control, option, subControl, widget=None):
+        rect = super().subControlRect(control, option, subControl, widget)
+        if control == QStyle.CC_ScrollBar and subControl == QStyle.SC_ScrollBarSlider:
+            # Slider auf exakt 26 px kürzen (zentriert in seiner berechneten Position)
+            if option.state & QStyle.State_Horizontal:
+                w = 42
+                cx = rect.center().x()
+                rect.setLeft(cx - w // 2)
+                rect.setRight(rect.left() + w - 1)
+            else:
+                h = 42
+                cy = rect.center().y()
+                rect.setTop(cy - h // 2)
+                rect.setBottom(rect.top() + h - 1)
+        return rect
+        
 class CodeEditor(QPlainTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._line_number_area = LineNumberArea(self)
+        #self._line_number_area = LineNumberArea(self)
 
-        self.blockCountChanged.connect(self._update_line_number_area_width)
-        self.updateRequest.connect(self._update_line_number_area)
+        self._breakpoints = set()  # speichert blockNumber() (0-basiert)
+        
+        # --- Editor-Farben: Navy Hintergrund + dunkleres Gelb für Text ---
+        pal = self.palette()
+        pal.setColor(QPalette.Base, QColor("#081a33"))        # Hintergrund (navy)
+        pal.setColor(QPalette.Text, QColor("#c9b458"))        # Text (dunkleres Gelb)
+        pal.setColor(QPalette.Highlight, QColor("#274b8a"))   # Selection Hintergrund
+        pal.setColor(QPalette.HighlightedText, QColor("#f0e6b0"))
+        self.setPalette(pal)
+
+        # optional: Cursor + Selection im QSS sauberer kontrollieren
+        self.setStyleSheet("""
+        QPlainTextEdit {
+            background: #081a33;
+            color: #c9b458;
+            selection-background-color: #274b8a;
+            selection-color: #f0e6b0;
+        }
+        """)
+        self.setStyleSheet(self.styleSheet() + "\n" + APP_DARK_QSS)
+        
+        self.breakpointArea = BreakpointArea(self)
+        self.lineNumberArea = LineNumberArea(self)
+        
+        self.blockCountChanged.connect(self._update_gutter_widths)
+        self.updateRequest.connect(self._update_gutters_on_scroll)
         self.cursorPositionChanged.connect(self._highlight_current_line)
 
-        self._update_line_number_area_width(0)
+        self._update_gutter_widths()
         self._highlight_current_line()
 
-        # Optional: Monospace
-        # self.setFont(QFont("Consolas", 10))
+    # ---------- API / State ----------
+    def breakpoints(self):
+        """Gibt Breakpoints als 1-basierte Zeilennummern zurück."""
+        return sorted(b + 1 for b in self._breakpoints)
+
+    # ---------- Layout: zwei Gutters ----------
+    def breakpoint_area_width(self) -> int:
+        return 14  # schmaler Gutter für roten Punkt
 
     def line_number_area_width(self) -> int:
         digits = len(str(max(1, self.blockCount())))
         fm = QFontMetrics(self.font())
-        space = 12 + fm.horizontalAdvance("9") * digits
-        return space
+        # etwas Padding
+        return 6 + fm.horizontalAdvance("9") * digits + 8
 
-    def _update_line_number_area_width(self, _):
-        self.setViewportMargins(self.line_number_area_width(), 0, 0, 0)
-
-    def _update_line_number_area(self, rect, dy):
-        if dy:
-            self._line_number_area.scroll(0, dy)
-        else:
-            self._line_number_area.update(0, rect.y(), self._line_number_area.width(), rect.height())
-
-        if rect.contains(self.viewport().rect()):
-            self._update_line_number_area_width(0)
+    def _update_gutter_widths(self):
+        left = self.breakpoint_area_width() + self.line_number_area_width()
+        self.setViewportMargins(left, 0, 0, 0)
+        self._reposition_gutters()
+        self.viewport().update()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        cr = self.contentsRect()
-        self._line_number_area.setGeometry(QRect(cr.left(), cr.top(), self.line_number_area_width(), cr.height()))
+        self._reposition_gutters()
 
-    def line_number_area_paint_event(self, event):
-        painter = QPainter(self._line_number_area)
-        painter.fillRect(event.rect(), QColor(245, 245, 245))
+    def _reposition_gutters(self):
+        cr = self.contentsRect()
+        bpw = self.breakpoint_area_width()
+        lnw = self.line_number_area_width()
+
+        self.breakpointArea.setGeometry(QRect(cr.left(), cr.top(), bpw, cr.height()))
+        self.lineNumberArea.setGeometry(QRect(cr.left() + bpw, cr.top(), lnw, cr.height()))
+
+    def _update_gutters_on_scroll(self, rect, dy):
+        if dy:
+            self.breakpointArea.scroll(0, dy)
+            self.lineNumberArea.scroll(0, dy)
+        else:
+            self.breakpointArea.update(0, rect.y(), self.breakpointArea.width(), rect.height())
+            self.lineNumberArea.update(0, rect.y(), self.lineNumberArea.width(), rect.height())
+
+        if rect.contains(self.viewport().rect()):
+            self._update_gutter_widths()
+
+    # ---------- Painting ----------
+    def paint_breakpoint_area(self, event):
+        painter = QPainter(self.breakpointArea)
+        painter.fillRect(event.rect(), QColor("#1b1b1b"))  # Hintergrund
 
         block = self.firstVisibleBlock()
         block_number = block.blockNumber()
         top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
         bottom = top + int(self.blockBoundingRect(block).height())
 
-        fm = QFontMetrics(self.font())
+        # rote Punkte
+        dot_color = QColor("#d32f2f")
+
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
-                number = str(block_number + 1)
-                painter.setPen(QColor(120, 120, 120))
-                painter.drawText(0, top, self._line_number_area.width() - 4, fm.height(),
-                                 Qt.AlignRight, number)
+                if block_number in self._breakpoints:
+                    # Kreis zentriert im Breakpoint-Gutter
+                    w = self.breakpointArea.width()
+                    h = int(self.blockBoundingRect(block).height())
+                    diameter = min(10, w - 2, h - 4)
+                    x = (w - diameter) // 2
+                    y = top + (h - diameter) // 2
+
+                    painter.setPen(Qt.NoPen)
+                    painter.setBrush(dot_color)
+                    painter.setRenderHint(QPainter.Antialiasing, True)
+                    painter.drawEllipse(x, y, diameter, diameter)
 
             block = block.next()
             block_number += 1
             top = bottom
             bottom = top + int(self.blockBoundingRect(block).height())
 
+    def paint_line_number_area(self, event):
+        painter = QPainter(self.lineNumberArea)
+        painter.fillRect(event.rect(), QColor("#202020"))
+
+        block = self.firstVisibleBlock()
+        block_number = block.blockNumber()
+        top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
+        bottom = top + int(self.blockBoundingRect(block).height())
+
+        painter.setPen(QColor("#9e9e9e"))
+
+        while block.isValid() and top <= event.rect().bottom():
+            if block.isVisible() and bottom >= event.rect().top():
+                number_text = str(block_number + 1)
+                painter.drawText(
+                    0, top,
+                    self.lineNumberArea.width() - 4, int(self.blockBoundingRect(block).height()),
+                    Qt.AlignRight | Qt.AlignVCenter,
+                    number_text
+                )
+            block = block.next()
+            block_number += 1
+            top = bottom
+            bottom = top + int(self.blockBoundingRect(block).height())
+
+    # ---------- Toggle per Doppelklick ----------
+    def toggle_breakpoint_at_y(self, y_in_area: int):
+        """Ermittelt Block unter y (Viewport-Koordinate) und toggelt Breakpoint."""
+        # y aus BreakpointArea -> y in Viewport
+        y_view = y_in_area
+        block = self.firstVisibleBlock()
+        top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
+        bottom = top + int(self.blockBoundingRect(block).height())
+
+        while block.isValid():
+            if top <= y_view < bottom and block.isVisible():
+                bn = block.blockNumber()
+                if bn in self._breakpoints:
+                    self._breakpoints.remove(bn)
+                else:
+                    self._breakpoints.add(bn)
+                self.breakpointArea.update()
+                return
+
+            block = block.next()
+            top = bottom
+            bottom = top + int(self.blockBoundingRect(block).height())
+
+    # ---------- Optional: current line highlight ----------
     def _highlight_current_line(self):
-        # Light highlight current line
-        extra = []
+        selections = []
+
         if not self.isReadOnly():
-            sel = QTextEdit.ExtraSelection()
-            line_color = QColor(235, 245, 255)
-            sel.format.setBackground(line_color)
-            sel.format.setProperty(sel.format.FullWidthSelection, True)
+            sel = QTextEdit.ExtraSelection()  # <-- statt QPlainTextEdit.ExtraSelection
+
+            sel.format.setBackground(QColor("#0b2a52"))  # dunkleres Blau
+            sel.format.setForeground(QColor("#c9b458"))  # Gelb
+            sel.format.setProperty(QTextFormat.FullWidthSelection, True)
+
             sel.cursor = self.textCursor()
             sel.cursor.clearSelection()
-            extra.append(sel)
-        self.setExtraSelections(extra)
+            selections.append(sel)
 
-    def line_number_area(self):
-        return self._line_number_area
+        self.setExtraSelections(selections)
 
 class FileEditorWindow(QDialog):
     def __init__(self, parent, initial_path: str = "", initial_text: str = ""):
@@ -4619,6 +5096,24 @@ class FileEditorWindow(QDialog):
         
         self.setModal(False)
         self.setWindowModality(Qt.NonModal)
+        
+        self.setWindowTitle("CodeEditor")
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+        
+        # Optional: eigenes Icon setzen
+        icon = self.windowIcon()  # oder QIcon("dein_icon.png")
+
+        self.titlebar = TitleBar(self, "CodeEditor", icon)
+
+        # Content Frame (Rahmen + Hintergrund)
+        self.frame = QFrame()
+        self.frame.setObjectName("WindowFrame")
+
+        content_layout = QVBoxLayout(self.frame)
+        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setSpacing(10)
+        
         
         # Splitter: links Tree, rechts Editor
         self.splitter = QSplitter(Qt.Horizontal, self)
@@ -4668,12 +5163,17 @@ class FileEditorWindow(QDialog):
         self.tb = self._create_toolbar()
         self.sb = self._create_statusbar()
         
+        vlayout.addWidget(self.titlebar)
+        vlayout.addWidget(self.fname)
+        
         vlayout.addWidget(self.mb)
         vlayout.addWidget(self.tb)
         vlayout.addWidget(self.splitter)
         vlayout.addWidget(self.sb)
 
         vlayout.setContentsMargins(0, 0, 0, 0)
+        
+        content_layout.addLayout(vlayout)
         self.setLayout(vlayout)
         
         self.ed.cursorPositionChanged.connect(self._update_cursor_status)
@@ -7704,9 +8204,65 @@ class EditorWidget(QDialog):
         
         # Splitter: links Tree, rechts Editor
         self.splitter = QSplitter(Qt.Horizontal, self)
+        self.splitter.setStyleSheet(
+        "QSplitter::handle { background: rgb(200,200,0); }" +
+        "QSplitter::handle:hover { background: rgb(200,200,200); }")
+        
+        self.setStyleSheet("""QDialog { background: #1e1f22; }""")
         
         # --- TreeView links ---
         self.tree = QTreeView(self.splitter)
+        self.tree.setStyleSheet("""
+QTreeView {
+    background: #061226;              /* etwas dunkler als Editor */
+    color: #c9b458;                   /* warmes, dunkleres Gelb */
+    border: 1px solid #0f2a4a;
+    alternate-background-color: #071a33;
+    outline: 0;
+}
+QTreeView::item {
+    padding: 4px 6px;
+}
+QTreeView::item:hover {
+    background: #0b2a52;
+}
+QTreeView::item:selected {
+    background: #274b8a;
+    color: #f0e6b0;
+}
+QTreeView::branch {
+    background: transparent;
+}
+/* Header */
+QHeaderView::section {
+    background: #07162c;
+    color: #c9b458;
+    padding: 4px 6px;
+    border: 0px;
+    border-right: 1px solid #0f2a4a;
+    border-bottom: 1px solid #0f2a4a;
+}
+/* Scrollbar (optional, aber sieht sonst schnell “fremd” aus) */
+QScrollBar:vertical {
+    background: #061226;
+    width: 10px;
+    margin: 0px;
+}
+QScrollBar::handle:vertical {
+    background: #0f2a4a;
+    min-height: 20px;
+    border-radius: 5px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #163a66;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+""")
         
         # Dummy Model (später kannst du hier Klassen/Methoden/etc. einfüllen)
         model = QStandardItemModel()
@@ -9444,14 +10000,33 @@ class MainWindow(QMainWindow):
         action_file_open            = QAction("Öffnen", self)
         action_file_close           = QAction("Schließen", self)
         
+        action_file_open .setShortcut(QKeySequence("Ctrl+O"))
+        action_file_close.setShortcut(QKeySequence("Ctrl+F4"))
+        
+        action_file_open .triggered.connect(self.on_action_file_open)
+        action_file_close.triggered.connect(self.on_action_file_close)
+        
         action_file_new_project     = QAction("Neues Projekt", self)
         action_file_open_project    = QAction("Projekt öffnen", self)
         action_file_print           = QAction("Drucken", self)
+
+        action_file_print.setShortcut(QKeySequence("Ctrl+P"))
+        
+        action_file_new_project .triggered.connect(self.on_action_file_new_project)
+        action_file_open_project.triggered.connect(self.on_action_file_open_project)
+        
         action_file_print_preview   = QAction("Durckvorschau", self)
         action_file_window_app      = QAction("Ein-klick Anwendung", self)
         action_file_web_wizard      = QAction("Web Wizard", self)
         action_file_database        = QAction("Datenbank-Verwaltung", self)
         action_file_exit            = QAction("Beenden", self)
+        
+        action_file_print        .triggered.connect(self.on_action_file_print)
+        action_file_print_preview.triggered.connect(self.on_action_file_print_preview)
+        action_file_window_app   .triggered.connect(self.on_action_file_window_app)
+        action_file_web_wizard   .triggered.connect(self.on_action_file_web_wizard)
+        action_file_database     .triggered.connect(self.on_action_file_database)
+        action_file_exit         .triggered.connect(self.on_action_file_exit)
         
         action_file_new_form        = QAction("Formular", self)
         action_file_new_menu        = QAction("Menu", self)
@@ -9512,6 +10087,28 @@ class MainWindow(QMainWindow):
         self.mdi_open_editor()
         self.mdi_open_table_designer()
 
+    def on_action_file_close(self):
+        print("file close")
+    def on_action_file_database(self):
+        print("file data base")
+    def on_action_file_exit(self):
+        print("file exit")
+        self.close()
+    def on_action_file_new_project(self):
+        print("file new project")
+    def on_action_file_open(self):
+        print("file open")
+    def on_action_file_open_project(self):
+        print("file open project")
+    def on_action_file_print(self):
+        print("file print")
+    def on_action_file_print_preview(self):
+        print("file print preview")
+    def on_action_file_web_wizard(self):
+        print("file web wizard")
+    def on_action_file_window_app(self):
+        print("file window app")
+        
     def on_new(self):
         self.status_left.setText("Neu angelegt")
 
@@ -9596,6 +10193,7 @@ def main():
     if app is not None:
         global MAINAPP
         MAINAPP = MainWindow()
+        MAINAPP.setStyleSheet(APP_DARK_QSS)
         MAINAPP.show()
         sys.exit(app.exec_())
     else:
