@@ -23,7 +23,7 @@ matplotlib==3.9.2
 mdurl==0.1.2
 numpy==2.1.3
 packaging==24.1
-PeachPy @ git+https://github.com/Maratyszcza/PeachPy@349e8f836142b2ed0efeb6bb99b1b715d87202e9
+PeachPy==0.1.2; platform_system=="Windows"
 pefile==2023.2.7
 pillow==11.0.0
 polib==1.2.0
