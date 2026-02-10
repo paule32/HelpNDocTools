@@ -24,7 +24,6 @@ matplotlib==3.9.2
 mdurl==0.1.2
 numpy>=1.26,<3
 packaging==24.1
-PeachPy==0.0.1; platform_system=="Windows"
 pefile==2023.2.7
 pillow==11.0.0
 polib==1.2.0
