@@ -15,10 +15,10 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: "3.11"
+            python: "3.13"
             add_data_sep: ":"
           - os: windows-latest
-            python: "3.11"
+            python: "3.13"
             add_data_sep: ";"
 
     steps:
@@ -38,16 +38,19 @@ jobs:
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
+          # falls requirements.txt in src/ liegt, zusätzlich:
+          if [ -f src/requirements.txt ]; then
+            pip install -r src/requirements.txt
+          fi
           pip install pyinstaller
 
       - name: Build (PyInstaller onefile)
         shell: bash
         run: |
           APP_NAME="dBaseRunner"
-          ENTRYPOINT="dBaseRunner.py"
+          ENTRYPOINT="src/dBaseRunner.py"
 
-          # Pack icons folder into the bundle:
-          # Linux uses ":"  |  Windows uses ";"
+          # icons liegen in src/icons, sollen im Bundle unter src/icons landen
           ADD_DATA="src/icons${{ matrix.add_data_sep }}src/icons"
 
           pyinstaller \
