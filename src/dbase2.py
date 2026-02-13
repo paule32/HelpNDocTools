@@ -10,13 +10,26 @@ def main():
     rt.WRITE("XXX", 12, [ 'ddd', 444])
     rt.WRITE(rt.GET('X', []))
     rt.WRITE(rt.GET('Y', []))
-
-"""
     rt.WRITE(rt.BINOP("Hello", '+', "World"))
-    rt.SET_NAME('X', 23)
+    
+    rt.SET_NAME('X', 2123)
+    rt.WRITE(rt.GET('X',[]))
+    
     rt.SET_NAME('X', rt.BINOP(rt.PRIMARY('X'), '+', 1))
-    if rt.TRUE(rt.BINOP(rt.PRIMARY('X'), '==', 22)):
-        rt.WRITE(rt.BINOP("X := ", '+', rt.GET(x, [])))
+    rt.WRITE(rt.GET('X', []))
+    
+    if rt.TRUE(rt.BINOP(rt.PRIMARY('X'), '==', 2124)):
+        rt.WRITE(rt.BINOP("X := ", '+', rt.GET("X", [])))
+
+    if rt.FALSE(rt.BINOP(2, '==', rt.BINOP(rt.PRIMARY("X"), '+', 1))):
+        rt.WRITE("falsch")
+    
+    print("")
+    print("-------")
+    rt.WRITE("count var   : ", rt.count_var())
+    rt.WRITE("count class : ", rt.count_class())
+    rt.WRITE("count method: ", rt.count_method())
+"""    
     if rt.TRUE(rt.BINOP(2, '==', rt.BINOP(rt.PRIMARY('x'), '+', 1))):
         rt.WRITE("falsch")
     else:

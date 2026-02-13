@@ -3,9 +3,11 @@
 # \note  (c) 2025, 2026 by Jens Kallup - paule32
 #        all rights reserved.
 # ----------------------------------------------------------------------------
-import os
-import re
-import sys
+import os       ##! Python operating system module
+import re       ##! Python regular expression module
+import sys      ##! Python system module
+
+import inspect
 
 from typing          import Callable, Optional, Any
 
@@ -16,7 +18,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit
 _SGR_RE = re.compile(r"\x1b\[([0-9;]*)m")
 
 # ----------------------------------------------------------------------------
-# 16 foreground ANSI terminal color values ...
+# \brief 16 foreground ANSI terminal color values ...
 # ----------------------------------------------------------------------------
 FG_16 = {
      30: "#000000",  31: "#cc0000",  32: "#00aa00",  33: "#aa8800",
@@ -25,7 +27,7 @@ FG_16 = {
      94: "#5555ff",  95: "#ff55ff",  96: "#55ffff",  97: "#ffffff",
 }
 # ----------------------------------------------------------------------------
-# 16 background ANSI terminal color values ...
+# \brief 16 background ANSI terminal color values ...
 # ----------------------------------------------------------------------------
 BG_16 = {
      40: "#000000",  41: "#550000",  42: "#005500",  43: "#554400",
@@ -35,7 +37,10 @@ BG_16 = {
 }
 
 # ----------------------------------------------------------------------------
-# ANSI states ...
+# \brief  This is class AnsiState. They will be used to apply the text colors
+#         for a given string sequence.
+# \since  version 0.0.1
+# \author paule32
 # ----------------------------------------------------------------------------
 class AnsiState:
     def __init__(self):
@@ -95,7 +100,10 @@ def iter_ansi_chunks(text: str, state: AnsiState):
         yield text[pos:], state.to_format()
 
 # ----------------------------------------------------------------------------
-# command router - the commands ...
+# \brief  this is the command router class. The class itself will be used for
+#         interpreting the commands that are typed into the Terminal Window.
+# \since  version 0.0.1
+# \author paule32
 # ----------------------------------------------------------------------------
 class CommandRouter(QObject):
     output = pyqtSignal(str)  # ANSI text output
@@ -151,9 +159,13 @@ class CommandRouter(QObject):
         except Exception as e:
             return f"\x1b[91mcalc error:\x1b[0m {e}"
 
-
 # ----------------------------------------------------------------------------
-# input terminal widget ...
+# \brief  this class contains code fpr the input terminal widget. It will emu-
+#         late texual xterm terminal with the possibility to encode text with
+#         ansi-sequences like for the foreground and background color of a
+#         single charcter.
+# \since  version 0.0.1
+# \author paule32
 # ----------------------------------------------------------------------------
 class TerminalWidget(QTextEdit):
     def __init__(self, router: CommandRouter, cols=80, rows=25, parent=None):
@@ -344,7 +356,10 @@ class TerminalWidget(QTextEdit):
         self._protect_cursor()
 
 # ----------------------------------------------------------------------------
-# container main window ...
+# \brief  container main window - the main windows for gui applications...
+# \param  nothing
+# \since  version 0.0.1
+# \author paule32
 # ----------------------------------------------------------------------------
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -390,7 +405,11 @@ class MainWindow(QMainWindow):
             self.setMinimumHeight(470)
 
 # ----------------------------------------------------------------------------
-# entry point of each Qt5 application ...
+# \brief  entry point of each Qt5 application, to call the external code for
+#         the application.
+# \param  callable - a callback function that will execute at start
+# \since  version 0.0.1
+# \author paule32
 # ----------------------------------------------------------------------------
 def EntryPoint(callback: Optional[Callable[[], Any]] = None) -> int:
     app = QApplication(sys.argv)
@@ -401,7 +420,9 @@ def EntryPoint(callback: Optional[Callable[[], Any]] = None) -> int:
     sys.exit(app.exec_())
     
 # ----------------------------------------------------------------------------
-# run time library house keeper ...
+# \brief  run time library house keeper dictionaey list ...
+# \since  version 0.0.1
+# \author paule32
 # ----------------------------------------------------------------------------
 var_registry = {
     "info":  {          # source informations
@@ -451,12 +472,24 @@ var_registry = {
 class RT:
     def __init__(self, runner=None):
         self.runner = runner  # optional: reuse your dBaseRunner instance
-
+        self.last_cmd   = ""
+        self.last_entry = None
+        
+    def count_var(self) -> int:
+        return var_registry["info"]["var"]
+        
+    def count_class(self) -> int:
+        return var_registry["info"]["class"]
+        
+    def count_method(self) -> int:
+        return var_registry["info"]["method"]
+        
     # -----------------------------------------------------------------------
     # \brief  write text into the terminal window
     # \param  args - dynamic argument list
     # \return True, if execute fine, else rause exception
     # \since  version 0.0.1
+    # \author paule32
     # -----------------------------------------------------------------------
     def WRITE(self, *args):
         if len(args) <= 0:
@@ -465,36 +498,30 @@ class RT:
         sz = f""
         found = False
         for v in args:
-            if isinstance(v, str):
-                sz += f"{str(v)}"
-                found = True
-                continue
-            elif isinstance(v, int):
-                sz += f"{str(v)}"
-                found = True
-                continue
-            elif isinstance(v, float):
-                sz += f"{str(v)}"
-                found = True
-                continue
-            elif isinstance(v, list):
+            if   isinstance(v,   str): sz += f"{str(v)}"; found = True; continue
+            elif isinstance(v,   int): sz += f"{str(v)}"; found = True; continue
+            elif isinstance(v, float): sz += f"{str(v)}"; found = True; continue
+            elif isinstance(v,  list):
                 found = False
                 for l in v:
                     self.WRITE(l)
-                continue
+                    continue
             else:
                 if not found:
                     sz += "Other: " + str(type(v)) + " " + str(v)
         print(sz)
-
+    
     def NEW(self, class_name: str, *args):
         return self.runner.new_instance(class_name.upper(), list(args))
     
     # -----------------------------------------------------------------------
-    # \brief check, if given variable "base" is stored. If so, then return
-    #        the value, else raise exception.
-    # \param base - string of the variable
-    # \param path - a given path, default is []
+    # \brief  check, if given variable "base" is stored. If so, then return
+    #         the value, else raise exception.
+    # \param  base  - string of the variable
+    # \param  path  - a given path, default is []
+    # \return value - the value of the base variable
+    # \since  version 0.0.1
+    # \author paule32
     # -----------------------------------------------------------------------
     def GET(self, base, path):
         base = base.upper()
@@ -509,6 +536,18 @@ class RT:
         self.runner.set_property_path(base, path, value, None)
         return value
 
+    def PRIMARY(self, name):
+        # identifiers only 32 in size length
+        name = name[:32].strip().upper()
+        for row in var_registry["var"]:
+            for entry in row:
+                if entry["name"] == name:
+                    self.last_cmd   = "primary"
+                    self.last_entry = entry
+                    print("--> ", entry["value"])
+                    return entry["value"]
+        return None
+    
     def PARAMETER(self, names):
         # mappe das auf deine Runner-Logik (Scope-Setup)
         return self.runner._parameter(names)
@@ -517,13 +556,86 @@ class RT:
         # if last segment is method name, resolve then call your runner logic
         # (depends on how your runner currently calls methods)
         return self.runner.call_path(base, path, args)
-
+    
+    # -----------------------------------------------------------------------
+    # \brief  binary operator to concatenate "a" with "b".
+    # \param  a   - lhs-string
+    # \param  op  - binary operator (+-)
+    # \param  b   - rhs-string
+    # \return str - concatenated a + b string
+    # \since  version 0.0.1
+    # \author paule32
+    # -----------------------------------------------------------------------
     def BINOP(self, a, op, b):
-        return self.runner.binop(a, op, b)
+        sz  = ""
+        if isinstance(a, str):
+            if isinstance(b, str):
+                if op == '+': sz += a + str(b); return sz
+                else:
+                    raise Exception("BINOP: unknown operator.")
+            elif isinstance(b, int) or isinstance(b, float):
+                if op == '+': sz += a + str(b); return sz
+                else:
+                    raise Exception("BINOP: unknown operator.")
+            raise Exception("BINOP: rhs - unknown type.")
+        elif isinstance(a, int) or isinstance(a, float):
+            bool_op = False
+            expr    = 0
+            name    = str(a)
+            if len(name) > 32:
+                print("warning:", "lhs integer variable truncated to max. 32 chars.")
+                name = name[:32]
+                a = float(name)
+            if isinstance(b, int) or isinstance(b, float):
+                name = str(b)
+                if len(name) > 32:
+                    print("warning:", "rhs integer variable truncated to max. 32 chars.")
+                    name = name[:32]
+                    b = float(name)
 
+                if   op ==  '+': expr = float(a  + b)
+                elif op ==  '-': expr = float(a  - b)
+                elif op ==  '*': expr = float(a  * b)
+                elif op ==  '/': expr = float(a  / b)
+                
+                elif op ==  "<": expr = bool (a  < b)
+                elif op ==  ">": expr = bool (a  > b)
+                
+                elif op == "==": expr = bool (a == b)
+                elif op == "<=": expr = bool (a <= b)
+                elif op == ">=": expr = bool (a >= b)
+                elif op == "!=": expr = bool (a != b)
+                elif op == "<>": expr = bool (a != b)
+                else:
+                    raise Except("BINOP: unknown operator.")
+                return expr
+        else:
+            raise Exception("BINOP: lhs - unknown type.")
+    
+    # -----------------------------------------------------------------------
+    # \brief  this definition function simply return true or false based on v.
+    # \param  v    - bool
+    # \return bool - true or false
+    # \see    def FALSE(self,v)
+    # \since  version 0.0.1
+    # \author paule32
+    # -----------------------------------------------------------------------
     def TRUE(self, v):
-        return bool(v)
-
+        if v == True: return bool(True)
+        else:         return bool(False)
+    
+    # -----------------------------------------------------------------------
+    # \brief  this definition function simply return true or false based on v.
+    # \param  v    - bool
+    # \return bool - true or false
+    # \see    def TRUE(self,v)
+    # \since  version 0.0.1
+    # \author paule32
+    # -----------------------------------------------------------------------
+    def FALSE(self, v):
+        if v == False: return bool(False)
+        else:          return bool(True)
+    
     # -----------------------------------------------------------------------
     # \brief set the name of a variable "name" with the "value"
     # \see   GET_NAME
@@ -533,11 +645,15 @@ class RT:
         try:
             # identifiers only 32 in size length
             name = name[:32].strip().upper()
-            if not name in var_registry:
-                var_registry["info"]["var"] += 1
             # ---------------------------------------
             # set the properties of an dict. item ...
             # ---------------------------------------
+            for row in var_registry["var"]:
+                for entry in row:
+                    if entry["name"] == name:
+                        entry["value"] = value
+                        return True
+            var_registry["info"]["var"] += 1
             prop = {
                 "type"  : type(value),
                 "parent": None,
