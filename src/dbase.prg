@@ -20,6 +20,7 @@
 
 WRITE name(Hello, World)
 X = 23
+WRITE X
 X = X + 1
 IF X == 22
     WRITE "X := " + X

@@ -7,6 +7,8 @@ import os
 import re
 import sys
 
+from typing          import Callable, Optional, Any
+
 from PyQt5.QtCore    import Qt, QSocketNotifier, QThread, pyqtSignal, QObject
 from PyQt5.QtGui     import QFont, QTextCursor, QTextCharFormat, QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit
@@ -390,41 +392,59 @@ class MainWindow(QMainWindow):
 # ----------------------------------------------------------------------------
 # entry point of each Qt5 application ...
 # ----------------------------------------------------------------------------
-def EntryPoint():
+def EntryPoint(callback: Optional[Callable[[], Any]] = None) -> int:
     app = QApplication(sys.argv)
     w = MainWindow()
     w.show()
+    if callable(callback):
+        callback()
     sys.exit(app.exec_())
     
 # ----------------------------------------------------------------------------
 # run time library house keeper ...
 # ----------------------------------------------------------------------------
 var_registry = {
-    "info": [           # source informations
+    "info":  {          # source informations
         "var"   : 0,    # count variabl's
         "class" : 0,    # count class's
         "method": 0,    # count method's
+    },
+    "var": [            # table dictionary for variables
+        [{
+            "name"  : "_app",   # dbase default application variable
+            "type"  : None,
+            "parent": None,
+            "value" : None,
+        }]
     ],
-    "var": [ {          # table dictionary for variables
-        "name"  : "_app", # dbase default application variable
-        "type"  : None,
-        "parent": None,
-        "value" : None,
-        } ],
-    } ],
     "class": [          # table dictionary for classes
         {
-        # base class informations
-        "name": "FORM", # std. Form class
-        "parent": None, # parent class
+            # base class informations
+            "name": "FORM", # std. Form class
+            "parent": None, # parent class
         
-        # FORN event handlers
-        "onClick"       : None,
-        "onGotFocus"    : None,
-        "onLostFocus"   : None,
+            "text"  : "Form",
+            "font"  : {
+                "family"    : "Arial",
+                "size"      : 12,
+                "bold"      :  0,
+                "italic"    :  0,
+                "kursiv"    :  0,
+                "underline" :  0,
+            },
+            
+            "width" : 230,
+            "height": 230,
+            "left"  : 190,
+            "top"   : 100,
+        
+            # FORN event handlers
+            "onClick"       : None,
+            "onGotFocus"    : None,
+            "onLostFocus"   : None,
         },
-    ]
-}            
+    ],
+}
 # ----------------------------------------------------------------------------
 # run time library functionality ...
 # ----------------------------------------------------------------------------
@@ -440,27 +460,50 @@ class RT:
     # -----------------------------------------------------------------------
     def WRITE(self, *args):
         if len(args) <= 0:
+            print("no arguments")
             return
-        sz = ""
+        sz = f""
+        found = False
         for v in args:
             if isinstance(v, str):
-                sz += "String: " + v
-            if isinstance(v, int):
-                sz += "Int: " + v
-            if isinstance(v, float):
-                sz += "Float: " + v
+                sz += f"{str(v)}"
+                found = True
+                continue
+            elif isinstance(v, int):
+                sz += f"{str(v)}"
+                found = True
+                continue
+            elif isinstance(v, float):
+                sz += f"{str(v)}"
+                found = True
+                continue
+            elif isinstance(v, list):
+                found = False
+                for l in v:
+                    self.WRITE(l)
+                continue
             else:
-                sz += "Other: " + type(v) + " " + v
+                if not found:
+                    sz += "Other: " + str(type(v)) + " " + str(v)
         print(sz)
 
     def NEW(self, class_name: str, *args):
         return self.runner.new_instance(class_name.upper(), list(args))
-
+    
+    # -----------------------------------------------------------------------
+    # \brief check, if given variable "base" is stored. If so, then return
+    #        the value, else raise exception.
+    # \param base - string of the variable
+    # \param path - a given path, default is []
+    # -----------------------------------------------------------------------
     def GET(self, base, path):
-        cur = base
-        for p in path:
-            cur = self.runner.get_member(cur, p, None)
-        return cur
+        base = base.upper()
+        for row in var_registry["var"]:
+            for entry in row:
+                if entry["name"] == base:
+                    return entry["value"]
+        # todo: class
+        raise Exception(f"variable: '{base}' is undefined.")
 
     def SET(self, base, path, value):
         self.runner.set_property_path(base, path, value, None)
@@ -488,8 +531,9 @@ class RT:
     # -----------------------------------------------------------------------
     def SET_NAME(self, name, value):
         try:
-            name = strip(name[:32]).rstrip().upper()
-            if name in var_registry:
+            # identifiers only 32 in size length
+            name = name[:32].strip().upper()
+            if not name in var_registry:
                 var_registry["info"]["var"] += 1
             # ---------------------------------------
             # set the properties of an dict. item ...
@@ -500,7 +544,7 @@ class RT:
                 "name"  : name,
                 "value" : value,
             }
-            var_registry["var"].append(prop)
+            var_registry["var"].append([prop])
         except:
             raise Exception("SET_NAME: ", name)
         return True
@@ -514,8 +558,9 @@ class RT:
     # -----------------------------------------------------------------------
     def GET_NAME(self, name):
         try:
-        except:
-            rause Exception("GET_NAME: could not get value of:", name)
+            print(name)
+        except Exception:
+            raise Exception("GET_NAME: could not get value of:", name)
         return True
 
     def DELETE_NAME(self, name):

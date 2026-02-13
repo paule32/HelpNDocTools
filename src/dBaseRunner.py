@@ -1575,7 +1575,7 @@ class DBaseToJava:
             return f"TRT.V({actx.STRING().getText()})"
         if actx.dottedRef():
             base, path = self.gen_dotted_ref_parts(actx.dottedRef())
-            return f"rt.GET({base}, {path})"
+            return f"rt.GET('{base.upper()}', {path})"
         if actx.expr():
             return self.gen_expr(actx.expr())
         return "TRT.Null()"
@@ -1705,7 +1705,7 @@ class DBaseToJava:
             return "rt.GET_THIS()"
         if ctx.dottedRef():
             base, path = self.gen_dotted_ref_parts(ctx.dottedRef())
-            return f"rt.GET({base}, {path})"
+            return f"rt.GET(\"{base.upper()}\", {path})"
         if ctx.IDENT():
             return f"rt.GET_NAME({self.jstr(ctx.IDENT().getText())})"
         if ctx.postfixExpr():
@@ -2624,7 +2624,7 @@ class DBaseToCpp:
             return "rt.GET_THIS()"
         if ctx.dottedRef():
             base, path = self.gen_dotted_ref_parts(ctx.dottedRef())
-            return f"rt.GET({base}, {path})"
+            return f"rt.GET('{base.upper()}', {path})"
         if ctx.IDENT():
             return f"rt.GET_NAME({self.cpp_str(ctx.IDENT().getText())})"
         if ctx.postfixExpr():
@@ -2870,7 +2870,7 @@ class DBaseToPascal:
             return actx.STRING().getText()
         if actx.dottedRef():
             base_expr, path = self.gen_dotted_ref_parts(actx.dottedRef())
-            return f"rt.GET({base_expr}, {path})"
+            return f"rt.GET('{base_expr.upper()}', {path})"
         if actx.expr():
             return self.gen_expr(actx.expr())
         return f"Null"
@@ -3018,7 +3018,7 @@ class DBaseToPascal:
             return "rt.GET_THIS()"
         if ctx.dottedRef():
             base_expr, path = self.gen_dotted_ref_parts(ctx.dottedRef())
-            return f"rt.GET({base_expr}, {path})"
+            return f"rt.GET('{base_expr.upper()}', {path})"
         if ctx.IDENT():
             name = ctx.IDENT().getText()
             return f"rt.GET_NAME('{name}')"
@@ -4227,7 +4227,7 @@ class DBaseToPython:
 
         if ctx.dottedRef():
             base_expr, path = self.gen_dotted_ref_parts(ctx.dottedRef())
-            return f"rt.GET({base_expr}, {path})"
+            return f"rt.GET('{base_expr.upper()}', {path})"
 
         if ctx.IDENT():
             # Variablenzugriff: runtime-semantisch (Scoping/WITH)
@@ -4253,7 +4253,7 @@ class DBaseToPython:
             return actx.STRING().getText()
         if actx.dottedRef():
             base_expr, path = self.gen_dotted_ref_parts(actx.dottedRef())
-            return f"rt.GET({base_expr}, {path})"
+            return f"rt.GET('{base_expr.upper()}', {path})"
         if actx.expr():
             return self.gen_expr(actx.expr())
         return f"rt.PRIMARY({actx.getText()!r})"
