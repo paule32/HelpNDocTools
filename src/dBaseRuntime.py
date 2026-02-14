@@ -474,11 +474,12 @@ var_registry = {
     ],
 }
 # ----------------------------------------------------------------------------
-# run time library functionality ...
+# \brief  class for run time library functionality ...
+# \since  version 0.0.1
+# \author paule32
 # ----------------------------------------------------------------------------
-class RT:
-    def __init__(self, parent = None):
-        self.parent     = parent
+class RT():
+    def __init__(self):
         self.last_cmd   = ""
         self.last_entry = None
         
@@ -527,17 +528,17 @@ class RT:
     # \since  version 0.0.1
     # \author paule32
     # -----------------------------------------------------------------------
-    def NEW(self, obj, class_name: str, *args):
+    def NEW(self, class_name: str, *args):
         name  = class_name.upper()
         found = False
         
         #class_name = "PARENTFORM"
         #cls = getattr(obj.__class__, class_name, None)
         class_name = "PARENTFORM"
-        cls = getattr(obj, class_name, None)
+        cls = getattr(self.parent, class_name, None)
         
         print("---> ", cls)
-        print("==)> ", obj)
+        print("==)> ", self.parent)
         return
         for item in var_registry["class"]:
             if item["name"].upper() == name:
@@ -777,7 +778,7 @@ class RT:
         #    raise RuntimeError("WITH_SET ohne aktives WITH")
         #self.runner.set_property_path(base, path, value, None)
         return value
-
+    
     def CREATE_FILE(self, arg):
         return self.runner._create_file(arg)
         
@@ -789,8 +790,12 @@ class RT:
             return range(start, end + 1, step)
         else:
             return range(start, end - 1, step)
-
+    
+    # -----------------------------------------------------------------------
+    # \brief  create a copy of the class instance for internal use.
+    # \since  version 0.0.1
+    # \author paule32
+    # -----------------------------------------------------------------------
     def MAKE_INSTANCE(self, py_obj, args):
-        # optional hook if you want Python class instances to wrap your Instance
-        return None
+        return py_obj(args)
  

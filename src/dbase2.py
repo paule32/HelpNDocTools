@@ -5,6 +5,8 @@ rt = RT()
 
 class dbase_main():
     def __init__(self):
+        rt.parent = self
+        
         rt.SET_NAME('Y', 12)
         rt.SET_NAME('X', 23)
         
@@ -36,7 +38,7 @@ class dbase_main():
                 
         rt.PARAMETER(['bmodal'])
         rt.SET_NAME('B', None)
-        rt.SET_NAME('B', rt.NEW(self, "PARENTFORM", 51, 4))
+        rt.SET_NAME('B', rt.NEW("PARENTFORM", 51, 4))
         
         #rt.CALL_ANY(rt.PRIMARY('B.Init'), [121, 2])
         #rt.CALL_ANY(rt.PRIMARY('B.Open'), [])
@@ -50,6 +52,7 @@ class dbase_main():
     class PARENTFORM():
         def __init__(self, *args):
             super().__init__()
+            self._instance = rt.MAKE_INSTANCE(self, args)
 
 """
     class ParentForm(FORM):
@@ -149,5 +152,4 @@ class dbase_main():
 """
 
 if __name__ == '__main__':
-    rt = RT(dbase_main())
-    EntryPoint(rt)
+    EntryPoint(dbase_main())
