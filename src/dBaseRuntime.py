@@ -441,8 +441,9 @@ var_registry = {
     "class": [          # table dictionary for classes
         {
             # base class informations
-            "name": "FORM", # std. Form class
-            "parent": None, # parent class
+            "name"  : "FORM", # std. Form class
+            "parent": None,   # parent class
+            "args"  : [],     # argument list
         
             "text"  : "Form",
             "font"  : {
@@ -465,13 +466,19 @@ var_registry = {
             "onLostFocus"   : None,
         },
     ],
+    "parameter": [      # parameters
+        {
+            'name' : "a@",
+            "value": True
+        },
+    ],
 }
 # ----------------------------------------------------------------------------
 # run time library functionality ...
 # ----------------------------------------------------------------------------
 class RT:
-    def __init__(self, runner=None):
-        self.runner = runner  # optional: reuse your dBaseRunner instance
+    def __init__(self, parent = None):
+        self.parent     = parent
         self.last_cmd   = ""
         self.last_entry = None
         
@@ -511,8 +518,48 @@ class RT:
                     sz += "Other: " + str(type(v)) + " " + str(v)
         print(sz)
     
-    def NEW(self, class_name: str, *args):
-        return self.runner.new_instance(class_name.upper(), list(args))
+    # -----------------------------------------------------------------------
+    # \brief  create a new class object given by a "class_name" string and
+    #         dynamic length of arguments by "*args".
+    # \param  class_name - string of class
+    # \param  arg<1>     - first argument
+    # \param  arg<n>     - second or n-th argument
+    # \since  version 0.0.1
+    # \author paule32
+    # -----------------------------------------------------------------------
+    def NEW(self, obj, class_name: str, *args):
+        name  = class_name.upper()
+        found = False
+        
+        #class_name = "PARENTFORM"
+        #cls = getattr(obj.__class__, class_name, None)
+        class_name = "PARENTFORM"
+        cls = getattr(obj, class_name, None)
+        
+        print("---> ", cls)
+        print("==)> ", obj)
+        return
+        for item in var_registry["class"]:
+            if item["name"].upper() == name:
+                found = True
+                break
+            else:
+                continue
+        
+        if not found:
+            if cls is None:
+                raise KeyError(f"class: '{name}' not found.")
+            item = {
+                "name" : name,
+                "args" : list(args),
+                "value": cls,
+            }
+            var_registry["class"].append(item)
+            for it in var_registry["class"]:
+                print("--> ", it["name"])
+                print("--> ", it["args"])
+        else:
+            raise Exception(f"error: class '{name}' already exists.")
     
     # -----------------------------------------------------------------------
     # \brief  check, if given variable "base" is stored. If so, then return
@@ -533,9 +580,16 @@ class RT:
         raise Exception(f"variable: '{base}' is undefined.")
 
     def SET(self, base, path, value):
-        self.runner.set_property_path(base, path, value, None)
+        #self.runner.set_property_path(base, path, value, None)
         return value
-
+    
+    # -----------------------------------------------------------------------
+    # \brief  get a primary bounded variable value by "name".
+    # \param  name - string
+    # \return value
+    # \since  version 0.0.1
+    # \author pauöe32
+    # -----------------------------------------------------------------------
     def PRIMARY(self, name):
         # identifiers only 32 in size length
         name = name[:32].strip().upper()
@@ -544,18 +598,44 @@ class RT:
                 if entry["name"] == name:
                     self.last_cmd   = "primary"
                     self.last_entry = entry
-                    print("--> ", entry["value"])
                     return entry["value"]
         return None
     
-    def PARAMETER(self, names):
-        # mappe das auf deine Runner-Logik (Scope-Setup)
-        return self.runner._parameter(names)
+    # -----------------------------------------------------------------------
+    # \brief  add a parameter to the parameter list. parameter can occur over
+    #         class entries to made the following code work:
+    #         "do program.prg with parameter"
+    # \since  version 0.0.1
+    # \author paule32
+    # -----------------------------------------------------------------------
+    def PARAMETER(self, names: list):
+        # ------------------------------
+        # add field, if not exists ...
+        # ------------------------------
+        var_registry.setdefault("parameter", [])
+
+        # Optional: schneller Lookup (Case-insensitive)
+        existing_upper = {p["name"].upper() for p in var_registry["parameter"]}
+
+        for s in names:
+            s_up = str(s).upper()
+            if s_up in existing_upper:
+                continue
+            # ------------------------------
+            # not found, add it ...
+            # ------------------------------
+            pitem = {"name": s, "value": False}
+            
+            var_registry["parameter"].append(pitem)
+            existing_upper.add(s_up)
+            
+            print("added:", s)
     
     def CALL(self, base, path, args):
         # if last segment is method name, resolve then call your runner logic
         # (depends on how your runner currently calls methods)
-        return self.runner.call_path(base, path, args)
+        #return self.runner.call_path(base, path, args)
+        pass
     
     # -----------------------------------------------------------------------
     # \brief  binary operator to concatenate "a" with "b".
@@ -684,16 +764,18 @@ class RT:
 
     def PUSH_WITH(self, base):
         # du hast im Runner bereits current_with_base benutzt
-        self.runner.current_with_base = base
+        #self.runner.current_with_base = base
+        pass
 
     def POP_WITH(self):
-        self.runner.current_with_base = None
+        #self.runner.current_with_base = None
+        pass
 
     def WITH_SET(self, path, value):
-        base = self.runner.current_with_base
-        if base is None:
-            raise RuntimeError("WITH_SET ohne aktives WITH")
-        self.runner.set_property_path(base, path, value, None)
+        #base = self.runner.current_with_base
+        #if base is None:
+        #    raise RuntimeError("WITH_SET ohne aktives WITH")
+        #self.runner.set_property_path(base, path, value, None)
         return value
 
     def CREATE_FILE(self, arg):

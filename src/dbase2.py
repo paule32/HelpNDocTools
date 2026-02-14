@@ -3,51 +3,55 @@ from dBaseRuntime import RT, EntryPoint
 
 rt = RT()
 
-def main():
-    rt.SET_NAME('Y', 12)
-    rt.SET_NAME('X', 23)
-    
-    rt.WRITE("XXX", 12, [ 'ddd', 444])
-    rt.WRITE(rt.GET('X', []))
-    rt.WRITE(rt.GET('Y', []))
-    rt.WRITE(rt.BINOP("Hello", '+', "World"))
-    
-    rt.SET_NAME('X', 2123)
-    rt.WRITE(rt.GET('X',[]))
-    
-    rt.SET_NAME('X', rt.BINOP(rt.PRIMARY('X'), '+', 1))
-    rt.WRITE(rt.GET('X', []))
-    
-    if rt.TRUE(rt.BINOP(rt.PRIMARY('X'), '==', 2124)):
-        rt.WRITE(rt.BINOP("X := ", '+', rt.GET("X", [])))
-
-    if rt.FALSE(rt.BINOP(2, '==', rt.BINOP(rt.PRIMARY("X"), '+', 1))):
-        rt.WRITE("falsch")
-    
-    print("")
-    print("-------")
-    rt.WRITE("count var   : ", rt.count_var())
-    rt.WRITE("count class : ", rt.count_class())
-    rt.WRITE("count method: ", rt.count_method())
-"""    
-    if rt.TRUE(rt.BINOP(2, '==', rt.BINOP(rt.PRIMARY('x'), '+', 1))):
-        rt.WRITE("falsch")
-    else:
-        if rt.TRUE(rt.BINOP(3, '<', 3)):
-            rt.WRITE(rt.BINOP(rt.BINOP("huch", '+', " hach"), '+', 'xxxx'))
-        else:
-            rt.WRITE("sonst")
-        rt.WRITE("naja")
-        if rt.TRUE(rt.BINOP(rt.PRIMARY('x'), '==', 23)):
-            rt.WRITE("2222")
+class dbase_main():
+    def __init__(self):
+        rt.SET_NAME('Y', 12)
+        rt.SET_NAME('X', 23)
+        
+        rt.WRITE("XXX", 12, [ 'ddd', 444])
+        rt.WRITE(rt.GET('X', []))
+        rt.WRITE(rt.GET('Y', []))
+        rt.WRITE(rt.BINOP("Hello", '+', "World"))
+        
+        rt.SET_NAME('X', 23)
+        rt.WRITE(rt.GET('X',[]))
         rt.SET_NAME('X', rt.BINOP(rt.PRIMARY('X'), '+', 1))
+        rt.WRITE(rt.GET('X', []))
+        
         if rt.TRUE(rt.BINOP(rt.PRIMARY('X'), '==', 24)):
-            rt.WRITE("OKAY")
-    rt.PARAMETER(['bmodal'])
-    rt.SET_NAME('B', None)
-    rt.SET_NAME('B', rt.NEW('ParentForm', 51, 4))
-    rt.CALL_ANY(rt.PRIMARY('B.Init'), [121, 2])
-    rt.CALL_ANY(rt.PRIMARY('B.Open'), [])
+            rt.WRITE(rt.BINOP("X := ", '+', rt.GET("X", [])))
+        if rt.FALSE(rt.BINOP(2, '==', rt.BINOP(rt.PRIMARY("X"), '+', 1))):
+            rt.WRITE("falsch")
+        else:
+            if rt.TRUE(rt.BINOP(3, '<', 3)):
+                rt.WRITE(rt.BINOP(rt.BINOP("huch", '+', " hach"), '+', 'xxxx'))
+            else:
+                rt.WRITE("sonst")
+            rt.WRITE("naja")
+            if rt.TRUE(rt.BINOP(rt.PRIMARY('x'), '==', 23)):
+                rt.WRITE("2222")
+            rt.SET_NAME('X', rt.BINOP(rt.PRIMARY('X'), '+', 1))
+            if rt.TRUE(rt.BINOP(rt.PRIMARY('X'), '==', 25)):
+                rt.WRITE("OKAY")
+                
+        rt.PARAMETER(['bmodal'])
+        rt.SET_NAME('B', None)
+        rt.SET_NAME('B', rt.NEW(self, "PARENTFORM", 51, 4))
+        
+        #rt.CALL_ANY(rt.PRIMARY('B.Init'), [121, 2])
+        #rt.CALL_ANY(rt.PRIMARY('B.Open'), [])
+        
+        print("")
+        print("-------")
+        rt.WRITE("count var   : ", rt.count_var())
+        rt.WRITE("count class : ", rt.count_class())
+        rt.WRITE("count method: ", rt.count_method())
+    
+    class PARENTFORM():
+        def __init__(self, *args):
+            super().__init__()
+
+"""
     class ParentForm(FORM):
         def __init__(self, *args):
             super().__init__()
@@ -145,4 +149,5 @@ def main():
 """
 
 if __name__ == '__main__':
-    EntryPoint(main())
+    rt = RT(dbase_main())
+    EntryPoint(rt)
